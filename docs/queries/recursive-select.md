@@ -115,7 +115,7 @@ The executed query is:
         recursive_select_1 as ( 
             select 
                 id as id, 
-                `name` as `name`, 
+                name as name, 
                 parent_id as parentId 
             from company 
             where id = ? 
@@ -124,14 +124,14 @@ The executed query is:
     
             select 
                 company.id as id, 
-                company.`name` as `name`, 
+                company.name as name, 
                 company.parent_id as parentId 
             from company 
             join recursive_select_1 on recursive_select_1.parentId = company.id 
         ) 
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         parentId as parentId 
     from recursive_select_1
     ```
@@ -290,7 +290,7 @@ The executed query is:
         recursive_select_1 as (
             select 
                 id as id, 
-                `name` as `name`, 
+                name as name, 
                 parent_id as parentId 
             from company 
             where id = ? 
@@ -299,14 +299,14 @@ The executed query is:
             
             select 
                 company.id as id, 
-                company.`name` as `name`, 
+                company.name as name, 
                 company.parent_id as parentId 
             from company 
             join recursive_select_1 on recursive_select_1.parentId = company.id
         ) 
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         parentId as parentId 
     from recursive_select_1
     ```
@@ -482,7 +482,7 @@ The executed query is:
         recursive_select_1 as ( 
             select 
                 id as id, 
-                `name` as `name`, 
+                name as name, 
                 parent_id as parentId 
             from company 
             where id = ? 
@@ -491,14 +491,14 @@ The executed query is:
     
             select 
                 company.id as id, 
-                company.`name` as `name`, 
+                company.name as name, 
                 company.parent_id as parentId 
             from company 
             join recursive_select_1 on recursive_select_1.id = company.parent_id 
         ) 
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         parentId as parentId 
     from recursive_select_1
     ```
@@ -657,7 +657,7 @@ The executed query is:
         recursive_select_1 as (
             select 
                 id as id, 
-                `name` as `name`, 
+                name as name, 
                 parent_id as parentId 
             from company 
             where id = ? 
@@ -666,14 +666,14 @@ The executed query is:
             
             select 
                 company.id as id, 
-                company.`name` as `name`, 
+                company.name as name, 
                 company.parent_id as parentId 
             from company 
             join recursive_select_1 on recursive_select_1.id = company.parent_id
         ) 
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         parentId as parentId 
     from recursive_select_1
     ```
@@ -869,7 +869,7 @@ The executed query is:
         recursive_select_1 as ( 
             select 
                 id as id, 
-                `name` as `name`, 
+                name as name, 
                 parent_id as parentId 
             from company 
             where id = ? 
@@ -878,14 +878,14 @@ The executed query is:
     
             select 
                 company.id as id, 
-                company.`name` as `name`, 
+                company.name as name, 
                 company.parent_id as parentId 
             from company 
             join recursive_select_1 on recursive_select_1.id = company.parent_id 
         ) 
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         parentId as parentId 
     from recursive_select_1 
     order by id
@@ -1021,8 +1021,8 @@ The executed query is:
         recursive_select_1 as ( 
             select 
                 id as id, 
-                `name` as `name`, 
-                ? as `level` 
+                name as name, 
+                ? as level 
             from company 
             where id = ? 
     
@@ -1030,18 +1030,18 @@ The executed query is:
     
             select 
                 company.id as id, 
-                company.`name` as `name`, 
-                recursive_select_1.`level` + ? as `level` 
+                company.name as name, 
+                recursive_select_1.level + ? as level 
             from company 
             join recursive_select_1 on recursive_select_1.id = company.parent_id 
-            where recursive_select_1.`level` < ? 
+            where recursive_select_1.level < ? 
         ) 
     select 
         id as id, 
-        `name` as `name`, 
-        `level` as `level` 
+        name as name, 
+        level as level 
     from recursive_select_1 
-    order by `level`
+    order by level
     ```
 === "Oracle"
     ```oracle
@@ -1134,7 +1134,7 @@ The executed query is:
             select 
                 id as id, 
                 name as name, 
-                @0 as [level] 
+                @0 as level 
             from company 
             where id = @1 
     
@@ -1143,17 +1143,17 @@ The executed query is:
             select 
                 company.id as id, 
                 company.name as name, 
-                recursive_select_1.[level] + @2 as [level] 
+                recursive_select_1.level + @2 as level 
             from company 
             join recursive_select_1 on recursive_select_1.id = company.parent_id 
-            where recursive_select_1.[level] < @3 
+            where recursive_select_1.level < @3 
         ) 
     select 
         id as id, 
         name as name, 
-        [level] as [level] 
+        level as level 
     from recursive_select_1 
-    order by [level]
+    order by level
     ```
 
 The parameters are: `[ 1, 1, 1, 3 ]`

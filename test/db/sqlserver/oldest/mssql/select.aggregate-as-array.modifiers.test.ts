@@ -787,7 +787,7 @@ describe(ctx.label, () => {
             .select({ pid: tProject.id, issues })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), body), 'json') + '"', 'null'), '}'), ','), ']') as [result] from issue where project_id = project.id) as issues from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), body), 'json') + '"', 'null'), '}'), ','), ']') as result from issue where project_id = project.id) as issues from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -818,7 +818,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const row = await query.executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), body), 'json') + '"', 'null'), '}'), ','), ']') as [result] from issue where project_id = project.id) as issues from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), body), 'json') + '"', 'null'), '}'), ','), ']') as result from issue where project_id = project.id) as issues from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -849,7 +849,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const row = await query.executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), body), 'json') + '"', 'null'), '}'), ','), ']') as [result] from issue where project_id = project.id) as issues from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "body": ', isnull('"' + string_escape(convert(nvarchar(max), body), 'json') + '"', 'null'), '}'), ','), ']') as result from issue where project_id = project.id) as issues from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1071,7 +1071,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as [result] from issue where project_id = project.id) as issues from project where organization_id = @0 order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as result from issue where project_id = project.id) as issues from project where organization_id = @0 order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1100,7 +1100,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as [result] from issue where project_id = project.id) as issues from project where organization_id = @0 order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as result from issue where project_id = project.id) as issues from project where organization_id = @0 order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1129,7 +1129,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as [result] from issue where project_id = project.id) as [meta.issues] from project where organization_id = @0 order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as result from issue where project_id = project.id) as [meta.issues] from project where organization_id = @0 order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1151,7 +1151,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(vReleaseOverview.downloadCount))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg(isnull('"' + convert(nvarchar(41), download_count) + '"', 'null'), ','), ']') as [result] from release_overview where download_count is not null"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg(isnull('"' + convert(nvarchar(41), download_count) + '"', 'null'), ','), ']') as result from release_overview where download_count is not null"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof counts, bigint[]>>()
         // the array aggregate has no ORDER BY, so the array order is not deterministic
@@ -1167,7 +1167,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.aggregateAsArray({ id: tIssue.id, title: tIssue.title }))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as [result] from issue where project_id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar(41), id), ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as result from issue where project_id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1189,7 +1189,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title))
             .executeSelectNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), title), 'json') + '"', ','), ']') as [result] from issue where project_id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), title), 'json') + '"', ','), ']') as result from issue where project_id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,
@@ -1212,7 +1212,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), title), 'json') + '"', ','), ']') as [result] from issue group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), title), 'json') + '"', ','), ']') as result from issue group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof titlesPerProject, string[][]>>()
         // neither the groups nor the arrays have an order: sort both.

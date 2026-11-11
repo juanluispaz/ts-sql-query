@@ -104,8 +104,8 @@ describe(ctx.label, () => {
             .where(connection.dynamicConditionFor({ body: tIssue.body }).withValues(JSON.parse(json)))
             .select({ id: tIssue.id })
             .query()
-        expect(sql('{"body":{"isNull":true}}')).toMatchInlineSnapshot(`"select id as id from issue where \`body\` is null"`)
-        expect(sql('{"body":{"is":null}}')).toMatchInlineSnapshot(`"select id as id from issue where \`body\` <=> ?"`)
+        expect(sql('{"body":{"isNull":true}}')).toMatchInlineSnapshot(`"select id as id from issue where body is null"`)
+        expect(sql('{"body":{"is":null}}')).toMatchInlineSnapshot(`"select id as id from issue where body <=> ?"`)
     })
 
     test('docs-extra:filters/a-value-of-another-shape-is-tolerated', () => {
@@ -294,7 +294,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`body\` like concat('%', ?, '%') and id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like concat('%', ?, '%') and id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "tokens",

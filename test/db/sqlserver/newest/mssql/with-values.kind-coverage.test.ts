@@ -288,7 +288,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with uuidSampler as (select * from (values (@0, @1)) as uuidSampler([ref], signing)) select [ref] as [ref], signing as signing from uuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with uuidSampler as (select * from (values (@0, @1)) as uuidSampler(ref, signing)) select ref as ref, signing as signing from uuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -528,7 +528,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqAdapterUuidSampler as (select * from (values (@0, @1)) as reqAdapterUuidSampler([ref], signing)) select [ref] as [ref], signing as signing from reqAdapterUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqAdapterUuidSampler as (select * from (values (@0, @1)) as reqAdapterUuidSampler(ref, signing)) select ref as ref, signing as signing from reqAdapterUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -599,7 +599,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optUuidSampler as (select * from (values (@0, @1)) as optUuidSampler([ref], signing)) select [ref] as [ref], signing as signing from optUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optUuidSampler as (select * from (values (@0, @1)) as optUuidSampler(ref, signing)) select ref as ref, signing as signing from optUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -663,7 +663,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterUuidSampler as (select * from (values (@0, @1)) as optAdapterUuidSampler([ref], signing)) select [ref] as [ref], signing as signing from optAdapterUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterUuidSampler as (select * from (values (@0, @1)) as optAdapterUuidSampler(ref, signing)) select ref as ref, signing as signing from optAdapterUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",

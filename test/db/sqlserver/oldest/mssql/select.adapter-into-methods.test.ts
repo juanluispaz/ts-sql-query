@@ -63,7 +63,7 @@ describe(ctx.label, () => {
             .select({ invoiceNo: tInvoice.invoiceNo, next: tInvoice.invoiceNo.add(5) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select invoice_no as invoiceNo, invoice_no + @0 as [next] from invoice where invoice_no = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select invoice_no as invoiceNo, invoice_no + @0 as next from invoice where invoice_no = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             50,

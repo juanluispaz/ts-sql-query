@@ -57,7 +57,7 @@ describe(ctx.label, () => {
             projectStats: Array<{ id: number; count: number }>
         }>>()
         expect(row).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as [count] from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id for json path) as projectStats from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id for json path) as projectStats from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             busyProjects: Array<{ id: number; count: number }>
         }>>()
         expect(row).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as [count] from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id having count(issue.id) > @0 for json path) as busyProjects from organization where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id having count(issue.id) > @0 for json path) as busyProjects from organization where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -475,7 +475,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by iif(project.name is null, 1, 0), [result] asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by iif(project.name is null, 1, 0), result asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -507,7 +507,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by iif(project.name is not null, 1, 0), [result] desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by iif(project.name is not null, 1, 0), result desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -539,7 +539,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by lower(name) asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by lower(name) asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -571,7 +571,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by iif(project.name is null, 1, 0), lower(name) asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by iif(project.name is null, 1, 0), lower(name) asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -738,7 +738,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, statuses: distinctStatuses })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select distinct status as [result] from issue where project_id = project.id) as a_1_) as statuses from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select distinct status as result from issue where project_id = project.id) as a_1_) as statuses from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -822,7 +822,7 @@ describe(ctx.label, () => {
             name:       string
             byAssignee: Array<{ assigneeId: number | null; count: number }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select issue.assignee_id as assigneeId, count(issue.id) as [count] from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id for json path) as byAssignee from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id for json path) as byAssignee from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -872,7 +872,7 @@ describe(ctx.label, () => {
             name:       string
             byAssignee: Array<{ assigneeId: number | null; count: number }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select issue.assignee_id as assigneeId, count(issue.id) as [count] from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id having count(issue.id) > @0 for json path) as byAssignee from organization where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id having count(issue.id) > @0 for json path) as byAssignee from organization where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1064,7 +1064,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, {
             names: Array<{ name: string | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.name as name from (select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = @0 union select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = @1) as a_1_ for json path) as [names]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.name as name from (select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = @0 union select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = @1) as a_1_ for json path) as names"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1112,7 +1112,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, {
             items: Array<{ ref: string | null; assigneeId: number | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.[ref] as [ref], a_1_.assigneeId as assigneeId from (select body as [ref], assignee_id as assigneeId from issue where id = @0 union select body as [ref], assignee_id as assigneeId from issue where id = @1) as a_1_ for json path) as items"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.ref as ref, a_1_.assigneeId as assigneeId from (select body as ref, assignee_id as assigneeId from issue where id = @0 union select body as ref, assignee_id as assigneeId from issue where id = @1) as a_1_ for json path) as items"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1229,7 +1229,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by [result] asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by result asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1252,7 +1252,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by [result] asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by result asc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1275,7 +1275,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by [result] desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by result desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1298,7 +1298,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by [result] desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by result desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1321,7 +1321,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by lower(name) offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by lower(name) offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1344,7 +1344,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by lower(name) desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by lower(name) desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1367,7 +1367,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by lower(name) desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by lower(name) desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1390,7 +1390,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by iif(project.name is not null, 1, 0), lower(name) desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by iif(project.name is not null, 1, 0), lower(name) desc offset 0 rows) as a_1_) as projectNames from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1416,7 +1416,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, projectNames: orgNames })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by 1 offset 0 rows fetch next @0 rows only) as a_1_) as projectNames from organization where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by 1 offset 0 rows fetch next @0 rows only) as a_1_) as projectNames from organization where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -1445,7 +1445,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, titles })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select title as [result] from issue where project_id = project.id order by issue.priority desc, issue.id offset 0 rows) as a_1_) as titles from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select title as result from issue where project_id = project.id order by issue.priority desc, issue.id offset 0 rows) as a_1_) as titles from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1474,7 +1474,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, titles })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select title as [result] from issue where project_id = project.id order by issue.priority desc, issue.id offset 0 rows) as a_1_) as titles from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select title as result from issue where project_id = project.id order by issue.priority desc, issue.id offset 0 rows) as a_1_) as titles from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1504,7 +1504,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, titles })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select title as [result] from issue where project_id = project.id order by issue.priority desc, [result], issue.id offset 0 rows) as a_1_) as titles from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select title as result from issue where project_id = project.id order by issue.priority desc, result, issue.id offset 0 rows) as a_1_) as titles from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

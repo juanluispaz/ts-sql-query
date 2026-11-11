@@ -200,7 +200,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.coalesce3(ctx.conn.const('x', 'string'), 'b', tIssue.body) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`) as r from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, body) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -952,7 +952,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.frag4MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.body, 'd') })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`, ?) as r from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, body, ?) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -998,7 +998,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.frag5MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.body, 'd', 'e') })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, \`body\`, ?, ?) as r from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, body, ?, ?) as r from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",

@@ -225,8 +225,8 @@ const departures = connection.selectDistinctFrom(tFlight)
 ```
 
 ```sqlserver
-select convert(nvarchar(40), o_1_.[result], 126) as [result]
-from (select distinct departs_at as [result] from flight where id in (@0, @1)) as o_1_
+select convert(nvarchar(40), o_1_.result, 126) as result
+from (select distinct departs_at as result from flight where id in (@0, @1)) as o_1_
 ```
 
 And its parameters are: `[ 1, 2 ]`

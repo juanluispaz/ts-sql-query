@@ -81,7 +81,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, project.\`name\` as projectName from issue inner join project on project.id = issue.project_id where project.organization_id = ? group by issue.project_id, project.\`name\` order by issue.project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, project.name as projectName from issue inner join project on project.id = issue.project_id where project.organization_id = ? group by issue.project_id, project.name order by issue.project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -467,7 +467,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, project.\`name\` as projectName from issue inner join project on project.id = issue.project_id and project.organization_id = (select min(id) as result from \`organization\`) order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, project.name as projectName from issue inner join project on project.id = issue.project_id and project.organization_id = (select min(id) as result from organization) order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ issueId: number; projectName: string }>>>()
         expect(rows).toEqual(expected)

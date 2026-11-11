@@ -919,7 +919,7 @@ describe(ctx.label, () => {
             id:    number
             kinds: Array<{ status: string; body: string | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(json_object('status' value a_1_.status, 'body' value a_1_."body")) from (select distinct status as status, "body" as "body" from issue where project_id = project.id) a_1_) as "kinds" from project where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(json_object('status' value a_1_.status, 'body' value a_1_.body)) from (select distinct status as status, "body" as body from issue where project_id = project.id) a_1_) as "kinds" from project where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -963,7 +963,7 @@ describe(ctx.label, () => {
             id:   number
             tree: Array<{ id: number; title: string; body: string | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(id, title, "body") as (select id as id, title as title, "body" as "body" from issue where id = :0 union all select issue.id as id, issue.title as title, issue."body" as "body" from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as "id", (select json_arrayagg(json_object('id' value id, 'title' value title, 'body' value "body")) from recursive_select_1) as "tree" from project where id = :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(id, title, body) as (select id as id, title as title, "body" as body from issue where id = :0 union all select issue.id as id, issue.title as title, issue."body" as body from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as "id", (select json_arrayagg(json_object('id' value id, 'title' value title, 'body' value body)) from recursive_select_1) as "tree" from project where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1010,7 +1010,7 @@ describe(ctx.label, () => {
             pid:    number
             issues: Array<{ title: string; body: string | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "pid", (select json_arrayagg(json_object('title' value a_1_.title, 'body' value a_1_."body")) from (select title as title, "body" as "body" from issue where project_id = project.id and id = :0 union select title as title, "body" as "body" from issue where project_id = project.id and id = :1) a_1_) as "issues" from project where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "pid", (select json_arrayagg(json_object('title' value a_1_.title, 'body' value a_1_.body)) from (select title as title, "body" as body from issue where project_id = project.id and id = :0 union select title as title, "body" as body from issue where project_id = project.id and id = :1) a_1_) as "issues" from project where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1114,7 +1114,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, {
             items: Array<{ ref: string | null; assigneeId: number | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('ref' value a_1_."ref", 'assigneeId' value a_1_.assigneeId)) from (select "body" as "ref", assignee_id as assigneeId from issue where id = :0 union select "body" as "ref", assignee_id as assigneeId from issue where id = :1) a_1_) as "items" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('ref' value a_1_.ref, 'assigneeId' value a_1_.assigneeId)) from (select "body" as ref, assignee_id as assigneeId from issue where id = :0 union select "body" as ref, assignee_id as assigneeId from issue where id = :1) a_1_) as "items" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

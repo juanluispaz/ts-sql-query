@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof rows, Array<{ id: number; lowest?: number; label?: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as lowest, @0 + name as [label] from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as lowest, @0 + name as label from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

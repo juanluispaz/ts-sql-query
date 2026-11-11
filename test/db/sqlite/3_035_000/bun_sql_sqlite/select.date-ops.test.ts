@@ -278,7 +278,7 @@ describe(ctx.label, () => {
                 before: tProjectRelease.releasedOn.lessThan(new Date(Date.UTC(2024, 1, 1, 10, 0, 0))),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', released_on) as integer) as y, cast(strftime('%H', cutoff_time) as integer) as h, round((julianday(signed_off_at) - 2440587.5) * 86400000.0) as t, released_on < ?1 as "before" from project_release where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', released_on) as integer) as y, cast(strftime('%H', cutoff_time) as integer) as h, round((julianday(signed_off_at) - 2440587.5) * 86400000.0) as t, released_on < ?1 as before from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-02-01",

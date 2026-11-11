@@ -477,7 +477,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.id in (select closedIssue.assignee_id as result from issue as closedIssue where closedIssue.\`status\` = ?) as ownsClosed from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.id in (select closedIssue.assignee_id as result from issue as closedIssue where closedIssue.status = ?) as ownsClosed from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "closed",
@@ -624,7 +624,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, \`organization\`.\`name\` as \`organization\` from issue join project on project.id = issue.project_id join \`organization\` on \`organization\`.id = project.organization_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, organization.name as organization from issue join project on project.id = issue.project_id join organization on organization.id = project.organization_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; organization: string }>>>()
         expect(result).toEqual(expected)
@@ -655,7 +655,7 @@ describe(ctx.label, () => {
                 afterQuery: connection.rawFragment` /* ${archiveProject}; ${deleteProject}; ${createProject} */`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?  /* update project set published = case when ? then 't' else 'f' end where id = ?; delete from project where id = ?; insert into project (organization_id, \`name\`, slug) values (?, ?, ?) */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?  /* update project set published = case when ? then 't' else 'f' end where id = ?; delete from project where id = ?; insert into project (organization_id, name, slug) values (?, ?, ?) */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

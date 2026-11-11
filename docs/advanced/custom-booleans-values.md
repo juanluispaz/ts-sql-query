@@ -42,7 +42,7 @@ The executed query is:
     ```
 === "MySQL"
     ```mysql
-    insert into custom_company (`name`, is_big) 
+    insert into custom_company (name, is_big) 
     values (?, case when ? then 'Y' else 'N' end)
     -- Last inserted ID returned by the database got from the connection
     ```
@@ -107,7 +107,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         (is_big = 'Y') as isBig 
     from custom_company 
     where is_big = 'Y'

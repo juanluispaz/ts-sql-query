@@ -27,7 +27,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, \`organization\` set project.\`name\` = concat(project.\`name\`, ?, \`organization\`.\`name\`) where project.organization_id = \`organization\`.id and lower(\`organization\`.\`name\`) like concat('%', lower(?), '%')"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = concat(project.name, ?, organization.name) where project.organization_id = organization.id and lower(organization.name) like concat('%', lower(?), '%')"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " - ",
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectForUpdate(id, \`name\`, slug) as (values row(?, ?, ?)) update project, projectForUpdate set project.\`name\` = projectForUpdate.\`name\`, project.slug = projectForUpdate.slug where project.id = projectForUpdate.id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectForUpdate(id, name, slug) as (values row(?, ?, ?)) update project, projectForUpdate set project.name = projectForUpdate.name, project.slug = projectForUpdate.slug where project.id = projectForUpdate.id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v3)",
@@ -299,7 +299,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ?, \`status\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ?, status = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Triage",
@@ -453,7 +453,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",
@@ -479,7 +479,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -504,7 +504,7 @@ describe(ctx.label, () => {
                 .executeUpdate(1, 1)
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -561,7 +561,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue inner join project on issue.project_id = project.id set issue.title = concat(issue.title, ?, project.\`name\`) where lower(project.\`name\`) like concat('%', lower(?), '%')"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue inner join project on issue.project_id = project.id set issue.title = concat(issue.title, ?, project.name) where lower(project.name) like concat('%', lower(?), '%')"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " - ",

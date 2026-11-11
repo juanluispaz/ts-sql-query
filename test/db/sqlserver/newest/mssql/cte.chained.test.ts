@@ -91,7 +91,7 @@ describe(ctx.label, () => {
             .groupBy('id', 'name')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = @0) select project.id as id, project.name as name, (select count(projectId) as [result] from open_issues) as totalOpen from project inner join open_issues on open_issues.projectId = project.id group by project.id, project.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select project_id as projectId from issue where status = @0) select project.id as id, project.name as name, (select count(projectId) as result from open_issues) as totalOpen from project inner join open_issues on open_issues.projectId = project.id group by project.id, project.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -117,7 +117,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) select id as id, name as name from project where id not in (select id as [result] from archived_projects)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) select id as id, name as name from project where id not in (select id as result from archived_projects)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
     })
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             .and(tProject.id.notIn(connection.selectFrom(archivedProjects).selectOneColumn(archivedProjects.id)))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) select id as id, name as name from project where organization_id = @0 and id not in (select id as [result] from archived_projects) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) select id as id, name as name from project where organization_id = @0 and id not in (select id as result from archived_projects) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, priority as priority, title as title from issue where status = @0), top_open as (select title as [label] from open_issues where priority >= @1) select [label] as [label] from top_open union select name as [label] from project where id = @2 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, priority as priority, title as title from issue where status = @0), top_open as (select title as label from open_issues where priority >= @1) select label as label from top_open union select name as label from project where id = @2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

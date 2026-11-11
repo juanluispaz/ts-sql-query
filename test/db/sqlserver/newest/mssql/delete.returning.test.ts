@@ -118,7 +118,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.priority.add(100))
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.priority + @0 as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.priority + @0 as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 100,
@@ -208,7 +208,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.channel)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release output deleted.channel as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release output deleted.channel as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -230,7 +230,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tReleaseDraft.stage)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft output deleted.stage as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft output deleted.stage as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -363,7 +363,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.body)
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.body as [result] where project_id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.body as result where project_id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -515,7 +515,7 @@ describe(ctx.label, () => {
                 .where(tProjectReview.id.equals(1))
                 .returningOneColumn(tProjectReview.reviewTime)
                 .executeDeleteOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.review_time as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.review_time as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

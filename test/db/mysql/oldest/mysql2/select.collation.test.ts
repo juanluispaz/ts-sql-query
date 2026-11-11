@@ -445,7 +445,7 @@ describe(ctx.label, () => {
             .groupBy(tAppUser.fullName.collate('utf8mb4_bin'))
             .orderBy('name')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate utf8mb4_bin as \`name\`, count(id) as n from app_user group by full_name collate utf8mb4_bin order by \`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate utf8mb4_bin as name, count(id) as n from app_user group by full_name collate utf8mb4_bin order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ name: string; n: number }>>>()
         expect(result).toEqual(expected)
@@ -697,7 +697,7 @@ describe(ctx.label, () => {
                 notContains: collated.const('x', 'string').notContainsInsensitive(tIssue.externalRef.asString()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? like concat(replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as \`starts\`, ? not like concat(replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notStarts, ? like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as \`ends\`, ? not like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as notEnds, ? like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as \`contains\`, ? not like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notContains from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? like concat(replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as starts, ? not like concat(replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notStarts, ? like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as ends, ? not like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as notEnds, ? like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as contains, ? not like concat('%', replace(replace(replace(bin_to_uuid(external_ref), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notContains from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",

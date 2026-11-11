@@ -31,7 +31,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Overwritten name",
@@ -59,7 +59,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Kept name",
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, archived_at = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Overwritten name",
@@ -118,7 +118,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, archived_at = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Stays",
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Survives",
@@ -245,8 +245,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, slug = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -274,8 +274,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, archived_at = ? where id = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ? where id = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ? where id = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -306,8 +306,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, published = case when ? then 't' else 'f' end"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?, published = case when ? then 't' else 'f' end"`)
             expect(trueSql).not.toBe(falseSql)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(4)
@@ -331,7 +331,7 @@ describe(ctx.label, () => {
                 .set({ projectName: 'Extended rename', isPublished: false })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, published = case when ? then 't' else 'f' end"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, published = case when ? then 't' else 'f' end"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Extended rename",
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, slug = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Extended rename",
@@ -497,8 +497,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, published = case when ? then 't' else 'f' end"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?, published = case when ? then 't' else 'f' end"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -525,8 +525,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, published = case when ? then 't' else 'f' end"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?, published = case when ? then 't' else 'f' end"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -552,8 +552,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, published = case when ? then 't' else 'f' end"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, published = case when ? then 't' else 'f' end"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -580,8 +580,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, published = case when ? then 't' else 'f' end"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, published = case when ? then 't' else 'f' end"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -757,8 +757,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, archived_at = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -785,8 +785,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, archived_at = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })
@@ -813,8 +813,8 @@ describe(ctx.label, () => {
                 .executeUpdate()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, archived_at = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = ?"`)
             expect(trueSql).not.toBe(falseSql)
             expect(affected).toBe(4)
         })

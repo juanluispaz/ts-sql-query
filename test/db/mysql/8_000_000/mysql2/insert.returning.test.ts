@@ -30,7 +30,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan) values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",

@@ -1512,7 +1512,7 @@ describe(ctx.label, () => {
             })
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`body\` as \`obj.body\`, project.archived_at as \`obj.arch\` from issue left join project on project.id = issue.project_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`obj.body\`, project.archived_at as \`obj.arch\` from issue left join project on project.id = issue.project_id where issue.id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1555,7 +1555,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`body\` as \`obj.body\`, project.archived_at as \`obj.arch\` from issue left join project on project.id = issue.project_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`obj.body\`, project.archived_at as \`obj.arch\` from issue left join project on project.id = issue.project_id where issue.id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1690,7 +1690,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, coalesce(issue.title, issue.status, issue.\`body\`) as \`grp.frag\`, project.name as \`grp.projName\` from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, coalesce(issue.title, issue.status, issue.body) as \`grp.frag\`, project.name as \`grp.projName\` from project left join issue on issue.project_id = project.id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,

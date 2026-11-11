@@ -180,7 +180,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not \`body\` is null and not \`body\` is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not body is null and not body is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -998,7 +998,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where \`body\` <=> ? and not (estimated_hours <=> ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where body <=> ? and not (estimated_hours <=> ?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             null,

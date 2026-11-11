@@ -59,7 +59,7 @@ describe(ctx.label, () => {
             .orderBy('version')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.\`name\` as projectName, release_overview.version as version from project inner join release_overview on release_overview.project_id = project.id where project.id = ? order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, release_overview.version as version from project inner join release_overview on release_overview.project_id = project.id where project.id = ? order by version"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
             .orderBy('name')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, \`code\`) as (values row(?, ?)) select project.\`name\` as \`name\`, projectCode.\`code\` as \`code\` from project inner join projectCode on projectCode.projectId = project.id order by \`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values row(?, ?)) select project.name as name, projectCode.code as code from project inner join projectCode on projectCode.projectId = project.id order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             .select({ pickedCode })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, \`code\`) as (values row(?, ?)) select (select \`code\` as result from projectCode where projectId = ?) as pickedCode"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values row(?, ?)) select (select code as result from projectCode where projectId = ?) as pickedCode"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, \`code\`) as (values row(?, ?)), sub as (select \`code\` as \`code\`, projectId as projectId from projectCode) select \`code\` as \`code\`, projectId as projectId from sub"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values row(?, ?)), sub as (select code as code, projectId as projectId from projectCode) select code as code, projectId as projectId from sub"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, \`code\`) as (values row(?, ?), row(?, ?)) select id as id, \`name\` as \`name\` from project where id in (select projectId as result from projectCode) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values row(?, ?), row(?, ?)) select id as id, name as name from project where id in (select projectId as result from projectCode) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, \`code\`) as (values row(?, ?), row(?, ?)) select id as id, \`name\` as \`name\` from project where exists(select projectId as result from projectCode where projectId = project.id) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values row(?, ?), row(?, ?)) select id as id, name as name from project where exists(select projectId as result from projectCode where projectId = project.id) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

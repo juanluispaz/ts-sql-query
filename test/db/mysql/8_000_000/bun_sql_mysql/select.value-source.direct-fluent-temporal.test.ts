@@ -1489,7 +1489,7 @@ describe(ctx.label, () => {
                 h: tOrganization.createdAt.nullIfValue(probe).getHours(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(ifnull(created_at, ?)) as y, hour(nullif(created_at, ?)) as h from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(ifnull(created_at, ?)) as y, hour(nullif(created_at, ?)) as h from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T00:00:00.000Z,

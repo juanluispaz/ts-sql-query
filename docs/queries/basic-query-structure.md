@@ -43,10 +43,10 @@ The executed query is:
     select 
         customer.id as id, 
         customer.first_name as firstName, 
-        company.`name` as companyName 
+        company.name as companyName 
     from customer 
     inner join company on customer.company_id = company.id 
-    where company.`name` = ? 
+    where company.name = ? 
     order by firstName 
     limit ?
     ```
@@ -394,7 +394,7 @@ The executed query is:
     ```mysql
     select 
         id as id,
-        ? as `source`,
+        ? as source,
         ? as note
     from customer
     where id = ?

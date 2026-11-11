@@ -172,7 +172,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated issue.id */  delete /* gated issue.project_id */ from issue using issue, project inner join \`organization\` on \`organization\`.id = project.organization_id where issue.project_id = project.id and issue.id = ?  /* gated project.slug */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* gated issue.id */  delete /* gated issue.project_id */ from issue using issue, project inner join organization on organization.id = project.organization_id where issue.project_id = project.id and issue.id = ?  /* gated project.slug */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

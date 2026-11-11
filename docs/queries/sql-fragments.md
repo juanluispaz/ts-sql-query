@@ -150,7 +150,7 @@ The executed query is:
     ```mysql
     select 
         lower(first_name) as lowerFirstName, 
-        concat(first_name, ?, last_name) as `name` 
+        concat(first_name, ?, last_name) as name 
     from customer 
     where abs(id) = abs(?)
     ```
@@ -339,7 +339,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         id << ? as idMultiplyBy2 
     from company 
     where (id * ?) = (id << ?)
@@ -454,7 +454,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where id + 1 = ?
     ```
@@ -562,7 +562,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         id << ? as idMultiplyBy2 
     from company 
     where (id * ?) = (id << ?)
@@ -912,11 +912,11 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     order by 
         case when company.id = ? then 0 else 1 end, 
-        `name`
+        name
     ```
 === "Oracle"
     ```oracle
@@ -1388,7 +1388,7 @@ The executed query is:
     ```mariadb
     select 
         id as id, 
-        row_number() over company_window as position 
+        row_number() over company_window as `position` 
     from customer 
     window company_window as (partition by company_id order by id) 
     order by id
@@ -1397,7 +1397,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        row_number() over company_window as position 
+        row_number() over company_window as `position` 
     from customer 
     window company_window as (partition by company_id order by id) 
     order by id
@@ -1433,7 +1433,7 @@ The executed query is:
     ```sqlserver
     select 
         id as id, 
-        row_number() over company_window as [position] 
+        row_number() over company_window as position 
     from customer 
     window company_window as (partition by company_id order by id) 
     order by id

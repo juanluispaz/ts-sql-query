@@ -68,7 +68,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(dynSql)
         expect(ctx.lastParams).toEqual(dynParams)
-        expect(dynSql).toMatchInlineSnapshot(`"select id as id from project_release where not (\`channel\` = ?) order by id"`)
+        expect(dynSql).toMatchInlineSnapshot(`"select id as id from project_release where not (channel = ?) order by id"`)
         expect(dynParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? and exists(select id as result from project where id = issue.project_id and lower(\`name\`) like concat('%', lower(?), '%')) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and exists(select id as result from project where id = issue.project_id and lower(name) like concat('%', lower(?), '%')) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

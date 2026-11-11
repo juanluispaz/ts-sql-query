@@ -63,7 +63,7 @@ describe(ctx.label, () => {
             .orderBy('title', 'asc nulls last')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`body\` as title from issue order by \`body\` is null, title asc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as title from issue order by body is null, title asc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; title?: string }>>>()
         expect(result).toEqual(expected)
@@ -83,7 +83,7 @@ describe(ctx.label, () => {
             .orderBy('title', 'desc nulls first insensitive')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`body\` as title from issue order by \`body\` is not null, lower(\`body\`) desc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as title from issue order by body is not null, lower(body) desc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; title?: string }>>>()
         expect(result).toEqual(expected)
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
             .groupByNonAggregatedColumns()
             .orderBy('title', 'asc nulls last')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(\`body\`, ?, ?) as title, count(*) as issues from issue group by 1 order by substr(\`body\`, ?, ?) is null, title asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(body, ?, ?) as title, count(*) as issues from issue group by 1 order by substr(body, ?, ?) is null, title asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -178,7 +178,7 @@ describe(ctx.label, () => {
             .groupByNonAggregatedColumns()
             .orderBy('heading', 'asc nulls last')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(\`body\`, ?, ?) as heading, count(*) as issues from issue group by 1 order by substr(\`body\`, ?, ?) is null, heading asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(body, ?, ?) as heading, count(*) as issues from issue group by 1 order by substr(body, ?, ?) is null, heading asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -227,7 +227,7 @@ describe(ctx.label, () => {
             .orderBy('title', 'asc nulls last')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`body\` as title from issue order by \`body\` is null, title asc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as title from issue order by body is null, title asc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; title?: string }>>>()
         expect(result).toEqual(expected)
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
             .orderBy('title', 'desc nulls first insensitive')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`body\` as title from issue order by \`body\` is not null, lower(\`body\`) desc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as title from issue order by body is not null, lower(body) desc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; title?: string }>>>()
         expect(result).toEqual(expected)
@@ -291,7 +291,7 @@ describe(ctx.label, () => {
             .groupByNonAggregatedColumns()
             .orderBy('title', 'asc nulls last')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(\`body\`, ?, ?) as title, count(*) as issues from issue group by 1 order by substr(\`body\`, ?, ?) is null, title asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(body, ?, ?) as title, count(*) as issues from issue group by 1 order by substr(body, ?, ?) is null, title asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

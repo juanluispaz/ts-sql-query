@@ -244,7 +244,7 @@ The executed query is:
     select 
         id as id, 
         amount as amount, 
-        amount + cast(? as decimal(11, 10)) as `next` 
+        amount + cast(? as decimal(11, 10)) as next 
     from exact_amount 
     where price > cast(? as decimal(1, 0)) 
     order by id
@@ -284,7 +284,7 @@ The executed query is:
     select 
         id as id, 
         convert(nvarchar(41), amount) as amount, 
-        convert(nvarchar(41), amount + cast(@0 as decimal(11, 10))) as [next] 
+        convert(nvarchar(41), amount + cast(@0 as decimal(11, 10))) as next 
     from exact_amount 
     where price > cast(@1 as decimal(1, 0)) 
     order by id

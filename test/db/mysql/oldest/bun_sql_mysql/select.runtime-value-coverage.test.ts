@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select notes as notes, upper(\`channel\`) as versionTag from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select notes as notes, upper(channel) as versionTag from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

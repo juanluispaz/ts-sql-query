@@ -71,12 +71,12 @@ The executed query is:
         customer.id as id, 
         customer.first_name as firstName, 
         customer.birthday as birthday, 
-        company.`name` as `company.name` 
+        company.name as `company.name` 
     from customer 
     inner join company on company.id = customer.company_id 
     where 
             lower(customer.first_name) like concat(lower(?), '%') 
-        and company.`name` = ?
+        and company.name = ?
     ```
 === "Oracle"
     ```oracle

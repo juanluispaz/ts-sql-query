@@ -881,7 +881,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(json_object('name', a_1_.\`name\`)) from (select app_user.full_name as \`name\` from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ? union select app_user.full_name as \`name\` from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ?) as a_1_) as char) as arr"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(json_object('name', a_1_.name)) from (select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ? union select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ?) as a_1_) as char) as arr"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

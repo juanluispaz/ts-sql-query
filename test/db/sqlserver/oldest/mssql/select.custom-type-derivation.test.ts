@@ -71,7 +71,7 @@ describe(ctx.label, () => {
                     .add(9),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(cost_cents)) + @0 as [result] from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(cost_cents)) + @0 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
                     .ceil(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(sum(cost_cents)) as [result] from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(sum(cost_cents)) as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(6)
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                     .add(5),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) + @0 as [result] from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) + @0 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
                     .floor(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(sum(billed_amount)) as [result] from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(sum(billed_amount)) as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(4.5)
@@ -149,7 +149,7 @@ describe(ctx.label, () => {
                     .divide(3),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((sum(billed_amount)) as float) / @0 as [result] from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((sum(billed_amount)) as float) / @0 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             300,
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
                     .modulo(3),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(sum(billed_amount) as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as [result] from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(sum(billed_amount) as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             300,
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
                     .getFullYear(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(max(signed_off_at), '+00:00')) as [result] from project_release"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(max(signed_off_at), '+00:00')) as result from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(2024)
@@ -215,7 +215,7 @@ describe(ctx.label, () => {
                     .add(9),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) + @0 as [result] from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) + @0 as result from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
                     .add(tIssueWorklog.billedAmount),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 + billed_amount as [result] from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 + billed_amount as result from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             450,

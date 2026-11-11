@@ -47,7 +47,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(\`name\`, ?, slug) as \`name\`, archived_at as archivedAt from project where \`name\` like concat('%', ?, '%') order by lower(concat(\`name\`, ?, slug)), archived_at is null, archivedAt asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(name, ?, slug) as name, archived_at as archivedAt from project where name like concat('%', ?, '%') order by lower(concat(name, ?, slug)), archived_at is null, archivedAt asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " ",
@@ -132,7 +132,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, count(project.id) as projectCount from \`organization\` inner join project on project.organization_id = \`organization\`.id and project.archived_at is null group by \`organization\`.id, \`organization\`.\`name\` having count(project.id) >= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id and project.archived_at is null group by organization.id, organization.name having count(project.id) >= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title from issue inner join project on project.id = issue.project_id where issue.title like concat('%', ?, '%') or project.\`name\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title from issue inner join project on project.id = issue.project_id where issue.title like concat('%', ?, '%') or project.name = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hero",

@@ -29,7 +29,7 @@ describe(ctx.label, () => {
                 score: tProjectReview.score,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reviewer_code as \`code\`, score as score from project_review where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reviewer_code as code, score as score from project_review where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

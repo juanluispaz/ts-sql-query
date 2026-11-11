@@ -95,7 +95,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(priority, \`number\`) as atLeastNumber from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(priority, number) as atLeastNumber from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; atLeastNumber: number }>>>()
         expect(result).toEqual(expected)

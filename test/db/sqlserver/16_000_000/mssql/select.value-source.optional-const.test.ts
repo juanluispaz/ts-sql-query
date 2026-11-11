@@ -162,7 +162,7 @@ describe(ctx.label, () => {
         const ld = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'localDate'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
         const cld = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst<Date, 'ReleaseDay'>(null, 'customLocalDate', 'ReleaseDay'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'int'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -212,7 +212,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst('hello', 'string', bracketAdapter))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hello",
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'double'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'bigint'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -262,7 +262,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'boolean'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'string'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -292,7 +292,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'uuid'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'localTime'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -322,7 +322,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'localDateTime'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -370,7 +370,7 @@ describe(ctx.label, () => {
                 empty: ctx.conn.optionalConst(null, 'string').concatIgnoringNull(ctx.conn.optionalConst(null, 'string')),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as [label], '' as empty from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as label, '' as empty from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -388,7 +388,7 @@ describe(ctx.label, () => {
             .where(tProject.id.equals(1))
             .selectOneColumn(tProject.id.minValue(ctx.conn.optionalConst(null, 'int')))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select null as [result] from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select null as result from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -131,7 +131,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set "plan" = cast(?1 as text) where id = ?2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set plan = cast(?1 as text) where id = ?2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "#0102ff",

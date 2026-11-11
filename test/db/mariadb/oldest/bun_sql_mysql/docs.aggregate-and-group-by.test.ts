@@ -742,7 +742,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(\`body\` separator ', ') as bodies from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(body separator ', ') as bodies from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { bodies?: string }>>()
         expect(row.bodies?.split(', ').toSorted()).toEqual(['See ADR-014', 'Use new tokens'])

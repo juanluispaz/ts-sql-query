@@ -881,7 +881,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceiling(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, sign(estimated_hours) * power(cast(abs(estimated_hours) as float), 1.0e0 / 3.0e0) as cb, exp(estimated_hours) as ex, log(estimated_hours) as [ln], log10(estimated_hours) as l10, log(estimated_hours, @0) as lgn, round(estimated_hours, @1) as rn, atn2(estimated_hours, @2) as [at], cast(round(estimated_hours, 0) as bigint) as ai, cast(round(estimated_hours, 0) as bigint) as abi, cast(estimated_hours as float) as ad from issue where id = @3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceiling(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, sign(estimated_hours) * power(cast(abs(estimated_hours) as float), 1.0e0 / 3.0e0) as cb, exp(estimated_hours) as ex, log(estimated_hours) as ln, log10(estimated_hours) as l10, log(estimated_hours, @0) as lgn, round(estimated_hours, @1) as rn, atn2(estimated_hours, @2) as at, cast(round(estimated_hours, 0) as bigint) as ai, cast(round(estimated_hours, 0) as bigint) as abi, cast(estimated_hours as float) as ad from issue where id = @3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -950,7 +950,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(cast(priority as float)) as ab, ceiling(cast(priority as float)) as ce, floor(cast(priority as float)) as fl, sign(cast(priority as float)) as sg, sign(cast(priority as float)) * power(cast(abs(cast(priority as float)) as float), 1.0e0 / 3.0e0) as cb, exp(cast(priority as float)) as ex, log(cast(priority as float)) as [ln], log10(cast(priority as float)) as l10, power(cast(priority as float), @0) as pw, log(cast(priority as float), @1) as lgn, round(cast(priority as float), @2) as rn, atn2(cast(priority as float), @3) as [at], greatest(cast(priority as float), @4) as mn, least(cast(priority as float), @5) as mx from issue where id = @6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(cast(priority as float)) as ab, ceiling(cast(priority as float)) as ce, floor(cast(priority as float)) as fl, sign(cast(priority as float)) as sg, sign(cast(priority as float)) * power(cast(abs(cast(priority as float)) as float), 1.0e0 / 3.0e0) as cb, exp(cast(priority as float)) as ex, log(cast(priority as float)) as ln, log10(cast(priority as float)) as l10, power(cast(priority as float), @0) as pw, log(cast(priority as float), @1) as lgn, round(cast(priority as float), @2) as rn, atn2(cast(priority as float), @3) as at, greatest(cast(priority as float), @4) as mn, least(cast(priority as float), @5) as mx from issue where id = @6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1074,7 +1074,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceiling(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(cast(abs(assignee_id) as float), 1.0e0 / 3.0e0) as cb, exp(assignee_id) as ex, log(assignee_id) as [ln], log10(assignee_id) as l10, power(cast(assignee_id as float), @0) as pw, log(assignee_id, @1) as lgn, round(assignee_id, @2) as rn, atn2(assignee_id, @3) as [at], cast(assignee_id as float) as ad, assignee_id as abi from issue where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceiling(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(cast(abs(assignee_id) as float), 1.0e0 / 3.0e0) as cb, exp(assignee_id) as ex, log(assignee_id) as ln, log10(assignee_id) as l10, power(cast(assignee_id as float), @0) as pw, log(assignee_id, @1) as lgn, round(assignee_id, @2) as rn, atn2(assignee_id, @3) as at, cast(assignee_id as float) as ad, assignee_id as abi from issue where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

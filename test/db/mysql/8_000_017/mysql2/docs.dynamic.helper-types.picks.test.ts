@@ -60,7 +60,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name?: string; slug?: string }>>>()
         expect(rows).toEqual(expected)
@@ -83,7 +83,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name?: string; slug?: string }>>>()
         expect(rows).toEqual(expected)
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const result = await getProjectsInformation(['name'])
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
         expect(result).toEqual(expected)
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const result = await getProjects(['name'])
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<Pick<ProjectInformation, 'name' | 'id'>>>>()
         expect(result).toEqual(expected)
@@ -240,7 +240,7 @@ describe(ctx.label, () => {
         ])
         const result = await getProjects(['name', 'organization.name'])
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.\`name\` as \`organization.name\` from project left outer join \`organization\` as \`organization\` on \`organization\`.id = project.organization_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.name as \`organization.name\` from project left outer join organization as organization on organization.id = project.organization_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<DeepPick<ProjectWithOrg, 'name' | 'organization.name' | 'id'>>>>()
         expect(result).toEqual([
@@ -280,7 +280,7 @@ describe(ctx.label, () => {
             .select(pickedFields)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as \`name\`, slug as slug from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as name, slug as slug from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -321,7 +321,7 @@ describe(ctx.label, () => {
                 2,
                 0,
               ],
-              "sql": "select id as id, \`name\` as \`name\` from project order by id limit ? offset ?",
+              "sql": "select id as id, name as name from project order by id limit ? offset ?",
               "type": "selectManyRows",
             },
             {

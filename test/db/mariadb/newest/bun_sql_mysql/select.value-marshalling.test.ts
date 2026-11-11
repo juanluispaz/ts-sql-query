@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, ref: tIssue.externalRef })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as ref from issue where number = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as \`ref\` from issue where number = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9004,

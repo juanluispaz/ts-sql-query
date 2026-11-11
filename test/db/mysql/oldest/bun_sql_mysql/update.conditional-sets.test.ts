@@ -106,7 +106,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ?, title = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?, title = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

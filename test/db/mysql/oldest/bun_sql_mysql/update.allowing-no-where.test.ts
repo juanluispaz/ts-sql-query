@@ -30,7 +30,7 @@ describe(ctx.label, () => {
                 .set({ status: 'archived' })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -51,7 +51,7 @@ describe(ctx.label, () => {
                 .where(tIssue.priority.greaterOrEqual(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ? where priority >= ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where priority >= ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(tIssue.projectId))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue, project set issue.\`status\` = project.slug where project.id = issue.project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue, project set issue.status = project.slug where project.id = issue.project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(4)
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(tIssue.projectId))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue, project left join \`organization\` on \`organization\`.id = project.organization_id set issue.\`status\` = ifnull(\`organization\`.\`name\`, project.slug) where project.id = issue.project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue, project left join organization on organization.id = project.organization_id set issue.status = ifnull(organization.name, project.slug) where project.id = issue.project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
             expect(viaSet.query()).toBe(dynamicSql)
             expect(viaSet.params()).toEqual(dynamicParams)
 
-            expect(dynamicSql).toMatchInlineSnapshot(`"update issue set \`status\` = ?"`)
+            expect(dynamicSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
             expect(dynamicParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
                 .setIfValue({ status: 'archived', body: undefined })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",

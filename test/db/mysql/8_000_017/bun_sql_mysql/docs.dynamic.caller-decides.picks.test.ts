@@ -43,7 +43,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as \`name\`, slug as slug, id as id from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as name, slug as slug, id as id from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectsWithIdPicking, Array<{
             id:          number
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             id:    number
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             .select(fields)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -206,7 +206,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -255,7 +255,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, project.slug as slug, \`organization\`.\`name\` as organizationName from project inner join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, organization.name as organizationName from project inner join organization on organization.id = project.organization_id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -308,7 +308,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name.projectName\`, slug as \`name.projectSlug\` from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as \`name.projectName\`, slug as \`name.projectSlug\` from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -373,7 +373,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name.projectName\`, project.slug as \`name.projectSlug\`, \`organization\`.\`name\` as \`organization.name\` from project inner join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as \`name.projectName\`, project.slug as \`name.projectSlug\`, organization.name as \`organization.name\` from project inner join organization on organization.id = project.organization_id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -811,7 +811,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.[ref] as [ref], a_1_.assigneeId as assigneeId from (select body as [ref], assignee_id as assigneeId from issue where id = @0 union select body as [ref], assignee_id as assigneeId from issue where id = @1) as a_1_ for json path) as arr"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.ref as ref, a_1_.assigneeId as assigneeId from (select body as ref, assignee_id as assigneeId from issue where id = @0 union select body as ref, assignee_id as assigneeId from issue where id = @1) as a_1_ for json path) as arr"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

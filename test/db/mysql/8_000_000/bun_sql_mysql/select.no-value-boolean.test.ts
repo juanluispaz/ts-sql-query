@@ -26,7 +26,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, name: tOrganization.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expectedMock)
@@ -68,7 +68,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, name: tOrganization.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof viaNoValue, Array<{ id: number; name: string }>>>()
         expect(viaNoValue).toEqual(expectedMock)
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id, name: tOrganization.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(viaElidedIfValue).toEqual(expectedMock)
     })

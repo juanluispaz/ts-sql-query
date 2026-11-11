@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             )
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, \`number\` as \`header.num\`, title as \`header.title\` from issue where id = ? union all select issue.id as id, issue.\`number\` as \`header.num\`, issue.title as \`header.title\` from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, \`header.num\` as \`header.num\`, \`header.title\` as \`header.title\` from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, number as \`header.num\`, title as \`header.title\` from issue where id = ? union all select issue.id as id, issue.number as \`header.num\`, issue.title as \`header.title\` from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, \`header.num\` as \`header.num\`, \`header.title\` as \`header.title\` from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, \`number\` as \`header.num\`, title as \`header.title\` from issue where id in (?, ?, ?) union all select issue.id as id, issue.\`number\` as \`header.num\`, issue.title as \`header.title\` from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, \`header.num\` as \`header.num\`, \`header.title\` as \`header.title\` from recursive_select_1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, number as \`header.num\`, title as \`header.title\` from issue where id in (?, ?, ?) union all select issue.id as id, issue.number as \`header.num\`, issue.title as \`header.title\` from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, \`header.num\` as \`header.num\`, \`header.title\` as \`header.title\` from recursive_select_1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -320,7 +320,7 @@ describe(ctx.label, () => {
             )
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(40), o_1_.[result], 126) as [result] from (select departs_at as [result] from flight_leg where id = @0 union select departs_at as [result] from flight_leg where id = @1) as o_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(40), o_1_.result, 126) as result from (select departs_at as result from flight_leg where id = @0 union select departs_at as result from flight_leg where id = @1) as o_1_"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -338,7 +338,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tFlightLeg.departsAt)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(40), o_1_.[result], 126) as [result] from (select distinct departs_at as [result] from flight_leg where id in (@0, @1)) as o_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(40), o_1_.result, 126) as result from (select distinct departs_at as result from flight_leg where id in (@0, @1)) as o_1_"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

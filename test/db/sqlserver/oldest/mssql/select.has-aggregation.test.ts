@@ -377,7 +377,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = (select id as [result] from project where slug = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = (select id as result from project where slug = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "mktg-site",
@@ -420,7 +420,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = (select max(id) as [result] from project where slug = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = (select max(id) as result from project where slug = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "mktg-site",
@@ -467,7 +467,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, project.name as projectName from issue inner join project on project.id = issue.project_id and project.organization_id = (select min(id) as [result] from organization) order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, project.name as projectName from issue inner join project on project.id = issue.project_id and project.organization_id = (select min(id) as result from organization) order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ issueId: number; projectName: string }>>>()
         expect(rows).toEqual(expected)

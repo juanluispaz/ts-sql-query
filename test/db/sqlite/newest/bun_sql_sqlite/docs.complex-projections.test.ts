@@ -447,7 +447,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, proOrganization.id as "proOrganization.id", proOrganization.name as "proOrganization.name", proOrganization."plan" as "proOrganization.plan", (proOrganization.verified = 'Y') as "proOrganization.verified", proOrganization.created_at as "proOrganization.createdAt" from project left join organization as proOrganization on proOrganization.id = project.organization_id and proOrganization."plan" = ?1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, proOrganization.id as "proOrganization.id", proOrganization.name as "proOrganization.name", proOrganization.plan as "proOrganization.plan", (proOrganization.verified = 'Y') as "proOrganization.verified", proOrganization.created_at as "proOrganization.createdAt" from project left join organization as proOrganization on proOrganization.id = project.organization_id and proOrganization.plan = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "pro",

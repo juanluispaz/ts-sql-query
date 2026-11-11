@@ -219,7 +219,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as \`day\` from project_release order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as day from project_release order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as \`day\` from project_release order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as day from project_release order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
             )
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, date_format(o_1_.\`day\`, '%d/%m/%Y') as \`day\` from (select id as id, released_on as \`day\` from project_release where id = ? union select id as id, released_on as \`day\` from project_release where id in (?, ?)) as o_1_ order by o_1_.\`day\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, date_format(o_1_.day, '%d/%m/%Y') as day from (select id as id, released_on as day from project_release where id = ? union select id as id, released_on as day from project_release where id in (?, ?)) as o_1_ order by o_1_.day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -327,7 +327,7 @@ describe(ctx.label, () => {
             .having(tReleaseDay.releasedOn.greaterThan(dayOf(2024, 2, 1)))
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_format(released_on, '%d/%m/%Y') as \`day\`, count(*) as releases from project_release group by released_on having project_release.released_on > ? order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_format(released_on, '%d/%m/%Y') as day, count(*) as releases from project_release group by released_on having project_release.released_on > ? order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-01T10:00:00.000Z,
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
             .select({ id: releaseDays.id, day: releaseDays.day })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with releaseDays as (select id as id, released_on as \`day\` from project_release) select id as id, date_format(\`day\`, '%d/%m/%Y') as \`day\` from releaseDays where \`day\` in (select released_on as result from project_release where id <> ?) and \`day\` > ? order by releaseDays.\`day\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with releaseDays as (select id as id, released_on as day from project_release) select id as id, date_format(day, '%d/%m/%Y') as day from releaseDays where day in (select released_on as result from project_release where id <> ?) and day > ? order by releaseDays.day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -386,7 +386,7 @@ describe(ctx.label, () => {
             .orderBy('day')
             .executeSelectMany()
         expect(ctx.lastSql).toBe(plainSql)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as \`day\` from project_release where id = ? order by \`day\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as day from project_release where id = ? order by day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -408,7 +408,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDayPlain.id, day: tReleaseDayPlain.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as \`day\` from project_release order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as day from project_release order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -459,7 +459,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseIsoDay.id, day: tReleaseIsoDay.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%Y-%m-%d') as \`day\` from project_release order by \`day\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%Y-%m-%d') as day from project_release order by day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -498,7 +498,7 @@ describe(ctx.label, () => {
             )
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%Y-%m-%d') as \`day\` from project_release where id = ? union select id as id, date_format(released_on, '%Y-%m-%d') as \`day\` from project_release where id in (?, ?) order by \`day\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%Y-%m-%d') as day from project_release where id = ? union select id as id, date_format(released_on, '%Y-%m-%d') as day from project_release where id in (?, ?) order by day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -531,7 +531,7 @@ describe(ctx.label, () => {
                     .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
             )
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as \`day\` from project_release where id = ? union select id as id, date_format(released_on, '%d/%m/%Y') as \`day\` from project_release where id in (?, ?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as day from project_release where id = ? union select id as id, date_format(released_on, '%d/%m/%Y') as day from project_release where id in (?, ?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -597,7 +597,7 @@ describe(ctx.label, () => {
                     .select({ id: tReleaseDayOfColumn.id, day: tReleaseDayOfColumn.releasedOn })
             )
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, date_format(o_1_.\`day\`, '%d/%m/%Y') as \`day\` from (select id as id, released_on as \`day\` from project_release where id = ? union select id as id, released_on as \`day\` from project_release where id in (?, ?)) as o_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, date_format(o_1_.day, '%d/%m/%Y') as day from (select id as id, released_on as day from project_release where id = ? union select id as id, released_on as day from project_release where id in (?, ?)) as o_1_"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -623,7 +623,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDayOfColumn.id, day: tReleaseDayOfColumn.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as \`day\` from project_release order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_format(released_on, '%d/%m/%Y') as day from project_release order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([

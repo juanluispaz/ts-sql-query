@@ -360,7 +360,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with batchRow(id, label) as (values (?, ?), (?, ?)) select id as id, label as label, null as rank, null as note from batchRow order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with batchRow(id, label) as (values (?, ?), (?, ?)) select id as id, label as label, null as \`rank\`, null as note from batchRow order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

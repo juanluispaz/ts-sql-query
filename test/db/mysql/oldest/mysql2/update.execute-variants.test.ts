@@ -33,7 +33,7 @@ describe(ctx.label, () => {
                 .where(tIssue.priority.greaterOrEqual(1))
                 .executeUpdate(2, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ? where priority >= ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where priority >= ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -595,7 +595,7 @@ describe(ctx.label, () => {
         const second = built.query()
         expect(second).toBe(first)
 
-        expect(first).toMatchInlineSnapshot(`"update issue set title = ?, \`status\` = ? where id = ?"`)
+        expect(first).toMatchInlineSnapshot(`"update issue set title = ?, status = ? where id = ?"`)
         assertType<Exact<typeof first, string>>()
         expect(built.params()).toMatchInlineSnapshot(`
           [
@@ -625,7 +625,7 @@ describe(ctx.label, () => {
         `)
 
         const sql = built.query()
-        expect(sql).toMatchInlineSnapshot(`"update issue set title = ?, \`status\` = ? where id = ?"`)
+        expect(sql).toMatchInlineSnapshot(`"update issue set title = ?, status = ? where id = ?"`)
         assertType<Exact<typeof sql, string>>()
     })
 })

@@ -405,7 +405,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, deleted.name + @1 as [label] where id = @2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, deleted.name + @1 as label where id = @2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site v3",

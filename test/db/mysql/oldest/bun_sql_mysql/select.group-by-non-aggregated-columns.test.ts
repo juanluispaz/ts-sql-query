@@ -35,7 +35,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, priority + ? as \`level\`, ? as label, count(*) as issues from issue group by project_id, 2 order by projectId, \`level\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, priority + ? as level, ? as label, count(*) as issues from issue group by project_id, 2 order by projectId, level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             .groupByNonAggregatedColumns()
             .orderBy('project.id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as \`project.id\`, project.\`name\` as \`project.name\`, count(*) as issues from issue inner join project on project.id = issue.project_id group by project.id, project.\`name\` order by \`project.id\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as \`project.id\`, project.name as \`project.name\`, count(*) as issues from issue inner join project on project.id = issue.project_id group by project.id, project.name order by \`project.id\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ project: { id: number; name: string }; issues: number }>>>()
         expect(rows).toEqual(expected)

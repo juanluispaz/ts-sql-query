@@ -321,7 +321,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, ifnull(issue.\`body\`, app_user.full_name) as summary from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, ifnull(issue.body, app_user.full_name) as summary from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; summary?: string }>>>()
         expect(result).toEqual(expected)

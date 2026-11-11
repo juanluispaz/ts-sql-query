@@ -59,7 +59,7 @@ describe(ctx.label, () => {
             .orderBy('version')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.\`name\` as projectName, release_overview.version as version from project inner join release_overview on release_overview.project_id = project.id where project.id = ? order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, release_overview.version as version from project inner join release_overview on release_overview.project_id = project.id where project.id = ? order by version"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

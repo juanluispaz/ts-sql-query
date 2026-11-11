@@ -189,7 +189,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.channel)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output inserted.channel as [result] values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output inserted.channel as result values (@0, @1, @2, @3, @4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

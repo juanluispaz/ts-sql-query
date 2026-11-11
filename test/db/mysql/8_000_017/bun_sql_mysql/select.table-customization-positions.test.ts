@@ -56,7 +56,7 @@ describe(ctx.label, () => {
 
         // The `/*+ hint */` customization template survives
         // `forUseInLeftJoin()` and renders on the joined (customized) side.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.\`name\` as projectName, \`organization\`.\`name\` as orgName from project left join /*+ hint */ \`organization\`  on \`organization\`.id = project.organization_id where project.organization_id = ? order by projectName"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, organization.name as orgName from project left join /*+ hint */ organization  on organization.id = project.organization_id where project.organization_id = ? order by projectName"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
             .select({ orgName: tOrgCustom.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.\`name\` as orgName from /*+ hint */ \`organization\` as o where o.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o.name as orgName from /*+ hint */ organization as o where o.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as label from /*+ hint */ \`organization\`  union select \`name\` as label from project where organization_id = ? order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from /*+ hint */ organization  union select name as label from project where organization_id = ? order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -139,7 +139,7 @@ describe(ctx.label, () => {
                 .where(tOrgCustom.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ \`organization\`  set \`name\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ organization  set name = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Renamed",
@@ -174,7 +174,7 @@ describe(ctx.label, () => {
                 .where(tOrgCustom.name.equals('Throwaway org'))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from /*+ hint */ \`organization\`  where \`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from /*+ hint */ organization  where name = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Throwaway org",

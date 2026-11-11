@@ -270,7 +270,7 @@ The executed query is:
     ```sqlserver
     update customer 
     set first_name = @0 
-    output inserted.first_name as [result] 
+    output inserted.first_name as result 
     where id = @1
     ```
 
@@ -700,10 +700,10 @@ The executed query is:
     ```mysql
     update customer, 
            company 
-    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
+    set customer.last_name = concat(customer.last_name, ?, company.name) 
     where 
             customer.company_id = company.id 
-        and lower(company.`name`) like concat('%', lower(?), '%')
+        and lower(company.name) like concat('%', lower(?), '%')
     ```
 === "Oracle"
     ```oracle
@@ -778,8 +778,8 @@ The executed query is:
     ```mysql
     update customer 
     inner join company on customer.company_id = company.id 
-    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
-    where lower(company.`name`) like concat('%', lower(?), '%')
+    set customer.last_name = concat(customer.last_name, ?, company.name) 
+    where lower(company.name) like concat('%', lower(?), '%')
     ```
 === "Oracle"
     ```oracle

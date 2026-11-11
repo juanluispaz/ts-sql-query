@@ -34,7 +34,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, download_count as downloads, download_count + @0 as [next] from project_release where download_count > @1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, download_count as downloads, download_count + @0 as next from project_release where download_count > @1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1n,

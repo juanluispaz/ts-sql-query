@@ -105,7 +105,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with newYears as (select * from (values (@0, @1), (@2, @3)) as newYears(yearValue, [label])) insert into calendar_year (year_value, year_label) select yearValue as yearValue, [label] as [label] from newYears"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with newYears as (select * from (values (@0, @1), (@2, @3)) as newYears(yearValue, label)) insert into calendar_year (year_value, year_label) select yearValue as yearValue, label as label from newYears"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2025,

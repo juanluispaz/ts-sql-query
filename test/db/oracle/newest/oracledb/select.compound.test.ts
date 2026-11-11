@@ -1135,7 +1135,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count("label") as (select name as "label" from project union select title as "label" from issue) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count(label) as (select name as label from project union select title as label from issue) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, { data: Array<{ label: string }>; count: number }>>()
         expect(page).toEqual({ data: dataRows, count: 8 })

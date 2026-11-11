@@ -127,7 +127,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(oldProject.name)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output deleted.name as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output deleted.name as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mktg site v3",

@@ -42,7 +42,7 @@ describe(ctx.label, () => {
                 ),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when version = (select version as [result] from project_release where id = @0) then 1 when not (version = (select version as [result] from project_release where id = @1)) then 0 else null end as bit) as sameSemver, cast(case when signing_key = (select signing_key as [result] from project_release where id = @2) then 1 when not (signing_key = (select signing_key as [result] from project_release where id = @3)) then 0 else null end as bit) as sameKey from project_release where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when version = (select version as result from project_release where id = @0) then 1 when not (version = (select version as result from project_release where id = @1)) then 0 else null end as bit) as sameSemver, cast(case when signing_key = (select signing_key as result from project_release where id = @2) then 1 when not (signing_key = (select signing_key as result from project_release where id = @3)) then 0 else null end as bit) as sameKey from project_release where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
                 ),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when billed_amount = (select billed_amount as [result] from issue_worklog where id = @0) then 1 when not (billed_amount = (select billed_amount as [result] from issue_worklog where id = @1)) then 0 else null end as bit) as sameMoney, cast(case when cost_cents = (select cost_cents as [result] from issue_worklog where id = @2) then 1 when not (cost_cents = (select cost_cents as [result] from issue_worklog where id = @3)) then 0 else null end as bit) as sameCents from issue_worklog where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when billed_amount = (select billed_amount as result from issue_worklog where id = @0) then 1 when not (billed_amount = (select billed_amount as result from issue_worklog where id = @1)) then 0 else null end as bit) as sameMoney, cast(case when cost_cents = (select cost_cents as result from issue_worklog where id = @2) then 1 when not (cost_cents = (select cost_cents as result from issue_worklog where id = @3)) then 0 else null end as bit) as sameCents from issue_worklog where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

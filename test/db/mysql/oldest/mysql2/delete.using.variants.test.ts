@@ -51,7 +51,7 @@ describe(ctx.label, () => {
                 .and(tOrganization.id.equals(99999))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project, \`organization\` where issue.project_id = project.id and project.organization_id = \`organization\`.id and \`organization\`.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project, organization where issue.project_id = project.id and project.organization_id = organization.id and organization.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 .and(tIssue.priority.equals(99999))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project, \`organization\` where issue.project_id = project.id and project.organization_id = \`organization\`.id and issue.priority = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project, organization where issue.project_id = project.id and project.organization_id = organization.id and issue.priority = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

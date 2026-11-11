@@ -26,7 +26,7 @@ describe(ctx.label, () => {
             .groupBy('level')
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + @0 as [level], count(*) as issues from issue group by priority + @0 order by [level]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + @0 as level, count(*) as issues from issue group by priority + @0 order by level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, priority + @0 as [level], count(*) as issues from issue group by project_id, priority + @0 order by projectId, [level]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, priority + @0 as level, count(*) as issues from issue group by project_id, priority + @0 order by projectId, level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
             .groupBy('level')
             .orderBy('level')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + @0 as [level], count(*) as issues from issue where id > @1 group by priority + @0 order by [level]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + @0 as level, count(*) as issues from issue where id > @1 group by priority + @0 order by level"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,

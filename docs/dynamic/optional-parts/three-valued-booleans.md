@@ -78,7 +78,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where parent_id <=> ?
     ```
@@ -233,7 +233,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where parent_id = ?
     ```
@@ -302,7 +302,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company
     ```
 === "Oracle"
@@ -381,7 +381,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where false
     ```
@@ -527,7 +527,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where parent_id = ?
     ```
@@ -620,7 +620,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where id not in (select parent_id as result from company where parent_id is not null)
     ```
@@ -654,7 +654,7 @@ The executed query is:
         id as id, 
         name as name 
     from company 
-    where id not in (select parent_id as [result] from company where parent_id is not null)
+    where id not in (select parent_id as result from company where parent_id is not null)
     ```
 
 The parameters are: `[]`

@@ -40,7 +40,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` having (count(issue.id) > ? and count(issue.id) < ?) or max(issue.priority) = ? order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having (count(issue.id) > ? and count(issue.id) < ?) or max(issue.priority) = ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` having count(issue.id) > ? order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(issue.id) > ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ status: string; total: number }>>>()
         if (!ctx.realDbEnabled) expect(result).toEqual(expected)
@@ -124,7 +124,7 @@ describe(ctx.label, () => {
                 .or(ctx.conn.count(tIssue.id).greaterThan(1))
             .orderBy('status')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` having count(issue.id) > ? order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(issue.id) > ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.count(tIssue.id))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as result from issue group by \`status\` having count(issue.id) > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as result from issue group by status having count(issue.id) > ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -169,7 +169,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue group by \`status\` having count(issue.id) > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue group by status having count(issue.id) > ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.stringConcat(tIssue.status).contains('open'))
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having group_concat(issue.\`status\`) like concat('%', ?, '%') order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having group_concat(issue.status) like concat('%', ?, '%') order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

@@ -43,7 +43,7 @@ describe(ctx.label, () => {
                 .and(tOrganization.plan.equals('pro'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, \`organization\` set project.\`name\` = \`organization\`.\`name\` where project.organization_id = \`organization\`.id and \`organization\`.plan = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = organization.name where project.organization_id = organization.id and organization.plan = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "pro",
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
                 .and(tOrganization.id.equals(99999))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue, project, \`organization\` set issue.\`status\` = ? where issue.project_id = project.id and project.organization_id = \`organization\`.id and \`organization\`.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue, project, organization set issue.status = ? where issue.project_id = project.id and project.organization_id = organization.id and organization.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
                 .and(tProject.id.equals(99999))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, (select id as id, \`name\` as \`name\` from \`organization\` where (verified = 'Y') = ?) as verified_orgs set project.\`name\` = verified_orgs.\`name\` where project.organization_id = verified_orgs.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, (select id as id, name as name from organization where (verified = 'Y') = ?) as verified_orgs set project.name = verified_orgs.name where project.organization_id = verified_orgs.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 true,

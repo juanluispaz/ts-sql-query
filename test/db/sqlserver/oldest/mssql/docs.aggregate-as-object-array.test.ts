@@ -181,7 +181,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name + @0 + slug as [result] from project where organization_id = organization.id order by [result] offset 0 rows) as a_1_) as projectNames from organization where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name + @0 + slug as result from project where organization_id = organization.id order by result offset 0 rows) as a_1_) as projectNames from organization where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " ",

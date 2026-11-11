@@ -242,7 +242,7 @@ test('fragment-from-joined-table-registers-required-column-in-update-from-old-va
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', \`name\`, ']') as label from project order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', name, ']') as label from project order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ label: string }>>>()
         expect(rows).toEqual(expected)

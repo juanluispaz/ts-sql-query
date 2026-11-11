@@ -293,7 +293,7 @@ describe(ctx.label, () => {
                 .ignoreAnySetWithNoValue()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

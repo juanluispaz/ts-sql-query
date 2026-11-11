@@ -219,7 +219,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as [day] from project_release order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as day from project_release order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as [day] from project_release order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as day from project_release order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -255,7 +255,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tReleaseDay.releasedOn)
             .orderBy('result', 'desc')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(varchar(10), o_1_.[result], 103) as [result] from (select distinct released_on as [result] from project_release) as o_1_ order by o_1_.[result] desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(varchar(10), o_1_.result, 103) as result from (select distinct released_on as result from project_release) as o_1_ order by o_1_.result desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof days, ReleaseDay[]>>()
         expect(days).toEqual([dayOf(2024, 3, 1), dayOf(2024, 2, 20), dayOf(2024, 1, 15)])
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
             )
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, convert(varchar(10), o_1_.[day], 103) as [day] from (select id as id, released_on as [day] from project_release where id = @0 union select id as id, released_on as [day] from project_release where id in (@1, @2)) as o_1_ order by o_1_.[day]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, convert(varchar(10), o_1_.day, 103) as day from (select id as id, released_on as day from project_release where id = @0 union select id as id, released_on as day from project_release where id in (@1, @2)) as o_1_ order by o_1_.day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -305,7 +305,7 @@ describe(ctx.label, () => {
                     .selectOneColumn(tWorkMonth.workDate)
             )
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select right(convert(varchar(10), o_1_.[result], 103), 7) as [result] from (select work_date as [result] from issue_worklog where id = @0 union select work_date as [result] from issue_worklog where id = @1) as o_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select right(convert(varchar(10), o_1_.result, 103), 7) as result from (select work_date as result from issue_worklog where id = @0 union select work_date as result from issue_worklog where id = @1) as o_1_"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -327,7 +327,7 @@ describe(ctx.label, () => {
             .having(tReleaseDay.releasedOn.greaterThan(dayOf(2024, 2, 1)))
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(varchar(10), released_on, 103) as [day], count(*) as releases from project_release group by released_on having released_on > @0 order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(varchar(10), released_on, 103) as day, count(*) as releases from project_release group by released_on having released_on > @0 order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-01T10:00:00.000Z,
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
             .select({ id: releaseDays.id, day: releaseDays.day })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with releaseDays as (select id as id, released_on as [day] from project_release) select id as id, convert(varchar(10), [day], 103) as [day] from releaseDays where [day] in (select released_on as [result] from project_release where id <> @0) and [day] > @1 order by releaseDays.[day]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with releaseDays as (select id as id, released_on as day from project_release) select id as id, convert(varchar(10), day, 103) as day from releaseDays where day in (select released_on as result from project_release where id <> @0) and day > @1 order by releaseDays.day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -386,7 +386,7 @@ describe(ctx.label, () => {
             .orderBy('day')
             .executeSelectMany()
         expect(ctx.lastSql).toBe(plainSql)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as [day] from project_release where id = @0 order by [day]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as day from project_release where id = @0 order by day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -408,7 +408,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDayPlain.id, day: tReleaseDayPlain.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as [day] from project_release order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as day from project_release order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -459,7 +459,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseIsoDay.id, day: tReleaseIsoDay.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 23) as [day] from project_release order by [day]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 23) as day from project_release order by day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([
@@ -475,7 +475,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tReleaseIsoDay.releasedOn)
             .orderBy('result', 'desc')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct convert(varchar(10), released_on, 23) as [result] from project_release order by [result] desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct convert(varchar(10), released_on, 23) as result from project_release order by result desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof days, ReleaseDay[]>>()
         expect(days).toEqual([dayOf(2024, 3, 1), dayOf(2024, 2, 20), dayOf(2024, 1, 15)])
@@ -498,7 +498,7 @@ describe(ctx.label, () => {
             )
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 23) as [day] from project_release where id = @0 union select id as id, convert(varchar(10), released_on, 23) as [day] from project_release where id in (@1, @2) order by [day]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 23) as day from project_release where id = @0 union select id as id, convert(varchar(10), released_on, 23) as day from project_release where id in (@1, @2) order by day"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -531,7 +531,7 @@ describe(ctx.label, () => {
                     .select({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
             )
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as [day] from project_release where id = @0 union select id as id, convert(varchar(10), released_on, 103) as [day] from project_release where id in (@1, @2)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as day from project_release where id = @0 union select id as id, convert(varchar(10), released_on, 103) as day from project_release where id in (@1, @2)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -552,7 +552,7 @@ describe(ctx.label, () => {
         const days = await ctx.conn.selectDistinctFrom(tReleaseDay)
             .selectOneColumn(tReleaseDay.releasedOn)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct convert(varchar(10), released_on, 103) as [result] from project_release"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct convert(varchar(10), released_on, 103) as result from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof days, ReleaseDay[]>>()
         expect([...days].sort((a, b) => a.getTime() - b.getTime())).toEqual([dayOf(2024, 1, 15), dayOf(2024, 2, 20), dayOf(2024, 3, 1)])
@@ -564,7 +564,7 @@ describe(ctx.label, () => {
         const months = await ctx.conn.selectDistinctFrom(tWorkMonth)
             .selectOneColumn(tWorkMonth.workDate)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select right(convert(varchar(10), o_1_.[result], 103), 7) as [result] from (select distinct work_date as [result] from issue_worklog) as o_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select right(convert(varchar(10), o_1_.result, 103), 7) as result from (select distinct work_date as result from issue_worklog) as o_1_"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof months, ReleaseDay[]>>()
         expect(months).toEqual([dayOf(2024, 3, 1), dayOf(2024, 3, 1), dayOf(2024, 3, 1)])
@@ -575,7 +575,7 @@ describe(ctx.label, () => {
         const days = await ctx.conn.selectDistinctFrom(tReleaseDayOfColumn)
             .selectOneColumn(tReleaseDayOfColumn.releasedOn)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct convert(varchar(10), released_on, 103) as [result] from project_release"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct convert(varchar(10), released_on, 103) as result from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof days, ReleaseDay[]>>()
         expect([...days].sort((a, b) => a.getTime() - b.getTime())).toEqual([dayOf(2024, 1, 15), dayOf(2024, 2, 20), dayOf(2024, 3, 1)])
@@ -597,7 +597,7 @@ describe(ctx.label, () => {
                     .select({ id: tReleaseDayOfColumn.id, day: tReleaseDayOfColumn.releasedOn })
             )
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, convert(varchar(10), o_1_.[day], 103) as [day] from (select id as id, released_on as [day] from project_release where id = @0 union select id as id, released_on as [day] from project_release where id in (@1, @2)) as o_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select o_1_.id as id, convert(varchar(10), o_1_.day, 103) as day from (select id as id, released_on as day from project_release where id = @0 union select id as id, released_on as day from project_release where id in (@1, @2)) as o_1_"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -623,7 +623,7 @@ describe(ctx.label, () => {
             .select({ id: tReleaseDayOfColumn.id, day: tReleaseDayOfColumn.releasedOn })
             .orderBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as [day] from project_release order by project_release.released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(varchar(10), released_on, 103) as day from project_release order by project_release.released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, { id: number; day: ReleaseDay }[]>>()
         expect(rows).toEqual([

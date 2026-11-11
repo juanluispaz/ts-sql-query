@@ -34,7 +34,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.title as title, issue.\`status\` as \`status\`, issue.body as body from issue join project on project.id = issue.project_id where project.\`name\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.title as title, issue.status as status, issue.body as body from issue join project on project.id = issue.project_id where project.name = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Marketing site",
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, \`status\` as \`status\`, body as body from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, status as status, body as body from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             title:  string
@@ -106,7 +106,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, \`status\` as \`status\`, body as body, null as projectId, null as projectName from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, status as status, body as body, null as projectId, null as projectName from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, issue.\`status\` as \`status\`, issue.body as body, project.id as projectId, project.\`name\` as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, issue.status as status, issue.body as body, project.id as projectId, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.\`name\` as organizationName from project left join \`organization\` on \`organization\`.id = project.organization_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.name as organizationName from project left join organization on organization.id = project.organization_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projects, Array<{
             id:                number

@@ -350,7 +350,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
         const result = await a.union(b.union(c)).orderBy('status').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id = ? union select * from (select \`status\` as \`status\` from issue where id = ? union select \`status\` as \`status\` from issue where id = ?) as _t_1_ order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id = ? union select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_ order by status"`)
         expect(result).toEqual(expected)
     })
 })

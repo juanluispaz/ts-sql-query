@@ -33,7 +33,7 @@ describe(ctx.label, () => {
                 .executeInsert()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan, verified) values (?, ?, case when ? then 'Y' else 'N' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values (?, ?, case when ? then 'Y' else 'N' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Demo Corp",
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, (verified = 'Y') as verified from \`organization\` where verified = 'Y'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (verified = 'Y') as verified from organization where verified = 'Y'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string; verified: boolean }>>>()
         // 'Acme Corp' is stored verified 'Y' → mapped to `true`; 'Globex Ltd'

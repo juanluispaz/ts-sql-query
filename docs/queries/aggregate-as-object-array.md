@@ -94,7 +94,7 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         cast(json_arrayagg(json_object(
             'id', customer.id, 
             'firstName', customer.first_name, 
@@ -103,7 +103,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.`name`
+    group by company.id, company.name
     ```
 === "Oracle"
     ```oracle
@@ -225,12 +225,12 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.`name`
+    group by company.id, company.name
     ```
 === "Oracle"
     ```oracle
@@ -415,7 +415,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         cast((
             select json_arrayagg(json_object(
                 'id', a_1_.id, 
@@ -589,7 +589,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         cast((
             select json_arrayagg(a_1_.result) 
             from (
@@ -660,12 +660,12 @@ The executed query is:
         id as id, 
         name as name, 
         (
-            select json_arrayagg(a_1_.[result] null on null) 
+            select json_arrayagg(a_1_.result null on null) 
             from (
-                select first_name + @0 + last_name as [result] 
+                select first_name + @0 + last_name as result 
                 from customer 
                 where company_id = company.id 
-                order by [result] 
+                order by result 
                 offset 0 rows
             ) as a_1_
         ) as customers 
@@ -730,7 +730,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName)) from (select id as id, first_name as firstName from customer where company_id = company.id order by id desc limit ?) as a_1_) as char) as lastCustomers 
     from company
     ```
@@ -816,8 +816,8 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
-        cast((select json_arrayagg(json_object('id', childCompany.id, 'name', childCompany.`name`, 'customers', (select json_arrayagg(json_object('id', id, 'firstName', first_name)) from customer where company_id = childCompany.id))) from company as childCompany where childCompany.parent_id = company.id) as char) as children 
+        name as name, 
+        cast((select json_arrayagg(json_object('id', childCompany.id, 'name', childCompany.name, 'customers', (select json_arrayagg(json_object('id', id, 'firstName', first_name)) from customer where company_id = childCompany.id))) from company as childCompany where childCompany.parent_id = company.id) as char) as children 
     from company
     ```
 === "Oracle"
@@ -893,7 +893,7 @@ The executed query is:
     --
     --
     --
-    -- MariaDB doesn't support referencing an outer table (using `subSelectUsing`) on the recursive query
+    -- MariaDB doesn't support referencing an outer table (using subSelectUsing) on the recursive query
     --
     --
     --
@@ -902,14 +902,14 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         parent_id as parentId, 
         cast((
             with recursive 
                 recursive_select_1 as (
                     select 
                         parentCompany.id as id, 
-                        parentCompany.`name` as `name`, 
+                        parentCompany.name as name, 
                         parentCompany.parent_id as parentId 
                     from company as parentCompany 
                     where parentCompany.id = company.parent_id 
@@ -918,14 +918,14 @@ The executed query is:
                     
                     select 
                         parentCompany.id as id, 
-                        parentCompany.`name` as `name`, 
+                        parentCompany.name as name, 
                         parentCompany.parent_id as parentId 
                     from company as parentCompany 
                     join recursive_select_1 on recursive_select_1.parentId = parentCompany.id
                 ) 
             select json_arrayagg(json_object(
                 'id', id, 
-                'name', `name`, 
+                'name', name, 
                 'parentId', parentId
             )) 
             from recursive_select_1
@@ -1100,7 +1100,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         cast(null as char) as customers 
     from company 
     where id = ?

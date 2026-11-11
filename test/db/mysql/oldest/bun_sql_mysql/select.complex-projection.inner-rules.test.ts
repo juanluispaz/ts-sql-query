@@ -46,7 +46,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_cte.pid as pid, project_cte.\`project.id\` as \`project.id\`, project_cte.\`project.name\` as \`project.name\` from (select id as pid, id as \`project.id\`, \`name\` as \`project.name\` from project) as project_cte order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_cte.pid as pid, project_cte.\`project.id\` as \`project.id\`, project_cte.\`project.name\` as \`project.name\` from (select id as pid, id as \`project.id\`, name as \`project.name\` from project) as project_cte order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid:     number
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_org_cte.pid as pid, project_org_cte.\`org.id\` as \`org.id\`, project_org_cte.\`org.name\` as \`org.name\` from (select project.id as pid, \`organization\`.id as \`org.id\`, \`organization\`.\`name\` as \`org.name\` from project left join \`organization\` on \`organization\`.id = project.organization_id) as project_org_cte order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_org_cte.pid as pid, project_org_cte.\`org.id\` as \`org.id\`, project_org_cte.\`org.name\` as \`org.name\` from (select project.id as pid, organization.id as \`org.id\`, organization.name as \`org.name\` from project left join organization on organization.id = project.organization_id) as project_org_cte order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid: number
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select outer_cte.pid as pid, outer_cte.\`group.orgId\` as \`group.orgId\`, outer_cte.\`group.orgName\` as \`group.orgName\` from (select inner_cte.pid as pid, inner_cte.\`org.id\` as \`group.orgId\`, inner_cte.\`org.name\` as \`group.orgName\` from (select project.id as pid, \`organization\`.id as \`org.id\`, \`organization\`.\`name\` as \`org.name\` from project left join \`organization\` on \`organization\`.id = project.organization_id) as inner_cte) as outer_cte order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select outer_cte.pid as pid, outer_cte.\`group.orgId\` as \`group.orgId\`, outer_cte.\`group.orgName\` as \`group.orgName\` from (select inner_cte.pid as pid, inner_cte.\`org.id\` as \`group.orgId\`, inner_cte.\`org.name\` as \`group.orgName\` from (select project.id as pid, organization.id as \`org.id\`, organization.name as \`org.name\` from project left join organization on organization.id = project.organization_id) as inner_cte) as outer_cte order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid:    number
@@ -296,7 +296,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, \`organization\`.id as \`org.id\`, \`organization\`.\`name\` as \`org.name\` from project left join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, organization.id as \`org.id\`, organization.name as \`org.name\` from project left join organization on organization.id = project.organization_id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -475,7 +475,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.\`name\` as \`proj.name\`, project.archived_at as \`proj.archivedAt\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.name as \`proj.name\`, project.archived_at as \`proj.archivedAt\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -511,7 +511,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.\`name\` as \`proj.name\`, project.archived_at as \`proj.archivedAt\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.name as \`proj.name\`, project.archived_at as \`proj.archivedAt\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -681,7 +681,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, id as \`meta.ownId\`, \`status\` as \`meta.gate\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, id as \`meta.ownId\`, status as \`meta.gate\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -711,7 +711,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, id as \`meta.ownId\`, \`status\` as \`meta.gate\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, id as \`meta.ownId\`, status as \`meta.gate\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -752,7 +752,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`meta.gate\`, \`number\` as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`meta.gate\`, number as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -797,7 +797,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`meta.gate\`, \`number\` as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`meta.gate\`, number as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -834,7 +834,7 @@ describe(ctx.label, () => {
                 },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as \`meta.ownId\`, issue.\`status\` as \`meta.gate\`, project.\`name\` as \`meta.projName\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as \`meta.ownId\`, issue.status as \`meta.gate\`, project.name as \`meta.projName\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -868,7 +868,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as \`meta.ownId\`, issue.\`status\` as \`meta.gate\`, project.\`name\` as \`meta.projName\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.id as \`meta.ownId\`, issue.status as \`meta.gate\`, project.name as \`meta.projName\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -966,7 +966,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`header.num\`, title as \`header.title\` from issue where id = ? union select id as iid, \`number\` as \`header.num\`, title as \`header.title\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`header.num\`, title as \`header.title\` from issue where id = ? union select id as iid, number as \`header.num\`, title as \`header.title\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1001,7 +1001,7 @@ describe(ctx.label, () => {
             .select({ iid: tIssue.id, proj: projCteLeft.info })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, proj_cte.\`info.name\` as \`proj.name\`, proj_cte.\`info.slug\` as \`proj.slug\` from issue left join (select id as pid, \`name\` as \`info.name\`, slug as \`info.slug\` from project) as proj_cte on proj_cte.pid = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, proj_cte.\`info.name\` as \`proj.name\`, proj_cte.\`info.slug\` as \`proj.slug\` from issue left join (select id as pid, name as \`info.name\`, slug as \`info.slug\` from project) as proj_cte on proj_cte.pid = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1114,7 +1114,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.\`name\` as \`proj.inner.name\`, project.slug as \`proj.inner.slug\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.name as \`proj.inner.name\`, project.slug as \`proj.inner.slug\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1145,7 +1145,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.\`name\` as \`proj.inner.name\`, project.slug as \`proj.inner.slug\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.name as \`proj.inner.name\`, project.slug as \`proj.inner.slug\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1183,7 +1183,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`status\` as \`detail.meta.gate\`, assignee_id as \`detail.meta.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, status as \`detail.meta.gate\`, assignee_id as \`detail.meta.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1219,7 +1219,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`status\` as \`detail.meta.gate\`, assignee_id as \`detail.meta.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, status as \`detail.meta.gate\`, assignee_id as \`detail.meta.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1259,7 +1259,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1301,7 +1301,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1335,7 +1335,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`status\` as \`meta.gate\`, project.\`name\` as \`meta.proj.name\`, project.archived_at as \`meta.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.status as \`meta.gate\`, project.name as \`meta.proj.name\`, project.archived_at as \`meta.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1369,7 +1369,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`status\` as \`meta.gate\`, project.\`name\` as \`meta.proj.name\`, project.archived_at as \`meta.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.status as \`meta.gate\`, project.name as \`meta.proj.name\`, project.archived_at as \`meta.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1408,7 +1408,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1450,7 +1450,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1545,7 +1545,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1579,7 +1579,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1610,7 +1610,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1643,7 +1643,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1674,7 +1674,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.title as \`detail.title\`, project.\`name\` as \`detail.proj.name\`, project.archived_at as \`detail.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.title as \`detail.title\`, project.name as \`detail.proj.name\`, project.archived_at as \`detail.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1708,7 +1708,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.title as \`detail.title\`, project.\`name\` as \`detail.proj.name\`, project.archived_at as \`detail.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.title as \`detail.title\`, project.name as \`detail.proj.name\`, project.archived_at as \`detail.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1752,7 +1752,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, \`status\` as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, status as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1797,7 +1797,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, \`status\` as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, status as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1837,7 +1837,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`outer.own\`, project.\`name\` as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`outer.own\`, project.name as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1876,7 +1876,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`outer.own\`, project.\`name\` as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`outer.own\`, project.name as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2088,7 +2088,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.\`number\` as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.number as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2127,7 +2127,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.\`number\` as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.number as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2222,7 +2222,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.\`number\` as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.number as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -2256,7 +2256,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.\`number\` as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, issue.number as \`wrapper.inner.num\` from project left join issue on issue.project_id = project.id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -2521,7 +2521,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, \`number\` as \`container.req.num\`, body as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, number as \`container.req.num\`, body as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2557,7 +2557,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, \`number\` as \`container.req.num\`, body as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, number as \`container.req.num\`, body as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2681,7 +2681,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select meta_cte.iid as iid, meta_cte.\`meta.gate\` as \`meta.gate\`, meta_cte.\`meta.extra\` as \`meta.extra\` from (select id as iid, \`status\` as \`meta.gate\`, assignee_id as \`meta.extra\` from issue where id in (?, ?)) as meta_cte order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select meta_cte.iid as iid, meta_cte.\`meta.gate\` as \`meta.gate\`, meta_cte.\`meta.extra\` as \`meta.extra\` from (select id as iid, status as \`meta.gate\`, assignee_id as \`meta.extra\` from issue where id in (?, ?)) as meta_cte order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2727,7 +2727,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select meta_cte.iid as iid, meta_cte.\`meta.gate\` as \`meta.gate\`, meta_cte.\`meta.extra\` as \`meta.extra\` from (select id as iid, \`status\` as \`meta.gate\`, assignee_id as \`meta.extra\` from issue where id in (?, ?)) as meta_cte order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select meta_cte.iid as iid, meta_cte.\`meta.gate\` as \`meta.gate\`, meta_cte.\`meta.extra\` as \`meta.extra\` from (select id as iid, status as \`meta.gate\`, assignee_id as \`meta.extra\` from issue where id in (?, ?)) as meta_cte order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2777,7 +2777,7 @@ describe(ctx.label, () => {
             .orderBy('projId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projId, issue_meta_cte.\`meta.gate\` as \`meta.gate\`, issue_meta_cte.\`meta.ownReq\` as \`meta.ownReq\` from project left join (select project_id as pid, \`status\` as \`meta.gate\`, \`number\` as \`meta.ownReq\` from issue) as issue_meta_cte on issue_meta_cte.pid = project.id where project.id in (?, ?) order by projId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projId, issue_meta_cte.\`meta.gate\` as \`meta.gate\`, issue_meta_cte.\`meta.ownReq\` as \`meta.ownReq\` from project left join (select project_id as pid, status as \`meta.gate\`, number as \`meta.ownReq\` from issue) as issue_meta_cte on issue_meta_cte.pid = project.id where project.id in (?, ?) order by projId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2824,7 +2824,7 @@ describe(ctx.label, () => {
             .orderBy('projId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projId, issue_meta_cte.\`meta.gate\` as \`meta.gate\`, issue_meta_cte.\`meta.ownReq\` as \`meta.ownReq\` from project left join (select project_id as pid, \`status\` as \`meta.gate\`, \`number\` as \`meta.ownReq\` from issue) as issue_meta_cte on issue_meta_cte.pid = project.id where project.id in (?, ?) order by projId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projId, issue_meta_cte.\`meta.gate\` as \`meta.gate\`, issue_meta_cte.\`meta.ownReq\` as \`meta.ownReq\` from project left join (select project_id as pid, status as \`meta.gate\`, number as \`meta.ownReq\` from issue) as issue_meta_cte on issue_meta_cte.pid = project.id where project.id in (?, ?) order by projId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2872,7 +2872,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, priority = assignee_id as \`meta.flag\`, \`number\` as \`meta.ownReq\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, priority = assignee_id as \`meta.flag\`, number as \`meta.ownReq\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2909,7 +2909,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, priority = assignee_id as \`meta.flag\`, \`number\` as \`meta.ownReq\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, priority = assignee_id as \`meta.flag\`, number as \`meta.ownReq\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2953,7 +2953,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, \`number\` as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, number as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2999,7 +2999,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, \`number\` as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, number as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -3093,7 +3093,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, proj_cte.\`info.name\` as \`proj.name\`, proj_cte.\`info.slug\` as \`proj.slug\` from issue left join (select id as pid, \`name\` as \`info.name\`, slug as \`info.slug\` from project where id = ?) as proj_cte on proj_cte.pid = issue.project_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, proj_cte.\`info.name\` as \`proj.name\`, proj_cte.\`info.slug\` as \`proj.slug\` from issue left join (select id as pid, name as \`info.name\`, slug as \`info.slug\` from project where id = ?) as proj_cte on proj_cte.pid = issue.project_id where issue.id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -3339,7 +3339,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select organization.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3402,7 +3402,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select organization.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as \`wrap.projects\` from organization left join project on project.organization_id = organization.id group by organization.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3452,7 +3452,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select organization.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3510,7 +3510,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`wrap.projects\` as char) as \`wrap.projects\` from (select organization.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as \`wrap.projects\` from organization left join project on project.organization_id = organization.id group by organization.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
@@ -3571,7 +3571,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select organization.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:    number
@@ -3625,7 +3625,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.projects as char) as projects from (select organization.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as projects from organization left join project on project.organization_id = organization.id group by organization.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId:     number
@@ -3688,7 +3688,7 @@ describe(ctx.label, () => {
             .orderBy('orgId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`meta.projects\` as char) as \`meta.projects\` from (select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`meta.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id group by \`organization\`.id) as org_projects_cte order by orgId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org_projects_cte.orgId as orgId, cast(org_projects_cte.\`meta.projects\` as char) as \`meta.projects\` from (select organization.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.name, 'archivedAt', project.archived_at)) as \`meta.projects\` from organization left join project on project.organization_id = organization.id group by organization.id) as org_projects_cte order by orgId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number

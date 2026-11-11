@@ -23,7 +23,7 @@ describe(ctx.label, () => {
                 .values({ id: 10, title: 'RC build', stage: 'candidate', channel: 'beta', minVersion: '2.0.0' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, \`channel\`, min_version) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, channel, min_version) values (?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 10,
@@ -42,7 +42,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDraft.id.equals(10))
                 .select({ id: tReleaseDraft.id, stage: tReleaseDraft.stage, channel: tReleaseDraft.channel, minVersion: tReleaseDraft.minVersion })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, stage as stage, \`channel\` as \`channel\`, min_version as minVersion from release_draft where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, stage as stage, channel as channel, min_version as minVersion from release_draft where id = ?"`)
             assertType<Exact<typeof row, { id: number; stage?: ReleaseStage; channel?: ReleaseChannel; minVersion?: string }>>()
             expect(row).toEqual(expected)
         })
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
                 .values({ id: 11, title: 'Nightly', stage: null, channel: null, minVersion: null })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, \`channel\`, min_version) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, channel, min_version) values (?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 11,

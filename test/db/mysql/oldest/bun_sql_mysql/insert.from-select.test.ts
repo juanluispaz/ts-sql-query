@@ -31,7 +31,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) select ? as projectId, \`number\` as \`number\`, title as title, ? as \`status\`, priority as priority from issue where project_id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select ? as projectId, number as number, title as title, ? as status, priority as priority from issue where project_id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,

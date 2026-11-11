@@ -33,7 +33,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.\`name\` as organizationName from project inner join \`organization\` on project.organization_id = \`organization\`.id where \`organization\`.\`name\` = ? order by \`name\` limit ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.name as organizationName from project inner join organization on project.organization_id = organization.id where organization.name = ? order by name limit ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme Corp",
@@ -69,7 +69,7 @@ describe(ctx.label, () => {
             .where(tProject.organizationId.equals(1))
         // doc-end
 
-        expect(whereFirst.query()).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where organization_id = ? order by \`name\`"`)
+        expect(whereFirst.query()).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = ? order by name"`)
         expect(whereFirst.params()).toMatchInlineSnapshot(`
           [
             1,
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug, archived_at as archivedAt from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug, archived_at as archivedAt from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -160,7 +160,7 @@ describe(ctx.label, () => {
             .executeSelectNoneOrOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9999,
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, archived_at as archivedAt from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, archived_at as archivedAt from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -229,7 +229,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ? as \`source\`, ? as note from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ? as source, ? as note from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "import",
@@ -258,7 +258,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tProject.name)
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as result from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as result from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -299,7 +299,7 @@ describe(ctx.label, () => {
         const params = projectQuery.params()
         // doc-end
 
-        expect(sql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(sql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?"`)
         expect(params).toMatchInlineSnapshot(`
           [
             1,

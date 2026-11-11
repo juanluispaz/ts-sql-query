@@ -112,7 +112,7 @@ describe(ctx.label, () => {
                 .executeDelete()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project where issue.project_id = project.id and lower(project.\`name\`) like concat('%', lower(?), '%')"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project where issue.project_id = project.id and lower(project.name) like concat('%', lower(?), '%')"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "PUBLIC",
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
                 .executeDelete()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueForDelete(title, \`status\`) as (values row(?, ?)) delete from issue using issue, issueForDelete where issue.title = issueForDelete.title and issue.\`status\` = issueForDelete.\`status\`"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueForDelete(title, status) as (values row(?, ?)) delete from issue using issue, issueForDelete where issue.title = issueForDelete.title and issue.status = issueForDelete.status"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Document /v2/users",
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
                 .executeDelete()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as result from project where lower(\`name\`) like concat('%', lower(?), '%'))"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as result from project where lower(name) like concat('%', lower(?), '%'))"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Public",
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
                 .executeDelete()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on issue.project_id = project.id where lower(project.\`name\`) like concat('%', lower(?), '%')"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on issue.project_id = project.id where lower(project.name) like concat('%', lower(?), '%')"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Public",

@@ -2214,7 +2214,7 @@ describe(ctx.label, () => {
                 .shapedAs({ n: 'name', p: 'plan', v: 'verified' })
                 .setIfValue({ n: 'Skip Verified Inc', p: 'free', v: null })
                 .executeInsert())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Skip Verified Inc",

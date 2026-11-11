@@ -70,7 +70,7 @@ The executed query is:
     where company_id in (
         select id as result 
         from company 
-        where `name` like concat('%', ?, '%')
+        where name like concat('%', ?, '%')
     ) 
     order by 
         customerFirstName asc, 
@@ -132,7 +132,7 @@ The executed query is:
         last_name as customerLastName 
     from customer 
     where company_id in (
-        select id as [result] 
+        select id as result 
         from company 
         where name like ('%' + @0 + '%')
     ) 
@@ -195,7 +195,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where exists(select id as result from customer where company_id = company.id) 
     order by id
@@ -233,7 +233,7 @@ The executed query is:
         id as id, 
         name as name 
     from company 
-    where exists(select id as [result] from customer where company_id = company.id) 
+    where exists(select id as result from customer where company_id = company.id) 
     order by id
     ```
 
@@ -284,12 +284,12 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        concat(first_name, ?, last_name) as `name` 
+        concat(first_name, ?, last_name) as name 
     from customer 
     where company_id = (
         select id as result 
         from company 
-        where `name` = ?
+        where name = ?
     )
     ```
 === "Oracle"
@@ -335,7 +335,7 @@ The executed query is:
         first_name + @0 + last_name as name 
     from customer 
     where company_id = (
-        select id as [result] 
+        select id as result 
         from company 
         where name = @1
     )
@@ -398,7 +398,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         (
             select count(*) as result 
             from customer 
@@ -448,7 +448,7 @@ The executed query is:
         id as id, 
         name as name, 
         (
-            select count(*) as [result] 
+            select count(*) as result 
             from customer 
             where company_id = company.id
         ) as numberOfCustomers 
@@ -536,7 +536,7 @@ The executed query is:
     ```sqlserver
     select 
         id as id, 
-        (select count(*) as [result] from customer as otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as numberOfNamesakes 
+        (select count(*) as result from customer as otherCustomer where otherCustomer.last_name = customer.last_name and otherCustomer.id <> customer.id) as numberOfNamesakes 
     from customer 
     order by id
     ```
@@ -576,7 +576,7 @@ The executed query is:
     ```mysql
     select 
         id as id,
-        `name` as `name`,
+        name as name,
         cast((select json_arrayagg(a_1_.result) from (select distinct last_name as result from customer where company_id = company.id) as a_1_) as char) as lastNames
     from company
     ```
@@ -609,7 +609,7 @@ The executed query is:
     select 
         id as id,
         name as name,
-        (select json_arrayagg(a_1_.[result] null on null) from (select distinct last_name as [result] from customer where company_id = company.id) as a_1_) as lastNames
+        (select json_arrayagg(a_1_.result null on null) from (select distinct last_name as result from customer where company_id = company.id) as a_1_) as lastNames
     from company
     ```
 
@@ -683,13 +683,13 @@ The executed query is:
         customerCountPerCompany as (
             select 
                 company.id as companyId, 
-                company.`name` as companyName, 
+                company.name as companyName, 
                 count(customer.id) as customerCount 
             from company 
             inner join customer on customer.company_id = company.id 
             group by 
                 company.id, 
-                company.`name`
+                company.name
         ) 
     select 
         companyId as acmeCompanyId, 
@@ -850,7 +850,7 @@ The executed query is:
             select 
                 customer.id as id, 
                 company.id as `company.id`, 
-                company.`name` as `company.name` 
+                company.name as `company.name` 
             from customer 
             inner join company on company.id = customer.company_id 
         ) 
@@ -1012,7 +1012,7 @@ The executed query is:
         ) 
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         ifnull(customerCountPerCompany.customerCount, ?) as customerCount 
     from company 
     left join customerCountPerCompany on customerCountPerCompany.companyId = company.id 

@@ -145,7 +145,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.body.valueWhenNull(tIssue.externalRef.asString()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(\`body\`, external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(body, external_ref) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -351,7 +351,7 @@ describe(ctx.label, () => {
         const ref = await ctx.conn.selectFrom(inner)
             .selectOneColumn(inner.ref.concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select external_ref as ref from issue where id = ?) select concat(ref, ?) as result from w_uuid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select external_ref as \`ref\` from issue where id = ?) select concat(\`ref\`, ?) as result from w_uuid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -579,7 +579,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .select({ id: tIssue.id, ref: tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(external_ref, external_ref) as ref from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(external_ref, external_ref) as \`ref\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

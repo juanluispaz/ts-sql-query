@@ -337,7 +337,7 @@ The executed query is:
     select 
         company.id as id, 
         parent.id as `parent.id`, 
-        parent.`name` as `parent.name`, 
+        parent.name as `parent.name`, 
         parent.parent_id as `parent.parentId` 
     from company 
     left join company as parent on company.parent_id = parent.id
@@ -440,7 +440,7 @@ The executed query is:
     select 
         company.id as id, 
         parent.id as `parent.id`, 
-        parent.`name` as `parent.name`, 
+        parent.name as `parent.name`, 
         parent.parent_id as `parent.parentId`, 
         parent.favourite_customer_id as `parent.favouriteCustomerId`, 
         parent.ubication_latitude as `parent.ubicationLatitude`, 
@@ -546,9 +546,9 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `info.name`, 
+        company.name as `info.name`, 
         company.parent_id as `info.parentId`, 
-        parent.`name` as `info.parentName` 
+        parent.name as `info.parentName` 
     from company 
     left join company as parent on company.parent_id = parent.id
     ```
@@ -761,7 +761,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name`, 
+        name as name, 
         parent_id as parentId, 
         ubication_latitude as `ubication.latitude`, 
         ubication_longitude as `ubication.longitude`, 
@@ -879,7 +879,7 @@ The executed query is:
         customer.last_name as lastName, 
         customer.birthday as birthday, 
         company.id as `company.id`, 
-        company.`name` as `company.name` 
+        company.name as `company.name` 
     from customer 
     inner join company on company.id = customer.company_id 
     where customer.id = ?
@@ -1004,11 +1004,11 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         parent.id as `parent.id`, 
-        parent.`name` as `parent.name`, 
+        parent.name as `parent.name`, 
         parentParent.id as `parent.parent.id`, 
-        parentParent.`name` as `parent.parent.name`, 
+        parentParent.name as `parent.parent.name`, 
         parentParent.parent_id as `parent.parent.parentId` 
     from company 
     left join company as parent on company.parent_id = parent.id 

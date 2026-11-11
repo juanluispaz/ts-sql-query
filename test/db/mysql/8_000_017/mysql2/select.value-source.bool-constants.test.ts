@@ -44,7 +44,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where true order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where true order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual([{ id: 1 }, { id: 2 }])
     })
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
             .where(conn.false())
             .select({ id: tOrganization.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where false"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where false"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual([])
     })
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             .where(conn.true().negate())
             .select({ id: tOrganization.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where false"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where false"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(none).toEqual([])
 
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where true order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where true order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(all).toEqual([{ id: 1 }, { id: 2 }])
     })
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
             .where(tOrganization.id.equals(1).and(conn.true()))
             .select({ id: tOrganization.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -134,7 +134,7 @@ describe(ctx.label, () => {
             .where(conn.true().and(tOrganization.id.equals(1)))
             .select({ id: tOrganization.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
             .where(tOrganization.id.equals(1).or(conn.false()))
             .select({ id: tOrganization.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
             .where(conn.false().or(tOrganization.id.equals(1)))
             .select({ id: tOrganization.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

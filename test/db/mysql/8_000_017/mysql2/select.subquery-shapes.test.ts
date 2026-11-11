@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             )
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by (select \`name\` as result from project where id = issue.project_id)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by (select name as result from project where id = issue.project_id)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` having count(issue.id) > (select count(id) as result from project where archived_at is not null) order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(issue.id) > (select count(id) as result from project where archived_at is not null) order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ status: string; total: number }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select \`name\` as result from project where id = issue.project_id) as projName, (select organization_id as result from project where id = issue.project_id) as orgId from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select name as result from project where id = issue.project_id) as projName, (select organization_id as result from project where id = issue.project_id) as orgId from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         // `projName` and `orgId` are typed optional for the same
         // reason as the GROUP BY test: inline subqueries are
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id, organization_id as organizationId from project where archived_at is null), issues_in_active as (select id as id, project_id as projectId from issue where project_id in (select id as result from active_projects)) select issues_in_active.id as issueId, \`organization\`.plan as plan from issues_in_active inner join active_projects on active_projects.id = issues_in_active.projectId inner join \`organization\` on \`organization\`.id = active_projects.organizationId order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id, organization_id as organizationId from project where archived_at is null), issues_in_active as (select id as id, project_id as projectId from issue where project_id in (select id as result from active_projects)) select issues_in_active.id as issueId, organization.plan as plan from issues_in_active inner join active_projects on active_projects.id = issues_in_active.projectId inner join organization on organization.id = active_projects.organizationId order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ issueId: number; plan: string }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
@@ -274,7 +274,7 @@ describe(ctx.label, () => {
             .select({ s: statuses.s })
             .orderBy('s')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select \`status\` as s from issue where \`status\` = ? union select \`status\` as s from issue where \`status\` = ?) select s as s from statuses order by s"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select status as s from issue where status = ? union select status as s from issue where status = ?) select s as s from statuses order by s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -301,7 +301,7 @@ describe(ctx.label, () => {
             .select({ s: statuses.s })
             .orderBy('s')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select \`status\` as s from issue where \`status\` = ? union select \`status\` as s from issue where \`status\` = ? order by s desc) select s as s from statuses order by s"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select status as s from issue where status = ? union select status as s from issue where status = ? order by s desc) select s as s from statuses order by s"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ statuses: statusArray })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(a_1_.result) from (select \`status\` as result from issue where \`status\` = ? union select \`status\` as result from issue where \`status\` = ?) as a_1_) as char) as statuses"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(a_1_.result) from (select status as result from issue where status = ? union select status as result from issue where status = ?) as a_1_) as char) as statuses"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -436,7 +436,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, related })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast((select json_arrayagg(a_1_.result) from (select other.title as result from issue as other where other.assignee_id = app_user.id union select other.title as result from issue as other where other.\`status\` = ?) as a_1_) as char) as related from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast((select json_arrayagg(a_1_.result) from (select other.title as result from issue as other where other.assignee_id = app_user.id union select other.title as result from issue as other where other.status = ?) as a_1_) as char) as related from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "closed",

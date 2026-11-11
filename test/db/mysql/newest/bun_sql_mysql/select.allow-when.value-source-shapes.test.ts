@@ -767,7 +767,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id in (\`number\`, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id in (number, ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -942,7 +942,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, ?, \`status\`) as label from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, ?, status) as label from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hero",
@@ -1009,7 +1009,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(\`name\`) as \`name\` from project_overview where organization_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(name) as name from project_overview where organization_id = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

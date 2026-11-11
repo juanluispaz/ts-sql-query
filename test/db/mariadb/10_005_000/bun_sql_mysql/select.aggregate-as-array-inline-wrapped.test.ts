@@ -1000,7 +1000,7 @@ describe(ctx.label, () => {
             id:   number
             tree: Array<{ id: number; title: string; body: string | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, \`body\` as \`body\` from issue where id = ? union all select issue.id as id, issue.title as title, issue.\`body\` as \`body\` from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, cast((select json_arrayagg(json_object('id', id, 'title', title, 'body', \`body\`)) from recursive_select_1) as char) as tree from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, body as body from issue where id = ? union all select issue.id as id, issue.title as title, issue.body as body from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, cast((select json_arrayagg(json_object('id', id, 'title', title, 'body', body)) from recursive_select_1) as char) as tree from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1154,7 +1154,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, {
             items: Array<{ ref: string | null; assigneeId: number | null }>
         }>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(json_object('ref', a_1_.ref, 'assigneeId', a_1_.assigneeId)) from (select \`body\` as ref, assignee_id as assigneeId from issue where id = ? union select \`body\` as ref, assignee_id as assigneeId from issue where id = ?) as a_1_) as char) as items"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(json_object('ref', a_1_.\`ref\`, 'assigneeId', a_1_.assigneeId)) from (select body as \`ref\`, assignee_id as assigneeId from issue where id = ? union select body as \`ref\`, assignee_id as assigneeId from issue where id = ?) as a_1_) as char) as items"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

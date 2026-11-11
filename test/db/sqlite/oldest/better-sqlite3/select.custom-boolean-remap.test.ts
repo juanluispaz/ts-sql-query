@@ -179,7 +179,7 @@ describe(ctx.label, () => {
             const inserted = await ctx.conn.insertInto(tOrganization)
                 .values({ name: 'Initech', plan: 'pro', verified: true })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan", verified) values (?1, ?2, case when ?3 then 'Y' else 'N' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values (?1, ?2, case when ?3 then 'Y' else 'N' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",
@@ -360,7 +360,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where verified = 'Y' and "plan" = ?1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where verified = 'Y' and plan = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "pro",
@@ -1391,7 +1391,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id > ?1 and (verified = 'Y' or "plan" = ?2) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id > ?1 and (verified = 'Y' or plan = ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1413,7 +1413,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where not (verified = 'Y' and "plan" = ?1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where not (verified = 'Y' and plan = ?1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "pro",

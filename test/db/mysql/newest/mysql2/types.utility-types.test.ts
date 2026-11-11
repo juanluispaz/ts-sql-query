@@ -183,7 +183,7 @@ describe(ctx.label, () => {
             .where(tReleaseRow.id.equals(2))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, bin_to_uuid(signing_key) as signingKey, published_at as publishedAt, notes as notes, upper(\`channel\`) as versionTag, \`channel\` as \`channel\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, bin_to_uuid(signing_key) as signingKey, published_at as publishedAt, notes as notes, upper(channel) as versionTag, channel as channel from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -228,7 +228,7 @@ describe(ctx.label, () => {
             .where(vProjectOverview.id.equals(1))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, archived_at as archivedAt, upper(\`name\`) as nameUpper from project_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, archived_at as archivedAt, upper(name) as nameUpper from project_overview where id = ?"`)
         assertType<Exact<typeof row, { id: number; name: string; archivedAt?: Date; nameUpper: string }>>()
         assertType<Exact<typeof row, SelectedValues<typeof columns>>>()
         expect(row).toEqual({ id: 1, name: 'Marketing site', nameUpper: 'MARKETING SITE' })
@@ -245,7 +245,7 @@ describe(ctx.label, () => {
             .select({ projectId: tProject.id, manager: columns })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, manager.id as \`manager.id\`, manager.\`name\` as \`manager.name\`, manager.plan as \`manager.plan\` from project left outer join \`organization\` as manager on manager.id = project.organization_id and manager.plan = ? where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, manager.id as \`manager.id\`, manager.name as \`manager.name\`, manager.plan as \`manager.plan\` from project left outer join organization as manager on manager.id = project.organization_id and manager.plan = ? where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "no such plan",
@@ -282,7 +282,7 @@ describe(ctx.label, () => {
         const { names, row: pending } = namesAndRow(ctx.conn, tOrganization.as('org'))
         const row = await pending
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org.id as id, org.\`name\` as \`name\`, org.plan as plan from \`organization\` as org where org.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select org.id as id, org.name as name, org.plan as plan from organization as org where org.id = ?"`)
         assertType<Exact<typeof names, ('id' | 'name' | 'plan' | 'verified' | 'createdAt')[]>>()
         expect(sorted(names)).toEqual(['createdAt', 'id', 'name', 'plan', 'verified'])
         assertType<Exact<typeof row, { id: number; name: string; plan: string }>>()

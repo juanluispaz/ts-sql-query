@@ -21,7 +21,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .onConflictDoUpdateSet({ name: forInsert.name })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) select \`code\` as \`code\`, region as \`name\`, region as region from country where \`code\` = ? on duplicate key update \`name\` = values(\`name\`)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) select code as code, region as name, region as region from country where code = ? on duplicate key update name = values(name)"`)
             expect(await ctx.conn.selectFrom(tCountry).where(tCountry.code.equals('GB')).selectOneColumn(tCountry.name).executeSelectOne()).toBe('Europe')
         })
     })

@@ -223,7 +223,7 @@ describe(ctx.label, () => {
                     ta: tIssue.estimatedHours.divide(10).tan(),
                 })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(estimated_hours / ?) as ac, asin(estimated_hours / ?) as \`as\`, atan(estimated_hours / ?) as \`at\`, cos(estimated_hours / ?) as co, sin(estimated_hours / ?) as si, tan(estimated_hours / ?) as ta from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(estimated_hours / ?) as ac, asin(estimated_hours / ?) as \`as\`, atan(estimated_hours / ?) as at, cos(estimated_hours / ?) as co, sin(estimated_hours / ?) as si, tan(estimated_hours / ?) as ta from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 10,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
                 ta: tIssue.priority.asDouble().divide(10).tan(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as double) / ?) as ac, asin(cast(priority as double) / ?) as \`as\`, atan(cast(priority as double) / ?) as \`at\`, cos(cast(priority as double) / ?) as co, sin(cast(priority as double) / ?) as si, tan(cast(priority as double) / ?) as ta from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as double) / ?) as ac, asin(cast(priority as double) / ?) as \`as\`, atan(cast(priority as double) / ?) as at, cos(cast(priority as double) / ?) as co, sin(cast(priority as double) / ?) as si, tan(cast(priority as double) / ?) as ta from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
                 ta: tIssue.assigneeId.divide(2).tan(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(assignee_id as double) / ?) as ac, asin(cast(assignee_id as double) / ?) as \`as\`, atan(cast(assignee_id as double) / ?) as \`at\`, cos(cast(assignee_id as double) / ?) as co, sin(cast(assignee_id as double) / ?) as si, tan(cast(assignee_id as double) / ?) as ta from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(assignee_id as double) / ?) as ac, asin(cast(assignee_id as double) / ?) as \`as\`, atan(cast(assignee_id as double) / ?) as at, cos(cast(assignee_id as double) / ?) as co, sin(cast(assignee_id as double) / ?) as si, tan(cast(assignee_id as double) / ?) as ta from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

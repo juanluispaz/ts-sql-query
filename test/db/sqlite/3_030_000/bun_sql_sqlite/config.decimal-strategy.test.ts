@@ -163,7 +163,7 @@ describe(ctx.label, () => {
                 expect(ctx.lastParams).toEqual(['1.5'])
                 // A distinct select of groups: the canonical texts of the rows are compared
                 const groups = await conn.selectDistinctFrom(tExactAmount).where(tExactAmount.price.equals('1.5' as Amount)).select({ price: tExactAmount.price, rows: conn.countAll() }).groupBy('price').executeSelectMany()
-                expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct price as price, count(*) as "rows" from exact_amount where price = ?1 group by price"`)
+                expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct price as price, count(*) as rows from exact_amount where price = ?1 group by price"`)
                 expect(written).toEqual([{ price: '1.5' }, { price: '9' }, { price: '10' }, { price: '0' }, { price: '-1' }])
                 expect(equal).toEqual([1, 6])
                 expect(groups).toEqual([{ price: '1.5', rows: 2 }])

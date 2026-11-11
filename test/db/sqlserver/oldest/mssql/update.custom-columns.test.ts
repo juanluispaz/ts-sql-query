@@ -75,7 +75,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.channel)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set channel = @0 output inserted.channel as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set channel = @0 output inserted.channel as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "beta",
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssueWorklog.activityTagged)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set minutes = @0 output upper(inserted.activity) as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set minutes = @0 output upper(inserted.activity) as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 95,
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDraft.id.equals(1))
                 .select({ stamp: tReleaseDraft.shiftedStamp, count: tReleaseDraft.shiftedCount })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as [count] from release_draft where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as count from release_draft where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

@@ -225,7 +225,7 @@ describe(ctx.label, () => {
                 .set({ projectId: 1, number: 100, title: 'Object', status: 'open', priority: 2, body: { a: 1 } })
                 .executeInsert()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, \`body\`) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toEqual([1, 100, 'Object', 'open', 2, '{"a":1}'])
         })
     })

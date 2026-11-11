@@ -139,7 +139,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(5, 'int', intTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -155,7 +155,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(1.5, 'double', doubleTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1.5,
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(9n, 'bigint', bigintTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9n,
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(UUID_LOWER, 'uuid', uuidBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -207,7 +207,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(5, 'int', intTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -222,7 +222,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(1.5, 'double', doubleTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1.5,
@@ -237,7 +237,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(9n, 'bigint', bigintTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9n,
@@ -252,7 +252,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(UUID_LOWER, 'uuid', uuidBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'int', intTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -293,7 +293,7 @@ describe(ctx.label, () => {
                     .sql`${ctx.conn.const(5, 'int')}`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
                     .sql`${ctx.conn.const(1.5, 'double')}`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1.5,
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
                     .sql`${ctx.conn.const(9n, 'bigint')}`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9n,
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
                     .sql`${ctx.conn.const(UUID_LOWER, 'uuid')}`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -367,7 +367,7 @@ describe(ctx.label, () => {
                     .sql`${ctx.conn.const(5, 'int')}`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -391,7 +391,7 @@ describe(ctx.label, () => {
                     .sql`sum(${tIssue.priority})`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(80)
@@ -407,7 +407,7 @@ describe(ctx.label, () => {
                     .sql`max(${tIssue.priority})`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number | null>>()
         expect(v).toBe(30)
@@ -424,7 +424,7 @@ describe(ctx.label, () => {
                     .sql`count(${tIssue.id})`,
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, bigint>>()
         expect(v).toBe(40n)
@@ -444,7 +444,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(2.5, 'customDouble', 'Money', doubleTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -462,7 +462,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(2.5, 'customDouble', 'Money', doubleTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -480,7 +480,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst<number, 'Money'>(null, 'customDouble', 'Money', doubleTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -499,7 +499,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(true, 'boolean', boolNegate))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -516,7 +516,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(true, 'boolean', boolNegate))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -532,7 +532,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(lt, 'localTime', shiftHourFromDb))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T17:00:00.000Z,
@@ -548,7 +548,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(ldt, 'localDateTime', shiftHourFromDb))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,
@@ -566,7 +566,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(lt, 'localTime', shiftHourFromDb))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T17:00:00.000Z,
@@ -582,7 +582,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(ldt, 'localDateTime', shiftHourFromDb))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,
@@ -613,7 +613,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents', intTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -628,7 +628,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst<number, 'Cents'>(5, 'customInt', 'Cents', intTimesTen))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -643,7 +643,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey', uuidBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -658,7 +658,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey', uuidBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -678,7 +678,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType('string', 'required', stringBracket).sql`${ctx.conn.const('hi', 'string')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hi",
@@ -693,7 +693,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType('string', 'optional', stringBracket).sql`${ctx.conn.const('hi', 'string')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hi",
@@ -709,7 +709,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType('localTime', 'required', shiftHourFromDb).sql`${ctx.conn.const(lt, 'localTime')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T17:00:00.000Z,
@@ -725,7 +725,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType('localTime', 'optional', shiftHourFromDb).sql`${ctx.conn.const(lt, 'localTime')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T17:00:00.000Z,
@@ -741,7 +741,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType('localDateTime', 'required', shiftHourFromDb).sql`${ctx.conn.const(ldt, 'localDateTime')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,
@@ -757,7 +757,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType('localDateTime', 'optional', shiftHourFromDb).sql`${ctx.conn.const(ldt, 'localDateTime')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,
@@ -772,7 +772,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'required', stringBracket).sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -787,7 +787,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional', stringBracket).sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -802,7 +802,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<number, 'Cents'>('customInt', 'Cents', 'required', intTimesTen).sql`${ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -817,7 +817,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<number, 'Cents'>('customInt', 'Cents', 'optional', intTimesTen).sql`${ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -832,7 +832,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'required', doubleTimesTen).sql`${ctx.conn.const<number, 'Money'>(2.5, 'customDouble', 'Money')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -847,7 +847,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'optional', doubleTimesTen).sql`${ctx.conn.const<number, 'Money'>(2.5, 'customDouble', 'Money')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2.5,
@@ -862,7 +862,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', stringBracket).sql`${ctx.conn.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1.0.0",
@@ -877,7 +877,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'optional', stringBracket).sql`${ctx.conn.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1.0.0",
@@ -892,7 +892,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'required', stringBracket).sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -907,7 +907,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional', stringBracket).sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -922,7 +922,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<string, 'SigningKey'>('customUuid', 'SigningKey', 'required', uuidBracket).sql`${ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -937,7 +937,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional', uuidBracket).sql`${ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -953,7 +953,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'required', shiftHourFromDb).sql`${ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T17:00:00.000Z,
@@ -969,7 +969,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'optional', shiftHourFromDb).sql`${ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T17:00:00.000Z,
@@ -985,7 +985,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'required', shiftHourFromDb).sql`${ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,
@@ -1001,7 +1001,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'optional', shiftHourFromDb).sql`${ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp')}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,
@@ -1026,7 +1026,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType('double', 'required', doubleTimesTen).sql`max(${tIssue.priority})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(30)
@@ -1037,7 +1037,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType<number, 'Cents'>('customInt', 'Cents', 'required', intTimesTen).sql`max(${tIssue.priority})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(30)
@@ -1048,7 +1048,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType<number, 'Money'>('customDouble', 'Money', 'required', doubleTimesTen).sql`max(${tIssue.priority})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(30)
@@ -1059,7 +1059,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType('string', 'required', stringBracket).sql`max(${tIssue.title})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         if (!ctx.realDbEnabled) expect(v).toBe('[zzz]')
@@ -1071,7 +1071,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'required', stringBracket).sql`max(${tIssue.title})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, WorklogActivity>>()
         if (!ctx.realDbEnabled) expect(v).toBe('[coding]')
@@ -1083,7 +1083,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'required', stringBracket).sql`max(${tIssue.title})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, ReleaseChannel>>()
         if (!ctx.realDbEnabled) expect(v).toBe('[stable]')
@@ -1095,7 +1095,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', stringBracket).sql`max(${tIssue.title})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         if (!ctx.realDbEnabled) expect(v).toBe('[1.0.0]')
@@ -1113,7 +1113,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity', stringBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -1128,7 +1128,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel', stringBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -1143,7 +1143,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver', stringBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "1.2.0",
@@ -1158,7 +1158,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst<WorklogActivity, 'WorklogActivity'>('review', 'enum', 'WorklogActivity', stringBracket))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "review",
@@ -1180,7 +1180,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock', shiftHourFromDb))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T17:00:00.000Z,
@@ -1201,7 +1201,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp', shiftHourFromDb))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-14T12:30:00.000Z,

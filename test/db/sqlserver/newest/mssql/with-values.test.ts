@@ -398,7 +398,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPick as (select * from (values (@0, @1), (@2, @3)) as projectPick(projectId, tag)) select id as id, name as name from project where id = (select projectId as [result] from projectPick where tag = @4) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPick as (select * from (values (@0, @1), (@2, @3)) as projectPick(projectId, tag)) select id as id, name as name from project where id = (select projectId as result from projectPick where tag = @4) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -563,7 +563,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList as (select * from (values (@0)) as idList(id)) select id as id from project where exists(select id as [result] from idList) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList as (select * from (values (@0)) as idList(id)) select id as id from project where exists(select id as result from idList) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

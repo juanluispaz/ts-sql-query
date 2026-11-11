@@ -358,7 +358,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vSource(id, "label") as (select :0, :1 from dual) select id as "id", (select title as "result" from issue where id = vSource.id) as "title" from vSource"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vSource(id, label) as (select :0, :1 from dual) select id as "id", (select title as "result" from issue where id = vSource.id) as "title" from vSource"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

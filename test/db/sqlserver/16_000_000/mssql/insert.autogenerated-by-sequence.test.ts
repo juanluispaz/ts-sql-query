@@ -35,7 +35,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) output inserted.id values (next value for audit_tag_seq, @0)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) output inserted.id values (next value for audit_tag_seq, @0)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) output inserted.id values (next value for audit_tag_seq, @0)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) output inserted.id values (next value for audit_tag_seq, @0)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "purged",
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                 .values([{ action: 'archived' }, { action: 'restored' }])
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) values (next value for audit_tag_seq, @0), (next value for audit_tag_seq, @1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) values (next value for audit_tag_seq, @0), (next value for audit_tag_seq, @1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",
@@ -138,7 +138,7 @@ describe(ctx.label, () => {
                 .set({ action: 'exported' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) values (next value for audit_tag_seq, @0)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) values (next value for audit_tag_seq, @0)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "exported",
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
                 .set({ id: 1900, action: 'exported-with-explicit-id' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) values (@0, @1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) values (@0, @1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 900,
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
                     .select({ action: tIssue.status }))
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry ([action], id) select status as [action], next value for audit_tag_seq as id from issue where project_id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (action, id) select status as action, next value for audit_tag_seq as id from issue where project_id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -200,7 +200,7 @@ describe(ctx.label, () => {
                 .orderBy('result')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select [action] as [result] from audit_entry order by [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select action as result from audit_entry order by result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof actions, string[]>>()
             expect(actions).toEqual(['in_progress', 'open'])
@@ -221,7 +221,7 @@ describe(ctx.label, () => {
                 .set({ statusLabel: 'shaped-export' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) values (next value for audit_tag_seq, @0)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) values (next value for audit_tag_seq, @0)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "shaped-export",
@@ -248,7 +248,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) values (@0, @1), (next value for audit_tag_seq, @2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) values (@0, @1), (next value for audit_tag_seq, @2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 900,

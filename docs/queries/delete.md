@@ -285,7 +285,7 @@ The executed query is:
           company 
     where 
             customer.company_id = company.id 
-        and lower(company.`name`) like concat('%', lower(?), '%')
+        and lower(company.name) like concat('%', lower(?), '%')
     ```
 === "Oracle"
     ```oracle
@@ -358,7 +358,7 @@ The executed query is:
     where company_id in (
         select id as result 
         from company 
-        where lower(`name`) like concat('%', lower(?), '%')
+        where lower(name) like concat('%', lower(?), '%')
     )
     ```
 === "Oracle"
@@ -392,7 +392,7 @@ The executed query is:
     ```sqlserver
     delete from customer 
     where company_id in (
-        select id as [result] 
+        select id as result 
         from company 
         where lower(name) like lower('%' + @0 + '%')
     )
@@ -432,7 +432,7 @@ The executed query is:
     delete from customer 
     using customer 
     inner join company on customer.company_id = company.id 
-    where lower(company.`name`) like concat('%', lower(?), '%')
+    where lower(company.name) like concat('%', lower(?), '%')
     ```
 === "Oracle"
     ```oracle

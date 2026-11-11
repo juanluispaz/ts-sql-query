@@ -118,7 +118,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, \`name\`) as (values row(?, ?), row(?, ?)) select pp.id as id, pp.\`name\` as \`name\` from projectPatch as pp order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values row(?, ?), row(?, ?)) select pp.id as id, pp.name as name from projectPatch as pp order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -155,7 +155,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, \`name\`) as (values row(?, ?)) select project.id as pid, pp.\`name\` as newName from project left join projectPatch as pp on pp.id = project.id where project.id <= ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values row(?, ?)) select project.id as pid, pp.name as newName from project left join projectPatch as pp on pp.id = project.id where project.id <= ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

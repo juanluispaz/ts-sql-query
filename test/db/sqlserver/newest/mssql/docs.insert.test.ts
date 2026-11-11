@@ -261,7 +261,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.name)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.name as [result] values (@0, @1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.name as result values (@0, @1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",
@@ -615,7 +615,7 @@ describe(ctx.label, () => {
                 .executeInsertOne()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.title as [result] values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.title as result values (@0, @1, @2, @3, @4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

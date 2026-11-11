@@ -38,7 +38,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project where lower(\`name\`) like concat(lower(?), '%') or lower(slug) like concat('%', lower(?), '%')"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where lower(name) like concat(lower(?), '%') or lower(slug) like concat('%', lower(?), '%')"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Mark",

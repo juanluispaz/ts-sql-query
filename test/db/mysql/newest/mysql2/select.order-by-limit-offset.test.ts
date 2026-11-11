@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             })
             .limit(1).offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, id as id from issue limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, id as id from issue limit ? offset ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             })
             .limit(1).offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue limit ? offset ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

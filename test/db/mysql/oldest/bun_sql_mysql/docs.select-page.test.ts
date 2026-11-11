@@ -41,7 +41,7 @@ describe(ctx.label, () => {
         // doc-end
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project where lower(\`name\`) like concat(lower(?), '%') or lower(slug) like concat(lower(?), '%') order by \`name\`, slug limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where lower(name) like concat(lower(?), '%') or lower(slug) like concat(lower(?), '%') order by name, slug limit ? offset ?"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             "M",
@@ -50,7 +50,7 @@ describe(ctx.label, () => {
             20,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project where lower(\`name\`) like concat(lower(?), '%') or lower(slug) like concat(lower(?), '%')"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from project where lower(name) like concat(lower(?), '%') or lower(slug) like concat(lower(?), '%')"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             "M",
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
         // doc-end
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by id limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id limit ? offset ?"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             3,
@@ -159,7 +159,7 @@ describe(ctx.label, () => {
         // doc-end
 
         expect(ctx.history.length).toBe(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by id limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id limit ? offset ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -191,7 +191,7 @@ describe(ctx.label, () => {
         // doc-end
 
         expect(ctx.history.length).toBe(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by id limit ? offset ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id limit ? offset ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -283,13 +283,13 @@ describe(ctx.label, () => {
         // doc-end
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(*) as issues from issue group by \`status\` order by \`status\` limit ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as status, count(*) as issues from issue group by status order by status limit ?"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select \`status\` as \`status\`, count(*) as issues from issue group by \`status\`) as result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select status as status, count(*) as issues from issue group by status) as result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issuesByStatus, {
             data:  Array<{ status: string; issues: number }>
@@ -322,13 +322,13 @@ describe(ctx.label, () => {
         // doc-end
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select \`name\` as \`name\` from \`organization\` union select \`name\` as \`name\` from project order by \`name\` limit ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select name as name from organization union select name as name from project order by name limit ?"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             3,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select \`name\` as \`name\` from \`organization\` union select \`name\` as \`name\` from project) as result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from (select name as name from organization union select name as name from project) as result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof namesPage, {
             data:  Array<{ name: string }>
@@ -416,7 +416,7 @@ describe(ctx.label, () => {
 
         // Only the data query was fired.
         expect(ctx.history.length).toBe(1)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project order by id limit ? offset ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by id limit ? offset ?"`)
         assertType<Exact<typeof page, {
             data:  Array<{ id: number; name: string; slug: string }>
             count: number

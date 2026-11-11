@@ -996,12 +996,12 @@ The executed query to get the count is:
     ```mysql
     with 
         result_for_count as (
-            select first_name as `name` 
+            select first_name as name 
             from customer 
             
             union 
             
-            select `name` as `name` 
+            select name as name 
             from company
         ) 
     select count(*) 

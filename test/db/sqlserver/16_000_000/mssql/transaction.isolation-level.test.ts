@@ -99,7 +99,7 @@ describe(ctx.label, () => {
         // this database.
         ctx.mockNext(1)
         const level = await activeIsolationLevel(ctx.conn.isolationLevel('read uncommitted'))
-        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as result"`)
         expect(level).toBe(1)
     })
 
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
         // this database.
         ctx.mockNext(2)
         const level = await activeIsolationLevel(ctx.conn.isolationLevel('read committed'))
-        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as result"`)
         expect(level).toBe(2)
     })
 
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
         // this database.
         ctx.mockNext(3)
         const level = await activeIsolationLevel(ctx.conn.isolationLevel('repeatable read'))
-        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as result"`)
         expect(level).toBe(3)
     })
 
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
         // this database.
         ctx.mockNext(4)
         const level = await activeIsolationLevel(ctx.conn.isolationLevel('serializable'))
-        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as [result]"`)
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select (select transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid) as result"`)
         expect(level).toBe(4)
     })
 

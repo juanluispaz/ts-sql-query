@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, reviewer: reviewerSub })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select reviewer_code as [result] from project_review where project_id = project.id and score = @0) as reviewer from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select reviewer_code as result from project_review where project_id = project.id and score = @0) as reviewer from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             850,
@@ -117,7 +117,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, replace(project.slug collate Latin1_General_BIN2, project_review.reviewer_code collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as [label] from project inner join project_review on project_review.project_id = project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, replace(project.slug collate Latin1_General_BIN2, project_review.reviewer_code collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as label from project inner join project_review on project_review.project_id = project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-",

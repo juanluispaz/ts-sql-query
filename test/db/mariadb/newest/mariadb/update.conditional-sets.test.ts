@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, \`body\` = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Triaged",
@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, \`body\` = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Triage",
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, \`body\` = ?, priority = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ?, priority = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Triaged",
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, \`body\` = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Filled",
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`body\` = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set body = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ?, \`body\` = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, priority = ?, body = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Base",

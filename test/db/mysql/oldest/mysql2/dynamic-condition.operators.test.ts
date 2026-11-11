@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             priority: { greaterThan: 1, lessThan: 5 },
             status:   { notEquals: 'closed' },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ? and priority > ? and priority < ? and \`status\` <> ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ? and priority > ? and priority < ? and status <> ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -91,7 +91,7 @@ describe(ctx.label, () => {
             status: { in: ['open', 'in_progress'] },
             id:     { notIn: [99, 100] },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` in (?, ?) and id not in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status in (?, ?) and id not in (?, ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
                 ] },
             ],
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? and (priority > ? or not (title like concat('%', ?, '%'))) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and (priority > ? or not (title like concat('%', ?, '%'))) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

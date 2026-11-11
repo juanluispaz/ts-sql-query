@@ -97,7 +97,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority <=> ? and not (\`status\` <=> ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority <=> ? and not (status <=> ?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             2,
@@ -490,7 +490,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? and priority = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and priority = ? order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -514,7 +514,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? or priority = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? or priority = ? order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -538,7 +538,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not (\`status\` = ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not (status = ?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "closed",
@@ -768,7 +768,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? and \`status\` in (?, ?) and \`status\` <> ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and status in (?, ?) and status <> ? order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -968,7 +968,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` <> ? and \`channel\` in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> ? and channel in (?, ?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "canary",
@@ -1243,7 +1243,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` <> ? and \`channel\` in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> ? and channel in (?, ?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "canary",
@@ -3878,7 +3878,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` = ? and \`channel\` <=> ? and not (\`channel\` <=> ?) and \`channel\` not in (?) and \`channel\` is null and \`channel\` is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel <=> ? and not (channel <=> ?) and channel not in (?) and channel is null and channel is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -3910,7 +3910,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` = ? and \`channel\` <=> ? and not (\`channel\` <=> ?) and \`channel\` not in (?) and \`channel\` is null and \`channel\` is not null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel <=> ? and not (channel <=> ?) and channel not in (?) and channel is null and channel is not null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -3941,7 +3941,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` = ? and \`channel\` <=> ? and not (\`channel\` <=> ?) and \`channel\` not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel <=> ? and not (channel <=> ?) and channel not in (?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -3971,7 +3971,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` = ? and \`channel\` <=> ? and not (\`channel\` <=> ?) and \`channel\` not in (?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? and channel <=> ? and not (channel <=> ?) and channel not in (?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -5431,7 +5431,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not (priority <=> ?) and \`status\` = ? and \`status\` <> ? and \`status\` in (?, ?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where not (priority <=> ?) and status = ? and status <> ? and status in (?, ?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             4,

@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, ?) as \`owner\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, ?) as owner from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, id) as \`owner\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, id) as owner from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; owner: number }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(\`status\`, ?) as statusOrNull from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(status, ?) as statusOrNull from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "closed",
@@ -535,7 +535,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(created_at, ?) as d, ifnull(created_at, created_at) as d2 from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(created_at, ?) as d, ifnull(created_at, created_at) as d2 from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -802,7 +802,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` = ? and priority > ? as andFlag, \`status\` = ? or priority > ? as orFlag from issue where id in (?, ?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status = ? and priority > ? as andFlag, status = ? or priority > ? as orFlag from issue where id in (?, ?, ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -887,7 +887,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(\`channel\`, ?) as \`c\`, nullif(\`channel\`, ?) as cni, \`channel\` as copt from project_release where \`channel\` is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(channel, ?) as c, nullif(channel, ?) as cni, channel as copt from project_release where channel is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -1003,7 +1003,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(\`channel\`, ?) as coalesced, nullif(\`channel\`, ?) as nulled, \`channel\` as opt from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(channel, ?) as coalesced, nullif(channel, ?) as nulled, channel as opt from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -1018,7 +1018,7 @@ describe(ctx.label, () => {
             .where(tReleaseDraft.channel.isNull())
             .selectOneColumn(tReleaseDraft.id)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from release_draft where \`channel\` is null"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from release_draft where channel is null"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof nullIds, number[]>>()
         expect(nullIds).toEqual([2])
@@ -1186,7 +1186,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(\`channel\`, \`channel\`) as cvs, nullif(\`channel\`, \`channel\`) as nvs from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(channel, channel) as cvs, nullif(channel, channel) as nvs from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; cvs?: ReleaseChannel; nvs?: ReleaseChannel }>>>()
         expect(rows).toEqual(expected)
@@ -1260,7 +1260,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`channel\` as req, null as own, null as ign from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as req, null as own, null as ign from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1429,7 +1429,7 @@ describe(ctx.label, () => {
                 ign: tOrganization.createdAt.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as req, null as own, null as ign from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as req, null as own, null as ign from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1658,7 +1658,7 @@ describe(ctx.label, () => {
             .where(tOrganization.id.equals(1))
             .select({ id: tOrganization.id, c: tOrganization.createdAt.asOptional() })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as \`c\` from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as c from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1697,7 +1697,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((verified = 'Y'), ?) as wn, nullif((verified = 'Y'), ?) as ni from \`organization\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((verified = 'Y'), ?) as wn, nullif((verified = 'Y'), ?) as ni from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             false,
@@ -1794,7 +1794,7 @@ describe(ctx.label, () => {
                 ign: tOrganization.verified.ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (verified = 'Y') as req, null as own, null as ign from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (verified = 'Y') as req, null as own, null as ign from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

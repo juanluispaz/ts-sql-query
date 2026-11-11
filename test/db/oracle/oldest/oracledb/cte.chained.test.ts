@@ -194,7 +194,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, priority as priority, title as title from issue where status = :0), top_open as (select title as "label" from open_issues where priority >= :1) select "label" as "label" from top_open union select name as "label" from project where id = :2 order by 1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, priority as priority, title as title from issue where status = :0), top_open as (select title as label from open_issues where priority >= :1) select label as "label" from top_open union select name as "label" from project where id = :2 order by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

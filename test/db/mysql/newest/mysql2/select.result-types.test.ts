@@ -30,7 +30,7 @@ describe(ctx.label, () => {
                 cutoffClock: t.cutoffClock, signOff: t.signOff, activity: t.activity,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as \`channel\`, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as channel, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix where id = ?"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {
@@ -208,7 +208,7 @@ describe(ctx.label, () => {
             .where(tOrganization.id.equals(1))
             .select({ id: tOrganization.id, aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier: tOrganization.name })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier from organization where id = ?"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {
@@ -250,7 +250,7 @@ describe(ctx.label, () => {
         const count = await ctx.conn.selectFrom(tOrganization)
             .selectCountAll()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from \`organization\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from organization"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {
@@ -274,8 +274,8 @@ describe(ctx.label, () => {
             .executeSelectPage()
         expect(ctx.history.map(entry => entry.sql)).toMatchInlineSnapshot(`
           [
-            "select id as id, \`name\` as \`name\` from \`organization\` order by id limit ?",
-            "select count(*) from \`organization\`",
+            "select id as id, name as name from organization order by id limit ?",
+            "select count(*) from organization",
           ]
         `)
         expect(ctx.history.map(entry => resultColumns(entry.params))).toMatchInlineSnapshot(`
@@ -319,7 +319,7 @@ describe(ctx.label, () => {
             )
             .orderBy('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as label from \`organization\` where id = ? union select id as id, \`name\` as label from \`organization\` where id = ? order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as label from organization where id = ? union select id as id, name as label from organization where id = ? order by label"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {
@@ -372,7 +372,7 @@ describe(ctx.label, () => {
             .where(tOrganization.id.equals(1))
             .select({ id: tOrganization.id, shout: ctx.conn.fragmentWithType('string', 'required').sql`upper(${tOrganization.name})` })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(\`name\`) as shout from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(name) as shout from organization where id = ?"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {

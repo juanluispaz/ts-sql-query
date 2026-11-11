@@ -55,8 +55,8 @@ describe(ctx.label, () => {
 
             expect(statementsSql()).toMatchInlineSnapshot(`
               [
-                "insert into \`organization\` (\`name\`, plan) values (?, ?)",
-                "insert into project (\`name\`, slug, organization_id) values (?, ?, ?)",
+                "insert into organization (name, plan) values (?, ?)",
+                "insert into project (name, slug, organization_id) values (?, ?, ?)",
               ]
             `)
             expect(ctx.lastNoTransactionParams.slice(0, 2)).toMatchInlineSnapshot(`
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             // The history includes the synthetic begin/commit entries
             // plus the actual INSERT (asserted via lastNoTransactionSql
             // since `commit` is the most recent capture).
-            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan) values (?, ?)"`)
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?)"`)
         })
     })
 
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
             // doc-end
 
             expect(ctx.lastTransactionOpts).toEqual([undefined, 'read only'])
-            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` order by id"`)
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by id"`)
             assertType<Exact<typeof organizations, { id: number; name: string }[]>>()
             expect(organizations).toHaveLength(2)
         })
@@ -972,9 +972,9 @@ describe(ctx.label, () => {
 
             expect(statementsSql()).toMatchInlineSnapshot(`
               [
-                "insert into \`organization\` (\`name\`, plan) values (?, ?)",
-                "insert into \`organization\` (\`name\`, plan) values (?, ?)",
-                "select count(*) as result from \`organization\` where \`name\` = ?",
+                "insert into organization (name, plan) values (?, ?)",
+                "insert into organization (name, plan) values (?, ?)",
+                "select count(*) as result from organization where name = ?",
               ]
             `)
             expect(savedOrganizations).toBe(2)
@@ -1002,8 +1002,8 @@ describe(ctx.label, () => {
 
             expect(statementsSql()).toMatchInlineSnapshot(`
               [
-                "insert into \`organization\` (\`name\`, plan) values (?, ?)",
-                "select count(*) as result from \`organization\` where \`name\` = ?",
+                "insert into organization (name, plan) values (?, ?)",
+                "select count(*) as result from organization where name = ?",
               ]
             `)
             expect(savedOrganizations).toBe(1)

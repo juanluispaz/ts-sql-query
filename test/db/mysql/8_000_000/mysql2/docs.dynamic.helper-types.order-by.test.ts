@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.\`name\` as \`organization.name\` from project left outer join \`organization\` as \`organization\` on \`organization\`.id = project.organization_id order by \`organization\`.\`name\` is null, \`organization.name\` asc, \`name\` desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.name as \`organization.name\` from project left outer join organization as organization on organization.id = project.organization_id order by organization.name is null, \`organization.name\` asc, name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string; organization?: { name: string } }>>>()
         expect(rows).toEqual([
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by \`name\` desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)

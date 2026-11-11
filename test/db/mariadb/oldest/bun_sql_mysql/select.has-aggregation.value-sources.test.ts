@@ -426,7 +426,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, ifnull(max(assignee_id), ?) as lead from issue group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, ifnull(max(assignee_id), ?) as \`lead\` from issue group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

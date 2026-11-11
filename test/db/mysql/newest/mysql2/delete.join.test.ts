@@ -38,7 +38,7 @@ describe(ctx.label, () => {
                     .and(tProject.id.equals(2))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join \`organization\` on \`organization\`.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join organization on organization.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
                     .and(tProject.id.equals(2))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project left join \`organization\` on \`organization\`.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project left join organization on organization.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
                     .and(tProject.id.equals(2))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project left outer join \`organization\` on \`organization\`.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project left outer join organization on organization.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -241,7 +241,7 @@ describe(ctx.label, () => {
                     .and(tProject.id.equals(2))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join \`organization\` on \`organization\`.id = project.organization_id and \`organization\`.\`name\` = ? where issue.project_id = project.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join organization on organization.id = project.organization_id and organization.name = ? where issue.project_id = project.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -269,7 +269,7 @@ describe(ctx.label, () => {
                     .and(tProject.id.equals(2))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join \`organization\` on \`organization\`.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join organization on organization.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
                     .and(tProject.id.equals(2))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join \`organization\` on \`organization\`.id = project.organization_id or \`organization\`.\`name\` = ? where issue.project_id = project.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join organization on organization.id = project.organization_id or organization.name = ? where issue.project_id = project.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "never-matches",
@@ -380,7 +380,7 @@ describe(ctx.label, () => {
                 .where(tIssue.status.equals('open'))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on project.id = issue.project_id and project.slug = ? where issue.\`status\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on project.id = issue.project_id and project.slug = ? where issue.status = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "mktg-site",
@@ -590,7 +590,7 @@ describe(ctx.label, () => {
                 .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release using project_release, project inner join \`organization\` on \`organization\`.id = project.organization_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release using project_release, project inner join organization on organization.id = project.organization_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
@@ -613,7 +613,7 @@ describe(ctx.label, () => {
                     .and(tProject.id.equals(2))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project join \`organization\` on \`organization\`.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project join organization on organization.id = project.organization_id where issue.project_id = project.id and project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -641,7 +641,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(99999))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join \`organization\` on \`organization\`.id = project.organization_id inner join project_release on project_release.project_id = project.id where issue.project_id = project.id and issue.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join organization on organization.id = project.organization_id inner join project_release on project_release.project_id = project.id where issue.project_id = project.id and issue.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

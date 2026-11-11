@@ -215,7 +215,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) output inserted.slug as [result] values (@0, @1, @2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) output inserted.slug as result values (@0, @1, @2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",

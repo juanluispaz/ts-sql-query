@@ -448,8 +448,8 @@ describe(ctx.label, () => {
               [
                 "update project set organization_id = @0 where id = @1",
                 "update project set organization_id = @0 where id = @1",
-                "select count(*) as [result] from project where organization_id = @0",
-                "select count(*) as [result] from project where organization_id = @0",
+                "select count(*) as result from project where organization_id = @0",
+                "select count(*) as result from project where organization_id = @0",
               ]
             `)
 
@@ -986,7 +986,7 @@ describe(ctx.label, () => {
               [
                 "insert into organization (name, [plan]) values (@0, @1)",
                 "insert into organization (name, [plan]) values (@0, @1)",
-                "select count(*) as [result] from organization where name = @0",
+                "select count(*) as result from organization where name = @0",
               ]
             `)
             expect(savedOrganizations).toBe(2)
@@ -1015,7 +1015,7 @@ describe(ctx.label, () => {
             expect(statementsSql()).toMatchInlineSnapshot(`
               [
                 "insert into organization (name, [plan]) values (@0, @1)",
-                "select count(*) as [result] from organization where name = @0",
+                "select count(*) as result from organization where name = @0",
               ]
             `)
             expect(savedOrganizations).toBe(1)

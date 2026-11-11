@@ -148,7 +148,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        concat(first_name, ?, last_name) as `name`, 
+        concat(first_name, ?, last_name) as name, 
         birthday as birthday 
     from customer 
     where first_name like concat('%', ?, '%') 

@@ -26,7 +26,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + ?) as s, count(ifnull(assignee_id, ?)) as \`c\`, max(priority + ?) as m from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + ?) as s, count(ifnull(assignee_id, ?)) as c, max(priority + ?) as m from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -60,7 +60,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, \`organization\`.id + project.organization_id as combined from project left join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, organization.id + project.organization_id as combined from project left join organization on organization.id = project.organization_id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -138,7 +138,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, \`organization\`.id + ? as orgPlus from project left join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, organization.id + ? as orgPlus from project left join organization on organization.id = project.organization_id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -246,7 +246,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority = ? and \`status\` = ? as flag from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority = ? and status = ? as flag from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -300,7 +300,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority = ? or \`status\` = ? as flag from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority = ? or status = ? as flag from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,

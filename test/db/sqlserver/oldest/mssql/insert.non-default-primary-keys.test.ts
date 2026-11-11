@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(tWebhookEvent.eventType)
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select event_type as [result] from webhook_event where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select event_type as result from webhook_event where id = @0"`)
             if (!ctx.realDbEnabled) {
                 expect(ctx.lastParams).toMatchInlineSnapshot(`
                   [
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
             .select({ yearValue: tCalendarYear.yearValue, label: tCalendarYear.label })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year_value as yearValue, year_label as [label] from calendar_year where year_value = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year_value as yearValue, year_label as label from calendar_year where year_value = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2023,

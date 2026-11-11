@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                     .sql`('[' + ${oldProject.name} + ']')`)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output ('[' + deleted.name + ']') as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output ('[' + deleted.name + ']') as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mktg site v3",
@@ -229,7 +229,7 @@ test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ('[' + name + ']') as [label] from project order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ('[' + name + ']') as label from project order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ label: string }>>>()
         expect(rows).toEqual(expected)

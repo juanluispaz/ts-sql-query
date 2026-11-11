@@ -33,7 +33,7 @@ describe(ctx.label, () => {
                 ))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as [result] from project where name = @0)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as result from project where name = @0)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "does-not-exist",
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
                 ))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id not in (select id as [result] from project)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id not in (select id as result from project)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         })
     })
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 ))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where not exists(select id as [result] from project where id = issue.project_id)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where not exists(select id as result from project where id = issue.project_id)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         })
     })

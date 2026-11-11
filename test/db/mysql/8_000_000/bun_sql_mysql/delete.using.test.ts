@@ -23,7 +23,7 @@ describe(ctx.label, () => {
                 .and(tProject.name.containsInsensitive('Marketing'))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project where issue.project_id = project.id and lower(project.\`name\`) like concat('%', lower(?), '%')"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project where issue.project_id = project.id and lower(project.name) like concat('%', lower(?), '%')"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing",

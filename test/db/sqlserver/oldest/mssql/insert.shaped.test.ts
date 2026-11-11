@@ -274,7 +274,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.id)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.id as [result] values (@0, @1, @2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.id as result values (@0, @1, @2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

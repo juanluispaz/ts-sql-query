@@ -329,7 +329,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [result] from project order by [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as result from project order by result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectNames, string[]>>()
         expect(projectNames).toEqual(expected)
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.assigneeId)
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select assignee_id as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select assignee_id as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -396,7 +396,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from project where organization_id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from project where organization_id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -420,7 +420,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(*) as [result] from app_user) as users, (select count(*) as [result] from organization) as organizations"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(*) as result from app_user) as users, (select count(*) as result from organization) as organizations"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof counts, {
             users:         number

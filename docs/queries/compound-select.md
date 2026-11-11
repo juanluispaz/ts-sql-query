@@ -71,16 +71,16 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        concat(first_name, ?, last_name) as `name`, 
-        ? as `type` 
+        concat(first_name, ?, last_name) as name, 
+        ? as type 
     from customer 
     
     union all 
     
     select 
         id as id, 
-        `name` as `name`, 
-        ? as `type` 
+        name as name, 
+        ? as type 
     from company
     ```
 === "Oracle"
@@ -200,16 +200,16 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        first_name as `name` 
+        first_name as name 
     from customer 
     
     union all 
     
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
-    order by `name` 
+    order by name 
     limit ?
     ```
 === "Oracle"

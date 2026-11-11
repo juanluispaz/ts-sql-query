@@ -28,7 +28,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signed_off_at as \`value\`, round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signed_off_at as value, round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

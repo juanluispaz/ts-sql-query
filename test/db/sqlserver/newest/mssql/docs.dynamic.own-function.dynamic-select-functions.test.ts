@@ -169,7 +169,7 @@ describe(ctx.label, () => {
             })
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, assignee.full_name + @0 + assignee.email as [assignee.name] from issue left outer join app_user as assignee on issue.assignee_id = assignee.id where exists(select id as [result] from app_user where lower(full_name + @1 + email) like lower('%' + @2 + '%')) and issue.parent_id = @3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, assignee.full_name + @0 + assignee.email as [assignee.name] from issue left outer join app_user as assignee on issue.assignee_id = assignee.id where exists(select id as result from app_user where lower(full_name + @1 + email) like lower('%' + @2 + '%')) and issue.parent_id = @3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " ",
@@ -208,7 +208,7 @@ describe(ctx.label, () => {
             })
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title from issue left outer join app_user as assignee on issue.assignee_id = assignee.id where assignee.id in (select assignee_id as [result] from issue where lower(title) like lower('%' + @0 + '%')) and issue.parent_id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title from issue left outer join app_user as assignee on issue.assignee_id = assignee.id where assignee.id in (select assignee_id as result from issue where lower(title) like lower('%' + @0 + '%')) and issue.parent_id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Update hero",
@@ -240,7 +240,7 @@ describe(ctx.label, () => {
             })
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where (exists(select id as [result] from app_user where lower(full_name + @0 + email) like lower('%' + @1 + '%')) or exists(select id as [result] from app_user where created_at = @2)) and parent_id = @3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where (exists(select id as result from app_user where lower(full_name + @0 + email) like lower('%' + @1 + '%')) or exists(select id as result from app_user where created_at = @2)) and parent_id = @3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " ",

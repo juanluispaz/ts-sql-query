@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select(dynamicPick(fields, { content: true }, ['id']))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`content.title\`, \`status\` as \`content.status\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`content.title\`, status as \`content.status\` from issue where id = ?"`)
         expect(rows.length).toBe(1)
     })
 })

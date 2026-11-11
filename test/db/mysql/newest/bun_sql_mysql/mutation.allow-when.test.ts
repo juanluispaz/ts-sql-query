@@ -45,7 +45,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, \`name\`, slug) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = concat(\`name\`, ?) where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = concat(name, ?) where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / updated",
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "updated-name",

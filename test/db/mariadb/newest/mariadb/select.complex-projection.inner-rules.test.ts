@@ -175,7 +175,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with opt_cte as (select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue) select iid as iid, \`opt.body\` as \`opt.body\`, \`opt.assigneeId\` as \`opt.assigneeId\` from opt_cte order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with opt_cte as (select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue) select iid as iid, \`opt.body\` as \`opt.body\`, \`opt.assigneeId\` as \`opt.assigneeId\` from opt_cte order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             iid:  number
@@ -224,7 +224,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with opt_cte as (select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue) select iid as iid, \`opt.body\` as \`opt.body\`, \`opt.assigneeId\` as \`opt.assigneeId\` from opt_cte order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with opt_cte as (select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue) select iid as iid, \`opt.body\` as \`opt.body\`, \`opt.assigneeId\` as \`opt.assigneeId\` from opt_cte order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             iid: number
@@ -266,7 +266,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             iid:  number
@@ -398,7 +398,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -443,7 +443,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             iid: number
@@ -752,7 +752,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`meta.gate\`, number as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`meta.gate\`, number as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -797,7 +797,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`meta.gate\`, number as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`meta.gate\`, number as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -899,7 +899,7 @@ describe(ctx.label, () => {
                 },
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.inner.body\`, assignee_id as \`detail.inner.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.inner.body\`, assignee_id as \`detail.inner.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -931,7 +931,7 @@ describe(ctx.label, () => {
             })
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.inner.body\`, assignee_id as \`detail.inner.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.inner.body\`, assignee_id as \`detail.inner.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1041,7 +1041,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.\`body\` as \`opt.body\`, issue.assignee_id as \`opt.assigneeId\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.body as \`opt.body\`, issue.assignee_id as \`opt.assigneeId\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1080,7 +1080,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.\`body\` as \`opt.body\`, issue.assignee_id as \`opt.assigneeId\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.body as \`opt.body\`, issue.assignee_id as \`opt.assigneeId\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -1259,7 +1259,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, \`body\` as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1301,7 +1301,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, \`body\` as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1408,7 +1408,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, \`body\` as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1450,7 +1450,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, \`body\` as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, status as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1545,7 +1545,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.\`body\` as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1579,7 +1579,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.\`body\` as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.name as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1752,7 +1752,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`outer.own\`, status as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, status as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1797,7 +1797,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`outer.own\`, status as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, status as \`outer.inner.gate\`, assignee_id as \`outer.inner.extra\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1837,7 +1837,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`body\` as \`outer.own\`, project.name as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`outer.own\`, project.name as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1876,7 +1876,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`body\` as \`outer.own\`, project.name as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.body as \`outer.own\`, project.name as \`outer.proj.name\`, project.archived_at as \`outer.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1923,7 +1923,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`outer.own\`, estimated_hours as \`outer.inner.est\`, parent_id as \`outer.inner.parent\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, estimated_hours as \`outer.inner.est\`, parent_id as \`outer.inner.parent\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1969,7 +1969,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`outer.own\`, estimated_hours as \`outer.inner.est\`, parent_id as \`outer.inner.parent\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`outer.own\`, estimated_hours as \`outer.inner.est\`, parent_id as \`outer.inner.parent\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2011,7 +2011,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2048,7 +2048,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2158,7 +2158,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2190,7 +2190,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.body\`, assignee_id as \`wrapper.inner.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2285,7 +2285,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2314,7 +2314,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2343,7 +2343,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2373,7 +2373,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, assignee_id as \`wrapper.inner.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2403,7 +2403,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2431,7 +2431,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2458,7 +2458,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2488,7 +2488,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2521,7 +2521,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, number as \`container.req.num\`, \`body\` as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, number as \`container.req.num\`, body as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2557,7 +2557,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, number as \`container.req.num\`, \`body\` as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`container.req.title\`, number as \`container.req.num\`, body as \`container.opt.gate\`, assignee_id as \`container.opt.extra\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2608,7 +2608,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -2635,7 +2635,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -2953,7 +2953,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.gate\`, number as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, number as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -2999,7 +2999,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`wrapper.inner.gate\`, number as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, number as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -3125,7 +3125,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -3154,7 +3154,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -3286,7 +3286,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_detail_cte as (select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where project_id = ?) select iid as iid, \`detail.title\` as \`detail.title\`, \`detail.body\` as \`detail.body\` from issue_detail_cte order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_detail_cte as (select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where project_id = ?) select iid as iid, \`detail.title\` as \`detail.title\`, \`detail.body\` as \`detail.body\` from issue_detail_cte order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

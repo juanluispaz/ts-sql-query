@@ -47,7 +47,7 @@ describe(ctx.label, () => {
                 .and(tAppUser.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update \`organization\`, app_user set \`organization\`.verified = app_user.verified where \`organization\`.id = ? and app_user.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization, app_user set organization.verified = app_user.verified where organization.id = ? and app_user.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
                 .and(tColMatrixColumn.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update \`organization\`, col_matrix set \`organization\`.verified = case when col_matrix.m_bool then 'Y' else 'N' end where \`organization\`.id = ? and col_matrix.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization, col_matrix set organization.verified = case when col_matrix.m_bool then 'Y' else 'N' end where organization.id = ? and col_matrix.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
                 .where(tOrganization.id.equals(2))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update \`organization\` set verified = case when ? then 'Y' else 'N' end where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set verified = case when ? then 'Y' else 'N' end where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 true,

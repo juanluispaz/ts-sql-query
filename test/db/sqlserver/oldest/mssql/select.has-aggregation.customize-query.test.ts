@@ -292,7 +292,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head issues=(select count(id) as [result] from issue) */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head issues=(select count(id) as result from issue) */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
@@ -341,7 +341,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint issues=(select count(id) as [result] from issue) */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint issues=(select count(id) as result from issue) */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
@@ -392,7 +392,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols issues=(select count(id) as [result] from issue) */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols issues=(select count(id) as result from issue) */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
@@ -500,7 +500,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key issues=(select count(id) as [result] from issue) */, id, project.name /* tiebreak */  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key issues=(select count(id) as result from issue) */, id, project.name /* tiebreak */  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
@@ -552,7 +552,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak issues=(select count(id) as [result] from issue) */  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak issues=(select count(id) as result from issue) */  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
@@ -601,7 +601,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail issues=(select count(id) as [result] from issue) */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as id, name as name from project order by project.organization_id /* first-key */, id, project.name /* tiebreak */  /* tail issues=(select count(id) as result from issue) */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)

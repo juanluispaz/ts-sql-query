@@ -1,10 +1,12 @@
 -- Schema for the shared "project management" domain, oracle dialect.
 -- Uses IDENTITY columns (Oracle 12c+).
 --
--- "organization", "plan", "number" and "body" are Oracle reserved
--- keywords, so the library emits them double-quoted (case-sensitive
--- identifiers). The DDL must create them with the matching quoted
--- form or the lookup fails with ORA-00942 / ORA-00904.
+-- "organization", "plan", "number" and "body" are created quoted, in
+-- lower case. "number" is an Oracle reserved word, which the library
+-- quotes; the tests declare the others with their quoted name
+-- ('"organization"', '"plan"', '"body"'), which the library writes as it
+-- is. Unquoted, Oracle would look them up in upper case (ORA-00942 /
+-- ORA-00904).
 
 BEGIN EXECUTE IMMEDIATE 'DROP VIEW project_overview'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP VIEW release_overview'; EXCEPTION WHEN OTHERS THEN NULL; END;

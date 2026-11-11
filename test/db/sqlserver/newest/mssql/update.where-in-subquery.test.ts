@@ -26,7 +26,7 @@ describe(ctx.label, () => {
                 .where(tIssue.projectId.in(unpublishedProjectIds))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 where project_id in (select id as [result] from project where cast(case when published = 't' then 1 else 0 end as bit) = @1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 where project_id in (select id as result from project where cast(case when published = 't' then 1 else 0 end as bit) = @1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",

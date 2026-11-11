@@ -323,7 +323,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where id not in (select assignee_id as [result] from issue where assignee_id is not null)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where id not in (select assignee_id as result from issue where assignee_id is not null)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{ id: number; title: string }>>>()
         expect(issues).toEqual(expected)
@@ -339,7 +339,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id not in (select assignee_id as [result] from issue)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id not in (select assignee_id as result from issue)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{ id: number }>>>()
         expect(issues).toEqual(expected)

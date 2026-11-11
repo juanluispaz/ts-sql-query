@@ -32,7 +32,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as organizationId, \`organization\`.\`name\` as organizationName, ? as kind, count(project.id) as projectCount from \`organization\` inner join project on project.organization_id = \`organization\`.id group by \`organization\`.id, \`organization\`.\`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as organizationId, organization.name as organizationName, ? as kind, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "organization",
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as organizationId, \`organization\`.\`name\` as organizationName, count(project.id) as projectCount from \`organization\` inner join project on project.organization_id = \`organization\`.id group by \`organization\`.id, \`organization\`.\`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as organizationId, organization.name as organizationName, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectCountPerOrganization, Array<{
             organizationId:   number
@@ -139,7 +139,7 @@ describe(ctx.label, () => {
             if (e instanceof TsSqlError) rejection = e.errorReason
         }
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, \`name\` as projectName, count(id) as projectCount from project group by organization_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, name as projectName, count(id) as projectCount from project group by organization_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectCountPerOrganization, Promise<Array<{
             organizationId: number
@@ -169,7 +169,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, min(\`name\`) as projectName, count(id) as projectCount from project group by organization_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as organizationId, min(name) as projectName, count(id) as projectCount from project group by organization_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectCountPerOrganization, Array<{
             organizationId: number
@@ -200,7 +200,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, project.\`name\` as projectName, count(issue.id) as issueCount from project inner join issue on issue.project_id = project.id group by project.id, project.\`name\` having issueCount > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, project.name as projectName, count(issue.id) as issueCount from project inner join issue on issue.project_id = project.id group by project.id, project.name having issueCount > ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as organizationId, any_value(\`organization\`.\`name\`) as organizationName, count(project.id) as projectCount from project inner join \`organization\` on \`organization\`.id = project.organization_id group by project.organization_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as organizationId, any_value(organization.name) as organizationName, count(project.id) as projectCount from project inner join organization on organization.id = project.organization_id group by project.organization_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectCountPerOrganization, Array<{
             organizationId:    number
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as organizationId, \`organization\`.\`name\` as organizationName, count(project.id) as projectCount from \`organization\` inner join project on project.organization_id = \`organization\`.id group by \`organization\`.id, \`organization\`.\`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as organizationId, organization.name as organizationName, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectCountPerOrganization, Array<{
             organizationId:   number
@@ -295,7 +295,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, project.\`name\` as projectName, count(issue.id) as issueCount from project inner join issue on issue.project_id = project.id group by project.id, project.\`name\` having count(issue.id) > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, project.name as projectName, count(issue.id) as issueCount from project inner join issue on issue.project_id = project.id group by project.id, project.name having count(issue.id) > ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -772,7 +772,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct \`status\`) as result from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof differentStatuses, string | null>>()
         expect(differentStatuses?.split(',').toSorted()).toEqual(['closed', 'in_progress', 'open'])

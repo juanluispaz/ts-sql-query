@@ -49,8 +49,8 @@ describe(ctx.label, () => {
             const trueSql = ctx.lastSql
             const trueParams = ctx.lastParams
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
             expect(falseSql).toBe(trueSql) // same column list — only the param value differs
             expect(falseParams).toMatchInlineSnapshot(`
               [
@@ -94,8 +94,8 @@ describe(ctx.label, () => {
             const trueSql = ctx.lastSql
             const trueParams = ctx.lastParams
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
             expect(falseSql).toBe(trueSql) // same column list — only the param value differs
             expect(falseParams).toMatchInlineSnapshot(`
               [
@@ -217,8 +217,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, slug = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -244,8 +244,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, slug = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -271,8 +271,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, slug = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -298,8 +298,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, slug = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -405,8 +405,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, slug = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -432,8 +432,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, slug = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -459,8 +459,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, slug = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -487,8 +487,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, archived_at = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, archived_at = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })
@@ -514,8 +514,8 @@ describe(ctx.label, () => {
                 .executeInsert()
             const trueSql = ctx.lastSql
 
-            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?, archived_at = ?"`)
-            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, archived_at = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
             expect(trueSql).not.toBe(falseSql)
         })
     })

@@ -44,7 +44,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(\`name\`, ?, slug) as \`name\`, archived_at as archivedAt from project where \`name\` like concat('%', ?, '%') order by lower(concat(\`name\`, ?, slug)), archived_at is null, archivedAt asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(name, ?, slug) as name, archived_at as archivedAt from project where name like concat('%', ?, '%') order by lower(concat(name, ?, slug)), archived_at is null, archivedAt asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " ",
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, \`status\` as \`status\`, body as body from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, status as status, body as body from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -121,7 +121,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, \`status\` as \`status\`, body as body from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title, status as status, body as body from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             title:  string
@@ -185,7 +185,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, \`status\` as \`status\`, body as body from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, status as status, body as body from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as title, null as \`status\`, body as body from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as title, null as status, body as body from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -350,7 +350,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where \`status\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where status = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

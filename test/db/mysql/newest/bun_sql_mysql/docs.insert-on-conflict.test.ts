@@ -369,7 +369,7 @@ describe(ctx.label, () => {
                 .executeInsert()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) as _new_ on duplicate key update project.name = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

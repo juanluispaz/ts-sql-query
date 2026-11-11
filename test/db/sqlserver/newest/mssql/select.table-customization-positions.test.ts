@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from /*+ hint */ organization  union select name as [label] from project where organization_id = @0 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from /*+ hint */ organization  union select name as label from project where organization_id = @0 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

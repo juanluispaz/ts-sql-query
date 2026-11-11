@@ -29,7 +29,7 @@ describe(ctx.label, () => {
         const result = await ctx.conn.selectFrom(tIssue)
             .select({ statuses: ctx.conn.countDistinct(tIssue.status) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(distinct \`status\`) as statuses from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(distinct status) as statuses from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { statuses: number }>>()
         expect(result.statuses).toBe(3)
@@ -94,7 +94,7 @@ describe(ctx.label, () => {
             .having(ctx.conn.count(tIssue.id).greaterThan(1))
             .orderBy('status')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` having count(issue.id) > ? order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(issue.id) > ? order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -200,7 +200,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg((duration_ms * 1.0e0)) as \`avg\`, avg(distinct (duration_ms * 1.0e0)) as avgD from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg((duration_ms * 1.0e0)) as avg, avg(distinct (duration_ms * 1.0e0)) as avgD from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { avg?: number; avgD?: number }>>()
         expect(row).toEqual({ avg: 3600000, avgD: 3600000 })
@@ -409,7 +409,7 @@ describe(ctx.label, () => {
                 hi: ctx.conn.max(tIssue.status),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(\`status\`) as lo, max(\`status\`) as hi from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(status) as lo, max(status) as hi from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { lo?: string; hi?: string }>>()
         expect(result).toEqual({ lo: 'closed', hi: 'open' })

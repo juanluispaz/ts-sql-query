@@ -144,10 +144,10 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where 
-            lower(`name`) like concat('%', lower(?), '%') 
+            lower(name) like concat('%', lower(?), '%') 
         and parent_id = ?
     ```
 === "Oracle"
@@ -232,7 +232,7 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         concat(favouriteCustomer.first_name, ?, favouriteCustomer.last_name) as `favouriteCustomer.name` 
     from company 
     left outer join customer as favouriteCustomer on company.favourite_customer_id = favouriteCustomer.id 
@@ -306,7 +306,7 @@ The executed query is:
     left outer join customer as favouriteCustomer on company.favourite_customer_id = favouriteCustomer.id 
     where 
         exists(
-            select id as [result] 
+            select id as result 
             from customer 
             where 
                     company_id = company.id 
@@ -355,14 +355,14 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name` 
+        company.name as name 
     from company 
     left outer join customer as favouriteCustomer on company.favourite_customer_id = favouriteCustomer.id 
     where 
         favouriteCustomer.id in (
             select favourite_customer_id as result 
             from company 
-            where lower(`name`) like concat('%', lower(?), '%')
+            where lower(name) like concat('%', lower(?), '%')
         ) and company.parent_id = ?
     ```
 === "Oracle"
@@ -416,7 +416,7 @@ The executed query is:
     left outer join customer as favouriteCustomer on company.favourite_customer_id = favouriteCustomer.id 
     where 
         favouriteCustomer.id in (
-            select favourite_customer_id as [result] 
+            select favourite_customer_id as result 
             from company 
             where lower(name) like lower('%' + @0 + '%')
         ) and company.parent_id = @1
@@ -472,7 +472,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        `name` as `name` 
+        name as name 
     from company 
     where 
         (
@@ -569,13 +569,13 @@ The executed query is:
     where 
         (
             exists(
-                select id as [result] 
+                select id as result 
                 from customer 
                 where 
                         company_id = company.id 
                     and lower(first_name + @0 + last_name) like lower('%' + @1 + '%')
             ) or exists(
-                select id as [result] 
+                select id as result 
                 from customer 
                 where 
                         company_id = company.id 

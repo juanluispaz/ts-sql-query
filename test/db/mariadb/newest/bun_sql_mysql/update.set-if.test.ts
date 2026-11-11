@@ -152,7 +152,7 @@ describe(ctx.label, () => {
                 .set({ body: tIssue.title.concat(tIssue.body) })
                 .where(tIssue.id.equals(2))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`body\` = concat(title, \`body\`) where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set body = concat(title, body) where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

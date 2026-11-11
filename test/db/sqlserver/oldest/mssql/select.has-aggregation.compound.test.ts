@@ -299,7 +299,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = @0 union select project_id as projectId from issue order by projectId  /* tail issues=(select count(id) as [result] from issue) */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select id as projectId from project where organization_id = @0 union select project_id as projectId from issue order by projectId  /* tail issues=(select count(id) as result from issue) */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head issues=(select count(id) as [result] from issue) */  select id as projectId from project where organization_id = @0 union select project_id as projectId from issue order by projectId  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head issues=(select count(id) as result from issue) */  select id as projectId from project where organization_id = @0 union select project_id as projectId from issue order by projectId  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

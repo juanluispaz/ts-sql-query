@@ -23,7 +23,7 @@ describe(ctx.label, () => {
                 .onConflictDoNothing()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2) on conflict do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do nothing returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2) on conflict do nothing returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict demo",
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.name)
                 .executeInsertNoneOrOne())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) on conflict do nothing returning name as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2) on conflict do nothing returning name as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict demo",

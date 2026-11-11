@@ -22,6 +22,6 @@ describe(ctx.label, () => {
     test('a-column-with-one-letter', () => {
         const query = ctx.conn.selectFrom(tOneLetter).select({ value: tOneLetter.x, other: tOneLetter.yy }).query()
 
-        expect(query).toMatchInlineSnapshot(`"select x as [value], yy as other from one_letter"`)
+        expect(query).toMatchInlineSnapshot(`"select x as value, yy as other from one_letter"`)
     })
 })

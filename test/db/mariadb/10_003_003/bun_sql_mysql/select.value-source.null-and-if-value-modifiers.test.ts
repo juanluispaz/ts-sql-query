@@ -331,7 +331,7 @@ describe(ctx.label, () => {
             .select({ x: tIssue.title.valueWhenNull(tIssue.body) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(title, \`body\`) as x from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(title, body) as x from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

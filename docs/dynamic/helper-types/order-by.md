@@ -87,11 +87,11 @@ The executed query is:
     select 
         customer.id as id, 
         customer.last_name as lastName, 
-        company.`name` as `company.name` 
+        company.name as `company.name` 
     from customer 
     left outer join company as company on company.id = customer.company_id 
     order by 
-        company.`name` is null, 
+        company.name is null, 
         `company.name` asc, 
         lastName desc
     ```

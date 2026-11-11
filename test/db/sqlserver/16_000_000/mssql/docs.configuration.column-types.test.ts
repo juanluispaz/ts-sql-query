@@ -240,7 +240,7 @@ describe(ctx.label, () => {
             .selectOneColumn(connection.const<ExactDecimal, 'ExactDecimal'>(amount, 'customDouble', 'ExactDecimal'))
             .executeSelectOne()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12345678901234567890.123456789",
@@ -267,7 +267,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(41), amount) as amount, convert(nvarchar(41), amount + cast(@0 as decimal(11, 10))) as [next] from exact_amount where price > cast(@1 as decimal(1, 0)) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(41), amount) as amount, convert(nvarchar(41), amount + cast(@0 as decimal(11, 10))) as next from exact_amount where price > cast(@1 as decimal(1, 0)) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0000000001",

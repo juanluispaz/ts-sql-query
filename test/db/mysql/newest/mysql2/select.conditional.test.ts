@@ -51,7 +51,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as \`status\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -125,7 +125,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? or assignee_id is null order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? or assignee_id is null order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "closed",

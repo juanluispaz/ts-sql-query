@@ -313,7 +313,7 @@ describe(ctx.label, () => {
                 })
                 .returningLastInsertedId()
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, \`channel\`, released_on, cutoff_time) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) values (?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

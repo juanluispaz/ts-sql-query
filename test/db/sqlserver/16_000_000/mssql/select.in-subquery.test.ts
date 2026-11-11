@@ -28,7 +28,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id in (select id as [result] from project where cast(case when published = 't' then 1 else 0 end as bit) = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id in (select id as result from project where cast(case when published = 't' then 1 else 0 end as bit) = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id not in (select id as [result] from project where cast(case when published = 't' then 1 else 0 end as bit) = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id not in (select id as result from project where cast(case when published = 't' then 1 else 0 end as bit) = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             false,
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when id in (select assignee_id as [result] from issue) then 1 when not id in (select assignee_id as [result] from issue) then 0 else null end as bit) as isAssignee, cast(case when id not in (select assignee_id as [result] from issue) then 1 when not id not in (select assignee_id as [result] from issue) then 0 else null end as bit) as isNotAssignee from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when id in (select assignee_id as result from issue) then 1 when not id in (select assignee_id as result from issue) then 0 else null end as bit) as isAssignee, cast(case when id not in (select assignee_id as result from issue) then 1 when not id not in (select assignee_id as result from issue) then 0 else null end as bit) as isNotAssignee from issue order by id"`)
         assertType<Exact<typeof rows, Array<{ id: number, isAssignee?: boolean, isNotAssignee?: boolean }>>>()
         expect(rows).toEqual(expected)
     })
@@ -105,7 +105,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when id in (select id as [result] from project) then 1 else 0 end as bit) as isProject, cast(case when id not in (select id as [result] from project) then 1 else 0 end as bit) as isNotProject from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when id in (select id as result from project) then 1 else 0 end as bit) as isProject, cast(case when id not in (select id as result from project) then 1 else 0 end as bit) as isNotProject from issue where id = @0"`)
         assertType<Exact<typeof rows, Array<{ id: number, isProject: boolean, isNotProject: boolean }>>>()
         expect(rows).toEqual(expected)
     })

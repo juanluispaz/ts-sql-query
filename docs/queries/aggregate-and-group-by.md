@@ -904,14 +904,14 @@ The executed query is:
     ```mysql
     select 
         company.id as companyId, 
-        company.`name` as companyName, 
+        company.name as companyName, 
         ? as kind, 
         count(customer.id) as customerCount 
     from company 
     inner join customer on customer.company_id = company.id 
     group by 
         company.id, 
-        company.`name`
+        company.name
     ```
 === "Oracle"
     ```oracle
@@ -1012,13 +1012,13 @@ The executed query is:
     ```mysql
     select 
         company.id as companyId, 
-        company.`name` as companyName, 
+        company.name as companyName, 
         count(customer.id) as customerCount 
     from company 
     inner join customer on customer.company_id = company.id 
     group by 
         company.id, 
-        company.`name`
+        company.name
     ```
 === "Oracle"
     ```oracle
@@ -1348,7 +1348,7 @@ The executed query is:
     ```mysql
     select 
         customer.company_id as companyId, 
-        any_value(company.`name`) as companyName, 
+        any_value(company.name) as companyName, 
         count(customer.id) as customerCount 
     from customer 
     inner join company on company.id = customer.company_id 
@@ -1440,13 +1440,13 @@ The executed query is:
     ```mysql
     select 
         company.id as companyId, 
-        company.`name` as companyName, 
+        company.name as companyName, 
         count(customer.id) as customerCount 
     from company 
     inner join customer on customer.company_id = company.id 
     group by 
         company.id, 
-        company.`name` 
+        company.name 
     having customerCount > ?
     ```
 === "Oracle"
@@ -1790,13 +1790,13 @@ The executed query is:
     ```mysql
     select 
         company.id as companyId, 
-        company.`name` as companyName, 
+        company.name as companyName, 
         count(customer.id) as customerCount 
     from company 
     inner join customer on customer.company_id = company.id 
     group by 
         company.id, 
-        company.`name`
+        company.name
     ```
 === "Oracle"
     ```oracle
@@ -1980,13 +1980,13 @@ The executed query is:
     ```mysql
     select 
         company.id as companyId, 
-        company.`name` as companyName, 
+        company.name as companyName, 
         count(customer.id) as customerCount 
     from company 
     inner join customer on customer.company_id = company.id 
     group by 
         company.id, 
-        company.`name` 
+        company.name 
     having count(customer.id) > ?
     ```
 === "Oracle"

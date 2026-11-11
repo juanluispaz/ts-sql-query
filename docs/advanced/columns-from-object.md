@@ -53,7 +53,7 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday, 
         company_id as companyId, 
-        concat(first_name, ?, last_name) as `name`, 
+        concat(first_name, ?, last_name) as name, 
         calculateAge(birthday) as age 
     from customer 
     where id = ?
@@ -151,7 +151,7 @@ The executed query is:
         last_name as lastName, 
         birthday as birthday, 
         company_id as companyId, 
-        concat(first_name, ?, last_name) as `name`, 
+        concat(first_name, ?, last_name) as name, 
         calculateAge(birthday) as age 
     from customer 
     where id = ?
@@ -256,7 +256,7 @@ The executed query is:
         first_name as firstName, 
         last_name as lastName, 
         company_id as companyId, 
-        concat(first_name, ?, last_name) as `name` 
+        concat(first_name, ?, last_name) as name 
     from customer 
     where id = ?
     ```

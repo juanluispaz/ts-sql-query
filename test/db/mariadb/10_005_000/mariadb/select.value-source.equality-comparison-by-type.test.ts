@@ -7068,7 +7068,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(tIssue)
             .select({ id: tIssue.id, ref: tIssue.externalRef.nullIfValue(tIssue.externalRef) })
             .orderBy('id').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(external_ref, external_ref) as ref from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(external_ref, external_ref) as \`ref\` from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; ref?: string }>>>()
         expect(rows).toEqual(niv)

@@ -187,7 +187,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id = :0 union select id as iid, "body" as "body" from issue where id = :1 union select id as iid, "body" as "body" from issue where id = :2) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id = :0 union select id as iid, "body" as body from issue where id = :1 union select id as iid, "body" as body from issue where id = :2) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id = :0 union all select id as iid, "body" as "body" from issue where id = :1) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id = :0 union all select id as iid, "body" as body from issue where id = :1) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -304,7 +304,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id in (:0, :1) intersect select id as iid, "body" as "body" from issue where id = :2) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id in (:0, :1) intersect select id as iid, "body" as body from issue where id = :2) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -361,7 +361,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id in (:0, :1) intersect all select id as iid, "body" as "body" from issue where id = :2) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id in (:0, :1) intersect all select id as iid, "body" as body from issue where id = :2) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -418,7 +418,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id in (:0, :1) minus select id as iid, "body" as "body" from issue where id = :2) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id in (:0, :1) minus select id as iid, "body" as body from issue where id = :2) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -475,7 +475,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id in (:0, :1) minus all select id as iid, "body" as "body" from issue where id = :2) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id in (:0, :1) minus all select id as iid, "body" as body from issue where id = :2) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -532,7 +532,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id in (:0, :1) minus select id as iid, "body" as "body" from issue where id = :2) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id in (:0, :1) minus select id as iid, "body" as body from issue where id = :2) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -589,7 +589,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_."body")) from (select id as iid, "body" as "body" from issue where id in (:0, :1) minus all select id as iid, "body" as "body" from issue where id = :2) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('iid' value a_1_.iid, 'body' value a_1_.body)) from (select id as iid, "body" as body from issue where id in (:0, :1) minus all select id as iid, "body" as body from issue where id = :2) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -838,7 +838,7 @@ describe(ctx.label, () => {
             .forUseAsInlineAggregatedArrayValue()
         const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('ref' value a_1_."ref", 'assigneeId' value a_1_.assigneeId)) from (select "body" as "ref", assignee_id as assigneeId from issue where id = :0 union select "body" as "ref", assignee_id as assigneeId from issue where id = :1) a_1_) as "arr" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(json_object('ref' value a_1_.ref, 'assigneeId' value a_1_.assigneeId)) from (select "body" as ref, assignee_id as assigneeId from issue where id = :0 union select "body" as ref, assignee_id as assigneeId from issue where id = :1) a_1_) as "arr" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

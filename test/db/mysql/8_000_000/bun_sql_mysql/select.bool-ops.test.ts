@@ -19,7 +19,7 @@ describe(ctx.label, () => {
             .where(tIssue.status.equals('open').and(tIssue.priority.equals(2)))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? and priority = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? and priority = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -38,7 +38,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ? or \`status\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ? or status = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where not (\`status\` = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where not (status = ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where (priority <= ? and \`status\` = ?) or \`status\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where (priority <= ? and status = ?) or status = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

@@ -95,7 +95,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -119,7 +119,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -336,7 +336,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where project_id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as result where project_id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -362,7 +362,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeUpdateMany(1, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where project_id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as result where project_id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -486,7 +486,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where project_id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as result where project_id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",
@@ -521,7 +521,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where project_id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as result where project_id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",

@@ -232,7 +232,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id, organization_id as organizationId from project where archived_at is null), issues_in_active as (select id as id, project_id as projectId from issue where project_id in (select id as result from active_projects)) select issues_in_active.id as issueId, organization."plan" as "plan" from issues_in_active inner join active_projects on active_projects.id = issues_in_active.projectId inner join organization on organization.id = active_projects.organizationId order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id, organization_id as organizationId from project where archived_at is null), issues_in_active as (select id as id, project_id as projectId from issue where project_id in (select id as result from active_projects)) select issues_in_active.id as issueId, organization.plan as plan from issues_in_active inner join active_projects on active_projects.id = issues_in_active.projectId inner join organization on organization.id = active_projects.organizationId order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ issueId: number; plan: string }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)

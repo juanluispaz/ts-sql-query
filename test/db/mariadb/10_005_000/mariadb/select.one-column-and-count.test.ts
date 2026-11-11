@@ -116,7 +116,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.body)
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`body\` as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select body as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -410,7 +410,7 @@ describe(ctx.label, () => {
             .orderBy('result', 'asc nulls last')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`body\` as result from issue order by \`body\` is null, result asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select body as result from issue order by body is null, result asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<string | null>>>()
         expect(result).toEqual(['See ADR-014', 'Use new tokens', null, null])

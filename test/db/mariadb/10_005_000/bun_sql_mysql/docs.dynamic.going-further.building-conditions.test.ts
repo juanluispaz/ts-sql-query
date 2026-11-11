@@ -173,7 +173,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = ? and \`body\` is not null"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = ? and body is not null"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

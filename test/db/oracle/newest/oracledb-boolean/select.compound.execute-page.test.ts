@@ -51,7 +51,7 @@ describe(ctx.label, () => {
           ]
         `)
         // The count query wraps the compound in a CTE and counts it.
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count("label") as (select title as "label" from issue union all select name as "label" from project) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count(label) as (select title as label from issue union all select name as label from project) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ label: string }>
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
         expect(ctx.history.length).toBe(2)
         expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as "label" from issue union select status as "label" from issue order by 1"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`[]`)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count("label") as (select status as "label" from issue union select status as "label" from issue) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count(label) as (select status as label from issue union select status as label from issue) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ label: string }>
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
 
         // Only the count query was fired (the data query was skipped).
         expect(ctx.history.length).toBe(1)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with result_for_count("label") as (select title as "label" from issue union all select name as "label" from project) select count(*) from result_for_count"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with result_for_count(label) as (select title as label from issue union all select name as label from project) select count(*) from result_for_count"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ label: string }>

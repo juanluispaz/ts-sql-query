@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.title)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.title as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.title as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
                 .executeDelete()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as [result] from project where lower(name) like lower('%' + @0 + '%'))"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id in (select id as result from project where lower(name) like lower('%' + @0 + '%'))"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Public",

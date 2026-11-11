@@ -95,7 +95,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where ? <=> \`body\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where ? <=> body order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where not (? <=> \`body\`) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where not (? <=> body) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

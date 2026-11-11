@@ -15,7 +15,7 @@ const tGroupedIssue = new class TGroupedIssue extends Table<DBConnection, 'TGrou
     priority = this.column('priority', 'int')
     tracking = {
         assigneeId: this.optionalColumn('assignee_id', 'int').asRequiredInOptionalObject(),
-        body: this.optionalColumn('body', 'string'),
+        body: this.optionalColumn('"body"', 'string'),
     }
     constructor() { super('issue') }
 }()

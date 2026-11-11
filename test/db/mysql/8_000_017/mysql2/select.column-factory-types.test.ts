@@ -232,7 +232,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, channel: tProjectRelease.channel })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`channel\` as \`channel\` from project_release where \`channel\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as channel from project_release where channel = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -318,7 +318,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`channel\` in (?, ?) as isin, \`channel\` not in (?) as notin, \`channel\` <> ? as ne from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel in (?, ?) as isin, channel not in (?) as notin, channel <> ? as ne from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",

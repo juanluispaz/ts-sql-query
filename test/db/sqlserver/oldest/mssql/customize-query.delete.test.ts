@@ -128,7 +128,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterDeleteKeyword: connection.rawFragment`/*+ hint */` })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ hint */ from issue output deleted.title as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ hint */ from issue output deleted.title as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

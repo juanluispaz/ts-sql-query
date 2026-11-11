@@ -227,7 +227,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.archived_at as optArchived, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project inner join issue on issue.project_id = project.id where project.id = ? group by project.id, project.archived_at"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.archived_at as optArchived, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project inner join issue on issue.project_id = project.id where project.id = ? group by project.id, project.archived_at"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

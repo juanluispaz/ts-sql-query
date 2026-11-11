@@ -56,7 +56,7 @@ describe(ctx.label, () => {
 
             expect(statementsSql()).toMatchInlineSnapshot(`
               [
-                "insert into organization (name, "plan") values (?1, ?2)",
+                "insert into organization (name, plan) values (?1, ?2)",
                 "insert into project (name, slug, organization_id) values (?1, ?2, ?3)",
               ]
             `)
@@ -123,7 +123,7 @@ describe(ctx.label, () => {
             // The history includes the synthetic begin/commit entries
             // plus the actual INSERT (asserted via lastNoTransactionSql
             // since `commit` is the most recent capture).
-            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2)"`)
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2)"`)
         })
     })
 
@@ -997,8 +997,8 @@ describe(ctx.label, () => {
 
             expect(statementsSql()).toMatchInlineSnapshot(`
               [
-                "insert into organization (name, "plan") values (?1, ?2)",
-                "insert into organization (name, "plan") values (?1, ?2)",
+                "insert into organization (name, plan) values (?1, ?2)",
+                "insert into organization (name, plan) values (?1, ?2)",
                 "select count(*) as result from organization where name = ?1",
               ]
             `)
@@ -1027,7 +1027,7 @@ describe(ctx.label, () => {
 
             expect(statementsSql()).toMatchInlineSnapshot(`
               [
-                "insert into organization (name, "plan") values (?1, ?2)",
+                "insert into organization (name, plan) values (?1, ?2)",
                 "select count(*) as result from organization where name = ?1",
               ]
             `)

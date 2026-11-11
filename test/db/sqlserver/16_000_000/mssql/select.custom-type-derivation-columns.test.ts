@@ -83,7 +83,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedDefault)
             .selectOneColumn(tDerivedDefault.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedDefault)
             .selectOneColumn(tDerivedDefault.cents.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -247,7 +247,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedDefault)
             .selectOneColumn(tDerivedDefault.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedDefault)
             .selectOneColumn(tDerivedDefault.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -351,7 +351,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedComputed)
             .selectOneColumn(tDerivedComputed.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedComputed)
             .selectOneColumn(tDerivedComputed.cents.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -381,7 +381,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedComputed)
             .selectOneColumn(tDerivedComputed.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -399,7 +399,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedComputed)
             .selectOneColumn(tDerivedComputed.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -485,7 +485,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedPk)
             .selectOneColumn(tDerivedPk.centsPk.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -502,7 +502,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedPk)
             .selectOneColumn(tDerivedPk.centsPk.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -517,7 +517,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedAutogenPk)
             .selectOneColumn(tDerivedAutogenPk.centsPk.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -534,7 +534,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedAutogenPk)
             .selectOneColumn(tDerivedAutogenPk.centsPk.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -549,7 +549,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedVirtual)
             .selectOneColumn(tDerivedVirtual.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -566,7 +566,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedVirtual)
             .selectOneColumn(tDerivedVirtual.cents.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -579,7 +579,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedVirtual)
             .selectOneColumn(tDerivedVirtual.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -597,7 +597,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedVirtual)
             .selectOneColumn(tDerivedVirtual.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -683,7 +683,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -700,7 +700,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.cents.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -713,7 +713,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -731,7 +731,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.money.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -817,7 +817,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.centsVirtual.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int + @0 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             900,
@@ -834,7 +834,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.centsVirtual.ceil())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(m_int) as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -847,7 +847,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.moneyVirtual.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double + @0 as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -865,7 +865,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(vDerivedColumn)
             .selectOneColumn(vDerivedColumn.moneyVirtual.modulo(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as [result] from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -951,7 +951,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.subtract(4))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int - @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int - @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             400,
@@ -968,7 +968,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.multiply(3))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int * @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int * @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             300,
@@ -985,7 +985,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.modulo(5))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int % @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int % @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1002,7 +1002,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.minValue(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select greatest(m_int, @0) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select greatest(m_int, @0) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1019,7 +1019,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.maxValue(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select least(m_int, @0) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select least(m_int, @0) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1035,7 +1035,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.floor())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(m_int) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -1047,7 +1047,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.round())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(m_int, 0) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(m_int, 0) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -1060,7 +1060,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.subtract(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double - @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double - @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1077,7 +1077,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.multiply(2))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double * @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double * @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             200,
@@ -1094,7 +1094,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.divide(0.005))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as float) / @0 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as float) / @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,
@@ -1111,7 +1111,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.sqrt())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(m_double) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(m_double) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.01870828693386971)
@@ -1123,7 +1123,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.floor())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(m_double) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(m_double) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.03)
@@ -1136,7 +1136,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.minValue(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select greatest(m_double, @0) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select greatest(m_double, @0) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,
@@ -1156,7 +1156,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.signOff.getFullYear())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(m_datetime, '+00:00')) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, switchoffset(m_datetime, '+00:00')) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(2024)
@@ -1169,7 +1169,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.releaseDay.getMonth())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, m_date) - 1 as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, m_date) - 1 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(2)
@@ -1182,7 +1182,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cutoffClock.getHours())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, m_time) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, m_time) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(9)
@@ -1198,7 +1198,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.fragmentWithType('string', 'required').sql`${tDerivedColumn.signingKey.asString()}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), m_uuid) as [result] from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), m_uuid) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         // SQL Server stores a uuid in `uniqueidentifier` and renders it upper-cased,
@@ -1219,7 +1219,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(billing)
             .selectOneColumn(billing.cents.add(9))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling as (select * from (values (@0, @1)) as derivedBilling(cents, money)) select cents + @2 as [result] from derivedBilling"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling as (select * from (values (@0, @1)) as derivedBilling(cents, money)) select cents + @2 as result from derivedBilling"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,
@@ -1241,7 +1241,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(billing)
             .selectOneColumn(billing.money.add(1))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling as (select * from (values (@0, @1)) as derivedBilling(cents, money)) select money + @2 as [result] from derivedBilling"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with derivedBilling as (select * from (values (@0, @1)) as derivedBilling(cents, money)) select money + @2 as result from derivedBilling"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             500,

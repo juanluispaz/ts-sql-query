@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.b.c.num\`, title as \`a.b.c.title\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.b.c.num\`, title as \`a.b.c.title\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.b.c.num\`, body as \`a.b.c.body\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.b.c.num\`, body as \`a.b.c.body\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -112,7 +112,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.b.c.d.num\`, title as \`a.b.c.d.title\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.b.c.d.num\`, title as \`a.b.c.d.title\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -149,7 +149,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.b.c.d.num\`, body as \`a.b.c.d.body\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.b.c.d.num\`, body as \`a.b.c.d.body\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, body as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -285,7 +285,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, \`status\` as \`a.b.c.keepC\`, body as \`a.b.c.d.body\`, assignee_id as \`a.b.c.d.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.keepC\`, body as \`a.b.c.d.body\`, assignee_id as \`a.b.c.d.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -335,7 +335,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, \`status\` as \`a.b.c.keepC\`, body as \`a.b.c.d.body\`, assignee_id as \`a.b.c.d.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.keepC\`, body as \`a.b.c.d.body\`, assignee_id as \`a.b.c.d.assigneeId\` from issue where id in (?, ?) order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -379,7 +379,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, \`status\` as \`a.b.c.sibling\`, body as \`a.b.c.gate\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.sibling\`, body as \`a.b.c.gate\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -420,7 +420,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, \`status\` as \`a.b.c.sibling\`, body as \`a.b.c.gate\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.sibling\`, body as \`a.b.c.gate\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -462,7 +462,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, \`status\` as \`a.b.c.keepC\`, \`status\` as \`a.b.c.d.sibling\`, body as \`a.b.c.d.gate\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.keepC\`, status as \`a.b.c.d.sibling\`, body as \`a.b.c.d.gate\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -505,7 +505,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`number\` as \`a.keepA\`, title as \`a.b.keepB\`, \`status\` as \`a.b.c.keepC\`, \`status\` as \`a.b.c.d.sibling\`, body as \`a.b.c.d.gate\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.keepC\`, status as \`a.b.c.d.sibling\`, body as \`a.b.c.d.gate\` from issue where project_id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -551,7 +551,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.\`name\` as \`a.keepA\`, project.slug as \`a.b.keepB\`, \`organization\`.id as \`a.b.c.orgId\`, \`organization\`.\`name\` as \`a.b.c.orgName\` from project left join \`organization\` on \`organization\`.id = project.id order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.name as \`a.keepA\`, project.slug as \`a.b.keepB\`, organization.id as \`a.b.c.orgId\`, organization.name as \`a.b.c.orgName\` from project left join organization on organization.id = project.id order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid: number
@@ -594,7 +594,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.\`name\` as \`a.keepA\`, project.slug as \`a.b.keepB\`, \`organization\`.id as \`a.b.c.orgId\`, \`organization\`.\`name\` as \`a.b.c.orgName\` from project left join \`organization\` on \`organization\`.id = project.id order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.name as \`a.keepA\`, project.slug as \`a.b.keepB\`, organization.id as \`a.b.c.orgId\`, organization.name as \`a.b.c.orgName\` from project left join organization on organization.id = project.id order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid: number
@@ -637,7 +637,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.\`name\` as \`a.keepA\`, project.slug as \`a.b.keepB\`, project.organization_id as \`a.b.c.keepC\`, \`organization\`.id as \`a.b.c.d.orgId\`, \`organization\`.\`name\` as \`a.b.c.d.orgName\` from project left join \`organization\` on \`organization\`.id = project.id order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.name as \`a.keepA\`, project.slug as \`a.b.keepB\`, project.organization_id as \`a.b.c.keepC\`, organization.id as \`a.b.c.d.orgId\`, organization.name as \`a.b.c.d.orgName\` from project left join organization on organization.id = project.id order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid: number
@@ -681,7 +681,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.\`name\` as \`a.keepA\`, project.slug as \`a.b.keepB\`, project.organization_id as \`a.b.c.keepC\`, \`organization\`.id as \`a.b.c.d.orgId\`, \`organization\`.\`name\` as \`a.b.c.d.orgName\` from project left join \`organization\` on \`organization\`.id = project.id order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.name as \`a.keepA\`, project.slug as \`a.b.keepB\`, project.organization_id as \`a.b.c.keepC\`, organization.id as \`a.b.c.d.orgId\`, organization.name as \`a.b.c.d.orgName\` from project left join organization on organization.id = project.id order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid: number

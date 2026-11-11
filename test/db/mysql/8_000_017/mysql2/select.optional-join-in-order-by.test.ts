@@ -20,7 +20,7 @@ describe(ctx.label, () => {
             .orderBy(org.name)
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from project inner join \`organization\` as org on org.id = project.organization_id where project.id in (?, ?) order by org.\`name\`, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from project inner join organization as org on org.id = project.organization_id where project.id in (?, ?) order by org.name, id"`)
         expect(rows.map(row => row.id).sort()).toEqual([1, 2])
     })
 

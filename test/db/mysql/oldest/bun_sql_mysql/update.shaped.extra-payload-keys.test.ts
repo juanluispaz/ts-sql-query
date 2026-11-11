@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(2))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ?, \`status\` = ?, priority = ?, assignee_id = ?, parent_id = ?, estimated_hours = ?, external_ref = uuid_to_bin(?) where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ?, status = ?, priority = ?, assignee_id = ?, parent_id = ?, estimated_hours = ?, external_ref = uuid_to_bin(?) where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Base heading",

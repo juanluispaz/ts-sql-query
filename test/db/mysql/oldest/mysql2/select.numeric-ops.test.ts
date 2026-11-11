@@ -156,7 +156,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.divide(3).ceil(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil((priority * 1.0e0) / ?) as \`c\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil((priority * 1.0e0) / ?) as c from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -225,7 +225,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.multiply(4).cbrt(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sign(priority * ?) * power(abs(priority * ?), 1.0e0 / 3.0e0) as \`c\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sign(priority * ?) * power(abs(priority * ?), 1.0e0 / 3.0e0) as c from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -734,7 +734,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.ceil(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(priority) as \`c\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(priority) as c from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -881,7 +881,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, sign(estimated_hours) * power(abs(estimated_hours), 1.0e0 / 3.0e0) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log10(estimated_hours) as l10, log(?, estimated_hours) as lgn, round(cast(estimated_hours as decimal(65, 30)), ?) as rn, atan2(estimated_hours, ?) as \`at\`, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as ai, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as abi, (estimated_hours * 1.0e0) as ad from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, sign(estimated_hours) * power(abs(estimated_hours), 1.0e0 / 3.0e0) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log10(estimated_hours) as l10, log(?, estimated_hours) as lgn, round(cast(estimated_hours as decimal(65, 30)), ?) as rn, atan2(estimated_hours, ?) as at, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as ai, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as abi, (estimated_hours * 1.0e0) as ad from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -951,7 +951,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs((priority * 1.0e0)) as ab, ceil((priority * 1.0e0)) as ce, floor((priority * 1.0e0)) as fl, sign((priority * 1.0e0)) as sg, sign((priority * 1.0e0)) * power(abs((priority * 1.0e0)), 1.0e0 / 3.0e0) as cb, exp((priority * 1.0e0)) as ex, ln((priority * 1.0e0)) as ln, log10((priority * 1.0e0)) as l10, power((priority * 1.0e0), ?) as pw, log(?, (priority * 1.0e0)) as lgn, round(cast((priority * 1.0e0) as decimal(65, 30)), ?) as rn, atan2((priority * 1.0e0), ?) as \`at\`, greatest((priority * 1.0e0), ?) as mn, least((priority * 1.0e0), ?) as mx from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs((priority * 1.0e0)) as ab, ceil((priority * 1.0e0)) as ce, floor((priority * 1.0e0)) as fl, sign((priority * 1.0e0)) as sg, sign((priority * 1.0e0)) * power(abs((priority * 1.0e0)), 1.0e0 / 3.0e0) as cb, exp((priority * 1.0e0)) as ex, ln((priority * 1.0e0)) as ln, log10((priority * 1.0e0)) as l10, power((priority * 1.0e0), ?) as pw, log(?, (priority * 1.0e0)) as lgn, round(cast((priority * 1.0e0) as decimal(65, 30)), ?) as rn, atan2((priority * 1.0e0), ?) as at, greatest((priority * 1.0e0), ?) as mn, least((priority * 1.0e0), ?) as mx from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1075,7 +1075,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceil(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(abs(assignee_id), 1.0e0 / 3.0e0) as cb, exp(assignee_id) as ex, ln(assignee_id) as ln, log10(assignee_id) as l10, power(assignee_id, ?) as pw, log(?, assignee_id) as lgn, round(assignee_id, ?) as rn, atan2(assignee_id, ?) as \`at\`, (assignee_id * 1.0e0) as ad, assignee_id as abi from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceil(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(abs(assignee_id), 1.0e0 / 3.0e0) as cb, exp(assignee_id) as ex, ln(assignee_id) as ln, log10(assignee_id) as l10, power(assignee_id, ?) as pw, log(?, assignee_id) as lgn, round(assignee_id, ?) as rn, atan2(assignee_id, ?) as at, (assignee_id * 1.0e0) as ad, assignee_id as abi from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

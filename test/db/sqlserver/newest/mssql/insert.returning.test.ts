@@ -367,7 +367,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.body)
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) output inserted.body as [result] values (@0, @1, @2, @3, @4, @5), (@6, @7, @8, @9, @10, @11)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) output inserted.body as result values (@0, @1, @2, @3, @4, @5), (@6, @7, @8, @9, @10, @11)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -403,7 +403,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.archivedAt)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.archived_at as [result] values (@0, @1, @2)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.archived_at as result values (@0, @1, @2)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -650,7 +650,7 @@ describe(ctx.label, () => {
                 .values({ projectId: 1, reviewerCode: 'R-Z8', score: 70, reviewTime })
                 .returningOneColumn(tProjectReview.reviewTime)
                 .executeInsertOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) output inserted.review_time as [result] values (@0, @1, @2, @3)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) output inserted.review_time as result values (@0, @1, @2, @3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

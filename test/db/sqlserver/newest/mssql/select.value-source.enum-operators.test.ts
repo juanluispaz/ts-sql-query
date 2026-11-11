@@ -164,7 +164,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (select activity as [result] from issue_worklog where id = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (select activity as result from issue_worklog where id = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (select activity as [result] from issue_worklog where id = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (select activity as result from issue_worklog where id = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

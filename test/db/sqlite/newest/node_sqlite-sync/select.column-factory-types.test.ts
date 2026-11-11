@@ -352,7 +352,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signing_key, ?1) as "key", released_on as ro from project_release where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signing_key, ?1) as key, released_on as ro from project_release where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "00000000-0000-0000-0000-000000000000",

@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             .select({ pickedCode })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode as (select * from (values (@0, @1)) as projectCode(projectId, code)) select (select code as [result] from projectCode where projectId = @2) as pickedCode"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode as (select * from (values (@0, @1)) as projectCode(projectId, code)) select (select code as result from projectCode where projectId = @2) as pickedCode"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
             .select({ firstVersion })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select version as [result] from release_overview where id = @0) as firstVersion"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select version as result from release_overview where id = @0) as firstVersion"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode as (select * from (values (@0, @1), (@2, @3)) as projectCode(projectId, code)) select id as id, name as name from project where id in (select projectId as [result] from projectCode) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode as (select * from (values (@0, @1), (@2, @3)) as projectCode(projectId, code)) select id as id, name as name from project where id in (select projectId as result from projectCode) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode as (select * from (values (@0, @1), (@2, @3)) as projectCode(projectId, code)) select id as id, name as name from project where exists(select projectId as [result] from projectCode where projectId = project.id) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode as (select * from (values (@0, @1), (@2, @3)) as projectCode(projectId, code)) select id as id, name as name from project where exists(select projectId as result from projectCode where projectId = project.id) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

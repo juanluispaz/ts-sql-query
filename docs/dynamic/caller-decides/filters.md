@@ -96,7 +96,7 @@ The executed query is:
         customer.first_name as firstName, 
         customer.last_name as lastName, 
         customer.birthday as birthday, 
-        company.`name` as companyName 
+        company.name as companyName 
     from customer 
     inner join company on customer.company_id = company.id 
     where 
@@ -106,7 +106,7 @@ The executed query is:
                     lower(customer.last_name) like concat(lower(?), '%') 
                 and customer.last_name like concat('%', ?)
             )
-        ) and company.`name` = ? 
+        ) and company.name = ? 
     order by 
         lower(customer.first_name), 
         lower(customer.last_name) asc
@@ -343,17 +343,17 @@ The executed query is:
         customer.last_name as `name.lastName`, 
         customer.birthday as birthday, 
         company.id as `company.id`, 
-        company.`name` as `company.name` 
+        company.name as `company.name` 
     from customer 
     inner join company on company.id = customer.company_id 
     where 
-            company.`name` = ? 
+            company.name = ? 
         and (
                lower(customer.first_name) like concat('%', lower(?), '%') 
             or lower(customer.last_name) like concat('%', lower(?), '%')
         ) 
     order by 
-        lower(company.`name`) asc, 
+        lower(company.name) asc, 
         birthday desc
     ```
 === "Oracle"

@@ -36,7 +36,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, name as projectName, slug as projectSlug from project where organization_id in (select id as [result] from organization where name like ('%' + @0 + '%')) order by projectName asc, projectSlug"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, name as projectName, slug as projectSlug from project where organization_id in (select id as result from organization where name like ('%' + @0 + '%')) order by projectName asc, projectSlug"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme",
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where exists(select id as [result] from issue where project_id = project.id) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where exists(select id as result from issue where project_id = project.id) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectsWithIssues, Array<{
             id:   number
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select count(*) as [result] from issue as otherIssue where otherIssue.project_id = issue.project_id and otherIssue.id <> issue.id) as otherIssuesOfTheProject from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select count(*) as result from issue as otherIssue where otherIssue.project_id = issue.project_id and otherIssue.id <> issue.id) as otherIssuesOfTheProject from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issuesWithOthersOfTheProject, Array<{
             id:                      number
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as [result] from organization where name = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as result from organization where name = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme Corp",
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select count(*) as [result] from project where organization_id = organization.id) as projectCount from organization order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select count(*) as result from project where organization_id = organization.id) as projectCount from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof organizationsWithProjectCount, Array<{
             id:           number
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_arrayagg(a_1_.[result] null on null) from (select distinct name as [result] from project where organization_id = organization.id) as a_1_) as projectNames from organization"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_arrayagg(a_1_.result null on null) from (select distinct name as result from project where organization_id = organization.id) as a_1_) as projectNames from organization"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof organizationsWithTheNamesOfTheirProjects, Array<{
             id:           number

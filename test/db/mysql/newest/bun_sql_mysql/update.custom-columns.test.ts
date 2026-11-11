@@ -122,7 +122,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals('US'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set \`name\` = ? where \`code\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set name = ? where code = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "United States of America",
@@ -143,7 +143,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals('JP'))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from country where \`code\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from country where code = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "JP",
@@ -233,7 +233,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDraft.id.equals(1))
                 .select({ stamp: tReleaseDraft.shiftedStamp, count: tReleaseDraft.shiftedCount })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as count from release_draft where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as \`count\` from release_draft where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

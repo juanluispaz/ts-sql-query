@@ -44,7 +44,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority, view_count) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, view_count) values (?, ?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -63,7 +63,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, views: tIssue.viewCount })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as views from issue where \`number\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as views from issue where number = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9002,
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority, estimated_hours) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, estimated_hours) values (?, ?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, hours: tIssue.estimatedHours })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours as hours from issue where \`number\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours as hours from issue where number = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9003,
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority, external_ref) values (?, ?, ?, ?, ?, uuid_to_bin(?))"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, external_ref) values (?, ?, ?, ?, ?, uuid_to_bin(?))"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, ref: tIssue.externalRef })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bin_to_uuid(external_ref) as ref from issue where \`number\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bin_to_uuid(external_ref) as ref from issue where number = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9004,

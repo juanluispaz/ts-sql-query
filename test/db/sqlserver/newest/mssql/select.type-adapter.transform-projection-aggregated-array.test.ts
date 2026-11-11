@@ -280,7 +280,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, months })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(json_object('month':right(convert(varchar(10), a_1_.[month], 103), 7))) from (select distinct work_date as [month] from issue_worklog) as a_1_) as months from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(json_object('month':right(convert(varchar(10), a_1_.month, 103), 7))) from (select distinct work_date as month from issue_worklog) as a_1_) as months from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -324,7 +324,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, months })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select right(convert(varchar(10), a_1_.[month], 103), 7) as [month] from (select work_date as [month] from issue_worklog where id = @0 union select work_date as [month] from issue_worklog where id = @1) as a_1_ for json path) as months from project where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select right(convert(varchar(10), a_1_.month, 103), 7) as month from (select work_date as month from issue_worklog where id = @0 union select work_date as month from issue_worklog where id = @1) as a_1_ for json path) as months from project where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -348,7 +348,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, firstReleases })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(json_object('id':a_1_.id, 'day':convert(varchar(10), a_1_.[day], 103))) from (select id as id, released_on as [day] from project_release order by [day] offset 0 rows fetch next @0 rows only) as a_1_) as firstReleases from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(json_object('id':a_1_.id, 'day':convert(varchar(10), a_1_.day, 103))) from (select id as id, released_on as day from project_release order by day offset 0 rows fetch next @0 rows only) as a_1_) as firstReleases from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -395,7 +395,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, releases })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select id as id, convert(varchar(10), released_on, 103) as [day] from project_release where project_id = project.id for json path) as releases from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select id as id, convert(varchar(10), released_on, 103) as day from project_release where project_id = project.id for json path) as releases from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -515,7 +515,7 @@ describe(ctx.label, () => {
             })
             .groupBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(varchar(8), released_on, 112) as [day], json_arrayagg(convert(varchar(10), released_on, 103) null on null) as days from project_release where id = @0 group by released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(varchar(8), released_on, 112) as day, json_arrayagg(convert(varchar(10), released_on, 103) null on null) as days from project_release where id = @0 group by released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -534,7 +534,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, days })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select distinct convert(varchar(10), released_on, 23) as [day] from project_release for json path) as days from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select distinct convert(varchar(10), released_on, 23) as day from project_release for json path) as days from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

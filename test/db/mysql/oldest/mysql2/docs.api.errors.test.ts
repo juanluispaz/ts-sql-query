@@ -30,7 +30,7 @@ describe(ctx.label, () => {
         }
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) values (?, ?, ?, ?, ?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
         expect(rejectedByTheUniqueConstraint).toBe(ctx.realDbEnabled)
     })
 })

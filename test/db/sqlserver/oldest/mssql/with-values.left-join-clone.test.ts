@@ -105,7 +105,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatchV as (select * from (values (@0, @1), (@2, @3)) as projectPatchV(id, name)) select pp.id as id, pp.name as name, 'PATCH' as [label] from projectPatchV as pp order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatchV as (select * from (values (@0, @1), (@2, @3)) as projectPatchV(id, name)) select pp.id as id, pp.name as name, 'PATCH' as label from projectPatchV as pp order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

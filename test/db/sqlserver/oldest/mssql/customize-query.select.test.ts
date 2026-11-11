@@ -697,7 +697,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, root: rootIssueId })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) /* end-of-with */ select id as id, (/* head */  select /* hint */ /* cols */  [result] as [result] from recursive_select_1  /* tail */) as root from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as result from issue where id = @0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) /* end-of-with */ select id as id, (/* head */  select /* hint */ /* cols */  result as result from recursive_select_1  /* tail */) as root from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -735,7 +735,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, tree })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) /* end-of-with */ select id as id, (/* head */  select /* hint */ /* cols */  concat('[', string_agg(convert(nvarchar(41), [result]), ','), ']') from recursive_select_1  /* tail */) as tree from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as result from issue where id = @0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) /* end-of-with */ select id as id, (/* head */  select /* hint */ /* cols */  concat('[', string_agg(convert(nvarchar(41), result), ','), ']') from recursive_select_1  /* tail */) as tree from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -883,7 +883,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, tree })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) select id as id, (select concat('[', string_agg(convert(nvarchar(41), a_2_.[result]), ','), ']') from (select [result] as [result] from recursive_select_1 order by [result] offset 0 rows) as a_2_) as tree from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as result from issue where id = @0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select concat('[', string_agg(convert(nvarchar(41), a_2_.result), ','), ']') from (select result as result from recursive_select_1 order by result offset 0 rows) as a_2_) as tree from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1002,7 +1002,7 @@ describe(ctx.label, () => {
             .where(tProject.id.equals(1))
             .select({ id: tProject.id, n: scalar })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* head */  select count(*) as [result] from issue where project_id = project.id  /* tail */) as n from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* head */  select count(*) as result from issue where project_id = project.id  /* tail */) as n from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

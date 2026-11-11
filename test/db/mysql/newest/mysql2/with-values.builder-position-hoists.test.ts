@@ -148,7 +148,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals(targets.code))
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with countryCodes(\`code\`) as (values row(?)) delete from country using country, countryCodes where country.\`code\` = countryCodes.\`code\`"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with countryCodes(code) as (values row(?)) delete from country using country, countryCodes where country.code = countryCodes.code"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "JP",

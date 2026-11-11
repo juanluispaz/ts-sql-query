@@ -41,7 +41,7 @@ describe(ctx.label, () => {
         const page = await ctx.conn.selectFrom(tIssue)
             .selectCountAll()
             .executeSelectPage()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with result_for_count as (select count(*) as [result] from issue) select count(*) from result_for_count"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with result_for_count as (select count(*) as result from issue) select count(*) from result_for_count"`)
         expect(page).toEqual(expected)
     })
 

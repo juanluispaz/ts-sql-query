@@ -32,7 +32,7 @@ describe(ctx.label, () => {
                 .and(tOrganization.plan.equals('pro'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, \`organization\` set project.\`name\` = concat(project.\`name\`, ?, \`organization\`.\`name\`) where project.organization_id = \`organization\`.id and \`organization\`.plan = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = concat(project.name, ?, organization.name) where project.organization_id = organization.id and organization.plan = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",

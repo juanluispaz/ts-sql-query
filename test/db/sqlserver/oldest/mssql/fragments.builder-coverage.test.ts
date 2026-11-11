@@ -88,7 +88,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.negateMaybeOptional(tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select -assignee_id as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select -assignee_id as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

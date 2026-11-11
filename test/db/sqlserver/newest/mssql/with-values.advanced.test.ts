@@ -268,7 +268,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling as (select * from (values (@0, @1), (@2, @3)) as issueBilling(issueId, amount)) select issueId as issueId, 'open' as [state] from issueBilling order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling as (select * from (values (@0, @1), (@2, @3)) as issueBilling(issueId, amount)) select issueId as issueId, 'open' as state from issueBilling order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -360,7 +360,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with batchRow as (select * from (values (@0, @1), (@2, @3)) as batchRow(id, [label])) select id as id, [label] as [label], null as rank, null as note from batchRow order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with batchRow as (select * from (values (@0, @1), (@2, @3)) as batchRow(id, label)) select id as id, label as label, null as rank, null as note from batchRow order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             .select(idAggregates(ctx.conn, tProject))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as count, max(id) as max, sum(id) as sum, avg((id * 1.0e0)) as average from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as \`count\`, max(id) as \`max\`, sum(id) as \`sum\`, avg((id * 1.0e0)) as average from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { count: number; max?: number; sum?: number; average?: number }>>()
         expect(row).toEqual({ count: 4, max: 4, sum: 10, average: 2.5 })
@@ -237,7 +237,7 @@ describe(ctx.label, () => {
             .select(idAggregates(ctx.conn, project))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(p.id) as count, max(p.id) as max, sum(p.id) as sum, avg((p.id * 1.0e0)) as average from project as p"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(p.id) as \`count\`, max(p.id) as \`max\`, sum(p.id) as \`sum\`, avg((p.id * 1.0e0)) as average from project as p"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof aliasedRow, { count: number; max?: number; sum?: number; average?: number }>>()
         expect(aliasedRow).toEqual({ count: 4, max: 4, sum: 10, average: 2.5 })

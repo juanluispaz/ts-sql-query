@@ -38,7 +38,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, \`channel\` as \`channel\`, bin_to_uuid(signing_key) as signingKey, notes as notes, upper(\`channel\`) as versionTag from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, channel as channel, bin_to_uuid(signing_key) as signingKey, notes as notes, upper(channel) as versionTag from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, \`channel\` as \`channel\`, bin_to_uuid(signing_key) as signingKey, notes as notes, upper(\`channel\`) as versionTag from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, channel as channel, bin_to_uuid(signing_key) as signingKey, notes as notes, upper(channel) as versionTag from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -93,7 +93,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, \`channel\` as \`channel\`, notes as notes from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, channel as channel, notes as notes from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
         // doc-end
 
         // The computed notes and the virtual versionTag are not in the select.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, \`channel\` as \`channel\`, bin_to_uuid(signing_key) as signingKey from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as version, channel as channel, bin_to_uuid(signing_key) as signingKey from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -363,7 +363,7 @@ describe(ctx.label, () => {
                 .shapedAs(shape)
                 .set({ code: 'ES', name: 'Spain', region: 'Europe' })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ES",
@@ -378,7 +378,7 @@ describe(ctx.label, () => {
                 .set({ region: 'Iberia' })
                 .where(tCountry.code.equals('ES'))
                 .executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set region = ? where \`code\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set region = ? where code = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Iberia",

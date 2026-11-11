@@ -294,7 +294,7 @@ describe(ctx.label, () => {
                 .executeInsert())
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ACME",

@@ -221,7 +221,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectReview.score)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.score as [result] from project where project_review.project_id = project.id and project_review.id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.score as result from project where project_review.project_id = project.id and project_review.id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -407,7 +407,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProject.slug)
                 .executeDeleteNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output project.slug as [result] from project where issue.project_id = project.id and issue.id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output project.slug as result from project where issue.project_id = project.id and issue.id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

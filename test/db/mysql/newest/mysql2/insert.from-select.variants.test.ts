@@ -49,7 +49,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) select ? as projectId, \`number\` as \`number\`, title as title, ? as \`status\`, priority as priority from issue where project_id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select ? as projectId, number as number, title as title, ? as status, priority as priority from issue where project_id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -143,7 +143,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) with active_projects as (select id as id from project where archived_at is null) select issue.project_id as projectId, issue.\`number\` + ? as \`number\`, issue.title as title, ? as \`status\`, issue.priority as priority from issue inner join active_projects on active_projects.id = issue.project_id where issue.project_id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) with active_projects as (select id as id from project where archived_at is null) select issue.project_id as projectId, issue.number + ? as number, issue.title as title, ? as status, issue.priority as priority from issue inner join active_projects on active_projects.id = issue.project_id where issue.project_id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1000,
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
                 .onConflictDoNothing()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where organization_id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where organization_id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -341,7 +341,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ name: 'Marketing site v2' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ? on duplicate key update name = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -385,7 +385,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateDynamicSet({ name: 'Marketing site v2' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ? on duplicate key update name = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -427,7 +427,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSetIfValue({ name: 'Marketing site v2' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ? on duplicate key update name = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

@@ -22,7 +22,7 @@ describe(ctx.label, () => {
                 label: tAppUser.email.concat('/').concat(tAppUser.fullName),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email + @0 + full_name as [label] from app_user where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email + @0 + full_name as label from app_user where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "/",
@@ -47,7 +47,7 @@ describe(ctx.label, () => {
                 label: tIssue.body.concatIgnoringNull(tIssue.title),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, title) as [label] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, title) as label from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
                 label: tIssue.title.concatIgnoringNull('/'),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(title, @0) as [label] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(title, @0) as label from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "/",
@@ -94,7 +94,7 @@ describe(ctx.label, () => {
                 label: tIssue.body.concatIgnoringNull(tIssue.title).concatIgnoringNull('!'),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(concat(body, title), @0) as [label] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(concat(body, title), @0) as label from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -119,7 +119,7 @@ describe(ctx.label, () => {
                 label: tIssue.body.concatIgnoringNull(tIssue.body),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, body) as [label] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, body) as label from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -141,7 +141,7 @@ describe(ctx.label, () => {
                 label: tIssue.title.concatIgnoringNull(ctx.conn.optionalConst(null, 'string')),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as [label] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as label from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
                 label: tIssue.body.concatIgnoringNull(tIssue.body),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, body) as [label] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, body) as label from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -191,7 +191,7 @@ describe(ctx.label, () => {
                 label: tIssue.body.concatIgnoringNullIfValue(suffix),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, @0) as [label] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, @0) as label from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -216,7 +216,7 @@ describe(ctx.label, () => {
                 label: tIssue.body.concatIgnoringNullIfValue(suffix),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as [label] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body as label from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -241,7 +241,7 @@ describe(ctx.label, () => {
                 label: tIssue.body.concatIgnoringNullIfValue(suffix).concatIgnoringNull(tIssue.title),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, title) as [label] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat(body, title) as label from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -268,7 +268,7 @@ describe(ctx.label, () => {
                     .concatIfValue(suffix),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email + @0 + @1 + @2 + @3 as [label] from app_user where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email + @0 + @1 + @2 + @3 as label from app_user where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " (",
@@ -297,7 +297,7 @@ describe(ctx.label, () => {
                     .concatIfValue(suffix),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email + @0 + @1 + @2 as [label] from app_user where id = @3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email + @0 + @1 + @2 as label from app_user where id = @3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " (",
@@ -327,7 +327,7 @@ describe(ctx.label, () => {
                     .concat('!'),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title + body + @0 as [label] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title + body + @0 as label from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -402,7 +402,7 @@ describe(ctx.label, () => {
                 lower: tAppUser.email.toLowerCase(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(full_name) as [upper], lower(email) as [lower] from app_user where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(full_name) as upper, lower(email) as lower from app_user where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

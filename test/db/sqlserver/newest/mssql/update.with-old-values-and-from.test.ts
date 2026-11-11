@@ -225,7 +225,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(oldProject.name)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name + @0 + organization.name output deleted.name as [result] from organization where project.id = @1 and project.organization_id = organization.id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name + @0 + organization.name output deleted.name as result from organization where project.id = @1 and project.organization_id = organization.id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",

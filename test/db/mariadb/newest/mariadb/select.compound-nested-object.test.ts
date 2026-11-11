@@ -86,7 +86,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? union all select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? union all select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? union all select id as iid, \`body\` as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? union all select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -338,7 +338,7 @@ describe(ctx.label, () => {
             .projectingOptionalValuesAsNullable()
             .orderBy('iid')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? union select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? union select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -417,7 +417,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? union select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? union select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -458,7 +458,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`outer.mid.num\`, \`body\` as \`outer.mid.body\` from issue where id = ? union select id as iid, number as \`outer.mid.num\`, \`body\` as \`outer.mid.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`outer.mid.num\`, body as \`outer.mid.body\` from issue where id = ? union select id as iid, number as \`outer.mid.num\`, body as \`outer.mid.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -724,7 +724,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id in (?, ?) intersect select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id in (?, ?) intersect select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -758,7 +758,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id in (?, ?) intersect all select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id in (?, ?) intersect all select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -791,7 +791,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id in (?, ?) except select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id in (?, ?) except select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -824,7 +824,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id in (?, ?) except all select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id in (?, ?) except all select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -857,7 +857,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id in (?, ?) except select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id in (?, ?) except select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -890,7 +890,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id in (?, ?) except all select id as iid, title as \`detail.title\`, \`body\` as \`detail.body\` from issue where id = ? order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id in (?, ?) except all select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

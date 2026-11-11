@@ -884,7 +884,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title + @0 as [label] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title + @0 as label from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " [issue]",
@@ -942,7 +942,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, status) collate DATABASE_DEFAULT as [label] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, status) collate DATABASE_DEFAULT as label from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hero",

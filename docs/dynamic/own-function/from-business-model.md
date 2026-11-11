@@ -75,7 +75,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        concat(first_name, ?, last_name) as `name`, 
+        concat(first_name, ?, last_name) as name, 
         birthday as birthday 
     from customer 
     where 
@@ -213,8 +213,8 @@ The executed query is:
     ```mysql
     select 
         customer.id as id, 
-        concat(customer.first_name, ?, customer.last_name) as `name`, 
-        company.`name` as `company.name` 
+        concat(customer.first_name, ?, customer.last_name) as name, 
+        company.name as `company.name` 
     from customer 
     left outer join company as company on company.id = customer.company_id
     ```
@@ -306,11 +306,11 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        concat(first_name, ?, last_name) as `name`, 
+        concat(first_name, ?, last_name) as name, 
         birthday as birthday 
     from customer 
     order by 
-        `name` asc, 
+        name asc, 
         birthday desc
     ```
 === "Oracle"
@@ -441,17 +441,17 @@ The executed query is:
     ```mysql
     select 
         customer.id as id, 
-        concat(customer.first_name, ?, customer.last_name) as `name`, 
-        company.`name` as `company.name` 
+        concat(customer.first_name, ?, customer.last_name) as name, 
+        company.name as `company.name` 
     from customer 
     left outer join company as company on company.id = customer.company_id 
     where 
             lower(concat(customer.first_name, ?, customer.last_name)) like concat('%', lower(?), '%') 
-        and company.`name` = ? 
+        and company.name = ? 
     order by 
-        company.`name` is null, 
+        company.name is null, 
         `company.name` asc, 
-        `name` desc
+        name desc
     ```
 === "Oracle"
     ```oracle

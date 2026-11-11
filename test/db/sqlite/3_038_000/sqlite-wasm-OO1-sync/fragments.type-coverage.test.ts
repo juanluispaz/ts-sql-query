@@ -116,7 +116,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1.5 as avg, channel as ch, signing_key as "key", released_on as rOn, cutoff_time as cut, signed_off_at as soff from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1.5 as avg, channel as ch, signing_key as key, released_on as rOn, cutoff_time as cut, signed_off_at as soff from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as v, 1.5 as avg, signing_key as "key", channel as ch from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as v, 1.5 as avg, signing_key as key, channel as ch from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -657,7 +657,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as "key", released_on as rOn, cutoff_time as cut, signed_off_at as soff, version as v from project_release where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as key, released_on as rOn, cutoff_time as cut, signed_off_at as soff, version as v from project_release where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -137,7 +137,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set status = @0 output inserted.status as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set status = @0 output inserted.status as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "reviewed",

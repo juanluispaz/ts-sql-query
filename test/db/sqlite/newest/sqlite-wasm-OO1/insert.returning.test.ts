@@ -28,7 +28,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",
@@ -132,7 +132,7 @@ describe(ctx.label, () => {
                 .returning({ id: tOrganization.id })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) returning id as id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4) returning id as id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme East",
@@ -303,7 +303,7 @@ describe(ctx.label, () => {
                 .returning({ id: tOrganization.id, name: tOrganization.name })
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) on conflict do nothing returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4) on conflict do nothing returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict many A",
@@ -339,7 +339,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.name)
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4) on conflict do nothing returning name as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4) on conflict do nothing returning name as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Conflict one-column A",

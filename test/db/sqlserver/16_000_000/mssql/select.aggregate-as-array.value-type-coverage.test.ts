@@ -576,7 +576,7 @@ describe(ctx.label, () => {
                 .select({ id: tProject.id, hours })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull(convert(nvarchar(41), a_1_.[result], 3), 'null'), ','), ']') from (select estimated_hours as [result] from issue where project_id = project.id order by [result] offset 0 rows) as a_1_) as hours from project where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull(convert(nvarchar(41), a_1_.result, 3), 'null'), ','), ']') from (select estimated_hours as result from issue where project_id = project.id order by result offset 0 rows) as a_1_) as hours from project where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -612,7 +612,7 @@ describe(ctx.label, () => {
                 .select({ id: tProject.id, views })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar(41), a_1_.[result]) + '"', ','), ']') from (select view_count as [result] from issue where project_id = project.id order by [result] offset 0 rows) as a_1_) as views from project where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar(41), a_1_.result) + '"', ','), ']') from (select view_count as result from issue where project_id = project.id order by result offset 0 rows) as a_1_) as views from project where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -648,7 +648,7 @@ describe(ctx.label, () => {
                 .select({ id: tProject.id, refs })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar(36), a_1_.[result]) + '"', 'null'), ','), ']') from (select external_ref as [result] from issue where project_id = project.id order by [result] offset 0 rows) as a_1_) as refs from project where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar(36), a_1_.result) + '"', 'null'), ','), ']') from (select external_ref as result from issue where project_id = project.id order by result offset 0 rows) as a_1_) as refs from project where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -684,7 +684,7 @@ describe(ctx.label, () => {
                 .select({ id: tProject.id, stamps })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.[result], 127) + '"', ','), ']') from (select created_at as [result] from issue where project_id = project.id order by [result] offset 0 rows) as a_1_) as stamps from project where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.result, 127) + '"', ','), ']') from (select created_at as result from issue where project_id = project.id order by result offset 0 rows) as a_1_) as stamps from project where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -719,7 +719,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, flags })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull(convert(nvarchar(41), a_1_.[result]), 'null'), ','), ']') from (select billable as [result] from issue_worklog where issue_id = issue.id order by [result] offset 0 rows) as a_1_) as flags from issue where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull(convert(nvarchar(41), a_1_.result), 'null'), ','), ']') from (select billable as result from issue_worklog where issue_id = issue.id order by result offset 0 rows) as a_1_) as flags from issue where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -748,7 +748,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, dates })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.[result], 127) + '"', ','), ']') from (select work_date as [result] from issue_worklog where issue_id = issue.id order by [result] offset 0 rows) as a_1_) as dates from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.result, 127) + '"', ','), ']') from (select work_date as result from issue_worklog where issue_id = issue.id order by result offset 0 rows) as a_1_) as dates from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -776,7 +776,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, amounts })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar(41), a_1_.[result], 3) + '"', ','), ']') from (select billed_amount as [result] from issue_worklog where issue_id = issue.id order by [result] offset 0 rows) as a_1_) as amounts from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar(41), a_1_.result, 3) + '"', ','), ']') from (select billed_amount as result from issue_worklog where issue_id = issue.id order by result offset 0 rows) as a_1_) as amounts from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -826,7 +826,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, clocks })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar, a_1_.[result], 127) + '"', 'null'), ','), ']') from (select started_at as [result] from issue_worklog where issue_id = issue.id order by [result] offset 0 rows) as a_1_) as clocks from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar, a_1_.result, 127) + '"', 'null'), ','), ']') from (select started_at as result from issue_worklog where issue_id = issue.id order by result offset 0 rows) as a_1_) as clocks from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -854,7 +854,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, keys })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar(36), a_1_.[result]) + '"', 'null'), ','), ']') from (select signing_key as [result] from project_release where project_id = project.id order by [result] offset 0 rows) as a_1_) as keys from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar(36), a_1_.result) + '"', 'null'), ','), ']') from (select signing_key as result from project_release where project_id = project.id order by result offset 0 rows) as a_1_) as keys from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -880,7 +880,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, days })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.[result], 127) + '"', ','), ']') from (select released_on as [result] from project_release where project_id = project.id order by [result] offset 0 rows) as a_1_) as days from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.result, 127) + '"', ','), ']') from (select released_on as result from project_release where project_id = project.id order by result offset 0 rows) as a_1_) as days from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -907,7 +907,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, cutoffs })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.[result], 127) + '"', ','), ']') from (select cutoff_time as [result] from project_release where project_id = project.id order by [result] offset 0 rows) as a_1_) as cutoffs from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar, a_1_.result, 127) + '"', ','), ']') from (select cutoff_time as result from project_release where project_id = project.id order by result offset 0 rows) as a_1_) as cutoffs from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -935,7 +935,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, signoffs })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar, a_1_.[result], 127) + '"', 'null'), ','), ']') from (select signed_off_at as [result] from project_release where project_id = project.id order by [result] offset 0 rows) as a_1_) as signoffs from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(isnull('"' + convert(nvarchar, a_1_.result, 127) + '"', 'null'), ','), ']') from (select signed_off_at as result from project_release where project_id = project.id order by result offset 0 rows) as a_1_) as signoffs from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -972,7 +972,7 @@ describe(ctx.label, () => {
                 .select({ id: tProject.id, refs })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select external_ref as [ref], count(id) as cnt from issue where project_id = project.id group by external_ref for json path) as refs from project where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select external_ref as ref, count(id) as cnt from issue where project_id = project.id group by external_ref for json path) as refs from project where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1027,7 +1027,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, events })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select event_type as [result] from webhook_event where issue_id = issue.id order by [result] offset 0 rows) as a_1_) as events from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select event_type as result from webhook_event where issue_id = issue.id order by result offset 0 rows) as a_1_) as events from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where \`status\` = ?) as "openCount",  id as id from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "openCount",  id as id from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by (select count(id) as result from issue where \`status\` = ?) asc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by (select count(id) as result from issue where status = ?) asc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where \`status\` = ?) as "openCount", (select count(id) as result from issue where \`status\` = ?) as "closedCount",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "openCount", (select count(id) as result from issue where status = ?) as "closedCount",  id as id from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -164,7 +164,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where \`status\` = ?) as "x1", (select count(id) as result from issue where \`status\` = ?) as "x2", (select count(id) as result from issue where \`status\` = ?) as "x3",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3",  id as id from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where \`status\` = ?) as "x1", (select count(id) as result from issue where \`status\` = ?) as "x2", (select count(id) as result from issue where \`status\` = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4",  id as id from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where \`status\` = ?) as "x1", (select count(id) as result from issue where \`status\` = ?) as "x2", (select count(id) as result from issue where \`status\` = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5",  id as id from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where \`status\` = ?) as "x1", (select count(id) as result from issue where \`status\` = ?) as "x2", (select count(id) as result from issue where \`status\` = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5", (select count(id) as result from issue where priority = ?) as "x6",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5", (select count(id) as result from issue where priority = ?) as "x6",  id as id from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -297,7 +297,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where \`status\` = ?) as "x1", (select count(id) as result from issue where \`status\` = ?) as "x2", (select count(id) as result from issue where \`status\` = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5", (select count(id) as result from issue where priority = ?) as "x6", (select count(id) as result from issue where \`number\` = ?) as "x7",  id as id from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where status = ?) as "x1", (select count(id) as result from issue where status = ?) as "x2", (select count(id) as result from issue where status = ?) as "x3", (select count(id) as result from issue where priority = ?) as "x4", (select count(id) as result from issue where priority = ?) as "x5", (select count(id) as result from issue where priority = ?) as "x6", (select count(id) as result from issue where number = ?) as "x7",  id as id from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

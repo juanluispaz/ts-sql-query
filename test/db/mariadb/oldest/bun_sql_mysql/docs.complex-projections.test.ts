@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`header.title\`, status as \`header.status\`, \`body\` as \`body\` from issue where project_id = ? order by \`header.title\`, \`header.status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`header.title\`, status as \`header.status\`, body as body from issue where project_id = ? order by \`header.title\`, \`header.status\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -253,7 +253,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as parentId, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, \`body\` as \`meta.body\` from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as parentId, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, body as \`meta.body\` from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             id:        number
@@ -346,7 +346,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, \`body\` as \`meta.body\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, body as \`meta.body\` from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             id: number
@@ -392,7 +392,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, firstIssue.id as \`firstIssue.id\`, firstIssue.title as \`firstIssue.title\`, firstIssue.\`body\` as \`firstIssue.body\` from project left join issue as firstIssue on firstIssue.project_id = project.id and firstIssue.number = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, firstIssue.id as \`firstIssue.id\`, firstIssue.title as \`firstIssue.title\`, firstIssue.body as \`firstIssue.body\` from project left join issue as firstIssue on firstIssue.project_id = project.id and firstIssue.number = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -494,7 +494,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as \`info.title\`, issue.\`body\` as \`info.body\`, assignee.full_name as \`info.assigneeName\` from issue left join app_user as assignee on assignee.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as \`info.title\`, issue.body as \`info.body\`, assignee.full_name as \`info.assigneeName\` from issue left join app_user as assignee on assignee.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             id: number
@@ -538,7 +538,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, \`body\` as \`meta.body\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, body as \`meta.body\` from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             id: number
@@ -584,7 +584,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, parent_id as parentId, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, \`body\` as \`meta.body\` from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, parent_id as parentId, external_ref as \`meta.externalRef\`, assignee_id as \`meta.assigneeId\`, body as \`meta.body\` from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issues, Array<{
             id:       number

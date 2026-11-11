@@ -478,7 +478,7 @@ describe(ctx.label, () => {
         ctx.mockNext(1)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg0Count()).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -492,7 +492,7 @@ describe(ctx.label, () => {
         ctx.mockNext(3)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg2Sum(tIssue.priority, tIssue.id)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -506,7 +506,7 @@ describe(ctx.label, () => {
         ctx.mockNext(4)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg3Sum(tIssue.priority, tIssue.id, tIssue.number)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -520,7 +520,7 @@ describe(ctx.label, () => {
         ctx.mockNext(5)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg4Sum(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number + project_id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number + project_id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -534,7 +534,7 @@ describe(ctx.label, () => {
         ctx.mockNext(7)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg5Sum(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, tIssue.priority)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number + project_id + priority) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number + project_id + priority) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -549,7 +549,7 @@ describe(ctx.label, () => {
         ctx.mockNext(1)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO0Count()).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -563,7 +563,7 @@ describe(ctx.label, () => {
         ctx.mockNext(3)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO2Max(tIssue.priority, tIssue.id)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -577,7 +577,7 @@ describe(ctx.label, () => {
         ctx.mockNext(4)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO3Max(tIssue.priority, tIssue.id, tIssue.number)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -591,7 +591,7 @@ describe(ctx.label, () => {
         ctx.mockNext(5)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO4Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -605,7 +605,7 @@ describe(ctx.label, () => {
         ctx.mockNext(7)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO5Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, tIssue.priority)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id + priority) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id + priority) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -627,7 +627,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.aggMaxColumnOptional(tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(assignee_id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(assignee_id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -641,7 +641,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.aggMO2Max(tIssue.priority, tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + assignee_id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + assignee_id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -655,7 +655,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.aggMO3Max(tIssue.priority, tIssue.id, tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + assignee_id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + assignee_id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -669,7 +669,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.aggMO4Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + assignee_id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + assignee_id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -683,7 +683,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.aggMO5Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id + assignee_id) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id + assignee_id) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

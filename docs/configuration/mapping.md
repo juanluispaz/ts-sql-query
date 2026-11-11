@@ -84,7 +84,7 @@ The executed query is:
     ```
 === "MySQL"
     ```mysql
-    insert into product (`code`, `name`)
+    insert into product (code, name)
     values (?, ?)
     ```
 === "Oracle"
@@ -329,7 +329,7 @@ The executed query is:
     ```
 === "MySQL"
     ```mysql
-    insert into company (`name`, ubication_latitude, ubication_longitude) 
+    insert into company (name, ubication_latitude, ubication_longitude) 
     values (?, ?, ?)
     ```
 === "Oracle"
@@ -439,7 +439,7 @@ The executed query is:
     ```mysql
     update company 
     set 
-        `name` = ?, 
+        name = ?, 
         ubication_comment = ? 
     where id = ?
     ```
@@ -541,7 +541,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        concat(first_name, ?, last_name) as `name`, 
+        concat(first_name, ?, last_name) as name, 
         calculateAge(birthday) as age 
     from customer
     ```

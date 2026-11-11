@@ -73,7 +73,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name + @0 + coalesce((select full_name as [result] from app_user where id = issue.assignee_id), @1) output inserted.id as id, deleted.name as oldName, inserted.name as newName from issue where issue.id = @2 and project.id = issue.project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name + @0 + coalesce((select full_name as result from app_user where id = issue.assignee_id), @1) output inserted.id as id, deleted.name as oldName, inserted.name as newName from issue where issue.id = @2 and project.id = issue.project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " / ",
@@ -625,7 +625,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set slug = @0, name = lower(issue.title) output inserted.id as id, deleted.name as oldName, inserted.slug as newSlug, inserted.name as newName, issue.title collate Latin1_General_BIN2 as sortTitle, coalesce(issue.body, issue.title) as summary, issue.title + @1 as [label], replace(issue.title collate Latin1_General_BIN2, @2 collate Latin1_General_BIN2, @3) collate DATABASE_DEFAULT as shortTitle, issue.title as maybeTitle, issue.status as status from issue where issue.id = @4 and project.id = issue.project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set slug = @0, name = lower(issue.title) output inserted.id as id, deleted.name as oldName, inserted.slug as newSlug, inserted.name as newName, issue.title collate Latin1_General_BIN2 as sortTitle, coalesce(issue.body, issue.title) as summary, issue.title + @1 as label, replace(issue.title collate Latin1_General_BIN2, @2 collate Latin1_General_BIN2, @3) collate DATABASE_DEFAULT as shortTitle, issue.title as maybeTitle, issue.status as status from issue where issue.id = @4 and project.id = issue.project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "navbar",
@@ -717,7 +717,7 @@ describe(ctx.label, () => {
                 .returning({ id: tProject.id, oldSlug: tProject.oldValues().slug })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set slug = coalesce((select email as [result] from app_user where id = issue.assignee_id  /* delete from issue_worklog where issue_id = @0 | update issue set status = @1 where id = @2 | insert into webhook_event (issue_id, event_type) values (@3, @4) */), @5) output inserted.id as id, deleted.slug as oldSlug from issue where issue.id = @6 and project.id = issue.project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set slug = coalesce((select email as result from app_user where id = issue.assignee_id  /* delete from issue_worklog where issue_id = @0 | update issue set status = @1 where id = @2 | insert into webhook_event (issue_id, event_type) values (@3, @4) */), @5) output inserted.id as id, deleted.slug as oldSlug from issue where issue.id = @6 and project.id = issue.project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

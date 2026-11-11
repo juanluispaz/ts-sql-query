@@ -125,7 +125,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue left join project on project.id = issue.project_id where exists(select id as result from project where id = issue.project_id and lower(\`name\`) like concat('%', lower(?), '%')) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue left join project on project.id = issue.project_id where exists(select id as result from project where id = issue.project_id and lower(name) like concat('%', lower(?), '%')) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "mktg",

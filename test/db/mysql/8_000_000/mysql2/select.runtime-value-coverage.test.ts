@@ -98,7 +98,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('id', a_1_.id, 'name', a_1_.\`name\`)) from (select id as id, \`name\` as \`name\` from project where organization_id = \`organization\`.id and \`name\` = ? order by id limit 2147483647) as a_1_) as char) as projects from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, cast((select json_arrayagg(json_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id and name = ? order by id limit 2147483647) as a_1_) as char) as projects from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "__no-such-project__",
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select notes as notes, upper(\`channel\`) as versionTag from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select notes as notes, upper(channel) as versionTag from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

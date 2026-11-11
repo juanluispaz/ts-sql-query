@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where \`status\` = ?) select oi.id as id, oi.projectId as projectId from open_issues as oi where oi.projectId = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where status = ?) select oi.id as id, oi.projectId as projectId from open_issues as oi where oi.projectId = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
             .orderBy('projectName')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where \`status\` = ?) select project.\`name\` as projectName, open_issues.id as openId from project left join open_issues on open_issues.projectId = project.id order by projectName"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where status = ?) select project.name as projectName, open_issues.id as openId from project left join open_issues on open_issues.projectId = project.id order by projectName"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -134,7 +134,7 @@ describe(ctx.label, () => {
             .orderBy('projectName')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where \`status\` = ?) select project.\`name\` as projectName, oi.id as openId from project left join open_issues as oi on oi.projectId = project.id order by projectName"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where status = ?) select project.name as projectName, oi.id as openId from project left join open_issues as oi on oi.projectId = project.id order by projectName"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
             .orderBy('leftId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where \`status\` = ?) select open_issues.projectId as projectId, open_issues.id as leftId, oi2.id as rightId from open_issues inner join open_issues as oi2 on oi2.projectId = open_issues.projectId and oi2.id > open_issues.id order by leftId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where status = ?) select open_issues.projectId as projectId, open_issues.id as leftId, oi2.id as rightId from open_issues inner join open_issues as oi2 on oi2.projectId = open_issues.projectId and oi2.id > open_issues.id order by leftId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where \`status\` = ?) select project.id as id, open_issues.id as openId from project left join open_issues on open_issues.projectId = project.id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where status = ?) select project.id as id, open_issues.id as openId from project left join open_issues on open_issues.projectId = project.id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

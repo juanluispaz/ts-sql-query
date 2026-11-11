@@ -84,7 +84,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as [result] from organization where name = @0) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as result from organization where name = @0) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme Corp",
@@ -124,7 +124,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select count(*) as [result] from issue where project_id = project.id) as [count] from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select count(*) as result from issue where project_id = project.id) as count from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             id:    number
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = @0) select id as id, (select count(*) as [result] from open_issues) as openCount from open_issues order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = @0) select id as id, (select count(*) as result from open_issues) as openCount from open_issues order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             .select({ id: openIssues.id, worklogs })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = @0) select id as id, (select count(*) as [result] from issue_worklog where issue_id = open_issues.id) as worklogs from open_issues order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, title as title from issue where status = @0) select id as id, (select count(*) as result from issue_worklog where issue_id = open_issues.id) as worklogs from open_issues order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

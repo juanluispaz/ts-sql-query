@@ -943,7 +943,7 @@ describe(ctx.label, () => {
             .select({ pid: tProject.id, issues })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select body as [ref], assignee_id as assigneeId from issue where project_id = project.id for json path) as issues from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select body as ref, assignee_id as assigneeId from issue where project_id = project.id for json path) as issues from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -982,7 +982,7 @@ describe(ctx.label, () => {
             .select({ pid: tProject.id, issues })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select body as [ref], assignee_id as assigneeId from issue where project_id = project.id for json path) as issues from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select body as ref, assignee_id as assigneeId from issue where project_id = project.id for json path) as issues from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

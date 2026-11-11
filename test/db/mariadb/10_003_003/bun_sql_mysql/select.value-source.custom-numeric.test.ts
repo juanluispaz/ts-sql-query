@@ -108,7 +108,7 @@ describe(ctx.label, () => {
                 prod: base.multiply(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority * 1.0e0) + ? as sum, (priority * 1.0e0) - ? as diff, (priority * 1.0e0) * ? as prod from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority * 1.0e0) + ? as \`sum\`, (priority * 1.0e0) - ? as diff, (priority * 1.0e0) * ? as prod from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

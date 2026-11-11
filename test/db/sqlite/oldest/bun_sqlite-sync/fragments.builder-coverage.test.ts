@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(external_ref, external_ref) as "key" from issue where id = ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(external_ref, external_ref) as key from issue where id = ?1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

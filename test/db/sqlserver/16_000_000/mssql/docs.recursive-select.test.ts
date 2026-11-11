@@ -261,7 +261,7 @@ describe(ctx.label, () => {
                 .executeSelectMany()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as [level] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[level] + @2 as [level] from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id where recursive_select_1.[level] < @3) select id as id, title as title, [level] as [level] from recursive_select_1 order by [level]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as level from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.level + @2 as level from issue join recursive_select_1 on recursive_select_1.id = issue.parent_id where recursive_select_1.level < @3) select id as id, title as title, level as level from recursive_select_1 order by level"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

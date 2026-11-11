@@ -50,7 +50,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with verifiedOrgs as (select id as id, \`name\` as \`name\`, (verified = 'Y') as verified from \`organization\`) select id as id, \`name\` as \`name\`, verified as verified from verifiedOrgs order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with verifiedOrgs as (select id as id, name as name, (verified = 'Y') as verified from organization) select id as id, name as name, verified as verified from verifiedOrgs order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             id:       number
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with verifiedOrgs as (select id as id, \`name\` as \`name\`, (verified = 'Y') as verified from \`organization\`) select id as id, \`name\` as \`name\` from verifiedOrgs where verified = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with verifiedOrgs as (select id as id, name as name, (verified = 'Y') as verified from organization) select id as id, name as name from verifiedOrgs where verified = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,

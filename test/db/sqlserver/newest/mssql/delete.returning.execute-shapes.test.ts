@@ -88,7 +88,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(String(caught)).toMatch(/NO_RESULT|No result/)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99999,
@@ -167,7 +167,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,
@@ -204,7 +204,7 @@ describe(ctx.label, () => {
                 .returning({ id: tIssue.id })
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) delete from issue output deleted.id as id where project_id in (select id as [result] from archived_projects) and id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) delete from issue output deleted.id as id where project_id in (select id as result from archived_projects) and id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

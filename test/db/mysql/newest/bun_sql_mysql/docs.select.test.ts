@@ -38,7 +38,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, project.slug as slug, project.archived_at as archivedAt, org.\`name\` as organizationName from project inner join \`organization\` as org on project.organization_id = org.id where lower(project.\`name\`) like concat(lower(?), '%') order by lower(project.\`name\`), lower(project.slug) asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, project.archived_at as archivedAt, org.name as organizationName from project inner join organization as org on project.organization_id = org.id where lower(project.name) like concat(lower(?), '%') order by lower(project.name), lower(project.slug) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "market",
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ? order by project.archived_at desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by project.archived_at desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -182,7 +182,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, \`organization\`.\`name\` as organizationName from project, \`organization\` where project.organization_id = \`organization\`.id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, organization.name as organizationName from project, organization where project.organization_id = organization.id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectsWithOrganization, Array<{
             id:               number
@@ -214,7 +214,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project order by \`name\` desc, project.archived_at is null, project.archived_at asc, lower(project.slug)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by name desc, project.archived_at is null, project.archived_at asc, lower(project.slug)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectsInOrder, Array<{
             id:   number
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct \`status\` as \`status\` from issue order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as status from issue order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof statuses, Array<{ status: string }>>>()
         expect(statuses).toEqual(expected)
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as result from project order by result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as result from project order by result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectNames, string[]>>()
         expect(projectNames).toEqual(expected)
@@ -371,7 +371,7 @@ describe(ctx.label, () => {
             .executeSelectNoneOrOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project order by id desc limit ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id desc limit ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -420,7 +420,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(*) as result from app_user) as users, (select count(*) as result from \`organization\`) as organizations"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(*) as result from app_user) as users, (select count(*) as result from organization) as organizations"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof counts, {
             users:         number

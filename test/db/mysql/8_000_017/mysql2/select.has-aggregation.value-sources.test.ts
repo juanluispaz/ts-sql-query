@@ -1106,7 +1106,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(issue.title, ?, max(issue.\`status\`)) = ? order by title"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue group by title having replace(issue.title, ?, max(issue.status)) = ? order by title"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "navbar",
@@ -1148,7 +1148,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as \`name\` from project group by \`name\` having replace(project.\`name\`, max(project.slug), ?) = ? order by \`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as name from project group by name having replace(project.name, max(project.slug), ?) = ? order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "squad",

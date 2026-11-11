@@ -147,7 +147,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.count(tIssue.id))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as [result] from issue group by status having count(id) > @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as result from issue group by status having count(id) > @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -169,7 +169,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from issue group by status having count(id) > @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue group by status having count(id) > @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

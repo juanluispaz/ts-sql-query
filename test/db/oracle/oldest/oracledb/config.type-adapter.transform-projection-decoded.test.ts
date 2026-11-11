@@ -144,7 +144,7 @@ describe(ctx.label, () => {
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(upper(raw_to_uuid(a_1_.result))) from (select external_ref as result from issue where project_id = project.id and external_ref is not null order by issue.title offset 0 rows) a_1_) as "refs", (select json_arrayagg(json_object('ref' value upper(raw_to_uuid(a_2_."ref")), 'title' value a_2_.title)) from (select external_ref as "ref", title as title from issue where project_id = project.id order by title offset 0 rows) a_2_) as "issues" from project where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(upper(raw_to_uuid(a_1_.result))) from (select external_ref as result from issue where project_id = project.id and external_ref is not null order by issue.title offset 0 rows) a_1_) as "refs", (select json_arrayagg(json_object('ref' value upper(raw_to_uuid(a_2_.ref)), 'title' value a_2_.title)) from (select external_ref as ref, title as title from issue where project_id = project.id order by title offset 0 rows) a_2_) as "issues" from project where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

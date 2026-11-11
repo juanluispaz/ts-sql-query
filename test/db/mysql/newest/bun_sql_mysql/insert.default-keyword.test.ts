@@ -41,7 +41,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan, created_at) values (?, ?, default)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, created_at) values (?, ?, default)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "DefaultCo",
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.created_at = default"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) as _new_ on duplicate key update project.created_at = default"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan, created_at) values (?, ?, default), (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, created_at) values (?, ?, default), (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "MultiA",
@@ -147,7 +147,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan, verified) values (?, ?, default)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values (?, ?, default)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "CustomBoolDefault",

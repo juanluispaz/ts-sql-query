@@ -544,7 +544,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, row_number() over project_window as [position] from issue window project_window as (partition by project_id order by id) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, row_number() over project_window as position from issue window project_window as (partition by project_id order by id) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issuesWithPosition, Array<{ id: number; position: number }>>>()
         expect(issuesWithPosition).toEqual(expected)

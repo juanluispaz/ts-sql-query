@@ -238,7 +238,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDraft.id.equals(1))
                 .select({ stamp: tReleaseDraft.shiftedStamp, count: tReleaseDraft.shiftedCount })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as count from release_draft where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as \`count\` from release_draft where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

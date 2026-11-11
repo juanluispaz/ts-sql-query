@@ -26,7 +26,7 @@ describe(ctx.label, () => {
                 .where(tIssue.projectId.in(unpublishedProjectIds))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ? where project_id in (select id as result from project where (published = 't') = ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id in (select id as result from project where (published = 't') = ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -53,7 +53,7 @@ describe(ctx.label, () => {
                 .or(tIssue.assigneeId.isNull())
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where \`status\` = ? or assignee_id is null"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where status = ? or assignee_id is null"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9,
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 .or(tIssue.assigneeId.isNull())
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where \`status\` = ? or assignee_id is null"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = ? where status = ? or assignee_id is null"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9,
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
                 .and(tIssue.priority.greaterThan(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ? where project_id = ? and priority > ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? and priority > ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",

@@ -51,7 +51,7 @@ The executed query is:
         customer.birthday as birthday 
     from customer 
     join company on company.id = customer.company_id 
-    where company.`name` = ?
+    where company.name = ?
     ```
 === "Oracle"
     ```oracle
@@ -360,7 +360,7 @@ The executed query is:
         customer.last_name as lastName, 
         customer.birthday as birthday, 
         company.id as companyId, 
-        company.`name` as companyName 
+        company.name as companyName 
     from customer 
     inner join company on company.id = customer.company_id 
     where customer.id = ?
@@ -452,7 +452,7 @@ The executed query is:
     select 
         customer.id as id, 
         customer.first_name as firstName, 
-        company.`name` as companyName 
+        company.name as companyName 
     from customer 
     left join company on company.id = customer.company_id
     ```

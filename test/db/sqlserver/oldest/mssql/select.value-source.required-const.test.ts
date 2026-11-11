@@ -160,7 +160,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const('hello', 'string', bracketAdapter))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "hello",

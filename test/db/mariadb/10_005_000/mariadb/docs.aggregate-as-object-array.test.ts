@@ -474,7 +474,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -523,7 +523,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`) order by id) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('id', id, 'body', body) order by id) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -105,7 +105,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with closed_issue as (select id as id, project_id as projectId, number as number, title as title, priority as priority from issue where status = @0) select /* audit: delete from issue where id in (select id as [result] from closed_issue) | update issue set status = @1 where id in (select id as [result] from closed_issue) | insert into issue (project_id, number, title, status, priority) select projectId as projectId, number + @2 as number, title as title, @3 as status, priority as priority from closed_issue */ id as id from project where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with closed_issue as (select id as id, project_id as projectId, number as number, title as title, priority as priority from issue where status = @0) select /* audit: delete from issue where id in (select id as result from closed_issue) | update issue set status = @1 where id in (select id as result from closed_issue) | insert into issue (project_id, number, title, status, priority) select projectId as projectId, number + @2 as number, title as title, @3 as status, priority as priority from closed_issue */ id as id from project where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "closed",

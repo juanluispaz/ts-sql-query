@@ -43,7 +43,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.issueIdSeq.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for issue_id_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for issue_id_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             if (!ctx.realDbEnabled) expect(next).toBe(42)
             else expect(typeof next).toBe('number')
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.issueIdSeq.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'issue_id_seq') as int) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'issue_id_seq') as int) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             if (!ctx.realDbEnabled) expect(curr).toBe(41)
             else expect(typeof curr).toBe('number')
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.auditTagSeq.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for audit_tag_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for audit_tag_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             expect(typeof next === 'bigint' || typeof next === 'string' || typeof next === 'number').toBe(true)
         })
@@ -109,7 +109,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.releaseTagSeq.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for release_tag_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for release_tag_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof next, ReleaseTag>>()
             if (!ctx.realDbEnabled) expect(next).toBe(7 as ReleaseTag)
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.auditTagSeq.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as bigint) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as bigint) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             expect(typeof curr === 'bigint' || typeof curr === 'string' || typeof curr === 'number').toBe(true)
         })
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.releaseTagSeq.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof curr, ReleaseTag>>()
             if (!ctx.realDbEnabled) expect(curr).toBe(7 as ReleaseTag)
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.issueIdSeqOffset.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for issue_id_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for issue_id_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             if (!ctx.realDbEnabled) expect(next).toBe(1042)
             else expect(typeof next).toBe('number')
@@ -195,7 +195,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.issueIdSeqOffset.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'issue_id_seq') as int) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'issue_id_seq') as int) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             if (!ctx.realDbEnabled) expect(curr).toBe(1041)
             else expect(typeof curr).toBe('number')
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.releaseTagSeqOffset.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for release_tag_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for release_tag_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof next, ReleaseTag>>()
             if (!ctx.realDbEnabled) expect(next).toBe(1042 as ReleaseTag)
@@ -236,7 +236,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.releaseTagSeqOffset.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof curr, ReleaseTag>>()
             if (!ctx.realDbEnabled) expect(curr).toBe(1041 as ReleaseTag)
@@ -257,7 +257,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.auditTagSeqOffset.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for audit_tag_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for audit_tag_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             if (!ctx.realDbEnabled) expect(next).toBe(6000n)
             else expect(typeof next === 'bigint' || typeof next === 'string' || typeof next === 'number').toBe(true)
@@ -279,7 +279,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.auditTagSeqOffset.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as bigint) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as bigint) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             if (!ctx.realDbEnabled) expect(curr).toBe(6000n)
             else expect(typeof curr === 'bigint' || typeof curr === 'string' || typeof curr === 'number').toBe(true)
@@ -301,7 +301,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.doubleSeq.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for issue_id_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for issue_id_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof next, number>>()
             if (!ctx.realDbEnabled) expect(next).toBe(42)
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.doubleSeq.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'issue_id_seq') as float) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'issue_id_seq') as float) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof curr, number>>()
             if (!ctx.realDbEnabled) expect(curr).toBe(41)
@@ -344,7 +344,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.customDoubleSeq.nextValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for audit_tag_seq as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select next value for audit_tag_seq as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof next, number>>()
             if (!ctx.realDbEnabled) expect(next).toBe(42)
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.customDoubleSeq.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as bigint) as [result]"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as bigint) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof curr, number>>()
             if (!ctx.realDbEnabled) expect(curr).toBe(41)

@@ -378,7 +378,7 @@ describe(ctx.label, () => {
 
         expect(dynSql).toBe(ctx.lastSql)
         expect(dynParams).toEqual(ctx.lastParams)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from \`organization\` inner join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? and project.slug = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from organization inner join project on project.organization_id = organization.id where organization.id = ? and project.slug = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -423,7 +423,7 @@ describe(ctx.label, () => {
 
         expect(dynSql).toBe(ctx.lastSql)
         expect(dynParams).toEqual(ctx.lastParams)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from \`organization\` inner join project on project.organization_id = \`organization\`.id inner join issue on issue.project_id = project.id where \`organization\`.id = ? and project.slug = ? and issue.\`status\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id where organization.id = ? and project.slug = ? and issue.status = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -472,7 +472,7 @@ describe(ctx.label, () => {
 
         expect(dynSql).toBe(ctx.lastSql)
         expect(dynParams).toEqual(ctx.lastParams)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from \`organization\` inner join project on project.organization_id = \`organization\`.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id where \`organization\`.id = ? and project.slug = ? and issue.\`status\` = ? and app_user.full_name = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id where organization.id = ? and project.slug = ? and issue.status = ? and app_user.full_name = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -527,7 +527,7 @@ describe(ctx.label, () => {
 
         expect(dynSql).toBe(ctx.lastSql)
         expect(dynParams).toEqual(ctx.lastParams)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id from \`organization\` inner join project on project.organization_id = \`organization\`.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id inner join issue_worklog on issue_worklog.issue_id = issue.id where \`organization\`.id = ? and project.slug = ? and issue.\`status\` = ? and app_user.full_name = ? and issue_worklog.activity = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id inner join issue_worklog on issue_worklog.issue_id = issue.id where organization.id = ? and project.slug = ? and issue.status = ? and app_user.full_name = ? and issue_worklog.activity = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

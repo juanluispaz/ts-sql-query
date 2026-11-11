@@ -59,7 +59,7 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         (select count(*) as result from customer where company_id = company.id) as numberOfCustomers 
     from company as company 
     where company.id = ?
@@ -96,7 +96,7 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        (select count(*) as [result] from customer where company_id = company.id) as numberOfCustomers 
+        (select count(*) as result from customer where company_id = company.id) as numberOfCustomers 
     from company as company 
     where company.id = @0
     ```
@@ -146,7 +146,7 @@ The executed query is:
     select 
         customer.id as id, 
         company.id as `company.id`, 
-        company.`name` as `company.name` 
+        company.name as `company.name` 
     from customer 
     left join company as company on company.id = customer.company_id
     ```

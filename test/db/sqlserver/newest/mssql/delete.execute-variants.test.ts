@@ -88,7 +88,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeDeleteNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeDeleteNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9999,
@@ -227,7 +227,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where project_id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where project_id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -251,7 +251,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.status)
                 .executeDeleteMany(1, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where project_id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where project_id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where project_id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where project_id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -401,7 +401,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where project_id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as result where project_id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

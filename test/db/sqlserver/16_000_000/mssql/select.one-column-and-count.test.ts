@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             .orderBy('result')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority as [result] from issue order by [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority as result from issue order by result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<number>>>()
         expect(result).toEqual([1, 2, 2, 3])
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.status)
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.status)
             .executeSelectNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9999,
@@ -95,7 +95,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.status)
             .executeSelectNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.body)
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select body as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select body as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -136,7 +136,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, number>>()
         expect(result).toBe(4)
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from issue where status = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue where status = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.priority.add(10))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + @0 as [result] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority + @0 as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9999,
@@ -249,7 +249,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [result] from issue where project_id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where project_id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -317,7 +317,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [result] from issue where project_id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where project_id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -384,7 +384,7 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select priority as [result] from issue order by [result] offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select priority as result from issue order by result offset @0 rows fetch next @1 rows only"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             0,
@@ -410,7 +410,7 @@ describe(ctx.label, () => {
             .orderBy('result', 'asc nulls last')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select body as [result] from issue order by iif(issue.body is null, 1, 0), [result] asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select body as result from issue order by iif(issue.body is null, 1, 0), result asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<string | null>>>()
         expect(result).toEqual(['See ADR-014', 'Use new tokens', null, null])
@@ -427,7 +427,7 @@ describe(ctx.label, () => {
 
         const sql = built.query()
         const params = built.params()
-        expect(sql).toMatchInlineSnapshot(`"select status as [result] from issue where id = @0"`)
+        expect(sql).toMatchInlineSnapshot(`"select status as result from issue where id = @0"`)
         expect(params).toMatchInlineSnapshot(`
           [
             1,

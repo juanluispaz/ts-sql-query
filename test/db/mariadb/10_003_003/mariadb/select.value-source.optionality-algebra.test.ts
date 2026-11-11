@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes + minutes as sum from issue_worklog where id in (?, ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes + minutes as \`sum\` from issue_worklog where id in (?, ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -297,7 +297,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, concat_ws('', concat(app_user.full_name, ?), issue.\`body\`) as \`note.text\` from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, concat_ws('', concat(app_user.full_name, ?), issue.body) as \`note.text\` from issue left join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             ": ",

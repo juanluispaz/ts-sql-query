@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project_release.version as version, project_release.\`channel\` as \`channel\` from project left join project_release on project_release.project_id = project.id and project_release.\`channel\` = ? where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project_release.version as version, project_release.channel as channel from project left join project_release on project_release.project_id = project.id and project_release.channel = ? where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, cast(json_arrayagg(version) as char) as versions, cast(json_arrayagg(\`channel\`) as char) as channels from project_release where project_id = ? group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, cast(json_arrayagg(version) as char) as versions, cast(json_arrayagg(channel) as char) as channels from project_release where project_id = ? group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
             .select({ channel: tProjectRelease.channel })
         const rows = await p1.union(p2).orderBy('channel').executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`channel\` as \`channel\` from project_release where project_id = ? union select \`channel\` as \`channel\` from project_release where project_id = ? order by \`channel\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select channel as channel from project_release where project_id = ? union select channel as channel from project_release where project_id = ? order by channel"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
             .orderBy('rid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with release_cte as (select id as rid, \`channel\` as \`channel\` from project_release) select rid as rid, \`channel\` as \`channel\` from release_cte order by rid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with release_cte as (select id as rid, channel as channel from project_release) select rid as rid, channel as channel from release_cte order by rid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ rid: number; channel: ReleaseChannel }>>>()
         expect(rows).toEqual(expected)
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
                     .select({ id: tProjectRelease.id, channel: tProjectRelease.channel }))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, \`channel\` as \`channel\` from project_release where id = ? union all select project_release.id as id, project_release.\`channel\` as \`channel\` from project_release join recursive_select_1 on project_release.id = (recursive_select_1.id + ?)) select id as id, \`channel\` as \`channel\` from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, channel as channel from project_release where id = ? union all select project_release.id as id, project_release.channel as channel from project_release join recursive_select_1 on project_release.id = (recursive_select_1.id + ?)) select id as id, channel as channel from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -29,7 +29,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* route=primary */  insert into project (\`name\`, slug, organization_id) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* route=primary */  insert into project (name, slug, organization_id) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) values (?, ?, ?, ?, ?)  /* keyed-by project_id */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)  /* keyed-by project_id */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /*+ hint */ into project (\`name\`, slug, organization_id) values (?, ?, ?), (?, ?, ?)  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /*+ hint */ into project (name, slug, organization_id) values (?, ?, ?), (?, ?, ?)  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Status page",
@@ -125,7 +125,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ NO_LOG */ into project (organization_id, \`name\`, slug) select organization_id as organizationId, concat(\`name\`, ?) as \`name\`, concat(slug, ?) as slug from project where \`name\` like concat(?, '%')  /* batch-clone */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ NO_LOG */ into project (organization_id, name, slug) select organization_id as organizationId, concat(name, ?) as name, concat(slug, ?) as slug from project where name like concat(?, '%')  /* batch-clone */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " (clone)",
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (\`name\`, slug, organization_id) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app",

@@ -522,7 +522,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(json_object('id' value a_1_.id, 'body' value a_1_."body")) from (select id as id, "body" as "body" from issue where project_id = project.id order by id offset 0 rows) a_1_) as "issues" from project where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(json_object('id' value a_1_.id, 'body' value a_1_.body)) from (select id as id, "body" as body from issue where project_id = project.id order by id offset 0 rows) a_1_) as "issues" from project where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

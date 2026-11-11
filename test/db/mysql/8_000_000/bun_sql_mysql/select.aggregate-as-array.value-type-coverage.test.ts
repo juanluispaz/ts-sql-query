@@ -1002,7 +1002,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast(json_arrayagg(webhook_event.event_type) as char) as \`events\` from issue inner join webhook_event on webhook_event.issue_id = issue.id where issue.id = ? group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast(json_arrayagg(webhook_event.event_type) as char) as events from issue inner join webhook_event on webhook_event.issue_id = issue.id where issue.id = ? group by issue.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1027,7 +1027,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, events })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select event_type as result from webhook_event where issue_id = issue.id order by result limit 2147483647) as a_1_) as char) as \`events\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(a_1_.result) from (select event_type as result from webhook_event where issue_id = issue.id order by result limit 2147483647) as a_1_) as char) as events from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

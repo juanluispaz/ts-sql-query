@@ -44,7 +44,7 @@ describe(ctx.label, () => {
         })
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, archived_at as archivedAt from project where lower(\`name\`) like concat('%', lower(?), '%') and archived_at > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, archived_at as archivedAt from project where lower(name) like concat('%', lower(?), '%') and archived_at > ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "LEGACY",
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
         const result = await pickProjectColumns(ctx.conn, ['name', 'company.name'])
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, company.\`name\` as \`company.name\` from project left outer join \`organization\` as company on company.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, company.name as \`company.name\` from project left outer join organization as company on company.id = project.organization_id where project.id = ?"`)
         assertType<Exact<ProjectFields, 'name' | 'company' | 'company.id' | 'company.name'>>()
         assertType<Exact<typeof result, Array<{ id: number; name: string; company?: { name: string } }>>>()
         expect(result).toEqual([{ id: 1, name: 'Marketing site', company: { name: 'Acme Corp' } }])
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
         ctx.mockNext([{ id: 1, name: 'Marketing site' }])
         const withoutCompany = await pickProjectColumns(ctx.conn, ['name'])
         // No company field picked: the optional left join isn't in the query.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?"`)
         assertType<Exact<typeof withoutCompany, Array<{ id: number; name: string }>>>()
         expect(withoutCompany).toEqual([{ id: 1, name: 'Marketing site' }])
     })
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
         const result = await sortProjects(ctx.conn, ['name asc', 'archivedAt desc nulls last'])
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, archived_at as archivedAt from project order by \`name\` asc, archivedAt desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, archived_at as archivedAt from project order by name asc, archivedAt desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<ProjectRow, { id: number; name: string; archivedAt?: Date }>>()
         assertType<Exact<typeof result, Array<{ id: number; name: string; archivedAt?: Date }>>>()
@@ -185,7 +185,7 @@ describe(ctx.label, () => {
             ['company.name asc nulls last', 'name desc'])
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, company.\`name\` as \`company.name\` from project left outer join \`organization\` as company on company.id = project.organization_id where lower(project.\`name\`) like concat('%', lower(?), '%') and company.\`name\` = ? order by company.\`name\` is null, \`company.name\` asc, \`name\` desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, company.name as \`company.name\` from project left outer join organization as company on company.id = project.organization_id where lower(project.name) like concat('%', lower(?), '%') and company.name = ? order by company.name is null, \`company.name\` asc, name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "T",
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         const result: PickValuesPath<typeof availableFields, 'company' | 'id'>[] = expandTypeFromDynamicPickPaths(availableFields, ['company'], projects, ['id'])
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, company.id as \`company.id\`, company.\`name\` as \`company.name\` from project left outer join \`organization\` as company on company.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, company.id as \`company.id\`, company.name as \`company.name\` from project left outer join organization as company on company.id = project.organization_id where project.id = ?"`)
         assertType<Exact<typeof result, Array<{ id: number; company?: { id: number; name: string } }>>>()
         expect(result).toEqual([{ id: 1, company: { id: 1, name: 'Acme Corp' } }])
     })

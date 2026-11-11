@@ -172,7 +172,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] values (@0, @1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result values (@0, @1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Umbrella Corp",
@@ -202,7 +202,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] select name as name, [plan] as [plan] from organization where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result select name as name, [plan] as [plan] from organization where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 -1,
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] select name as name, [plan] as [plan] from organization where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result select name as name, [plan] as [plan] from organization where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 -1,
@@ -281,7 +281,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] values (@0, @1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result values (@0, @1)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "LexCorp",
@@ -328,7 +328,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] values (@0, @1), (@2, @3)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result values (@0, @1), (@2, @3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initrode",
@@ -556,7 +556,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.id)
                 .executeInsertMany(1, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] values (@0, @1), (@2, @3)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result values (@0, @1), (@2, @3)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Umbrella",
@@ -717,7 +717,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] select name as name, [plan] as [plan] from organization where id >= @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result select name as name, [plan] as [plan] from organization where id >= @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -753,7 +753,7 @@ describe(ctx.label, () => {
             } catch (e) {
                 caught = e
             }
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] select name as name, [plan] as [plan] from organization where id >= @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as result select name as name, [plan] as [plan] from organization where id >= @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

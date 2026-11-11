@@ -157,11 +157,11 @@ The executed query is:
     ```mysql
     select 
         company.id as id,
-        company.`name` as `name`,
+        company.name as name,
         count(customer.id) as customerCount
     from company
     inner join customer on customer.company_id = company.id and customer.birthday is not null
-    group by company.id, company.`name`
+    group by company.id, company.name
     having count(customer.id) >= ?
     ```
 === "Oracle"
@@ -268,7 +268,7 @@ The executed query is:
     inner join company on company.id = customer.company_id 
     where 
            customer.first_name like concat('%', ?, '%') 
-        or company.`name` = ?
+        or company.name = ?
     ```
 === "Oracle"
     ```oracle
@@ -366,7 +366,7 @@ The executed query is:
     ```mysql
     select 
         id as id, 
-        concat(first_name, ?, last_name) as `name`, 
+        concat(first_name, ?, last_name) as name, 
         birthday as birthday 
     from customer 
     where first_name like concat('%', ?, '%') 

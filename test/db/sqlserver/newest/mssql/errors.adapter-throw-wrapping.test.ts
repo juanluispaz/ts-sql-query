@@ -144,7 +144,7 @@ describe(ctx.label, () => {
                     .executeDeleteNoneOrOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.title as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.title as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 4,
@@ -201,7 +201,7 @@ describe(ctx.label, () => {
                     .executeDeleteMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.title as [result] where status = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.title as result where status = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -262,7 +262,7 @@ describe(ctx.label, () => {
                     .executeUpdateNoneOrOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.title as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.title as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -323,7 +323,7 @@ describe(ctx.label, () => {
                     .executeUpdateMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.title as [result] where project_id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.title as result where project_id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -386,7 +386,7 @@ describe(ctx.label, () => {
                     .executeInsertOne()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.title as [result] values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.title as result values (@0, @1, @2, @3, @4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -461,7 +461,7 @@ describe(ctx.label, () => {
                     .executeInsertMany()
             } catch (e) { caught = e }
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.title as [result] values (@0, @1, @2, @3, @4), (@5, @6, @7, @8, @9)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.title as result values (@0, @1, @2, @3, @4), (@5, @6, @7, @8, @9)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

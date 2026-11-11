@@ -42,7 +42,7 @@ describe(ctx.label, () => {
                 .executeInsert()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (\`name\`, slug, organization_id) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (name, slug, organization_id) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Operations",
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project inner join \`organization\` on project.organization_id = \`organization\`.id set project.\`name\` = ?, project.slug = ?, \`organization\`.\`name\` = ? where project.id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project inner join organization on project.organization_id = organization.id set project.name = ?, project.slug = ?, organization.name = ? where project.id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",

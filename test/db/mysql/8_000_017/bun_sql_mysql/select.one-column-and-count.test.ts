@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.status)
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.status)
             .executeSelectNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9999,
@@ -95,7 +95,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tIssue.status)
             .executeSelectNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue where \`status\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue where status = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9999,
@@ -222,7 +222,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as \`status\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             9999,
@@ -249,7 +249,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as result from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -280,7 +280,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as \`status\` from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -317,7 +317,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as result from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -353,7 +353,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as \`status\` from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -427,7 +427,7 @@ describe(ctx.label, () => {
 
         const sql = built.query()
         const params = built.params()
-        expect(sql).toMatchInlineSnapshot(`"select \`status\` as result from issue where id = ?"`)
+        expect(sql).toMatchInlineSnapshot(`"select status as result from issue where id = ?"`)
         expect(params).toMatchInlineSnapshot(`
           [
             1,
@@ -454,7 +454,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, status: tIssue.status })
             .executeSelectNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as \`status\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

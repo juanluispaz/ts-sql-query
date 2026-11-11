@@ -522,7 +522,7 @@ describe(ctx.label, () => {
         ctx.mockNext(4)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg3Sum(tIssue.priority, tIssue.id, tIssue.number)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + \`number\`) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -536,7 +536,7 @@ describe(ctx.label, () => {
         ctx.mockNext(5)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg4Sum(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + \`number\` + project_id) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number + project_id) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -550,7 +550,7 @@ describe(ctx.label, () => {
         ctx.mockNext(7)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.agg5Sum(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, tIssue.priority)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + \`number\` + project_id + priority) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority + id + number + project_id + priority) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -593,7 +593,7 @@ describe(ctx.label, () => {
         ctx.mockNext(4)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO3Max(tIssue.priority, tIssue.id, tIssue.number)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + \`number\`) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -607,7 +607,7 @@ describe(ctx.label, () => {
         ctx.mockNext(5)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO4Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + \`number\` + project_id) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -621,7 +621,7 @@ describe(ctx.label, () => {
         ctx.mockNext(7)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.aggMO5Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, tIssue.priority)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + \`number\` + project_id + priority) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id + priority) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -685,7 +685,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.aggMO4Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + \`number\` + assignee_id) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + assignee_id) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -699,7 +699,7 @@ describe(ctx.label, () => {
         ctx.mockNext(null)
         const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
             .selectOneColumn(ctx.conn.aggMO5Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, tIssue.assigneeId)).executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + \`number\` + project_id + assignee_id) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id + assignee_id) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -758,7 +758,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(tIssue)
             .select({ pid: tIssue.projectId }).groupBy('pid')
             .having(ctx.conn.aggIV4Sum(tIssue.priority, tIssue.id, tIssue.number, 0)).orderBy('pid').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having sum(issue.priority + issue.id + issue.\`number\`) > ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having sum(issue.priority + issue.id + issue.number) > ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -773,7 +773,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(tIssue)
             .select({ pid: tIssue.projectId }).groupBy('pid')
             .having(ctx.conn.aggIV5Sum(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, 0)).orderBy('pid').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having sum(issue.priority + issue.id + issue.\`number\` + issue.project_id) > ? order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid from issue group by project_id having sum(issue.priority + issue.id + issue.number + issue.project_id) > ? order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -819,7 +819,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(tProjectRelease)
             .where(ctx.conn.customEq(tProjectRelease.channel, 'stable'))
             .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",

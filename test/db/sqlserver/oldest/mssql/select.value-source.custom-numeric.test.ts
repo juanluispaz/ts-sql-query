@@ -109,7 +109,7 @@ describe(ctx.label, () => {
                 prod: base.multiply(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as float) + @0 as [sum], cast(priority as float) - @1 as diff, cast(priority as float) * @2 as prod from issue where id = @3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as float) + @0 as sum, cast(priority as float) - @1 as diff, cast(priority as float) * @2 as prod from issue where id = @3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -205,7 +205,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(@0) as ac, asin(@1) as [as], atan(@2) as [at], cos(@3) as co, cot(@4) as ct, sin(@5) as si, tan(@6) as ta from issue where id = @7"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(@0) as ac, asin(@1) as [as], atan(@2) as at, cos(@3) as co, cot(@4) as ct, sin(@5) as si, tan(@6) as ta from issue where id = @7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,
@@ -245,7 +245,7 @@ describe(ctx.label, () => {
             id: number; p: number; ln: number; rn: number; di: number; at2: number
         }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(@0, @1) as p, log(@2, @3) as [ln], round(@4, @5) as rn, cast(@6 as float) / @7 as di, atn2(@8, @9) as at2 from issue where id = @10"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(@0, @1) as p, log(@2, @3) as ln, round(@4, @5) as rn, cast(@6 as float) / @7 as di, atn2(@8, @9) as at2 from issue where id = @10"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -1204,7 +1204,7 @@ describe(ctx.label, () => {
                 co: money.cos(), ct: money.cot(), si: money.sin(), ta: money.tan(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(@0) as ac, asin(@1) as [as], atan(@2) as [at], cos(@3) as co, cot(@4) as ct, sin(@5) as si, tan(@6) as ta from issue where id = @7"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(@0) as ac, asin(@1) as [as], atan(@2) as at, cos(@3) as co, cot(@4) as ct, sin(@5) as si, tan(@6) as ta from issue where id = @7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,

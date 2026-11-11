@@ -143,7 +143,7 @@ describe(ctx.label, () => {
                 })
                 .returning({ version: tReleaseDay.version, day: tReleaseDay.releasedOn })
                 .executeInsertOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output inserted.version as version, convert(varchar(10), inserted.released_on, 103) as [day] values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output inserted.version as version, convert(varchar(10), inserted.released_on, 103) as day values (@0, @1, @2, @3, @4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
                 })
                 .returningOneColumn(tReleaseDay.releasedOn)
                 .executeInsertOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output convert(varchar(10), inserted.released_on, 103) as [result] values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output convert(varchar(10), inserted.released_on, 103) as result values (@0, @1, @2, @3, @4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -211,7 +211,7 @@ describe(ctx.label, () => {
                 ])
                 .returning({ version: tReleaseDay.version, day: tReleaseDay.releasedOn })
                 .executeInsertMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output inserted.version as version, convert(varchar(10), inserted.released_on, 103) as [day] values (@0, @1, @2, @3, @4), (@5, @6, @7, @8, @9)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) output inserted.version as version, convert(varchar(10), inserted.released_on, 103) as day values (@0, @1, @2, @3, @4), (@5, @6, @7, @8, @9)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -242,7 +242,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDay.id.equals(2))
                 .returning({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
                 .executeUpdateOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = @0 output inserted.id as id, convert(varchar(10), inserted.released_on, 103) as [day] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = @0 output inserted.id as id, convert(varchar(10), inserted.released_on, 103) as day where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2024-04-10T10:00:00.000Z,
@@ -282,7 +282,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDay.id.equals(3))
                 .returning({ id: tReleaseDay.id, day: tReleaseDay.releasedOn })
                 .executeDeleteOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release output deleted.id as id, convert(varchar(10), deleted.released_on, 103) as [day] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release output deleted.id as id, convert(varchar(10), deleted.released_on, 103) as day where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -367,7 +367,7 @@ describe(ctx.label, () => {
                 .returning({ id: tReleaseDayDelegating.id, day: tReleaseDayDelegating.releasedOn })
                 .executeUpdateOne()
             expect(ctx.lastSql).toBe(plainSql)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = @0 output inserted.id as id, inserted.released_on as [day] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = @0 output inserted.id as id, inserted.released_on as day where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2024-04-11T10:00:00.000Z,
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
                 .where(tReleaseDayPlain.id.equals(2))
                 .returning({ id: tReleaseDayPlain.id, day: tReleaseDayPlain.releasedOn })
                 .executeUpdateOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = @0 output inserted.id as id, convert(varchar(10), inserted.released_on, 103) as [day] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = @0 output inserted.id as id, convert(varchar(10), inserted.released_on, 103) as day where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2024-04-10T10:00:00.000Z,

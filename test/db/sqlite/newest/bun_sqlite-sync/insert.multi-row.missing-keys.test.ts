@@ -37,7 +37,7 @@ describe(ctx.label, () => {
                 .setForAll({ plan: 'free' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-A",
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
                 .disallowIfNoValue('plan must have a value', 'plan')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-C",
@@ -100,7 +100,7 @@ describe(ctx.label, () => {
                 .setForAll({ plan: 'free' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-E",
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
                 .setForAll({ plan: 'free' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-G",
@@ -163,7 +163,7 @@ describe(ctx.label, () => {
                 .setForAll({ plan: 'enterprise' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-RA",
@@ -193,7 +193,7 @@ describe(ctx.label, () => {
                 .setForAll({ plan: 'enterprise' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-RC",
@@ -221,7 +221,7 @@ describe(ctx.label, () => {
                 .setForAll({ orgPlan: 'free' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-SA",
@@ -253,7 +253,7 @@ describe(ctx.label, () => {
                 .disallowIfNoValue('plan must have a value', 'orgPlan')
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-SC",
@@ -283,7 +283,7 @@ describe(ctx.label, () => {
                 .setForAll({ orgPlan: 'free' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-SE",
@@ -313,7 +313,7 @@ describe(ctx.label, () => {
                 .setForAll({ orgPlan: 'free' })
                 .executeInsert())
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?1, ?2), (?3, ?4)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?1, ?2), (?3, ?4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mk-SG",

@@ -250,7 +250,7 @@ describe(ctx.label, () => {
         const count = await ctx.conn.selectFrom(tOrganization)
             .selectCountAll()
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from organization"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from organization"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {
@@ -319,7 +319,7 @@ describe(ctx.label, () => {
             )
             .orderBy('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as [label] from organization where id = @0 union select id as id, name as [label] from organization where id = @1 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as label from organization where id = @0 union select id as id, name as label from organization where id = @1 order by label"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {

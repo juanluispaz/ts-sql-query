@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             .orderBy('title', 'insensitive')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as title from issue order by lower(\`status\`), id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as title from issue order by lower(status), id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; title: string }>>>()
         expect(result).toEqual(expected)
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             .groupByNonAggregatedColumns()
             .orderBy('title', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select concat(\`status\`, ?) as title, count(*) as issues from issue group by 1) as o_1_ order by lower(title)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select concat(status, ?) as title, count(*) as issues from issue group by 1) as o_1_ order by lower(title)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             .groupByNonAggregatedColumns()
             .orderBy('heading', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select concat(\`status\`, ?) as heading, count(*) as issues from issue group by 1) as o_1_ order by lower(heading)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select concat(status, ?) as heading, count(*) as issues from issue group by 1) as o_1_ order by lower(heading)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -200,7 +200,7 @@ describe(ctx.label, () => {
             .orderBy('title', 'insensitive')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as title from issue order by lower(\`status\`), id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as title from issue order by lower(status), id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; title: string }>>>()
         expect(result).toEqual(expected)
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
             .groupByNonAggregatedColumns()
             .orderBy('title', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select concat(\`status\`, ?) as title, count(*) as issues from issue group by 1) as o_1_ order by lower(title)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select concat(status, ?) as title, count(*) as issues from issue group by 1) as o_1_ order by lower(title)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",

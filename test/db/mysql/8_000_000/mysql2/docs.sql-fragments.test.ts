@@ -31,7 +31,7 @@ describe(ctx.label, () => {
             .executeSelectNoneOrOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(full_name) as lowerFullName, concat(full_name, ?, email) as \`name\` from app_user where abs(id) = abs(?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(full_name) as lowerFullName, concat(full_name, ?, email) as name from app_user where abs(id) = abs(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " ",
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, id << ? as idMultiplyBy2 from \`organization\` where (id * ?) = (id << ?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, id << ? as idMultiplyBy2 from organization where (id * ?) = (id << ?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, id + ? as idPlusOne from \`organization\` where (id * ?) = (id + ?)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, id + ? as idPlusOne from organization where (id * ?) = (id + ?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -202,7 +202,7 @@ describe(ctx.label, () => {
             .orderBy(fragment)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` order by case when \`organization\`.created_at between ? and ? then 0 else 1 end"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by case when organization.created_at between ? and ? then 0 else 1 end"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2023-07-01T00:00:00.000Z,
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select proj.id as id, proj.\`name\` as \`name\`, proj.slug as slug, proj.archived_at as archivedAt from (select * from project where ? >= 0 and ? >= 0) as proj where proj.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select proj.id as id, proj.name as name, proj.slug as slug, proj.archived_at as archivedAt from (select * from project where ? >= 0 and ? >= 0) as proj where proj.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -334,7 +334,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, case when id = 1 then 'first' else 'other' end as sizeGroup from \`organization\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, case when id = 1 then 'first' else 'other' end as sizeGroup from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof organizationsWithGroup, Array<{ id: number; sizeGroup: 'first' | 'other' }>>>()
         expect(organizationsWithGroup).toEqual(expected)
@@ -471,7 +471,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` order by case when \`organization\`.id = ? then 0 else 1 end, \`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by case when organization.id = ? then 0 else 1 end, name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -511,7 +511,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ id as id, \`name\` as \`name\` from project where organization_id = ? order by project.slug desc, \`name\`, project.id desc limit ? /* afterQuery */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* beforeQuery */ select /* afterSelectKeyword */ /* beforeColumns */ id as id, name as name from project where organization_id = ? order by project.slug desc, name, project.id desc limit ? /* afterQuery */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -546,7 +546,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, row_number() over project_window as position from issue window project_window as (partition by project_id order by id) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, row_number() over project_window as \`position\` from issue window project_window as (partition by project_id order by id) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof issuesWithPosition, Array<{ id: number; position: number }>>>()
         expect(issuesWithPosition).toEqual(expected)
@@ -637,7 +637,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* beforeQuery */ select id as id from project where id = ? union all select id as id from \`organization\` where id = ? order by id /* afterQuery */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* beforeQuery */ select id as id from project where id = ? union all select id as id from organization where id = ? order by id /* afterQuery */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -697,7 +697,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* before query */ update /*+ some hints */ project set \`name\` = ? where id = ? /* trailing comment */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* before query */ update /*+ some hints */ project set name = ? where id = ? /* trailing comment */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (v2)",

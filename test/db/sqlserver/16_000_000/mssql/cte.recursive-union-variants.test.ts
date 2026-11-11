@@ -74,7 +74,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, [depth] as [depth] from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, depth as depth from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  with recursive_select_1 as /* warmup */ (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, [depth] as [depth] from recursive_select_1  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  with recursive_select_1 as /* warmup */ (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, depth as depth from recursive_select_1  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, [depth] as [depth] from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, depth as depth from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -230,7 +230,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select /* hint */ /* cols */  id as id, title as title, [depth] as [depth] from recursive_select_1 window w1 as (partition by depth) order by title asc, id asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select /* hint */ /* cols */  id as id, title as title, depth as depth from recursive_select_1 window w1 as (partition by depth) order by title asc, id asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -269,7 +269,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, root: rootIssueId })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) select id as id, (select [result] as [result] from recursive_select_1) as root from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as result from issue where id = @0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select result as result from recursive_select_1) as root from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -306,7 +306,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, tree })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) select id as id, (select concat('[', string_agg(convert(nvarchar(41), [result]), ','), ']') from recursive_select_1) as tree from project where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as result from issue where id = @0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select concat('[', string_agg(convert(nvarchar(41), result), ','), ']') from recursive_select_1) as tree from project where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1092,7 +1092,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, root: rootIssueId })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) select id as id, (select [result] as [result] from recursive_select_1 order by result offset 0 rows fetch next @1 rows only) as root from project where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as result from issue where id = @0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select result as result from recursive_select_1 order by result offset 0 rows fetch next @1 rows only) as root from project where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1622,7 +1622,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, [depth] as [depth] from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as /* warmup */ (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, depth as depth from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1666,7 +1666,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, [depth] as [depth] from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, depth as depth from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1712,7 +1712,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, [depth] as [depth] from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, depth as depth from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -1757,7 +1757,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as [depth] from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.[depth] + @2 as [depth] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, [depth] as [depth] from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, @0 as depth from issue where id = @1 union all select issue.id as id, issue.title as title, recursive_select_1.depth + @2 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, depth as depth from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

@@ -29,7 +29,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* op=rename */  update project set \`name\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* op=rename */  update project set name = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Marketing site (renamed)",
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`status\` = ? where id = ?  /* keyed-by project_id */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ?  /* keyed-by project_id */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "closed",
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set \`name\` = ? where id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = ? where id = ?  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mobile app (v2)",
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project, \`organization\` set project.\`name\` = \`organization\`.\`name\` where project.organization_id = \`organization\`.id and \`organization\`.id = ?  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project, organization set project.name = organization.name where project.organization_id = organization.id and organization.id = ?  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

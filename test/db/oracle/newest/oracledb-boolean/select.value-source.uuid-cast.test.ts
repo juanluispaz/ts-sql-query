@@ -353,7 +353,7 @@ describe(ctx.label, () => {
         const ref = await ctx.conn.selectFrom(inner)
             .selectOneColumn(inner.ref.concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select raw_to_uuid(external_ref) as "ref" from issue where id = :0) select case when "ref" is null then null else "ref" || :1 end as "result" from w_uuid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select raw_to_uuid(external_ref) as ref from issue where id = :0) select case when ref is null then null else ref || :1 end as "result" from w_uuid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

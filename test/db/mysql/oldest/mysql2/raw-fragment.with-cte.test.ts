@@ -45,7 +45,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by (select count(open_issues.projectId) as result from (select project_id as projectId from issue where \`status\` = ?) as open_issues where open_issues.projectId = project.id), id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by (select count(open_issues.projectId) as result from (select project_id as projectId from issue where status = ?) as open_issues where open_issues.projectId = project.id), id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id in (?, ?, ?) order by (select count(closed_issues.projectId) as result from (select project_id as projectId from issue where \`status\` = ?) as closed_issues where closed_issues.projectId = project.id) - (select count(open_issues.projectId) as result from (select project_id as projectId from issue where \`status\` = ?) as open_issues where open_issues.projectId = project.id) desc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id in (?, ?, ?) order by (select count(closed_issues.projectId) as result from (select project_id as projectId from issue where status = ?) as closed_issues where closed_issues.projectId = project.id) - (select count(open_issues.projectId) as result from (select project_id as projectId from issue where status = ?) as open_issues where open_issues.projectId = project.id) desc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, count(open_issues.projectId) as openCount from project inner join (select project_id as projectId from issue where \`status\` = ?) as open_issues on open_issues.projectId = project.id group by project.id order by (select count(in_progress_issues.projectId) as result from (select project_id as projectId from issue where \`status\` = ?) as in_progress_issues where in_progress_issues.projectId = project.id), id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, count(open_issues.projectId) as openCount from project inner join (select project_id as projectId from issue where status = ?) as open_issues on open_issues.projectId = project.id group by project.id order by (select count(in_progress_issues.projectId) as result from (select project_id as projectId from issue where status = ?) as in_progress_issues where in_progress_issues.projectId = project.id), id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

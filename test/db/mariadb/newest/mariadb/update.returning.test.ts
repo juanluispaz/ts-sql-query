@@ -121,7 +121,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning id as id, \`body\` as \`body\`"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning id as id, body as body"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "in_progress",

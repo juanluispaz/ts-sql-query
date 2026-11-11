@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 .defaultValues()
                 .returningOneColumn(tLedgerEntry.amount)
                 .executeInsertMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry output inserted.amount as [result] default values"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into ledger_entry output inserted.amount as result default values"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof rows, number[]>>()
             expect(rows).toEqual([10])

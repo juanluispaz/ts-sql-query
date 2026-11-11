@@ -515,7 +515,7 @@ describe(ctx.label, () => {
                 sum: tIssueWorklog.costCents.add(worklog2.costCents),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, issue_worklog.cost_cents + worklog2.cost_cents as sum from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, issue_worklog.cost_cents + worklog2.cost_cents as \`sum\` from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -541,7 +541,7 @@ describe(ctx.label, () => {
                 sum: tIssue.viewCount.add(issue2.viewCount),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.view_count + issue2.view_count as sum from issue join issue as issue2 on issue2.id = issue.id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.view_count + issue2.view_count as \`sum\` from issue join issue as issue2 on issue2.id = issue.id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -574,7 +574,7 @@ describe(ctx.label, () => {
                 sum: tIssueWorklog.billedAmount.add(worklog2.billedAmount),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, issue_worklog.billed_amount + worklog2.billed_amount as sum from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, issue_worklog.billed_amount + worklog2.billed_amount as \`sum\` from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -85,7 +85,7 @@ describe(ctx.label, () => {
                 .setIfHasNoValueIfValue(ifHasNoValueIfValueP)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, \`body\`, assignee_id, parent_id, estimated_hours, external_ref) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body, assignee_id, parent_id, estimated_hours, external_ref) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasNoValueIfValue(forAllIfHasNoValueIfValueP)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, \`body\`, assignee_id, parent_id, estimated_hours, external_ref) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body, assignee_id, parent_id, estimated_hours, external_ref) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

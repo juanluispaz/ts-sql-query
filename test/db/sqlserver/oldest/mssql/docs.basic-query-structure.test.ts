@@ -258,7 +258,7 @@ describe(ctx.label, () => {
             .selectOneColumn(tProject.name)
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [result] from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as result from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof total, number>>()
         expect(total).toBe(4)

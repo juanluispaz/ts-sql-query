@@ -308,7 +308,7 @@ describe(ctx.label, () => {
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by name collate Latin1_General_CI_AS asc offset 0 rows) as a_1_) as [names] from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by name collate Latin1_General_CI_AS asc offset 0 rows) as a_1_) as names from organization where id = @0"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tOrganization)
@@ -322,7 +322,7 @@ describe(ctx.label, () => {
                     .forUseAsInlineAggregatedArrayValue(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select name as [result] from project where organization_id = organization.id order by [result] asc offset 0 rows) as a_1_) as [names] from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name as result from project where organization_id = organization.id order by result asc offset 0 rows) as a_1_) as names from organization where id = @0"`)
     })
 
     test('collation: the operations with a pattern ignore case', async () => {

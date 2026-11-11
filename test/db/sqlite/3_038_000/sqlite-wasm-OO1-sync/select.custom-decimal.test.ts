@@ -262,7 +262,7 @@ describe(ctx.label, () => {
                 .select({ price: tExactAmount.price, rows: ctx.conn.countAll() })
                 .groupBy('price')
                 .executeSelectMany())
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select price as price, count(*) as "rows" from exact_amount where id in (?1, ?2) group by price"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select price as price, count(*) as rows from exact_amount where id in (?1, ?2) group by price"`)
             const distinct = sync(ctx.conn.selectDistinctFrom(tExactAmount)
                 .where(tExactAmount.id.in([1, 6]))
                 .select({ price: tExactAmount.price })

@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with proj_cte as (select id as pid, id as \`info.id\`, \`name\` as \`info.name\` from project where archived_at is null) select pc.pid as pid, pc.\`info.id\` as \`info.id\`, pc.\`info.name\` as \`info.name\` from proj_cte as pc order by pid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with proj_cte as (select id as pid, id as \`info.id\`, name as \`info.name\` from project where archived_at is null) select pc.pid as pid, pc.\`info.id\` as \`info.id\`, pc.\`info.name\` as \`info.name\` from proj_cte as pc order by pid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid:  number
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with proj_cte as (select id as pid, id as \`info.id\`, \`name\` as \`info.name\` from project) select issue.id as iid, pc.\`info.id\` as \`proj.id\`, pc.\`info.name\` as \`proj.name\` from issue left join proj_cte as pc on pc.pid = issue.project_id order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with proj_cte as (select id as pid, id as \`info.id\`, name as \`info.name\` from project) select issue.id as iid, pc.\`info.id\` as \`proj.id\`, pc.\`info.name\` as \`proj.name\` from issue left join proj_cte as pc on pc.pid = issue.project_id order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             iid:   number

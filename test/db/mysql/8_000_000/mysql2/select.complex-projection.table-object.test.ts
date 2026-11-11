@@ -27,7 +27,7 @@ describe(ctx.label, () => {
             .select(tOrganization)
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, plan as plan, (verified = 'Y') as verified, created_at as createdAt from \`organization\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, plan as plan, (verified = 'Y') as verified, created_at as createdAt from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             id:        number
@@ -56,7 +56,7 @@ describe(ctx.label, () => {
             })
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, \`organization\`.id as \`organization.id\`, \`organization\`.\`name\` as \`organization.name\`, \`organization\`.plan as \`organization.plan\`, (\`organization\`.verified = 'Y') as \`organization.verified\`, \`organization\`.created_at as \`organization.createdAt\` from project join \`organization\` on \`organization\`.id = project.organization_id where project.id in (?, ?) order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, organization.id as \`organization.id\`, organization.name as \`organization.name\`, organization.plan as \`organization.plan\`, (organization.verified = 'Y') as \`organization.verified\`, organization.created_at as \`organization.createdAt\` from project join organization on organization.id = project.organization_id where project.id in (?, ?) order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -104,7 +104,7 @@ describe(ctx.label, () => {
             })
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, \`organization\`.id as \`proOrganization.id\`, \`organization\`.\`name\` as \`proOrganization.name\`, \`organization\`.plan as \`proOrganization.plan\`, (\`organization\`.verified = 'Y') as \`proOrganization.verified\`, \`organization\`.created_at as \`proOrganization.createdAt\` from project left join \`organization\` on \`organization\`.id = project.organization_id and \`organization\`.plan = ? order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, organization.id as \`proOrganization.id\`, organization.name as \`proOrganization.name\`, organization.plan as \`proOrganization.plan\`, (organization.verified = 'Y') as \`proOrganization.verified\`, organization.created_at as \`proOrganization.createdAt\` from project left join organization on organization.id = project.organization_id and organization.plan = ? order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "pro",

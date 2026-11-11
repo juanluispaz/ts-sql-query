@@ -36,7 +36,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, \`name\` as projectName, slug as projectSlug from project where organization_id in (select id as result from \`organization\` where \`name\` like concat('%', ?, '%')) order by projectName asc, projectSlug"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as projectId, name as projectName, slug as projectSlug from project where organization_id in (select id as result from organization where name like concat('%', ?, '%')) order by projectName asc, projectSlug"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme",
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where exists(select id as result from issue where project_id = project.id) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where exists(select id as result from issue where project_id = project.id) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof projectsWithIssues, Array<{
             id:   number
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where organization_id = (select id as result from \`organization\` where \`name\` = ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = (select id as result from organization where name = ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme Corp",
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, (select count(*) as result from project where organization_id = \`organization\`.id) as projectCount from \`organization\` order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select count(*) as result from project where organization_id = organization.id) as projectCount from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof organizationsWithProjectCount, Array<{
             id:           number
@@ -223,7 +223,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(a_1_.result) from (select distinct \`name\` as result from project where organization_id = \`organization\`.id) as a_1_) as char) as projectNames from \`organization\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, cast((select json_arrayagg(a_1_.result) from (select distinct name as result from project where organization_id = organization.id) as a_1_) as char) as projectNames from organization"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof organizationsWithTheNamesOfTheirProjects, Array<{
             id:           number
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select \`organization\`.id as organizationId, \`organization\`.\`name\` as organizationName, count(project.id) as projectCount from \`organization\` inner join project on project.organization_id = \`organization\`.id group by \`organization\`.id, \`organization\`.\`name\`) select organizationId as acmeOrgId, organizationName as acmeOrgName, projectCount as acmeProjectCount from projectCountPerOrg where lower(organizationName) like concat('%', lower(?), '%')"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCountPerOrg as (select organization.id as organizationId, organization.name as organizationName, count(project.id) as projectCount from organization inner join project on project.organization_id = organization.id group by organization.id, organization.name) select organizationId as acmeOrgId, organizationName as acmeOrgName, projectCount as acmeProjectCount from projectCountPerOrg where lower(organizationName) like concat('%', lower(?), '%')"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme",
@@ -319,7 +319,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectWithOrganization as (select project.id as id, \`organization\`.id as \`organization.id\`, \`organization\`.\`name\` as \`organization.name\` from project inner join \`organization\` on \`organization\`.id = project.organization_id) select id as id, \`organization.id\` as \`organization.id\`, \`organization.name\` as \`organization.name\` from projectWithOrganization where \`organization.name\` like concat('%', ?, '%') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectWithOrganization as (select project.id as id, organization.id as \`organization.id\`, organization.name as \`organization.name\` from project inner join organization on organization.id = project.organization_id) select id as id, \`organization.id\` as \`organization.id\`, \`organization.name\` as \`organization.name\` from projectWithOrganization where \`organization.name\` like concat('%', ?, '%') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Acme",
@@ -364,7 +364,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueCountPerProject as (select project_id as projectId, count(id) as issueCount from issue group by project_id) select project.id as id, project.\`name\` as \`name\`, ifnull(issueCountPerProject.issueCount, ?) as issueCount from project left join issueCountPerProject on issueCountPerProject.projectId = project.id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueCountPerProject as (select project_id as projectId, count(id) as issueCount from issue group by project_id) select project.id as id, project.name as name, ifnull(issueCountPerProject.issueCount, ?) as issueCount from project left join issueCountPerProject on issueCountPerProject.projectId = project.id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

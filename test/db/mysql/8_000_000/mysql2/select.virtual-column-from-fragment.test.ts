@@ -93,7 +93,7 @@ describe(ctx.label, () => {
             .select({ nameUpper: vpo.nameUpper })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(po.\`name\`) as nameUpper from project_overview as po where po.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(po.name) as nameUpper from project_overview as po where po.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -587,7 +587,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customVirtual })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`channel\` as v from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as v from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -605,7 +605,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, v: tProjectRelease.customVirtualOptional })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`channel\` as v from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as v from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

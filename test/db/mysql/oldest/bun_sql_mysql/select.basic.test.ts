@@ -32,7 +32,7 @@ describe(ctx.label, () => {
             .orderBy('name')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, plan as plan from \`organization\` order by \`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, plan as plan from organization order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
 
         assertType<Exact<typeof result, Array<{
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
             .orderBy('name')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, slug as slug from project where organization_id = ? and archived_at is null order by \`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project where organization_id = ? and archived_at is null order by name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, issue.title as title, project.\`name\` as projectName from issue inner join project on project.id = issue.project_id where issue.\`status\` = ? order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, issue.title as title, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.status = ? order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
             .orderBy('status')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, count(id) as total from issue group by \`status\` order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
 
         assertType<Exact<typeof result, Array<{
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
 
         const sql = built.query()
         const params = built.params()
-        expect(sql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ? order by id"`)
+        expect(sql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by id"`)
         expect(params).toMatchInlineSnapshot(`
           [
             1,
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
         const first = built.query()
         const second = built.query()
         expect(second).toBe(first)
-        expect(first).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ? order by id"`)
+        expect(first).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by id"`)
         assertType<Exact<typeof first, string>>()
 
         // Still exactly one bound value: neither `query()` call re-bound it.

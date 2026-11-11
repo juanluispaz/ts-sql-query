@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             .where(ctx.conn.dynamicConditionFor(fields).withValues(filter))
             .select({ id: tProject.id }).orderBy('id').executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from project left outer join \`organization\` as \`organization\` on \`organization\`.id = project.organization_id where project.\`name\` like concat('%', ?, '%') and \`organization\`.\`name\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from project left outer join organization as organization on organization.id = project.organization_id where project.name like concat('%', ?, '%') and organization.name = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "foo",
@@ -275,7 +275,7 @@ describe(ctx.label, () => {
             .orderByFromString(order.join(', '))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.id as \`organization.id\`, \`organization\`.\`name\` as \`organization.name\` from project left outer join \`organization\` as \`organization\` on \`organization\`.id = project.organization_id order by \`organization\`.\`name\` is null, \`organization.name\` asc, \`name\` desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.id as \`organization.id\`, organization.name as \`organization.name\` from project left outer join organization as organization on organization.id = project.organization_id order by organization.name is null, \`organization.name\` asc, name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -313,7 +313,7 @@ describe(ctx.label, () => {
         ctx.mockNext([])
         await runOrdered('organization.name asc nulls last, name desc')
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, \`organization\`.id as \`organization.id\`, \`organization\`.\`name\` as \`organization.name\` from project left outer join \`organization\` as \`organization\` on \`organization\`.id = project.organization_id order by \`organization\`.\`name\` is null, \`organization.name\` asc, \`name\` desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.id as \`organization.id\`, organization.name as \`organization.name\` from project left outer join organization as organization on organization.id = project.organization_id order by organization.name is null, \`organization.name\` asc, name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
     test('from-model/forwards-the-extension-type-argument', () => {

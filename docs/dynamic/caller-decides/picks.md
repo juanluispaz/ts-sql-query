@@ -347,7 +347,7 @@ The executed query is:
         customer.id as id, 
         customer.first_name as firstName, 
         customer.last_name as lastName, 
-        company.`name` as companyName 
+        company.name as companyName 
     from customer 
     inner join company on company.id = customer.company_id 
     where customer.id = ?
@@ -572,7 +572,7 @@ The executed query is:
         customer.id as id, 
         customer.first_name as `name.firstName`, 
         customer.last_name as `name.lastName`, 
-        company.`name` as `company.name` 
+        company.name as `company.name` 
     from customer 
     inner join company on company.id = customer.company_id 
     where customer.id = ?

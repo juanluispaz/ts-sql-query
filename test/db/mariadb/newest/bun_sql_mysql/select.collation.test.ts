@@ -476,7 +476,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, v: tIssue.body.collate('utf8mb4_bin') })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`body\` collate utf8mb4_bin as v from issue where project_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body collate utf8mb4_bin as v from issue where project_id = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -610,7 +610,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })
             .orderBy('ref', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as ref from issue where external_ref is not null order by external_ref collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as \`ref\` from issue where external_ref is not null order by external_ref collate utf8mb4_general_ci"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; ref?: string }>>>()
         expect(result).toEqual(expected)

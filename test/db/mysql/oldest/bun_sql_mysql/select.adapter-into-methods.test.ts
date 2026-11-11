@@ -63,7 +63,7 @@ describe(ctx.label, () => {
             .select({ invoiceNo: tInvoice.invoiceNo, next: tInvoice.invoiceNo.add(5) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select invoice_no as invoiceNo, invoice_no + ? as \`next\` from invoice where invoice_no = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select invoice_no as invoiceNo, invoice_no + ? as next from invoice where invoice_no = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             50,
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectReview.id, code: tProjectReview.reviewerCode.toLowerCase() })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(reviewer_code) as \`code\` from project_review where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(reviewer_code) as code from project_review where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ? and (published = 't') = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? and (published = 't') = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -342,7 +342,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -391,7 +391,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ? and (published = 't') <> ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? and (published = 't') <> ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -414,7 +414,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

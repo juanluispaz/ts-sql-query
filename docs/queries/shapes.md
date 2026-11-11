@@ -505,7 +505,7 @@ The executed query is:
     set 
         customer.first_name = ?, 
         customer.last_name = ?, 
-        company.`name` = ? 
+        company.name = ? 
     where customer.id = ?
     ```
 === "Oracle"

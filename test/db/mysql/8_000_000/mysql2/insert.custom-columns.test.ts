@@ -35,7 +35,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, \`channel\`, signing_key, released_on, cutoff_time, signed_off_at) values (?, ?, ?, uuid_to_bin(?), ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) values (?, ?, ?, uuid_to_bin(?), ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
                 )
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, \`channel\`, signing_key, released_on, cutoff_time, signed_off_at) select project_id as projectId, ? as version, \`channel\` as \`channel\`, signing_key as signingKey, released_on as releasedOn, cutoff_time as cutoffTime, signed_off_at as signedOffAt from project_release where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) select project_id as projectId, ? as version, channel as channel, signing_key as signingKey, released_on as releasedOn, cutoff_time as cutoffTime, signed_off_at as signedOffAt from project_release where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "9.9.9",

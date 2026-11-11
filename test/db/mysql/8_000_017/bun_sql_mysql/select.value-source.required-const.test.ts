@@ -80,7 +80,7 @@ describe(ctx.label, () => {
                 cc: ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select bin_to_uuid(uuid_to_bin(?)) as u, ? as e, ? as \`c\`, ? as cc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select bin_to_uuid(uuid_to_bin(?)) as u, ? as e, ? as c, ? as cc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -184,7 +184,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

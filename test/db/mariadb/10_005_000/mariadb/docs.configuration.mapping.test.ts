@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as \`tracking.assigneeId\`, \`body\` as \`tracking.body\` from issue where assignee_id is not null and id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as \`tracking.assigneeId\`, body as \`tracking.body\` from issue where assignee_id is not null and id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`body\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set body = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "A comment",
@@ -116,7 +116,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, \`body\` = ? where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed",

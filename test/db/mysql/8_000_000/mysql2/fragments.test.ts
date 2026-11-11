@@ -314,7 +314,7 @@ describe(ctx.label, () => {
                 beforeOrderByItems: connection.rawFragment`${tIssue.priority} desc, ${tIssue.status} asc, ${tIssue.projectId} asc, ${tIssue.number} desc`,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, issue.\`status\` asc, issue.project_id asc, issue.\`number\` desc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, issue.status asc, issue.project_id asc, issue.number desc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })

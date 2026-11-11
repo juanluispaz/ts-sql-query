@@ -280,7 +280,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, months })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('month', date_format(a_1_.\`month\`, '%m/%Y'))) from (select distinct work_date as \`month\` from issue_worklog) as a_1_) as char) as months from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('month', date_format(a_1_.month, '%m/%Y'))) from (select distinct work_date as month from issue_worklog) as a_1_) as char) as months from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -324,7 +324,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, months })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('month', date_format(a_1_.\`month\`, '%m/%Y'))) from (select work_date as \`month\` from issue_worklog where id = ? union select work_date as \`month\` from issue_worklog where id = ?) as a_1_) as char) as months from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('month', date_format(a_1_.month, '%m/%Y'))) from (select work_date as month from issue_worklog where id = ? union select work_date as month from issue_worklog where id = ?) as a_1_) as char) as months from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -348,7 +348,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, firstReleases })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('id', a_1_.id, 'day', date_format(a_1_.\`day\`, '%d/%m/%Y'))) from (select id as id, released_on as \`day\` from project_release order by \`day\` limit ?) as a_1_) as char) as firstReleases from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('id', a_1_.id, 'day', date_format(a_1_.day, '%d/%m/%Y'))) from (select id as id, released_on as day from project_release order by day limit ?) as a_1_) as char) as firstReleases from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -515,7 +515,7 @@ describe(ctx.label, () => {
             })
             .groupBy('day')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_format(released_on, '%Y%m%d') as \`day\`, cast(json_arrayagg(date_format(released_on, '%d/%m/%Y')) as char) as days from project_release where id = ? group by released_on"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_format(released_on, '%Y%m%d') as day, cast(json_arrayagg(date_format(released_on, '%d/%m/%Y')) as char) as days from project_release where id = ? group by released_on"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -534,7 +534,7 @@ describe(ctx.label, () => {
             .where(tProjectOf.id.equals(1))
             .select({ id: tProjectOf.id, days })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('day', date_format(a_1_.\`day\`, '%Y-%m-%d'))) from (select distinct released_on as \`day\` from project_release) as a_1_) as char) as days from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(json_object('day', date_format(a_1_.day, '%Y-%m-%d'))) from (select distinct released_on as day from project_release) as a_1_) as char) as days from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -32,7 +32,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ now: ctx.conn.currentDateTime() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select current_timestamp as now"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select current_timestamp as \`now\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ now: Date }>>>()
         if (ctx.realDbEnabled) {

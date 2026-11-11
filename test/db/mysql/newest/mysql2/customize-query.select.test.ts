@@ -128,7 +128,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, issueId: openIssues.id })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as /* warmup */ (select id as id, project_id as projectId from issue where \`status\` = ?) /* end-of-with */ select project.id as id, open_issues.id as issueId from project inner join open_issues on open_issues.projectId = project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as /* warmup */ (select id as id, project_id as projectId from issue where status = ?) /* end-of-with */ select project.id as id, open_issues.id as issueId from project inner join open_issues on open_issues.projectId = project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -496,14 +496,14 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, \`name\` as \`name\` from project where id <= ? order by id limit ?  /* tail */"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, name as name from project where id <= ? order by id limit ?  /* tail */"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             3,
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, \`name\` as \`name\` from project where id <= ?  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as name from project where id <= ?  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             3,
@@ -551,14 +551,14 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select /* hint */ /* cols */  id as id, \`name\` as \`name\` from project where id <= ? window w1 as (partition by organization_id) order by project.organization_id asc, id, project.\`name\` desc limit ?"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select /* hint */ /* cols */  id as id, name as name from project where id <= ? window w1 as (partition by organization_id) order by project.organization_id asc, id, project.name desc limit ?"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             3,
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select /* hint */ /* cols */  id as id, \`name\` as \`name\` from project where id <= ? window w1 as (partition by organization_id)) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select /* hint */ /* cols */  id as id, name as name from project where id <= ? window w1 as (partition by organization_id)) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             3,
@@ -642,13 +642,13 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select \`status\` as \`status\`, count(id) as total from issue group by \`status\` order by \`status\` limit ?  /* tail */"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select status as status, count(id) as total from issue group by status order by status limit ?  /* tail */"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select \`status\` as \`status\`, count(id) as total from issue group by \`status\`  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select status as status, count(id) as total from issue group by status  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string; total: number }>

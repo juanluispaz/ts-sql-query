@@ -341,7 +341,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany())
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, org.id as "organization.id", org.name as "organization.name", upper(org."plan") as "organization.upperPlan" from project left outer join organization as org on org.id = project.organization_id and org.verified = 'Y' where project.id in (?1, ?2) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, org.id as "organization.id", org.name as "organization.name", upper(org.plan) as "organization.upperPlan" from project left outer join organization as org on org.id = project.organization_id and org.verified = 'Y' where project.id in (?1, ?2) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

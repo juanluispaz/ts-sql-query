@@ -972,7 +972,7 @@ describe(ctx.label, () => {
                 .select({ id: tProject.id, refs })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(json_object('ref' value raw_to_uuid(a_1_."ref"), 'cnt' value a_1_.cnt)) from (select external_ref as "ref", count(id) as cnt from issue where project_id = project.id group by external_ref) a_1_) as "refs" from project where id = :0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(json_object('ref' value raw_to_uuid(a_1_.ref), 'cnt' value a_1_.cnt)) from (select external_ref as ref, count(id) as cnt from issue where project_id = project.id group by external_ref) a_1_) as "refs" from project where id = :0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             .select({ aVeryLongPropertyNameThatGoesOnAndOn: { anotherVeryLongPropertyNameThatGoesOnAndOn: { title: tIssue.title, status: tIssue.status } } })
             .orderBy('aVeryLongPropertyNameThatGoesOnAndOn.anotherVeryLongPropertyNameThatGoesOnAndOn.title')
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as \`aVeryLongPropertyNameThatGoesOnAndOn.anotherVeryLongPropertyNameThatGoesOnAndOn.title\`, \`status\` as \`aVeryLongPropertyNameThatGoesOnAndOn.anotherVeryLongPropertyNameThatGoesOnAndOn.status\` from issue where id = ? order by \`aVeryLongPropertyNameThatGoesOnAndOn.anotherVeryLongPropertyNameThatGoesOnAndOn.title\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as \`aVeryLongPropertyNameThatGoesOnAndOn.anotherVeryLongPropertyNameThatGoesOnAndOn.title\`, status as \`aVeryLongPropertyNameThatGoesOnAndOn.anotherVeryLongPropertyNameThatGoesOnAndOn.status\` from issue where id = ? order by \`aVeryLongPropertyNameThatGoesOnAndOn.anotherVeryLongPropertyNameThatGoesOnAndOn.title\`"`)
         expect(row).toEqual(expected)
     })
 })

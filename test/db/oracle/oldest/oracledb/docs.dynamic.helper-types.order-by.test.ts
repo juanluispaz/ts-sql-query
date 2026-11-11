@@ -61,7 +61,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "id", project.name as "name", "organization".name as "organization.name" from project left outer join "organization" "organization" on "organization".id = project.organization_id order by "organization.name" asc nulls last, "name" desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "id", project.name as "name", organization.name as "organization.name" from project left outer join "organization" organization on organization.id = project.organization_id order by "organization.name" asc nulls last, "name" desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string; organization?: { name: string } }>>>()
         expect(rows).toEqual([

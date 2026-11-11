@@ -32,7 +32,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .orderBy('projectId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, any_value(project.\`name\`) as projectName, count(*) as issues from issue inner join project on project.id = issue.project_id group by issue.project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as projectId, any_value(project.name) as projectName, count(*) as issues from issue inner join project on project.id = issue.project_id group by issue.project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ projectId: number; projectName?: string; issues: number }>>>()
         expect(rows).toEqual(expected)

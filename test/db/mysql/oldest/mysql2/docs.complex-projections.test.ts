@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`header.title\`, \`status\` as \`header.status\`, body as body from issue where project_id = ? order by \`header.title\`, \`header.status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as \`header.title\`, status as \`header.status\`, body as body from issue where project_id = ? order by \`header.title\`, \`header.status\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -117,7 +117,7 @@ describe(ctx.label, () => {
             ).executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, project.slug as slug, project.archived_at as archivedAt, \`organization\`.id as \`organization.id\`, \`organization\`.\`name\` as \`organization.name\` from project inner join \`organization\` on \`organization\`.id = project.organization_id where project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, project.archived_at as archivedAt, organization.id as \`organization.id\`, organization.name as \`organization.name\` from project inner join organization on organization.id = project.organization_id where project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -301,7 +301,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, app_user.id as \`assignee.id\`, app_user.full_name as \`assignee.fullName\` from issue left join app_user on app_user.id = issue.assignee_id where issue.\`status\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.title as title, app_user.id as \`assignee.id\`, app_user.full_name as \`assignee.fullName\` from issue left join app_user on app_user.id = issue.assignee_id where issue.status = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -392,7 +392,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, firstIssue.id as \`firstIssue.id\`, firstIssue.title as \`firstIssue.title\`, firstIssue.body as \`firstIssue.body\` from project left join issue as firstIssue on firstIssue.project_id = project.id and firstIssue.\`number\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, firstIssue.id as \`firstIssue.id\`, firstIssue.title as \`firstIssue.title\`, firstIssue.body as \`firstIssue.body\` from project left join issue as firstIssue on firstIssue.project_id = project.id and firstIssue.number = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -447,7 +447,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, proOrganization.id as \`proOrganization.id\`, proOrganization.\`name\` as \`proOrganization.name\`, proOrganization.plan as \`proOrganization.plan\`, (proOrganization.verified = 'Y') as \`proOrganization.verified\`, proOrganization.created_at as \`proOrganization.createdAt\` from project left join \`organization\` as proOrganization on proOrganization.id = project.organization_id and proOrganization.plan = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, proOrganization.id as \`proOrganization.id\`, proOrganization.name as \`proOrganization.name\`, proOrganization.plan as \`proOrganization.plan\`, (proOrganization.verified = 'Y') as \`proOrganization.verified\`, proOrganization.created_at as \`proOrganization.createdAt\` from project left join organization as proOrganization on proOrganization.id = project.organization_id and proOrganization.plan = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "pro",

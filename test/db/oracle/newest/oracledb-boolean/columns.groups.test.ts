@@ -39,7 +39,7 @@ class TIssueGrouped extends Table<DBConnection, 'TIssueGrouped'> {
             hours: this.optionalColumn('estimated_hours', 'double'),
         },
     }
-    body = this.optionalColumn('body', 'string')
+    body = this.optionalColumn('"body"', 'string')
     // Anything else in the class is not a column
     settings = { label: 'not a column', inner: { size: 1 } }
     helper() { return 'not a column' }
@@ -71,7 +71,7 @@ class TIssueWithObjectValue extends Table<DBConnection, 'TIssueWithObjectValue'>
     title = this.column('title', 'string')
     status = this.column('status', 'string')
     priority = this.column('priority', 'int')
-    body = this.optionalColumn<{ a: number }, 'jsonText'>('body', 'custom', 'jsonText', jsonAdapter)
+    body = this.optionalColumn<{ a: number }, 'jsonText'>('"body"', 'custom', 'jsonText', jsonAdapter)
     constructor() { super('issue') }
 }
 const tObjectValue = new TIssueWithObjectValue()
@@ -510,7 +510,7 @@ describe(ctx.label, () => {
             .select({ id: values.id, location: values.location, after: values.after })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", "after") as (values (:0, :1, :2, :3), (:4, :5, :6, :7)) select id as "id", "location.projectId" as "location.projectId", "location.number" as "location.number", "after" as "after" from valuesGrouped order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", after) as (values (:0, :1, :2, :3), (:4, :5, :6, :7)) select id as "id", "location.projectId" as "location.projectId", "location.number" as "location.number", after as "after" from valuesGrouped order by "id""`)
         expect(rows).toEqual(expected)
         assertType<Exact<typeof rows, { id: number; location: { projectId: number; number: number }; after: string }[]>>()
     })
@@ -521,7 +521,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(values)
             .select({ number: values.location.number })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", "after") as (values (:0, :1, :2, :3)) select v."location.number" as "number" from valuesGrouped v"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", after) as (values (:0, :1, :2, :3)) select v."location.number" as "number" from valuesGrouped v"`)
         expect(row).toEqual({ number: 7 })
     })
 
@@ -536,7 +536,7 @@ describe(ctx.label, () => {
             .select({ id: tGrouped.id, location: joined.location })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", "after") as (values (:0, :1, :2, :3)) select issue.id as "id", valuesGrouped."location.projectId" as "location.projectId", valuesGrouped."location.number" as "location.number" from issue left join valuesGrouped on valuesGrouped.id = issue.id where issue.id in (:4, :5) order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", after) as (values (:0, :1, :2, :3)) select issue.id as "id", valuesGrouped."location.projectId" as "location.projectId", valuesGrouped."location.number" as "location.number" from issue left join valuesGrouped on valuesGrouped.id = issue.id where issue.id in (:4, :5) order by "id""`)
         expect(rows).toEqual(expected)
         assertType<Exact<typeof rows, { id: number; location?: { projectId: number; number: number } }[]>>()
     })
@@ -568,7 +568,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(aliased)
             .select(fromInstance(aliased))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", "after") as (values (:0, :1, :2, :3)) select v."after" as "after", v."location.number" as "number" from valuesGrouped v"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", after) as (values (:0, :1, :2, :3)) select v.after as "after", v."location.number" as "number" from valuesGrouped v"`)
         expect(row).toEqual({ after: 'x', number: 7 })
         assertType<Exact<typeof row, { after: string; number: number }>>()
     })
@@ -584,7 +584,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(aliased)
             .select(fromInstance(aliased))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", "after") as (values (:0, :1, :2, :3)) select v."after" as "after", v."location.number" as "number" from valuesGrouped v"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", after) as (values (:0, :1, :2, :3)) select v.after as "after", v."location.number" as "number" from valuesGrouped v"`)
         expect(row).toEqual({ after: 'x', number: 7 })
         assertType<Exact<typeof row, { after: string; number: number }>>()
     })
@@ -604,7 +604,7 @@ describe(ctx.label, () => {
             .where(tGrouped.id.equals(1))
             .select({ id: tGrouped.id, values: columns })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", "after") as (values (:0, :1, :2, :3)) select issue.id as "id", v.id as "values.id", v."location.projectId" as "values.location.projectId", v."location.number" as "values.location.number" from issue left join valuesGrouped v on v.id = issue.id where issue.id = :4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with valuesGrouped(id, "location.projectId", "location.number", after) as (values (:0, :1, :2, :3)) select issue.id as "id", v.id as "values.id", v."location.projectId" as "values.location.projectId", v."location.number" as "values.location.number" from issue left join valuesGrouped v on v.id = issue.id where issue.id = :4"`)
         expect(row).toEqual(expected)
         assertType<Exact<typeof row, { id: number; values?: { id: number; location?: { projectId: number; number: number } } }>>()
     })

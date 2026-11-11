@@ -101,7 +101,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, (select count(*) as [result] from issue where project_id = project.id) as issueCount from project as project where project.id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, (select count(*) as result from issue where project_id = project.id) as issueCount from project as project where project.id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -182,7 +182,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, issueCount: issueCount(ctx.conn, tProject) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select count(*) as [result] from issue where project_id = project.id) as issueCount from project where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select count(*) as result from issue where project_id = project.id) as issueCount from project where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
             .select({ id: project.id, issueCount: issueCount(ctx.conn, project) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select p.id as id, (select count(*) as [result] from issue where project_id = p.id) as issueCount from project as p where p.id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select p.id as id, (select count(*) as result from issue where project_id = p.id) as issueCount from project as p where p.id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             .select(idAggregates(ctx.conn, tProject))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as [count], max(id) as [max], sum(id) as [sum], avg(cast(id as float)) as average from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as count, max(id) as max, sum(id) as sum, avg(cast(id as float)) as average from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { count: number; max?: number; sum?: number; average?: number }>>()
         expect(row).toEqual({ count: 4, max: 4, sum: 10, average: 2.5 })
@@ -237,7 +237,7 @@ describe(ctx.label, () => {
             .select(idAggregates(ctx.conn, project))
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(p.id) as [count], max(p.id) as [max], sum(p.id) as [sum], avg(cast(p.id as float)) as average from project as p"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(p.id) as count, max(p.id) as max, sum(p.id) as sum, avg(cast(p.id as float)) as average from project as p"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof aliasedRow, { count: number; max?: number; sum?: number; average?: number }>>()
         expect(aliasedRow).toEqual({ count: 4, max: 4, sum: 10, average: 2.5 })
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
             .orderBy('name', 'desc')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName as (select * from (values (@0, @1), (@2, @3)) as projectName(id, name)) select name as name, (select count(*) as [result] from issue where project_id = projectName.id) as issues from projectName order by name desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName as (select * from (values (@0, @1), (@2, @3)) as projectName(id, name)) select name as name, (select count(*) as result from issue where project_id = projectName.id) as issues from projectName order by name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -371,7 +371,7 @@ describe(ctx.label, () => {
             .select({ name: overview.name, nameUpper: overview.nameUpper, issues: issueCount(ctx.conn, overview) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select overview.name as name, upper(overview.name) as nameUpper, coalesce((select count(*) as [result] from issue where project_id = overview.id), @0) as issues from project_overview as overview where overview.id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select overview.name as name, upper(overview.name) as nameUpper, coalesce((select count(*) as result from issue where project_id = overview.id), @0) as issues from project_overview as overview where overview.id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -430,7 +430,7 @@ describe(ctx.label, () => {
             .orderBy('name', 'desc')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName as (select * from (values (@0, @1), (@2, @3)) as projectName(id, name)) select [names].name as name, coalesce((select count(*) as [result] from issue where project_id = [names].id), @4) as issues from projectName as [names] order by name desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName as (select * from (values (@0, @1), (@2, @3)) as projectName(id, name)) select names.name as name, coalesce((select count(*) as result from issue where project_id = names.id), @4) as issues from projectName as names order by name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -467,7 +467,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName as (select * from (values (@0, @1), (@2, @3)) as projectName(id, name)) select project.id as id, [names].name as name from project left join projectName as [names] on [names].id = project.id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectName as (select * from (values (@0, @1), (@2, @3)) as projectName(id, name)) select project.id as id, names.name as name from project left join projectName as names on names.id = project.id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

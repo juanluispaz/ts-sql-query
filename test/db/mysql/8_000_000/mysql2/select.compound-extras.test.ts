@@ -28,7 +28,7 @@ describe(ctx.label, () => {
             .select({ status: tIssue.status })
         const result = await left.intersectAll(right).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue intersect all select \`status\` as \`status\` from issue where priority <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue intersect all select status as status from issue where priority <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
             .select({ status: tIssue.status })
         const result = await all.exceptAll(small).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue except all select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except all select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
             .select({ status: tIssue.status })
         const result = await all.minus(small).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue except select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
             .select({ status: tIssue.status })
         const result = await all.minusAll(small).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue except all select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except all select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -128,7 +128,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
         const result = await a.union(b).except(c).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ? except select \`status\` as \`status\` from issue where \`status\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? except select status as status from issue where status = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
         const result = await a.union(b).minusAll(c).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ? except all select \`status\` as \`status\` from issue where \`status\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? except all select status as status from issue where status = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -174,7 +174,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(3)).select({ status: tIssue.status })
         const result = await a.union(b).intersect(c).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ?) as _t_1_ intersect select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select status as status from issue where id <= ? union select status as status from issue where id = ?) as _t_1_ intersect select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -197,7 +197,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(3)).select({ status: tIssue.status })
         const result = await a.union(b).intersectAll(c).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ?) as _t_1_ intersect all select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select status as status from issue where id <= ? union select status as status from issue where id = ?) as _t_1_ intersect all select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
         const result = await a.union(b).exceptAll(c).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ? except all select \`status\` as \`status\` from issue where \`status\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? except all select status as status from issue where status = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -243,7 +243,7 @@ describe(ctx.label, () => {
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
         const result = await a.union(b).minus(c).executeSelectMany()
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ? except select \`status\` as \`status\` from issue where \`status\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id <= ? union select status as status from issue where id = ? except select status as status from issue where status = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -264,7 +264,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
         const result = await a.union(b).intersect(c).executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select \`status\` as \`status\` from issue where id = ? union select \`status\` as \`status\` from issue where id = ?) as _t_1_ intersect select \`status\` as \`status\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_ intersect select status as status from issue where id = ?"`)
         expect(result).toEqual(expected)
     })
 
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ status: tIssue.status })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
         const result = await a.except(b.union(c)).executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id in (?, ?, ?) except select * from (select \`status\` as \`status\` from issue where id = ? union select \`status\` as \`status\` from issue where id = ?) as _t_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id in (?, ?, ?) except select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_"`)
         expect(result).toEqual(expected)
     })
 
@@ -291,7 +291,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ status: tIssue.status })
         const result = await a.intersect(b.union(c)).executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id = ? intersect select * from (select \`status\` as \`status\` from issue where id = ? union select \`status\` as \`status\` from issue where id = ?) as _t_1_"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id = ? intersect select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_"`)
         expect(result).toEqual([])
     })
 
@@ -303,7 +303,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
         const result = await a.union(b).except(c).executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id = ? union select \`status\` as \`status\` from issue where id = ? except select \`status\` as \`status\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id = ? union select status as status from issue where id = ? except select status as status from issue where id = ?"`)
         expect(result).toEqual(expected)
     })
 
@@ -315,7 +315,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ status: tIssue.status })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
         const result = await a.union(b.union(c)).orderBy('status').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id = ? union select * from (select \`status\` as \`status\` from issue where id = ? union select \`status\` as \`status\` from issue where id = ?) as _t_1_ order by \`status\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where id = ? union select * from (select status as status from issue where id = ? union select status as status from issue where id = ?) as _t_1_ order by status"`)
         expect(result).toEqual(expected)
     })
 })

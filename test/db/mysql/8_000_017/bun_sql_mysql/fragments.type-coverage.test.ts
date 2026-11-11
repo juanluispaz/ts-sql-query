@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1.5 as \`avg\`, \`channel\` as ch, bin_to_uuid(signing_key) as \`key\`, released_on as rOn, cutoff_time as cut, signed_off_at as soff from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1.5 as avg, channel as ch, bin_to_uuid(signing_key) as \`key\`, released_on as rOn, cutoff_time as cut, signed_off_at as soff from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as v, 1.5 as \`avg\`, bin_to_uuid(signing_key) as \`key\`, \`channel\` as ch from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as v, 1.5 as avg, bin_to_uuid(signing_key) as \`key\`, channel as ch from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -184,7 +184,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as maxTitle, avg(priority) as avgPrio, count(*) > 0 as \`any\`, max(view_count) as maxView from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as maxTitle, avg(priority) as avgPrio, count(*) > 0 as any, max(view_count) as maxView from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, {
             maxTitle: string; avgPrio: number; any: boolean; maxView?: bigint
@@ -289,7 +289,7 @@ describe(ctx.label, () => {
                 mc:  c.aggregateFragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional').sql`max(${tProjectRelease.channel})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as mcc, max(\`channel\`) as mc from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as mcc, max(channel) as mc from project_release where id = ?"`)
         assertType<Exact<typeof rel, { mcc?: string; mc?: ReleaseChannel }>>()
         expect(rel).toEqual({})
     })
@@ -324,7 +324,7 @@ describe(ctx.label, () => {
                 maxChannel: c.aggregateFragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'required').sql`max(${tProjectRelease.channel})`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(\`channel\`) as maxChannel from project_release"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(channel) as maxChannel from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof chRow, { maxChannel: ReleaseChannel }>>()
         expect(chRow).toEqual(expectedCh)
@@ -687,7 +687,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select created_at as ca from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select created_at as ca from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -737,7 +737,7 @@ describe(ctx.label, () => {
                 any: c.aggregateFragmentWithType('boolean', 'required', negateBoolAdapter).sql`count(*) > 0`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) > 0 as \`any\` from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) > 0 as any from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { any: boolean }>>()
         expect(row).toEqual({ any: false })
@@ -757,7 +757,7 @@ describe(ctx.label, () => {
                 any: c.aggregateFragmentWithType('boolean', 'optional', negateBoolAdapter).sql`max(${tIssue.priority}) > 5`,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) > 5 as \`any\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) > 5 as any from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -1,

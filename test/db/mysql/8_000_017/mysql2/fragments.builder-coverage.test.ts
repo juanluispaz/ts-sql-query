@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 42 as forty, priority + priority + id + \`number\` as sum4, -priority as neg from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select 42 as forty, priority + priority + id + number as sum4, -priority as neg from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -134,7 +134,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
                 beforeOrderByItems: c.rawFragment`${tIssue.priority} desc, ${tIssue.status} asc, ${tIssue.projectId} asc, ${tIssue.number} desc, ${tIssue.title} asc`,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, issue.\`status\` asc, issue.project_id asc, issue.\`number\` desc, issue.title asc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, issue.status asc, issue.project_id asc, issue.number desc, issue.title asc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof five, Array<{ id: number }>>>()
 
@@ -169,7 +169,7 @@ describe(ctx.label, () => {
                 beforeOrderByItems: c.rawFragment`${tIssue.priority} desc, ${tIssue.status} asc, ${tIssue.projectId} asc, ${tIssue.number} desc, ${tIssue.title} asc, ${tIssue.assigneeId} asc, ${tIssue.parentId} desc`,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, issue.\`status\` asc, issue.project_id asc, issue.\`number\` desc, issue.title asc, issue.assignee_id asc, issue.parent_id desc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, issue.status asc, issue.project_id asc, issue.number desc, issue.title asc, issue.assignee_id asc, issue.parent_id desc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof seven, Array<{ id: number }>>>()
     })

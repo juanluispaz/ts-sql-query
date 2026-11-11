@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(String(caught)).toMatch(/NO_RESULT|No result/)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.status as [result] where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.status as result where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,

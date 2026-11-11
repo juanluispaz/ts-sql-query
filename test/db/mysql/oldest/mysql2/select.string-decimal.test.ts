@@ -99,7 +99,7 @@ describe(ctx.label, () => {
                 negated: tExactAmount.price.subtract(tExactAmount.price).subtract(tExactAmount.price),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount + cast(? as decimal(11, 10)) as \`next\`, price * cast(? as decimal(1, 0)) as \`double\`, price - price - price as negated from exact_amount where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select amount + cast(? as decimal(11, 10)) as next, price * cast(? as decimal(1, 0)) as \`double\`, price - price - price as negated from exact_amount where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0000000001",

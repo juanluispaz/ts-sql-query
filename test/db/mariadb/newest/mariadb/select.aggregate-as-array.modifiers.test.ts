@@ -187,7 +187,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -328,7 +328,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -489,7 +489,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, cast(json_arrayagg(json_object('body', \`body\`, 'assigneeId', assignee_id)) as char) as opts from issue where project_id = ? group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, cast(json_arrayagg(json_object('body', body, 'assigneeId', assignee_id)) as char) as opts from issue where project_id = ? group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -522,7 +522,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, cast(json_arrayagg(json_object('body', \`body\`, 'assigneeId', assignee_id)) as char) as opts from issue where project_id = ? group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, cast(json_arrayagg(json_object('body', body, 'assigneeId', assignee_id)) as char) as opts from issue where project_id = ? group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -557,7 +557,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -590,7 +590,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -625,7 +625,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as \`meta.issues\` from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as \`meta.issues\` from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -659,7 +659,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const rows = await query.executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -690,7 +690,7 @@ describe(ctx.label, () => {
             .select({ pid: tProject.id, issues })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -722,7 +722,7 @@ describe(ctx.label, () => {
             .select({ pid: tProject.id, issues })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -754,7 +754,7 @@ describe(ctx.label, () => {
             .select({ pid: tProject.id, meta: { issues } })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) from issue where project_id = project.id) as char) as \`meta.issues\` from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id) as char) as \`meta.issues\` from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -786,7 +786,7 @@ describe(ctx.label, () => {
             .select({ pid: tProject.id, issues })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) as result from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) as result from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -817,7 +817,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const row = await query.executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) as result from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) as result from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -848,7 +848,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const row = await query.executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) as result from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) as result from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -882,7 +882,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const rows = await query.executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, cast(json_arrayagg(json_object('id', issue.id, 'body', issue.body)) as char) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -915,7 +915,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const row = await query.executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -948,7 +948,7 @@ describe(ctx.label, () => {
 
         expect(isQueryAllowed(query)).toBe(true)
         const row = await query.executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', \`body\`)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, cast((select json_arrayagg(json_object('id', id, 'body', body)) from issue where project_id = project.id) as char) as issues from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1007,7 +1007,7 @@ describe(ctx.label, () => {
             .orderBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, cast(json_arrayagg(\`body\`) as char) as bodies from issue where project_id in (?, ?) group by project_id order by projectId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, cast(json_arrayagg(body) as char) as bodies from issue where project_id in (?, ?) group by project_id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

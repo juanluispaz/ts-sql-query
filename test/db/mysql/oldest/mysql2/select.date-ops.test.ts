@@ -32,7 +32,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ now: ctx.conn.currentDateTime() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select current_timestamp as now"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select current_timestamp as \`now\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ now: Date }>>>()
         if (ctx.realDbEnabled) {
@@ -50,7 +50,7 @@ describe(ctx.label, () => {
                 year: tOrganization.createdAt.getFullYear(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, year(created_at) as \`year\` from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, year(created_at) as year from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
                 date:  tOrganization.createdAt.getDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, month(created_at) - 1 as \`month\`, dayofmonth(created_at) as \`date\` from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, month(created_at) - 1 as month, dayofmonth(created_at) as date from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
                 dow: tOrganization.createdAt.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, dayofweek(created_at) - 1 as dow from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, dayofweek(created_at) - 1 as dow from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 t:  tOrganization.createdAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(timestampdiff(microsecond, '1970-01-01 00:00:00', created_at) / 1000) as t from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(timestampdiff(microsecond, '1970-01-01 00:00:00', created_at) / 1000) as t from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -200,7 +200,7 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where created_at <= current_timestamp order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <= current_timestamp order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         // Both seeded orgs were created before "now".

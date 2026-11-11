@@ -61,7 +61,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tOrganization.name)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = @0 output inserted.name as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = @0 output inserted.name as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Renamed Acme",
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.priority.add(100))
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.priority + @1 as [result] where id = @2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.priority + @1 as result where id = @2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 5,
@@ -271,7 +271,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tReleaseDraft.stage)
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = @0 output inserted.stage as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = @0 output inserted.stage as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Alpha cut v2",
@@ -411,7 +411,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.body)
                 .executeUpdateMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.body as [result] where project_id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.body as result where project_id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 5,
@@ -556,7 +556,7 @@ describe(ctx.label, () => {
                 .where(tProjectReview.id.equals(1))
                 .returningOneColumn(tProjectReview.reviewTime)
                 .executeUpdateOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set review_time = @0 output inserted.review_time as [result] where id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set review_time = @0 output inserted.review_time as result where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1970-01-01T13:45:00.000Z,

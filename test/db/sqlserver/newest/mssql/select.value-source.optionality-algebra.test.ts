@@ -41,7 +41,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes + minutes as [sum] from issue_worklog where id in (@0, @1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes + minutes as sum from issue_worklog where id in (@0, @1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

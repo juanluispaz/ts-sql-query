@@ -482,7 +482,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast(case when app_user.id in (select closedIssue.assignee_id as [result] from issue as closedIssue where closedIssue.status = @0) then 1 when not app_user.id in (select closedIssue.assignee_id as [result] from issue as closedIssue where closedIssue.status = @1) then 0 else null end as bit) as ownsClosed from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, cast(case when app_user.id in (select closedIssue.assignee_id as result from issue as closedIssue where closedIssue.status = @0) then 1 when not app_user.id in (select closedIssue.assignee_id as result from issue as closedIssue where closedIssue.status = @1) then 0 else null end as bit) as ownsClosed from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "closed",
@@ -516,7 +516,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (select count(*) as [result] from issue as assigned where assigned.assignee_id = app_user.id) as assigneeLoad from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (select count(*) as result from issue as assigned where assigned.assignee_id = app_user.id) as assigneeLoad from issue left outer join app_user on app_user.id = issue.assignee_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; assigneeLoad: number }>>>()
         expect(result).toEqual(expected)

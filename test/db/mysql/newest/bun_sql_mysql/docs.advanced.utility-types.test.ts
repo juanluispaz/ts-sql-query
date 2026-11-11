@@ -440,7 +440,7 @@ describe(ctx.label, () => {
             ctx.mockNext(1)
             const row: InsertableRow<typeof tCountry> = { code: 'ES', name: ctx.conn.const('Spain', 'string'), region: 'Europe' }
             await ctx.conn.insertInto(tCountry).set(row).executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ES",
@@ -464,7 +464,7 @@ describe(ctx.label, () => {
             const shape = { countryCode: 'code', countryName: 'name', countryRegion: 'region' } as const
             const row: InsertableRowShapedAs<typeof tCountry, typeof shape> = { countryCode: 'ES', countryName: ctx.conn.const('Spain', 'string'), countryRegion: 'Europe' }
             await ctx.conn.insertInto(tCountry).shapedAs(shape).set(row).executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ES",
@@ -481,7 +481,7 @@ describe(ctx.label, () => {
 
             ctx.mockNext(1)
             await ctx.conn.insertInto(tCountry).set(row).executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ES",
@@ -492,7 +492,7 @@ describe(ctx.label, () => {
 
             ctx.mockNext(1)
             await ctx.conn.insertInto(tCountry).values({ ...row, code: 'PT', name: 'Portugal' }).executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?)"`)
 
             ctx.mockNext(2)
             const inserted = await ctx.conn.selectFrom(tCountry)
@@ -513,7 +513,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals('JP'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set \`name\` = concat(region, ?), region = ? where \`code\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set name = concat(region, ?), region = ? where code = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 " country",
@@ -544,7 +544,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals('JP'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set \`name\` = region where \`code\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set name = region where code = ?"`)
             expect(updated).toBe(1)
         })
     })
@@ -559,7 +559,7 @@ describe(ctx.label, () => {
                 .where(tCountry.code.equals('JP'))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set region = ? where \`code\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update country set region = ? where code = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Earth",
@@ -580,7 +580,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet(row)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?) as _new_ on duplicate key update country.region = concat(country.\`name\`, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?) as _new_ on duplicate key update country.region = concat(country.name, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "JP",
@@ -609,7 +609,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet(row)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?) as _new_ on duplicate key update country.\`name\` = _new_.\`name\`"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?) as _new_ on duplicate key update country.name = _new_.name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "JP",

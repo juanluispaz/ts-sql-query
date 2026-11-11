@@ -176,7 +176,7 @@ describe(ctx.label, () => {
         await run({
             body: { isNull: true },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`body\` is null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body is null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -185,7 +185,7 @@ describe(ctx.label, () => {
         await run({
             body: { isNotNull: true },
         })
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`body\` is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 

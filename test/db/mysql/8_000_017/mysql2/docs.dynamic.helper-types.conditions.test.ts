@@ -60,7 +60,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, project.slug as slug, \`organization\`.\`name\` as \`organization.name\` from project inner join \`organization\` on \`organization\`.id = project.organization_id where lower(project.\`name\`) like concat(lower(?), '%') and \`organization\`.\`name\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, project.slug as slug, organization.name as \`organization.name\` from project inner join organization on organization.id = project.organization_id where lower(project.name) like concat(lower(?), '%') and organization.name = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "MARKETING",
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as \`name\`, slug as slug from project where lower(\`name\`) like concat('%', lower(?), '%') or lower(slug) like concat('%', lower(?), '%')"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as name, slug as slug from project where lower(name) like concat('%', lower(?), '%') or lower(slug) like concat('%', lower(?), '%')"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "MKTG",
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\` from project inner join \`organization\` on \`organization\`.id = project.organization_id where lower(project.\`name\`) like concat('%', lower(?), '%') and (project.published = 't') = ? and project.slug in (?) and project.created_at > ? and \`organization\`.\`name\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name from project inner join organization on organization.id = project.organization_id where lower(project.name) like concat('%', lower(?), '%') and (project.published = 't') = ? and project.slug in (?) and project.created_at > ? and organization.name = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "SITE",
@@ -254,7 +254,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from project inner join \`organization\` on \`organization\`.id = project.organization_id where project.\`name\` = ? and project.created_at > ? and \`organization\`.\`name\` = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from project inner join organization on organization.id = project.organization_id where project.name = ? and project.created_at > ? and organization.name = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Marketing site",

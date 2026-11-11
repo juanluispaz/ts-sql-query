@@ -460,7 +460,7 @@ The executed query is:
 === "MariaDB"
     ```mariadb
     select 
-        signed_off_at as value, 
+        signed_off_at as `value`, 
         round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch 
     from project_release 
     where id = ?
@@ -468,7 +468,7 @@ The executed query is:
 === "MySQL"
     ```mysql
     select 
-        signed_off_at as `value`, 
+        signed_off_at as value, 
         round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch 
     from project_release 
     where id = ?
@@ -500,7 +500,7 @@ The executed query is:
 === "SQL Server"
     ```sqlserver
     select 
-        signed_off_at as [value], 
+        signed_off_at as value, 
         datediff_big(millisecond, '1970-01-01 00:00:00', signed_off_at) as epoch 
     from project_release 
     where id = @0

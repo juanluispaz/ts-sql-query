@@ -69,7 +69,7 @@ The executed query is:
     ```mysql
     select 
         customer.id as id, 
-        company.`name` as companyName 
+        company.name as companyName 
     from customer, company 
     where customer.company_id = company.id
     ```
@@ -155,7 +155,7 @@ The executed query is:
         customer.first_name as firstName, 
         customer.last_name as lastName, 
         customer.birthday as birthday, 
-        comp.`name` as companyName 
+        comp.name as companyName 
     from customer 
     inner join company as comp on customer.company_id = comp.id 
     where lower(customer.first_name) like concat(lower(?), '%') 
@@ -272,9 +272,9 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         parent.id as parentId, 
-        parent.`name` as parentName 
+        parent.name as parentName 
     from company 
     left join company as parent on company.parent_id = parent.id
     ```
@@ -369,10 +369,10 @@ The executed query is:
 === "MySQL"
     ```mysql
     select 
-        company.`name` as `name`, 
-        parent.`name` as parentName 
+        company.name as name, 
+        parent.name as parentName 
     from company 
-    left join company as parent on company.parent_id = parent.id and parent.`name` = ?
+    left join company as parent on company.parent_id = parent.id and parent.name = ?
     ```
 === "Oracle"
     ```oracle
@@ -438,11 +438,11 @@ The executed query is:
 === "MySQL"
     ```mysql
     select 
-        company.`name` as `name`, 
-        parent.`name` as parentName 
+        company.name as name, 
+        parent.name as parentName 
     from company 
     left join company as parent on company.parent_id = parent.id 
-    where parent.`name` = ?
+    where parent.name = ?
     ```
 === "Oracle"
     ```oracle
@@ -518,9 +518,9 @@ The executed query is:
     ```mysql
     select 
         company.id as id, 
-        company.`name` as `name`, 
+        company.name as name, 
         parent.id as `parent.id`, 
-        parent.`name` as `parent.name` 
+        parent.name as `parent.name` 
     from company 
     left join company as parent on company.parent_id = parent.id
     ```
@@ -1020,9 +1020,9 @@ The executed query is:
     ```
 === "SQL Server"
     ```sqlserver
-    select first_name as [result] 
+    select first_name as result 
     from customer 
-    order by [result]
+    order by result
     ```
 
 The parameters are: `[]`
@@ -1078,7 +1078,7 @@ The executed query is:
     ```
 === "SQL Server"
     ```sqlserver
-    select count(*) as [result] 
+    select count(*) as result 
     from customer 
     where company_id = @0
     ```
@@ -1139,8 +1139,8 @@ The executed query is:
 === "SQL Server"
     ```sqlserver
     select 
-        (select count(*) as [result] from customer) as customers, 
-        (select count(*) as [result] from company) as companies
+        (select count(*) as result from customer) as customers, 
+        (select count(*) as result from company) as companies
     ```
 
 The parameters are: `[]`

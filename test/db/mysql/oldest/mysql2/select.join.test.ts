@@ -27,7 +27,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.\`name\` as projectName from issue inner join project on project.id = issue.project_id where project.organization_id = ? and issue.project_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue inner join project on project.id = issue.project_id where project.organization_id = ? and issue.project_id = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
             })
             .orderBy('issueId')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, project.\`name\` as projectName, \`organization\`.\`name\` as orgName from issue inner join project on project.id = issue.project_id inner join \`organization\` on \`organization\`.id = project.organization_id order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, project.name as projectName, organization.name as orgName from issue inner join project on project.id = issue.project_id inner join organization on organization.id = project.organization_id order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{
             issueId:     number
@@ -196,7 +196,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.\`name\` as projectName, \`organization\`.\`name\` as orgName from project, \`organization\` where project.organization_id = \`organization\`.id and project.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, organization.name as orgName from project, organization where project.organization_id = organization.id and project.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -228,7 +228,7 @@ describe(ctx.label, () => {
                 issueTitle:  tIssue.title,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.\`name\` as projectName, \`organization\`.\`name\` as orgName, issue.title as issueTitle from project, \`organization\`, issue where project.organization_id = \`organization\`.id and issue.project_id = project.id and project.id = ? and issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, organization.name as orgName, issue.title as issueTitle from project, organization, issue where project.organization_id = organization.id and issue.project_id = project.id and project.id = ? and issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -260,7 +260,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.\`name\` as projectName from issue join project on project.id = issue.project_id where project.organization_id = ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue join project on project.id = issue.project_id where project.organization_id = ? order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -288,7 +288,7 @@ describe(ctx.label, () => {
                 projectName: tProject.name,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.\`name\` as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -312,7 +312,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, projectName: tProject.name })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.\`name\` as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -334,7 +334,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, projectName: tProject.name })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.\`name\` as projectName from issue join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue join project on project.id = issue.project_id where issue.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -472,7 +472,7 @@ describe(ctx.label, () => {
             .orderBy('email')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.\`name\` as project, app_user.email as email from project join app_user on true where project.id = ? order by email"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as project, app_user.email as email from project join app_user on true where project.id = ? order by email"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -500,7 +500,7 @@ describe(ctx.label, () => {
             .orderBy('email')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.\`name\` as project, app_user.email as email from project join app_user on true where project.id = ? order by email"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as project, app_user.email as email from project join app_user on true where project.id = ? order by email"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

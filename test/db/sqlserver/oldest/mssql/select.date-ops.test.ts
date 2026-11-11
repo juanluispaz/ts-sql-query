@@ -50,7 +50,7 @@ describe(ctx.label, () => {
                 year: tOrganization.createdAt.getFullYear(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(year, switchoffset(created_at, '+00:00')) as [year] from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(year, switchoffset(created_at, '+00:00')) as year from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
                 date:  tOrganization.createdAt.getDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(month, switchoffset(created_at, '+00:00')) - 1 as [month], datepart(day, switchoffset(created_at, '+00:00')) as [date] from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(month, switchoffset(created_at, '+00:00')) - 1 as month, datepart(day, switchoffset(created_at, '+00:00')) as date from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -277,7 +277,7 @@ describe(ctx.label, () => {
                 before: tProjectRelease.releasedOn.lessThan(new Date(Date.UTC(2024, 1, 1, 10, 0, 0))),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, released_on) as y, datepart(hour, cutoff_time) as h, datediff_big(millisecond, '1970-01-01 00:00:00', signed_off_at) as t, cast(case when released_on < @0 then 1 else 0 end as bit) as [before] from project_release where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, released_on) as y, datepart(hour, cutoff_time) as h, datediff_big(millisecond, '1970-01-01 00:00:00', signed_off_at) as t, cast(case when released_on < @0 then 1 else 0 end as bit) as before from project_release where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-01T10:00:00.000Z,
@@ -828,7 +828,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.workDate.equals(workDate))
             .selectOneColumn(tIssueWorklog.id)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [result] from issue_worklog where work_date = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from issue_worklog where work_date = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-03-04T10:00:00.000Z,

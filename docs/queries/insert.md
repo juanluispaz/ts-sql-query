@@ -516,7 +516,7 @@ The executed query is:
 === "SQL Server"
     ```sqlserver
     insert into customer (first_name, last_name, company_id)
-    output inserted.first_name as [result]
+    output inserted.first_name as result
     values (@0, @1, @2)
     ```
 

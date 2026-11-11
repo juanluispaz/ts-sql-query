@@ -288,7 +288,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with uuidSampler("ref", signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid("ref") as "ref", raw_to_uuid(signing) as "signing" from uuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with uuidSampler(ref, signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid(ref) as "ref", raw_to_uuid(signing) as "signing" from uuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -528,7 +528,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqAdapterUuidSampler("ref", signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid("ref") as "ref", raw_to_uuid(signing) as "signing" from reqAdapterUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqAdapterUuidSampler(ref, signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid(ref) as "ref", raw_to_uuid(signing) as "signing" from reqAdapterUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -599,7 +599,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optUuidSampler("ref", signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid("ref") as "ref", raw_to_uuid(signing) as "signing" from optUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optUuidSampler(ref, signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid(ref) as "ref", raw_to_uuid(signing) as "signing" from optUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -663,7 +663,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ ref: v.ref, signing: v.signing })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterUuidSampler("ref", signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid("ref") as "ref", raw_to_uuid(signing) as "signing" from optAdapterUuidSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterUuidSampler(ref, signing) as (select uuid_to_raw(:0), uuid_to_raw(:1) from dual) select raw_to_uuid(ref) as "ref", raw_to_uuid(signing) as "signing" from optAdapterUuidSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",

@@ -50,7 +50,7 @@ describe(ctx.label, () => {
                 .values({ name: 'Hooli', plan: 'free' })
                 .executeInsert(1, 5)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan) values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Hooli",
@@ -412,7 +412,7 @@ describe(ctx.label, () => {
                     priority:  ctx.conn.const(3, 'int'),
                 })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) values (?, ?, upper(?), ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, upper(?), ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -436,7 +436,7 @@ describe(ctx.label, () => {
             const count = await ctx.conn.insertInto(tCountry)
                 .values({ code: 'DE', name: 'Germany', region: 'Europe' })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "DE",
@@ -460,7 +460,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert(1, 1)
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan) values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Cyberdyne",

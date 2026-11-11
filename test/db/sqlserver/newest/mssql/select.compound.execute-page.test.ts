@@ -44,14 +44,14 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select title as [label] from issue union all select name as [label] from project order by [label] offset 0 rows fetch next @0 rows only"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select title as label from issue union all select name as label from project order by label offset 0 rows fetch next @0 rows only"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             5,
           ]
         `)
         // The count query wraps the compound in a CTE and counts it.
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select title as [label] from issue union all select name as [label] from project) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select title as label from issue union all select name as label from project) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ label: string }>
@@ -85,9 +85,9 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as [label] from issue union select status as [label] from issue order by [label]"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as label from issue union select status as label from issue order by label"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`[]`)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select status as [label] from issue union select status as [label] from issue) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select status as label from issue union select status as label from issue) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ label: string }>
@@ -119,7 +119,7 @@ describe(ctx.label, () => {
 
         // Only the data query — no count query was fired.
         expect(ctx.history.length).toBe(1)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as [label] from issue union select status as [label] from issue order by [label]"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select status as label from issue union select status as label from issue order by label"`)
         assertType<Exact<typeof page, {
             data:  Array<{ label: string }>
             count: number
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
 
         // Only the count query was fired (the data query was skipped).
         expect(ctx.history.length).toBe(1)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select title as [label] from issue union all select name as [label] from project) select count(*) from result_for_count"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select title as label from issue union all select name as label from project) select count(*) from result_for_count"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ label: string }>

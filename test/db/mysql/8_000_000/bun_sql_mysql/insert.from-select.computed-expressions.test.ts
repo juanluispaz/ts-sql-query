@@ -40,7 +40,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) select id as projectId, id + ? as \`number\`, concat(\`name\`, ?) as title, ? as \`status\`, id + organization_id as priority from project where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select id as projectId, id + ? as number, concat(name, ?) as title, ? as status, id + organization_id as priority from project where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 900,
@@ -71,7 +71,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) select id as projectId, (id * ?) + ? as \`number\`, substr(\`name\`, ?, ?) as title, ? as \`status\`, least(id, ?) as priority from project where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select id as projectId, (id * ?) + ? as number, substr(name, ?, ?) as title, ? as status, least(id, ?) as priority from project where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 100,

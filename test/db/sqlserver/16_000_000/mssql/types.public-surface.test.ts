@@ -358,7 +358,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vSource as (select * from (values (@0, @1)) as vSource(id, [label])) select id as id, (select title as [result] from issue where id = vSource.id) as title from vSource"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vSource as (select * from (values (@0, @1)) as vSource(id, label)) select id as id, (select title as result from issue where id = vSource.id) as title from vSource"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -404,7 +404,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, [action]) output inserted.id values (next value for audit_tag_seq, @0)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) output inserted.id values (next value for audit_tag_seq, @0)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "archived",

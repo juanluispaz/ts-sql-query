@@ -33,7 +33,7 @@ describe(ctx.label, () => {
             .union(issuesQ)
             .orderBy('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -53,7 +53,7 @@ describe(ctx.label, () => {
         const result = await part()
             .unionAll(part())
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [label] from issue where status = @0 union all select status as [label] from issue where status = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as label from issue where status = @0 union all select status as label from issue where status = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'desc')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label] desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'asc nulls first')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label] asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -215,7 +215,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'desc nulls last')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label] desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -245,7 +245,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'asc nulls last')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is null, 1, 0), [label] asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by iif(label is null, 1, 0), label asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -274,7 +274,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'desc nulls first')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is not null, 1, 0), [label] desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by iif(label is not null, 1, 0), label desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -317,7 +317,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ label: tIssue.title })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ label: tIssue.title })
         const result = await a.union(b).union(c).orderBy('label').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 union select title as [label] from issue where id = @2 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select title as label from issue where id = @1 union select title as label from issue where id = @2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
         const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ label: tIssue.title })
         const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ label: tIssue.title })
         const result = await a.union(b).unionAll(c).orderBy('label').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 union all select title as [label] from issue where id = @2 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select title as label from issue where id = @1 union all select title as label from issue where id = @2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -375,7 +375,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderByFromString('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -401,7 +401,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderByFromStringIfValue('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -413,7 +413,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderByFromStringIfValue(undefined)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -436,7 +436,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderByFromStringArray(['label desc'])
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label] desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -461,7 +461,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderByFromStringArrayIfValue(['label'])
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -473,7 +473,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderByFromStringArrayIfValue([undefined, null])
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -497,7 +497,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy(ctx.conn.rawFragment`1`)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by 1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by 1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -581,7 +581,7 @@ describe(ctx.label, () => {
             .limit(2)
             .offset(3)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label] offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label offset @0 rows fetch next @1 rows only"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -603,7 +603,7 @@ describe(ctx.label, () => {
             .limitIfValue(2)
             .offsetIfValue(3)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label] offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label offset @0 rows fetch next @1 rows only"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -640,7 +640,7 @@ describe(ctx.label, () => {
         // 'insensitive' — bare (defaults to ascending).
         ctx.mockNext(ascOrder)
         const r1 = await compound().orderBy('label', 'insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label])"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof r1, Array<{ label: string }>>>()
         expect(r1).toEqual(ascOrder)
@@ -648,35 +648,35 @@ describe(ctx.label, () => {
         // 'desc insensitive'
         ctx.mockNext(descOrder)
         const r2 = await compound().orderBy('label', 'desc insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(r2).toEqual(descOrder)
 
         // 'asc nulls first insensitive'
         ctx.mockNext(ascOrder)
         const r3 = await compound().orderBy('label', 'asc nulls first insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(r3).toEqual(ascOrder)
 
         // 'asc nulls last insensitive'
         ctx.mockNext(ascOrder)
         const r4 = await compound().orderBy('label', 'asc nulls last insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is null, 1, 0), lower([label]) asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by iif(label is null, 1, 0), lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(r4).toEqual(ascOrder)
 
         // 'desc nulls first insensitive'
         ctx.mockNext(descOrder)
         const r5 = await compound().orderBy('label', 'desc nulls first insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is not null, 1, 0), lower([label]) desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by iif(label is not null, 1, 0), lower(label) desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(r5).toEqual(descOrder)
 
         // 'desc nulls last insensitive'
         ctx.mockNext(descOrder)
         const r6 = await compound().orderBy('label', 'desc nulls last insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(r6).toEqual(descOrder)
     })
@@ -701,7 +701,7 @@ describe(ctx.label, () => {
             )
             .orderBy('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project where id = @0 order by 1 offset 0 rows fetch next @1 rows only) _t_1_ union select title as [label] from issue where id = @2 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project where id = @0 order by 1 offset 0 rows fetch next @1 rows only) _t_1_ union select title as label from issue where id = @2 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -738,7 +738,7 @@ describe(ctx.label, () => {
             )
             .orderBy('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union all select * from (select title as [label] from issue where project_id = @1 order by [label] offset 0 rows fetch next @2 rows only) _t_1_ order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union all select * from (select title as label from issue where project_id = @1 order by label offset 0 rows fetch next @2 rows only) _t_1_ order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -767,7 +767,7 @@ describe(ctx.label, () => {
             )
             .orderBy('label')
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select title as label from issue where id = @1 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -795,7 +795,7 @@ describe(ctx.label, () => {
             )
             .orderBy('label')
             .executeSelectNoneOrOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select title as label from issue where id = @1 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -816,7 +816,7 @@ describe(ctx.label, () => {
             )
             .orderBy('label')
             .executeSelectNoneOrOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select title as label from issue where id = @1 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -1,
@@ -844,7 +844,7 @@ describe(ctx.label, () => {
             .orderBy('result')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [result] from project where id = @0 union select slug as [result] from project where id = @1 order by [result]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as result from project where id = @0 union select slug as result from project where id = @1 order by result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -879,7 +879,7 @@ describe(ctx.label, () => {
             .offsetIfValue(offset)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -903,7 +903,7 @@ describe(ctx.label, () => {
 
         const sql = built.query()
         const params = built.params()
-        expect(sql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 order by [label]"`)
+        expect(sql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select title as label from issue where id = @1 order by label"`)
         expect(params).toMatchInlineSnapshot(`
           [
             1,
@@ -939,7 +939,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ label: tIssue.status })
         const result = await left.unionAll(right).orderBy('label').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as [label] from issue union all select status as [label] from issue where id = @0 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as label from issue union all select status as label from issue where id = @0 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -967,7 +967,7 @@ describe(ctx.label, () => {
         const right = ctx.conn.selectDistinctFrom(tIssue)
             .select({ label: tIssue.status })
         const result = await left.unionAll(right).orderBy('label').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as [label] from issue where id = @0 union all select distinct status as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as label from issue where id = @0 union all select distinct status as label from issue order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -995,7 +995,7 @@ describe(ctx.label, () => {
             .where(tIssue.status.equals('open'))
             .select({ label: tIssue.status })
         const result = await left.unionAll(right).orderBy('label').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as [label] from issue union all select distinct status as [label] from issue where status = @0 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as label from issue union all select distinct status as label from issue where status = @0 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",
@@ -1052,7 +1052,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy(ctx.conn.rawFragment`1`, 'desc')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by 1 desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by 1 desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -1073,7 +1073,7 @@ describe(ctx.label, () => {
             .limit(2)
             .offset(2)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) asc offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) asc offset @0 rows fetch next @1 rows only"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1125,14 +1125,14 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) asc offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) asc offset @0 rows fetch next @1 rows only"`)
         expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
           [
             2,
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select name as [label] from project union select title as [label] from issue) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select name as label from project union select title as label from issue) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, { data: Array<{ label: string }>; count: number }>>()
         expect(page).toEqual({ data: dataRows, count: 8 })
@@ -1161,7 +1161,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project order by project.name asc offset 0 rows) _t_1_ union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project order by project.name asc offset 0 rows) _t_1_ union select title as label from issue order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -1199,7 +1199,7 @@ describe(ctx.label, () => {
                 projectStats,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as [count] from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id order by id offset 0 rows for json path) as projectStats from organization where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id order by id offset 0 rows for json path) as projectStats from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1240,7 +1240,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select title as label from issue where id = @1 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -1,
@@ -1275,7 +1275,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select name as [label] from project where id = @1 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select name as label from project where id = @1 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1315,7 +1315,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select name as [label] from project where id = @1 order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = @0 union select name as label from project where id = @1 order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1487,7 +1487,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .orderBy(ctx.conn.rawFragment`0 + ${ctx.conn.const(1, 'int')} + ${ctx.conn.const(2, 'int')}`)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by [label], 0 + @0 + @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label, 0 + @0 + @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1520,7 +1520,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .orderBy(ctx.conn.rawFragment`coalesce(${ctx.conn.const(1, 'int')}, 0)`)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by [label], coalesce(@0, 0)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label, coalesce(@0, 0)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1553,7 +1553,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .orderBy(ctx.conn.const('a', 'string').collate('Latin1_General_BIN2'))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by [label], @0 collate Latin1_General_BIN2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label, @0 collate Latin1_General_BIN2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a",
@@ -1579,7 +1579,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ ref: tIssue.id }))
             .orderBy('ref', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [ref] from project union select id as [ref] from issue order by [ref]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as ref from project union select id as ref from issue order by ref"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ ref: number }>>>()
         expect(result).toEqual(expected)
@@ -1635,7 +1635,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'asc')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label] asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
@@ -1652,7 +1652,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ ref: tIssue.id }))
             .orderBy('ref', 'asc insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as [ref] from project union select id as [ref] from issue order by [ref] asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as ref from project union select id as ref from issue order by ref asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ ref: number }>>>()
         expect(result).toEqual(expected)

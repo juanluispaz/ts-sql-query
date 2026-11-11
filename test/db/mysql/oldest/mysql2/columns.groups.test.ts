@@ -105,7 +105,7 @@ describe(ctx.label, () => {
             .and(tGrouped.location.number.equals(1))
             .select({ id: tGrouped.id, location: tGrouped.location, text: tGrouped.text })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, project_id as \`location.projectId\`, \`number\` as \`location.number\`, title as \`text.title\`, \`status\` as \`text.status\` from issue where project_id = ? and \`number\` = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, project_id as \`location.projectId\`, number as \`location.number\`, title as \`text.title\`, status as \`text.status\` from issue where project_id = ? and number = ?"`)
         expect(row).toEqual(expected)
         assertType<Exact<typeof row, { id: number; location: { projectId: number; number: number }; text: { title: string; status: string } }>>()
     })
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
             .where(aliased.id.equals(1))
             .select({ id: aliased.id, title: aliased.text.title, other: joined.location })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select i.id as id, i.title as title, j.project_id as \`other.projectId\`, j.\`number\` as \`other.number\` from issue as i left join issue as j on j.id = i.id where i.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select i.id as id, i.title as title, j.project_id as \`other.projectId\`, j.number as \`other.number\` from issue as i left join issue as j on j.id = i.id where i.id = ?"`)
         expect(row).toEqual(expected)
         assertType<Exact<typeof row, { id: number; title: string; other?: { projectId: number; number: number } }>>()
     })
@@ -149,7 +149,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority, estimated_hours) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, estimated_hours) values (?, ?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toEqual([1, 100, 'Grouped', 'open', 2, 1.5])
         })
     })
@@ -164,7 +164,7 @@ describe(ctx.label, () => {
                 ])
                 .executeInsert()
             expect(affected).toBe(2)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority, assignee_id) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, assignee_id) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)"`)
         })
     })
 
@@ -187,7 +187,7 @@ describe(ctx.label, () => {
                 .executeInsert()
             assertType<Exact<typeof id, number>>()
             expect(typeof id).toBe('number')
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
         })
     })
 
@@ -204,7 +204,7 @@ describe(ctx.label, () => {
                     }))
                 .executeInsert()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) select project_id as \`location.projectId\`, \`number\` + ? as \`location.number\`, title as \`text.title\`, \`status\` as \`text.status\`, priority as priority from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select project_id as \`location.projectId\`, number + ? as \`location.number\`, title as \`text.title\`, status as \`text.status\`, priority as priority from issue where id = ?"`)
         })
     })
 
@@ -215,7 +215,7 @@ describe(ctx.label, () => {
                 .set({ projectId: 1, number: 100, title: 'Object', status: 'open', priority: 2, body: { a: 1 } })
                 .executeInsert()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority, body) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (?, ?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toEqual([1, 100, 'Object', 'open', 2, '{"a":1}'])
         })
     })
@@ -241,7 +241,7 @@ describe(ctx.label, () => {
                 .where(tGrouped.id.equals(1))
                 .executeUpdate()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set \`number\` = project_id where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set number = project_id where id = ?"`)
         })
     })
 
@@ -293,7 +293,7 @@ describe(ctx.label, () => {
             .set({ text: { title: 'Changed', status: 'open' }, location: { number: 1, projectId: 2 }, priority: 1 })
             .keepOnly('text', 'location.number')
             .where(tGrouped.id.equals(1))
-        expect(query.query()).toMatchInlineSnapshot(`"update issue set title = ?, \`status\` = ?, \`number\` = ? where id = ?"`)
+        expect(query.query()).toMatchInlineSnapshot(`"update issue set title = ?, status = ?, number = ? where id = ?"`)
     })
 
     test('keep-only-naming-every-required-column-of-a-group-leaves-the-insert-executable', () => {
@@ -370,7 +370,7 @@ describe(ctx.label, () => {
                 .set({ place: { project: 1, position: 100 }, title: 'Shaped', status: 'open', priority: 2 })
                 .executeInsert()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
         })
     })
 
@@ -418,7 +418,7 @@ describe(ctx.label, () => {
                 .set({ projectId: 1, number: 100, title: 'a', status: 'open', priority: 1, assignment: { assigneeId: 1 } })
                 .executeInsert()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority, assignee_id) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, assignee_id) values (?, ?, ?, ?, ?, ?)"`)
         })
     })
 
@@ -447,7 +447,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ info: { name: tCountryGrouped.valuesForInsert().info.name } })
                 .executeInsert()
             expect(affected).toBe(1)
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (\`code\`, \`name\`, region) values (?, ?, ?) on duplicate key update \`name\` = values(\`name\`)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into country (code, name, region) values (?, ?, ?) on duplicate key update name = values(name)"`)
         })
     })
 
@@ -480,7 +480,7 @@ describe(ctx.label, () => {
             .where(aliased.id.equals(1))
             .select({ number: selectNumber(aliased) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select r.\`number\` as \`number\` from issue as r where r.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select r.number as number from issue as r where r.id = ?"`)
         expect(row).toEqual({ number: 1 })
     })
 

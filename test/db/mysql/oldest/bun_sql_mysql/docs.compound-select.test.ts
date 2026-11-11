@@ -40,7 +40,7 @@ describe(ctx.label, () => {
             ).executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, ? as kind from \`organization\` union all select id as id, \`name\` as \`name\`, ? as kind from project"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ? as kind from organization union all select id as id, name as name, ? as kind from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "organization",
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from \`organization\` union all select id as id, \`name\` as \`name\` from project order by \`name\` limit ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization union all select id as id, name as name from project order by name limit ?"`)
         expect(firstNames).toEqual(expected)
         assertType<Exact<typeof firstNames, Array<{ id: number; name: string }>>>()
     })

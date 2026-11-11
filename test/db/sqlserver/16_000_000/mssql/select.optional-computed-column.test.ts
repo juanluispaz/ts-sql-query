@@ -34,7 +34,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, activity_label as [label] from issue_worklog order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, activity_label as label from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; label?: string }>>>()
         expect(rows).toEqual(expected)

@@ -131,7 +131,7 @@ describe(ctx.label, () => {
                 .executeUpdate()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update \`organization\` set plan = cast(? as char(32)) where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set plan = cast(? as char(32)) where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "#0102ff",
@@ -267,7 +267,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, amount as amount, amount + cast(? as decimal(11, 10)) as \`next\` from exact_amount where price > cast(? as decimal(1, 0)) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, amount as amount, amount + cast(? as decimal(11, 10)) as next from exact_amount where price > cast(? as decimal(1, 0)) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0000000001",

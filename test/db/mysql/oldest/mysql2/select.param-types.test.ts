@@ -32,7 +32,7 @@ describe(ctx.label, () => {
             .and(tProjectRelease.versionTag.substring(0, 1).equals('S'))
             .select({ id: tProjectRelease.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where id = ? and version = ? and \`channel\` = ? and signing_key = uuid_to_bin(?) and released_on = ? and cutoff_time = ? and signed_off_at = ? and upper(\`channel\`) = ? and substr(upper(\`channel\`), ?, ?) = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where id = ? and version = ? and channel = ? and signing_key = uuid_to_bin(?) and released_on = ? and cutoff_time = ? and signed_off_at = ? and upper(channel) = ? and substr(upper(channel), ?, ?) = ?"`)
         expect(paramTypes()).toEqual([
             ['int', 'int'],
             ['Semver', 'customComparable'],

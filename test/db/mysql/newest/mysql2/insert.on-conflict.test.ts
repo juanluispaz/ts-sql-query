@@ -21,7 +21,7 @@ describe(ctx.label, () => {
                 .onConflictDoNothing()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into \`organization\` (\`name\`, plan) values (?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into organization (name, plan) values (?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ name: 'Marketing site v2' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) as _new_ on duplicate key update project.name = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -119,7 +119,7 @@ describe(ctx.label, () => {
                 .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
                 .onConflictDoUpdateSet({ name: tProject.name.concat(' v2') })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = concat(project.\`name\`, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) as _new_ on duplicate key update project.name = concat(project.name, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                     name: tProject.name.concat(' / ').concat(tProjectForInsert.name),
                 })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = concat(project.\`name\`, ?, _new_.\`name\`)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) as _new_ on duplicate key update project.name = concat(project.name, ?, _new_.name)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -538,7 +538,7 @@ describe(ctx.label, () => {
                 .values({ id: 1, title: 'Alpha cut (upsert)', stage: 'final', channel: 'stable', minVersion: '3.0.0' })
                 .onConflictDoUpdateSet({ stage: 'final', channel: 'stable', minVersion: '3.0.0' })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, \`channel\`, min_version) values (?, ?, ?, ?, ?) as _new_ on duplicate key update release_draft.stage = ?, release_draft.\`channel\` = ?, release_draft.min_version = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, channel, min_version) values (?, ?, ?, ?, ?) as _new_ on duplicate key update release_draft.stage = ?, release_draft.channel = ?, release_draft.min_version = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

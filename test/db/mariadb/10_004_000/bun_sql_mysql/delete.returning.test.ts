@@ -92,7 +92,7 @@ describe(ctx.label, () => {
                 .projectingOptionalValuesAsNullable()
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, \`body\` as \`body\`"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, body as body"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 3,
@@ -362,7 +362,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tIssue.body)
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = ? returning \`body\` as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = ? returning body as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -388,7 +388,7 @@ describe(ctx.label, () => {
                 })
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, \`body\` as \`meta.body\`"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, body as \`meta.body\`"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

@@ -32,7 +32,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectReview.reviewerCode)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.reviewer_code as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.reviewer_code as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectReview.score)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.score as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review output deleted.score as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tProjectRelease.versionTag)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release output upper(deleted.channel) as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release output upper(deleted.channel) as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -103,7 +103,7 @@ describe(ctx.label, () => {
                 .returningOneColumn(tColMatrixVirtualAdapter.cents)
                 .executeDeleteOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from col_matrix output deleted.m_int as [result] where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from col_matrix output deleted.m_int as result where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

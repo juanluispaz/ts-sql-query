@@ -200,7 +200,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(cast(duration_ms as float)) as [avg], avg(distinct cast(duration_ms as float)) as avgD from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(cast(duration_ms as float)) as avg, avg(distinct cast(duration_ms as float)) as avgD from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { avg?: number; avgD?: number }>>()
         expect(row).toEqual({ avg: 3600000, avgD: 3600000 })
@@ -336,7 +336,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.max(tIssue.priority))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as [result] from issue group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         // `max(...)` is optional (empty set → NULL), so the one-column scalar array
         // is typed `Array<number | null>`; every group here is non-empty at runtime.
@@ -356,7 +356,7 @@ describe(ctx.label, () => {
             .selectCountAll()
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from issue group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<number>>>()
         expect(result.slice().sort()).toEqual(expected)
@@ -377,7 +377,7 @@ describe(ctx.label, () => {
             .selectOneColumn(ctx.conn.max(tIssue.assigneeId))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(assignee_id) as [result] from issue group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(assignee_id) as result from issue group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<number | null>>>()
         // the sorted array pins the exact multiset — the null inhabitant (project 2's

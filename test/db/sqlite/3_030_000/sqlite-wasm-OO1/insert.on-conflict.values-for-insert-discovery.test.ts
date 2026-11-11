@@ -991,7 +991,7 @@ describe(ctx.label, () => {
 
             const row = await query.executeInsertNoneOrOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ifnull((select name as result from organization where "plan" = ?4 intersect select name as result from organization where (verified = 'Y') = ?5), ?6) returning id as id, name as name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict (organization_id, slug) do update set name = ifnull((select name as result from organization where plan = ?4 intersect select name as result from organization where (verified = 'Y') = ?5), ?6) returning id as id, name as name"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

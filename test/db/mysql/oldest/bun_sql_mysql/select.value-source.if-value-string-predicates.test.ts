@@ -228,7 +228,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(\`status\`, ?, ?) as masked from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(status, ?, ?) as masked from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "o",
@@ -263,7 +263,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as masked from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as masked from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; masked: string }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)

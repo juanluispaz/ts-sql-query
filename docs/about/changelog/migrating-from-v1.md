@@ -69,7 +69,7 @@ Most of these names were already deprecated in v1, which kept them working and s
 | `mergeType(...)` | `connection.dynamicBooleanExpressionUsing(...)` | v1.61.0, 2 Mar 2024 |
 | `PickValuesPathWitAllProperties`, `PickValuesPathWitAllPropertiesProjectedAsNullable` | `PickValuesPathWithAllProperties`, `PickValuesPathWithAllPropertiesProjectedAsNullable` | v1.69.0, the last version of v1, for a typo in the name |
 | `QueryExecutor` from `MockQueryRunner` | `MockQueryExecutor`, from `ts-sql-query` | v1.69.0, the last version of v1 |
-| `queryRunner.getCurrentNativeTransaction()` | `queryRunner.getCurrentNativeConnection()` | Not deprecated |
+| `queryRunner.getCurrentNativeTransaction()` | `queryRunner.getCurrentNativeConnection()`, which returns the connection of the transaction on every query runner. In v1 it returned the transaction only with `mssql` and postgres.js (and `PrismaQueryRunner`, `AnyDBQueryRunner`, `LoopBackQueryRunner`); with `pg`, `mysql2`, `mariadb`, `oracledb` and the SQLite drivers it returned `undefined` | Not deprecated |
 | `QueryType` from `MockQueryRunner`, `InterceptorQueryRunner` or `LoggingQueryRunner` | `QueryType` from `ts-sql-query` | Not deprecated; v1.69.0 also exports it from `ts-sql-query/queryRunners/QueryRunner` |
 
 The renamed types (`PickValuesPathWit...`, `QueryExecutor`, `QueryType` from a query runner) keep compiling when you import them from their path of v1, marked deprecated, until you rename them; so do `TyeSafeConnection`, `TyeUnsafeConnection` and `TypeSafeDynamicCondition`, below.
@@ -113,7 +113,7 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 
 ### Types that now reject what compiled
 
-Of this section, v1 deprecated the comparisons with a value that can be `null` or `undefined`, the custom type with one generic argument and the name of a constraint as a string; the rest is new in v2.
+Of this section, v1 deprecated the comparisons with a value that can be `null` or `undefined` (since v1.24.0, 21 Dec 2021), the name of a constraint as a string (since v1.68.0), and, in v1.69.0, the custom type with one generic argument, the on conflict without a target on PostgreSQL and the queries each database rejects; the rest is new in v2.
 
 **A JavaScript value that can be `null` or `undefined`.** The overloads of the column operations that accepted one are gone, because a comparison with `null` silently matches nothing. They have been deprecated since v1.24.0 (21 Dec 2021). Use the `IfValue` variant, or see [how to compare against a null value](../limitations.md#how-to-compare-against-a-null-or-undefined-value).
 
@@ -172,7 +172,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
         .executeInsert()
     ```
 
-- PostgreSQL: `.onConflictDoUpdateSet(...)`, `.onConflictDoUpdateSetIfValue(...)` and `.onConflictDoUpdateDynamicSet()` without a target are gone. Use [`.onConflictOn(column).doUpdateSet(...)`](../../queries/insert-on-conflict.md#update-the-existing-row-upsert).
+- PostgreSQL: `.onConflictDoUpdateSet(...)`, `.onConflictDoUpdateSetIfValue(...)` and `.onConflictDoUpdateDynamicSet()` without a target are gone (deprecated in v1.69.0; PostgreSQL requires a target for `do update`). Use [`.onConflictOn(column).doUpdateSet(...)`](../../queries/insert-on-conflict.md#update-the-existing-row-upsert).
 - `executeInsertOne()` is not offered on a multi-row insert with `onConflictDoNothing()`, since the conflict can skip every row.
 - `insertInto(table).from(select)` with a column the table doesn't have.
 
@@ -181,7 +181,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 - `connection.average(...)` and `connection.averageDistinct(...)` always return `number`. Drop an annotation that says `bigint` or a custom type.
 - Nested projections go up to [5 levels](../../queries/complex-projections.md), counting the object passed to `select`.
 
-**Queries the database rejects, per database:**
+**Queries the database rejects, per database.** v1 compiled them and the database rejected them when they ran; v1.69.0 deprecates them on those databases:
 
 | Database | No longer available | Use |
 |---|---|---|

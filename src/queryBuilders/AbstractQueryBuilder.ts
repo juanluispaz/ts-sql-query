@@ -558,6 +558,7 @@ export function __unnamedResultColumn(valueSource: AnyValueSource): QueryResultC
  * metadata the user gave it, the columns of its result, and the configuration of the connection.
  */
 export function  __setQueryMetadata(source: Error, params: any[], sqlBuilder: SqlBuilder, resultColumns: readonly QueryResultColumn[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean) {
+    sqlBuilder._checkConnectionConfiguration()
     setQueryExecutionSource(params, source)
     setQueryResultColumns(params, resultColumns)
     setQueryConnectionConfiguration(params, sqlBuilder._connectionConfiguration)

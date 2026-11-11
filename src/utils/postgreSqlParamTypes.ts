@@ -1,5 +1,6 @@
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getParamTypeAt, getParamTypeCategoryAt } from './queryParamsMetadata.js'
+import { getParamMetadataAt, getParamTypeAt, getParamTypeCategoryAt } from './queryParamsMetadata.js'
+import { postgreSqlZonedParam } from './valueSymbols.js'
 import { __conversionType } from './typeCategory.js'
 import { utcDateText, utcTimeText } from './utcDateTimeText.js'
 
@@ -23,6 +24,16 @@ const uuid: PostgreSqlParamType = { cast: 'uuid', oid: 2950 }
 const date: PostgreSqlParamType = { cast: 'date', oid: 1082 }
 const time: PostgreSqlParamType = { cast: 'time', oid: 1083 }
 const timestamp: PostgreSqlParamType = { cast: 'timestamp', oid: 1114 }
+const timestamptz: PostgreSqlParamType = { cast: 'timestamptz', oid: 1184 }
+
+/**
+ * Whether the parameter at that index is a localDateTime or a localTime of a database outside UTC (marked by the
+ * connection before it is added): it goes as a timestamptz of its instant, which the database converts with its
+ * session, in the zone of the database, where it is compared with or stored in a timestamp or a time
+ */
+export function isPostgreSqlZonedParam(params: any[], index: number): boolean {
+    return getParamMetadataAt(params, index, postgreSqlZonedParam) === true
+}
 
 const byConversionType: { [conversionType: string]: PostgreSqlParamType } = {
     boolean: bool,
@@ -44,9 +55,12 @@ const byConversionType: { [conversionType: string]: PostgreSqlParamType } = {
  * `int8`, an integer number an `int4` or an `int8` by its range, any other number a `float8`. Undefined when there is
  * none, like for a text or a null of those types.
  */
-export function postgreSqlParamType(type: string | undefined, typeCategory: TypeCategory | undefined, valueSentToDB: unknown): PostgreSqlParamType | undefined {
+export function postgreSqlParamType(type: string | undefined, typeCategory: TypeCategory | undefined, valueSentToDB: unknown, zoned: boolean = false): PostgreSqlParamType | undefined {
     if (type !== undefined) {
         const conversionType = __conversionType(type, typeCategory)
+        if (zoned && (conversionType === 'localDateTime' || conversionType === 'localTime')) {
+            return timestamptz
+        }
         if (Object.hasOwn(byConversionType, conversionType)) {
             return byConversionType[conversionType]
         }
@@ -70,17 +84,25 @@ export function postgreSqlParamType(type: string | undefined, typeCategory: Type
  * The placeholder `$<index + 1>` of the parameter at that index of the params, with its cast when forceTypeCast and the
  * parameter has a PostgreSQL type: the one declared for its type name in typesByName, or the one of postgreSqlParamType.
  */
-export function postgreSqlPlaceholder(index: number, value: unknown, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, typesByName?: { readonly [typeName: string]: string } | undefined): string {
+export function postgreSqlPlaceholder(index: number, value: unknown, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, typesByName?: { readonly [typeName: string]: string } | undefined, zoned: boolean = false): string {
     const placeholder = '$' + (index + 1)
-    if (!forceTypeCast) {
+    if (!forceTypeCast && !zoned) {
         return placeholder
     }
     const declared = typesByName && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
-    const cast = declared ?? postgreSqlParamType(type, typeCategory, value)?.cast
+    if (declared !== undefined) {
+        return placeholder + '::' + declared
+    }
+    const cast = postgreSqlParamType(type, typeCategory, value, zoned)?.cast
     if (cast) {
-        return placeholder + '::' + cast
+        return placeholder + '::' + cast + postgreSqlZonedTimeCast(type, typeCategory, zoned)
     }
     return placeholder
+}
+
+/** A localTime of a database outside UTC, sent as a timestamptz, is turned into the time of the session: `::time` */
+export function postgreSqlZonedTimeCast(type: string, typeCategory: TypeCategory, zoned: boolean): string {
+    return zoned && __conversionType(type, typeCategory) === 'localTime' ? '::time' : ''
 }
 
 /**
@@ -91,7 +113,7 @@ export function postgreSqlPlaceholder(index: number, value: unknown, type: strin
  * it) and a `timestamptz`. A year before 1 is written as PostgreSQL does, `0044-03-15 BC` for the year -43. Any other
  * value is sent as it is.
  */
-export function postgreSqlParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined): unknown {
+export function postgreSqlParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined, zoned: boolean = false): unknown {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
         return value
     }
@@ -103,6 +125,10 @@ export function postgreSqlParamValue(value: unknown, type: string, typeCategory:
         case 'localDate':
             return utcDateText(value, eraYear) + era
         case 'localTime':
+            if (zoned) {
+                // Its own day gives the offset the database converts it with
+                return utcDateText(value, eraYear) + ' ' + utcTimeText(value) + '+00' + era
+            }
             return utcTimeText(value)
         case 'localDateTime':
             return utcDateText(value, eraYear) + ' ' + utcTimeText(value) + '+00' + era
@@ -126,7 +152,7 @@ export function postgreSqlDriverParams(params: any[]): any[] {
         if (!result) {
             result = params.slice()
         }
-        result[i] = postgreSqlParamValue(value, type, getParamTypeCategoryAt(params, i))
+        result[i] = postgreSqlParamValue(value, type, getParamTypeCategoryAt(params, i), isPostgreSqlZonedParam(params, i))
     }
     return result ?? params
 }

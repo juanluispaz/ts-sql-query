@@ -1,5 +1,5 @@
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { postgreSqlOptionsTimeZone, requireSessionInDatabaseZone } from './processTimeZone.js'
+import { postgreSqlOptionsTimeZone, type SessionTimeZone } from './processTimeZone.js'
 
 /**
  * pg must receive the values as text: in its binary mode (`binary: true`, of the client or of the pool) a numeric is
@@ -13,13 +13,12 @@ export function requirePgTextMode(clientOrPool: unknown, queryRunner: string): v
 }
 
 /**
- * The session must be in the zone of the database (see requireSessionInDatabaseZone): pg sets the zone of the session
- * only through `options` (`-c TimeZone=…`), given in the configuration, in the `options` of the connection string or
- * in `PGOPTIONS`. A client has them together in `connectionParameters`; a pool keeps its configuration as given, and
- * the rest is seen in each client it gives. Thrown when the query runner is created.
+ * The zone pg gives the session (see rejectSessionNotInDatabaseZone): only through `options` (`-c TimeZone=…`), given in
+ * the configuration, in the `options` of the connection string or in `PGOPTIONS`, which a client has together in
+ * `connectionParameters` (a client of a pool too). Undefined when it sets none.
  */
-export function requirePgSessionInDatabaseZone(clientOrPool: unknown, queryRunner: string): void {
-    const object = clientOrPool as { connectionParameters?: { options?: unknown }, options?: { options?: unknown } } | undefined
-    const options = object?.connectionParameters ? object.connectionParameters.options : object?.options?.options
-    requireSessionInDatabaseZone(queryRunner, postgreSqlOptionsTimeZone(options), 'options', options, "pg's options (-c TimeZone)")
+export function pgSessionTimeZone(client: unknown, queryRunner: string): SessionTimeZone | undefined {
+    const options = (client as { connectionParameters?: { options?: unknown } } | undefined)?.connectionParameters?.options
+    const timeZone = postgreSqlOptionsTimeZone(options)
+    return timeZone === undefined ? undefined : { queryRunner, timeZone, name: 'options', value: options, origin: "pg's options (-c TimeZone)" }
 }

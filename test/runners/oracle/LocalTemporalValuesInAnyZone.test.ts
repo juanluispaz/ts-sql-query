@@ -46,7 +46,8 @@ describeLocalTemporalValuesInAnyZone({
     runners: runners.map(runner => ({ runner, enabled, needsConnection: true, envFor: (zone: string) => zone === 'UTC' ? {} : { ORA_SDTZ: 'UTC' }, limitOf: oracleLimitOf })),
 })
 
-// What the runners of oracledb must validate when created: the session in the zone of the database, taken as UTC.
+// What the runners of oracledb must validate, at the first query (which carries the databaseTimeZone of the
+// connection, UTC here): the session in the zone of the database.
 // oracledb sets the session from process.env.ORA_SDTZ, or else from the offset of the process: ORA_SDTZ in UTC, or
 // unset with the process in UTC
 describeRunnerRequirements({
@@ -55,11 +56,11 @@ describeRunnerRequirements({
     acquire,
     enabled,
     requirements: runners.flatMap(runner => [
-        { title: `${runner} without ORA_SDTZ is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', expected: 'rejected' as const },
-        { title: `${runner} without ORA_SDTZ is rejected in America/New_York`, runner, zone: 'America/New_York', expected: 'rejected' as const },
-        { title: `${runner} with ORA_SDTZ = Europe/Madrid is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: 'rejected' as const },
-        { title: `${runner} with ORA_SDTZ = Europe/Madrid is rejected in UTC`, runner, zone: 'UTC', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: 'rejected' as const },
-        { title: `${runner} with ORA_SDTZ = DBTIMEZONE is rejected in UTC`, runner, zone: 'UTC', env: { ORA_SDTZ: 'DBTIMEZONE' }, expected: 'rejected' as const },
+        { title: `${runner} without ORA_SDTZ is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', expected: 'rejected at its first query' as const },
+        { title: `${runner} without ORA_SDTZ is rejected in America/New_York`, runner, zone: 'America/New_York', expected: 'rejected at its first query' as const },
+        { title: `${runner} with ORA_SDTZ = Europe/Madrid is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: 'rejected at its first query' as const },
+        { title: `${runner} with ORA_SDTZ = Europe/Madrid is rejected in UTC`, runner, zone: 'UTC', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: 'rejected at its first query' as const },
+        { title: `${runner} with ORA_SDTZ = DBTIMEZONE is rejected in UTC`, runner, zone: 'UTC', env: { ORA_SDTZ: 'DBTIMEZONE' }, expected: 'rejected at its first query' as const },
         { title: `${runner} with ORA_SDTZ = UTC is accepted in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: 'UTC' }, expected: 'created' as const },
         { title: `${runner} with ORA_SDTZ = +00:00 is accepted in Europe/Madrid`, runner, zone: 'Europe/Madrid', env: { ORA_SDTZ: '+00:00' }, expected: 'created' as const },
         { title: `${runner} without ORA_SDTZ is accepted in UTC`, runner, zone: 'UTC', expected: 'created' as const },

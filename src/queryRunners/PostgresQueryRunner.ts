@@ -7,9 +7,9 @@ import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
-import { postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { isProcessInUtc, postgreSqlOptionsTimeZone, requireSessionInDatabaseZone } from '../utils/processTimeZone.js'
+import { isProcessInUtc, postgreSqlOptionsTimeZone, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 
 export interface PostgresQueryRunnerConfig {
     /**
@@ -28,11 +28,14 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     private readonly givenConnection: GivenSqlConnection
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
     private config?: PostgresQueryRunnerConfig | undefined
+    /** The zone the configuration of postgres.js gives the session, checked for each query */
+    private readonly sessionTimeZone: SessionTimeZone | undefined
 
     /** connection: the client of a pool, a connection reserved from it, or a transaction begun with it */
     constructor(connection: Sql | TransactionSql | ReservedSql, config?: PostgresQueryRunnerConfig) {
         super()
         requirePostgresJsOptions(connection)
+        this.sessionTimeZone = postgresJsSessionTimeZone(connection)
         // Only a pool client is asked to reserve or begin (see givenConnection)
         this.connection = connection as Sql
         this.givenConnection = getGivenSqlConnection(connection)
@@ -85,7 +88,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
             } else if (declared !== undefined) {
                 typed = sql.typed(value, declared)
             } else if (getParamForceTypeCastAt(params, i)) {
-                const paramType = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), value)
+                const paramType = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), value, isPostgreSqlZonedParam(params, i))
                 if (paramType) {
                     typed = sql.typed(value, paramType.oid)
                 }
@@ -116,10 +119,10 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         return sql.unsafe(query, driverParams).then(getResult, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.executeUnsafe(query, params, (result) => result)
+        return rejectSessionNotInDatabaseZone(this.sessionTimeZone, params) || this.executeUnsafe(query, params, (result) => result)
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.executeUnsafe(query, params, (result) => result.count)
+        return rejectSessionNotInDatabaseZone(this.sessionTimeZone, params) || this.executeUnsafe(query, params, (result) => result.count)
     }
     override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
         return this.reserveForTransaction().then((reserved) => {
@@ -287,12 +290,11 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
  * of the client (a transaction or a reserved connection doesn't expose them). Thrown when the query runner is created.
  * - A transform of the results (`transform.column.from`, `value.from`, `row.from`, or `postgres.camel`...): it renames
  *   the columns the library reads by their name, or changes their values.
- * - A zone of the session (`connection: { TimeZone }`) other than the zone of the database, taken as UTC.
  * - `infer: true`, when the process doesn't run in UTC: with it postgres.js reads a `timestamp` with the zone of the
  *   process, and the values in the database are in UTC.
  */
 function requirePostgresJsOptions(connection: unknown): void {
-    const options = (connection as { options?: { transform?: any, infer?: unknown, connection?: unknown } }).options
+    const options = (connection as { options?: { transform?: any, infer?: unknown } }).options
     const transform = options?.transform
     for (const name of ['column', 'value', 'row'] as const) {
         const from = transform?.[name]?.from
@@ -303,15 +305,28 @@ function requirePostgresJsOptions(connection: unknown): void {
     // The session in the zone of the database: postgres.js sends the entries of `connection` (with the parameters of
     // the URL that aren't its own options) as settings of the session when it connects; the names of the settings
     // in any case, and `options` as the command-line options of the server (-c TimeZone=…)
-    const connectionSettings = options?.connection
+    if (options?.infer === true && !isProcessInUtc()) {
+        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'infer', value: true }, 'PostgresQueryRunner requires a postgres.js client without infer: true when the process does not run in UTC: with it postgres.js reads a timestamp with the zone of the process, and the date and time values are in UTC')
+    }
+}
+
+/**
+ * The zone postgres.js gives the session (see rejectSessionNotInDatabaseZone): it sends the entries of `connection`
+ * (with the parameters of the URL that aren't its own options) as settings of the session when it connects; the names
+ * of the settings in any case, and `options` as the command-line options of the server (-c TimeZone=…). The last one
+ * that sets it; undefined when none does.
+ */
+function postgresJsSessionTimeZone(connection: unknown): SessionTimeZone | undefined {
+    const connectionSettings = (connection as { options?: { connection?: unknown } }).options?.connection
+    let session: SessionTimeZone | undefined
     if (connectionSettings && typeof connectionSettings === 'object') {
         for (const [key, value] of Object.entries(connectionSettings)) {
             const name = key.toLowerCase()
             const timeZone = name === 'timezone' ? (value === undefined || value === null ? undefined : String(value)) : name === 'options' ? postgreSqlOptionsTimeZone(value) : undefined
-            requireSessionInDatabaseZone('PostgresQueryRunner', timeZone, 'connection', connectionSettings, "postgres.js's connection." + key)
+            if (timeZone !== undefined) {
+                session = { queryRunner: 'PostgresQueryRunner', timeZone, name: 'connection', value: connectionSettings, origin: "postgres.js's connection." + key }
+            }
         }
     }
-    if (options?.infer === true && !isProcessInUtc()) {
-        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'infer', value: true }, 'PostgresQueryRunner requires a postgres.js client without infer: true when the process does not run in UTC: with it postgres.js reads a timestamp with the zone of the process, and the date and time values are in UTC')
-    }
+    return session
 }

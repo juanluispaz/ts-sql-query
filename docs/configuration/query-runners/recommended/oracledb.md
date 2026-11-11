@@ -149,7 +149,7 @@ async function main() {
 
 ## Connection requirements
 
-**Rejected** when the query runner is created, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION` and `name` `'ORA_SDTZ'`:
+**Rejected at the first query**, before anything is sent, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION` and `name` `'ORA_SDTZ'` (Oracle doesn't support yet a `databaseTimeZone` other than UTC):
 
 - **A session outside UTC: the environment variable `ORA_SDTZ` set to another zone, or not set when the process doesn't run in UTC.** oracledb sets the zone of the session from `ORA_SDTZ` when it opens a connection, or else from the offset of the process at that moment. The library takes the database as UTC, and the session must be in its zone: a `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the zone of the session, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, and what the database computes in the session (`current_date`, `localtimestamp`) comes in its zone. `ORA_SDTZ` is accepted as `UTC` or another name of UTC, or as `+00:00`; `LOCAL` and `DBTIMEZONE` are rejected, because their zone can't be known without a query. In a process in UTC nothing is needed: oracledb already sets the session to `+00:00`. If your database isn't in UTC, don't move the session to UTC to pass the check: a database outside UTC isn't supported yet (see [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session)). How the query runner knows the zone of the process is in [Time zones](../../time-zones.md#the-applications-zone).
 

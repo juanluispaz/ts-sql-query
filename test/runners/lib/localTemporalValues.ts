@@ -132,7 +132,7 @@ export interface RunnerRequirement {
      * TsSqlProcessingError of reason INVALID_CONFIGURATION; `rejected when created or at its first query` for a runner
      * given a promise of the pool, which can only see the configuration when the promise resolves.
      */
-    readonly expected: 'created' | 'rejected' | 'rejected when created or at its first query'
+    readonly expected: 'created' | 'rejected' | 'rejected at its first query' | 'rejected when created or at its first query'
 }
 
 export interface RunnerRequirementsOptions {
@@ -155,6 +155,8 @@ export function describeRunnerRequirements(opts: RunnerRequirementsOptions): voi
                     expect(outcome).toBe('created')
                 } else if (requirement.expected === 'rejected') {
                     expect(outcome).toBe('rejected when created: ' + REJECTED)
+                } else if (requirement.expected === 'rejected at its first query') {
+                    expect(outcome).toBe('rejected at its first query: ' + REJECTED)
                 } else {
                     expect([`rejected when created: ${REJECTED}`, `rejected at its first query: ${REJECTED}`]).toContain(outcome)
                 }

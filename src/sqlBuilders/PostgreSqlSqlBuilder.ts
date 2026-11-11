@@ -10,7 +10,7 @@ import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../exp
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __typeCategoryOf } from '../utils/typeCategory.js'
+import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
 import { postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
@@ -643,6 +643,39 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     // The date-part family (`_getTime` / `_getMonth` / `_getDay` / …) lives in
     // AbstractSqlBuilder, written in this dialect's form, and PostgreSQL reaches it
     // unmodified — do not re-add overrides here; change the base instead.
+    override _supportDatabaseOutsideUtc(): boolean {
+        return true
+    }
+    /**
+     * With a databaseTimeZone other than UTC, the date functions of a localDateTime or a localTime give the parts in
+     * UTC of its instant, which the database completes with its session (see postgreSqlZonedValueSql)
+     */
+    override _appendSqlForDatePartArgument(valueSource: ToSql, params: any[]): string {
+        const sql = super._appendSqlForDatePartArgument(valueSource, params)
+        if (!this._isDatabaseOutsideUtc() || !isValueSource(valueSource)) {
+            return sql
+        }
+        const zoned = postgreSqlZonedValueSql(sql, __conversionType(__getValueSourcePrivate(valueSource).__valueTypeName, __typeCategoryOf(__getValueSourcePrivate(valueSource).__valueType)), this._connectionConfiguration.localTimeReferenceDate)
+        return zoned ? '(' + zoned + " at time zone 'UTC')" : sql
+    }
+}
+
+/**
+ * The instant of a localDateTime or a localTime of a database outside UTC, as a timestamptz the database completes with
+ * the zone of its session (the zone of the database): `<sql>::timestamptz`, a no-op on a timestamptz; a localTime on
+ * the day of the localTimeReferenceDate, `(date '1970-01-01' + <sql>)::timestamptz` or `(current_date + <sql>)…`.
+ * Undefined for any other type.
+ */
+export function postgreSqlZonedValueSql(sql: string, conversionType: string, localTimeReferenceDate: string | undefined): string | undefined {
+    if (conversionType === 'localDateTime') {
+        // A column, or a qualified one, needs no parenthesis
+        return (/^[\w."]+$/.test(sql) ? sql : '(' + sql + ')') + '::timestamptz'
+    }
+    if (conversionType === 'localTime') {
+        const day = localTimeReferenceDate === 'today' ? 'current_date' : "date '" + (localTimeReferenceDate ?? '1970-01-01') + "'"
+        return '(' + day + ' + ' + sql + ')::timestamptz'
+    }
+    return undefined
 }
 
 // Source: https://www.postgresql.org/docs/12/sql-keywords-appendix.html (version: 12, only the ones marked as reserved by postgreSql)

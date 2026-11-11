@@ -9,3 +9,7 @@ export const queryParamsInfo: unique symbol = Symbol('queryParamsInfo')
 
 // A parameter of a localDateTime or a localTime that Oracle holds in a DATE (OracleDateAsTimestampTypeAdapter)
 export const oracleDateParam: unique symbol = Symbol('oracleDateParam')
+
+// A parameter of a localDateTime or a localTime of PostgreSQL with a databaseTimeZone other than UTC: sent as a
+// timestamptz, which the database converts with its session (PostgreSqlConnection.addQueryParamMetadata)
+export const postgreSqlZonedParam: unique symbol = Symbol('postgreSqlZonedParam')

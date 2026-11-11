@@ -451,7 +451,7 @@ v2 keeps every date and time of the database in UTC, whatever the zone of the pr
     ```
 
     `2024-01-14 10:30:00` becomes `2024-01-14 09:30:00`, and `2024-07-14 14:30:00` becomes `2024-07-14 12:30:00`. If you can't convert them, read and write that column through a [type adapter](../../configuration/column-types.md#type-adapters) on a `customLocalDateTime`.
-- **A query runner can reject the connection**, when it's created: `oracledb` needs the environment variable `ORA_SDTZ` set to UTC (or not set, with the process in UTC), `pg` and postgres.js a session `TimeZone` in UTC if their configuration sets one, and `mssql` a pool without `useUTC: false` (see [Query runners](#query-runners)).
+- **A query runner can reject the connection**, when it's created: `oracledb` needs the environment variable `ORA_SDTZ` set to UTC (or not set, with the process in UTC), `pg` and postgres.js a session `TimeZone` in the zone of the database (UTC, or the `databaseTimeZone` you declare) if their configuration sets one, and `mssql` a pool without `useUTC: false` (see [Query runners](#query-runners)).
 - **MySQL and MariaDB `TIMESTAMP`** and Oracle `TIMESTAMP WITH LOCAL TIME ZONE` are converted with the zone of the database session, which must be in UTC.
 
 A column with zone, like `timestamptz` or `datetimeoffset`, keeps its instant, as in v1. On SQLite nothing changes: the strategy of dates decides, as before.

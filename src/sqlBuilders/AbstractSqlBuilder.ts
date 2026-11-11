@@ -21,6 +21,7 @@ import { getWithData, hasWithData } from './SqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
+import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { getContainsInsertReturningClause, setContainsInsertReturningClause, setContainsMutationReturningClause, setForcedAffectedRowCount, setParamValueForColumnAt } from '../utils/queryParamsMetadata.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
@@ -4037,6 +4038,29 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // sub-millisecond fraction, so :45.9996 rounds up to 46000, and the `% 1000`
         // then wraps it to 0 instead of 999.
         return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer % 1000'
+    }
+    /** Whether the database supports a databaseTimeZone other than UTC, completing the zone of a value with its session */
+    _supportDatabaseOutsideUtc(): boolean {
+        return false
+    }
+    /** Whether the connection declares a databaseTimeZone other than UTC */
+    _isDatabaseOutsideUtc(): boolean {
+        const zone = this._connectionConfiguration.databaseTimeZone
+        return zone !== undefined && !isUtcTimeZoneName(zone)
+    }
+    /** Rejects, for each query executed, a configuration of the connection this database can't honor */
+    _checkConnectionConfiguration(): void {
+        if (!this._isDatabaseOutsideUtc()) {
+            return
+        }
+        const zone = this._connectionConfiguration.databaseTimeZone
+        if (!this._supportDatabaseOutsideUtc()) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'databaseTimeZone', value: zone }, 'A databaseTimeZone other than UTC is not supported on this database (' + zone + '): it can\'t complete the zone of a value without zone for every date (see the known limits of the time zones in the documentation)')
+        }
+        const referenceDate = this._connectionConfiguration.localTimeReferenceDate
+        if (referenceDate !== undefined && referenceDate !== 'today' && !/^\d{4}-\d{2}-\d{2}$/.test(referenceDate)) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'localTimeReferenceDate', value: referenceDate }, "localTimeReferenceDate must be a date 'YYYY-MM-DD' or 'today': " + referenceDate)
+        }
     }
     _appendSqlForDatePartArgument(valueSource: ToSql, params: any[]): string {
         // A const receiver is forced to carry its type cast: an untyped placeholder inside

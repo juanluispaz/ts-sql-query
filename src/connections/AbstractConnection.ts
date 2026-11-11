@@ -1,4 +1,5 @@
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
+import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
@@ -57,6 +58,23 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      * breakpoint.
      */
     protected compatibilityVersion: number = Number.POSITIVE_INFINITY
+    /**
+     * The zone of the database, an IANA name like `'Europe/Madrid'`: the zone of its data, in which it gives its current
+     * date and time. A localDateTime or a localTime stored without zone is a wall clock of this zone, and the session of
+     * the connection must be in it. `'UTC'` by default. Another zone is supported on PostgreSQL and Oracle, where the
+     * database completes the zone of those values with its session; MariaDB, MySQL, SQL Server and SQLite reject it.
+     */
+    protected databaseTimeZone: string = 'UTC'
+    /**
+     * With a databaseTimeZone other than UTC, the day a localTime is completed with to give it the offset of that day:
+     * a date `'YYYY-MM-DD'` (`'1970-01-01'` by default, the day of a localTime) or `'today'`, the current date of the
+     * database
+     */
+    protected localTimeReferenceDate: string = '1970-01-01'
+    /** Whether the databaseTimeZone isn't UTC */
+    protected isDatabaseOutsideUtc(): boolean {
+        return !isUtcTimeZoneName(this.databaseTimeZone)
+    }
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 
@@ -1348,7 +1366,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (!received) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
                 }
-                const result: any = new Date(Date.UTC(1970, 0, 1, received.getUTCHours(), received.getUTCMinutes(), received.getUTCSeconds(), received.getUTCMilliseconds()))
+                // With a databaseTimeZone other than UTC the database gives the instant of the time on the day of the
+                // localTimeReferenceDate: that day gives it its offset, and the Date keeps it
+                const result: any = this.isDatabaseOutsideUtc() ? new Date(received.getTime()) : new Date(Date.UTC(1970, 0, 1, received.getUTCHours(), received.getUTCMinutes(), received.getUTCSeconds(), received.getUTCMilliseconds()))
                 result.___type___ = 'localTime'
                 return result
             }

@@ -144,10 +144,44 @@ When the zone is part of the value you need, keep the value as text: the databas
 
 The zone of your application doesn't change the values the library sends and reads. Two zones of the database do:
 
-- **The zone of the database.** A column without zone holds a wall clock, and the zone that gives it its meaning is the database's: the zone in which the database gives its current date and time (`now()`, `current_timestamp`, a default) when the connection sets nothing. It comes from the server, which takes it from the machine it was installed on or has it in its configuration, and some engines let it be set on the database itself (see the [Per database](#per-database) tabs). The library reads and writes those digits as UTC, so **the database must be in UTC**. A database installed on a machine outside UTC with nothing configured is in the zone of that machine: its values without zone are in that zone, and each one is read and written off by the difference, an hour in Madrid in winter. The library can't see that zone without a query of its own, so it can't detect it: a database outside UTC isn't supported yet.
+- **The zone of the database.** A column without zone holds a wall clock, and the zone that gives it its meaning is the database's: the zone in which the database gives its current date and time (`now()`, `current_timestamp`, a default) when the connection sets nothing. It comes from the server, which takes it from the machine it was installed on or has it in its configuration, and some engines let it be set on the database itself (see the [Per database](#per-database) tabs). The library reads and writes those digits as UTC, so **the database must be in UTC**, unless you declare its zone (see [A database outside UTC](#a-database-outside-utc)). A database installed on a machine outside UTC with nothing configured is in the zone of that machine: its values without zone are in that zone, and, taken as UTC, each one is read and written off by the difference, an hour in Madrid in winter. The library can't see that zone without a query of its own, so it can't detect it: you declare it.
 - **The session**: the zone a connection sets (`SET TIME ZONE`, `SET time_zone`, `ALTER SESSION`, or an option of the driver); when nothing sets one, it is the zone of the database. **The session must be in the zone of the database**, so in UTC. The engine uses it for a column of kind 2 (MySQL and MariaDB `TIMESTAMP`, Oracle `TIMESTAMP WITH LOCAL TIME ZONE`), for SQL that mixes a wall clock with an instant (on PostgreSQL: the date functions of a `timestamptz`, like `getHours()`, a constant `localDateTime` inserted into a `timestamptz` column, a `timestamp` compared with `current_timestamp`, `date_trunc` of a `timestamptz`), and for its current date and time. A session in another zone breaks them, and what the database produces in it (`now()`, a default, a trigger) is stored in the zone of the session, not in the zone of the data. That includes a session set to UTC over a database that isn't: setting the session doesn't change the zone of the data.
 
-What the drivers do with the session by default: pg, postgres.js, Bun SQL PostgreSQL, mysql2 and mariadb leave it in the zone of the database; Bun SQL MySQL and MariaDB set it to `+00:00`; oracledb sets it itself (see the Oracle tab); SQL Server has no session zone. Where the query runner can read the session from the configuration (`ORA_SDTZ` for oracledb, the `options` of pg, the `connection` of postgres.js), it rejects a session outside UTC when it is created; a `SET` of yours isn't seen. [The database's zone](#the-databases-zone) says how to put the database in UTC.
+What the drivers do with the session by default: pg, postgres.js, Bun SQL PostgreSQL, mysql2 and mariadb leave it in the zone of the database; Bun SQL MySQL and MariaDB set it to `+00:00`; oracledb sets it itself (see the Oracle tab); SQL Server has no session zone. Where the query runner can read the session from the configuration (`ORA_SDTZ` for oracledb, the `options` of pg, the `connection` of postgres.js), it rejects at the first query a session that isn't in the zone of the database; a `SET` of yours isn't seen. [The database's zone](#the-databases-zone) says how to put the database in UTC.
+
+## A database outside UTC
+
+A database that has always been in the zone it was installed in, like `Europe/Madrid`, holds its values without zone as wall clocks of that zone. On PostgreSQL, declare that zone in the connection, with `databaseTimeZone` and an IANA name:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override databaseTimeZone = 'Europe/Madrid'
+}
+```
+
+The library then lets the database complete the zone of a `localDateTime` or a `localTime` with its session, which must be in that zone (leave it unset, or set it to that same zone): a `Date` is still an instant, and the database turns it into its wall clock and back.
+
+| | What the library writes | Example, in `Europe/Madrid` |
+|---|---|---|
+| A `localDateTime` sent | `$1::timestamptz` (pg, Bun SQL), or the parameter sent as a `timestamptz` (postgres.js, PGlite) | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123`, and compared with it |
+| A `localDateTime` read | `starts_at::timestamptz` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
+| The date functions | `extract(hour from (starts_at::timestamptz at time zone 'UTC'))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
+| A `localTime` | completed with a day, the `localTimeReferenceDate` | `18:00` is read as `1970-01-01T17:00:00.000Z` |
+
+A `localDate` doesn't change: a date has no instant. A column with zone (`timestamptz`) reads the same as before, its instant.
+
+A `localTime` has no day, and its offset depends on the day: 18:00 in Madrid is 17:00 UTC in winter and 16:00 UTC in summer. `localTimeReferenceDate` says which day completes it: `'1970-01-01'` by default, the day of a `localTime`, a date of yours as `'YYYY-MM-DD'`, or `'today'`, the current date of the database, which gives the offset of today. The `Date` read keeps that day. For anything finer, like the day of another column, use a [type adapter](column-types.md#type-adapters).
+
+A wall clock the zone skips when it changes to summer time (`2024-03-31 02:30` in Madrid) is moved forward by PostgreSQL (`03:30`), and one it repeats when it changes back (`2024-10-27 02:30`) is taken in winter time.
+
+**Only on PostgreSQL.** The other databases can't complete the zone for every date, so a `databaseTimeZone` other than UTC is rejected at the first query with `INVALID_CONFIGURATION`, before anything is sent:
+
+- **MariaDB and MySQL**: the only function that converts with the session, `convert_tz`, returns a value before 1970 without converting it, and without an error.
+- **SQL Server**: `AT TIME ZONE` knows only the zones of Windows, groups of countries with the rules of today: `Romance Standard Time`, the one of Madrid, gives `+02:00` on 1960-07-14, when Madrid was at `+01:00`.
+- **Oracle**: not supported yet.
+- **SQLite**: its [strategies of dates](supported-databases/sqlite.md#working-with-date-and-time) decide.
 
 ## Per database
 
@@ -307,7 +341,7 @@ The database must be in UTC, and the session left in it:
 
 - **A container**: the official images already are (below).
 - **A database installed on your machine** takes the zone of the machine: PostgreSQL's `initdb` writes it into `postgresql.conf`, MySQL and MariaDB use it through `time_zone = SYSTEM`, SQL Server and Oracle use the one of the operating system. Put the server in UTC before it holds data: on PostgreSQL `timezone = 'UTC'` in `postgresql.conf`, or `ALTER SYSTEM SET timezone = 'UTC'` and a reload of the configuration; on MySQL `SET PERSIST time_zone = '+00:00'`; on MariaDB `SET GLOBAL time_zone = '+00:00'`, or the same in its configuration; on Oracle `TIME_AT_DBTIMEZONE = DATABASE` with `DBTIMEZONE` in UTC, set in the pluggable database with `scope = spfile` and the pluggable database reopened; on SQL Server only with the zone of its operating system.
-- **The session**: don't set it to another zone, not even UTC over a database that isn't. On Oracle, oracledb sets it itself: set `ORA_SDTZ=UTC`, which the query runner requires when the process doesn't run in UTC. A session put in another zone by `ORA_SDTZ`, by the `options` of pg (`-c TimeZone=…`) or by the `connection` of postgres.js is rejected when the query runner is created.
+- **The session**: don't set it to another zone, not even UTC over a database that isn't. On Oracle, oracledb sets it itself: set `ORA_SDTZ=UTC`, which the query runner requires when the process doesn't run in UTC. A session put in another zone by `ORA_SDTZ`, by the `options` of pg (`-c TimeZone=…`) or by the `connection` of postgres.js is rejected at the first query.
 
 !!! warning "Changing the zone of a database that already holds values"
 
@@ -368,7 +402,7 @@ const container = await new PostgreSqlContainer('postgres:18')
 The rule assumes that the digits of every column without zone are UTC. Check that before anything else:
 
 1. **Find out which kind your temporal columns are.** Kind 3 and kind 4 hold instants, and nothing on this page can shift them.
-2. **Find out the zone of the database**, with the query of its [Per database](#per-database) tab. If it isn't UTC, the database isn't supported yet: its values without zone are in its zone, and the library takes them as UTC.
+2. **Find out the zone of the database**, with the query of its [Per database](#per-database) tab. If it isn't UTC, declare it in the connection on PostgreSQL (see [A database outside UTC](#a-database-outside-utc)); on the other databases it isn't supported: its values without zone are in its zone, and the library takes them as UTC.
 3. **For kind 1 and kind 2, find out in which zone the digits were written.** If the database is in UTC and whoever wrote them wrote UTC, there is nothing to do.
 4. **If some were written in another zone**, the library reads them as UTC, so each one comes out shifted by that zone's offset. Convert the stored values to UTC once, or, if you can't, read and write that column through a type adapter (below).
 

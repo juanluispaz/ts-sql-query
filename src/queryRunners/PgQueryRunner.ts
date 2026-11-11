@@ -7,7 +7,8 @@ import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapp
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
-import { requirePgSessionInDatabaseZone, requirePgTextMode } from '../utils/pgConfiguration.js'
+import { pgSessionTimeZone, requirePgTextMode } from '../utils/pgConfiguration.js'
+import { rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { postgreSqlDriverParams } from '../utils/postgreSqlParamTypes.js'
 
 export interface PgQueryRunnerConfig {
@@ -28,11 +29,13 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     private config?: PgQueryRunnerConfig | undefined
     /** The parsers of the values received, given to every query of the library (see pgQueryTypes) */
     private readonly types: CustomTypesConfig
+    /** The zone the options of pg give the session, checked for each query */
+    private readonly sessionTimeZone: SessionTimeZone | undefined
 
     constructor(connection: ClientBase, config?: PgQueryRunnerConfig) {
         super()
         requirePgTextMode(connection, 'PgQueryRunner')
-        requirePgSessionInDatabaseZone(connection, 'PgQueryRunner')
+        this.sessionTimeZone = pgSessionTimeZone(connection, 'PgQueryRunner')
         this.connection = connection
         this.types = pgQueryTypes(connection)
         this.database = 'postgreSql'
@@ -58,10 +61,10 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || rejectSessionNotInDatabaseZone(this.sessionTimeZone, params) || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || rejectSessionNotInDatabaseZone(this.sessionTimeZone, params) || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeCommitQuery(query: string, params: any[]): Promise<number> {
         return this.connection.query(query, params).then((result) => {

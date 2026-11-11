@@ -2,6 +2,7 @@
 // process in UTC the local getters of a Date are its UTC getters, and what the driver does with them is already right.
 
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import { getQueryConnectionConfigurationOf } from './queryParamsMetadata.js'
 
 // The names of a zone that is UTC all year (IANA names and their aliases, and the POSIX UTC0), in upper case
 const utcZoneNames = new Set<string>([
@@ -48,17 +49,36 @@ export function isUtcSessionTimeZone(timeZone: string): boolean {
 }
 
 /**
- * The session of a connection must be in the zone of the database, which the library takes as UTC: a database outside
- * UTC is not supported yet. Called when a query runner is created, with the zone of the session its configuration sets
- * (read without a query), `name` and `value` being that configuration; a session the configuration doesn't set has the
- * zone of the database.
+ * The zone a query runner read, without a query, that the configuration of its connection gives the session: undefined
+ * when it sets none (the session then has the zone of the database); `name` and `value` are that configuration, and
+ * `origin` says where it comes from, for the message
  */
-export function requireSessionInDatabaseZone(queryRunner: string, sessionTimeZone: string | undefined, name: string, value: unknown, origin: string): void {
-    if (sessionTimeZone === undefined || isUtcSessionTimeZone(sessionTimeZone)) {
-        return
+export interface SessionTimeZone {
+    readonly queryRunner: string
+    readonly timeZone: string
+    readonly name: string
+    readonly value: unknown
+    readonly origin: string
+}
+
+/**
+ * The session of a connection must be in the zone of the database, the `databaseTimeZone` of the connection (UTC
+ * without one): checked for each query, which carries the configuration of the connection in its params, against the
+ * zone the query runner read when it was created. A promise rejected with INVALID_CONFIGURATION, or undefined.
+ */
+export function rejectSessionNotInDatabaseZone(session: SessionTimeZone | undefined, params: any[]): Promise<never> | undefined {
+    if (!session) {
+        return undefined
     }
-    throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name, value },
-        queryRunner + ' requires the session in the zone of the database, which the library takes as UTC (a database outside UTC is not supported yet): ' + origin + " sets the session to '" + sessionTimeZone + "'. With the database in UTC, set the session to UTC or leave it unset; with a database outside UTC, don't move the session to UTC: what the database produces in it (now(), a default) would not be in the zone of its data")
+    const databaseTimeZone = getQueryConnectionConfigurationOf(params)?.databaseTimeZone ?? 'UTC'
+    const databaseInUtc = isUtcTimeZoneName(databaseTimeZone)
+    if (databaseInUtc ? isUtcSessionTimeZone(session.timeZone) : session.timeZone.trim().toLowerCase() === databaseTimeZone.trim().toLowerCase()) {
+        return undefined
+    }
+    return Promise.reject(new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: session.name, value: session.value },
+        session.queryRunner + " requires the session in the zone of the database, the databaseTimeZone of the connection ('" + databaseTimeZone + "'): " + session.origin + " sets the session to '" + session.timeZone + "'. " + (databaseInUtc
+            ? "Set the session to UTC or leave it unset; if the database isn't in UTC, declare its zone in the databaseTimeZone of the connection instead of moving the session to UTC"
+            : "Set the session to '" + databaseTimeZone + "' or leave it unset: in another zone, what the database produces in it (now(), a default) is not in the zone of its data")))
 }
 
 /**
@@ -115,19 +135,17 @@ export function postgreSqlOptionsTimeZone(options: unknown): string | undefined 
 }
 
 /**
- * oracledb (thin) sets the zone of the session when it connects: the one of `process.env.ORA_SDTZ`, or else the
- * offset of the process at that moment (`LOCAL` and `DBTIMEZONE` go as keywords, whose zone can't be known without a
- * query). The session must be in the zone of the database, which the library takes as UTC. Thrown when the query
- * runner is created.
+ * The zone oracledb (thin) gives the session when it connects: the one of `process.env.ORA_SDTZ`, or else the offset of
+ * the process at that moment, which is UTC only when the process runs in UTC (`LOCAL` and `DBTIMEZONE` go as keywords,
+ * whose zone can't be known without a query, and never match). Read when the query runner is created.
  */
-export function requireOracleSessionInDatabaseZone(queryRunner: string): void {
+export function oracleSessionTimeZone(queryRunner: string): SessionTimeZone | undefined {
     const sessionTimeZone = globalThis.process?.env?.['ORA_SDTZ']
-    if (!sessionTimeZone) {
-        if (isProcessInUtc()) {
-            return
-        }
-        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'ORA_SDTZ', value: sessionTimeZone },
-            queryRunner + ' requires the session in the zone of the database, which the library takes as UTC: ORA_SDTZ is not set and the process does not run in UTC, so oracledb sets the zone of the session to the offset of the process. Set the environment variable ORA_SDTZ to UTC')
+    if (sessionTimeZone) {
+        return { queryRunner, timeZone: sessionTimeZone, name: 'ORA_SDTZ', value: sessionTimeZone, origin: 'the environment variable ORA_SDTZ, from which oracledb sets the zone of the session when it connects,' }
     }
-    requireSessionInDatabaseZone(queryRunner, sessionTimeZone, 'ORA_SDTZ', sessionTimeZone, 'the environment variable ORA_SDTZ, from which oracledb sets the zone of the session when it connects,')
+    if (isProcessInUtc()) {
+        return undefined
+    }
+    return { queryRunner, timeZone: 'the offset of the process', name: 'ORA_SDTZ', value: sessionTimeZone, origin: 'ORA_SDTZ is not set, and oracledb, when it connects,' }
 }

@@ -1385,7 +1385,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     /**
      * The value as a TIMESTAMP with the UTC digits of its instant: the epoch without zone plus the interval from it. A
      * DATE or a TIMESTAMP has no zone and none takes part; a value with zone (an offset, a region, or a local time zone)
-     * is compared with the epoch in the session zone, UTC (see requireOracleSessionInDatabaseZone), which gives its instant
+     * is compared with the epoch in the session zone, the zone of the database (see oracleSessionTimeZone), which gives its instant
      */
     _appendUtcTimestamp(params: any[], valueSource: ToSql): string {
         return "timestamp '1970-01-01 00:00:00' + (" + this._appendSql(valueSource, params, false) + " - timestamp '1970-01-01 00:00:00')"

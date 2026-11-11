@@ -8,7 +8,7 @@ import type { TypeCategory } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam } from './oracleParamTypes.js'
 import { mySqlPlaceholder } from './mySqlParamTypes.js'
-import { postgreSqlPlaceholder } from './postgreSqlParamTypes.js'
+import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSqlParamTypes.js'
 import { setParamTypeAt } from './queryParamsMetadata.js'
 import { sqlServerPlaceholder } from './sqlServerParamTypes.js'
 
@@ -41,12 +41,17 @@ const sqliteWasm: ParamBinding = (params, value, type, typeCategory, forceTypeCa
 }
 /** pg and Bun SQL can't send a parameter with its type: the type goes as a cast in the placeholder */
 const postgreSqlCast: ParamBinding = (params, value, type, typeCategory, forceTypeCast, castTypesByName) => {
-    const index = add(params, value, type, typeCategory, forceTypeCast)
-    return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, castTypesByName)
+    // A localDateTime or a localTime of a database outside UTC, marked by the connection before it is added, goes with
+    // its type, a timestamptz
+    const zoned = isPostgreSqlZonedParam(params, params.length)
+    const index = add(params, value, type, typeCategory, forceTypeCast || zoned)
+    return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, castTypesByName, zoned)
 }
 /** postgres.js and PGlite send the parameter with its type: the placeholder needs no cast */
 const postgreSqlTyped: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    return '$' + (add(params, value, type, typeCategory, forceTypeCast) + 1)
+    // A localDateTime or a localTime of a database outside UTC goes with its type, a timestamptz
+    const zoned = isPostgreSqlZonedParam(params, params.length)
+    return '$' + (add(params, value, type, typeCategory, forceTypeCast || zoned) + 1) + postgreSqlZonedTimeCast(type, typeCategory, zoned)
 }
 const mySql: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
     const placeholder = mySqlPlaceholder('?', params, params.length, value, type, typeCategory)

@@ -283,6 +283,7 @@ export interface SqlBuilder extends SqlOperation {
     _defaultTypeAdapter: DefaultTypeAdapter
     _queryRunner: QueryRunner
     _connectionConfiguration: ConnectionConfiguration
+    _checkConnectionConfiguration(): void
     _isValue(value: any): boolean
     _resultColumnKey(name: string): string
     _isReservedKeyword(word: string): boolean

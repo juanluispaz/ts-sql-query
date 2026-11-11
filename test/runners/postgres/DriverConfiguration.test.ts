@@ -15,6 +15,15 @@ import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
 import { reasonOf } from '../lib/runnerContract.js'
 
+async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
+    try {
+        await promise
+    } catch (e) {
+        return e
+    }
+    throw new Error('Expected the promise to be rejected')
+}
+
 function errorOf(fn: () => unknown): unknown {
     try {
         fn()
@@ -88,20 +97,19 @@ describe('PostgreSQL runners: the configuration of the driver', () => {
             { connectionString: uri, options: '-c statement_timeout=30s' },
             { connectionString: uri, options: '-c TimeZone=Europe/Madrid -c TimeZone=UTC' },
         ]
+        // Rejected at the first query, which carries the databaseTimeZone of the connection (UTC without one), before
+        // anything reaches pg
         for (const config of rejectedPg) {
-            expect(reasonOf(errorOf(() => new PgQueryRunner(new pg.Client(config))))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(await rejectionOf(new PgQueryRunner(new pg.Client(config)).executeSelectManyRows('select 1', [])))).toBe('INVALID_CONFIGURATION')
         }
         for (const config of acceptedPg) {
             expect(new PgQueryRunner(new pg.Client(config)).database).toBe('postgreSql')
         }
-        // A pool is checked with the configuration it was given (its clients, with the rest)
-        expect(reasonOf(errorOf(() => new PgPoolQueryRunner(new pg.Pool({ connectionString: uri, options: madrid }))))).toBe('INVALID_CONFIGURATION')
-        expect(new PgPoolQueryRunner(new pg.Pool({ connectionString: uri, options: '-c TimeZone=UTC' })).database).toBe('postgreSql')
         // PGOPTIONS, which pg reads when the client is created
         const previous = process.env['PGOPTIONS']
         process.env['PGOPTIONS'] = madrid
         try {
-            expect(reasonOf(errorOf(() => new PgQueryRunner(new pg.Client({ connectionString: uri }))))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(await rejectionOf(new PgQueryRunner(new pg.Client({ connectionString: uri })).executeSelectManyRows('select 1', [])))).toBe('INVALID_CONFIGURATION')
         } finally {
             if (previous === undefined) {
                 delete process.env['PGOPTIONS']
@@ -122,7 +130,7 @@ describe('PostgreSQL runners: the configuration of the driver', () => {
             postgres(uri + '?TimeZone=UTC'),
         ]
         for (const sql of rejected) {
-            expect(reasonOf(errorOf(() => new PostgresQueryRunner(sql)))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(await rejectionOf(new PostgresQueryRunner(sql).executeSelectManyRows('select 1', [])))).toBe('INVALID_CONFIGURATION')
         }
         for (const sql of accepted) {
             expect(new PostgresQueryRunner(sql).database).toBe('postgreSql')

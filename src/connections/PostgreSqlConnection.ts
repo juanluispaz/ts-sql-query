@@ -1,6 +1,9 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
-import { PostgreSqlSqlBuilder } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
+import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
+import { setQueryParamMetadata, type ProjectionOutput, type TypeCategory } from '../TypeAdapter.js'
+import { __conversionType } from '../utils/typeCategory.js'
+import { postgreSqlZonedParam } from '../utils/valueSymbols.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
@@ -31,6 +34,35 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      *   values and the updated table is aliased as `_new_`.
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
+
+    /**
+     * With a databaseTimeZone other than UTC, a localDateTime or a localTime parameter goes as a timestamptz of its
+     * instant, which the database converts with its session (the zone of the database) into the wall clock it stores
+     * or compares with
+     */
+    protected override addQueryParamMetadata(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): void {
+        super.addQueryParamMetadata(params, index, type, typeCategory, valueSentToDB)
+        if (this.isDatabaseOutsideUtc()) {
+            const conversionType = __conversionType(type, typeCategory)
+            if (conversionType === 'localDateTime' || conversionType === 'localTime') {
+                setQueryParamMetadata(params, index, postgreSqlZonedParam, true)
+            }
+        }
+    }
+    /**
+     * With a databaseTimeZone other than UTC, a localDateTime or a localTime leaves the database as the instant the
+     * database completes with its session, `(<sql>)::timestamptz` (see postgreSqlZonedValueSql), and as its text inside
+     * the JSON of an aggregated array
+     */
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+        if (this.isDatabaseOutsideUtc()) {
+            const zoned = postgreSqlZonedValueSql(sql, __conversionType(type, typeCategory), this.localTimeReferenceDate)
+            if (zoned) {
+                return output === 'aggregatedArrayValue' ? zoned + '::text' : zoned
+            }
+        }
+        return super.transformProjection(sql, type, typeCategory, output)
+    }
 
     /**
      * Use PostgreSQL's native, platform-dependent `round(double precision)`

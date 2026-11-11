@@ -6,7 +6,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { getParamForceTypeCastAt, getParamTypeAt, getParamTypeCategoryAt } from '../utils/queryParamsMetadata.js'
-import { postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
+import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 
@@ -67,7 +67,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
             const type = getParamTypeAt(params, i)
             let oid = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             if (oid === undefined && getParamForceTypeCastAt(params, i)) {
-                oid = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), params[i])?.oid
+                oid = postgreSqlParamType(type, getParamTypeCategoryAt(params, i), params[i], isPostgreSqlZonedParam(params, i))?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {

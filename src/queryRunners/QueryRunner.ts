@@ -183,6 +183,10 @@ export interface ConnectionConfiguration {
     readonly decimalStrategy?: string
     /** SQLite: the date and time functions of the database work in the time zone of the application */
     readonly sqliteRunsInApplicationTimeZone?: boolean
+    /** The zone of the database, an IANA name (`databaseTimeZone`); `'UTC'` by default */
+    readonly databaseTimeZone?: string
+    /** With a databaseTimeZone other than UTC, the day a localTime is completed with (`localTimeReferenceDate`) */
+    readonly localTimeReferenceDate?: string
     /** SQLite: an integer read where a date or time with another format was expected is a Julian day */
     readonly treatUnexpectedIntegerDateTimeAsJulian?: boolean
     /** SQLite: a text without time zone read where a date or time with another format was expected is in UTC */

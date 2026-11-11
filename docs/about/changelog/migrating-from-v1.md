@@ -6,10 +6,11 @@ search:
 
 This page lists what to change in an application that runs on `ts-sql-query` v1. Work through it in this order:
 
-1. [Update the packaging and the imports](#packaging-and-imports).
-2. [Fix what stops compiling](#what-stops-compiling): the compiler points at each place.
-3. [Review what changes silently at runtime](#what-changes-silently-at-runtime): this is the dangerous part, nothing warns you about it. Start by setting [the version of your database](#set-the-version-of-your-database).
-4. [Update your snapshots and log searches](#what-only-changes-the-sql-text): the SQL text changes in many places.
+1. Update to v1.69.0, the last version of v1, and fix its deprecation warnings. Much of what stops compiling in v2 is deprecated there, some of it for years: since v1.24.0 (21 Dec 2021) the comparisons with a value that can be `null` or `undefined`, since v1.60.0 (25 Feb 2024) the connections with the types of `ts-extended-types`, since v1.61.0 (2 Mar 2024) composing and splitting results. Each section below says since which version of v1 a thing is deprecated; what doesn't say it was never deprecated, and is new in v2.
+2. [Update the packaging and the imports](#packaging-and-imports).
+3. [Fix what stops compiling](#what-stops-compiling): the compiler points at each place.
+4. [Review what changes silently at runtime](#what-changes-silently-at-runtime): this is the dangerous part, nothing warns you about it. Start by setting [the version of your database](#set-the-version-of-your-database).
+5. [Update your snapshots and log searches](#what-only-changes-the-sql-text): the SQL text changes in many places.
 
 ## Packaging and imports
 
@@ -33,12 +34,12 @@ This page lists what to change in an application that runs on `ts-sql-query` v1.
 
     | v1 import | v2 |
     |---|---|
-    | `ts-sql-query/connections/AbstractConnection`, `AbstractAdvancedConnection`, `Abstract<database>Connection` | Extend the connection of your database, like `PostgreSqlConnection` |
+    | `ts-sql-query/connections/AbstractConnection`, `AbstractAdvancedConnection`, `Abstract<database>Connection` (this one deprecated since v1.69.0) | Extend the connection of your database, like `PostgreSqlConnection` |
     | `ts-sql-query/connections/NoopDBConnection` | `ts-sql-query/__UNSUPPORTED__/connections/NoopDBConnection` |
     | `ts-sql-query/queryRunners/AbstractQueryRunner`, `AbstractPoolQueryRunner`, `ChainedQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` | `ts-sql-query/__UNSUPPORTED__/queryRunners/...` |
     | `ts-sql-query/expressions/*` (but `expressions/dynamicConditionUsingFilters`), `utils/*` (but `utils/PromiseProvider`), `internal/*`, `queryBuilders/*`, `sqlBuilders/*` | `ts-sql-query/__UNSUPPORTED__/expressions/*`, ... |
     | `ts-sql-query/typeMarks/*`, `ts-sql-query/databases` | Removed |
-    | `ts-sql-query/queryRunners/PromiseBasedQueryRunner`, `PromiseBasedWithSqlTransactionQueryRunner`, `PromiseBasedPoolQueryRunner`, `PromiseBasedAbstractQueryRunner`, `OracleUtils` | Removed. Extend `ManagedTransactionQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` or `AbstractQueryRunner`, from `__UNSUPPORTED__`; see [your own query runner](#your-own-query-runner-and-the-connection-of-the-driver) |
+    | `ts-sql-query/queryRunners/PromiseBasedQueryRunner`, `PromiseBasedWithSqlTransactionQueryRunner`, `PromiseBasedPoolQueryRunner`, `PromiseBasedAbstractQueryRunner`, `OracleUtils` (deprecated since v1.69.0) | Removed. Extend `ManagedTransactionQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` or `AbstractQueryRunner`, from `__UNSUPPORTED__`; see [your own query runner](#your-own-query-runner-and-the-connection-of-the-driver) |
 
     `__UNSUPPORTED__` reaches the internals of the library, with no stability guarantee.
 
@@ -92,27 +93,29 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 
 ### Removed connections and query runners
 
-| v1 | v2 |
-|---|---|
-| `TypeSafePostgreSqlConnection`, `TypeSafeMySqlConnection`, ... | The connection without the prefix, like `PostgreSqlConnection`. Values are plain `number`, `string` and `Date`, not the `int`, `double`, `uuid`, `LocalDate`, ... of `ts-extended-types` |
-| `TyeSafeConnection`, `TyeUnsafeConnection` from `ts-sql-query/Connection`; `TypeSafeDynamicCondition` from `ts-sql-query/dynamicCondition` | `Connection`, `DynamicCondition`, from `ts-sql-query` |
-| `AnyDBQueryRunner`, `AnyDBPoolQueryRunner`, `LoopBackQueryRunner` | The query runner of your driver |
-| `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../configuration/query-runners/recommended/mssql.md) |
-| `MySqlQueryRunner`, `MySqlPoolQueryRunner` | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../configuration/query-runners/recommended/mysql2.md) |
-| `SqliteQueryRunner` | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md) |
-| `Sqlite3QueryRunner` (the `sqlite3` driver, deprecated by its maintainers) | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md), on Bun [`BunSqliteQueryRunner`](../../configuration/query-runners/recommended/bun_sqlite.md), or [`Sqlite3WasmOO1QueryRunner`](../../configuration/query-runners/recommended/sqlite-wasm-OO1.md) |
-| `PrismaQueryRunner` | On PostgreSQL, the `pg` query runners, which can [share the pool and the transaction with Prisma](../../configuration/query-runners/combining-with-another-library.md#example-prisma). On other databases there is no replacement that shares them |
+| v1 | v2 | Deprecated in v1 since |
+|---|---|---|
+| `TypeSafePostgreSqlConnection`, `TypeSafeMySqlConnection`, ... | The connection without the prefix, like `PostgreSqlConnection`. Values are plain `number`, `string` and `Date`, not the `int`, `double`, `uuid`, `LocalDate`, ... of `ts-extended-types` | v1.60.0, 25 Feb 2024 |
+| `TyeSafeConnection`, `TyeUnsafeConnection` from `ts-sql-query/Connection`; `TypeSafeDynamicCondition` from `ts-sql-query/dynamicCondition` | `Connection`, `DynamicCondition`, from `ts-sql-query` | v1.69.0 |
+| `AnyDBQueryRunner`, `AnyDBPoolQueryRunner`, `LoopBackQueryRunner` (their projects are no longer maintained) | The query runner of your driver | v1.54.0, 26 Jun 2023 |
+| `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../configuration/query-runners/recommended/mssql.md) | v1.60.0, 25 Feb 2024 (`TediousPoolQueryRunner`, of `tedious-connection-pool`, since v1.54.0, 26 Jun 2023) |
+| `MySqlQueryRunner`, `MySqlPoolQueryRunner` (the `mysql` driver is no longer maintained) | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../configuration/query-runners/recommended/mysql2.md) | v1.66.0, 14 Jun 2025 |
+| `SqliteQueryRunner` (the `sqlite` package is no longer maintained) | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md) | v1.66.0, 14 Jun 2025 |
+| `Sqlite3QueryRunner` (the `sqlite3` driver, deprecated by its maintainers) | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md), on Bun [`BunSqliteQueryRunner`](../../configuration/query-runners/recommended/bun_sqlite.md), or [`Sqlite3WasmOO1QueryRunner`](../../configuration/query-runners/recommended/sqlite-wasm-OO1.md) | v1.69.0 |
+| `PrismaQueryRunner` | On PostgreSQL, the `pg` query runners, which can [share the pool and the transaction with Prisma](../../configuration/query-runners/combining-with-another-library.md#example-prisma). On other databases there is no replacement that shares them | v1.69.0; its short-running transactions since v1.60.0, 25 Feb 2024 |
 
 ### Removed features
 
-| v1 | v2 |
-|---|---|
-| `compose`, `composeDeletingInternalProperty`, `composeDeletingExternalProperty`, `withOne`, `withMany`, ... `split`, `splitOptional`, `splitRequired`, `guidedSplitOptional`, `guidedSplitRequired`, and `mapForGuidedSplit`, `prefixCapitalized`, `prefixDotted`, `prefixMapFor...` | [Complex projections](../../queries/complex-projections.md) or [aggregate as an object array](../../queries/aggregate-as-object-array.md) |
-| Columns `'stringInt'`, `'stringDouble'`, `.asStringInt()`, `.asStringDouble()` | `'bigint'`, or [`'customInt'`, `'customDouble'`](../../configuration/column-types.md); `.asInt()`, `.asBigint()`, `.asDouble()` |
+| v1 | v2 | Deprecated in v1 since |
+|---|---|---|
+| `compose`, `composeDeletingInternalProperty`, `composeDeletingExternalProperty`, `withOne`, `withMany`, ... `split`, `splitOptional`, `splitRequired`, `guidedSplitOptional`, `guidedSplitRequired`, and `mapForGuidedSplit`, `prefixCapitalized`, `prefixDotted`, `prefixMapFor...` | [Complex projections](../../queries/complex-projections.md) or [aggregate as an object array](../../queries/aggregate-as-object-array.md) | v1.61.0, 2 Mar 2024; announced as legacy, to be removed, since v1.54.0, 26 Jun 2023 |
+| Columns `'stringInt'`, `'stringDouble'`, `.asStringInt()`, `.asStringDouble()` | `'bigint'`, or [`'customInt'`, `'customDouble'`](../../configuration/column-types.md); `.asInt()`, `.asBigint()`, `.asDouble()` | v1.60.0, 25 Feb 2024 |
 
 ### Types that now reject what compiled
 
-**A JavaScript value that can be `null` or `undefined`.** The overloads of the column operations that accepted one are gone, because a comparison with `null` silently matches nothing. Use the `IfValue` variant, or see [how to compare against a null value](../limitations.md#how-to-compare-against-a-null-or-undefined-value).
+Of this section, v1 deprecated the comparisons with a value that can be `null` or `undefined`, the custom type with one generic argument and the name of a constraint as a string; the rest is new in v2.
+
+**A JavaScript value that can be `null` or `undefined`.** The overloads of the column operations that accepted one are gone, because a comparison with `null` silently matches nothing. They have been deprecated since v1.24.0 (21 Dec 2021). Use the `IfValue` variant, or see [how to compare against a null value](../limitations.md#how-to-compare-against-a-null-or-undefined-value).
 
 ```typescriptreact
 // v1
@@ -129,7 +132,7 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
-**A custom type with only one generic argument.** It was deprecated in v1. The type name is the second generic argument, the same text as the type name you pass to the method. This applies to columns, constants, fragments, arguments, function results and sequences:
+**A custom type with only one generic argument.** It was deprecated in v1.69.0. The type name is the second generic argument, the same text as the type name you pass to the method. This applies to columns, constants, fragments, arguments, function results and sequences:
 
 ```typescriptreact
 // v1
@@ -159,7 +162,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 
 **Insert and on conflict:**
 
-- `.onConflictOnConstraint(...)` only takes a raw fragment ([docs](../../queries/insert-on-conflict.md#a-conflict-on-a-named-constraint)):
+- `.onConflictOnConstraint(...)` only takes a raw fragment ([docs](../../queries/insert-on-conflict.md#a-conflict-on-a-named-constraint)). The name as a string or an expression didn't work, and it has been deprecated since v1.68.0 (14 Jun 2026):
 
     ```ts
     const inserted = await connection.insertInto(tCustomer)
@@ -277,7 +280,7 @@ This only chooses the syntax. The changes in values and transactions below apply
 
 ### Transactions
 
-**A function returning an array of queries no longer waits for them.** It still compiles, because a transaction now takes a function returning any value. So the array is the result: the transaction commits without waiting, and it resolves to an array of promises, even if one of them fails. In v1, a failure rolled back and rejected. Await each query inside an async function. Search your code for this form: a linter's promise rules, like `no-floating-promises` of typescript-eslint, find a forgotten `await` inside the function, but not this array.
+**A function returning an array of queries no longer waits for them.** It was deprecated in v1.69.0. It still compiles, because a transaction now takes a function returning any value. So the array is the result: the transaction commits without waiting, and it resolves to an array of promises, even if one of them fails. In v1, a failure rolled back and rejected. Await each query inside an async function. Search your code for this form: a linter's promise rules, like `no-floating-promises` of typescript-eslint, find a forgotten `await` inside the function, but not this array.
 
 ```typescriptreact
 // v1
@@ -549,7 +552,7 @@ A property left in your connection class still compiles and does nothing, unless
 | `MySqlConnection.compatibilityMode = true` | `compatibilityVersion = 5_007_000` |
 | `MariaDBConnection.alwaysUseReturningClauseWhenInsert` | Remove it: `returning` is the default. In a database older than 10.5, `compatibilityVersion = 10_004_000` |
 | `SqliteConnection.compatibilityMode` | Remove it: the default was `true`, and now it is the modern SQL. In an old SQLite, `compatibilityVersion` from the table above |
-| `insesitiveCollation` | `insensitiveCollation`. Left as it is, the case-insensitive operations lose your collation |
+| `insesitiveCollation` | `insensitiveCollation` (`insesitiveCollation` is deprecated since v1.68.0, 14 Jun 2026). Left as it is, the case-insensitive operations lose your collation |
 
 ### Query runners
 

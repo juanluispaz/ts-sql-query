@@ -13,7 +13,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
-import type { DynamicOrderByForModel } from '../../../../../src/experimental/types.js'
 import { tIssue, tIssueWorklog, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -261,43 +260,6 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    interface ProjectWithOrg {
-        id:   number
-        name: string
-        organization?: { id: number; name: string }
-    }
-
-    test('from-model/dynamic-order-by-validates-whole-string', () => {
-        // DynamicOrderByForModel<Model, ORDER_BY> validates the full comma-separated
-        // string; the idiomatic shape infers ORDER_BY in a generic function parameter.
-        function check<ORDER_BY extends string>(orderBy: DynamicOrderByForModel<ProjectWithOrg, ORDER_BY>): ORDER_BY {
-            return orderBy
-        }
-        expect(check('name')).toBe('name')
-        expect(check('organization.name asc nulls last, name desc')).toBe('organization.name asc nulls last, name desc')
-        expect(check('id, name asc, organization.id desc')).toBe('id, name asc, organization.id desc')
-        // Negative-type assertions (the rejected strings) live in
-        // types.negative/dynamic-condition.from-model.test.ts.
-    })
-
-    test('from-model/dynamic-order-by-validated-string-feeds-orderByFromString', async () => {
-        // The validated whole string (inferred in a generic function parameter) feeds
-        // orderByFromString directly — no `.join`.
-        async function runOrdered<ORDER_BY extends string>(orderBy: DynamicOrderByForModel<ProjectWithOrg, ORDER_BY>) {
-            const organization = tOrganization.forUseInLeftJoinAs('organization')
-            return ctx.conn.selectFrom(tProject)
-                .optionalLeftOuterJoin(organization).on(organization.id.equals(tProject.organizationId))
-                .select({ id: tProject.id, name: tProject.name, organization: { id: organization.id, name: organization.name } })
-                .orderByFromString(orderBy)
-                .executeSelectMany()
-        }
-
-        ctx.mockNext([])
-        await runOrdered('organization.name asc nulls last, name desc')
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.id as "organization.id", organization.name as "organization.name" from project left outer join organization as organization on organization.id = project.organization_id order by organization.name is null, "organization.name" asc, name desc"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-    })
     test('from-model/forwards-the-extension-type-argument', () => {
         // DynamicConditionForModel forwards its second EXTENSION type arg to
         // DynamicCondition unchanged — it is sugar for

@@ -22,19 +22,50 @@ export type { OrderByMode }
  * the model, addressed by their dotted path: a nested object inside a complex projection
  * contributes `'company.name'` (orderable) but NOT `'company'` (ordering by the object
  * itself is rejected at runtime). Array fields (aggregated arrays) and other non-scalar
- * values are not orderable. The leading `[T] extends [...]` guard gives the recursion a
- * base case so it terminates.
+ * values are not orderable.
+ *
+ * The paths are built level by level, with no recursion, up to 5 levels deep, the deepest
+ * nesting of a complex projection (`'a.b.c.d.e'`); a leaf deeper than that isn't offered.
  */
-type OrderableLeafPaths<MODEL> =
-    [NonNullable<MODEL>] extends [TerminalValue]
-    ? never
-    : {
+// The type of a property, without null and undefined
+type PropertyOf<MODEL, K extends keyof NonNullable<MODEL>> = NonNullable<NonNullable<MODEL>[K]>
+// The orderable leaves of MODEL, and the dotted path of the leaves of each nested object one level deeper
+type OrderableLeafPaths<MODEL> = OrderableLeafPaths1<MODEL>
+type OrderableLeafPaths1<MODEL> =
+    [NonNullable<MODEL>] extends [TerminalValue] ? never : {
         [K in keyof NonNullable<MODEL> & string]:
-            // A scalar value (primitive, Date, binary, …) is an orderable leaf; a non-value
-            // object (array, Map/Set, …) is not orderable; a plain object recurses.
-            NonNullable<NonNullable<MODEL>[K]> extends NonValueObject ? never
-            : NonNullable<NonNullable<MODEL>[K]> extends PrimitiveValue | TerminalValueObject ? K
-            : `${K}.${OrderableLeafPaths<NonNullable<NonNullable<MODEL>[K]>> & string}`
+            PropertyOf<MODEL, K> extends NonValueObject ? never
+            : PropertyOf<MODEL, K> extends PrimitiveValue | TerminalValueObject ? K
+            : `${K}.${OrderableLeafPaths2<PropertyOf<MODEL, K>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+type OrderableLeafPaths2<MODEL> =
+    [NonNullable<MODEL>] extends [TerminalValue] ? never : {
+        [K in keyof NonNullable<MODEL> & string]:
+            PropertyOf<MODEL, K> extends NonValueObject ? never
+            : PropertyOf<MODEL, K> extends PrimitiveValue | TerminalValueObject ? K
+            : `${K}.${OrderableLeafPaths3<PropertyOf<MODEL, K>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+type OrderableLeafPaths3<MODEL> =
+    [NonNullable<MODEL>] extends [TerminalValue] ? never : {
+        [K in keyof NonNullable<MODEL> & string]:
+            PropertyOf<MODEL, K> extends NonValueObject ? never
+            : PropertyOf<MODEL, K> extends PrimitiveValue | TerminalValueObject ? K
+            : `${K}.${OrderableLeafPaths4<PropertyOf<MODEL, K>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+type OrderableLeafPaths4<MODEL> =
+    [NonNullable<MODEL>] extends [TerminalValue] ? never : {
+        [K in keyof NonNullable<MODEL> & string]:
+            PropertyOf<MODEL, K> extends NonValueObject ? never
+            : PropertyOf<MODEL, K> extends PrimitiveValue | TerminalValueObject ? K
+            : `${K}.${OrderableLeafPaths5<PropertyOf<MODEL, K>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+// The last level: only its leaves, a nested object here is too deep
+type OrderableLeafPaths5<MODEL> =
+    [NonNullable<MODEL>] extends [TerminalValue] ? never : {
+        [K in keyof NonNullable<MODEL> & string]:
+            PropertyOf<MODEL, K> extends NonValueObject ? never
+            : PropertyOf<MODEL, K> extends PrimitiveValue | TerminalValueObject ? K
+            : never
     }[keyof NonNullable<MODEL> & string]
 
 export type OrderByForModel<MODEL> = `${OrderableLeafPaths<MODEL>}` | `${OrderableLeafPaths<MODEL>} ${OrderByMode}`

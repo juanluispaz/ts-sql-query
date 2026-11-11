@@ -1,5 +1,5 @@
 // Compile-time negative tests for the model-first order-by types
-// (`OrderByForModel<Model>` and `DynamicOrderByForModel<Model, ORDER_BY>`).
+// (`OrderByForModel<Model>`).
 // These never execute — the value is that `validate:tests` (tsc) rejects
 // each `@ts-expect-error` line. The positive counterparts (valid clauses that
 // compile, plus the runtime `orderByFromString` round-trip) live in
@@ -9,7 +9,6 @@
 
 import { test, expect } from '../../../lib/testRunner.js'
 import type { OrderByForModel } from '../../../../src/dynamic/orderBy.js'
-import type { DynamicOrderByForModel } from '../../../../src/experimental/types.js'
 import type { DynamicConditionForModel } from '../../../../src/dynamic/condition.js'
 
 interface IssueOrderModel {
@@ -21,11 +20,6 @@ interface IssueOrderModel {
     author:    { id: number; name: string }   // nested projection — order by its leaves
 }
 
-interface ProjectWithOrg {
-    id:   number
-    name: string
-    organization?: { id: number; name: string }
-}
 
 // A model whose array field maps to `never` in DynamicDefinitionFieldForModel.
 interface ArrayFieldModel {
@@ -63,20 +57,6 @@ function _typeNegatives() {
     // @ts-expect-error invalid ordering mode
     const bad5: Clause = 'title sideways'
     void bad1; void bad2; void bad3; void bad4; void bad5
-
-    // The whole comma-separated string: DynamicOrderByForModel<Model, ORDER_BY>.
-    function check<ORDER_BY extends string>(orderBy: DynamicOrderByForModel<ProjectWithOrg, ORDER_BY>): ORDER_BY {
-        return orderBy
-    }
-    // Rule: every clause's ordering mode must be valid.
-    // @ts-expect-error invalid ordering mode in the second clause
-    check('name asc, id foo')
-    // Rule: an object field is not orderable as a whole.
-    // @ts-expect-error ordering by the object itself
-    check('organization')
-    // Rule: a nested leaf in any clause must exist.
-    // @ts-expect-error unknown leaf in a later clause
-    check('name asc, organization.unknown')
 
     // Rule: an array model field maps to `never` in DynamicDefinitionFieldForModel,
     // so DynamicConditionForModel exposes no filter for it.

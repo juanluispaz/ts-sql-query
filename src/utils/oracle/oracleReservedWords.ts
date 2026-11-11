@@ -14,6 +14,8 @@
 // or `#`, that are quoted for not being a plain name where they fail; and the names of the functions of the PL/SQL
 // package STANDARD (ABS, LENGTH, TIMESTAMP, VALUE, ...), that fail as the sequence of `seq.nextval` inside a `begin` block
 // whether quoted or not, and work unquoted everywhere else.
+// TRUE, FALSE and NULL are here on every database, also where it accepts them as a name: quoted, a name is never
+// read as the value it looks like
 const reservedWords: { [word: string]: boolean | undefined } = {
     ACCESS: true,
     ADD: true,

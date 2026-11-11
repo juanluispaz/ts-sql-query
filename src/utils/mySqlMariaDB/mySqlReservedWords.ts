@@ -9,6 +9,8 @@
 // the reserved words of each version, a function name that the parser reads as a call when a `(` follows it (`with
 // count(id) as (values ...)`, and `insert into count (id)` with IGNORE_SPACE), select modifiers read as such in the first
 // position of a select (SQL_BUFFER_RESULT, SQL_CACHE on 5.7, SQL_NO_CACHE), and ROLLUP as the name of a with
+// TRUE, FALSE and NULL are here on every database, also where it accepts them as a name: quoted, a name is never
+// read as the value it looks like
 const reservedWords: { [word: string]: boolean | undefined } = {
     ACCESSIBLE: true,
     ADD: true,

@@ -11,6 +11,8 @@
 // fails everywhere on SQL Server 2025 only; CUBE and ROLLUP fail as a bare column in group by; XMLNAMESPACES fails as the
 // name of a with and OPENJSON as the name of a with of values. The reserved keywords DISK, DUMP, LOAD, PRECISION and
 // SECURITYAUDIT work unquoted everywhere on the three versions and are left out, as are the ODBC and future keywords.
+// TRUE, FALSE and NULL are here on every database, also where it accepts them as a name: quoted, a name is never
+// read as the value it looks like
 const reservedWords: { [word: string]: boolean | undefined } = {
     ADD: true,
     ALL: true,
@@ -74,6 +76,7 @@ const reservedWords: { [word: string]: boolean | undefined } = {
     EXISTS: true,
     EXIT: true,
     EXTERNAL: true,
+    FALSE: true,
     FETCH: true,
     FILE: true,
     FILLFACTOR: true,
@@ -176,6 +179,7 @@ const reservedWords: { [word: string]: boolean | undefined } = {
     TRAN: true,
     TRANSACTION: true,
     TRIGGER: true,
+    TRUE: true,
     TRUNCATE: true,
     TRY_CONVERT: true,
     TSEQUAL: true,
@@ -195,7 +199,7 @@ const reservedWords: { [word: string]: boolean | undefined } = {
     WHILE: true,
     WITH: true,
     WRITETEXT: true,
-    XMLNAMESPACES: true,
+    XMLNAMESPACES: true
 }
 
 /** Whether the word, in any case, is quoted when it is an identifier */

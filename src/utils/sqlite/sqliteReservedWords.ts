@@ -9,6 +9,8 @@
 // on at least one of SQLite 3.51.0 (bun:sqlite, Bun's node:sqlite), 3.53.0 (node:sqlite, Node 26), 3.53.4
 // (better-sqlite3) and 3.54.1 (@sqlite.org/sqlite-wasm). The other keywords are accepted as identifiers by SQLite's
 // fallback rules in all of them, with the same result as quoted
+// TRUE, FALSE and NULL are here on every database, also where it accepts them as a name: quoted, a name is never
+// read as the value it looks like
 const reservedWords: { [word: string]: boolean | undefined } = {
     ADD: true,
     ALL: true,
@@ -36,6 +38,7 @@ const reservedWords: { [word: string]: boolean | undefined } = {
     ESCAPE: true,
     EXCEPT: true,
     EXISTS: true,
+    FALSE: true,
     FOREIGN: true,
     FROM: true,
     GROUP: true,
@@ -67,6 +70,7 @@ const reservedWords: { [word: string]: boolean | undefined } = {
     THEN: true,
     TO: true,
     TRANSACTION: true,
+    TRUE: true,
     UNION: true,
     UNIQUE: true,
     UPDATE: true,

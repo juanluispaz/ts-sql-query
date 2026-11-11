@@ -11,6 +11,8 @@
 // A word is here when it fails unquoted, and works quoted, in one of those positions in one of those versions.
 // The words reserved only with sql_mode=ORACLE (BODY, ELSIF, GOTO, MINUS, OTHERS, PACKAGE, RAISE, ROWNUM, ROWTYPE,
 // TYPE) are not here: the library doesn't support that mode.
+// TRUE, FALSE and NULL are here on every database, also where it accepts them as a name: quoted, a name is never
+// read as the value it looks like
 const reservedWords: { [word: string]: boolean | undefined } = {
     ACCESSIBLE: true,
     ADD: true,

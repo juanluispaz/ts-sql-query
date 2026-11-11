@@ -7,6 +7,8 @@
 // library writes, on PostgreSQL 17.11, PostgreSQL 18.6 and PGlite 0.5.11 (PostgreSQL 18.6): exactly these fail (a
 // syntax error, or a value function such as `user` or `current_date` read instead of the column); the non-reserved
 // keywords (U and C) work unquoted in all of them. Quoting a word that doesn't need it would make it case-sensitive.
+// TRUE, FALSE and NULL are here on every database, also where it accepts them as a name: quoted, a name is never
+// read as the value it looks like
 const reservedWords: { [word: string]: boolean | undefined } = {
     ALL: true,
     ANALYSE: true,

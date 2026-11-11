@@ -12,7 +12,7 @@ import { getParamMetadata, queryParamType, queryParamTypeCategory, queryParamVal
  * would give 999…9 without an error, and without it the database would compute in double precision; no column can
  * hold it. Call it before adding the parameter at that index.
  */
-export function mySqlPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, typeCategory: TypeCategory): string {
+export function mySqlMariaDBPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, typeCategory: TypeCategory): string {
     if (!__isDecimalCategory(typeCategory)) {
         return placeholder
     }
@@ -37,7 +37,7 @@ export function mySqlPlaceholder(placeholder: string, params: any[], index: numb
  * 5.7 and MariaDB reject an offset, and all of them a `Z`). A date sent as a date also compares equal to a `date`
  * column, which the text of a whole date and time doesn't. Any other value is sent as it is.
  */
-export function mySqlParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined): unknown {
+export function mySqlMariaDBParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined): unknown {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
         return value
     }
@@ -54,11 +54,11 @@ export function mySqlParamValue(value: unknown, type: string, typeCategory: Type
 }
 
 /**
- * The params as the drivers of MySQL and MariaDB receive them (see mySqlParamValue), from the type of each parameter
+ * The params as the drivers of MySQL and MariaDB receive them (see mySqlMariaDBParamValue), from the type of each parameter
  * kept in the params. The params of the query keep the value the connection handed; a copy is returned when a value
  * changes.
  */
-export function mySqlDriverParams(params: any[]): any[] {
+export function mySqlMariaDBDriverParams(params: any[]): any[] {
     let result: any[] | undefined = undefined
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
@@ -69,7 +69,7 @@ export function mySqlDriverParams(params: any[]): any[] {
         if (!result) {
             result = params.slice()
         }
-        result[i] = mySqlParamValue(value, type, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory))
+        result[i] = mySqlMariaDBParamValue(value, type, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory))
     }
     return result ?? params
 }

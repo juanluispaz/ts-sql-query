@@ -5,10 +5,10 @@ import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import type { BeginTransactionOpts, DatabaseType } from './QueryRunner.js'
 import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErrorMappers/BunSqlMySqlErrorMapper.js'
-import { isTransactionOpenAfterMySqlError } from '../utils/mySql/mySqlTransactionRollback.js'
+import { isTransactionOpenAfterMySqlMariaDBError } from '../utils/mySqlMariaDB/mySqlMariaDBTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { mySqlDriverParams } from '../utils/mySql/mySqlParamTypes.js'
+import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
 
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL, database: 'mySql' | 'mariaDB' = 'mySql') {
@@ -47,10 +47,10 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         return this.rejectWhenRolledBackByTheDatabase() || sql.unsafe(query, this.driverParams(params)).then((result) => result.affectedRows === 0 ? null : result.lastInsertRowid, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
-        return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
+        return isTransactionOpenAfterMySqlMariaDBError(this.getErrorReason(error))
     }
     protected override driverParams(params: any[]): any[] {
-        return mySqlDriverParams(params)
+        return mySqlMariaDBDriverParams(params)
     }
     override addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         // The same binding MockQueryRunner uses to imitate this query runner

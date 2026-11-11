@@ -7,7 +7,7 @@ import type { QueryRunnerName } from '../queryRunners/MockQueryRunner.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam, oraclePlaceholder } from './oracle/oracleParamTypes.js'
-import { mySqlPlaceholder } from './mySql/mySqlParamTypes.js'
+import { mySqlMariaDBPlaceholder } from './mySqlMariaDB/mySqlMariaDBParamTypes.js'
 import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSql/postgreSqlParamTypes.js'
 import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from './metadataSymbols.js'
 import { sqlServerPlaceholder } from './sqlServer/sqlServerParamTypes.js'
@@ -56,7 +56,7 @@ const postgreSqlTyped: ParamBinding = (params, value, type, typeCategory, forceT
     return '$' + (add(params, value, type, typeCategory, forceTypeCast || zoned) + 1) + postgreSqlZonedTimeCast(type, typeCategory, zoned)
 }
 const mySql: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    const placeholder = mySqlPlaceholder('?', params, params.length, value, type, typeCategory)
+    const placeholder = mySqlMariaDBPlaceholder('?', params, params.length, value, type, typeCategory)
     add(params, value, type, typeCategory, forceTypeCast)
     return placeholder
 }

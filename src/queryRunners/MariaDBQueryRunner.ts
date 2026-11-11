@@ -3,10 +3,10 @@ import type { Connection, QueryOptions } from 'mariadb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMariaDbErrorReason, isMariaDbError } from './connectorErrorMappers/MariaDBErrorMapper.js'
-import { isTransactionOpenAfterMySqlError } from '../utils/mySql/mySqlTransactionRollback.js'
+import { isTransactionOpenAfterMySqlMariaDBError } from '../utils/mySqlMariaDB/mySqlMariaDBTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { mySqlDriverParams } from '../utils/mySql/mySqlParamTypes.js'
+import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
 
 /**
  * The options the mariadb connector is given with every query of the library, which replace the ones of the
@@ -81,10 +81,10 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, mySqlDriverParams(params)).catch((error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, mySqlMariaDBDriverParams(params)).catch((error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, mySqlDriverParams(params)).then((result: UpsertResult) => result.affectedRows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, mySqlMariaDBDriverParams(params)).then((result: UpsertResult) => result.affectedRows, (error) => this.statementOfTheTransactionFailed(error))
     }
     override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
@@ -93,10 +93,10 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
         // A suppressed `insert ignore` inserts no row and reports insert id 0: fall back to null (the same absence
         // the RETURNING path reports) when nothing was inserted.
-        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, mySqlDriverParams(params)).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, mySqlMariaDBDriverParams(params)).then((result: UpsertResult) => result.affectedRows === 0 ? null : result.insertId, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
-        return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
+        return isTransactionOpenAfterMySqlMariaDBError(this.getErrorReason(error))
     }
     override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
         if (this.config.forUseInTransaction) {

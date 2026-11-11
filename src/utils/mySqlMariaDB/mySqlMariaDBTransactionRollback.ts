@@ -6,6 +6,6 @@ import type { TsSqlErrorReason } from '../../TsSqlError.js'
  * timeout too, unless the server runs with innodb_rollback_on_timeout, which a query runner can't see without asking
  * the server). Undefined when the transaction is kept or it can't be told.
  */
-export function isTransactionOpenAfterMySqlError(reason: TsSqlErrorReason): false | undefined {
+export function isTransactionOpenAfterMySqlMariaDBError(reason: TsSqlErrorReason): false | undefined {
     return reason.reason === 'TRANSACTION_ERROR' && reason.transactionErrorType === 'deadlock' ? false : undefined
 }

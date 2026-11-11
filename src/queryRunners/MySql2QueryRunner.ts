@@ -3,10 +3,10 @@ import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from 'mys
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getMySql2ErrorReason, isMySql2Error } from './connectorErrorMappers/MySql2ErrorMapper.js'
-import { isTransactionOpenAfterMySqlError } from '../utils/mySql/mySqlTransactionRollback.js'
+import { isTransactionOpenAfterMySqlMariaDBError } from '../utils/mySqlMariaDB/mySqlMariaDBTransactionRollback.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { mySqlDriverParams } from '../utils/mySql/mySqlParamTypes.js'
+import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
 
 
 export interface MySql2QueryRunnerConfig {
@@ -54,7 +54,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || new Promise<any[]>((resolve, reject) => {
-            this.connection.query({ ...this.queryOptions, sql: query }, mySqlDriverParams(params), (error: QueryError | null, results: RowDataPacket[]) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, mySqlMariaDBDriverParams(params), (error: QueryError | null, results: RowDataPacket[]) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -65,7 +65,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.rejectWhenRolledBackByTheDatabase() || new Promise<number>((resolve, reject) => {
-            this.connection.query({ ...this.queryOptions, sql: query }, mySqlDriverParams(params), (error: QueryError | null, results: ResultSetHeader) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, mySqlMariaDBDriverParams(params), (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -80,7 +80,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         
         return this.rejectWhenRolledBackByTheDatabase() || new Promise((resolve, reject) => {
-            this.connection.query({ ...this.queryOptions, sql: query }, mySqlDriverParams(params), (error: QueryError | null, results: ResultSetHeader) => {
+            this.connection.query({ ...this.queryOptions, sql: query }, mySqlMariaDBDriverParams(params), (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -92,7 +92,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         }).catch((error) => this.statementOfTheTransactionFailed(error))
     }
     protected override isTransactionOpenInTheDatabase(error: unknown): boolean | undefined {
-        return isTransactionOpenAfterMySqlError(this.getErrorReason(error))
+        return isTransactionOpenAfterMySqlMariaDBError(this.getErrorReason(error))
     }
     override executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void> {
         if (this.config.forUseInTransaction) {

@@ -1,3 +1,4 @@
+import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from '../sqlBuilders/SqlBuilder.js'
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
@@ -226,7 +227,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             return this.__query
         }
         this.__generateWiths()
-        this.__query = this.__sqlBuilder._buildUpdate(this, this.__params)
+        this.__query = this.__sqlBuilder._buildUpdate(this, new SqlBuildContext(this.__params))
         return this.__query
     }
     params(): any[] {
@@ -236,12 +237,12 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this.__params
     }
 
-    __toSql(_sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+    __toSql(_sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
         this.__generateWiths()
-        return this.__sqlBuilder._buildUpdate(this, params)
+        return this.__sqlBuilder._buildUpdate(this, context)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
-        return this.__toSql(sqlBuilder, params, forceTypeCast)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, context, forceTypeCast)
     }
 
     __hasColumnsToSet(): boolean {

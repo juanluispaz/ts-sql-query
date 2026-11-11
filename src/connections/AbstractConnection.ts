@@ -1,3 +1,4 @@
+import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import type { InsertExpression } from '../expressions/insert.js'
@@ -657,7 +658,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         let query: string | undefined
         try {
             const queryParams: any[] = []
-            query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
+            query = this.__sqlBuilder._buildCallProcedure(new SqlBuildContext(queryParams), procedureName, params)
             __setQueryMetadata(source, queryParams, this.__sqlBuilder, [])
             return this.__sqlBuilder._queryRunner.executeProcedure(query, queryParams).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
@@ -723,7 +724,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             const functionCall = new FunctionCallValueSource(functionName, params as AnyValueSource[], valueType as ValueType, returnType, required === 'optional' ? 'optional' : 'required', adapter2)
             const queryParams: any[] = []
-            query = this.__sqlBuilder._buildCallFunction(queryParams, functionCall)
+            query = this.__sqlBuilder._buildCallFunction(new SqlBuildContext(queryParams), functionCall)
             __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall))
             return this.__sqlBuilder._queryRunner.executeFunction(query, queryParams).then((value) => {
                 let result

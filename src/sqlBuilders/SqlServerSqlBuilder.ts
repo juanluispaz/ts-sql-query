@@ -1,3 +1,4 @@
+import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
@@ -41,17 +42,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // uses, so it is self-delimiting and needs no wrapping as an operand.
         this._operationsThatNeedParenthesis._concatIgnoringNull = false
     }
-    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
+    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _context: SqlBuildContext, _isOutermostQuery: boolean): string {
         // No alias nor position in a group by: the same SQL, with the same named parameters
         return selectColumn.sql
     }
-    override _appendRawColumnName(column: DBColumn, params: any[]): string {
+    override _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
         const columnPrivate = __getColumnPrivate(column)
         const tableOrView = columnPrivate.__tableOrView
         if (__getTableOrViewPrivate(tableOrView).__oldValues) {
             return 'deleted.' + this._escape(columnPrivate.__name, true)
         }
-        return super._appendRawColumnName(column, params)
+        return super._appendRawColumnName(column, context)
     }
     override _forceAsIdentifier(identifier: string): string {
         return '[' + identifier + ']'
@@ -59,10 +60,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return isSqlServerReservedWord(word)
     }
-    override _nextSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType) {
+    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType) {
         return 'next value for ' + this._escape(sequenceName, false)
     }
-    override _currentSequenceValue(_params: any[], sequenceName: string, columnType: ValueType): string {
+    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, columnType: ValueType): string {
         // SQL Server has no `currval`; the current value is read from the catalog, where it is
         // typed `sql_variant`. SQL Server refuses to convert that implicitly, so anything doing
         // arithmetic over it (or handing it to a numeric function) is rejected with "Implicit
@@ -88,26 +89,26 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _trueValueForCondition = '(1=1)'
     override _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
-    override _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, params: any[], forceTypeCast: boolean): string {
+    override _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
                 if (valueSourcePrivate.__optionalType === 'required') {
-                    return 'cast(case when ' + super._appendConditionSql(value, params, forceTypeCast) + ' then 1 else 0 end as bit)'
+                    return 'cast(case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 else 0 end as bit)'
                 } else {
-                    return 'cast(case when ' + super._appendConditionSql(value, params, forceTypeCast) + ' then 1 when not ' + super._appendConditionSqlParenthesis(value, params, forceTypeCast) + ' then 0 else null end as bit)'
+                    return 'cast(case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 when not ' + super._appendConditionSqlParenthesis(value, context, forceTypeCast) + ' then 0 else null end as bit)'
                 }
             }
         }
-        return super._appendSql(value, params, forceTypeCast)
+        return super._appendSql(value, context, forceTypeCast)
     }
-    override _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string {
+    override _appendSelectColumnReferenceForCondition(column: AnyValueSource, context: SqlBuildContext): string {
         // The select list writes a boolean as a value (1 / 0), and the having must refer to that same expression
         // (the grouped one): it is compared with 1 to make it a condition, like _appendConditionSql does with a
         // boolean value. Only a reference to a column gets here: _appendConditionSql handles the other ones
-        return '(' + this._appendSelectColumnReference(column, params) + ' = 1)'
+        return '(' + this._appendSelectColumnReference(column, context) + ' = 1)'
     }
-    override _appendConditionSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
+    override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
@@ -118,7 +119,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 // so reusing it would double-wrap to `((@0 = 1) = 1)`, which SQL
                 // Server rejects. A literal `true`/`false` keeps the canonical
                 // `(1=1)`/`(0=1)`.
-                const sql = this._appendSql(value, params, forceTypeCast)
+                const sql = this._appendSql(value, context, forceTypeCast)
                 if (!sql) {
                     return sql
                 } else if (sql === this._trueValue) {
@@ -130,7 +131,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 }
             }
         }
-        return super._appendConditionSql(value, params, forceTypeCast)
+        return super._appendConditionSql(value, context, forceTypeCast)
     }
     _isUuid(value: any): boolean {
         if (isValueSource(value)) {
@@ -141,14 +142,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return false
     }
-    _appendSqlMaybeUuid(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, params: any[]): string {
+    _appendSqlMaybeUuid(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext): string {
         if (this._isUuid(value)) {
-            return 'convert(nvarchar(36), ' + this._appendSql(value, params, false) + ')'
+            return 'convert(nvarchar(36), ' + this._appendSql(value, context, false) + ')'
         } else {
-            return this._appendSql(value, params, false)
+            return this._appendSql(value, context, false)
         }
     }
-    _appendSqlMaybeUuidParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
+    _appendSqlMaybeUuidParenthesis(value: ToSql | AnyValueSource, context: SqlBuildContext): string {
         // Parenthesis-aware variant of `_appendSqlMaybeUuid` for the operands a forced
         // `collate` is applied to (the `replaceAll` / `replaceAllInsensitive` match operands).
         // SQL Server rejects `collate` on a `uniqueidentifier` ("Expression type
@@ -156,58 +157,58 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // converted to nvarchar(36) FIRST, like the rest of the string API. The `convert(...)`
         // call is self-delimiting, so it needs no extra parenthesis before the trailing collate.
         if (this._isUuid(value)) {
-            return 'convert(nvarchar(36), ' + this._appendSql(value, params, false) + ')'
+            return 'convert(nvarchar(36), ' + this._appendSql(value, context, false) + ')'
         }
-        return this._appendSqlParenthesis(value, params, false)
+        return this._appendSqlParenthesis(value, context, false)
     }
-    _appendValueMaybeUuidParenthesis(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _appendValueMaybeUuidParenthesis(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Same as `_appendSqlMaybeUuidParenthesis`, but for a value operand that may be a raw
         // literal (routed through `_appendValue`) rather than a `ToSql`.
         if (this._isUuid(value)) {
-            return 'convert(nvarchar(36), ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'convert(nvarchar(36), ' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
-        return this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+        return this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false)
     }
-    override _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _appendConditionParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isBooleanValueType(columnType)) {
             if (isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
                 const typeAdapter = columnPrivate.__typeAdapter
                 if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                    return '(' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+                    return '(' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
                 }
             }
-            return '(' + this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ' = 1)'
+            return '(' + this._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ' = 1)'
         }
-        return this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return this._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    override _appendColumnName(column: DBColumn, params: any[]): string {
+    override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 if (columnPrivate.__optionalType === 'required') {
-                    return 'cast(case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end as bit)'
+                    return 'cast(case when ' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ' then 1 else 0 end as bit)'
                 } else {
-                    return 'cast(case ' + this._appendRawColumnName(column, params) + ' when ' + this._appendLiteralValue(typeAdapter.trueValue, params) +  ' then 1 when ' + this._appendLiteralValue(typeAdapter.falseValue, params) + ' then 0 else null end as bit)'
+                    return 'cast(case ' + this._appendRawColumnName(column, context) + ' when ' + this._appendLiteralValue(typeAdapter.trueValue, context) +  ' then 1 when ' + this._appendLiteralValue(typeAdapter.falseValue, context) + ' then 0 else null end as bit)'
                 }
             }
         }
 
-        return this._appendRawColumnName(column, params)
+        return this._appendRawColumnName(column, context)
     }
-    override _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
+    override _appendColumnNameForCondition(column: DBColumn, context: SqlBuildContext): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+                return '(' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
             } else {
-                return '(' + this._appendRawColumnName(column, params) + ' = 1)'
+                return '(' + this._appendRawColumnName(column, context) + ' = 1)'
             }
         }
 
-        return this._appendRawColumnName(column, params)
+        return this._appendRawColumnName(column, context)
     }
     // No `_inlineSelectAsValueForCondition` override: a boolean one-column
     // inline select is a `bit`, and the `... = 1` bit-to-condition coercion is
@@ -220,7 +221,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // Sql Server doesn't uses the recursive keyword
         return 'with'
     }
-    override _buildWithValues(withValues: WithValuesData, params: any[]) {
+    override _buildWithValues(withValues: WithValuesData, context: SqlBuildContext) {
         let result = this._escape(withValues.__name, false)
         result += ' as (select * from (values '
 
@@ -240,7 +241,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], context)
             }
             valuesSql += '(' + valueSql + ')'
         }
@@ -258,21 +259,21 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 columns += ', '
             }
             const columnPrivate = __getColumnPrivate(column)
-            columns += this._appendColumnAlias(columnPrivate.__name, params)
+            columns += this._appendColumnAlias(columnPrivate.__name, context)
         }
         result += '(' + columns + ')'
         result += ')'
 
         return result
     }
-    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
-        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
+    override _buildSelectWithColumnsInfoForCompound(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
+        const result = this._buildSelectWithColumnsInfo(query, context, columnsForInsert, isOutermostQuery)
         if (needsGrouping || query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ') _t_' + this._generateUnique() + '_'
         }
         return result
     }
-    override _buildSelectOrderBy(query: SelectData, params: any[]): string {
+    override _buildSelectOrderBy(query: SelectData, context: SqlBuildContext): string {
         // How to index it: http://www.sqlines.com/oracle/function_based_indexes
         const orderBy = query.__orderBy
         if (!orderBy) {
@@ -280,14 +281,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
             const customization = query.__customization
             if (customization && customization.beforeOrderByItems) {
-                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, context)
             }
 
             if (customization && customization.afterOrderByItems) {
                 if (orderByColumns) {
                     orderByColumns += ', '
                 }
-                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, context)
             }
 
             if (orderByColumns) {
@@ -321,7 +322,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         const customization = query.__customization
         if (customization && customization.beforeOrderByItems) {
-            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, context)
         }
 
         for (let i = 0, length = orderBy.length; i < length; i++) {
@@ -331,41 +332,41 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             }
             const order = entry.order
             if (!order) {
-                orderByColumns += this._appendOrderByColumnAlias(entry, query, params)
+                orderByColumns += this._appendOrderByColumnAlias(entry, query, context)
             } else switch (order) {
                 case 'asc':
                 case 'asc nulls first':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, context) + ' asc'
                     break
                 case 'desc':
                 case 'desc nulls last':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, context) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, context) + ' is null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, context) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, context) + ' is not null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, context) + ' desc'
                     break
                 case 'insensitive':
-                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params)
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, context)
                     break
                 case 'asc insensitive':
                 case 'asc nulls first insensitive':
-                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, context) + ' asc'
                     break
                 case 'desc insensitive':
                 case 'desc nulls last insensitive':
-                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, context) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, context) + ' is null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, context) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, context) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, context) + ' desc'
                     break
                 default:
-                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, context), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 
@@ -373,7 +374,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, context)
         }
 
         if (!orderByColumns) {
@@ -381,29 +382,29 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return ' order by ' + orderByColumns
     }
-    override _buildSelectLimitOffset(query: SelectData, params: any[]): string {
+    override _buildSelectLimitOffset(query: SelectData, context: SqlBuildContext): string {
         let result = ''
 
         const limit = query.__limit
         const offset = query.__offset
         if (offset !== null && offset !== undefined) {
-            result += ' offset ' + this._appendValue(offset, params, 'int', 'int', undefined, false) + ' rows'
+            result += ' offset ' + this._appendValue(offset, context, 'int', 'int', undefined, false) + ' rows'
         }
 
         if (limit !== null && limit !== undefined) {
             if (!result) {
                 result += ' offset 0 rows'
             }
-            result += ' fetch next ' + this._appendValue(limit, params, 'int', 'int', undefined, false) + ' rows only'
+            result += ' fetch next ' + this._appendValue(limit, context, 'int', 'int', undefined, false) + ' rows only'
         }
 
-        if (!result && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) && !this._isCurrentRootQuery(query, params)) {
+        if (!result && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) && !this._isCurrentRootQuery(query, context)) {
             // subqueries with order by requires always an offset, this add a noop offset
             result += ' offset 0 rows'
         }
         return result
     }
-    override _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
+    override _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
         // T-SQL does not resolve SELECT aliases inside scalar functions in
         // ORDER BY (only as bare references). When the entry is an alias
         // name, emit the underlying column expression instead.
@@ -411,11 +412,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (typeof expression === 'string') {
             const column = getQueryColumn(query.__columns, expression)
             if (!column) {
-                return this._appendOrderByColumnAlias(entry, query, params)
+                return this._appendOrderByColumnAlias(entry, query, context)
             }
-            return this._appendSql(column, params, false)
+            return this._appendSql(column, context, false)
         }
-        return this._appendOrderByColumnAlias(entry, query, params)
+        return this._appendOrderByColumnAlias(entry, query, context)
     }
     override _supportOrderByColumnAliasInExpression(): boolean {
         // T-SQL resolves a name inside an ORDER BY expression against the input
@@ -433,15 +434,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * output aliases and where the source column is out of scope, so the bare
      * alias is both legal and the only thing that resolves.
      */
-    private _appendOrderByNullCheckOperand(entry: OrderByEntry, query: SelectData, params: any[]): string {
+    private _appendOrderByNullCheckOperand(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
         if (query.__type === 'compound') {
-            return this._appendOrderByColumnAlias(entry, query, params)
+            return this._appendOrderByColumnAlias(entry, query, context)
         }
-        const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+        const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, context)
         if (selectColumn) {
-            return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, params)
+            return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, context)
         }
-        return this._appendOrderByColumnExpression(entry, query, params)
+        return this._appendOrderByColumnExpression(entry, query, context)
     }
     override _needsCompoundNullsEmulationOrderByWrap(query: SelectData): boolean {
         // The `asc nulls last` / `desc nulls first` modes (and their insensitive
@@ -467,51 +468,51 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return false
     }
-    override _buildInsertOutput(query: InsertData, params: any[]): string {
+    override _buildInsertOutput(query: InsertData, context: SqlBuildContext): string {
         const idColumn = query.__idColumn
         if (idColumn) {
-            this._setContainsInsertReturningClause(params, true)
-            return ' output inserted.' + this._appendSql(idColumn, params, false)
+            this._setContainsInsertReturningClause(context, true)
+            return ' output inserted.' + this._appendSql(idColumn, context, false)
         }
 
-        const result = this._buildQueryOutput(query.__columns, query.__table, 'inserted', params)
-        this._setContainsInsertReturningClause(params, !!result)
+        const result = this._buildQueryOutput(query.__columns, query.__table, 'inserted', context)
+        this._setContainsInsertReturningClause(context, !!result)
         return result
     }
-    override _buildInsertReturning(_query: InsertData, _params: any[]): string {
+    override _buildInsertReturning(_query: InsertData, _context: SqlBuildContext): string {
         return ''
     }
     override _useUpdateOldValueInFrom(): boolean {
         return false
     }
-    override _buildUpdateOutput(query: UpdateData, params: any[]): string {
-        return this._buildQueryOutput(query.__columns, query.__table, 'inserted', params)
+    override _buildUpdateOutput(query: UpdateData, context: SqlBuildContext): string {
+        return this._buildQueryOutput(query.__columns, query.__table, 'inserted', context)
     }
-    override _buildUpdateReturning(_query: UpdateData, _params: any[]): string {
+    override _buildUpdateReturning(_query: UpdateData, _context: SqlBuildContext): string {
         return ''
     }
-    override _buidDeleteUsing(query: DeleteData, params: any[]): string {
-        const result = this._buildFromJoins(query.__using, query.__joins, undefined, params)
+    override _buidDeleteUsing(query: DeleteData, context: SqlBuildContext): string {
+        const result = this._buildFromJoins(query.__using, query.__joins, undefined, context)
         if (result) {
             return ' from ' + result
         }
         return ''
     }
-    override _buildDeleteOutput(query: DeleteData, params: any[]): string {
-        return this._buildQueryOutput(query.__columns, query.__table, 'deleted', params)
+    override _buildDeleteOutput(query: DeleteData, context: SqlBuildContext): string {
+        return this._buildQueryOutput(query.__columns, query.__table, 'deleted', context)
     }
-    _buildQueryOutput(queryColumns: QueryColumns | undefined, table: ITable<any>, alias: string, params: any[]): string {
+    _buildQueryOutput(queryColumns: QueryColumns | undefined, table: ITable<any>, alias: string, context: SqlBuildContext): string {
         if (!queryColumns) {
             return ''
         }
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(queryColumns, columns, '')
 
-        const oldForceAliasFor = this._getForceAliasFor(params)
-        const oldForceAliasAs = this._getForceAliasAs(params)
+        const oldForceAliasFor = context.forceAliasFor
+        const oldForceAliasAs = context.forceAliasAs
 
-        this._setForceAliasFor(params, table)
-        this._setForceAliasAs(params, alias)
+        context.forceAliasFor = table
+        context.forceAliasAs = alias
 
         let requireComma = false
         let result = ''
@@ -519,29 +520,29 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result += this._appendResultColumnProjection(columns[property]!, this._appendSql(columns[property]!, params, false), params)
+            result += this._appendResultColumnProjection(columns[property]!, this._appendSql(columns[property]!, context, false), context)
             if (property) {
-                result += ' as ' + this._appendColumnAlias(property, params)
+                result += ' as ' + this._appendColumnAlias(property, context)
             }
             requireComma = true
         }
 
-        this._setForceAliasFor(params, oldForceAliasFor)
-        this._setForceAliasAs(params, oldForceAliasAs)
+        context.forceAliasFor = oldForceAliasFor
+        context.forceAliasAs = oldForceAliasAs
         if (!result) {
             return ''
         }
         return ' output ' + result
     }
-    override _buildDeleteReturning(_query: DeleteData, _params: any[]): string {
+    override _buildDeleteReturning(_query: DeleteData, _context: SqlBuildContext): string {
         return ''
     }
-    override _isNull(params: any[], valueSource: ToSql): string {
+    override _isNull(context: SqlBuildContext, valueSource: ToSql): string {
         if (isColumn(valueSource)) {
             // The null state lives in the stored column, not in the 0/1 expression a
             // CustomBooleanTypeAdapter column remaps to (which is never null for a
             // required adapter), so the null check must read the raw column name.
-            return this._appendRawColumnName(valueSource, params) + ' is null'
+            return this._appendRawColumnName(valueSource, context) + ' is null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
@@ -549,21 +550,21 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     return this._falseValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendConditionSql(valueSource, params, false) + ' then 0 when not ' + this._appendConditionSqlParenthesis(valueSource, params, false) + ' then 0 else 1 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, context, false) + ' then 0 when not ' + this._appendConditionSqlParenthesis(valueSource, context, false) + ' then 0 else 1 end = 1)'
                 }
             }
         }
-        return super._isNull(params, valueSource)
+        return super._isNull(context, valueSource)
     }
-    _generalIsNull(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _generalIsNull(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (hasToSql(value)) {
-            return this._isNull(params, value)
+            return this._isNull(context, value)
         }
-        return this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' is null'
+        return this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' is null'
     }
-    override _isNotNull(params: any[], valueSource: ToSql): string {
+    override _isNotNull(context: SqlBuildContext, valueSource: ToSql): string {
         if (isColumn(valueSource)) {
-            return this._appendRawColumnName(valueSource, params) + ' is not null'
+            return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
@@ -571,69 +572,69 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     return this._trueValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendConditionSql(valueSource, params, false) + ' then 1 when not ' + this._appendConditionSqlParenthesis(valueSource, params, false) + ' then 1 else 0 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, context, false) + ' then 1 when not ' + this._appendConditionSqlParenthesis(valueSource, context, false) + ' then 1 else 0 end = 1)'
                 }
             }
         }
-        return super._isNotNull(params, valueSource)
+        return super._isNotNull(context, valueSource)
     }
-    _generalIsNotNull(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _generalIsNotNull(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (hasToSql(value)) {
-            return this._isNotNull(params, value)
+            return this._isNotNull(context, value)
         }
-        return this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' is not null'
+        return this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' is not null'
     }
-    override _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _is(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const valueIsNull = this._isNullValue(value)
         const valueSourceIsNull = this._isNullValue(valueSource)
         const valueIsOptional = this._isOptionalValue(value)
         const valueSourceIsOptional = this._isOptionalValue(valueSource)
 
         if (valueIsNull) {
-            return this._isNull(params, valueSource)
+            return this._isNull(context, valueSource)
         }
         if (valueSourceIsNull) {
             // We know value is null or undefined, then, whe need to ensure the value source is null as well
-            return this._generalIsNull(params, value, columnType, columnTypeName, typeAdapter)
+            return this._generalIsNull(context, value, columnType, columnTypeName, typeAdapter)
         }
 
         if (valueSourceIsOptional && valueIsOptional) {
-            return 'case when (' + this._equals(params, valueSource, value, columnType, columnTypeName, typeAdapter) + ') or (' + this._isNull(params, valueSource) + ' and ' + this._generalIsNull(params, value, columnType, columnTypeName, typeAdapter) + ') then 1 else 0 end = 1'
+            return 'case when (' + this._equals(context, valueSource, value, columnType, columnTypeName, typeAdapter) + ') or (' + this._isNull(context, valueSource) + ' and ' + this._generalIsNull(context, value, columnType, columnTypeName, typeAdapter) + ') then 1 else 0 end = 1'
         } else if (valueSourceIsOptional || valueIsOptional) {
-            return 'case when ' + this._equals(params, valueSource, value, columnType, columnTypeName, typeAdapter) + ' then 1 else 0 end = 1'
+            return 'case when ' + this._equals(context, valueSource, value, columnType, columnTypeName, typeAdapter) + ' then 1 else 0 end = 1'
         } else {
-            return this._equals(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return this._equals(context, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
 
         // Alternative implementation that avoid evaluate multiple times the arguments
         // return 'exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, columnTypeName, typeAdapter) + ')'
     }
-    override _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const valueIsNull = this._isNullValue(value)
         const valueSourceIsNull = this._isNullValue(valueSource)
         const valueIsOptional = this._isOptionalValue(value)
         const valueSourceIsOptional = this._isOptionalValue(valueSource)
 
         if (valueIsNull) {
-            return this._isNotNull(params, valueSource)
+            return this._isNotNull(context, valueSource)
         }
         if (valueSourceIsNull) {
             // We know value is null or undefined, then, whe need to ensure the value source is null as well
-            return this._generalIsNotNull(params, value, columnType, columnTypeName, typeAdapter)
+            return this._generalIsNotNull(context, value, columnType, columnTypeName, typeAdapter)
         }
 
         if (valueSourceIsOptional && valueIsOptional) {
-            return 'not (case when (' + this._equals(params, valueSource, value, columnType, columnTypeName, typeAdapter) + ') or (' + this._isNull(params, valueSource) + ' and ' + this._generalIsNull(params, value, columnType, columnTypeName, typeAdapter) + ') then 1 else 0 end = 1)'
+            return 'not (case when (' + this._equals(context, valueSource, value, columnType, columnTypeName, typeAdapter) + ') or (' + this._isNull(context, valueSource) + ' and ' + this._generalIsNull(context, value, columnType, columnTypeName, typeAdapter) + ') then 1 else 0 end = 1)'
         } else if (valueSourceIsOptional || valueIsOptional) {
-            return 'not (case when ' + this._equals(params, valueSource, value, columnType, columnTypeName, typeAdapter) + ' then 1 else 0 end = 1)'
+            return 'not (case when ' + this._equals(context, valueSource, value, columnType, columnTypeName, typeAdapter) + ' then 1 else 0 end = 1)'
         } else {
-            return this._notEquals(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return this._notEquals(context, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
 
         // Alternative implementation that avoid evaluate multiple times the arguments
         // return 'not exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, columnTypeName, typeAdapter) + ')'
     }
-    override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Emit `coalesce`, not T-SQL's `isnull`. `isnull(a, b)` types its result as its
         // FIRST argument and coerces the fallback to it (the same first-arg-type rule as
         // POWER — see _power / _cbrtRadicand), so a wider/longer fallback is silently
@@ -644,30 +645,30 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // argument is the receiver — almost always a column, so repeating it is free.
         let result = 'coalesce('
         if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).__uuidString) {
-            result += 'convert(nvarchar(36), ' + this._appendSql(valueSource, params, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendSql(valueSource, context, false) + ')'
         } else {
-            result += this._appendSql(valueSource, params, false)
+            result += this._appendSql(valueSource, context, false)
         }
         result += ', '
         if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-            result += 'convert(nvarchar(36), ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
         } else {
-            result += this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+            result += this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
         }
         result += ')'
         return result
     }
-    override _escapeLikeWildcard(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _escapeLikeWildcard(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
             value = value.replace(/\[/g, '[[]')
             value = value.replace(/%/g, '[%]')
             value = value.replace(/_/g, '[_]')
-            return this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
         } else {
-            return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[_]')"
+            return "replace(replace(replace(" + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[_]')"
         }
     }
-    override _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // SQL Server's `REPLACE` honours the column/database collation, so on the default
         // case-insensitive collation `replaceAll('abc', 'X')` on `'ABCabc'` matches both cases
         // and corrupts the value. Force `replaceCollation` (the binary/code-point collation the
@@ -676,34 +677,34 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // `replaceCollation` opts out to the native `replace`.
         const collation = this._connectionConfiguration.replaceCollation
         if (!collation) {
-            return super._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+            return super._replaceAll(context, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
         }
-        return 'replace(' + this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' collate ' + collation + ', ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
+        return 'replace(' + this._appendSqlMaybeUuidParenthesis(valueSource, context) + ' collate ' + collation + ', ' + this._appendValueMaybeUuidParenthesis(value, context, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + ', ' + this._appendValue(value2, context, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
     }
-    override _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // SQL Server's `REPLACE` folds case under a case-insensitive collation. With
         // `insensitiveCollation` set, force it (accent support via a `..._CI_AI` name) and reset
         // to `DATABASE_DEFAULT`. Unset (or ''), emit the bare `replace(...)` and lean on the DB
         // default collation, which is case-insensitive on a standard SQL Server.
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return 'replace(' + this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' collate ' + collation + ', ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
+            return 'replace(' + this._appendSqlMaybeUuidParenthesis(valueSource, context) + ' collate ' + collation + ', ' + this._appendValueMaybeUuidParenthesis(value, context, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + ', ' + this._appendValue(value2, context, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
         }
-        return 'replace(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+        return 'replace(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, context, columnType, columnTypeName, typeAdapter, false) + ')'
     }
     // T-SQL concatenates with `+`, not `||`. That is the only thing the affix patterns
     // needed from this dialect, so the predicates themselves ride the base's shapes; only
     // the insensitive ones stay overridden below, for their uuid receiver arm.
-    override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+    override _likePatternStartingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
         return fold ? 'lower(' + term + " + '%')" : '(' + term + " + '%')"
     }
-    override _likePatternEndingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+    override _likePatternEndingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
         return fold ? "lower('%' + " + term + ')' : "('%' + " + term + ')'
     }
-    override _likePatternContaining(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+    override _likePatternContaining(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
         return fold ? "lower('%' + " + term + " + '%')" : "('%' + " + term + " + '%')"
     }
     // The uuid receiver arm of the six affix-insensitive predicates below: a `uniqueidentifier`
@@ -716,100 +717,100 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     // match stayed case-sensitive. The bare ('') and unset (default) cases keep today's plain `like`
     // (correct on the default CI database, where `uniqueidentifier like <nvarchar>` implicitly
     // converts and folds).
-    override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _startsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
             if (collation) {
-                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+                return this._appendSqlMaybeUuidParenthesis(valueSource, context) + ' like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
             }
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') like lower(' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') like lower(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
     }
-    override _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notStartsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
             if (collation) {
-                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+                return this._appendSqlMaybeUuidParenthesis(valueSource, context) + ' not like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
             }
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') not like lower(' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') not like lower(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
     }
-    override _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _endsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
             if (collation) {
-                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+                return this._appendSqlMaybeUuidParenthesis(valueSource, context) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
             }
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") like lower('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") like lower('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
-    override _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEndsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
             if (collation) {
-                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+                return this._appendSqlMaybeUuidParenthesis(valueSource, context) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
             }
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") not like lower('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
-    override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _containsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
             if (collation) {
-                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+                return this._appendSqlMaybeUuidParenthesis(valueSource, context) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
             }
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") like lower('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") like lower('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
     }
-    override _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notContainsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
             if (collation) {
-                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+                return this._appendSqlMaybeUuidParenthesis(valueSource, context) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
             }
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") not like lower('%' + " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
     }
     // A forced `collate` on a bare `uniqueidentifier` is rejected ("Expression type
@@ -822,40 +823,40 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     // left operand carries no `collate` (an implicit uniqueidentifier conversion handles the
     // comparison), and the no-collation arms emit a bare comparison or `lower(...)` — both of
     // which SQL Server accepts on a uniqueidentifier — so those are left to the base.
-    override _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _equalsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueMaybeUuidParenthesis(value, context, columnType, columnTypeName, typeAdapter) + ' collate ' + collation
         }
-        return super._equalsInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._equalsInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    override _notEqualsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEqualsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueMaybeUuidParenthesis(value, context, columnType, columnTypeName, typeAdapter) + ' collate ' + collation
         }
-        return super._notEqualsInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._notEqualsInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    override _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _likeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._appendValueMaybeUuidParenthesis(value, context, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + this._likeEscape
         }
-        return super._likeInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._likeInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    override _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notLikeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._appendValueMaybeUuidParenthesis(value, context, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + this._likeEscape
         }
-        return super._notLikeInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._notLikeInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
     // `<expr> collate <name>`: the base has no SQL Server override, so a uuid receiver
     // (`uuid.asString().collate(...)`) would emit `<uniqueidentifier> collate <name>` and be
     // rejected. Convert it first via `_appendSqlMaybeUuidParenthesis`, which reproduces the
     // base's `_appendSqlParenthesis` for a non-uuid receiver (so only the uuid case changes).
-    override _collate(params: any[], valueSource: ToSql, collation: string): string {
-        return this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' collate ' + collation
+    override _collate(context: SqlBuildContext, valueSource: ToSql, collation: string): string {
+        return this._appendSqlMaybeUuidParenthesis(valueSource, context) + ' collate ' + collation
     }
     // The forced `collate` an insensitive `orderBy` applies to a projected `uuid.asString()`
     // alias hits the same rejection; convert the (already-rendered) receiver when the ordered
@@ -880,27 +881,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return false
         }
     }
-    override _trim(params: any[], valueSource: ToSql): string {
-        return 'trim(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    override _trim(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'trim(' + this._appendSqlMaybeUuid(valueSource, context) + ')'
     }
-    override _trimLeft(params: any[], valueSource: ToSql): string {
-        return 'ltrim(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    override _trimLeft(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'ltrim(' + this._appendSqlMaybeUuid(valueSource, context) + ')'
     }
-    override _trimRight(params: any[], valueSource: ToSql): string {
-        return 'rtrim(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    override _trimRight(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'rtrim(' + this._appendSqlMaybeUuid(valueSource, context) + ')'
     }
-    override _toLowerCase(params: any[], valueSource: ToSql): string {
+    override _toLowerCase(context: SqlBuildContext, valueSource: ToSql): string {
         // A `uuid.asString()` receiver is still a `uniqueidentifier` column, which T-SQL
         // refuses to feed to a string function ("The data types uniqueidentifier and
         // varchar are incompatible in the add operator" once it flows into an operator);
         // convert it to nvarchar first, exactly as `trim`/`substring`/`stringConcat` do.
-        return 'lower(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+        return 'lower(' + this._appendSqlMaybeUuid(valueSource, context) + ')'
     }
-    override _toUpperCase(params: any[], valueSource: ToSql): string {
-        return 'upper(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    override _toUpperCase(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'upper(' + this._appendSqlMaybeUuid(valueSource, context) + ')'
     }
-    override _reverse(params: any[], valueSource: ToSql): string {
-        return 'reverse(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    override _reverse(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'reverse(' + this._appendSqlMaybeUuid(valueSource, context) + ')'
     }
     override _currentDate(): string {
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
@@ -920,7 +921,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendCastAsInteger(sql: string): string {
         return 'cast(' + sql + ' as bigint)'
     }
-    override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._moduloRequiresFloatHandling(columnType, value)) {
             // T-SQL's `%` operator rejects float operands ("The data types float
             // and int are incompatible in the modulo operator"); SQL Server has
@@ -928,22 +929,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // only type family `%` accepts for fractional values — so the
             // operator resolves regardless of which side is the double. The
             // integer / bigint receivers and operands keep the plain `%` form below.
-            return 'cast(' + this._appendSql(valueSource, params, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ' as numeric(38, 16))'
+            return 'cast(' + this._appendSql(valueSource, context, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ' as numeric(38, 16))'
         }
-        return super._modulo(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._modulo(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _concat(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         let result = ''
         if (this._isUuid(valueSource)) {
-            result += 'convert(nvarchar(36), ' + this._appendSql(valueSource, params, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendSql(valueSource, context, false) + ')'
         } else {
-            result += this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false)
+            result += this._appendSqlParenthesisExcluding(valueSource, context, '_concat', false)
         }
         result += ' + '
         if (this._isUuid(value)) {
-            result += 'convert(nvarchar(36), ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         } else {
-            result += this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concat', false)
+            result += this._appendValueParenthesisExcluding(value, context, columnType, columnTypeName, typeAdapter, '_concat', false)
         }
         return result
     }
@@ -953,17 +954,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * because the build-time NULL check above already removed the operands that contribute
      * nothing, and `concat` here "requires 2 to 254 arguments".
      */
-    override _appendConcatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'concat(' + this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false) + ', ' + this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false) + ')'
+    override _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'concat(' + this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false) + ', ' + this._appendValueParenthesisExcluding(value, context, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false) + ')'
     }
-    override _length(params: any[], valueSource: ToSql): string {
+    override _length(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._connectionConfiguration.excludeTrailingBlanksInLength) {
             // Opt-in (`excludeTrailingBlanksInLength`): emit T-SQL's native `len(x)`, which
             // EXCLUDES trailing blanks (`len('Draft  ')` = 5) — diverging from JS
             // `String.length`. This also removes the max-length edge of the sentinel form
             // below (a value exactly at its column's declared maximum). A genuine trade,
             // not a strict improvement; see the flag's JSDoc on SqlServerConnection.
-            return 'len(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+            return 'len(' + this._appendSqlMaybeUuid(valueSource, context) + ')'
         }
         // T-SQL's `len()` EXCLUDES trailing blanks — `len('Draft  ')` is 5, not 7 — while
         // `.length()` mirrors JS's `String.length`, which counts them. Appending a non-blank
@@ -973,24 +974,24 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // Edge (documented in LIMITATIONS.md, opt-out above): for a value exactly at its
         // column's declared maximum, T-SQL string `+` on two non-`max` char types caps the
         // concat at the maximum and drops the sentinel, so this returns maximum − 1.
-        return "len(" + this._appendSqlMaybeUuid(valueSource, params) + " + '.') - 1"
+        return "len(" + this._appendSqlMaybeUuid(valueSource, context) + " + '.') - 1"
     }
-    override _ceil(params: any[], valueSource: ToSql): string {
+    override _ceil(context: SqlBuildContext, valueSource: ToSql): string {
         // T-SQL spells the ceiling function `CEILING`, not `CEIL`.
-        return 'ceiling(' + this._appendSql(valueSource, params, false) + ')'
+        return 'ceiling(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _round(params: any[], valueSource: ToSql): string {
+    override _round(context: SqlBuildContext, valueSource: ToSql): string {
         // T-SQL's ROUND requires the length (decimals) argument; the
         // single-arg form `round(x)` is rejected.
-        return 'round(' + this._appendSql(valueSource, params, false) + ', 0)'
+        return 'round(' + this._appendSql(valueSource, context, false) + ', 0)'
     }
-    override _cbrtRadicand(params: any[], valueSource: ToSql): string {
+    override _cbrtRadicand(context: SqlBuildContext, valueSource: ToSql): string {
         // T-SQL's POWER returns the data type of the first argument, so
         // `power(int, float)` truncates to int. Cast the radicand to float
         // so the cube-root emulation returns a fractional result.
-        return this._appendCastAsDouble('abs(' + this._appendSql(valueSource, params, false) + ')')
+        return this._appendCastAsDouble('abs(' + this._appendSql(valueSource, context, false) + ')')
     }
-    override _power(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _power(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // `power()` declares its result `double`, but T-SQL's POWER returns the data type
         // of its FIRST argument (the same first-arg-type rule as ISNULL — see _valueWhenNull),
         // so `power(<int>, 0.5)` computes and truncates in int (`power(2, 0.5)` = 1, not
@@ -1000,64 +1001,64 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // applies. A base that is already floating (`double`/`customDouble`, e.g. a
         // `.asDouble()` receiver whose SQL is itself `cast(... as float)`) keeps the
         // fraction natively and is left uncast to avoid a redundant double cast.
-        let base = this._appendSql(valueSource, params, false)
+        let base = this._appendSql(valueSource, context, false)
         if (columnType !== 'double' && columnType !== 'customDouble') {
             base = this._appendCastAsDouble(base)
         }
-        return 'power(' + base + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+        return 'power(' + base + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    override _ln(params: any[], valueSource: ToSql): string {
-        return 'log(' + this._appendSql(valueSource, params, false) + ')'
+    override _ln(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'log(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _log10(params: any[], valueSource: ToSql): string {
-        return 'log10(' + this._appendSql(valueSource, params, false) + ')'
+    override _log10(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'log10(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _logn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // SQL Server's LOG is `LOG(value, base)` — value first — unlike every other backend.
-        return 'log(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+        return 'log(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    override _atan2(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'atn2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    override _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'atn2(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    override _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // maxValue(x) — the SMALLER of the two. Native `least` / `greatest` and the `iif`
         // emulation (the `_minAndMaxValueSelection` override below) both IGNORE a NULL
         // operand, contradicting the optional type the library declares; the poison CASE
         // built by the base wraps the version-appropriate inner so a NULL operand poisons
         // the result (it also fixes the `<2022` iif's operand-order asymmetry).
         // `maxValueFunction` is the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.maxValueFunction, 'least')
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.maxValueFunction, 'least')
     }
-    override _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // minValue(x) — the LARGER of the two. Native `greatest` / the `iif` emulation IGNORE
         // a NULL operand; the base's poison CASE wraps the version-appropriate inner so a NULL
         // operand poisons the result. `minValueFunction` is the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
     }
-    override _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string, argumentNeedsTypeCast: boolean): string {
+    override _minAndMaxValueSelection(context: SqlBuildContext, valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string, argumentNeedsTypeCast: boolean): string {
         if (this._connectionConfiguration.compatibilityVersion >= 16_000_000) {
             // SQL Server 2022+ has native LEAST / GREATEST — the coherent base form.
-            return super._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
+            return super._minAndMaxValueSelection(context, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
         }
         // Below SQL Server 2022 `least` / `greatest` do not exist, so emulate them with
         // `iif`. The comparison follows the function: `least` keeps the smaller (`<`),
         // `greatest` the larger (`>`).
         const operator = functionName === 'least' ? '<' : '>'
-        return 'iif(' + this._appendSql(valueSource, params, false) + ' ' + operator + ' ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+        return 'iif(' + this._appendSql(valueSource, context, false) + ' ' + operator + ' ' + this._appendValue(value, context, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, argumentType, argumentTypeName, typeAdapter, false) + ')'
     }
-    override _getDate(params: any[], valueSource: ToSql): string {
-        return 'datepart(day, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
+    override _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(day, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
-    override _getTime(params: any[], valueSource: ToSql): string {
-        return "datediff_big(millisecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, params, false) + ")"
+    override _getTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return "datediff_big(millisecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, context, false) + ")"
     }
-    override _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'datepart(year, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
+    override _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(year, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
-    override _getMonth(params: any[], valueSource: ToSql): string {
-        return 'datepart(month, ' + this._appendDateTimeInUtc(params, valueSource) + ') - 1'
+    override _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(month, ' + this._appendDateTimeInUtc(context, valueSource) + ') - 1'
     }
-    override _getDay(params: any[], valueSource: ToSql): string {
+    override _getDay(context: SqlBuildContext, valueSource: ToSql): string {
         // `getDay()` mirrors JavaScript's `Date.getDay()`, where 0 is always Sunday. T-SQL
         // is the only supported dialect whose day-of-week is session-dependent:
         // `DATEPART(weekday, …)` counts from whatever `SET DATEFIRST` says the week starts
@@ -1065,13 +1066,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // European languages). A bare `- 1` is only correct under DATEFIRST 7, and silently
         // shifts every day otherwise. Rebasing on `@@DATEFIRST` pins Sunday to 0 whatever
         // the session says.
-        return '(datepart(weekday, ' + this._appendDateTimeInUtc(params, valueSource) + ') + @@datefirst - 1) % 7'
+        return '(datepart(weekday, ' + this._appendDateTimeInUtc(context, valueSource) + ') + @@datefirst - 1) % 7'
     }
-    override _getHours(params: any[], valueSource: ToSql): string {
-        return 'datepart(hour, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
+    override _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(hour, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
-    override _getMinutes(params: any[], valueSource: ToSql): string {
-        return 'datepart(minute, ' + this._appendDateTimeInUtc(params, valueSource) + ')'
+    override _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(minute, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
     /**
      * The value of a getter of a part that an offset changes. A localDateTime may be held in a datetimeoffset, whose
@@ -1080,27 +1081,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * of a session (SQL Server has none) takes part, and the digits stay. A localDate or a localTime has no offset, and
      * the seconds and milliseconds don't depend on one (offsets are whole minutes): they are written as they are
      */
-    _appendDateTimeInUtc(params: any[], valueSource: ToSql): string {
+    _appendDateTimeInUtc(context: SqlBuildContext, valueSource: ToSql): string {
         if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource))) {
-            return 'switchoffset(' + this._appendSql(valueSource, params, false) + ", '+00:00')"
+            return 'switchoffset(' + this._appendSql(valueSource, context, false) + ", '+00:00')"
         }
-        return this._appendSql(valueSource, params, false)
+        return this._appendSql(valueSource, context, false)
     }
-    override _getSeconds(params: any[], valueSource: ToSql): string {
-        return 'datepart(second, ' + this._appendSql(valueSource, params, false) + ')'
+    override _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(second, ' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'datepart(millisecond, ' + this._appendSql(valueSource, params, false) + ')'
+    override _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(millisecond, ' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _buildCallProcedure(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
+    override _buildCallProcedure(context: SqlBuildContext, functionName: string, functionParams: AnyValueSource[]): string {
         let result = 'exec ' + this._escape(functionName, false, true)
         for (let i = 0, length = functionParams.length; i < length; i++) {
-            result += (i === 0 ? ' ' : ', ') + this._appendSql(functionParams[i]!, params, false)
+            result += (i === 0 ? ' ' : ', ') + this._appendSql(functionParams[i]!, context, false)
         }
 
         return result
     }
-    override _stringConcat(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcat(context: SqlBuildContext, separator: string | undefined, value: any): string {
         // SQL Server's STRING_AGG rejects NVARCHAR(MAX) for the separator
         // argument, and the mssql driver sends string parameters as
         // NVARCHAR(MAX) by default. Inlining the separator as a SQL literal
@@ -1108,34 +1109,34 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // accepts it. The separator comes from a runtime API argument, so
         // `_appendUnsafeLiteralValue` is used to escape embedded `'`.
         if (separator === undefined || separator === null) {
-            return 'string_agg(' + this._appendSqlMaybeUuid(value, params) + ", ',')"
+            return 'string_agg(' + this._appendSqlMaybeUuid(value, context) + ", ',')"
         } else if (separator === '') {
-            return 'string_agg(' + this._appendSqlMaybeUuid(value, params) + ", '')"
+            return 'string_agg(' + this._appendSqlMaybeUuid(value, context) + ", '')"
         } else {
-            return 'string_agg(' + this._appendSqlMaybeUuid(value, params) + ', ' + this._appendUnsafeLiteralValue(separator, params) + ')'
+            return 'string_agg(' + this._appendSqlMaybeUuid(value, context) + ', ' + this._appendUnsafeLiteralValue(separator, context) + ')'
         }
     }
-    override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcatDistinct(context: SqlBuildContext, separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, params) + ", ',')"
+            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, context) + ", ',')"
         } else if (separator === '') {
-            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, params) + ", '')"
+            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, context) + ", '')"
         } else {
-            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, params) + ', ' + this._appendUnsafeLiteralValue(separator, params) + ')'
+            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, context) + ', ' + this._appendUnsafeLiteralValue(separator, context) + ')'
         }
     }
-    override _substrToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && value < 0) {
             // `substring()` has no negative-start semantics at all on this dialect — it just
             // reads a negative start as 1. `right()` is exactly `String.prototype.substr`'s
             // negative start, out-of-range clamp included, and it needs no version gate.
-            return 'right(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'right(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(-value, context, 'int', 'int', typeAdapter, false) + ')'
         }
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
             if (typeof value === 'number') {
-                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(value + 1, context, 'int', 'int', typeAdapter, false) + ')'
             } else {
-                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1)'
             }
         }
         // Pre-2025 `substring()` has no 2-argument form, so "to the end" is spelled with a
@@ -1145,12 +1146,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // Both arms must agree with the >= 17_000_000 arm above on the VALUE, not just be
         // valid SQL.
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(value + 1, context, 'int', 'int', typeAdapter, false) + ', 2147483647)'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1, 2147483647)'
         }
     }
-    override _substringToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substringToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // `String.prototype.substring` clamps a negative index to 0 rather than counting from
         // the end, so the clamp lands before the `+ 1` and the SQL is a plain start-of-string.
         if (typeof value === 'number' && value < 0) {
@@ -1158,9 +1159,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
             if (typeof value === 'number') {
-                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(value + 1, context, 'int', 'int', typeAdapter, false) + ')'
             } else {
-                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1)'
             }
         }
         // Pre-2025 `substring()` has no 2-argument form, so "to the end" is spelled with a
@@ -1170,37 +1171,37 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // Both arms must agree with the >= 17_000_000 arm above on the VALUE, not just be
         // valid SQL.
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(value + 1, context, 'int', 'int', typeAdapter, false) + ', 2147483647)'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1, 2147483647)'
         }
     }
-    override _substr(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'left(right(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + '), ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'left(right(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(-value, context, 'int', 'int', typeAdapter, false) + '), ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
         }
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(value + 1, context, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
         }
     }
-    override _substring(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && typeof value2 === 'number') {
             // `String.prototype.substring` clamps both indexes to 0 and SWAPS them when
             // start > end, so `substring(2, 0)` is a legal call meaning `substring(0, 2)`.
             const [start, end] = this._clampAndOrderSubstringBounds(value, value2)
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(end - start, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(start + 1, context, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(end - start, context, 'int', 'int', typeAdapter, false) + ')'
         }
         if (typeof value === 'number') {
             const start = value < 0 ? 0 : value
             if (start === 0) {
-                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', 1, ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
             }
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(start, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValue(start + 1, context, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(start, context, 'int', 'int', typeAdapter, false) + ')'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, context, 'int', 'int', typeAdapter, false) + ')'
         }
     }
     _useForJsonInAggreagteArrayWhenPossible = true
@@ -1237,25 +1238,25 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _isSelectOfAggregatedArrayValues(query: SelectData): boolean {
         return this._isForJsonPathAggregatedArray(query)
     }
-    override _buildSelectAsAggregatedArray(query: SelectData, _params: any[]): string {
+    override _buildSelectAsAggregatedArray(query: SelectData, _context: SqlBuildContext): string {
         if (this._isForJsonPathAggregatedArray(query)) {
             return ' for json path'
         }
         return ''
     }
-    override _needAgggregateArrayColumnsTransformation(query: SelectData, _params: any[]): boolean {
+    override _needAgggregateArrayColumnsTransformation(query: SelectData, _context: SqlBuildContext): boolean {
         if (!query.__asInlineAggregatedArrayValue) {
             return false
         }
         return !this._isForJsonPathAggregatedArray(query)
     }
-    override _needAgggregateArrayWrapper(query: SelectData, params: any[]): boolean {
+    override _needAgggregateArrayWrapper(query: SelectData, context: SqlBuildContext): boolean {
         if (this._isForJsonPathAggregatedArray(query)) {
             return false
         }
-        return super._needAgggregateArrayWrapper(query, params)
+        return super._needAgggregateArrayWrapper(query, context)
     }
-    override _appendAggragateArrayWrapperBegin(query: SelectData, params: any[], aggregateId: number): string {
+    override _appendAggragateArrayWrapperBegin(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
         if (this._useForJsonInAggreagteArrayWhenPossible && query.__type === 'compound' && !query.__oneColumn) {
             const columns = query.__columns
             let requireComma = false
@@ -1269,15 +1270,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 const leaf = 'a_' + aggregateId + '_.' + this._escape(property, true)
                 result += isValueSource(column) ? this._appendAggregatedArrayValueProjection(column, leaf) : leaf
                 if (property) {
-                    result += ' as ' + this._appendColumnAlias(property, params)
+                    result += ' as ' + this._appendColumnAlias(property, context)
                 }
                 requireComma = true
             }
             return 'select ' + result + ' from ('
         }
-        return super._appendAggragateArrayWrapperBegin(query, params, aggregateId)
+        return super._appendAggragateArrayWrapperBegin(query, context, aggregateId)
     }
-    override _appendAggragateArrayWrapperEnd(query: SelectData, params: any[], aggregateId: number): string {
+    override _appendAggragateArrayWrapperEnd(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
         if (this._useForJsonInAggreagteArrayWhenPossible && query.__type === 'compound' && !query.__oneColumn) {
             let result =  ')'
             if (this._supportTableAliasWithAs) {
@@ -1288,15 +1289,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += 'a_' + aggregateId + '_ for json path'
             return result
         }
-        return super._appendAggragateArrayWrapperEnd(query, params, aggregateId)
+        return super._appendAggragateArrayWrapperEnd(query, context, aggregateId)
     }
     _useJsonAggregatesWhenPossible(): boolean {
         return this._connectionConfiguration.compatibilityVersion >= 17_000_000
     }
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         if (this._useJsonAggregatesWhenPossible() && !aggregatedArrayDistinct) {
             if (isValueSource(aggregatedArrayColumns)) {
-                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, params, false)) + ' null on null)'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)) + ' null on null)'
             }
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1305,7 +1306,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (jsonObject) {
                     jsonObject += ', '
                 }
-                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, params, false))
+                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, context, false))
             }
             return 'json_arrayagg(json_object(' + jsonObject + '))'
         }
@@ -1320,7 +1321,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // a subquery (`subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`).
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            return "concat('[', string_agg(" + distict + this._appendJsonValueForAggregate(aggregatedArrayColumns, params) + ", ','), ']')"
+            return "concat('[', string_agg(" + distict + this._appendJsonValueForAggregate(aggregatedArrayColumns, context) + ", ','), ']')"
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1328,17 +1329,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             let result = ''
             for (let prop in columns) {
                 if (result) {
-                    result += `, ', "`+ prop + `": ', ` + this._appendJsonValueForAggregate(columns[prop]!, params)
+                    result += `, ', "`+ prop + `": ', ` + this._appendJsonValueForAggregate(columns[prop]!, context)
                 } else {
-                    result += `'"`+ prop + `": ', ` + this._appendJsonValueForAggregate(columns[prop]!, params)
+                    result += `'"`+ prop + `": ', ` + this._appendJsonValueForAggregate(columns[prop]!, context)
                 }
             }
 
             return `concat('[', string_agg(` + distict + `concat('{', ` + result + `, '}'), ','), ']')`
         }
     }
-    _appendJsonValueForAggregate(valueSource: AnyValueSource, params: any[]): string {
-        return this._appendJsonValue(valueSource, this._appendSql(valueSource, params, false))
+    _appendJsonValueForAggregate(valueSource: AnyValueSource, context: SqlBuildContext): string {
+        return this._appendJsonValue(valueSource, this._appendSql(valueSource, context, false))
     }
     /** A leaf of the JSON written by the library, as JSON text: `sql` is the value */
     _appendJsonValue(valueSource: AnyValueSource, sql: string): string {
@@ -1415,7 +1416,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return result
     }
-    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], aggregateId: number): string {
+    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (this._useJsonAggregatesWhenPossible()) {
             if (isValueSource(aggregatedArrayColumns)) {
                 return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.' + this._escape('result', true)) + ' null on null)'
@@ -1432,7 +1433,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return 'json_arrayagg(json_object(' + jsonObject + '))'
         }
         if (isValueSource(aggregatedArrayColumns)) {
-            return "concat('[', string_agg(" + this._appendJsonValueForWrappedAggregate('result', aggregatedArrayColumns, params, aggregateId) + ", ','), ']')"
+            return "concat('[', string_agg(" + this._appendJsonValueForWrappedAggregate('result', aggregatedArrayColumns, context, aggregateId) + ", ','), ']')"
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1440,19 +1441,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             let result = ''
             for (let prop in columns) {
                 if (result) {
-                    result += `, ', "`+ prop + `": ', ` + this._appendJsonValueForWrappedAggregate(prop, columns[prop]!, params, aggregateId)
+                    result += `, ', "`+ prop + `": ', ` + this._appendJsonValueForWrappedAggregate(prop, columns[prop]!, context, aggregateId)
                 } else {
-                    result += `'"`+ prop + `": ', ` + this._appendJsonValueForWrappedAggregate(prop, columns[prop]!, params, aggregateId)
+                    result += `'"`+ prop + `": ', ` + this._appendJsonValueForWrappedAggregate(prop, columns[prop]!, context, aggregateId)
                 }
             }
 
             return `concat('[', string_agg(concat('{', ` + result + `, '}'), ','), ']')`
         }
     }
-    _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, _params: any[], aggregateId: number): string {
+    _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
         return this._appendJsonValue(valueSource, 'a_' + aggregateId + '_.' + this._escape(prop, true))
     }
-    override _fragment(params: any[], sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string {
+    override _fragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }
@@ -1461,15 +1462,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += sql[i]
             const value = sqlParams[i]!
             if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-                result += 'convert(nvarchar(36), ' + this._appendConditionSql(sqlParams[i]!, params, false) + ')'
+                result += 'convert(nvarchar(36), ' + this._appendConditionSql(sqlParams[i]!, context, false) + ')'
             } else {
-                result += this._appendConditionSql(sqlParams[i]!, params, false)
+                result += this._appendConditionSql(sqlParams[i]!, context, false)
             }
         }
         result += sql[sql.length - 1]
         return result
     }
-    override _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any>>): string {
+    override _rawFragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }
@@ -1478,9 +1479,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += sql[i]
             const value = sqlParams[i]!
             if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-                result += 'convert(nvarchar(36), ' + this._appendSql(sqlParams[i]!, params, false) + ')'
+                result += 'convert(nvarchar(36), ' + this._appendSql(sqlParams[i]!, context, false) + ')'
             } else {
-                result += this._appendSql(sqlParams[i]!, params, false)
+                result += this._appendSql(sqlParams[i]!, context, false)
             }
         }
         result += sql[sql.length - 1]

@@ -1,3 +1,4 @@
+import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, InsertData, SelectData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
@@ -361,13 +362,13 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
         this.__generateWiths()
         if (this.__from) {
-            this.__query = this.__sqlBuilder._buildInsertFromSelect(this, this.__params)
+            this.__query = this.__sqlBuilder._buildInsertFromSelect(this, new SqlBuildContext(this.__params))
         } else if (this.__multiple) {
-            this.__query = this.__sqlBuilder._buildInsertMultiple(this, this.__params)
+            this.__query = this.__sqlBuilder._buildInsertMultiple(this, new SqlBuildContext(this.__params))
         } else if (this.__sets === DEFAULT_VALUES) {
-            this.__query = this.__sqlBuilder._buildInsertDefaultValues(this, this.__params)
+            this.__query = this.__sqlBuilder._buildInsertDefaultValues(this, new SqlBuildContext(this.__params))
         } else {
-            this.__query = this.__sqlBuilder._buildInsert(this, this.__params)
+            this.__query = this.__sqlBuilder._buildInsert(this, new SqlBuildContext(this.__params))
         }
         return this.__query
     }
@@ -378,20 +379,20 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this.__params
     }
 
-    __toSql(_sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+    __toSql(_sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
         this.__generateWiths()
         if (this.__from) {
-            return this.__sqlBuilder._buildInsertFromSelect(this, params)
+            return this.__sqlBuilder._buildInsertFromSelect(this, context)
         } else if (this.__multiple) {
-            return this.__sqlBuilder._buildInsertMultiple(this, params)
+            return this.__sqlBuilder._buildInsertMultiple(this, context)
         } else if (this.__sets === DEFAULT_VALUES) {
-            return this.__sqlBuilder._buildInsertDefaultValues(this, params)
+            return this.__sqlBuilder._buildInsertDefaultValues(this, context)
         } else {
-            return this.__sqlBuilder._buildInsert(this, params)
+            return this.__sqlBuilder._buildInsert(this, context)
         }
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
-        return this.__toSql(sqlBuilder, params, forceTypeCast)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, context, forceTypeCast)
     }
     __flattenColumns(columns: any): any {
         return __flattenSets(this.__table, this.__onConflictUpdateSets ? this.__onConflictUpdateShape : this.__shape, columns)

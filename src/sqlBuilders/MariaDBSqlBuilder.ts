@@ -1,3 +1,4 @@
+import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
@@ -32,7 +33,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // error on every version while `EXCEPT` (since 10.3.0) always works.
     override _supportOrderByWhenAggregateArray = true
     override _supportLimitWhenAggregateArray = true
-    override _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {
+    override _appendRawColumnNameForValuesForInsert(column: DBColumn, _context: SqlBuildContext): string {
         // MariaDB 10.3 renamed the VALUES() function to VALUE() to avoid clashing
         // with the standard Table Value Constructors syntax introduced in the same
         // release (MDEV-12172). The legacy VALUES() name still works inside
@@ -42,9 +43,9 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             const columnPrivate = __getColumnPrivate(column)
             return 'value(' + this._escape(columnPrivate.__name, true) + ')'
         }
-        return super._appendRawColumnNameForValuesForInsert(column, _params)
+        return super._appendRawColumnNameForValuesForInsert(column, _context)
     }
-    override _appendRawColumnName(column: DBColumn, params: any[]): string {
+    override _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
         // MariaDB 13.0.1 added UPDATE ... RETURNING with the OLD_VALUE(col) function
         // (MDEV-5092) to reference a column's value from before the update; bare
         // column references inside RETURNING already return the post-update value,
@@ -56,25 +57,25 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 return 'old_value(' + this._escape(columnPrivate.__name, true) + ')'
             }
         }
-        return super._appendRawColumnName(column, params)
+        return super._appendRawColumnName(column, context)
     }
-    override _nextSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
+    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType): string {
         // MariaDB sequences (MDEV-10139, MariaDB 10.3.0) expose NEXTVAL(seq) for the
         // function form and the SQL-standard NEXT VALUE FOR seq alias; we emit the
         // function form because it accepts a regular (back-tick-escaped) identifier.
         return 'nextval(' + this._escape(sequenceName, false) + ')'
     }
-    override _currentSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
+    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType): string {
         // LASTVAL(seq) returns the most recent NEXTVAL(seq) issued in the current
         // connection (NULL if none); equivalent to PostgreSQL's currval() and to
         // the SQL-standard PREVIOUS VALUE FOR seq.
         return 'lastval(' + this._escape(sequenceName, false) + ')'
     }
-    override _buildInsertReturning(query: InsertData, params: any[]): string {
+    override _buildInsertReturning(query: InsertData, context: SqlBuildContext): string {
         if (this._connectionConfiguration.compatibilityVersion >= 10_005_000 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
-            return super._buildInsertReturning(query, params)
+            return super._buildInsertReturning(query, context)
         }
-        this._setContainsInsertReturningClause(params, false)
+        this._setContainsInsertReturningClause(context, false)
         return ''
     }
     /**
@@ -85,11 +86,11 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _getDistinctAggregatedArrayToWrap(_query: SelectData, _columns: FlatQueryColumns): undefined {
         return undefined
     }
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         let result = ''
         if (isValueSource(aggregatedArrayColumns)) {
-            result += 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, params, false))
+            result += 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false))
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -98,18 +99,18 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, params, false))
+                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, context, false))
             }
 
             result = 'json_arrayagg(' +  distict + 'json_object(' + result + ')'
         }
 
-        if (query && query.__asInlineAggregatedArrayValue && !this._isAggregateArrayWrapped(params)) {
+        if (query && query.__asInlineAggregatedArrayValue && !context.aggregateArrayWrapped) {
             if (this._supportOrderByWhenAggregateArray) {
-                result += this._buildAggregateArrayOrderBy(query, params, true)
+                result += this._buildAggregateArrayOrderBy(query, context, true)
             }
             if (this._supportLimitWhenAggregateArray) {
-                result += this._buildSelectLimitOffset(query, params)
+                result += this._buildSelectLimitOffset(query, context)
             }
         }
         return result + ')'

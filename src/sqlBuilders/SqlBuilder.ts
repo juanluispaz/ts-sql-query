@@ -1,3 +1,4 @@
+import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ITable, IWithView, HasIsValue, AnyTableOrView } from '../utils/ITableOrView.js'
 import type { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, ValueType } from '../expressions/values.js'
 import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
@@ -289,40 +290,40 @@ export interface SqlBuilder extends SqlOperation {
     _isReservedKeyword(word: string): boolean
     _forceAsIdentifier(identifier: string): string
     _isQuotedIdentifier(identifier: string): boolean
-    _appendColumnName(column: DBColumn, params: any[]): string
-    _appendColumnNameForCondition(column: DBColumn, params: any[]): string
-    _buildSelect(query: SelectData, params: any[]): string
-    _buildInlineSelect(query: SelectData, params: any[]): string
-    _buildInsertDefaultValues(query: InsertData, params: any[]): string
-    _buildInsert(query: InsertData, params: any[]): string
-    _buildInsertFromSelect(query: InsertData, params: any[]): string
-    _buildInsertMultiple(query: InsertData, params: any[]): string
+    _appendColumnName(column: DBColumn, context: SqlBuildContext): string
+    _appendColumnNameForCondition(column: DBColumn, context: SqlBuildContext): string
+    _buildSelect(query: SelectData, context: SqlBuildContext): string
+    _buildInlineSelect(query: SelectData, context: SqlBuildContext): string
+    _buildInsertDefaultValues(query: InsertData, context: SqlBuildContext): string
+    _buildInsert(query: InsertData, context: SqlBuildContext): string
+    _buildInsertFromSelect(query: InsertData, context: SqlBuildContext): string
+    _buildInsertMultiple(query: InsertData, context: SqlBuildContext): string
     _isInsertOnConflictUpdateSetEmpty(query: InsertData): boolean
-    _buildUpdate(query: UpdateData, params: any[]): string
-    _buildDelete(query: DeleteData, params: any[]): string
+    _buildUpdate(query: UpdateData, context: SqlBuildContext): string
+    _buildDelete(query: DeleteData, context: SqlBuildContext): string
     _typedOperand<T>(operand: T, otherOperands: any[], operation?: string): T
-    _appendSelectColumnReference(column: AnyValueSource, params: any[]): string
-    _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string
-    _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string
-    _buildCallFunction(params: any[], functionCall: AnyValueSource): string
-    _appendFunctionCall(params: any[], functionName: string, functionParams: AnyValueSource[]): string
+    _appendSelectColumnReference(column: AnyValueSource, context: SqlBuildContext): string
+    _appendSelectColumnReferenceForCondition(column: AnyValueSource, context: SqlBuildContext): string
+    _typedConst(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _typedConstForCondition(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: AnyValueSource[]): string
+    _buildCallFunction(context: SqlBuildContext, functionCall: AnyValueSource): string
+    _appendFunctionCall(context: SqlBuildContext, functionName: string, functionParams: AnyValueSource[]): string
     _generateUnique(): number
     _resetUnique(): void
 
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string
-    _rawFragmentTableName(params: any[], tableOrView: AnyTableOrView): string
-    _rawFragmentTableAlias(params: any[], tableOrView: AnyTableOrView): string
+    _rawFragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string
+    _rawFragmentTableName(context: SqlBuildContext, tableOrView: AnyTableOrView): string
+    _rawFragmentTableAlias(context: SqlBuildContext, tableOrView: AnyTableOrView): string
 
-    _inlineSelectAsValue(query: SelectData, params: any[]): string
-    _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string
+    _inlineSelectAsValue(query: SelectData, context: SqlBuildContext): string
+    _inlineSelectAsValueForCondition(query: SelectData, context: SqlBuildContext): string
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, context: SqlBuildContext): string
 }
 
 export interface ToSql {
-    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string
+    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string
+    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string
 }
 
 export function hasToSql(value: any): value is ToSql {
@@ -350,186 +351,186 @@ export function operationOf(value: any): keyof SqlOperation | null {
 }
 
 export interface SqlComparator0 {
-    _isNull(params: any[], valueSource: ToSql): string
-    _isNotNull(params: any[], valueSource: ToSql): string
+    _isNull(context: SqlBuildContext, valueSource: ToSql): string
+    _isNotNull(context: SqlBuildContext, valueSource: ToSql): string
 }
 
 export interface SqlComparator1 {
-    _equals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notEquals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notEqualsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _lessThan(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _greaterThan(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _lessOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _greaterOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _like(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notLike(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _equals(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notEquals(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _is(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _equalsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notEqualsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _lessThan(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _greaterThan(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _lessOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _greaterOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _in(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notIn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _like(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notLike(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _likeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notLikeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _startsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notStartsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _endsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notEndsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _startsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notStartsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _endsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notEndsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _contains(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notContains(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _containsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notContainsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }
 
 export interface SqlComparator2 {
-    _between(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notBetween(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _between(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _notBetween(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }
 
 export interface SqlFunctionStatic0 {
-    _pi(params: any): string
-    _random(params: any): string
-    _currentDate(params: any): string
-    _currentTime(params: any): string
-    _currentTimestamp(params: any): string
-    _default(params: any): string
-    _true(params: any): string
-    _false(params: any): string
-    _trueForCondition(params: any): string
-    _falseForCondition(params: any): string
+    _pi(context: SqlBuildContext): string
+    _random(context: SqlBuildContext): string
+    _currentDate(context: SqlBuildContext): string
+    _currentTime(context: SqlBuildContext): string
+    _currentTimestamp(context: SqlBuildContext): string
+    _default(context: SqlBuildContext): string
+    _true(context: SqlBuildContext): string
+    _false(context: SqlBuildContext): string
+    _trueForCondition(context: SqlBuildContext): string
+    _falseForCondition(context: SqlBuildContext): string
 }
 
 export interface SqlFunctionStatic1 {
-    _const(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
-    _constForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
-    _exists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
-    _notExists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _const(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _constForCondition(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _exists(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _notExists(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
 }
 
 export interface SqlBoolean0 {
     // Boolean
-    _negate(params: any[], valueSource: ToSql): string
+    _negate(context: SqlBuildContext, valueSource: ToSql): string
 }
 
 export interface SqlFunction0 {
     // String
-    _toLowerCase(params: any[], valueSource: ToSql): string
-    _toUpperCase(params: any[], valueSource: ToSql): string
-    _length(params: any[], valueSource: ToSql): string
-    _trim(params: any[], valueSource: ToSql): string
-    _trimLeft(params: any[], valueSource: ToSql): string
-    _trimRight(params: any[], valueSource: ToSql): string
-    _reverse(params: any[], valueSource: ToSql): string
+    _toLowerCase(context: SqlBuildContext, valueSource: ToSql): string
+    _toUpperCase(context: SqlBuildContext, valueSource: ToSql): string
+    _length(context: SqlBuildContext, valueSource: ToSql): string
+    _trim(context: SqlBuildContext, valueSource: ToSql): string
+    _trimLeft(context: SqlBuildContext, valueSource: ToSql): string
+    _trimRight(context: SqlBuildContext, valueSource: ToSql): string
+    _reverse(context: SqlBuildContext, valueSource: ToSql): string
     // Number functions
-    _asDouble(params: any[], valueSource: ToSql): string
-    _asInt(params: any[], valueSource: ToSql): string
-    _asBigint(params: any[], valueSource: ToSql): string
-    _abs(params: any[], valueSource: ToSql): string
-    _ceil(params: any[], valueSource: ToSql): string
-    _floor(params: any[], valueSource: ToSql): string
-    _round(params: any[], valueSource: ToSql): string
-    _exp(params: any[], valueSource: ToSql): string
-    _ln(params: any[], valueSource: ToSql): string
-    _log10(params: any[], valueSource: ToSql): string
-    _sqrt(params: any[], valueSource: ToSql): string
-    _cbrt(params: any[], valueSource: ToSql): string
-    _sign(params: any[], valueSource: ToSql): string
+    _asDouble(context: SqlBuildContext, valueSource: ToSql): string
+    _asInt(context: SqlBuildContext, valueSource: ToSql): string
+    _asBigint(context: SqlBuildContext, valueSource: ToSql): string
+    _abs(context: SqlBuildContext, valueSource: ToSql): string
+    _ceil(context: SqlBuildContext, valueSource: ToSql): string
+    _floor(context: SqlBuildContext, valueSource: ToSql): string
+    _round(context: SqlBuildContext, valueSource: ToSql): string
+    _exp(context: SqlBuildContext, valueSource: ToSql): string
+    _ln(context: SqlBuildContext, valueSource: ToSql): string
+    _log10(context: SqlBuildContext, valueSource: ToSql): string
+    _sqrt(context: SqlBuildContext, valueSource: ToSql): string
+    _cbrt(context: SqlBuildContext, valueSource: ToSql): string
+    _sign(context: SqlBuildContext, valueSource: ToSql): string
     // Trigonometric Functions
-    _acos(params: any[], valueSource: ToSql): string
-    _asin(params: any[], valueSource: ToSql): string
-    _atan(params: any[], valueSource: ToSql): string
-    _cos(params: any[], valueSource: ToSql): string
-    _cot(params: any[], valueSource: ToSql): string
-    _sin(params: any[], valueSource: ToSql): string
-    _tan(params: any[], valueSource: ToSql): string
+    _acos(context: SqlBuildContext, valueSource: ToSql): string
+    _asin(context: SqlBuildContext, valueSource: ToSql): string
+    _atan(context: SqlBuildContext, valueSource: ToSql): string
+    _cos(context: SqlBuildContext, valueSource: ToSql): string
+    _cot(context: SqlBuildContext, valueSource: ToSql): string
+    _sin(context: SqlBuildContext, valueSource: ToSql): string
+    _tan(context: SqlBuildContext, valueSource: ToSql): string
     // Date Functions
-    _getDate(params: any[], valueSource: ToSql): string
-    _getTime(params: any[], valueSource: ToSql): string
-    _getFullYear(params: any[], valueSource: ToSql): string
-    _getMonth(params: any[], valueSource: ToSql): string
-    _getDay(params: any[], valueSource: ToSql): string
-    _getHours(params: any[], valueSource: ToSql): string
-    _getMinutes(params: any[], valueSource: ToSql): string
-    _getSeconds(params: any[], valueSource: ToSql): string
-    _getMilliseconds(params: any[], valueSource: ToSql): string
+    _getDate(context: SqlBuildContext, valueSource: ToSql): string
+    _getTime(context: SqlBuildContext, valueSource: ToSql): string
+    _getFullYear(context: SqlBuildContext, valueSource: ToSql): string
+    _getMonth(context: SqlBuildContext, valueSource: ToSql): string
+    _getDay(context: SqlBuildContext, valueSource: ToSql): string
+    _getHours(context: SqlBuildContext, valueSource: ToSql): string
+    _getMinutes(context: SqlBuildContext, valueSource: ToSql): string
+    _getSeconds(context: SqlBuildContext, valueSource: ToSql): string
+    _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
-    _asString(params: any[], valueSource: ToSql): string
+    _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive
-    _prior(params: any[], valueSource: ToSql): string
+    _prior(context: SqlBuildContext, valueSource: ToSql): string
 }
 
 export interface SqlBoolean1 {
     // Boolean
-    _and(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _or(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _and(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _or(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }
 
 export interface SqlFunction1 {
-    _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _nullIfValue(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _nullIfValue(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     // String
-    _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _concatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _substringToEnd(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _concat(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _concatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _substringToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     // Number
-    _power(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _power(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _logn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     // Number operators
-    _add(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _subtract(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _multiply(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string // %
+    _add(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _subtract(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _multiply(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _divide(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string // %
     // Trigonometric Functions
-    _atan2(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }
 // avg, count, max, median, min,
 // greatest, least
 // regexp_count, remainder
 export interface SqlFunction2 {
     // String
-    _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _substring(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }
 
 export interface SqlSequenceOperation {
-    _nextSequenceValue(params: any[], sequenceName: string, columnType: ValueType): string
-    _currentSequenceValue(params: any[], sequenceName: string, columnType: ValueType): string
+    _nextSequenceValue(context: SqlBuildContext, sequenceName: string, columnType: ValueType): string
+    _currentSequenceValue(context: SqlBuildContext, sequenceName: string, columnType: ValueType): string
 }
 
 export interface SqlFragmentOperation {
-    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string
+    _fragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string
 }
 
 export interface AggregateFunctions0 {
-    _countAll(params: any[]): string
+    _countAll(context: SqlBuildContext): string
 }
 
 export interface AggregateFunctions1 {
-    _count(params: any[], value: any): string
-    _countDistinct(params: any[], value: any): string
-    _max(params: any[], value: any): string
-    _min(params: any[], value: any): string
-    _sum(params: any[], value: any): string
-    _sumDistinct(params: any[], value: any): string
-    _average(params: any[], value: any): string
-    _averageDistinct(params: any[], value: any): string
-    _anyValue(params: any[], value: any): string
+    _count(context: SqlBuildContext, value: any): string
+    _countDistinct(context: SqlBuildContext, value: any): string
+    _max(context: SqlBuildContext, value: any): string
+    _min(context: SqlBuildContext, value: any): string
+    _sum(context: SqlBuildContext, value: any): string
+    _sumDistinct(context: SqlBuildContext, value: any): string
+    _average(context: SqlBuildContext, value: any): string
+    _averageDistinct(context: SqlBuildContext, value: any): string
+    _anyValue(context: SqlBuildContext, value: any): string
 }
 
 export interface AggregateFunctions1or2 {
-    _stringConcat(params: any[], separator: string | undefined, value: any): string
-    _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string
+    _stringConcat(context: SqlBuildContext, separator: string | undefined, value: any): string
+    _stringConcatDistinct(context: SqlBuildContext, separator: string | undefined, value: any): string
 }
 
 export interface SqlOperationStatic0 extends SqlFunctionStatic0 {
@@ -548,7 +549,7 @@ export interface SqlOperation2 extends SqlComparator2, SqlFunction2 {
 }
 
 export interface SqlOperation extends SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 {
-    _collate(params: any[], valueSource: ToSql, collation: string): string
-    _inlineSelectAsValue(query: SelectData, params: any[]): string
-    _asNullValue(params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _collate(context: SqlBuildContext, valueSource: ToSql, collation: string): string
+    _inlineSelectAsValue(query: SelectData, context: SqlBuildContext): string
+    _asNullValue(context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }

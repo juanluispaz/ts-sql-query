@@ -1,3 +1,4 @@
+import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
@@ -45,16 +46,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._replaceAllInsensitive = true
     }
 
-    override _cot(params: any[], valueSource: ToSql): string {
+    override _cot(context: SqlBuildContext, valueSource: ToSql): string {
         // Oracle has no COT function (ORA-00904: "COT": invalid identifier).
         // Cotangent is the reciprocal of the tangent; emit 1 / tan(x), which
         // evaluates the argument once (no parameter duplication). Nesting is
         // handled via `_operationsThatNeedParenthesis._cot` set in the
         // constructor.
-        return '1 / tan(' + this._appendSql(valueSource, params, false) + ')'
+        return '1 / tan(' + this._appendSql(valueSource, context, false) + ')'
     }
 
-    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
+    override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _context: SqlBuildContext, _isOutermostQuery: boolean): string {
         // Neither the alias (resolved against the columns of the from first) nor the position (it needs
         // group_by_position_enabled) are safe: the same SQL as the select list, with the same placeholders (bound by
         // name, every occurrence takes the same value), is the same expression for Oracle
@@ -77,9 +78,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // `_buildUpdate`. Plain `UPDATE … SET col = … WHERE …` (no FROM,
     // no JOIN) keeps the unqualified form for backwards compatibility
     // with existing snapshots and to stay close to what users write.
-    override _appendColumnNameForUpdate(column: DBColumn, params: any[]) {
+    override _appendColumnNameForUpdate(column: DBColumn, context: SqlBuildContext) {
         const columnPrivate = __getColumnPrivate(column)
-        if (this._getSafeTableOrView(params) === undefined) {
+        if (context.safeTableOrView === undefined) {
             const tableOrView = columnPrivate.__tableOrView
             const tablePrivate = __getTableOrViewPrivate(tableOrView)
             const qualifier = tablePrivate.__as
@@ -145,13 +146,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._concatSql(left, right)
     }
-    override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _concat(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const configuration = this._connectionConfiguration
         // Function opt-in and native opt-out both go through `_concatSql` (super): the
         // function propagates NULL itself, the native `||` is the deliberate opt-out. Neither
         // needs the poison `CASE`.
         if (configuration.concatFunction || configuration.ignoreNullInConcat) {
-            return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._concat(context, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
         // Default: emulate NULL propagation, following the same shape as the base's min/max
         // poisoning (`_minAndMaxValueBetweenTwoValuesPoisoningNull`): `case when <null check>
@@ -168,13 +169,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // The chain already holds the NULL the `CASE` below exists to propagate, so the
             // concatenation cannot produce anything else: neither the check nor the operands
             // feeding it are worth emitting.
-            return this._asNullValue(params, columnType, columnTypeName, typeAdapter)
+            return this._asNullValue(context, columnType, columnTypeName, typeAdapter)
         }
-        const nullCheck = this._appendConcatNullCheck(params, valueSource, value, false)
+        const nullCheck = this._appendConcatNullCheck(context, valueSource, value, false)
         if (!nullCheck) {
-            return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._concat(context, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
-        return 'case when ' + nullCheck + ' then null else ' + this._concatChainSql(params, valueSource, value, false) + ' end'
+        return 'case when ' + nullCheck + ' then null else ' + this._concatChainSql(context, valueSource, value, false) + ' end'
     }
     // Whether the chain already holds a NULL operand, which poisons the whole concatenation.
     // Mirrors the descent of the two walks below — a `_concat` operand is descended into, a
@@ -205,12 +206,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // collecting the leaves into an intermediate array first. Returns '' when nothing can be NULL
     // — and in that case appends NO param, so the caller can fall back to the bare join with the
     // param array untouched.
-    private _appendConcatNullCheck(params: any[], valueSource: any, value: any, dropValue: boolean): string {
+    private _appendConcatNullCheck(context: SqlBuildContext, valueSource: any, value: any, dropValue: boolean): string {
         let left: string
         if (this._isConcatChainNode(valueSource)) {
-            left = this._appendConcatNullCheck(params, valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))
+            left = this._appendConcatNullCheck(context, valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))
         } else if (this._canBeNullWhenTheQueryRuns(valueSource)) {
-            left = this._isNull(params, valueSource)
+            left = this._isNull(context, valueSource)
         } else {
             left = ''
         }
@@ -219,9 +220,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         let right: string
         if (this._isConcatChainNode(value)) {
-            right = this._appendConcatNullCheck(params, value.__valueSource, value.__value, this._concatChainDropsValue(value))
+            right = this._appendConcatNullCheck(context, value.__valueSource, value.__value, this._concatChainDropsValue(value))
         } else if (this._canBeNullWhenTheQueryRuns(value)) {
-            right = this._isNull(params, value)
+            right = this._isNull(context, value)
         } else {
             right = ''
         }
@@ -241,22 +242,22 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // append, so a concat wrapped in another operation reaches the public `_concat` and keeps
     // its own `CASE`. Types are threaded exactly as the operation node's `__toSql` does: the
     // right operand is appended with the LEFT operand's value type.
-    private _concatChainSql(params: any[], valueSource: ToSql, value: any, dropValue: boolean): string {
+    private _concatChainSql(context: SqlBuildContext, valueSource: ToSql, value: any, dropValue: boolean): string {
         let left: string
         if (this._isConcatChainNode(valueSource)) {
-            left = this._concatChainSql(params, valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))
+            left = this._concatChainSql(context, valueSource.__valueSource, valueSource.__value, this._concatChainDropsValue(valueSource))
         } else {
-            left = this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false)
+            left = this._appendSqlParenthesisExcluding(valueSource, context, '_concat', false)
         }
         if (dropValue) {
             return left
         }
         let right: string
         if (this._isConcatChainNode(value)) {
-            right = this._concatChainSql(params, value.__valueSource, value.__value, this._concatChainDropsValue(value))
+            right = this._concatChainSql(context, value.__valueSource, value.__value, this._concatChainDropsValue(value))
         } else {
             const leftPrivate = __getValueSourcePrivate(valueSource as unknown as AnyValueSource)
-            right = this._appendValueParenthesisExcluding(value, params, leftPrivate.__valueType, leftPrivate.__valueTypeName, leftPrivate.__typeAdapter, '_concat', false)
+            right = this._appendValueParenthesisExcluding(value, context, leftPrivate.__valueType, leftPrivate.__valueTypeName, leftPrivate.__typeAdapter, '_concat', false)
         }
         return this._concatSql(left, right)
     }
@@ -284,45 +285,45 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * IS NULL. `concatFunction` / `ignoreNullInConcat` are not consulted: both choose how `concat`
      * PROPAGATES NULL, which this operation never asks.
      */
-    override _appendConcatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false) + ' || ' + this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
+    override _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false) + ' || ' + this._appendValueParenthesisExcluding(value, context, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
     }
-    override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+    override _likePatternStartingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
         if (concatFunction) {
-            const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+            const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
             const sql = concatFunction + '(' + term + ", '%')"
             return fold ? 'lower(' + sql + ')' : sql
         }
         if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
-            return super._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, fold)
+            return super._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, fold)
         }
-        return this._poisonAffixPattern(params, value, columnType, columnTypeName, typeAdapter, fold, (term) => term + " || '%'")
+        return this._poisonAffixPattern(context, value, columnType, columnTypeName, typeAdapter, fold, (term) => term + " || '%'")
     }
-    override _likePatternEndingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+    override _likePatternEndingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
         if (concatFunction) {
-            const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+            const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
             const sql = concatFunction + "('%', " + term + ')'
             return fold ? 'lower(' + sql + ')' : sql
         }
         if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
-            return super._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, fold)
+            return super._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, fold)
         }
-        return this._poisonAffixPattern(params, value, columnType, columnTypeName, typeAdapter, fold, (term) => "'%' || " + term)
+        return this._poisonAffixPattern(context, value, columnType, columnTypeName, typeAdapter, fold, (term) => "'%' || " + term)
     }
-    override _likePatternContaining(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+    override _likePatternContaining(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
         if (concatFunction) {
             // The function is binary, so gluing both wildcards nests: `f(f('%', term), '%')`.
-            const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+            const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
             const sql = concatFunction + '(' + concatFunction + "('%', " + term + "), '%')"
             return fold ? 'lower(' + sql + ')' : sql
         }
         if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
-            return super._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, fold)
+            return super._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, fold)
         }
-        return this._poisonAffixPattern(params, value, columnType, columnTypeName, typeAdapter, fold, (term) => "'%' || " + term + " || '%'")
+        return this._poisonAffixPattern(context, value, columnType, columnTypeName, typeAdapter, fold, (term) => "'%' || " + term + " || '%'")
     }
     // Default-mode affix pattern for an OPTIONAL term: propagate the NULL Oracle's `||` would
     // swallow, so the predicate matches nothing (as it does on every other dialect) instead of
@@ -330,13 +331,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // TWICE — once for the null check, once for the pattern — because it must be re-emitted, not
     // a reused placeholder (see the header comment): `case when <term> is null then null else
     // <glue(term)> end`.
-    private _poisonAffixPattern(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean, glue: (term: string) => string): string {
-        const check = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
-        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+    private _poisonAffixPattern(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean, glue: (term: string) => string): string {
+        const check = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
+        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
         const sql = 'case when ' + check + ' is null then null else ' + glue(term) + ' end'
         return fold ? 'lower(' + sql + ')' : '(' + sql + ')'
     }
-    override _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Oracle's `REPLACE` honours the session collation, so on a database configured
         // case-insensitive (`NLS_COMP=LINGUISTIC` + a CI sort) `replaceAll('abc', 'X')` on
         // `'ABCabc'` matches both cases and corrupts the value. Force `replaceCollation` (the
@@ -345,11 +346,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // downstream. An empty (or unset) `replaceCollation` opts out to the native `replace`.
         const collation = this._connectionConfiguration.replaceCollation
         if (!collation) {
-            return super._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+            return super._replaceAll(context, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
         }
-        return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate USING_NLS_COMP'
+        return 'replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, context, columnType, columnTypeName, typeAdapter, false) + ') collate USING_NLS_COMP'
     }
-    override _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Oracle's `REPLACE` folds case under a case-insensitive collation. Force a CI collation on
         // the match operands: `insensitiveCollation` when it names one (so a shared language
         // collation carries over), otherwise the configurable `replaceInsensitiveCollation` (which
@@ -361,17 +362,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             collation = this._connectionConfiguration.replaceInsensitiveCollation
         }
         if (!collation) {
-            return super._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+            return super._replaceAll(context, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
         }
-        return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate USING_NLS_COMP'
+        return 'replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, context, columnType, columnTypeName, typeAdapter, false) + ') collate USING_NLS_COMP'
     }
     override _isReservedKeyword(word: string): boolean {
         return isOracleReservedWord(word)
     }
-    override _nextSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType) {
+    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType) {
         return this._escape(sequenceName, false) + '.nextval'
     }
-    override _currentSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
+    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType): string {
         return this._escape(sequenceName, false) + '.currval'
     }
     override _fromNoTable() {
@@ -393,42 +394,42 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _nativeBoolean(): boolean {
         return this._connectionConfiguration.booleanStorage === 'boolean'
     }
-    override _true(params: any): string {
-        return this._nativeBoolean() ? 'true' : super._true(params)
+    override _true(context: SqlBuildContext): string {
+        return this._nativeBoolean() ? 'true' : super._true(context)
     }
-    override _false(params: any): string {
-        return this._nativeBoolean() ? 'false' : super._false(params)
+    override _false(context: SqlBuildContext): string {
+        return this._nativeBoolean() ? 'false' : super._false(context)
     }
-    override _appendSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
+    override _appendSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
                 if (valueSourcePrivate.__optionalType === 'required') {
-                    return 'case when ' + super._appendConditionSql(value, params, forceTypeCast) + ' then 1 else 0 end'
+                    return 'case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 else 0 end'
                 } else {
-                    return 'case when ' + super._appendConditionSql(value, params, forceTypeCast) + ' then 1 when not ' + super._appendConditionSqlParenthesis(value, params, forceTypeCast) + ' then 0 else null end'
+                    return 'case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 when not ' + super._appendConditionSqlParenthesis(value, context, forceTypeCast) + ' then 0 else null end'
                 }
             }
         }
-        return super._appendSql(value, params, forceTypeCast)
+        return super._appendSql(value, context, forceTypeCast)
     }
-    override _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string {
+    override _appendSelectColumnReferenceForCondition(column: AnyValueSource, context: SqlBuildContext): string {
         if (this._nativeBoolean()) {
             if (isColumn(column) && !(__getColumnPrivate(column).__typeAdapter instanceof CustomBooleanTypeAdapter)) {
                 // A BOOLEAN column of the table is a condition by itself
-                return super._appendSelectColumnReferenceForCondition(column, params)
+                return super._appendSelectColumnReferenceForCondition(column, context)
             }
             // A boolean expression of the select (a custom boolean column is one too) is read by Oracle in the having
             // as a condition over the columns it uses, which aren't grouped (ORA-00979): compared with true it is the
             // grouped value
-            return '((' + this._appendSelectColumnReference(column, params) + ') = true)'
+            return '((' + this._appendSelectColumnReference(column, context) + ') = true)'
         }
         // The select list writes a boolean as a value (1 / 0), and the having must refer to that same expression
         // (the grouped one): it is compared with 1 to make it a condition, like _appendConditionSql does with a
         // boolean value. Only a reference to a column gets here: _appendConditionSql handles the other ones
-        return '(' + this._appendSelectColumnReference(column, params) + ' = 1)'
+        return '(' + this._appendSelectColumnReference(column, context) + ' = 1)'
     }
-    override _appendConditionSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
+    override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
@@ -438,7 +439,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 // or param boolean already renders its condition form as
                 // `(:0 = 1)`, so reusing it would double-wrap to `((:0 = 1) = 1)`.
                 // A literal `true`/`false` keeps the canonical `(1=1)`/`(0=1)`.
-                const sql = this._appendSql(value, params, forceTypeCast)
+                const sql = this._appendSql(value, context, forceTypeCast)
                 if (!sql) {
                     return sql
                 } else if (sql === this._trueValue) {
@@ -450,78 +451,78 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
             }
         }
-        return super._appendConditionSql(value, params, forceTypeCast)
+        return super._appendConditionSql(value, context, forceTypeCast)
     }
-    override _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _appendConditionParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (this._nativeBoolean()) {
-            return super._appendConditionParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return super._appendConditionParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
         }
         if (__isBooleanValueType(columnType)) {
             if (isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
                 const typeAdapter = columnPrivate.__typeAdapter
                 if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                    return '(' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+                    return '(' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
                 }
             }
-            return '(' + this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ' = 1)'
+            return '(' + this._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ' = 1)'
         }
-        return this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return this._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    override _appendColumnName(column: DBColumn, params: any[]): string {
+    override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
         if (this._nativeBoolean()) {
-            return super._appendColumnName(column, params)
+            return super._appendColumnName(column, context)
         }
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 if (columnPrivate.__optionalType === 'required') {
-                    return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end'
+                    return 'case when ' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ' then 1 else 0 end'
                 } else {
-                    return 'case ' + this._appendRawColumnName(column, params) + ' when ' + this._appendLiteralValue(typeAdapter.trueValue, params) +  ' then 1 when ' + this._appendLiteralValue(typeAdapter.falseValue, params) + ' then 0 else null end'
+                    return 'case ' + this._appendRawColumnName(column, context) + ' when ' + this._appendLiteralValue(typeAdapter.trueValue, context) +  ' then 1 when ' + this._appendLiteralValue(typeAdapter.falseValue, context) + ' then 0 else null end'
                 }
             }
         }
 
-        return this._appendRawColumnName(column, params)
+        return this._appendRawColumnName(column, context)
     }
-    override _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
+    override _appendColumnNameForCondition(column: DBColumn, context: SqlBuildContext): string {
         if (this._nativeBoolean()) {
-            return super._appendColumnNameForCondition(column, params)
+            return super._appendColumnNameForCondition(column, context)
         }
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+                return '(' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
             } else {
-                return '(' + this._appendRawColumnName(column, params) + ' = 1)'
+                return '(' + this._appendRawColumnName(column, context) + ' = 1)'
             }
         }
 
-        return this._appendRawColumnName(column, params)
+        return this._appendRawColumnName(column, context)
     }
-    override _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
+    override _inlineSelectAsValueForCondition(query: SelectData, context: SqlBuildContext): string {
         if (this._nativeBoolean()) {
-            return super._inlineSelectAsValueForCondition(query, params)
+            return super._inlineSelectAsValueForCondition(query, context)
         }
         if (query.__oneColumn) {
             const columns = query.__columns
             for (const prop in columns) {
                 const column = columns[prop]
                 if (isValueSource(column) && __isBooleanValueSource(__getValueSourcePrivate(column))) {
-                    return '((' + this._buildInlineSelect(query, params) + ') = 1)'
+                    return '((' + this._buildInlineSelect(query, context) + ') = 1)'
                 } else {
-                    return this._buildInlineSelect(query, params)
+                    return this._buildInlineSelect(query, context)
                 }
             }
         } 
-        return this._buildInlineSelect(query, params)
+        return this._buildInlineSelect(query, context)
     }
-    override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string | null {
+    override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
         if (this._nativeBoolean()) {
-            return super._appendCustomBooleanRemapForColumnIfRequired(column, value, params, forceTypeCast)
+            return super._appendCustomBooleanRemapForColumnIfRequired(column, value, context, forceTypeCast)
         }
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
@@ -543,45 +544,45 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
                 if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
                     if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
-                        return this._appendRawColumnName(value, params) // same boolean as column
+                        return this._appendRawColumnName(value, context) // same boolean as column
                     }
 
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                        return 'case when ' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendRawColumnName(value, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                        return 'case ' + this._appendRawColumnName(value, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 } else {
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                        return 'case ' + this._appendValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValueParenthesis(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else if (value === true || value === false) {
                     // remapped
-                    return 'case ' + this._appendValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 } else {
                     // remapped
                     // A null here is bound with the type of a number by the query runner, so Oracle can compare it with 1
-                    return 'case ' + this._appendValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -590,9 +591,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // if not it is same boolean, nothing to transform here
         return null
     }
-    override _buildWithValues(withValues: WithValuesData, params: any[]): string {
+    override _buildWithValues(withValues: WithValuesData, context: SqlBuildContext): string {
         if (this._connectionConfiguration.compatibilityVersion >= 23_004_000) {
-            return super._buildWithValues(withValues, params)
+            return super._buildWithValues(withValues, context)
         }
         // Oracle < 23ai has no SQL-standard VALUES table constructor;
         // emulate as `select … from dual union all select … from dual`.
@@ -607,7 +608,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 columns += ', '
             }
             const columnPrivate = __getColumnPrivate(column)
-            columns += this._appendColumnAlias(columnPrivate.__name, params)
+            columns += this._appendColumnAlias(columnPrivate.__name, context)
         }
 
         const values = withValues.__values
@@ -626,14 +627,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], context)
             }
             valuesSql += 'select ' + valueSql + ' from dual'
         }
 
         return this._escape(withValues.__name, false) + '(' + columns + ') as (' + valuesSql + ')'
     }
-    override _appendWithColumns(withData: WithSelectData, params: any[]): string {
+    override _appendWithColumns(withData: WithSelectData, context: SqlBuildContext): string {
         if (withData.__selectData.__type === 'plain') {
             return ''
         }
@@ -646,7 +647,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (result) {
                 result += ', '
             }
-            result += this._appendColumnAlias(property, params)
+            result += this._appendColumnAlias(property, context)
         }
 
         return '(' + result + ')'
@@ -655,45 +656,45 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Oracle doesn't uses the recursive keyword
         return 'with'
     }
-    override _appendColumnAlias(name: string, params: any[]): string {
+    override _appendColumnAlias(name: string, context: SqlBuildContext): string {
         if (this._isQuotedIdentifier(name)) {
             // Already quoted by the user, the way the database quotes one
             return name
         }
-        if (!this._isWithGeneratedFinished(params)) {
+        if (!context.withGeneratedFinished) {
             // Avoid quote identifiers when the with clause is generated
             return this._escape(name, true)
         }
-        if (this._isAggregateArrayWrapped(params)) {
+        if (context.aggregateArrayWrapped) {
             // Avoid quote identifiers when the aggregate array query wrapper is generated
             return this._escape(name, true)
         }
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
     }
-    override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _appendParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isUuidValueType(columnType) && this._uuidUsesRawFunctions()) {
-            return 'uuid_to_raw(' + super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+            return 'uuid_to_raw(' + super._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
-        return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return super._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    override _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+    override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._uuidUsesRawFunctions()) {
             if (__isUuidValueSource(__getValueSourcePrivate(value))) {
-                return 'raw_to_uuid(' + this._appendSql(value, params, false) + ')'
+                return 'raw_to_uuid(' + this._appendSql(value, context, false) + ')'
             }
         }
-        return this._appendSql(value, params, false)
+        return this._appendSql(value, context, false)
     }
-    override _asString(params: any[], valueSource: ToSql): string {
+    override _asString(context: SqlBuildContext, valueSource: ToSql): string {
         // Transform an uuid to string
         if (this._getUuidStrategy() === 'string') {
             // No conversion required
-            return this._appendSql(valueSource, params, false)
+            return this._appendSql(valueSource, context, false)
         }
-        return 'raw_to_uuid(' + this._appendSql(valueSource, params, false) + ')'
+        return 'raw_to_uuid(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
+    override _appendCompoundOperator(compoundOperator: CompoundOperator, _context: SqlBuildContext): string {
         switch(compoundOperator) {
             case 'union':
                 return ' union '
@@ -719,23 +720,23 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Reads a chain of compound operators from left to right
         return false
     }
-    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
-        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
+    override _buildSelectWithColumnsInfoForCompound(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
+        const result = this._buildSelectWithColumnsInfo(query, context, columnsForInsert, isOutermostQuery)
         if (needsGrouping || query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ')'
         }
         return result
     }
-    override _buildSelectOrderByForWrapper(query: SelectData, params: any[]): string {
+    override _buildSelectOrderByForWrapper(query: SelectData, context: SqlBuildContext): string {
         // The wrapper is a plain `select * from (<compound>)`, so order it the
         // plain way (`lower("col")` / `"col" collate <name>`). The override of
         // `_buildSelectOrderBy` below would otherwise switch a compound query
         // to ordinal positions, which can't carry the case-insensitive term.
-        return super._buildSelectOrderBy(query, params)
+        return super._buildSelectOrderBy(query, context)
     }
-    override _buildSelectOrderBy(query: SelectData, params: any[]): string {
+    override _buildSelectOrderBy(query: SelectData, context: SqlBuildContext): string {
         if (query.__type === 'plain') {
-            return super._buildSelectOrderBy(query, params)
+            return super._buildSelectOrderBy(query, context)
         }
 
         const orderBy = query.__orderBy
@@ -744,14 +745,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
             const customization = query.__customization
             if (customization && customization.beforeOrderByItems) {
-                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, context)
             }
 
             if (customization && customization.afterOrderByItems) {
                 if (orderByColumns) {
                     orderByColumns += ', '
                 }
-                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, context)
             }
 
             if (!orderByColumns) {
@@ -772,7 +773,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         const customization = query.__customization
         if (customization && customization.beforeOrderByItems) {
-            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, context)
         }
 
         for (let i = 0, length = orderBy.length; i < length; i++) {
@@ -782,7 +783,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             const order = entry.order
             if (!order) {
-                orderByColumns += this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params)
+                orderByColumns += this._appendCompoundOrderByColumnAlias(entry, columnNames, query, context)
             } else switch (order) {
                 case 'asc':
                 case 'desc': 
@@ -790,7 +791,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 case 'asc nulls last':
                 case 'desc nulls first':
                 case 'desc nulls last' :
-                    orderByColumns += this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params) + ' ' + order
+                    orderByColumns += this._appendCompoundOrderByColumnAlias(entry, columnNames, query, context) + ' ' + order
                     break
                 case 'insensitive':
                 case 'asc insensitive':
@@ -803,11 +804,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     if (sqlOrder) {
                         sqlOrder = ' ' + sqlOrder
                     }
-                    orderByColumns += this._appendCompoundOrderByColumnAliasInsensitive(entry, columnNames, query, params) + sqlOrder
+                    orderByColumns += this._appendCompoundOrderByColumnAliasInsensitive(entry, columnNames, query, context) + sqlOrder
                     break
                 }
                 default:
-                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, context), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 
@@ -815,7 +816,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, context)
         }
 
         if (!orderByColumns) {
@@ -828,7 +829,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return ' order by ' + orderByColumns
         }
     }
-    _appendCompoundOrderByColumnAlias(entry: OrderByEntry, columnNames: string[], query: SelectData, params: any[]): string {
+    _appendCompoundOrderByColumnAlias(entry: OrderByEntry, columnNames: string[], query: SelectData, context: SqlBuildContext): string {
         const expression = entry.expression
         const columns = query.__columns
         if (typeof expression === 'string') {
@@ -838,41 +839,41 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             if (this._hasCustomizedColumns(query)) {
                 // The columns a customization adds come before, and move the position of every column
-                return this._appendColumnAlias(expression, params)
+                return this._appendColumnAlias(expression, context)
             }
             return (columnNames.indexOf(expression) + 1) + ''
         } else if (isValueSource(expression)) {
-            const oldSafeTableOrView = this._getSafeTableOrView(params)
-            this._setSafeTableOrView(params, undefined)
-            const result = this._appendSql(expression, params, false)
-            this._setSafeTableOrView(params, oldSafeTableOrView)
+            const oldSafeTableOrView = context.safeTableOrView
+            this._setSafeTableOrView(context, undefined)
+            const result = this._appendSql(expression, context, false)
+            this._setSafeTableOrView(context, oldSafeTableOrView)
             return result
         } else {
-            const oldSafeTableOrView = this._getSafeTableOrView(params)
-            this._setSafeTableOrView(params, undefined)
-            const result = this._appendRawFragment(expression, params)
-            this._setSafeTableOrView(params, oldSafeTableOrView)
+            const oldSafeTableOrView = context.safeTableOrView
+            this._setSafeTableOrView(context, undefined)
+            const result = this._appendRawFragment(expression, context)
+            this._setSafeTableOrView(context, oldSafeTableOrView)
             return result
         }
     }
-    _appendCompoundOrderByColumnAliasInsensitive(entry: OrderByEntry, columnNames: string[], query: SelectData, params: any[]): string {
+    _appendCompoundOrderByColumnAliasInsensitive(entry: OrderByEntry, columnNames: string[], query: SelectData, context: SqlBuildContext): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         const stringColumn = this._isStringOrderByColumn(entry, query)
         if (!stringColumn) {
             // Ignore the insensitive term, it do nothing
-            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params)
+            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, context)
         } else if (collation) {
-            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params) + ' collate ' + collation
+            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, context) + ' collate ' + collation
         } else if (collation === '') {
-            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params)
+            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, context)
         } else {
-            return 'lower(' + this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params) + ')'
+            return 'lower(' + this._appendCompoundOrderByColumnAlias(entry, columnNames, query, context) + ')'
         }
     } 
-    override _buildSelectLimitOffset(query: SelectData, params: any[]): string {
-        let result = super._buildSelectLimitOffset(query, params)
+    override _buildSelectLimitOffset(query: SelectData, context: SqlBuildContext): string {
+        let result = super._buildSelectLimitOffset(query, context)
 
-        if (!result && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) && !this._isCurrentRootQuery(query, params)) {
+        if (!result && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) && !this._isCurrentRootQuery(query, context)) {
             // Oracle needs a row-limiting clause to honour an ORDER BY in a subquery, and
             // this noop offset supplies one. Without it the ordering is either ignored — in
             // a CTE body or a derived table — or rejected outright: a scalar subquery in the
@@ -883,7 +884,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    override _buildInsertMultiple(query: InsertData, params: any[]): string {
+    override _buildInsertMultiple(query: InsertData, context: SqlBuildContext): string {
         const multiple = query.__multiple
         if (!multiple) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'expecting insert of multiple values' }, 'Exepected a multiple insert')
@@ -892,17 +893,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
 
-        this._ensureRootQuery(query, params)
+        this._ensureRootQuery(query, context)
         const table = query.__table
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
         const customization = query.__customization
-        this._setSafeTableOrView(params, table)
+        this._setSafeTableOrView(context, table)
 
         let insertQuery = ''
         if (this._useInsertSupportWith()) {
-            insertQuery += this._buildWith(query, params)
+            insertQuery += this._buildWith(query, context)
         }
         insertQuery += 'begin '
 
@@ -920,15 +921,15 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         for (let i = 0, length = multiple.length; i < length; i++) {
             if (customization && customization.beforeQuery) {
-                insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+                insertQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
             }
             insertQuery += 'insert '
             if (customization && customization.afterInsertKeyword) {
-                insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+                insertQuery += this._appendRawFragment(customization.afterInsertKeyword, context) + ' '
             }
-            insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
+            insertQuery += this._buildInsertOnConflictBeforeInto(query, context)
             insertQuery += 'into '
-            insertQuery += this._appendTableOrViewName(table, params)
+            insertQuery += this._appendTableOrViewName(table, context)
 
             const rowIndex = i
             const sets = multiple[i]!
@@ -957,7 +958,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     columns += ', '
                 }
     
-                columns += this._appendSql(column, params, false)
+                columns += this._appendSql(column, context, false)
                 sequences.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
             }
             if (shape) { // Follow shape order
@@ -980,7 +981,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     if (columns) {
                         columns += ', '
                     }
-                    columns += this._appendRawColumnName(column, params)
+                    columns += this._appendRawColumnName(column, context)
                 }
             } else { // No shape, follow set order
                 const properties = Object.getOwnPropertyNames(sets)
@@ -997,12 +998,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     if (columns) {
                         columns += ', '
                     }
-                    columns += this._appendRawColumnName(column, params)
+                    columns += this._appendRawColumnName(column, context)
                 }
             }
 
             insertQuery += ' (' + columns + ')'
-            insertQuery += this._buildInsertOutput(query, params)
+            insertQuery += this._buildInsertOutput(query, context)
 
             let values = ''
             for (let i = 0, length = sequences.length; i < length; i++) {
@@ -1011,7 +1012,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     values += ', '
                 }
 
-                values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
+                values += this._nextSequenceValue(context, sequence.name, sequence.valueType)
             }
             if (shape) { // Follow shape order
                 const properties = Object.getOwnPropertyNames(shape)
@@ -1034,7 +1035,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                         values += ', '
                     }
                     const value = sets[property]
-                    values += this._appendSetValue(property, rowIndex, column, value, params)
+                    values += this._appendSetValue(property, rowIndex, column, value, context)
                 }
             } else { // No shape, follow set order
                 const properties = Object.getOwnPropertyNames(sets)
@@ -1052,22 +1053,22 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                         values += ', '
                     }
                     const value = sets[property]
-                    values += this._appendSetValue(property, rowIndex, column, value, params)
+                    values += this._appendSetValue(property, rowIndex, column, value, context)
                 }
             }
 
             insertQuery += ' values (' + values + ')'
-            insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
-            insertQuery += this._buildInsertReturning(query, params)
+            insertQuery += this._buildInsertOnConflictBeforeReturning(query, context)
+            insertQuery += this._buildInsertReturning(query, context)
             if (customization && customization.afterQuery) {
-                insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+                insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
             }
             insertQuery += '; '
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
 
         insertQuery += 'end;'
 
@@ -1078,36 +1079,36 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // INSERT … ON CONFLICT, so no row is skipped). Only consumed on the
         // non-returning execution route (executeMutation); the returning routes
         // derive the count from the rows they return.
-        this._setForcedAffectedRowCount(params, multiple.length)
+        this._setForcedAffectedRowCount(context, multiple.length)
 
         return insertQuery
     }
-    override _buildInsertDefaultValues(query: InsertData, params: any[]): string {
-        this._ensureRootQuery(query, params)
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
+    override _buildInsertDefaultValues(query: InsertData, context: SqlBuildContext): string {
+        this._ensureRootQuery(query, context)
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
 
         const table = query.__table
         const customization = query.__customization
 
-        this._setSafeTableOrView(params, table)
+        this._setSafeTableOrView(context, table)
 
         let insertQuery = ''
 
         if (customization && customization.beforeQuery) {
-            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            insertQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
         if (this._useInsertSupportWith()) {
-            insertQuery += this._buildWith(query, params)
+            insertQuery += this._buildWith(query, context)
         }
         insertQuery += 'insert '
         if (customization && customization.afterInsertKeyword) {
-            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, context) + ' '
         }
-        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, context)
         insertQuery += 'into '
-        insertQuery += this._appendTableOrViewName(table, params)
+        insertQuery += this._appendTableOrViewName(table, context)
 
         let columns = ''
         for (const columnName of __columnPathsOf(table)) {
@@ -1120,11 +1121,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 columns += ', '
             }
 
-            columns += this._appendRawColumnName(column, params)
+            columns += this._appendRawColumnName(column, context)
         }
 
         insertQuery += ' (' + columns + ')'
-        insertQuery += this._buildInsertOutput(query, params)
+        insertQuery += this._buildInsertOutput(query, context)
 
         let values = ''
         for (const columnName of __columnPathsOf(table)) {
@@ -1139,42 +1140,42 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
             const columnPrivate = __getColumnPrivate(column)
             if (columnPrivate.__sequenceName) {
-                values += this._nextSequenceValue(params, columnPrivate.__sequenceName, columnPrivate.__valueType)
+                values += this._nextSequenceValue(context, columnPrivate.__sequenceName, columnPrivate.__valueType)
             } else {
                 values += 'default'
             }
         }
         
         insertQuery += ' values (' + values + ')'
-        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
-        insertQuery += this._buildInsertReturning(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, context)
+        insertQuery += this._buildInsertReturning(query, context)
         if (customization && customization.afterQuery) {
-            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
         return insertQuery
     }
-    override _buildInsertOutput(_query: InsertData, _params: any[]): string {
+    override _buildInsertOutput(_query: InsertData, _context: SqlBuildContext): string {
         return ''
     }
-    override _buildInsertReturning(query: InsertData, params: any[]): string {
+    override _buildInsertReturning(query: InsertData, context: SqlBuildContext): string {
         const idColumn = query.__idColumn
         if (idColumn) {
-            this._setContainsInsertReturningClause(params, true)
-            const idColumnSql = this._appendSql(idColumn, params, false)
+            this._setContainsInsertReturningClause(context, true)
+            const idColumnSql = this._appendSql(idColumn, context, false)
             const idColumnPrivate = __getValueSourcePrivate(idColumn)
-            const placeholder = this._queryRunner.addOutParam(params, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), false) // Empty name for the out params, no special name is requiered
+            const placeholder = this._queryRunner.addOutParam(context.params, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), false) // Empty name for the out params, no special name is requiered
             return ' returning ' + idColumnSql + ' into ' + placeholder
         }
 
-        const result = this._buildQueryReturning(query.__columns, params)
-        this._setContainsInsertReturningClause(params, !!result)
+        const result = this._buildQueryReturning(query.__columns, context)
+        this._setContainsInsertReturningClause(context, !!result)
         return result
     }
-    override _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[]): string {
+    override _buildQueryReturning(queryColumns: QueryColumns | undefined, context: SqlBuildContext): string {
         if (!queryColumns) {
             return ''
         }
@@ -1190,8 +1191,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const column = columns[property]!
             // A localDateTime of a database outside UTC goes as it is: its TIMESTAMP WITH TIME ZONE OUT bind already
             // receives the instant Oracle completes with its session
-            const sql = this._appendSql(column, params, false)
-            result += this._isZonedReturningColumn(column) && __isLocalDateTimeValueSource(__getValueSourcePrivate(column)) ? sql : this._appendResultColumnProjection(column, sql, params)
+            const sql = this._appendSql(column, context, false)
+            result += this._isZonedReturningColumn(column) && __isLocalDateTimeValueSource(__getValueSourcePrivate(column)) ? sql : this._appendResultColumnProjection(column, sql, context)
             requireComma = true
         }
         if (result) {
@@ -1204,13 +1205,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             const column = columns[property]!
             let placeholder
-            if (!this._isZonedReturningColumn(column) && this._isConvertedResultColumn(column, params)) {
+            if (!this._isZonedReturningColumn(column) && this._isConvertedResultColumn(column, context)) {
                 // The value is returned as the SQL its transformProjection writes, which is not of the type of the
                 // column: it is received as a text
-                placeholder = this._queryRunner.addOutParam(params, property, 'string', 'string', false)
+                placeholder = this._queryRunner.addOutParam(context.params, property, 'string', 'string', false)
             } else {
                 const columnPrivate = __getValueSourcePrivate(column)
-                placeholder = this._queryRunner.addOutParam(params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
+                placeholder = this._queryRunner.addOutParam(context.params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
             }
             result += placeholder
             requireComma = true
@@ -1234,12 +1235,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return __isLocalDateTimeValueSource(columnPrivate) || __isLocalTimeValueSource(columnPrivate)
     }
-    override _isNull(params: any[], valueSource: ToSql): string {
+    override _isNull(context: SqlBuildContext, valueSource: ToSql): string {
         if (isColumn(valueSource)) {
             // The null state lives in the stored column, not in the 0/1 expression a
             // CustomBooleanTypeAdapter column remaps to (which is never null for a
             // required adapter), so the null check must read the raw column name.
-            return this._appendRawColumnName(valueSource, params) + ' is null'
+            return this._appendRawColumnName(valueSource, context) + ' is null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition && !this._nativeBoolean()) {
@@ -1247,15 +1248,15 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     return this._falseValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendConditionSql(valueSource, params, false) + ' then 0 when not ' + this._appendConditionSqlParenthesis(valueSource, params, false) + ' then 0 else 1 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, context, false) + ' then 0 when not ' + this._appendConditionSqlParenthesis(valueSource, context, false) + ' then 0 else 1 end = 1)'
                 }
             }
         }
-        return super._isNull(params, valueSource)
+        return super._isNull(context, valueSource)
     }
-    override _isNotNull(params: any[], valueSource: ToSql): string {
+    override _isNotNull(context: SqlBuildContext, valueSource: ToSql): string {
         if (isColumn(valueSource)) {
-            return this._appendRawColumnName(valueSource, params) + ' is not null'
+            return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition && !this._nativeBoolean()) {
@@ -1263,11 +1264,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     return this._trueValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendConditionSql(valueSource, params, false) + ' then 1 when not ' + this._appendConditionSqlParenthesis(valueSource, params, false) + ' then 1 else 0 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, context, false) + ' then 1 when not ' + this._appendConditionSqlParenthesis(valueSource, context, false) + ' then 1 else 0 end = 1)'
                 }
             }
         }
-        return super._isNotNull(params, valueSource)
+        return super._isNotNull(context, valueSource)
     }
     /**
      * A localDateTime or a localTime that Oracle holds in a DATE: a column declared with an
@@ -1284,55 +1285,55 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return valueSourcePrivate.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter
             && (__isLocalDateTimeValueSource(valueSourcePrivate) || __isLocalTimeValueSource(valueSourcePrivate))
     }
-    override _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _is(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
-            return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 1'
+            return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 1'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', 1, 0 ) = 1'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', 1, 0 ) = 1'
     }
-    override _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
-            return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 0'
+            return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 0'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', 1, 0 ) = 0'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', 1, 0 ) = 0'
     }
-    override _random(_params: any): string {
+    override _random(_context: SqlBuildContext): string {
         return '(select dbms_random.value from dual)'
     }
-    override _pi(_params: any): string {
+    override _pi(_context: SqlBuildContext): string {
         // Oracle has no `PI()` function; `ACOS(-1)` yields the mathematical
         // constant π via the inverse cosine identity.
         return 'acos(-1)'
     }
-    override _currentDate(_params: any): string {
+    override _currentDate(_context: SqlBuildContext): string {
         return 'trunc(current_timestamp)'
     }
-    override _currentTime(_params: any): string {
+    override _currentTime(_context: SqlBuildContext): string {
         // Oracle has no `CURRENT_TIME` keyword. `LOCALTIMESTAMP` is the
         // closest portable equivalent that yields a session-local moment
         // the oracledb driver materialises as a JS `Date`.
         return 'localtimestamp'
     }
-    override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._isDateReadAsTimestamp(valueSource) && !this._isDateReadAsTimestamp(value)) {
             // nvl has the type of its first operand: a DATE read as a timestamp with something else makes it a
             // TIMESTAMP, so the result needs nothing more (it doesn't keep the adapter). A first operand of another
             // type already decides it, and two of them stay a DATE that keeps the adapter
-            return 'nvl(cast(' + this._appendSql(valueSource, params, false) + ' as timestamp), ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+            return 'nvl(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp), ' + this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
         }
-        return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+        return 'nvl(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _divide(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Unlike the other dialects, Oracle divides in NUMBER, which is exact to 38
         // significant digits — more precision than the double this operation yields.
         // Casting the operands to float here would *lose* precision instead of
         // preserving it, so the bare division is the correct emission on Oracle.
-        return this._appendSqlParenthesis(valueSource, params, false) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' / ' + this._appendValueParenthesis(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Oracle does not accept `a % b`; the `%` token is a syntax error.
         // Use the built-in MOD(a, b) function instead.
-        return 'mod(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+        return 'mod(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     override _appendCastAsDouble(sql: string): string {
         return 'cast(' + sql + ' as float)'
@@ -1341,12 +1342,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Oracle has no bigint; NUMBER(38) is its 64 bits (and wider) integer type.
         return 'cast(' + sql + ' as number(38))'
     }
-    override _log10(params: any[], valueSource: ToSql): string {
+    override _log10(context: SqlBuildContext, valueSource: ToSql): string {
         // Oracle's LOG signature is LOG(base, value), so the base 10 goes first.
-        return 'log(10, ' + this._appendSql(valueSource, params, false) + ')'
+        return 'log(10, ' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getDate(params: any[], valueSource: ToSql): string {
-        return 'extract(day from ' + (this._appendZonedUtcTimestamp(params, valueSource) ?? this._appendSql(valueSource, params, false)) + ')'
+    override _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(day from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
     }
     override _supportDatabaseOutsideUtc(): boolean {
         return true
@@ -1356,12 +1357,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * digits of the UTC of its instant, which the database completes with its session (see oracleZonedValueSql), so they
      * keep giving the parts in UTC. Undefined in UTC, or for a value of another type
      */
-    _appendZonedUtcTimestamp(params: any[], valueSource: ToSql): string | undefined {
+    _appendZonedUtcTimestamp(context: SqlBuildContext, valueSource: ToSql): string | undefined {
         if (!this._isDatabaseOutsideUtc() || !isValueSource(valueSource)) {
             return undefined
         }
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = oracleZonedValueSql(this._appendSql(valueSource, params, false), __conversionType(valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType)), this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __conversionType(valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType)), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? 'sys_extract_utc(' + zoned + ')' : undefined
     }
     // Oracle counts a negative start from the end like JS, but answers '' once the start runs
@@ -1374,27 +1375,27 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     //
     // A start of -1 needs no clamp at all: an Oracle string that is not NULL has at least one
     // character (the empty string IS NULL here), so `greatest(-1, -length(x))` is always -1.
-    private _substrNegativeStart(params: any[], valueSource: ToSql, value: number, typeAdapter: TypeAdapter | undefined): string {
+    private _substrNegativeStart(context: SqlBuildContext, valueSource: ToSql, value: number, typeAdapter: TypeAdapter | undefined): string {
         if (value === -1) {
-            return this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false)
+            return this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, 'int', 'int', typeAdapter, false)
         }
-        return this._appendSql(valueSource, params, false) + ', greatest(' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ', -length(' + this._appendSql(valueSource, params, false) + '))'
+        return this._appendSql(valueSource, context, false) + ', greatest(' + this._appendValue(value, context, 'int', 'int', typeAdapter, false) + ', -length(' + this._appendSql(valueSource, context, false) + '))'
     }
-    override _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && value < 0) {
-            return 'substr(' + this._substrNegativeStart(params, valueSource, value, typeAdapter) + ')'
+            return 'substr(' + this._substrNegativeStart(context, valueSource, value, typeAdapter) + ')'
         }
-        return super._substrToEnd(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._substrToEnd(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    override _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'substr(' + this._substrNegativeStart(params, valueSource, value, typeAdapter) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._substrNegativeStart(context, valueSource, value, typeAdapter) + ', ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
         }
-        return super._substr(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+        return super._substr(context, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
     }
-    override _getTime(params: any[], valueSource: ToSql): string {
-        const zoned = this._appendZonedUtcTimestamp(params, valueSource)
+    override _getTime(context: SqlBuildContext, valueSource: ToSql): string {
+        const zoned = this._appendZonedUtcTimestamp(context, valueSource)
         if (zoned) {
             return "(trunc(" + zoned + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + zoned + ", 'SSSSSFF3'))"
         }
@@ -1402,27 +1403,27 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // A DATE has no fraction of a second: the day count is the whole time. A value made from the column may
             // not be a DATE (nullif with a timestamp gives a TIMESTAMP, and a TIMESTAMP minus a DATE is an interval)
             // The difference of two DATEs is a decimal number of days, inexact for a second (1/86400): rounded to seconds
-            const date = isColumn(valueSource) ? this._appendSql(valueSource, params, false) : 'cast(' + this._appendSql(valueSource, params, false) + ' as date)'
+            const date = isColumn(valueSource) ? this._appendSql(valueSource, context, false) : 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
             return "round((" + date + " - date '1970-01-01') * 86400) * 1000"
         }
         // Whole days from trunc, the seconds since midnight and the milliseconds from 'SSSSSFF3' (FF3 truncates, like a
         // Date): the time of day is always forward, so it is exact before 1970 too
-        const utc = this._appendUtcTimestamp(params, valueSource)
+        const utc = this._appendUtcTimestamp(context, valueSource)
         return "(trunc(" + utc + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + utc + ", 'SSSSSFF3'))"
     }
-    override _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'extract(year from ' + (this._appendZonedUtcTimestamp(params, valueSource) ?? this._appendSql(valueSource, params, false)) + ')'
+    override _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(year from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
     }
-    override _getMonth(params: any[], valueSource: ToSql): string {
-        return 'extract(month from ' + (this._appendZonedUtcTimestamp(params, valueSource) ?? this._appendSql(valueSource, params, false)) + ') - 1'
+    override _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(month from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ') - 1'
     }
-    override _getDay(params: any[], valueSource: ToSql): string {
+    override _getDay(context: SqlBuildContext, valueSource: ToSql): string {
         // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
         // trunc of a value with zone gives the day of the zone it was stored with: a localDateTime is taken to the
         // UTC digits of its instant first. A localDate, and a DATE read as a timestamp, have no zone
-        const day = this._appendZonedUtcTimestamp(params, valueSource) ?? (isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
-            ? this._appendUtcTimestamp(params, valueSource)
-            : this._appendSql(valueSource, params, false))
+        const day = this._appendZonedUtcTimestamp(context, valueSource) ?? (isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
+            ? this._appendUtcTimestamp(context, valueSource)
+            : this._appendSql(valueSource, context, false))
         return "mod(trunc(" + day + ") - trunc(" + day + ", 'IW') + 1, 7)"
     }
     /**
@@ -1430,84 +1431,84 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * DATE or a TIMESTAMP has no zone and none takes part; a value with zone (an offset, a region, or a local time zone)
      * is compared with the epoch in the session zone, the zone of the database (see oracleSessionTimeZone), which gives its instant
      */
-    _appendUtcTimestamp(params: any[], valueSource: ToSql): string {
-        return "timestamp '1970-01-01 00:00:00' + (" + this._appendSql(valueSource, params, false) + " - timestamp '1970-01-01 00:00:00')"
+    _appendUtcTimestamp(context: SqlBuildContext, valueSource: ToSql): string {
+        return "timestamp '1970-01-01 00:00:00' + (" + this._appendSql(valueSource, context, false) + " - timestamp '1970-01-01 00:00:00')"
     }
-    override _getHours(params: any[], valueSource: ToSql): string {
-        return 'extract(hour from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
+    override _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(hour from ' + this._appendTimestampForTimeGetter(context, valueSource) + ')'
     }
-    override _getMinutes(params: any[], valueSource: ToSql): string {
-        return 'extract(minute from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
+    override _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(minute from ' + this._appendTimestampForTimeGetter(context, valueSource) + ')'
     }
-    override _getSeconds(params: any[], valueSource: ToSql): string {
-        const zoned = this._appendZonedUtcTimestamp(params, valueSource)
+    override _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+        const zoned = this._appendZonedUtcTimestamp(context, valueSource)
         if (zoned) {
             return 'trunc(extract(second from ' + zoned + '))'
         }
         if (this._isDateReadAsTimestamp(valueSource)) {
             // A DATE has no fraction of a second to truncate
-            return 'extract(second from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
+            return 'extract(second from ' + this._appendTimestampForTimeGetter(context, valueSource) + ')'
         }
-        return 'trunc(extract(second from ' + this._appendSql(valueSource, params, false) + '))'
+        return 'trunc(extract(second from ' + this._appendSql(valueSource, context, false) + '))'
     }
-    override _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return "to_number(to_char(" + this._appendTimestampForTimeGetter(params, valueSource) + ", 'FF3'))"
+    override _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return "to_number(to_char(" + this._appendTimestampForTimeGetter(context, valueSource) + ", 'FF3'))"
     }
     /** The value for `extract` of the time or `to_char` of the fraction: a DATE column read as a timestamp is cast */
-    _appendTimestampForTimeGetter(params: any[], valueSource: ToSql): string {
-        const zoned = this._appendZonedUtcTimestamp(params, valueSource)
+    _appendTimestampForTimeGetter(context: SqlBuildContext, valueSource: ToSql): string {
+        const zoned = this._appendZonedUtcTimestamp(context, valueSource)
         if (zoned) {
             return zoned
         }
         if (this._isDateReadAsTimestamp(valueSource)) {
-            return 'cast(' + this._appendSql(valueSource, params, false) + ' as timestamp)'
+            return 'cast(' + this._appendSql(valueSource, context, false) + ' as timestamp)'
         }
-        return this._appendSql(valueSource, params, false)
+        return this._appendSql(valueSource, context, false)
     }
-    override _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
+    override _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'begin ' + this._escape(procedureName, false, true) + '('
         if (procedureParams.length > 0) {
-            result += this._appendSql(procedureParams[0]!, params, false)
+            result += this._appendSql(procedureParams[0]!, context, false)
 
             for (let i = 1, length = procedureParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(procedureParams[i]!, params, false)
+                result += ', ' + this._appendSql(procedureParams[i]!, context, false)
             }
         }
 
         return result + '); end;'
     }
-    override _buildCallFunction(params: any[], functionCall: AnyValueSource): string {
-        return super._buildCallFunction(params, functionCall) + ' from dual'
+    override _buildCallFunction(context: SqlBuildContext, functionCall: AnyValueSource): string {
+        return super._buildCallFunction(context, functionCall) + ' from dual'
     }
-    override _stringConcat(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcat(context: SqlBuildContext, separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'listagg(' + this._appendSql(value, params, false) + ", ',') within group (order by " + this._appendSql(value, params, false) + ')'
+            return 'listagg(' + this._appendSql(value, context, false) + ", ',') within group (order by " + this._appendSql(value, context, false) + ')'
         } else if (separator === '') {
-            return 'listagg(' + this._appendSql(value, params, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(' + this._appendSql(value, context, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         } else {
-            return 'listagg(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', 'string', undefined, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         }
     }
-    override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcatDistinct(context: SqlBuildContext, separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'listagg(distinct ' + this._appendSql(value, params, false) + ", ',') within group (order by " +  this._appendSql(value, params, false) + ')'
+            return 'listagg(distinct ' + this._appendSql(value, context, false) + ", ',') within group (order by " +  this._appendSql(value, context, false) + ')'
         } else if (separator === '') {
-            return 'listagg(distinct ' + this._appendSql(value, params, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(distinct ' + this._appendSql(value, context, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         } else {
-            return 'listagg(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(distinct ' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', 'string', undefined, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         }
     }
     // Oracle LIKE has no `[...]` character classes; wildcards are escaped with
     // the backslash declared by the `escape '\'` clause every affix predicate
     // below emits. The inherited `_escapeLikeWildcard` produces exactly that
     // backslash escaping (`%`->`\%`, `_`->`\_`, `\`->`\\`), so no override.
-    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
-                return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(' + this._appendSql(aggregatedArrayColumns, params, false) + ')') + ')'
+                return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(' + this._appendSql(aggregatedArrayColumns, context, false) + ')') + ')'
             }
-            return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, params, false)) + ')'
+            return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1520,16 +1521,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._uuidUsesRawFunctions()) {
-                    result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(' + this._appendSql(column, params, false) + ')')
+                    result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(' + this._appendSql(column, context, false) + ')')
                 } else {
-                    result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, params, false))
+                    result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false))
                 }
             }
 
             return 'json_arrayagg(' + distict + 'json_object(' + result + '))'
         }
     }
-    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
                 return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(a_' + aggregateId + '_.result)') + ')'

@@ -1,3 +1,4 @@
+import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, OrderByEntry, FlatQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { flattenQueryColumns, hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression, OrderByExecutableSelectExpressionProjectableAsNullable, GroupByOrderByExecutableSelectExpressionProjectableAsNullable, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable, ExecutableSelectExpressionWithoutWhereProjectableAsNullable, DynamicWhereLastCompoundableCustomizableExecutableSelectExpression } from '../expressions/select.js'
@@ -59,7 +60,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         if (this.__query) {
             return this.__query
         }
-        this.__query = this.__sqlBuilder._buildSelect(this.__asSelectData(), this.__params)
+        this.__query = this.__sqlBuilder._buildSelect(this.__asSelectData(), new SqlBuildContext(this.__params))
         return this.__query
     }
     params(): any[] {
@@ -189,7 +190,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         const source = new QueryExecutionSource('Query executed at')
         return this.__executeSelectMany(source)
     }
-    abstract __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string
+    abstract __buildSelectCount(countAll: AggregateFunctions0ValueSource, context: SqlBuildContext): string
     /**
      * Strips from a copy of the select data everything that only describes the page, so
      * what remains is the same query counting every matching row.
@@ -221,7 +222,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             this.__sqlBuilder._resetUnique()
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
             const params: any[] = []
-            query = this.__buildSelectCount(countAll, params)
+            query = this.__buildSelectCount(countAll, new SqlBuildContext(params))
             __setQueryMetadata(source, params, this.__sqlBuilder, __resultColumnsOf({ '': countAll }, this.__sqlBuilder), this.__customization, true)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
                 return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
@@ -576,13 +577,13 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     abstract __hasAggregation(sqlBuilder: HasIsValue): boolean
 
     abstract __asSelectData(): SelectData & AbstractSelect
-    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
         this.__finishJoinHaving()
-        return sqlBuilder._buildInlineSelect(this.__asSelectData(), params)
+        return sqlBuilder._buildInlineSelect(this.__asSelectData(), context)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
         this.__finishJoinHaving()
-        return sqlBuilder._buildInlineSelect(this.__asSelectData(), params)
+        return sqlBuilder._buildInlineSelect(this.__asSelectData(), context)
     }
 
     forUseInQueryAs(as: string): any {
@@ -862,10 +863,10 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
     }
 
-    __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
+    __buildSelectCount(countAll: AggregateFunctions0ValueSource, context: SqlBuildContext): string {
         const recursiveSelect = this.__recursiveSelect
         if (recursiveSelect) {
-            return recursiveSelect.__buildSelectCount(countAll, params)
+            return recursiveSelect.__buildSelectCount(countAll, context)
         }
 
         if (this.__distinct || this.__groupBy.length > 0 || this.__customization || this.__connectBy || hasAggregationQueryColumns(this.__columns, this.__sqlBuilder)) {
@@ -898,7 +899,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 __subSelectUsing: this.__subSelectUsing,
                 __requiredTablesOrViews: this.__requiredTablesOrViews
             }
-            return this.__sqlBuilder._buildSelect(selectCountData, params)
+            return this.__sqlBuilder._buildSelect(selectCountData, context)
         }
 
         this.__asSelectData() // Ensure any missing initialization
@@ -916,7 +917,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __subSelectUsing: this.__subSelectUsing,
             __requiredTablesOrViews: this.__requiredTablesOrViews
         }
-        return this.__sqlBuilder._buildSelect(selectCountData, params)
+        return this.__sqlBuilder._buildSelect(selectCountData, context)
     }
 
     select(columns: SelectColumns<any>): any { // any to avoid deep errors
@@ -1161,8 +1162,8 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             const column = columns[property]
             if (isValueSource(column)) {
                 const reference = Object.create(column)
-                reference.__toSql = (sqlBuilder: SqlBuilder, params: any[]) => sqlBuilder._appendSelectColumnReference(column, params)
-                reference.__toSqlForCondition = (sqlBuilder: SqlBuilder, params: any[]) => sqlBuilder._appendSelectColumnReferenceForCondition(column, params)
+                reference.__toSql = (sqlBuilder: SqlBuilder, context: SqlBuildContext) => sqlBuilder._appendSelectColumnReference(column, context)
+                reference.__toSqlForCondition = (sqlBuilder: SqlBuilder, context: SqlBuildContext) => sqlBuilder._appendSelectColumnReferenceForCondition(column, context)
                 // Written as the select list writes it: a value, also when the column is a condition
                 reference.__isBooleanForCondition = false
                 reference.__selectColumnReference = column
@@ -1652,7 +1653,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         __registerRequiredColumn(this.__secondQuery, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
 
-    __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
+    __buildSelectCount(countAll: AggregateFunctions0ValueSource, context: SqlBuildContext): string {
         const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
         this.__dropPaginationForCount(data)
 
@@ -1673,7 +1674,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
             __withs: withs,
             __subSelectUsing: this.__subSelectUsing
         }
-        return this.__sqlBuilder._buildSelect(selectCountData, params)
+        return this.__sqlBuilder._buildSelect(selectCountData, context)
     }
     __finishJoinHaving(): void {
         // noop: do nothing here

@@ -1,3 +1,4 @@
+import type { SqlBuildContext } from './SqlBuildContext.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../expressions/values.js'
 import type { SqlBuilder, ToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -17,11 +18,11 @@ export class RawFragmentImpl implements RawFragment<any>, IQueryDataDiscovery, T
         this.__template = template
         this.__params = params
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder._rawFragment(params, this.__template, this.__params)
+    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder._rawFragment(context, this.__template, this.__params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
-        return this.__toSql(sqlBuilder, params, forceTypeCast)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, context, forceTypeCast)
     }
 
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {

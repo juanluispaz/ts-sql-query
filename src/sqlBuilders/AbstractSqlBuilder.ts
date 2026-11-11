@@ -1,3 +1,4 @@
+import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, PlainSelectData, CompoundSelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -86,116 +87,32 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _resetUnique(): void {
         this._unique = 1
     }
-    _getSafeTableOrView(params: any[]): AnyTableOrView | undefined {
-        return (params as any)._safeTableOrView
-    }
-    _setSafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
-        Object.defineProperty(params, '_safeTableOrView', {
-            value: tableOrView,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    /**
-     * The safe table/view the surrounding SELECT clause rendered its columns
-     * against. The ORDER BY build resets `_safeTableOrView` to `undefined` so
-     * value-source terms are emitted qualified, but a term that resolves an
-     * output alias to its source column must render exactly as that column
-     * appears in the SELECT clause (bare on a single-table select), so that
-     * `lower(...)` / `collate` references a real column and stays readable.
-     * `_appendOrderByColumnExpression` applies this slot when resolving an
-     * alias; the build sites set it to the select-clause safe table.
-     */
-    _getOrderBySafeTableOrView(params: any[]): AnyTableOrView | undefined {
-        return (params as any)._orderBySafeTableOrView
-    }
-    _setOrderBySafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
-        Object.defineProperty(params, '_orderBySafeTableOrView', {
-            value: tableOrView,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _getSelectColumnsSql(params: any[]): Map<AnyValueSource, SelectColumnSql> | undefined {
-        return (params as any)._selectColumnsSql
-    }
-    _setSelectColumnsSql(params: any[], value: Map<AnyValueSource, SelectColumnSql> | undefined): void {
-        Object.defineProperty(params, '_selectColumnsSql', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    /**
-     * The columns of the select being written are converted by the query that wraps it (see
-     * `_needsResultConversionWrap`), so this select writes them as they are.
-     */
-    _isResultConversionDeferred(params: any[]): boolean {
-        return !!(params as any)._resultConversionDeferred
-    }
-    _setResultConversionDeferred(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_resultConversionDeferred', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    /**
-     * The alias of the query that wraps a select to convert its columns, while its order by is written; undefined
-     * otherwise.
-     */
-    _getResultConversionWrapperAlias(params: any[]): string | undefined {
-        return (params as any)._resultConversionWrapperAlias
-    }
-    _setResultConversionWrapperAlias(params: any[], value: string | undefined): void {
-        Object.defineProperty(params, '_resultConversionWrapperAlias', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    /**
-     * The query that wraps a select to convert its columns also passes on every other column of it (`wrapper.*`), the
-     * ones a customization adds included: the columns it converts have another alias in the wrapped select
-     */
-    _isResultConversionWithAllColumns(params: any[]): boolean {
-        return !!(params as any)._resultConversionWithAllColumns
-    }
-    _setResultConversionWithAllColumns(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_resultConversionWithAllColumns', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
+    /** Sets the table or view whose columns are written without its name; a dialect may refuse one */
+    _setSafeTableOrView(context: SqlBuildContext, tableOrView: AnyTableOrView | undefined): void {
+        context.safeTableOrView = tableOrView
     }
     /** The alias, in the wrapped select, of a column the wrapper converts when it passes on every column */
     _resultConversionInnerAlias(property: string): string {
         return property + '_tsq_raw'
     }
     /** The column is converted in the outermost query (`_appendResultColumnProjection` changes it) */
-    _isConvertedResultColumn(value: AnyValueSource, params: any[]): boolean {
-        return this._appendResultColumnProjection(value, '', params) !== ''
+    _isConvertedResultColumn(value: AnyValueSource, context: SqlBuildContext): boolean {
+        return this._appendResultColumnProjection(value, '', context) !== ''
     }
     /**
      * The column is converted in the outermost query, and its converted SQL doesn't compare like the value
      * (`projectionComparison` is `'none'`): where the query compares it, it must use the value, not the converted SQL
      */
-    _needsTheValueOfResultColumnToCompare(value: AnyValueSource, params: any[]): boolean {
-        return this._isConvertedResultColumn(value, params) && this._projectionComparison(value, 'resultColumn') === 'none'
+    _needsTheValueOfResultColumnToCompare(value: AnyValueSource, context: SqlBuildContext): boolean {
+        return this._isConvertedResultColumn(value, context) && this._projectionComparison(value, 'resultColumn') === 'none'
     }
     /**
      * The column is converted in the outermost query, and its converted SQL doesn't compare like the value of another
      * column or expression (`projectionComparison` is `'columnEquality'` or `'none'`): where the query compares it with
      * other values, like the arms of a compound query, it must use the value
      */
-    _needsTheValueOfResultColumnToCompareAcrossColumns(value: AnyValueSource, params: any[]): boolean {
-        if (!this._isConvertedResultColumn(value, params)) {
+    _needsTheValueOfResultColumnToCompareAcrossColumns(value: AnyValueSource, context: SqlBuildContext): boolean {
+        if (!this._isConvertedResultColumn(value, context)) {
             return false
         }
         const comparison = this._projectionComparison(value, 'resultColumn')
@@ -205,8 +122,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * The column is converted in the outermost query, and its converted SQL doesn't order like the value
      * (`projectionComparison` isn't `'value'`): where the query orders it, it must use the value, not the converted SQL
      */
-    _needsTheValueOfResultColumnToOrder(value: AnyValueSource, params: any[]): boolean {
-        return this._isConvertedResultColumn(value, params) && this._projectionComparison(value, 'resultColumn') !== 'value'
+    _needsTheValueOfResultColumnToOrder(value: AnyValueSource, context: SqlBuildContext): boolean {
+        return this._isConvertedResultColumn(value, context) && this._projectionComparison(value, 'resultColumn') !== 'value'
     }
     /** A select of the query, or of one of its compound queries, adds columns of its own (`beforeColumns`) */
     _hasCustomizedColumns(query: SelectData): boolean {
@@ -215,111 +132,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return !!query.__customization?.beforeColumns
     }
-    _isOrderByOnWrapper(params: any[]): boolean {
-        return !!(params as any)._orderByOnWrapper
-    }
-    _setOrderByOnWrapper(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_orderByOnWrapper', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _getForceAliasAs(params: any[]): string | undefined {
-        return (params as any)._forceAliasAs
-    }
-    _setForceAliasAs(params: any[], value: string | undefined): void {
-        Object.defineProperty(params, '_forceAliasAs', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _getForceAliasFor(params: any[]): AnyTableOrView | undefined {
-        return (params as any)._forceAliasFor
-    }
-    _setForceAliasFor(params: any[], value: AnyTableOrView | undefined): void {
-        Object.defineProperty(params, '_forceAliasFor', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _getFakeNamesOf(params: any[]): Set<AnyTableOrView> | undefined {
-        return (params as any)._fakeNamesOf
-    }
-    _setFakeNamesOf(params: any[], value: Set<AnyTableOrView> | undefined): void {
-        Object.defineProperty(params, '_fakeNamesOf', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _generateExternalWith(params: any[]): boolean {
-        return !!(params as any)._generateExternalWith
-    }
-    _setGenerateExternalWith(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_generateExternalWith', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _isWithGenerated(params: any[]): boolean {
-        return !!(params as any)._withGenerated
-    }
-    _setWithGenerated(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_withGenerated', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _isWithGeneratedFinished(params: any[]): boolean {
-        return !!(params as any)._withGeneratedFinished
-    }
-    _setWithGeneratedFinished(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_withGeneratedFinished', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _isAggregateArrayWrapped(params: any[]): boolean {
-        return !!(params as any)._isAggregateArrayWrapped
-    }
-    _setAggregateArrayWrapped(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_isAggregateArrayWrapped', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _getResultingOperation(params: any[]): '_and' | '_or' | undefined {
-        return (params as any)._resultingOperation
-    }
-    _setResultingOperation(params: any[], value: '_and' | '_or' | undefined): void {
-        Object.defineProperty(params, '_resultingOperation', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
     // Read in the query runner
-    _getContainsInsertReturningClause(params: any[]): boolean | undefined {
-        return getMetadata<boolean>(params, queryContainsInsertReturningClause)
+    _getContainsInsertReturningClause(context: SqlBuildContext): boolean | undefined {
+        return getMetadata<boolean>(context.params, queryContainsInsertReturningClause)
     }
-    _setContainsInsertReturningClause(params: any[], value: boolean | undefined): void {
-        setMetadata(params, queryContainsInsertReturningClause, value)
+    _setContainsInsertReturningClause(context: SqlBuildContext, value: boolean | undefined): void {
+        setMetadata(context.params, queryContainsInsertReturningClause, value)
     }
     // Read in the query runner (AbstractQueryRunner.executeMutationReturning).
     // Set to `false` when the outermost mutation's returning projection collapses
@@ -329,8 +147,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // drivers reject (better-sqlite3) and others answer with a driver result header
     // instead of rows (mysql2, mariadb). Only set for the outermost query, whose
     // statement is the one actually executed.
-    _setContainsMutationReturningClause(params: any[], value: boolean | undefined): void {
-        setMetadata(params, queryContainsMutationReturningClause, value)
+    _setContainsMutationReturningClause(context: SqlBuildContext, value: boolean | undefined): void {
+        setMetadata(context.params, queryContainsMutationReturningClause, value)
     }
     // Read in the query runner (see AbstractQueryRunner.getForcedAffectedRowCount).
     // Set when the affected-row count is known while building the query but the
@@ -338,45 +156,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // is emitted as an anonymous PL/SQL block — Oracle drivers don't populate
     // rowsAffected for PL/SQL blocks). The query runner returns this value as the
     // affected-row count instead of the driver's (absent) one.
-    _setForcedAffectedRowCount(params: any[], value: number | undefined): void {
-        setMetadata(params, queryForcedAffectedRowCount, value)
+    _setForcedAffectedRowCount(context: SqlBuildContext, value: number | undefined): void {
+        setMetadata(context.params, queryForcedAffectedRowCount, value)
     }
-    _ensureRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
-        const rootQuery = (params as any)._rootQuery
-        if (!rootQuery) {
-            Object.defineProperty(params, '_rootQuery', {
-                value: query,
-                writable: true,
-                enumerable: false,
-                configurable: true
-            })
+    _ensureRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, context: SqlBuildContext) {
+        if (!context.rootQuery) {
+            context.rootQuery = query
         }
     }
-    _isCurrentRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
-        const rootQuery = (params as any)._rootQuery
-        return rootQuery === query
+    _isCurrentRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, context: SqlBuildContext) {
+        return context.rootQuery === query
     }
-    _resetRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
-        const rootQuery = (params as any)._rootQuery
-        if (rootQuery === query) {
-            Object.defineProperty(params, '_rootQuery', {
-                value: undefined,
-                writable: true,
-                enumerable: false,
-                configurable: true
-            })
+    _resetRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, context: SqlBuildContext) {
+        if (context.rootQuery === query) {
+            context.rootQuery = undefined
         }
-    }
-    _getRootQuery(params: any[]): object | undefined {
-        return (params as any)._rootQuery
-    }
-    _setRootQuery(params: any[], value: object | undefined): void {
-        Object.defineProperty(params, '_rootQuery', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
     }
     _isValue(value: any): boolean {
         if (value === null || value === undefined) {
@@ -439,33 +233,33 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return false
     }
-    _appendColumnName(column: DBColumn, params: any[]): string {
+    _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
-            return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+            return '(' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
         }
-        return this._appendRawColumnName(column, params)
+        return this._appendRawColumnName(column, context)
     }
-    _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
+    _appendColumnNameForCondition(column: DBColumn, context: SqlBuildContext): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
-            return this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params)
+            return this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context)
         }
-        return this._appendRawColumnName(column, params)
+        return this._appendRawColumnName(column, context)
     }
-    _appendRawColumnName(column: DBColumn, params: any[]): string {
+    _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
         const columnPrivate = __getColumnPrivate(column)
         const tableOrView = columnPrivate.__tableOrView
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
 
-        const forceAliasFor = this._getForceAliasFor(params)
-        const forceAliasAs = this._getForceAliasAs(params)
-        const fakeNamesOf = this._getFakeNamesOf(params)
+        const forceAliasFor = context.forceAliasFor
+        const forceAliasAs = context.forceAliasAs
+        const fakeNamesOf = context.fakeNamesOf
 
         if (tablePrivate.__valuesForInsert) {
-            return this._appendRawColumnNameForValuesForInsert(column, params)
+            return this._appendRawColumnNameForValuesForInsert(column, context)
         }
 
         if (forceAliasFor === tableOrView && forceAliasAs) {
@@ -482,13 +276,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (tablePrivate.__as) {
             return this._escape(tablePrivate.__as, true) + '.' + this._escape(columnPrivate.__name, true)
-        } else if (this._getSafeTableOrView(params) === tableOrView) {
+        } else if (context.safeTableOrView === tableOrView) {
                 return this._escape(columnPrivate.__name, true)
         } else {
             return this._escape(tablePrivate.__name, false) + '.' + this._escape(columnPrivate.__name, true)
         }
     }
-    _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {
+    _appendRawColumnNameForValuesForInsert(column: DBColumn, _context: SqlBuildContext): string {
         const columnPrivate = __getColumnPrivate(column)
         return 'excluded.' + this._escape(columnPrivate.__name, true)
     }
@@ -509,7 +303,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * propagates from a runtime API argument such as a `stringConcat`
      * separator — use {@link _appendUnsafeLiteralValue} instead.
      */
-    _appendLiteralValue(value: number | string, _params: any[]) {
+    _appendLiteralValue(value: number | string, _context: SqlBuildContext) {
         if (typeof value === 'number') {
             return '' + value
         } else {
@@ -527,7 +321,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * — it skips the per-character scan and is byte-identical for strings
      * with no embedded `'`.
      */
-    _appendUnsafeLiteralValue(value: string, _params: any[]) {
+    _appendUnsafeLiteralValue(value: string, _context: SqlBuildContext) {
         return "'" + value.replace(/'/g, "''") + "'"
     }
     _getTableOrViewVisibleName(table: AnyTableOrView): string {
@@ -542,16 +336,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result
     }
     _supportTableAliasWithAs = true
-    _appendTableOrViewName(table: AnyTableOrView, params: any[]): string {
+    _appendTableOrViewName(table: AnyTableOrView, context: SqlBuildContext): string {
         const t = __getTableOrViewPrivate(table)
         if (t.__template) {
-            return this._appendRawFragment(t.__template, params)
+            return this._appendRawFragment(t.__template, context)
         }
 
-        const forceAliasFor = this._getForceAliasFor(params)
-        const forceAliasAs = this._getForceAliasAs(params)
+        const forceAliasFor = context.forceAliasFor
+        const forceAliasAs = context.forceAliasAs
 
-        let result = this._appendTableOrViewNameForFrom(table, params)
+        let result = this._appendTableOrViewNameForFrom(table, context)
         if (forceAliasFor === table && forceAliasAs) {
             if (this._supportTableAliasWithAs) {
                 result += ' as '
@@ -567,7 +361,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             result += this._escape(t.__as, true)
         } else {
-            const alias = this._appendTableOrViewNoAliasForFrom(table, params)
+            const alias = this._appendTableOrViewNoAliasForFrom(table, context)
             if (alias) {
                 if (this._supportTableAliasWithAs) {
                     result += ' as '
@@ -579,122 +373,122 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _appendTableOrViewNameForFrom(table: AnyTableOrView, _params: any[]): string {
+    _appendTableOrViewNameForFrom(table: AnyTableOrView, _context: SqlBuildContext): string {
         const t = __getTableOrViewPrivate(table)
         return this._escape(t.__name, false)
     }
-    _appendTableOrViewNoAliasForFrom(_table: AnyTableOrView, _params: any[]): string {
+    _appendTableOrViewNoAliasForFrom(_table: AnyTableOrView, _context: SqlBuildContext): string {
         return ''
     }
-    _appendRawFragment(rawFragment: RawFragment<any>, params: any[]): string {
-        return this._appendSql(rawFragment as any as ToSql, params, false) // RawFragment has a hidden implemetation of ToSql
+    _appendRawFragment(rawFragment: RawFragment<any>, context: SqlBuildContext): string {
+        return this._appendSql(rawFragment as any as ToSql, context, false) // RawFragment has a hidden implemetation of ToSql
     }
-    _appendCondition(condition: IAnyBooleanValueSource<any, any>, params: any[]): string {
+    _appendCondition(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext): string {
         if (hasToSql(condition)) {
-            return this._appendConditionSql(condition, params, false)
+            return this._appendConditionSql(condition, context, false)
         }
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid value source' }, 'Conditions must have a __toSqlForCondition method')
     }
-    _appendConditionParenthesis(condition: IAnyBooleanValueSource<any, any>, params: any[]): string {
+    _appendConditionParenthesis(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext): string {
         if (this._needParenthesis(condition)) {
-            return '(' + this._appendCondition(condition, params) + ')'
+            return '(' + this._appendCondition(condition, context) + ')'
         }
-        return this._appendCondition(condition, params)
+        return this._appendCondition(condition, context)
     }
-    _appendConditionParenthesisExcuding(condition: IAnyBooleanValueSource<any, any>, params: any[], excluding: keyof SqlOperation): string {
+    _appendConditionParenthesisExcuding(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext, excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(condition, excluding)) {
-            return '(' + this._appendCondition(condition, params) + ')'
+            return '(' + this._appendCondition(condition, context) + ')'
         }
-        return this._appendCondition(condition, params)
+        return this._appendCondition(condition, context)
     }
-    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>, params: any[], forceTypeCast: boolean): string {
-        return (value as ToSql).__toSql(this, params, forceTypeCast) // All ValueSource or Column have a hidden implemetation of ToSql
+    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return (value as ToSql).__toSql(this, context, forceTypeCast) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendSqlParenthesis(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
+    _appendSqlParenthesis(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (this._needParenthesis(value)) {
-            return '(' + this._appendSql(value, params, forceTypeCast) + ')'
+            return '(' + this._appendSql(value, context, forceTypeCast) + ')'
         }
-        return this._appendSql(value, params, forceTypeCast)
+        return this._appendSql(value, context, forceTypeCast)
     }
-    _appendSqlParenthesisExcluding(value: ToSql | AnyValueSource, params: any[], excluding: keyof SqlOperation, forceTypeCast: boolean): string {
+    _appendSqlParenthesisExcluding(value: ToSql | AnyValueSource, context: SqlBuildContext, excluding: keyof SqlOperation, forceTypeCast: boolean): string {
         if (this._needParenthesisExcluding(value, excluding)) {
-            return '(' + this._appendSql(value, params, forceTypeCast) + ')'
+            return '(' + this._appendSql(value, context, forceTypeCast) + ')'
         }
-        return this._appendSql(value, params, forceTypeCast)
+        return this._appendSql(value, context, forceTypeCast)
     }
-    _appendSpreadValue(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _appendSpreadValue(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (hasToSql(value)) {
-            return '(' + this._appendSql(value, params, forceTypeCast) + ')'
+            return '(' + this._appendSql(value, context, forceTypeCast) + ')'
         }
         if (Array.isArray(value)) {
             if (value.length <= 0) {
                 return '()'
             }
 
-            let arrayResult = '(' + this._appendValue(value[0], params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            let arrayResult = '(' + this._appendValue(value[0], context, columnType, columnTypeName, typeAdapter, forceTypeCast)
 
             for (let i = 1, length = value.length; i < length; i++) {
-                arrayResult += ', ' + this._appendValue(value[i], params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+                arrayResult += ', ' + this._appendValue(value[i], context, columnType, columnTypeName, typeAdapter, forceTypeCast)
             }
             return arrayResult + ')'
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, params)
-        return '(' + this._appendParam(adaptedValue, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context)
+        return '(' + this._appendParam(adaptedValue, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
     }
-    _appendValue(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _appendValue(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (hasToSql(value)) {
-            return this._appendSql(value, params, forceTypeCast)
+            return this._appendSql(value, context, forceTypeCast)
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, params)
-        return this._appendParam(adaptedValue, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context)
+        return this._appendParam(adaptedValue, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendValueParenthesis(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _appendValueParenthesis(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (this._needParenthesis(value)) {
-            return '(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+            return '(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendValueParenthesisExcluding(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation, forceTypeCast: boolean): string {
+    _appendValueParenthesisExcluding(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation, forceTypeCast: boolean): string {
         if (this._needParenthesisExcluding(value, excluding)) {
-            return '(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+            return '(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendConditionSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
-        return (value as ToSql).__toSqlForCondition(this, params, forceTypeCast) // All ValueSource or Column have a hidden implemetation of ToSql
+    _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return (value as ToSql).__toSqlForCondition(this, context, forceTypeCast) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendConditionSqlParenthesisExcluding(value: ToSql | AnyValueSource, params: any[], excluding: keyof SqlOperation, forceTypeCast: boolean): string {
+    _appendConditionSqlParenthesisExcluding(value: ToSql | AnyValueSource, context: SqlBuildContext, excluding: keyof SqlOperation, forceTypeCast: boolean): string {
         if (this._needParenthesisExcluding(value, excluding)) {
-            return '(' + this._appendConditionSql(value, params, forceTypeCast) + ')'
+            return '(' + this._appendConditionSql(value, context, forceTypeCast) + ')'
         }
-        return this._appendConditionSql(value, params, forceTypeCast)
+        return this._appendConditionSql(value, context, forceTypeCast)
     }
-    _appendConditionSqlParenthesis(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
+    _appendConditionSqlParenthesis(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (this._needParenthesis(value)) {
-            return '(' + this._appendConditionSql(value, params, forceTypeCast) + ')'
+            return '(' + this._appendConditionSql(value, context, forceTypeCast) + ')'
         }
-        return this._appendConditionSql(value, params, forceTypeCast)
+        return this._appendConditionSql(value, context, forceTypeCast)
     }
-    _appendConditionValue(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _appendConditionValue(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (hasToSql(value)) {
-            return this._appendConditionSql(value, params, forceTypeCast)
+            return this._appendConditionSql(value, context, forceTypeCast)
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, params)
-        return this._appendConditionParam(adaptedValue, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context)
+        return this._appendConditionParam(adaptedValue, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendConditionValueParenthesis(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _appendConditionValueParenthesis(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (this._needParenthesis(value)) {
-            return '(' + this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+            return '(' + this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendConditionValueParenthesisExcluding(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation, forceTypeCast: boolean): string {
+    _appendConditionValueParenthesisExcluding(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation, forceTypeCast: boolean): string {
         if (this._needParenthesisExcluding(value, excluding)) {
-            return '(' + this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+            return '(' + this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _transformParamToDB(value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, params?: any[]): any {
+    _transformParamToDB(value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, context?: SqlBuildContext): any {
         try {
             if (typeAdapter) {
                 return typeAdapter.transformValueToDB(value, columnTypeName, __typeCategoryOf(columnType), this._defaultTypeAdapter)
@@ -703,13 +497,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         } catch (e) {
             // The value would be the next parameter: an invalid one tells which of them it is
-            if (params && e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE' && e.errorReason.paramIndex === undefined) {
-                e.errorReason.paramIndex = params.length
+            if (context && e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE' && e.errorReason.paramIndex === undefined) {
+                e.errorReason.paramIndex = context.params.length
             }
             throw e
         }
     }
-    _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _appendParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         const typeCategory = __typeCategoryOf(columnType)
         // The query runner writes the type of the parameter in the placeholder, or sends it with the parameter, where
         // the position gives it none, or where the type adapter asks for it (like ForceTypeCast)
@@ -718,16 +512,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             forceTypeCast = this._defaultTypeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast)
         }
-        if (this._isAssigningValueToColumn(params)) {
-            setParamMetadata(params, params.length, queryParamValueForColumn, true)
+        if (context.assigningValueToColumn) {
+            setParamMetadata(context.params, context.params.length, queryParamValueForColumn, true)
         }
         // What the type adapter or the connection keeps for the query runner, before the parameter is added
         if (typeAdapter && typeAdapter.addQueryParamMetadata) {
-            typeAdapter.addQueryParamMetadata(params, params.length, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
+            typeAdapter.addQueryParamMetadata(context.params, context.params.length, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
         } else {
-            this._defaultTypeAdapter.addQueryParamMetadata(params, params.length, columnTypeName, typeCategory, value)
+            this._defaultTypeAdapter.addQueryParamMetadata(context.params, context.params.length, columnTypeName, typeCategory, value)
         }
-        let placeholder = this._queryRunner.addParam(params, value, columnTypeName, typeCategory, forceTypeCast)
+        let placeholder = this._queryRunner.addParam(context.params, value, columnTypeName, typeCategory, forceTypeCast)
         if (typeAdapter && typeAdapter.transformPlaceholder) {
             placeholder = typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
         } else {
@@ -735,33 +529,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return placeholder
     }
-    /**
-     * A value assigned to a column of a table (an insert or the set of an update) takes the type of the column; a value
-     * elsewhere has the type its parameter gives
-     */
-    _isAssigningValueToColumn(params: any[]): boolean {
-        return !!(params as any)._assigningValueToColumn
+    _appendConditionParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        return this._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _setAssigningValueToColumn(params: any[], value: boolean): void {
-        Object.defineProperty(params, '_assigningValueToColumn', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
-    _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        return this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
-    }
-    _appendColumnAlias(name: string, _params: any[]): string {
+    _appendColumnAlias(name: string, _context: SqlBuildContext): string {
         return this._escape(name, true)
     }
     // The key of a column in a row returned by the database, for the databases that don't keep the whole alias
     _resultColumnKey(name: string): string {
         return name
     }
-    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
-        const sql = this._appendSql(value, params, false)
+    _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
+        const sql = this._appendSql(value, context, false)
         // An aggregated-array column is a JSON document. On the dialects whose connector
         // decodes a `json` column into a JS value (rounding every integer past 2^53) before
         // the library ever sees it, finalise the OUTERMOST such column to text — so the raw
@@ -787,7 +566,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * The column keeps its SQL in the group by, the having and the order by, which compare and order the value, not its
      * converted form.
      */
-    _appendResultColumnProjection(value: AnyValueSource, sql: string, _params: any[]): string {
+    _appendResultColumnProjection(value: AnyValueSource, sql: string, _context: SqlBuildContext): string {
         return this._appendValueProjection(value, sql, 'resultColumn')
     }
     /**
@@ -856,7 +635,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * (`_needsTheValueOfResultColumnToCompareAcrossColumns`), or the order by names a column whose conversion doesn't
      * order like the value (`_isOrderByAliasNeedingTheValue`); any other conversion is written in the query itself.
      */
-    _needsResultConversionWrap(query: SelectData, params: any[]): boolean {
+    _needsResultConversionWrap(query: SelectData, context: SqlBuildContext): boolean {
         const queryColumns = query.__columns
         if (!queryColumns) {
             return false
@@ -864,18 +643,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(queryColumns, columns, '')
         for (const property in columns) {
-            if (this._needsTheValueOfResultColumnToCompareAcrossColumns(columns[property]!, params)) {
+            if (this._needsTheValueOfResultColumnToCompareAcrossColumns(columns[property]!, context)) {
                 return true
             }
         }
         const orderBy = query.__orderBy
         if (orderBy) {
-            return orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, params))
+            return orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, context))
         }
         return false
     }
     /** A column of the query is converted in the outermost query (`_isConvertedResultColumn`) */
-    _hasConvertedResultColumn(query: SelectData, params: any[]): boolean {
+    _hasConvertedResultColumn(query: SelectData, context: SqlBuildContext): boolean {
         const queryColumns = query.__columns
         if (!queryColumns) {
             return false
@@ -883,7 +662,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(queryColumns, columns, '')
         for (const property in columns) {
-            if (this._isConvertedResultColumn(columns[property]!, params)) {
+            if (this._isConvertedResultColumn(columns[property]!, context)) {
                 return true
             }
         }
@@ -897,20 +676,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * conversion doesn't order like the value (`_isOrderByAliasNeedingTheValue`). The distinct is applied to the values,
      * and the wrapper converts them.
      */
-    _needsDistinctConversionWrap(query: SelectData, params: any[]): boolean {
-        if (query.__type !== 'plain' || !query.__distinct || query.__asInlineAggregatedArrayValue || this._isResultConversionDeferred(params) || !this._isCurrentRootQuery(query, params)) {
+    _needsDistinctConversionWrap(query: SelectData, context: SqlBuildContext): boolean {
+        if (query.__type !== 'plain' || !query.__distinct || query.__asInlineAggregatedArrayValue || context.resultConversionDeferred || !this._isCurrentRootQuery(query, context)) {
             return false
         }
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(query.__columns, columns, '')
         for (const property in columns) {
-            if (this._needsTheValueOfResultColumnToCompare(columns[property]!, params)) {
+            if (this._needsTheValueOfResultColumnToCompare(columns[property]!, context)) {
                 return true
             }
         }
         const orderBy = query.__orderBy
         if (orderBy) {
-            return orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, params))
+            return orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, context))
         }
         return false
     }
@@ -963,9 +742,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return undefined
     }
     /** The columns of the select of the distinct values of an aggregated array (`_getDistinctAggregatedArrayToWrap`) */
-    _appendDistinctAggregatedArrayValues(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[]): string {
+    _appendDistinctAggregatedArrayValues(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            return this._appendColumnValue(aggregatedArrayColumns, params, false) + ' as ' + this._appendColumnAlias('result', params)
+            return this._appendColumnValue(aggregatedArrayColumns, context, false) + ' as ' + this._appendColumnAlias('result', context)
         }
         const values: FlatQueryColumns = {}
         flattenQueryColumns(aggregatedArrayColumns, values, '')
@@ -974,7 +753,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (result) {
                 result += ', '
             }
-            result += this._appendColumnValue(values[name]!, params, false) + ' as ' + this._appendColumnAlias(name, params)
+            result += this._appendColumnValue(values[name]!, context, false) + ' as ' + this._appendColumnAlias(name, context)
         }
         return result
     }
@@ -982,47 +761,47 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * The columns of the select that wraps a query to convert them (`_needsResultConversionWrap`), read from the
      * wrapped query, whose alias is `wrapperAlias`.
      */
-    _appendResultConversionWrapperColumns(query: SelectData, params: any[], wrapperAlias: string): string {
+    _appendResultConversionWrapperColumns(query: SelectData, context: SqlBuildContext, wrapperAlias: string): string {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(query.__columns, columns, '')
-        const withAllColumns = this._isResultConversionWithAllColumns(params)
+        const withAllColumns = context.resultConversionWithAllColumns
         let result = ''
         for (const property in columns) {
-            const alias = this._appendColumnAlias(property, params)
+            const alias = this._appendColumnAlias(property, context)
             if (withAllColumns) {
-                if (this._isConvertedResultColumn(columns[property]!, params)) {
-                    result += (result ? ', ' : '') + this._appendResultColumnProjection(columns[property]!, wrapperAlias + '.' + this._appendColumnAlias(this._resultConversionInnerAlias(property), params), params) + ' as ' + alias
+                if (this._isConvertedResultColumn(columns[property]!, context)) {
+                    result += (result ? ', ' : '') + this._appendResultColumnProjection(columns[property]!, wrapperAlias + '.' + this._appendColumnAlias(this._resultConversionInnerAlias(property), context), context) + ' as ' + alias
                 }
                 continue
             }
             if (result) {
                 result += ', '
             }
-            result += this._appendResultColumnProjection(columns[property]!, wrapperAlias + '.' + alias, params) + ' as ' + alias
+            result += this._appendResultColumnProjection(columns[property]!, wrapperAlias + '.' + alias, context) + ' as ' + alias
         }
         if (withAllColumns) {
             result += (result ? ', ' : '') + wrapperAlias + '.*'
         }
         return result
     }
-    _buildWith(withData: WithQueryData, params: any[]): string {
+    _buildWith(withData: WithQueryData, context: SqlBuildContext): string {
         let withs = withData.__withs
-        if (this._isWithGenerated(params)) {
-            if (this._generateExternalWith(params)) {
+        if (context.withGenerated) {
+            if (context.generateExternalWith) {
                 withs = withData.__withs.filter(value => {
                     return __getTableOrViewPrivate(value).__hasExternalDependencies
                 })
-                this._setGenerateExternalWith(params, false)
+                context.generateExternalWith = false
             } else {
                 return ''
             }
         } else {
             withs = withData.__withs
-            this._setWithGenerated(params, true)
+            context.withGenerated = true
         }
 
         if (withs.length <= 0) {
-            this._setWithGeneratedFinished(params, true)
+            context.withGeneratedFinished = true
             return ''
         }
         let result = ''
@@ -1030,7 +809,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         for (let i = 0, length = withs.length; i < length; i++) {
             const withView = getWithData(withs[i]!)
             if (withView.__type === 'values') {
-                const values = this._buildWithValues(withView, params)
+                const values = this._buildWithValues(withView, context)
                 if (values) {
                     if (result) {
                         result += ', '
@@ -1044,23 +823,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 result += ', '
             }
             result += this._escape(withView.__name, false)
-            result += this._appendWithColumns(withView, params)
+            result += this._appendWithColumns(withView, context)
             result += ' as '
             if (customization && customization.beforeWithQuery) {
-                result += this._appendRawFragment(customization.beforeWithQuery, params) + ' '
+                result += this._appendRawFragment(customization.beforeWithQuery, context) + ' '
             }
             result += '('
-            result += this._buildSelect(withView.__selectData, params)
+            result += this._buildSelect(withView.__selectData, context)
             result += ')'
             if (customization && customization.afterWithQuery) {
-                result += ' ' + this._appendRawFragment(customization.afterWithQuery, params)
+                result += ' ' + this._appendRawFragment(customization.afterWithQuery, context)
             }
             recursive = recursive || !!withView.__recursive
         }
-        this._setWithGeneratedFinished(params, true)
+        context.withGeneratedFinished = true
         return this._appendWithKeyword(recursive) + ' ' + result + ' '
     }
-    _buildWithValues(withValues: WithValuesData, params: any[]) {
+    _buildWithValues(withValues: WithValuesData, context: SqlBuildContext) {
         let result = this._escape(withValues.__name, false)
         let columns = ''
         for (const columnName of __columnPathsOf(withValues.__getTableOrView())) {
@@ -1072,7 +851,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ', '
             }
             const columnPrivate = __getColumnPrivate(column)
-            columns += this._appendColumnAlias(columnPrivate.__name, params)
+            columns += this._appendColumnAlias(columnPrivate.__name, context)
         }
         result += '(' + columns + ')'
         result += ' as (values '
@@ -1093,7 +872,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (valueSql) {
                     valueSql += ', '
                 }
-                valueSql += this._appendSetValue(columnName, i, column, value[columnName], params)
+                valueSql += this._appendSetValue(columnName, i, column, value[columnName], context)
             }
             valuesSql += this._withValuesRowConstructorKeyword() + '(' + valueSql + ')'
         }
@@ -1108,7 +887,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // overrides this hook to return 'row'.
         return ''
     }
-    _appendWithColumns(_withData: WithSelectData, _params: any[]): string {
+    _appendWithColumns(_withData: WithSelectData, _context: SqlBuildContext): string {
         return ''
     }
     _appendWithKeyword(recursive: boolean): string {
@@ -1117,36 +896,36 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return 'with'
     }
-    _inlineSelectAsValue(query: SelectData, params: any[]): string {
-        const result = '(' + this._buildInlineSelect(query, params) + ')'
+    _inlineSelectAsValue(query: SelectData, context: SqlBuildContext): string {
+        const result = '(' + this._buildInlineSelect(query, context) + ')'
         return result
     }
-    _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
-        const result = '(' + this._buildInlineSelect(query, params) + ')'
+    _inlineSelectAsValueForCondition(query: SelectData, context: SqlBuildContext): string {
+        const result = '(' + this._buildInlineSelect(query, context) + ')'
         return result
     }
-    _buildInlineSelect(query: SelectData, params: any[]): string {
-        const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
-        const oldGenerateExternalWith = this._generateExternalWith(params)
+    _buildInlineSelect(query: SelectData, context: SqlBuildContext): string {
+        const oldWithGeneratedFinished = context.withGeneratedFinished
+        const oldGenerateExternalWith = context.generateExternalWith
         // The and / or of the inner where belong to the inner query: an or around
         // `exists(select … where a and b)` must not see them as its own operand's
-        const oldResultingOperation = this._getResultingOperation(params)
-        this._setGenerateExternalWith(params, true)
-        this._setWithGeneratedFinished(params, false)
-        const result = this._buildSelectWithColumnsInfo(query, params, {}, false)
-        this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
-        this._setGenerateExternalWith(params, oldGenerateExternalWith)
-        this._setResultingOperation(params, oldResultingOperation)
+        const oldResultingOperation = context.resultingOperation
+        context.generateExternalWith = true
+        context.withGeneratedFinished = false
+        const result = this._buildSelectWithColumnsInfo(query, context, {}, false)
+        context.withGeneratedFinished = oldWithGeneratedFinished
+        context.generateExternalWith = oldGenerateExternalWith
+        context.resultingOperation = oldResultingOperation
         return result
     }
-    _buildSelect(query: SelectData, params: any[]): string {
-        this._ensureRootQuery(query, params)
-        const isOutermostQuery = this._isCurrentRootQuery(query, params)
-        const result = this._buildSelectWithColumnsInfo(query, params, {}, isOutermostQuery)
-        this._resetRootQuery(query, params)
+    _buildSelect(query: SelectData, context: SqlBuildContext): string {
+        this._ensureRootQuery(query, context)
+        const isOutermostQuery = this._isCurrentRootQuery(query, context)
+        const result = this._buildSelectWithColumnsInfo(query, context, {}, isOutermostQuery)
+        this._resetRootQuery(query, context)
         return result
     }
-    _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
+    _appendCompoundOperator(compoundOperator: CompoundOperator, _context: SqlBuildContext): string {
         switch(compoundOperator) {
             case 'union':
                 return ' union '
@@ -1185,14 +964,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _compoundIntersectHasPrecedence(): boolean {
         return true
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
-        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
+        const result = this._buildSelectWithColumnsInfo(query, context, columnsForInsert, isOutermostQuery)
         if (needsGrouping || query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return '(' + result + ')'
         }
         return result
     }
-    _buildFromJoins(tables: AnyTableOrView[] | undefined, joins: JoinData[] | undefined, requiredTablesOrViews: Set<AnyTableOrView> | undefined, params: any[]): string {
+    _buildFromJoins(tables: AnyTableOrView[] | undefined, joins: JoinData[] | undefined, requiredTablesOrViews: Set<AnyTableOrView> | undefined, context: SqlBuildContext): string {
         let fromJoins = ''
 
         if (tables && tables.length > 0) {
@@ -1201,7 +980,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (requireComma) {
                     fromJoins += ', '
                 }
-                fromJoins += this._appendTableOrViewName(tables[i]!, params)
+                fromJoins += this._appendTableOrViewName(tables[i]!, context)
                 requireComma = true
             }
         }
@@ -1235,10 +1014,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 default:
                     throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid join type', joinType: join.__joinType }, 'Invalid join type: ' + join.__joinType)
             }
-            fromJoins += this._appendTableOrViewName(join.__tableOrView, params)
+            fromJoins += this._appendTableOrViewName(join.__tableOrView, context)
             // A dynamic condition can end up empty (`dynamicOn()` without conditions, or only IfValue conditions
             // without value): it means no restriction, but most databases require the ON clause
-            const onCondition = join.__on ? this._appendCondition(join.__on, params) : ''
+            const onCondition = join.__on ? this._appendCondition(join.__on, context) : ''
             const joinedTableOrView = join.__tableOrView
             if (!onCondition && hasWithData(joinedTableOrView) && joinedTableOrView.__type === 'with' && joinedTableOrView.__ignoreWith) {
                 // The join with the recursive query (the view built by recursiveUnion*) is what links each level
@@ -1251,7 +1030,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return fromJoins
     }
-    _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _params: any[], _isOutermostQuery: boolean): string {
+    _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _context: SqlBuildContext, _isOutermostQuery: boolean): string {
         // A group by entry the user named by its column of the select list (`groupBy('level')`). The alias is not
         // safe: a name in a group by is resolved against the columns of the from first, so it can end up grouping by
         // a column the query doesn't know about. The select list's SQL is the same expression while it has no
@@ -1263,27 +1042,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendGroupByPosition(selectColumn)
     }
-    _appendSelectColumnReference(column: AnyValueSource, params: any[]): string {
+    _appendSelectColumnReference(column: AnyValueSource, context: SqlBuildContext): string {
         // A column of the select the having refers to (having(columns => ...))
-        const selectColumn = this._getSelectColumnsSql(params)?.get(column)
+        const selectColumn = context.selectColumnsSql?.get(column)
         if (!selectColumn) {
-            return this._appendSql(column, params, false)
+            return this._appendSql(column, context, false)
         }
-        return this._appendSelectColumnReferenceSql(selectColumn, params)
+        return this._appendSelectColumnReferenceSql(selectColumn, context)
     }
-    _appendSelectColumnReferenceForCondition(column: AnyValueSource, params: any[]): string {
+    _appendSelectColumnReferenceForCondition(column: AnyValueSource, context: SqlBuildContext): string {
         // A boolean column of the select used as a condition of the having: the value the select list writes is
         // a condition too
-        return this._appendSelectColumnReference(column, params)
+        return this._appendSelectColumnReference(column, context)
     }
-    _appendSelectColumnReferenceSql(selectColumn: SelectColumnSql, _params: any[]): string {
+    _appendSelectColumnReferenceSql(selectColumn: SelectColumnSql, _context: SqlBuildContext): string {
         // The same SQL as the select list, with the same parameters: the same expression for the database
         return selectColumn.sql
     }
     _appendGroupByPosition(selectColumn: SelectColumnSql): string {
         return '' + selectColumn.position
     }
-    _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean, selectColumnsSql?: Map<AnyValueSource, SelectColumnSql> | undefined): string {
+    _buildSelectGroupBy(query: PlainSelectData, context: SqlBuildContext, isOutermostQuery: boolean, selectColumnsSql?: Map<AnyValueSource, SelectColumnSql> | undefined): string {
         const groupBy = query.__groupBy
         if (groupBy.length <= 0) {
             return ''
@@ -1297,107 +1076,107 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // Only an entry the user named by its select column refers to that column; an expression is written as is
             const selectColumn = query.__groupByColumnNames?.has(entry) ? selectColumnsSql?.get(entry) : undefined
             if (selectColumn) {
-                result += this._appendGroupBySelectColumn(entry, selectColumn, params, isOutermostQuery)
+                result += this._appendGroupBySelectColumn(entry, selectColumn, context, isOutermostQuery)
             } else {
-                result += this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
+                result += this._appendSelectColumn(entry, context, undefined, isOutermostQuery)
             }
         }
         return result
     }
     /** The two queries of a compound query joined by its operator, without its order by and its limit */
-    _buildCompoundCore(query: CompoundSelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+    _buildCompoundCore(query: CompoundSelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         let compoundCore = ''
-        compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__firstQuery, 'first', query.__compoundOperator))
-        compoundCore += this._appendCompoundOperator(query.__compoundOperator, params)
-        compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__secondQuery, 'second', query.__compoundOperator))
+        compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, context, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__firstQuery, 'first', query.__compoundOperator))
+        compoundCore += this._appendCompoundOperator(query.__compoundOperator, context)
+        compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, context, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__secondQuery, 'second', query.__compoundOperator))
         return compoundCore
     }
-    _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldWithGenerated = this._isWithGenerated(params)
-        const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
-        const oldAggregateArrayWrapped = this._isAggregateArrayWrapped(params)
+    _buildSelectWithColumnsInfo(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldWithGenerated = context.withGenerated
+        const oldWithGeneratedFinished = context.withGeneratedFinished
+        const oldAggregateArrayWrapped = context.aggregateArrayWrapped
 
         const customization = query.__customization
-        const needAgggregateArrayWrapper = this._needAgggregateArrayWrapper(query, params)
+        const needAgggregateArrayWrapper = this._needAgggregateArrayWrapper(query, context)
         const aggregateId = needAgggregateArrayWrapper ? this._generateUnique() : 0
 
         if (query.__type === 'compound') {
-            this._setSafeTableOrView(params, undefined)
+            this._setSafeTableOrView(context, undefined)
 
             let selectQuery = ''
 
             if (needAgggregateArrayWrapper) {
-                selectQuery += this._appendAggragateArrayWrapperBegin(query, params, aggregateId)
-                this._setAggregateArrayWrapped(params, true)
+                selectQuery += this._appendAggragateArrayWrapperBegin(query, context, aggregateId)
+                context.aggregateArrayWrapped = true
             }
 
             if (customization && customization.beforeQuery) {
-                selectQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+                selectQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
             }
 
-            selectQuery += this._buildWith(query, params)
+            selectQuery += this._buildWith(query, context)
 
-            const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)
+            const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || context.aggregateArrayWrapped
             // A case-insensitive ordering, or an ordering by a value-source
             // expression, can't live in the compound ORDER BY itself on the
             // strict engines; wrap the whole compound in a plain
             // `select * from (...)` and order there. The inner compound is
             // emitted verbatim so its set semantics and collations survive.
             // The columns of the outermost compound are converted over a query that wraps it, never in its arms
-            const conversionWrap = isOutermostQuery && !this._isResultConversionDeferred(params) && this._needsResultConversionWrap(query, params)
+            const conversionWrap = isOutermostQuery && !context.resultConversionDeferred && this._needsResultConversionWrap(query, context)
             const wrapCompoundOrderBy = (emitOrderBy && this._needsCompoundOrderByWrap(query)) || conversionWrap
 
-            const oldResultConversionDeferred = this._isResultConversionDeferred(params)
-            const oldResultConversionWithAllColumns = this._isResultConversionWithAllColumns(params)
+            const oldResultConversionDeferred = context.resultConversionDeferred
+            const oldResultConversionWithAllColumns = context.resultConversionWithAllColumns
             if (conversionWrap) {
-                this._setResultConversionDeferred(params, true)
-                this._setResultConversionWithAllColumns(params, this._hasCustomizedColumns(query))
+                context.resultConversionDeferred = true
+                context.resultConversionWithAllColumns = this._hasCustomizedColumns(query)
             }
-            const compoundCore = this._buildCompoundCore(query, params, columnsForInsert, isOutermostQuery)
-            this._setResultConversionDeferred(params, oldResultConversionDeferred)
+            const compoundCore = this._buildCompoundCore(query, context, columnsForInsert, isOutermostQuery)
+            context.resultConversionDeferred = oldResultConversionDeferred
 
             if (wrapCompoundOrderBy) {
                 const wrapperAlias = 'o_' + this._generateUnique() + '_'
-                selectQuery += 'select ' + (conversionWrap ? this._appendResultConversionWrapperColumns(query, params, wrapperAlias) : '*') + ' from (' + compoundCore + ')'
+                selectQuery += 'select ' + (conversionWrap ? this._appendResultConversionWrapperColumns(query, context, wrapperAlias) : '*') + ' from (' + compoundCore + ')'
                 selectQuery += this._supportTableAliasWithAs ? ' as ' + wrapperAlias : ' ' + wrapperAlias
                 if (emitOrderBy) {
-                    const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
-                    const oldResultConversionWrapperAlias = this._getResultConversionWrapperAlias(params)
-                    this._setSafeTableOrView(params, undefined)
-                    this._setResultConversionWrapperAlias(params, conversionWrap ? wrapperAlias : undefined)
-                    selectQuery += this._buildSelectOrderByForWrapper(query, params)
-                    this._setResultConversionWrapperAlias(params, oldResultConversionWrapperAlias)
-                    this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
+                    const oldSafeTableOrViewInOrderBy = context.safeTableOrView
+                    const oldResultConversionWrapperAlias = context.resultConversionWrapperAlias
+                    this._setSafeTableOrView(context, undefined)
+                    context.resultConversionWrapperAlias = conversionWrap ? wrapperAlias : undefined
+                    selectQuery += this._buildSelectOrderByForWrapper(query, context)
+                    context.resultConversionWrapperAlias = oldResultConversionWrapperAlias
+                    this._setSafeTableOrView(context, oldSafeTableOrViewInOrderBy)
                 }
             } else {
                 selectQuery += compoundCore
                 if (emitOrderBy) {
-                    const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
-                    this._setSafeTableOrView(params, undefined)
-                    selectQuery += this._buildSelectOrderBy(query, params)
-                    this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
+                    const oldSafeTableOrViewInOrderBy = context.safeTableOrView
+                    this._setSafeTableOrView(context, undefined)
+                    selectQuery += this._buildSelectOrderBy(query, context)
+                    this._setSafeTableOrView(context, oldSafeTableOrViewInOrderBy)
                 }
             }
-            this._setResultConversionWithAllColumns(params, oldResultConversionWithAllColumns)
-            if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
-                selectQuery += this._buildSelectLimitOffset(query, params)
+            context.resultConversionWithAllColumns = oldResultConversionWithAllColumns
+            if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || context.aggregateArrayWrapped) {
+                selectQuery += this._buildSelectLimitOffset(query, context)
             }
 
-            selectQuery += this._buildSelectAsAggregatedArray(query, params)
+            selectQuery += this._buildSelectAsAggregatedArray(query, context)
 
             if (customization && customization.afterQuery) {
-                selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+                selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
             }
 
             if (needAgggregateArrayWrapper) {
-                selectQuery += this._appendAggragateArrayWrapperEnd(query, params, aggregateId)
+                selectQuery += this._appendAggragateArrayWrapperEnd(query, context, aggregateId)
             }
 
-            this._setSafeTableOrView(params, oldSafeTableOrView)
-            this._setWithGenerated(params, oldWithGenerated)
-            this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
-            this._setAggregateArrayWrapped(params, oldAggregateArrayWrapped)
+            this._setSafeTableOrView(context, oldSafeTableOrView)
+            context.withGenerated = oldWithGenerated
+            context.withGeneratedFinished = oldWithGeneratedFinished
+            context.aggregateArrayWrapped = oldAggregateArrayWrapped
             return selectQuery
         }
 
@@ -1405,7 +1184,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // only to the outer tables the subquery references, the ones it declares in subSelectUsing; its own tables
         // keep their names.
         const subSelectUsing = query.__subSelectUsing
-        const oldFakeNameOf = this._getFakeNamesOf(params)
+        const oldFakeNameOf = context.fakeNamesOf
         if (oldFakeNameOf) {
             if (subSelectUsing) {
                 const newFakeNameOf = new Set<AnyTableOrView>()
@@ -1415,12 +1194,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     }
                 }
                 if (newFakeNameOf.size > 0) {
-                    this._setFakeNamesOf(params, newFakeNameOf)
+                    context.fakeNamesOf = newFakeNameOf
                 } else {
-                    this._setFakeNamesOf(params, undefined)
+                    context.fakeNamesOf = undefined
                 }
             } else {
-                this._setFakeNamesOf(params, undefined)
+                context.fakeNamesOf = undefined
             }
         }
 
@@ -1443,28 +1222,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         if (tablesLength === 1 && !hasJoins) {
-            this._setSafeTableOrView(params, tables[0])
+            this._setSafeTableOrView(context, tables[0])
         } else {
-            this._setSafeTableOrView(params, undefined)
+            this._setSafeTableOrView(context, undefined)
         }
 
         let selectQuery = ''
 
         if (needAgggregateArrayWrapper) {
-            selectQuery += this._appendAggragateArrayWrapperBegin(query, params, aggregateId)
-            this._setAggregateArrayWrapped(params, true)
+            selectQuery += this._appendAggragateArrayWrapperBegin(query, context, aggregateId)
+            context.aggregateArrayWrapped = true
         }
 
         if (customization && customization.beforeQuery) {
-            selectQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            selectQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
 
-        selectQuery += this._buildWith(query, params)
+        selectQuery += this._buildWith(query, context)
         const selectStart = selectQuery.length
         selectQuery += 'select '
 
         if (customization && customization.afterSelectKeyword) {
-            selectQuery += this._appendRawFragment(customization.afterSelectKeyword, params) + ' '
+            selectQuery += this._appendRawFragment(customization.afterSelectKeyword, context) + ' '
         }
 
         const columns: FlatQueryColumns = {}
@@ -1479,29 +1258,29 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         if (customization && customization.beforeColumns) {
-            selectQuery += this._appendRawFragment(customization.beforeColumns, params) + ' '
+            selectQuery += this._appendRawFragment(customization.beforeColumns, context) + ' '
         }
 
         // An order by written over a query that wraps the select; the columns of the outermost select are converted
         // there when they can't be converted in the select itself
-        const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)
-        const distinctConversionWrap = isOutermostQuery && !needAgggregateArrayWrapper && this._needsDistinctConversionWrap(query, params)
-        const conversionOnWrapper = distinctConversionWrap || (isOutermostQuery && !this._isResultConversionDeferred(params) && this._hasConvertedResultColumn(query, params) && emitOrderBy && !needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params))
-        const convertColumns = isOutermostQuery && !conversionOnWrapper && !this._isResultConversionDeferred(params)
-        const oldResultConversionWithAllColumns = this._isResultConversionWithAllColumns(params)
+        const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || context.aggregateArrayWrapped
+        const distinctConversionWrap = isOutermostQuery && !needAgggregateArrayWrapper && this._needsDistinctConversionWrap(query, context)
+        const conversionOnWrapper = distinctConversionWrap || (isOutermostQuery && !context.resultConversionDeferred && this._hasConvertedResultColumn(query, context) && emitOrderBy && !needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, context))
+        const convertColumns = isOutermostQuery && !conversionOnWrapper && !context.resultConversionDeferred
+        const oldResultConversionWithAllColumns = context.resultConversionWithAllColumns
         if (conversionOnWrapper) {
-            this._setResultConversionWithAllColumns(params, this._hasCustomizedColumns(query))
+            context.resultConversionWithAllColumns = this._hasCustomizedColumns(query)
         }
         // The columns the query that wraps this select converts, when it passes on every column, have another alias here
-        const innerAliases = isOutermostQuery && !convertColumns && this._isResultConversionWithAllColumns(params)
+        const innerAliases = isOutermostQuery && !convertColumns && context.resultConversionWithAllColumns
 
         // The columns of the select are the values of the JSON of an aggregated array
         const selectOfAggregatedArrayValues = !isOutermostQuery && this._isSelectOfAggregatedArrayValues(query)
         // The SQL of each column of the select, for the group by, the having and the order by that refer to it
         const selectColumnsSql = new Map<AnyValueSource, SelectColumnSql>()
         if (distinctAggregatedArray) {
-            selectQuery += this._appendDistinctAggregatedArrayValues(distinctAggregatedArray.__aggregatedArrayColumns, params)
-        } else if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
+            selectQuery += this._appendDistinctAggregatedArrayValues(distinctAggregatedArray.__aggregatedArrayColumns, context)
+        } else if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, context)) {
             let requireComma = false
             let position = 0
             for (const property in columns) {
@@ -1510,21 +1289,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 position++
                 const columnForInsert = columnsForInsert[property]
-                const paramsStart = params.length
-                const columnSql = this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
+                const paramsStart = context.params.length
+                const columnSql = this._appendSelectColumn(columns[property]!, context, columnForInsert, isOutermostQuery)
                 if (!columnForInsert) {
-                    selectColumnsSql.set(columns[property]!, { sql: columnSql, name: property, position, paramsStart, paramsEnd: params.length })
+                    selectColumnsSql.set(columns[property]!, { sql: columnSql, name: property, position, paramsStart, paramsEnd: context.params.length })
                 }
                 if (convertColumns && !columnForInsert) {
-                    selectQuery += this._appendResultColumnProjection(columns[property]!, columnSql, params)
+                    selectQuery += this._appendResultColumnProjection(columns[property]!, columnSql, context)
                 } else if (selectOfAggregatedArrayValues) {
                     selectQuery += this._appendAggregatedArrayValueProjection(columns[property]!, columnSql)
                 } else {
                     selectQuery += columnSql
                 }
                 if (property) {
-                    const alias = innerAliases && !columnForInsert && this._isConvertedResultColumn(columns[property]!, params) ? this._resultConversionInnerAlias(property) : property
-                    selectQuery += ' as ' + this._appendColumnAlias(alias, params)
+                    const alias = innerAliases && !columnForInsert && this._isConvertedResultColumn(columns[property]!, context) ? this._resultConversionInnerAlias(property) : property
+                    selectQuery += ' as ' + this._appendColumnAlias(alias, context)
                 }
                 requireComma = true
             }
@@ -1538,19 +1317,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 aggregatedArrayColumns = query.__columns
             }
-            selectQuery += this._appendAggragateArrayColumns(aggregatedArrayColumns, false, params, query)
+            selectQuery += this._appendAggragateArrayColumns(aggregatedArrayColumns, false, context, query)
         }
 
         if (tablesLength <= 0) {
             selectQuery += this._fromNoTable()
         } else {
             selectQuery += ' from '
-            selectQuery += this._buildFromJoins(tables, joins, query.__requiredTablesOrViews, params)
+            selectQuery += this._buildFromJoins(tables, joins, query.__requiredTablesOrViews, context)
         }
 
         const where = query.__where
         if (where) {
-            const whereCondition = this._appendCondition(where, params)
+            const whereCondition = this._appendCondition(where, context)
             if (whereCondition) {
                 selectQuery += ' where ' + whereCondition
             }
@@ -1559,7 +1338,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // Oracle recursive
         const startWith = query.__startWith
         if (startWith) {
-            const startWithCondition = this._appendCondition(startWith, params)
+            const startWithCondition = this._appendCondition(startWith, context)
             if (startWithCondition) {
                 selectQuery += ' start with ' + startWithCondition
             }
@@ -1568,7 +1347,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // Oracle recursive
         const connectdBy = query.__connectBy
         if (connectdBy) {
-            const connectByCondition = this._appendCondition(connectdBy, params)
+            const connectByCondition = this._appendCondition(connectdBy, context)
             if (!connectByCondition) {
                 // Every part of the condition was an IfValue without value. There is no condition with the same
                 // meaning: always true walks without end, always false returns only the start rows, and dropping
@@ -1583,14 +1362,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        selectQuery += this._buildSelectGroupBy(query, params, isOutermostQuery, selectColumnsSql)
+        selectQuery += this._buildSelectGroupBy(query, context, isOutermostQuery, selectColumnsSql)
 
         const having = query.__having
         if (having) {
-            const oldSelectColumnsSql = this._getSelectColumnsSql(params)
-            this._setSelectColumnsSql(params, selectColumnsSql)
-            const havingCondition = this._appendHavingCondition(having, params)
-            this._setSelectColumnsSql(params, oldSelectColumnsSql)
+            const oldSelectColumnsSql = context.selectColumnsSql
+            context.selectColumnsSql = selectColumnsSql
+            const havingCondition = this._appendHavingCondition(having, context)
+            context.selectColumnsSql = oldSelectColumnsSql
             if (havingCondition) {
                 selectQuery += ' having ' + havingCondition
             }
@@ -1598,7 +1377,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (customization && customization.customWindow) {
             selectQuery += ' window '
-            selectQuery += this._appendRawFragment(customization.customWindow, params)
+            selectQuery += this._appendRawFragment(customization.customWindow, context)
         }
 
         if (distinctAggregatedArray) {
@@ -1606,96 +1385,96 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const aggregateId = this._generateUnique()
             const wrapperAlias = 'a_' + aggregateId + '_'
             const property = distinctAggregatedArray.property
-            let aggregate = this._appendAggragateArrayWrappedColumns(distinctAggregatedArray.__aggregatedArrayColumns, params, aggregateId)
+            let aggregate = this._appendAggragateArrayWrappedColumns(distinctAggregatedArray.__aggregatedArrayColumns, context, aggregateId)
             if (isOutermostQuery) {
                 aggregate = this._finalizeAggregatedArrayResult(aggregate)
                 if (convertColumns) {
-                    aggregate = this._appendResultColumnProjection(columns[property]!, aggregate, params)
+                    aggregate = this._appendResultColumnProjection(columns[property]!, aggregate, context)
                 }
             }
             if (property) {
-                aggregate += ' as ' + this._appendColumnAlias(property, params)
+                aggregate += ' as ' + this._appendColumnAlias(property, context)
             }
             selectQuery = selectQuery.substring(0, selectStart) + 'select ' + aggregate + ' from (' + selectQuery.substring(selectStart) + ')' + (this._supportTableAliasWithAs ? ' as ' : ' ') + wrapperAlias
         }
 
         if (emitOrderBy) {
-            const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
-            const oldOrderBySafeTableOrView = this._getOrderBySafeTableOrView(params)
-            const oldSelectColumnsSql = this._getSelectColumnsSql(params)
-            this._setSafeTableOrView(params, undefined)
-            this._setOrderBySafeTableOrView(params, oldSafeTableOrViewInOrderBy)
-            this._setSelectColumnsSql(params, selectColumnsSql)
-            if (distinctConversionWrap || (!needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, params))) {
+            const oldSafeTableOrViewInOrderBy = context.safeTableOrView
+            const oldOrderBySafeTableOrView = context.orderBySafeTableOrView
+            const oldSelectColumnsSql = context.selectColumnsSql
+            this._setSafeTableOrView(context, undefined)
+            context.orderBySafeTableOrView = oldSafeTableOrViewInOrderBy
+            context.selectColumnsSql = selectColumnsSql
+            if (distinctConversionWrap || (!needAgggregateArrayWrapper && this._needsSelectOrderByWrap(query, context))) {
                 // The order by can't be written over the select, or the distinct must compare the values: the select is
                 // wrapped, and the order by is written over the query that wraps it, where the columns of the select are
                 // the columns of the from
                 const wrapperAlias = 'o_' + this._generateUnique() + '_'
-                selectQuery = selectQuery.substring(0, selectStart) + 'select ' + (conversionOnWrapper ? this._appendResultConversionWrapperColumns(query, params, wrapperAlias) : '*') + ' from (' + selectQuery.substring(selectStart) + ')'
+                selectQuery = selectQuery.substring(0, selectStart) + 'select ' + (conversionOnWrapper ? this._appendResultConversionWrapperColumns(query, context, wrapperAlias) : '*') + ' from (' + selectQuery.substring(selectStart) + ')'
                 selectQuery += this._supportTableAliasWithAs ? ' as ' + wrapperAlias : ' ' + wrapperAlias
-                const oldOrderByOnWrapper = this._isOrderByOnWrapper(params)
-                const oldResultConversionWrapperAlias = this._getResultConversionWrapperAlias(params)
-                this._setOrderByOnWrapper(params, true)
-                this._setResultConversionWrapperAlias(params, conversionOnWrapper ? wrapperAlias : undefined)
-                selectQuery += this._buildSelectOrderByForWrapper(query, params)
-                this._setResultConversionWrapperAlias(params, oldResultConversionWrapperAlias)
-                this._setOrderByOnWrapper(params, oldOrderByOnWrapper)
+                const oldOrderByOnWrapper = context.orderByOnWrapper
+                const oldResultConversionWrapperAlias = context.resultConversionWrapperAlias
+                context.orderByOnWrapper = true
+                context.resultConversionWrapperAlias = conversionOnWrapper ? wrapperAlias : undefined
+                selectQuery += this._buildSelectOrderByForWrapper(query, context)
+                context.resultConversionWrapperAlias = oldResultConversionWrapperAlias
+                context.orderByOnWrapper = oldOrderByOnWrapper
             } else {
-                selectQuery += this._buildSelectOrderBy(query, params)
+                selectQuery += this._buildSelectOrderBy(query, context)
             }
-            this._setSelectColumnsSql(params, oldSelectColumnsSql)
-            this._setOrderBySafeTableOrView(params, oldOrderBySafeTableOrView)
-            this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
+            context.selectColumnsSql = oldSelectColumnsSql
+            context.orderBySafeTableOrView = oldOrderBySafeTableOrView
+            this._setSafeTableOrView(context, oldSafeTableOrViewInOrderBy)
         }
-        this._setResultConversionWithAllColumns(params, oldResultConversionWithAllColumns)
-        if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
-            selectQuery += this._buildSelectLimitOffset(query, params)
+        context.resultConversionWithAllColumns = oldResultConversionWithAllColumns
+        if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || context.aggregateArrayWrapped) {
+            selectQuery += this._buildSelectLimitOffset(query, context)
         }
 
-        selectQuery += this._buildSelectAsAggregatedArray(query, params)
+        selectQuery += this._buildSelectAsAggregatedArray(query, context)
 
         if (customization && customization.afterQuery) {
-            selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
         if (needAgggregateArrayWrapper) {
-            selectQuery += this._appendAggragateArrayWrapperEnd(query, params, aggregateId)
+            selectQuery += this._appendAggragateArrayWrapperEnd(query, context, aggregateId)
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._setWithGenerated(params, oldWithGenerated)
-        this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
-        this._setAggregateArrayWrapped(params, oldAggregateArrayWrapped)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        context.withGenerated = oldWithGenerated
+        context.withGeneratedFinished = oldWithGeneratedFinished
+        context.aggregateArrayWrapped = oldAggregateArrayWrapped
         return selectQuery
     }
-    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: DBColumn | undefined, isOutermostQuery: boolean): string {
+    _appendSelectColumn(value: AnyValueSource, context: SqlBuildContext, columnForInsert: DBColumn | undefined, isOutermostQuery: boolean): string {
         if (columnForInsert) {
-            const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params, false)
+            const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, context, false)
             if (sql) {
                 return sql
             }
         }
-        return this._appendColumnValue(value, params, isOutermostQuery)
+        return this._appendColumnValue(value, context, isOutermostQuery)
     }
     _fromNoTable() {
         return ''
     }
-    _buildSelectOrderBy(query: SelectData, params: any[]): string {
+    _buildSelectOrderBy(query: SelectData, context: SqlBuildContext): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
             let orderByColumns = ''
 
             const customization = query.__customization
             if (customization && customization.beforeOrderByItems) {
-                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, context)
             }
 
             if (customization && customization.afterOrderByItems) {
                 if (orderByColumns) {
                     orderByColumns += ', '
                 }
-                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, context)
             }
 
             if (!orderByColumns) {
@@ -1713,7 +1492,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const customization = query.__customization
         if (customization && customization.beforeOrderByItems) {
-            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, context)
         }
 
         for (let i = 0, length = orderBy.length; i < length; i++) {
@@ -1722,11 +1501,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 orderByColumns += ', '
             }
             const order = entry.order
-            const ownTerms = this._appendOrderByEntryTerms(entry, query, params)
+            const ownTerms = this._appendOrderByEntryTerms(entry, query, context)
             if (ownTerms !== undefined) {
                 orderByColumns += ownTerms
             } else if (!order) {
-                orderByColumns += this._appendOrderByColumnAlias(entry, query, params)
+                orderByColumns += this._appendOrderByColumnAlias(entry, query, context)
             } else switch (order) {
                 case 'asc':
                 case 'desc':
@@ -1734,7 +1513,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 case 'asc nulls last':
                 case 'desc nulls first':
                 case 'desc nulls last' :
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' ' + order
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, context) + ' ' + order
                     break
                 case 'insensitive':
                 case 'asc insensitive':
@@ -1747,11 +1526,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     if (sqlOrder) {
                         sqlOrder = ' ' + sqlOrder
                     }
-                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + sqlOrder
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, context) + sqlOrder
                     break
                 }
                 default:
-                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, context), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 
@@ -1759,7 +1538,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, context)
         }
 
         if (!orderByColumns) {
@@ -1776,50 +1555,50 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * The terms of the order by for an entry that a dialect orders by several expressions of its own, with the
      * ordering of the entry already applied to each of them; undefined to order it by one expression, as usual
      */
-    _appendOrderByEntryTerms(_entry: OrderByEntry, _query: SelectData, _params: any[]): string | undefined {
+    _appendOrderByEntryTerms(_entry: OrderByEntry, _query: SelectData, _context: SqlBuildContext): string | undefined {
         return undefined
     }
     /**
      * The order by names a column of the select that is converted in the outermost query
      * (`_isConvertedResultColumn`)
      */
-    _isConvertedOrderByAlias(entry: OrderByEntry, query: SelectData, params: any[]): boolean {
+    _isConvertedOrderByAlias(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): boolean {
         const expression = entry.expression
         if (typeof expression !== 'string') {
             return false
         }
         const column = getQueryColumn(query.__columns, expression)
-        return !!column && this._isConvertedResultColumn(column, params)
+        return !!column && this._isConvertedResultColumn(column, context)
     }
     /**
      * The order by names a column of the select that is converted in the outermost query, and its conversion doesn't
      * order like the value (`_needsTheValueOfResultColumnToOrder`): a bare alias would order by the converted value
      */
-    _isOrderByAliasNeedingTheValue(entry: OrderByEntry, query: SelectData, params: any[]): boolean {
+    _isOrderByAliasNeedingTheValue(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): boolean {
         const expression = entry.expression
         if (typeof expression !== 'string') {
             return false
         }
         const column = getQueryColumn(query.__columns, expression)
-        return !!column && this._needsTheValueOfResultColumnToOrder(column, params)
+        return !!column && this._needsTheValueOfResultColumnToOrder(column, context)
     }
-    _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, params: any[]): string {
-        const wrapperAlias = this._getResultConversionWrapperAlias(params)
-        if (wrapperAlias && this._isConvertedOrderByAlias(entry, query, params)) {
+    _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
+        const wrapperAlias = context.resultConversionWrapperAlias
+        if (wrapperAlias && this._isConvertedOrderByAlias(entry, query, context)) {
             // Over the query that wraps the select, the column of the wrapped query, not the converted one
             const name = entry.expression as string
-            return wrapperAlias + '.' + this._appendColumnAlias(this._isResultConversionWithAllColumns(params) ? this._resultConversionInnerAlias(name) : name, params)
+            return wrapperAlias + '.' + this._appendColumnAlias(context.resultConversionWithAllColumns ? this._resultConversionInnerAlias(name) : name, context)
         }
-        if (!wrapperAlias && this._isOrderByAliasNeedingTheValue(entry, query, params)) {
-            if (query.__type === 'plain' && !this._isOrderByOnWrapper(params) && !this._isResultConversionDeferred(params) && this._isCurrentRootQuery(query, params)) {
+        if (!wrapperAlias && this._isOrderByAliasNeedingTheValue(entry, query, context)) {
+            if (query.__type === 'plain' && !context.orderByOnWrapper && !context.resultConversionDeferred && this._isCurrentRootQuery(query, context)) {
                 // The expression of the column before converting it. An expression with parameters is written as the select
                 // list writes it, with the same parameters; otherwise it is written qualified, because a bare column with
                 // the name of the alias would be the alias
-                const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+                const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, context)
                 if (selectColumn) {
-                    return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, params)
+                    return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, context)
                 }
-                return this._appendOrderByColumnExpression(entry, query, params)
+                return this._appendOrderByColumnExpression(entry, query, context)
             }
         }
         const expression = entry.expression
@@ -1829,26 +1608,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
             }
-            return this._appendColumnAlias(expression, params)
+            return this._appendColumnAlias(expression, context)
         } else if (isValueSource(expression)) {
-            const result = this._appendSql(expression, params, false)
+            const result = this._appendSql(expression, context, false)
             return result
         } else {
-            const result = this._appendRawFragment(expression, params)
+            const result = this._appendRawFragment(expression, context)
             return result
         }
     }
-    _appendOrderByColumnAliasInsensitive(entry: OrderByEntry, query: SelectData, params: any[]): string {
+    _appendOrderByColumnAliasInsensitive(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         const stringColumn = this._isStringOrderByColumn(entry, query)
         if (!stringColumn || collation === '') {
             // Non-string column, or the engine handles case-insensitivity by
             // its default collation: the insensitive term renders nothing
             // extra, so a bare alias reference is enough.
-            return this._appendOrderByColumnAlias(entry, query, params)
+            return this._appendOrderByColumnAlias(entry, query, context)
         }
         // The insensitive term wraps the column in an expression (`lower(...)` or `<col> collate <name>`)
-        const wrapped = this._appendOrderByColumnForExpression(entry, query, params)
+        const wrapped = this._appendOrderByColumnForExpression(entry, query, context)
         if (collation) {
             return this._appendInsensitiveOrderByCollateReceiver(wrapped, entry, query) + ' collate ' + collation
         }
@@ -1872,24 +1651,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * columns of the from, which these databases resolve first. The library doesn't know every column of the tables
      * (only the declared ones), so it is written that way even when no declared column has the name of the alias.
      */
-    _appendOrderByColumnForExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
+    _appendOrderByColumnForExpression(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
         const expression = entry.expression
-        if (typeof expression !== 'string' || query.__type === 'compound' || this._isOrderByOnWrapper(params) || this._supportOrderByColumnAliasInExpression()) {
+        if (typeof expression !== 'string' || query.__type === 'compound' || context.orderByOnWrapper || this._supportOrderByColumnAliasInExpression()) {
             // An expression is written as it is; in the order by of a compound query, or of the query that wraps the
             // select, the aliases are the columns of the from
-            return this._appendOrderByColumnAlias(entry, query, params)
+            return this._appendOrderByColumnAlias(entry, query, context)
         }
-        const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, params)
+        const selectColumn = this._getOrderBySelectColumnWithParams(entry, query, context)
         if (selectColumn) {
-            return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, params)
+            return this._appendOrderBySelectColumnWithParams(selectColumn, entry, query, context)
         }
-        return this._appendOrderByColumnSourceAsInSelect(entry, query, params)
+        return this._appendOrderByColumnSourceAsInSelect(entry, query, context)
     }
     /**
      * The column of the select an order-by entry names, when its SQL carries parameters: written again, the expression
      * would get new parameters, and the database wouldn't take it as the one the query is grouped by.
      */
-    _getOrderBySelectColumnWithParams(entry: OrderByEntry, query: SelectData, params: any[]): SelectColumnSql | undefined {
+    _getOrderBySelectColumnWithParams(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): SelectColumnSql | undefined {
         const expression = entry.expression
         if (typeof expression !== 'string') {
             return undefined
@@ -1898,13 +1677,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!column) {
             return undefined
         }
-        const selectColumn = this._getSelectColumnsSql(params)?.get(column)
+        const selectColumn = context.selectColumnsSql?.get(column)
         if (!selectColumn || selectColumn.paramsStart === selectColumn.paramsEnd) {
             return undefined
         }
         return selectColumn
     }
-    _appendOrderBySelectColumnWithParams(selectColumn: SelectColumnSql, _entry: OrderByEntry, _query: SelectData, _params: any[]): string {
+    _appendOrderBySelectColumnWithParams(selectColumn: SelectColumnSql, _entry: OrderByEntry, _query: SelectData, _context: SqlBuildContext): string {
         // The same SQL as the select list, with the same parameters: the same expression for the database
         return selectColumn.sql
     }
@@ -1912,16 +1691,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * Whether the order by must be written over a query that wraps the select (`select * from (<select>) order by
      * ...`), because no way of writing it over the select itself is right
      */
-    _needsSelectOrderByWrap(query: SelectData, params: any[]): boolean {
+    _needsSelectOrderByWrap(query: SelectData, context: SqlBuildContext): boolean {
         // A distinct select can only order by what it selects, and the converted column is another value that doesn't
         // order like it: the order by goes over a query that wraps the select, which converts the columns
-        if (query.__type !== 'plain' || !query.__distinct || !query.__orderBy || this._isResultConversionDeferred(params) || !this._isCurrentRootQuery(query, params)) {
+        if (query.__type !== 'plain' || !query.__distinct || !query.__orderBy || context.resultConversionDeferred || !this._isCurrentRootQuery(query, context)) {
             return false
         }
-        return query.__orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, params))
+        return query.__orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, context))
     }
-    _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, params: any[]): string {
-        return this._appendCondition(having, params)
+    _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, context: SqlBuildContext): string {
+        return this._appendCondition(having, context)
     }
     /**
      * Render the order-by entry's underlying source expression as it appears in
@@ -1932,14 +1711,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * so `lower(<src>)` / `<src> collate <name>` / `<src> is null` reads like the
      * projected column. See `_getOrderBySafeTableOrView`.
      */
-    _appendOrderByColumnSourceAsInSelect(entry: OrderByEntry, query: SelectData, params: any[]): string {
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        this._setSafeTableOrView(params, this._getOrderBySafeTableOrView(params))
-        const result = this._appendOrderByColumnExpression(entry, query, params)
-        this._setSafeTableOrView(params, oldSafeTableOrView)
+    _appendOrderByColumnSourceAsInSelect(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
+        const oldSafeTableOrView = context.safeTableOrView
+        this._setSafeTableOrView(context, context.orderBySafeTableOrView)
+        const result = this._appendOrderByColumnExpression(entry, query, context)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
         return result
     }
-    _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
+    _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
         // Resolve the order-by entry to its underlying source expression.
         // Unlike `_appendOrderByColumnAlias`, a string entry is resolved to the
         // SELECT column it names and rendered as that column's expression (not
@@ -1953,11 +1732,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
             }
-            return this._appendSql(column, params, false)
+            return this._appendSql(column, context, false)
         } else if (isValueSource(expression)) {
-            return this._appendSql(expression, params, false)
+            return this._appendSql(expression, context, false)
         } else {
-            return this._appendRawFragment(expression, params)
+            return this._appendRawFragment(expression, context)
         }
     }
     _isStringOrderByColumn(entry: OrderByEntry, query: SelectData): boolean {
@@ -2133,19 +1912,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * switches compound queries to ordinal positions, which is not what the
      * plain wrapper needs.
      */
-    _buildSelectOrderByForWrapper(query: SelectData, params: any[]): string {
-        return this._buildSelectOrderBy(query, params)
+    _buildSelectOrderByForWrapper(query: SelectData, context: SqlBuildContext): string {
+        return this._buildSelectOrderBy(query, context)
     }
-    _buildSelectLimitOffset(query: SelectData, params: any[]): string {
+    _buildSelectLimitOffset(query: SelectData, context: SqlBuildContext): string {
         let result = ''
 
         const offset = query.__offset
         if (offset !== null && offset !== undefined) {
-            result += ' offset ' + this._appendValue(offset, params, 'int', 'int', undefined, false) + ' rows'
+            result += ' offset ' + this._appendValue(offset, context, 'int', 'int', undefined, false) + ' rows'
         }
         const limit = query.__limit
         if (limit !== null && limit !== undefined) {
-            result += ' fetch next ' + this._appendValue(limit, params, 'int', 'int', undefined, false) + ' rows only'
+            result += ' fetch next ' + this._appendValue(limit, context, 'int', 'int', undefined, false) + ' rows only'
         }
         return result
     }
@@ -2159,7 +1938,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _useInsertSupportWith(): boolean {
         return true
     }
-    _buildInsertMultiple(query: InsertData, params: any[]): string {
+    _buildInsertMultiple(query: InsertData, context: SqlBuildContext): string {
         const multiple = query.__multiple
         if (!multiple) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'expecting insert of multiple values' }, 'Exepected a multiple insert')
@@ -2168,29 +1947,29 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ''
         }
 
-        this._ensureRootQuery(query, params)
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
+        this._ensureRootQuery(query, context)
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
 
         const table = query.__table
         const customization = query.__customization
-        this._setSafeTableOrView(params, table)
+        this._setSafeTableOrView(context, table)
 
         let insertQuery = ''
         if (customization && customization.beforeQuery) {
-            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            insertQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
         if (this._useInsertSupportWith()) {
-            insertQuery += this._buildWith(query, params)
+            insertQuery += this._buildWith(query, context)
         }
         insertQuery += 'insert '
         if (customization && customization.afterInsertKeyword) {
-            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, context) + ' '
         }
-        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, context)
         insertQuery += 'into '
-        insertQuery += this._appendTableOrViewName(table, params)
+        insertQuery += this._appendTableOrViewName(table, context)
 
         const shape = query.__shape
         let usedColumns: { [name: string]: boolean | undefined } = {}
@@ -2263,7 +2042,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ', '
             }
 
-            columns += this._appendRawColumnName(column, params)
+            columns += this._appendRawColumnName(column, context)
             nextSequenceValues.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
         }
         for (let columnName in usedColumns) {
@@ -2278,11 +2057,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (columns) {
                 columns += ', '
             }
-            columns += this._appendRawColumnName(column, params)
+            columns += this._appendRawColumnName(column, context)
         }
 
         insertQuery += ' (' + columns + ')'
-        insertQuery += this._buildInsertOutput(query, params)
+        insertQuery += this._buildInsertOutput(query, context)
 
         let multipleValues = ''
         for (let i = 0, length = multiple.length; i < length; i++) {
@@ -2292,7 +2071,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     values += ', '
                 }
                 const sequence = nextSequenceValues[j]!
-                values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
+                values += this._nextSequenceValue(context, sequence.name, sequence.valueType)
             }
 
             const sets = multiple[i]!
@@ -2320,9 +2099,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnPrivate = __getColumnPrivate(column)
                 const sequenceName = columnPrivate.__sequenceName
                 if (!(setPropertyName in sets) && sequenceName) {
-                    values += this._nextSequenceValue(params, sequenceName, columnPrivate.__valueType)
+                    values += this._nextSequenceValue(context, sequenceName, columnPrivate.__valueType)
                 } else {
-                    values += this._appendSetValue(setPropertyName, i, column, value, params)
+                    values += this._appendSetValue(setPropertyName, i, column, value, context)
                 }
             }
 
@@ -2334,18 +2113,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         insertQuery += ' values ' + multipleValues
-        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
-        insertQuery += this._buildInsertReturning(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, context)
+        insertQuery += this._buildInsertReturning(query, context)
         if (customization && customization.afterQuery) {
-            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
         return insertQuery
     }
-    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string | null {
+    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnTypeName = columnPrivate.__valueTypeName
@@ -2366,41 +2145,41 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
                 if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
                     if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
-                        return this._appendRawColumnName(value, params) // same boolean as column
+                        return this._appendRawColumnName(value, context) // same boolean as column
                     }
 
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                        return 'case when ' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendRawColumnName(value, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                        return 'case ' + this._appendRawColumnName(value, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 } else {
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._true(params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._false(params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                        return 'case ' + this._appendValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValueParenthesis(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case ' + this._appendValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._true(params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._false(params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -2413,9 +2192,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * The value of a property in a set or in a row of a `Values`: an invalid value tells the
      * table, the property, and the row when there are several, as the values received from the database do.
      */
-    _appendSetValue(columnPath: string, rowIndex: number | undefined, column: DBColumn, value: any, params: any[], forceTypeCast: boolean = false): string {
+    _appendSetValue(columnPath: string, rowIndex: number | undefined, column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean = false): string {
         try {
-            return this._appendValueForColumn(column, value, params, forceTypeCast)
+            return this._appendValueForColumn(column, value, context, forceTypeCast)
         } catch (e) {
             if (e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE') {
                 e.errorReason.columnPath = columnPath
@@ -2426,8 +2205,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw e
         }
     }
-    _appendValueForColumn(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string {
-        const sql = this._appendCustomBooleanRemapForColumnIfRequired(column, value, params, forceTypeCast)
+    _appendValueForColumn(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string {
+        const sql = this._appendCustomBooleanRemapForColumnIfRequired(column, value, context, forceTypeCast)
         if (sql) {
             return sql
         }
@@ -2435,41 +2214,41 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // A value given for a column of a table takes the type of the column, not the one of its parameter: its parameter
         // is marked so (see isQueryParamValueForColumn), which a query runner may use not to cast it
         if (hasToSql(value) || __getTableOrViewPrivate(columnPrivate.__tableOrView).__type === 'values') {
-            return this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__valueTypeName, columnPrivate.__typeAdapter, forceTypeCast)
+            return this._appendValue(value, context, columnPrivate.__valueType, columnPrivate.__valueTypeName, columnPrivate.__typeAdapter, forceTypeCast)
         }
-        const oldAssigningValueToColumn = this._isAssigningValueToColumn(params)
-        this._setAssigningValueToColumn(params, true)
+        const oldAssigningValueToColumn = context.assigningValueToColumn
+        context.assigningValueToColumn = true
         try {
-            return this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__valueTypeName, columnPrivate.__typeAdapter, forceTypeCast)
+            return this._appendValue(value, context, columnPrivate.__valueType, columnPrivate.__valueTypeName, columnPrivate.__typeAdapter, forceTypeCast)
         } finally {
-            this._setAssigningValueToColumn(params, oldAssigningValueToColumn)
+            context.assigningValueToColumn = oldAssigningValueToColumn
         }
     }
-    _buildInsertDefaultValues(query: InsertData, params: any[]): string {
-        this._ensureRootQuery(query, params)
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
+    _buildInsertDefaultValues(query: InsertData, context: SqlBuildContext): string {
+        this._ensureRootQuery(query, context)
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
 
         const table = query.__table
         const customization = query.__customization
 
-        this._setSafeTableOrView(params, table)
+        this._setSafeTableOrView(context, table)
 
         let insertQuery = ''
         if (customization && customization.beforeQuery) {
-            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            insertQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
         if (this._useInsertSupportWith()) {
-            insertQuery += this._buildWith(query, params)
+            insertQuery += this._buildWith(query, context)
         }
         insertQuery += 'insert '
         if (customization && customization.afterInsertKeyword) {
-            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, context) + ' '
         }
-        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, context)
         insertQuery += 'into '
-        insertQuery += this._appendTableOrViewName(table, params)
+        insertQuery += this._appendTableOrViewName(table, context)
 
         let columns = ''
         const sequences: Array<{ name: string, valueType: ValueType }> = []
@@ -2487,14 +2266,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ', '
             }
 
-            columns += this._appendRawColumnName(column, params)
+            columns += this._appendRawColumnName(column, context)
             sequences.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
         }
 
         if (columns) {
             insertQuery += ' (' + columns + ')'
         }
-        insertQuery += this._buildInsertOutput(query, params)
+        insertQuery += this._buildInsertOutput(query, context)
 
         let values = ''
         for (let i = 0, length = sequences.length; i < length; i++) {
@@ -2503,7 +2282,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 values += ', '
             }
 
-            values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
+            values += this._nextSequenceValue(context, sequence.name, sequence.valueType)
         }
 
         if (values) {
@@ -2511,43 +2290,43 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             insertQuery += ' default values'
         }
-        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
-        insertQuery += this._buildInsertReturning(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, context)
+        insertQuery += this._buildInsertReturning(query, context)
         if (customization && customization.afterQuery) {
-            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
         return insertQuery
     }
-    _buildInsert(query: InsertData, params: any[]): string {
-        this._ensureRootQuery(query, params)
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
+    _buildInsert(query: InsertData, context: SqlBuildContext): string {
+        this._ensureRootQuery(query, context)
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
 
         const table = query.__table
         const sets = query.__sets
         const customization = query.__customization
 
-        this._setSafeTableOrView(params, table)
+        this._setSafeTableOrView(context, table)
 
         let insertQuery = ''
         if (customization && customization.beforeQuery) {
-            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            insertQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
         if (this._useInsertSupportWith()) {
-            insertQuery += this._buildWith(query, params)
+            insertQuery += this._buildWith(query, context)
         }
         insertQuery += 'insert '
         if (customization && customization.afterInsertKeyword) {
-            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, context) + ' '
         }
-        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, context)
         insertQuery += 'into '
-        insertQuery += this._appendTableOrViewName(table, params)
+        insertQuery += this._appendTableOrViewName(table, context)
 
         const shape = query.__shape
         let columnsInShape: { [columnName: string] : boolean} | undefined
@@ -2586,7 +2365,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ', '
             }
 
-            columns += this._appendRawColumnName(column, params)
+            columns += this._appendRawColumnName(column, context)
             sequences.push({ name: columnPrivate.__sequenceName, valueType: columnPrivate.__valueType })
         }
         if (shape) { // Follow shape order
@@ -2609,7 +2388,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (columns) {
                     columns += ', '
                 }
-                columns += this._appendRawColumnName(column, params)
+                columns += this._appendRawColumnName(column, context)
             }
         } else { // No shape, follow set order
             const properties = Object.getOwnPropertyNames(sets)
@@ -2626,12 +2405,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (columns) {
                     columns += ', '
                 }
-                columns += this._appendRawColumnName(column, params)
+                columns += this._appendRawColumnName(column, context)
             }
         }
 
         insertQuery += ' (' + columns + ')'
-        insertQuery += this._buildInsertOutput(query, params)
+        insertQuery += this._buildInsertOutput(query, context)
 
         let values = ''
         for (let i = 0, length = sequences.length; i < length; i++) {
@@ -2640,7 +2419,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 values += ', '
             }
 
-            values += this._nextSequenceValue(params, sequence.name, sequence.valueType)
+            values += this._nextSequenceValue(context, sequence.name, sequence.valueType)
         }
 
         if (shape) { // Follow shape order
@@ -2664,7 +2443,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     values += ', '
                 }
                 const value = sets[property]
-                values += this._appendSetValue(property, undefined, column, value, params)
+                values += this._appendSetValue(property, undefined, column, value, context)
             }
         } else { // No shape, follow set order
             const properties = Object.getOwnPropertyNames(sets)
@@ -2682,53 +2461,53 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     values += ', '
                 }
                 const value = sets[property]
-                values += this._appendSetValue(property, undefined, column, value, params)
+                values += this._appendSetValue(property, undefined, column, value, context)
             }
         }
 
         insertQuery += ' values (' + values + ')'
-        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
-        insertQuery += this._buildInsertReturning(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, context)
+        insertQuery += this._buildInsertReturning(query, context)
         if (customization && customization.afterQuery) {
-            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
         return insertQuery
     }
-    _buildInsertFromSelect(query: InsertData, params: any[]): string {
+    _buildInsertFromSelect(query: InsertData, context: SqlBuildContext): string {
         const from = query.__from
         if (!from) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'expecting insert from select' }, 'Exepected an insert from a subquery')
         }
 
-        this._ensureRootQuery(query, params)
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
+        this._ensureRootQuery(query, context)
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
 
         const table = query.__table
         const selectColumns = from.__columns
         const customization = query.__customization
 
-        this._setSafeTableOrView(params, table)
+        this._setSafeTableOrView(context, table)
 
         let insertQuery = ''
         if (customization && customization.beforeQuery) {
-            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            insertQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
         if (this._useInsertSupportWith()) {
-            insertQuery += this._buildWith(query, params)
+            insertQuery += this._buildWith(query, context)
         }
         insertQuery += 'insert '
         if (customization && customization.afterInsertKeyword) {
-            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, context) + ' '
         }
-        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, context)
         insertQuery += 'into '
-        insertQuery += this._appendTableOrViewName(table, params)
+        insertQuery += this._appendTableOrViewName(table, context)
 
         const columnsForInsert: { [name: string]: DBColumn | undefined } = {}
 
@@ -2764,7 +2543,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const property = properties[i]!
             const column = __getColumnOfObject(table, property)
             if (column) {
-                columns += this._appendRawColumnName(column, params)
+                columns += this._appendRawColumnName(column, context)
                 columnsForInsert[property] = column
             } else {
                 throw new TsSqlProcessingError({ reason: 'COLUMN_FOR_INSERT_COMING_FROM_SUBQUERY_NOT_IN_TABLE', column: property }, 'Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
@@ -2772,12 +2551,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         insertQuery += ' (' + columns + ')'
-        insertQuery += this._buildInsertOutput(query, params)
-        insertQuery += ' ' + this._buildInsertSelectSource(query, from, columns, params, columnsForInsert)
-        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
-        insertQuery += this._buildInsertReturning(query, params)
+        insertQuery += this._buildInsertOutput(query, context)
+        insertQuery += ' ' + this._buildInsertSelectSource(query, from, columns, context, columnsForInsert)
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, context)
+        insertQuery += this._buildInsertReturning(query, context)
         if (customization && customization.afterQuery) {
-            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
         for (let i = 0, length = addedColumns.length; i < length; i++) {
@@ -2785,31 +2564,31 @@ export class AbstractSqlBuilder implements SqlBuilder {
             delete selectColumns[columnName]
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
         return insertQuery
     }
-    _buildInsertOutput(_query: InsertData, _params: any[]): string {
+    _buildInsertOutput(_query: InsertData, _context: SqlBuildContext): string {
         return ''
     }
-    _buildInsertReturning(query: InsertData, params: any[]): string {
+    _buildInsertReturning(query: InsertData, context: SqlBuildContext): string {
         const idColumn = query.__idColumn
         if (idColumn) {
-            this._setContainsInsertReturningClause(params, true)
-            return ' returning ' + this._appendSql(idColumn, params, false)
+            this._setContainsInsertReturningClause(context, true)
+            return ' returning ' + this._appendSql(idColumn, context, false)
         }
 
 
-        const isOutermostQuery = this._isCurrentRootQuery(query, params)
-        const result = this._buildQueryReturning(query.__columns, params, isOutermostQuery)
-        this._setContainsInsertReturningClause(params, !!result)
+        const isOutermostQuery = this._isCurrentRootQuery(query, context)
+        const result = this._buildQueryReturning(query.__columns, context, isOutermostQuery)
+        this._setContainsInsertReturningClause(context, !!result)
         return result
     }
-    _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[], isOutermostQuery: boolean): string {
+    _buildQueryReturning(queryColumns: QueryColumns | undefined, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (!queryColumns) {
             if (isOutermostQuery) {
-                this._setContainsMutationReturningClause(params, false)
+                this._setContainsMutationReturningClause(context, false)
             }
             return ''
         }
@@ -2822,25 +2601,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            const columnSql = this._appendColumnValue(columns[property]!, params, isOutermostQuery)
-            result += isOutermostQuery ? this._appendResultColumnProjection(columns[property]!, columnSql, params) : columnSql
+            const columnSql = this._appendColumnValue(columns[property]!, context, isOutermostQuery)
+            result += isOutermostQuery ? this._appendResultColumnProjection(columns[property]!, columnSql, context) : columnSql
             if (property) {
-                result += ' as ' + this._appendColumnAlias(property, params)
+                result += ' as ' + this._appendColumnAlias(property, context)
             }
             requireComma = true
         }
         if (isOutermostQuery) {
-            this._setContainsMutationReturningClause(params, !!result)
+            this._setContainsMutationReturningClause(context, !!result)
         }
         if (!result) {
             return ''
         }
         return ' returning ' + result
     }
-    _buildInsertSelectSource(_query: InsertData, from: SelectData, _columns: string, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }): string {
-        return this._buildSelectWithColumnsInfo(from, params, columnsForInsert, false)
+    _buildInsertSelectSource(_query: InsertData, from: SelectData, _columns: string, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }): string {
+        return this._buildSelectWithColumnsInfo(from, context, columnsForInsert, false)
     }
-    _buildInsertOnConflictBeforeInto(_query: InsertData, _params: any[]): string {
+    _buildInsertOnConflictBeforeInto(_query: InsertData, _context: SqlBuildContext): string {
         return ''
     }
     /*
@@ -2915,7 +2694,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * (MariaDB/MySQL) clauses. Resolves shape-renamed keys back to their real
      * column when an on-conflict shape is present, so every dialect honours it.
      */
-    _buildInsertOnConflictUpdateSetColumns(query: InsertData, params: any[]): string {
+    _buildInsertOnConflictUpdateSetColumns(query: InsertData, context: SqlBuildContext): string {
         const resolved = this._resolveInsertOnConflictUpdateSetColumns(query)
         let columns = ''
         for (let i = 0, length = resolved.length; i < length; i++) {
@@ -2923,13 +2702,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (columns) {
                 columns += ', '
             }
-            columns += this._appendColumnNameForUpdate(column, params)
+            columns += this._appendColumnNameForUpdate(column, context)
             columns += ' = '
-            columns += this._appendSetValue(property, undefined, column, value, params)
+            columns += this._appendSetValue(property, undefined, column, value, context)
         }
         return columns
     }
-    _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
+    _buildInsertOnConflictBeforeReturning(query: InsertData, context: SqlBuildContext): string {
         if (!query.__onConflictDoNothing && !query.__onConflictUpdateSets) {
             return ''
         }
@@ -2944,13 +2723,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     result += ', '
                 }
                 const column = onConflictOnColumns[i]!
-                result += this._appendSql(column, params, false)
+                result += this._appendSql(column, context, false)
             }
             result += ')'
             const where = query.__onConflictOnColumnsWhere
             if (where) {
                 result += ' where '
-                result += this._appendCondition(where, params)
+                result += this._appendCondition(where, context)
             }
         }
 
@@ -2963,16 +2742,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // for this argument precisely because the caller has to assemble it
             // from database introspection rather than from a runtime value.
             result += ' on constraint '
-            result += this._appendRawFragment(constraint, params)
+            result += this._appendRawFragment(constraint, context)
         }
 
         if (query.__onConflictDoNothing) {
             result += ' do nothing'
         }
 
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        this._setSafeTableOrView(params, undefined)
-        const columns = this._buildInsertOnConflictUpdateSetColumns(query, params)
+        const oldSafeTableOrView = context.safeTableOrView
+        this._setSafeTableOrView(context, undefined)
+        const columns = this._buildInsertOnConflictUpdateSetColumns(query, context)
         if (query.__onConflictUpdateSets) {
             if (!columns) {
                 // The `do update set` resolved to no columns (every staged value
@@ -2989,60 +2768,60 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const where = query.__onConflictUpdateWhere
                 if (where) {
                     result += ' where '
-                    result += this._appendCondition(where, params)
+                    result += this._appendCondition(where, context)
                 }
             }
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
         return result
     }
-    _nextSequenceValue( _params: any[], sequenceName: string, _columnType: ValueType) {
+    _nextSequenceValue( _context: SqlBuildContext, sequenceName: string, _columnType: ValueType) {
         return "nextval('" + sequenceName + "')"
     }
-    _currentSequenceValue(_params: any[], sequenceName: string, _columnType: ValueType): string {
+    _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType): string {
         return "currval('" + sequenceName + "')"
     }
-    _buildUpdate(query: UpdateData, params: any[]): string {
-        this._ensureRootQuery(query, params)
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
+    _buildUpdate(query: UpdateData, context: SqlBuildContext): string {
+        this._ensureRootQuery(query, context)
+        const oldSafeTableOrView = context.safeTableOrView
+        const oldFakeNameOf = context.fakeNamesOf
 
         const table = query.__table
         const sets = query.__sets
         const customization = query.__customization
 
         if (query.__froms || query.__joins) {
-            this._setSafeTableOrView(params, undefined)
+            this._setSafeTableOrView(context, undefined)
         } else {
-            this._setSafeTableOrView(params, table)
+            this._setSafeTableOrView(context, table)
         }
 
         const oldValues = query.__oldValues
-        const requiredTables = this._extractAdditionalRequiredTablesForUpdate(query, params)
-        const requiredColumns = this._extractAdditionalRequiredColumnsForUpdate(query, requiredTables, params)
-        this._setFakeNamesOf(params, requiredTables)
+        const requiredTables = this._extractAdditionalRequiredTablesForUpdate(query, context)
+        const requiredColumns = this._extractAdditionalRequiredColumnsForUpdate(query, requiredTables, context)
+        context.fakeNamesOf = requiredTables
 
         let updateQuery = ''
 
         if (customization && customization.beforeQuery) {
-            updateQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            updateQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
-        updateQuery += this._buildWith(query, params)
+        updateQuery += this._buildWith(query, context)
         updateQuery += 'update '
 
         if (customization && customization.afterUpdateKeyword) {
-            updateQuery += this._appendRawFragment(customization.afterUpdateKeyword, params) + ' '
+            updateQuery += this._appendRawFragment(customization.afterUpdateKeyword, context) + ' '
         }
 
-        const oldForceAliasFor = this._getForceAliasFor(params)
-        const oldForceAliasAs = this._getForceAliasAs(params)
+        const oldForceAliasFor = context.forceAliasFor
+        const oldForceAliasAs = context.forceAliasAs
         if (this._useUpdateOldValueInFrom() && query.__oldValues) {
-            this._setForceAliasFor(params, query.__table)
-            this._setForceAliasAs(params, this._updateNewAlias)
+            context.forceAliasFor = query.__table
+            context.forceAliasAs = this._updateNewAlias
         }
-        updateQuery += this._appendTableOrViewName(table, params)
-        updateQuery += this._buildAfterUpdateTable(query, params)
+        updateQuery += this._appendTableOrViewName(table, context)
+        updateQuery += this._buildAfterUpdateTable(query, context)
 
         const shape = query.__shape
         let columns = ''
@@ -3080,9 +2859,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 const value = sets[property]
 
-                columns += this._appendColumnNameForUpdate(column, params)
+                columns += this._appendColumnNameForUpdate(column, context)
                 columns += ' = '
-                columns += this._appendSetValue(property, undefined, column, value, params)
+                columns += this._appendSetValue(property, undefined, column, value, context)
             }
         } else { // No shape, follow set order
             const properties = Object.getOwnPropertyNames(sets)
@@ -3104,15 +2883,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 const value = sets[property]
     
-                columns += this._appendColumnNameForUpdate(column, params)
+                columns += this._appendColumnNameForUpdate(column, context)
                 columns += ' = '
-                columns += this._appendSetValue(property, undefined, column, value, params)
+                columns += this._appendSetValue(property, undefined, column, value, context)
             }
         }
         updateQuery += ' set ' + columns
 
-        updateQuery += this._buildUpdateOutput(query, params)
-        updateQuery += this._buildUpdateFrom(query, updatePrimaryKey, requiredTables, requiredColumns, params)
+        updateQuery += this._buildUpdateOutput(query, context)
+        updateQuery += this._buildUpdateFrom(query, updatePrimaryKey, requiredTables, requiredColumns, context)
 
         if (oldValues && this._useUpdateOldValueInFrom()) {
             let where: BooleanValueSource<any, any> | undefined
@@ -3140,21 +2919,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 throw new TsSqlProcessingError({ reason: 'NO_PRIMARY_KEY_FOUND' }, 'No primary key found')
             }
 
-            const oldForceAliasFor = this._getForceAliasFor(params)
-            const oldForceAliasAs = this._getForceAliasAs(params)
+            const oldForceAliasFor = context.forceAliasFor
+            const oldForceAliasAs = context.forceAliasAs
 
-            this._setForceAliasFor(params, table)
-            this._setForceAliasAs(params, this._updateNewAlias)
-            const whereCondition = this._appendCondition(where, params)
+            context.forceAliasFor = table
+            context.forceAliasAs = this._updateNewAlias
+            const whereCondition = this._appendCondition(where, context)
             if (whereCondition) {
                 updateQuery += ' where ' + whereCondition
             } else if (!query.__allowNoWhere) {
                 throw new TsSqlProcessingError({ reason: 'MISSING_WHERE' }, 'No where generated for link with the update old values')
             }
-            this._setForceAliasFor(params, oldForceAliasFor)
-            this._setForceAliasAs(params, oldForceAliasAs)
+            context.forceAliasFor = oldForceAliasFor
+            context.forceAliasAs = oldForceAliasAs
         } else if (query.__where) {
-            const whereCondition = this._appendCondition(query.__where, params)
+            const whereCondition = this._appendCondition(query.__where, context)
             if (whereCondition) {
                 updateQuery += ' where ' + whereCondition
             } else if (!query.__allowNoWhere) {
@@ -3164,20 +2943,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new TsSqlProcessingError({ reason: 'MISSING_WHERE' }, 'No where defined for the update operation')
         }
 
-        updateQuery += this._buildUpdateReturning(query, params)
+        updateQuery += this._buildUpdateReturning(query, context)
 
         if (customization && customization.afterQuery) {
-            updateQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            updateQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
-        this._setForceAliasFor(params, oldForceAliasFor)
-        this._setForceAliasAs(params, oldForceAliasAs)
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        context.forceAliasFor = oldForceAliasFor
+        context.forceAliasAs = oldForceAliasAs
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
         return updateQuery
     }
-    _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _params: any[]): Set<AnyTableOrView> | undefined {
+    _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _context: SqlBuildContext): Set<AnyTableOrView> | undefined {
         if (!this._useUpdateOldValueInFrom() || !query.__oldValues) {
             return undefined
         }
@@ -3213,7 +2992,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _extractAdditionalRequiredColumnsForUpdate(query: UpdateData, requiredTables: Set<AnyTableOrView> | undefined, _params: any[]): Set<DBColumn> | undefined {
+    _extractAdditionalRequiredColumnsForUpdate(query: UpdateData, requiredTables: Set<AnyTableOrView> | undefined, _context: SqlBuildContext): Set<DBColumn> | undefined {
         if (!requiredTables) {
             return undefined
         }
@@ -3247,11 +3026,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _useUpdateOldValueInFrom(): boolean {
         return true
     }
-    _appendColumnNameForUpdate(column: DBColumn, _params: any[]) {
+    _appendColumnNameForUpdate(column: DBColumn, _context: SqlBuildContext) {
         const columnPrivate = __getColumnPrivate(column)
         return this._escape(columnPrivate.__name, true)
     }
-    _appendUpdateOldValueForUpdate(query: UpdateData, updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _params: any[]) {
+    _appendUpdateOldValueForUpdate(query: UpdateData, updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _context: SqlBuildContext) {
         const oldValues = query.__oldValues
         if (!oldValues) {
             return ''
@@ -3268,12 +3047,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _buildAfterUpdateTable(_query: UpdateData, _params: any[]): string {
+    _buildAfterUpdateTable(_query: UpdateData, _context: SqlBuildContext): string {
         return ''
     }
-    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<AnyTableOrView> | undefined, requiredColumns: Set<DBColumn> | undefined, params: any[]): string {
+    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<AnyTableOrView> | undefined, requiredColumns: Set<DBColumn> | undefined, context: SqlBuildContext): string {
         if (!this._useUpdateOldValueInFrom()) {
-            const from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
+            const from = this._buildFromJoins(query.__froms, query.__joins, undefined, context)
             if (from) {
                 return ' from ' + from
             }
@@ -3281,7 +3060,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const oldValues = query.__oldValues
         if (!oldValues) {
-            const from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
+            const from = this._buildFromJoins(query.__froms, query.__joins, undefined, context)
             if (from) {
                 return ' from ' + from
             }
@@ -3295,13 +3074,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'No alias found for the old values')
         }
 
-        const oldForceAliasFor = this._getForceAliasFor(params)
-        const oldForceAliasAs = this._getForceAliasAs(params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
+        const oldForceAliasFor = context.forceAliasFor
+        const oldForceAliasAs = context.forceAliasAs
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
 
-        this._setForceAliasFor(params, query.__table)
-        this._setForceAliasAs(params, oldValuesPrivate.__as)
+        context.forceAliasFor = query.__table
+        context.forceAliasAs = oldValuesPrivate.__as
 
         from += '(select ' + this._escape(oldValuesPrivate.__as, true) + '.*'
 
@@ -3334,7 +3113,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             for (let i = 0, length = additionalColumns.length; i < length; i++) {
                 const column = additionalColumns[i]!
                 from += ', '
-                from += this._appendSql(column, params, false)
+                from += this._appendSql(column, context, false)
                 from += ' as '
 
                 const columnPrivate = __getColumnPrivate(column)
@@ -3348,15 +3127,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         from += ' from '
-        from += this._appendTableOrViewName(oldValues, params)
+        from += this._appendTableOrViewName(oldValues, context)
 
-        const innerFrom = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
+        const innerFrom = this._buildFromJoins(query.__froms, query.__joins, undefined, context)
         if (innerFrom) {
             from = from + ', ' + innerFrom
         }
 
         if (query.__where) {
-            const whereCondition = this._appendCondition(query.__where, params)
+            const whereCondition = this._appendCondition(query.__where, context)
             if (whereCondition) {
                 from += ' where ' + whereCondition
             } else if (!query.__allowNoWhere) {
@@ -3366,7 +3145,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new TsSqlProcessingError({ reason: 'MISSING_WHERE' }, 'No where defined for the update operation')
         }
 
-        from += this._appendUpdateOldValueForUpdate(query, updatePrimaryKey, requiredTables, params)
+        from += this._appendUpdateOldValueForUpdate(query, updatePrimaryKey, requiredTables, context)
         from += ')'
 
         if (this._supportTableAliasWithAs) {
@@ -3377,53 +3156,53 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         from += this._escape(oldValuesPrivate.__as, true)
 
-        this._setForceAliasFor(params, oldForceAliasFor)
-        this._setForceAliasAs(params, oldForceAliasAs)
-        this._setFakeNamesOf(params, oldFakeNameOf)
+        context.forceAliasFor = oldForceAliasFor
+        context.forceAliasAs = oldForceAliasAs
+        context.fakeNamesOf = oldFakeNameOf
         return from
     }
-    _buildUpdateOutput(_query: UpdateData, _params: any[]): string {
+    _buildUpdateOutput(_query: UpdateData, _context: SqlBuildContext): string {
         return ''
     }
-    _buildUpdateReturning(query: UpdateData, params: any[]): string {
-        const isOutermostQuery = this._isCurrentRootQuery(query, params)
-        return this._buildQueryReturning(query.__columns, params, isOutermostQuery)
+    _buildUpdateReturning(query: UpdateData, context: SqlBuildContext): string {
+        const isOutermostQuery = this._isCurrentRootQuery(query, context)
+        return this._buildQueryReturning(query.__columns, context, isOutermostQuery)
     }
-    _buildDelete(query: DeleteData, params: any[]): string {
-        this._ensureRootQuery(query, params)
-        const oldFakeNameOf = this._getFakeNamesOf(params)
-        this._setFakeNamesOf(params, undefined)
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
+    _buildDelete(query: DeleteData, context: SqlBuildContext): string {
+        this._ensureRootQuery(query, context)
+        const oldFakeNameOf = context.fakeNamesOf
+        context.fakeNamesOf = undefined
+        const oldSafeTableOrView = context.safeTableOrView
 
         const table = query.__table
         const customization = query.__customization
 
         if (query.__using || query.__joins) {
-            this._setSafeTableOrView(params, undefined)
+            this._setSafeTableOrView(context, undefined)
         } else {
-            this._setSafeTableOrView(params, table)
+            this._setSafeTableOrView(context, table)
         }
 
         let deleteQuery = ''
         if (customization && customization.beforeQuery) {
-            deleteQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            deleteQuery += this._appendRawFragment(customization.beforeQuery, context) + ' '
         }
 
-        deleteQuery += this._buildWith(query, params)
+        deleteQuery += this._buildWith(query, context)
         deleteQuery += 'delete '
 
         if (customization && customization.afterDeleteKeyword) {
-            deleteQuery += this._appendRawFragment(customization.afterDeleteKeyword, params) + ' '
+            deleteQuery += this._appendRawFragment(customization.afterDeleteKeyword, context) + ' '
         }
 
         deleteQuery += 'from '
-        deleteQuery += this._appendTableOrViewName(table, params)
+        deleteQuery += this._appendTableOrViewName(table, context)
 
-        deleteQuery += this._buildDeleteOutput(query, params)
-        deleteQuery += this._buidDeleteUsing(query, params)
+        deleteQuery += this._buildDeleteOutput(query, context)
+        deleteQuery += this._buidDeleteUsing(query, context)
 
         if (query.__where) {
-            const whereCondition = this._appendCondition(query.__where, params)
+            const whereCondition = this._appendCondition(query.__where, context)
             if (whereCondition) {
                 deleteQuery += ' where ' + whereCondition
             } else if (!query.__allowNoWhere) {
@@ -3433,47 +3212,47 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new TsSqlProcessingError({ reason: 'MISSING_WHERE' }, 'No where defined for the delete operation')
         }
 
-        deleteQuery += this._buildDeleteReturning(query, params)
+        deleteQuery += this._buildDeleteReturning(query, context)
 
         if (customization && customization.afterQuery) {
-            deleteQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            deleteQuery += ' ' + this._appendRawFragment(customization.afterQuery, context)
         }
 
-        this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setFakeNamesOf(params, oldFakeNameOf)
-        this._resetRootQuery(query, params)
+        this._setSafeTableOrView(context, oldSafeTableOrView)
+        context.fakeNamesOf = oldFakeNameOf
+        this._resetRootQuery(query, context)
         return deleteQuery
     }
-    _buidDeleteUsing(query: DeleteData, params: any[]): string {
-        const result = this._buildFromJoins(query.__using, query.__joins, undefined, params)
+    _buidDeleteUsing(query: DeleteData, context: SqlBuildContext): string {
+        const result = this._buildFromJoins(query.__using, query.__joins, undefined, context)
         if (result) {
             return ' using ' + result
         }
         return ''
     }
-    _buildDeleteOutput(_query: DeleteData, _params: any[]): string {
+    _buildDeleteOutput(_query: DeleteData, _context: SqlBuildContext): string {
         return ''
     }
-    _buildDeleteReturning(query: DeleteData, params: any[]): string {
-        const isOutermostQuery = this._isCurrentRootQuery(query, params)
-        return this._buildQueryReturning(query.__columns, params, isOutermostQuery)
+    _buildDeleteReturning(query: DeleteData, context: SqlBuildContext): string {
+        const isOutermostQuery = this._isCurrentRootQuery(query, context)
+        return this._buildQueryReturning(query.__columns, context, isOutermostQuery)
     }
 
     /*
      * Comparators
      */
     // SqlComparator0
-    _isNull(params: any[], valueSource: ToSql): string {
+    _isNull(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isValueKnownWhenTheQueryIsBuilt(valueSource)) {
             return this._isNullValue(valueSource) ? this._trueValueForCondition : this._falseValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is null'
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is null'
     }
-    _isNotNull(params: any[], valueSource: ToSql): string {
+    _isNotNull(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isValueKnownWhenTheQueryIsBuilt(valueSource)) {
             return this._isNullValue(valueSource) ? this._falseValueForCondition : this._trueValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is not null'
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is not null'
     }
     /**
      * Whether the value carries its own value already — a constant — instead of one the database
@@ -3537,63 +3316,63 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return false
     }
     // SqlComparator1
-    _equals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _equals(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
-            return this._appendRawColumnName(valueSource, params) + ' = ' + this._appendRawColumnName(value, params)
+            return this._appendRawColumnName(valueSource, context) + ' = ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _notEquals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notEquals(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
-            return this._appendRawColumnName(valueSource, params) + ' <> ' + this._appendRawColumnName(value, params)
+            return this._appendRawColumnName(valueSource, context) + ' <> ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _is(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
-            return this._appendRawColumnName(valueSource, params) + ' is not distinct from ' + this._appendRawColumnName(value, params)
+            return this._appendRawColumnName(valueSource, context) + ' is not distinct from ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is not distinct from ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is not distinct from ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
-            return this._appendRawColumnName(valueSource, params) + ' is distinct from ' + this._appendRawColumnName(value, params)
+            return this._appendRawColumnName(valueSource, context) + ' is distinct from ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' is distinct from ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is distinct from ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _equalsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+            return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false)
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') = lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') = lower(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
-    _notEqualsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notEqualsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+            return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false)
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') <> lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') <> lower(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
-    _lessThan(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' < ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _lessThan(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' < ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _greaterThan(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' > ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _greaterThan(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' > ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _lessOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' <= ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _lessOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' <= ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _greaterOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' >= ' + this._appendValueParenthesis(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _greaterOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' >= ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _in(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // An empty array can never match, so short-circuit to the false constant.
         // `<x> in ()` is invalid SQL on every engine, so the guard lives here in the
         // base (not duplicated per dialect) — a dialect that does not override this
@@ -3601,15 +3380,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (Array.isArray(value) && value.length <= 0) {
             return this._falseValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' in ' + this._appendSpreadValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' in ' + this._appendSpreadValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notIn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // An empty array excludes nothing, so short-circuit to the true constant
         // (`<x> not in ()` is likewise invalid SQL everywhere). See `_in` above.
         if (Array.isArray(value) && value.length <= 0) {
             return this._trueValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not in ' + this._appendSpreadValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not in ' + this._appendSpreadValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
     // Escape clause appended to the LIKE expressions built by the comparison predicates
     // below (`_like` … `_notContainsInsensitive`). `_escapeLikeWildcard` escapes the
@@ -3624,30 +3403,30 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _collationName(collation: string): string {
         return collation
     }
-    _like(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _like(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _notLike(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _notLike(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _likeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') like lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')' + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') like lower(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')' + this._likeEscape
         }
     }
-    _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notLikeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') not like lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')' + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') not like lower(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')' + this._likeEscape
         }
     }
     /**
@@ -3681,180 +3460,180 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * a dialect overrides the three it needs (its concatenation operator, or Oracle's
      * null-handling forms) and pays nothing per call for the generality.
      */
-    _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+    _likePatternStartingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
         return fold ? 'lower(' + term + " || '%')" : '(' + term + " || '%')"
     }
-    _likePatternEndingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+    _likePatternEndingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
         return fold ? "lower('%' || " + term + ')' : "('%' || " + term + ')'
     }
-    _likePatternContaining(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+    _likePatternContaining(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
         return fold ? "lower('%' || " + term + " || '%')" : "('%' || " + term + " || '%')"
     }
-    _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _startsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _notStartsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _endsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _notEndsWith(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _startsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
         }
     }
-    _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notStartsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') not like ' + this._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') not like ' + this._likePatternStartingWith(context, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
         }
     }
-    _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _endsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
         }
     }
-    _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notEndsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') not like ' + this._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') not like ' + this._likePatternEndingWith(context, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
         }
     }
-    _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _contains(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+    _notContains(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
     }
-    _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _containsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
         }
     }
-    _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notContainsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, false) + ' collate ' + this._collationName(collation) + this._likeEscape
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, false) + this._likeEscape
         } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') not like ' + this._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') not like ' + this._likePatternContaining(context, value, columnType, columnTypeName, typeAdapter, true) + this._likeEscape
         }
     }
     // SqlComparator2
-    _between(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _between(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Both bounds are compared against the SAME receiver, so they are widened together: one
         // fractional bound decides the data type of the pair.
         const bounds = [value, value2]
         const boundType = this._getWidenedArgumentType(columnType, columnTypeName, bounds)
         const boundTypeName = this._getWidenedArgumentTypeName(columnType, columnTypeName, bounds)
         const boundNeedsTypeCast = this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, bounds)
-        return this._appendSqlParenthesis(valueSource, params, false) + ' between ' + this._appendValueParenthesis(value, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast)
+        return this._appendSqlParenthesis(valueSource, context, false) + ' between ' + this._appendValueParenthesis(value, context, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, context, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast)
     }
-    _notBetween(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _notBetween(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // Both bounds are compared against the SAME receiver, so they are widened together: one
         // fractional bound decides the data type of the pair.
         const bounds = [value, value2]
         const boundType = this._getWidenedArgumentType(columnType, columnTypeName, bounds)
         const boundTypeName = this._getWidenedArgumentTypeName(columnType, columnTypeName, bounds)
         const boundNeedsTypeCast = this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, bounds)
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not between ' + this._appendValueParenthesis(value, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, params, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast)
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not between ' + this._appendValueParenthesis(value, context, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, context, boundType, boundTypeName, typeAdapter, boundNeedsTypeCast)
     }
     // SqlOperationStatic0
-    _pi(_params: any): string {
+    _pi(_context: SqlBuildContext): string {
         return 'pi()'
     }
-    _random(_params: any): string {
+    _random(_context: SqlBuildContext): string {
         return 'random()'
     }
-    _currentDate(_params: any): string {
+    _currentDate(_context: SqlBuildContext): string {
         return 'current_date'
     }
-    _currentTime(_params: any): string {
+    _currentTime(_context: SqlBuildContext): string {
         return 'current_time'
     }
-    _currentTimestamp(_params: any): string {
+    _currentTimestamp(_context: SqlBuildContext): string {
         return 'current_timestamp'
     }
-    _default(_params: any): string {
+    _default(_context: SqlBuildContext): string {
         return 'default'
     }
     _trueValue = 'true'
-    _true(_params: any): string {
+    _true(_context: SqlBuildContext): string {
         return this._trueValue
     }
     _trueValueForCondition = 'true'
-    _trueForCondition(_params: any): string {
+    _trueForCondition(_context: SqlBuildContext): string {
         return this._trueValueForCondition
     }
     _falseValue = 'false'
-    _false(_params: any): string {
+    _false(_context: SqlBuildContext): string {
         return this._falseValue
     }
     _falseValueForCondition = 'false'
-    _falseForCondition(_params: any): string {
+    _falseForCondition(_context: SqlBuildContext): string {
         return this._falseValueForCondition
     }
     // SqlOperationStatic01
-    _const(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        return this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+    _const(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        return this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _constForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        return this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+    _constForCondition(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        return this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _exists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        return 'exists(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+    _exists(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        return 'exists(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
     }
-    _notExists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        return 'not exists(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+    _notExists(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        return 'not exists(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
     }
     // INTERNAL to the builders, deliberately NOT on the `SqlBuilder` interface: it is only ever reached as
     // `this._escapeLikeWildcard(...)` from the `like`/`startsWith`/`contains` emitters, and dialects override it. Its
     // argument order (`value` first) differs from every interface-dispatched op, so exposing it would let a value
     // source be built over it and emit its arguments in the wrong order.
-    _escapeLikeWildcard(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _escapeLikeWildcard(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
             value = value.replace(/\\/g, '\\\\')
             value = value.replace(/%/g, '\\%')
             value = value.replace(/_/g, '\\_')
-            return this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
         } else {
-            return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\', '\\\\'), '%', '\\%'), '_', '\\_')"
+            return "replace(replace(replace(" + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\', '\\\\'), '%', '\\%'), '_', '\\_')"
         }
     }
     // SqlFunction0
-    _negate(params: any[], valueSource: ToSql): string {
-        const sql = this._appendConditionSql(valueSource, params, false)
+    _negate(context: SqlBuildContext, valueSource: ToSql): string {
+        const sql = this._appendConditionSql(valueSource, context, false)
         if (!sql) {
             return sql
         }
@@ -3869,34 +3648,34 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return 'not ' + sql
     }
-    _collate(params: any[], valueSource: ToSql, collation: string): string {
+    _collate(context: SqlBuildContext, valueSource: ToSql, collation: string): string {
         // `<expr> collate <name>`. The receiver is parenthesised only when it needs it
         // (`_appendSqlParenthesis`), and the whole `collate` expression is wrapped when it is
         // embedded as an operand via `_operationsThatNeedParenthesis._collate` — no hard-coded
         // parenthesis. Uniform across dialects except PostgreSQL, which quotes the collation
         // name (see `PostgreSqlSqlBuilder._collate`).
-        return this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation
+        return this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation
     }
-    _toLowerCase(params: any[], valueSource: ToSql): string {
-        return 'lower(' + this._appendSql(valueSource, params, false) + ')'
+    _toLowerCase(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'lower(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _toUpperCase(params: any[], valueSource: ToSql): string {
-        return 'upper(' + this._appendSql(valueSource, params, false) + ')'
+    _toUpperCase(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'upper(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _length(params: any[], valueSource: ToSql): string {
-        return 'length(' + this._appendSql(valueSource, params, false) + ')'
+    _length(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'length(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _trim(params: any[], valueSource: ToSql): string {
-        return 'trim(' + this._appendSql(valueSource, params, false) + ')'
+    _trim(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'trim(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _trimLeft(params: any[], valueSource: ToSql): string {
-        return 'ltrim(' + this._appendSql(valueSource, params, false) + ')'
+    _trimLeft(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'ltrim(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _trimRight(params: any[], valueSource: ToSql): string {
-        return 'rtrim(' + this._appendSql(valueSource, params, false) + ')'
+    _trimRight(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'rtrim(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _reverse(params: any[], valueSource: ToSql): string {
-        return 'reverse(' + this._appendSql(valueSource, params, false) + ')'
+    _reverse(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'reverse(' + this._appendSql(valueSource, context, false) + ')'
     }
     /**
      * The numeric kind of the SQL an operand emits:
@@ -3936,44 +3715,44 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendCastAsInteger(sql: string): string {
         return 'cast(' + sql + ' as integer)'
     }
-    _asDouble(params: any[], valueSource: ToSql): string {
-        return this._appendCastAsDouble(this._appendSqlParenthesis(valueSource, params, false))
+    _asDouble(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendCastAsDouble(this._appendSqlParenthesis(valueSource, context, false))
     }
-    _asInt(params: any[], valueSource: ToSql): string {
+    _asInt(context: SqlBuildContext, valueSource: ToSql): string {
         // The value is rounded first (the declared type is an integer one) and then cast,
         // so the emitted SQL type matches the type declared to the user. Without the cast
         // the expression stays a floating point one, and any later integer arithmetic is
         // computed in floating point, silently losing precision beyond 2^53.
-        return this._appendCastAsInteger(this._round(params, valueSource))
+        return this._appendCastAsInteger(this._round(context, valueSource))
     }
-    _asBigint(params: any[], valueSource: ToSql): string {
-        return this._appendCastAsInteger(this._round(params, valueSource))
+    _asBigint(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendCastAsInteger(this._round(context, valueSource))
     }
-    _abs(params: any[], valueSource: ToSql): string {
-        return 'abs(' + this._appendSql(valueSource, params, false) + ')'
+    _abs(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'abs(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _ceil(params: any[], valueSource: ToSql): string {
-        return 'ceil(' + this._appendSql(valueSource, params, false) + ')'
+    _ceil(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'ceil(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _floor(params: any[], valueSource: ToSql): string {
-        return 'floor(' + this._appendSql(valueSource, params, false) + ')'
+    _floor(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'floor(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _round(params: any[], valueSource: ToSql): string {
-        return 'round(' + this._appendSql(valueSource, params, false) + ')'
+    _round(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'round(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _exp(params: any[], valueSource: ToSql): string {
-        return 'exp(' + this._appendSql(valueSource, params, false) + ')'
+    _exp(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'exp(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _ln(params: any[], valueSource: ToSql): string {
-        return 'ln(' + this._appendSql(valueSource, params, false) + ')'
+    _ln(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'ln(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _log10(params: any[], valueSource: ToSql): string {
-        return 'log(' + this._appendSql(valueSource, params, false) + ')'
+    _log10(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'log(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _sqrt(params: any[], valueSource: ToSql): string {
-        return 'sqrt(' + this._appendSql(valueSource, params, false) + ')'
+    _sqrt(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'sqrt(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _cbrt(params: any[], valueSource: ToSql): string {
+    _cbrt(context: SqlBuildContext, valueSource: ToSql): string {
         // No portable native CBRT exists across engines, and `power(x, 1/3)` returns NaN
         // (or an error) for negative x on every engine except PostgreSQL. Emulate the cube
         // root as `sign(x) * power(abs(x), 1/3)` so it works for the full real domain.
@@ -3982,79 +3761,79 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // approximate (floating point) literal. Written as `1.0 / 3.0` it is an exact
         // literal on MySQL / MariaDB (DECIMAL) and SQL Server (numeric), where the division
         // truncates to a handful of decimals and the exponent loses most of its digits.
-        return 'sign(' + this._appendSql(valueSource, params, false) + ') * power(' + this._cbrtRadicand(params, valueSource) + ', 1.0e0 / 3.0e0)'
+        return 'sign(' + this._appendSql(valueSource, context, false) + ') * power(' + this._cbrtRadicand(context, valueSource) + ', 1.0e0 / 3.0e0)'
     }
-    _cbrtRadicand(params: any[], valueSource: ToSql): string {
-        return 'abs(' + this._appendSql(valueSource, params, false) + ')'
+    _cbrtRadicand(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'abs(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _sign(params: any[], valueSource: ToSql): string {
-        return 'sign(' + this._appendSql(valueSource, params, false) + ')'
+    _sign(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'sign(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _acos(params: any[], valueSource: ToSql): string {
-        return 'acos(' + this._appendSql(valueSource, params, false) + ')'
+    _acos(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'acos(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _asin(params: any[], valueSource: ToSql): string {
-        return 'asin(' + this._appendSql(valueSource, params, false) + ')'
+    _asin(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'asin(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _atan(params: any[], valueSource: ToSql): string {
-        return 'atan(' + this._appendSql(valueSource, params, false) + ')'
+    _atan(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'atan(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _cos(params: any[], valueSource: ToSql): string {
-        return 'cos(' + this._appendSql(valueSource, params, false) + ')'
+    _cos(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cos(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _cot(params: any[], valueSource: ToSql): string {
-        return 'cot(' + this._appendSql(valueSource, params, false) + ')'
+    _cot(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cot(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _sin(params: any[], valueSource: ToSql): string {
-        return 'sin(' + this._appendSql(valueSource, params, false) + ')'
+    _sin(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'sin(' + this._appendSql(valueSource, context, false) + ')'
     }
-    _tan(params: any[], valueSource: ToSql): string {
-        return 'tan(' + this._appendSql(valueSource, params, false) + ')'
+    _tan(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'tan(' + this._appendSql(valueSource, context, false) + ')'
     }
     // The date-part family. PostgreSQL is the dialect that reaches it — it declares no
     // override of its own — so this family is written in PostgreSQL's form: the
     // `_appendSqlForDatePartArgument` receiver, the `::integer` casts, and `_getMonth`'s
     // `- 1`. Every other dialect overrides all of it. Keep it in step with PostgreSQL:
     // it is not dead code, it is the code PostgreSQL runs.
-    _getDate(params: any[], valueSource: ToSql): string {
-        return 'extract(day from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(day from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getTime(params: any[], valueSource: ToSql): string {
+    _getTime(context: SqlBuildContext, valueSource: ToSql): string {
         // Mirrors `Date.getTime()`, so the result is in MILLISECONDS. `extract(epoch …)`
         // answers in seconds, including the fractional part.
-        return 'round(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') * 1000)'
+        return 'round(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, context) + ') * 1000)'
     }
-    _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'extract(year from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(year from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getMonth(params: any[], valueSource: ToSql): string {
+    _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
         // Mirrors `Date.getMonth()`, which is 0-based, while `extract(month …)` is 1-based.
         // The `- 1` is why `_operationsThatNeedParenthesis._getMonth` is registered.
-        return 'extract(month from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') - 1'
+        return 'extract(month from ' + this._appendSqlForDatePartArgument(valueSource, context) + ') - 1'
     }
-    _getDay(params: any[], valueSource: ToSql): string {
+    _getDay(context: SqlBuildContext, valueSource: ToSql): string {
         // `dow` (day of week, 0-based from Sunday) matches `Date.getDay()`. It is a
         // PostgreSQL-only field name — a dialect without it must override this.
-        return 'extract(dow from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+        return 'extract(dow from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getHours(params: any[], valueSource: ToSql): string {
-        return 'extract(hour from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(hour from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getMinutes(params: any[], valueSource: ToSql): string {
-        return 'extract(minute from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(minute from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getSeconds(params: any[], valueSource: ToSql): string {
+    _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
         // `extract(second …)` yields a numeric that INCLUDES the fraction (45.9996), and
         // `numeric::integer` rounds away from zero — so the bare cast reports 46 for
         // :45.9996 and 60 for :59.9996, a value this method's declared type (and the
         // JS `Date.getSeconds()` contract, an integer 0-59) does not allow.
-        return 'trunc(extract(second from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer'
+        return 'trunc(extract(second from ' + this._appendSqlForDatePartArgument(valueSource, context) + '))::integer'
     }
-    _getMilliseconds(params: any[], valueSource: ToSql): string {
+    _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         // Same rounding cast as `_getSeconds`: `extract(millisecond …)` includes the
         // sub-millisecond fraction, so :45.9996 rounds up to 46000, and the `% 1000`
         // then wraps it to 0 instead of 999.
-        return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer % 1000'
+        return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, context) + '))::integer % 1000'
     }
     /** Whether the database supports a databaseTimeZone other than UTC, completing the zone of a value with its session */
     _supportDatabaseOutsideUtc(): boolean {
@@ -4079,19 +3858,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'localTimeReferenceDate', value: referenceDate }, "localTimeReferenceDate must be a date 'YYYY-MM-DD' or 'today': " + referenceDate)
         }
     }
-    _appendSqlForDatePartArgument(valueSource: ToSql, params: any[]): string {
+    _appendSqlForDatePartArgument(valueSource: ToSql, context: SqlBuildContext): string {
         // A const receiver is forced to carry its type cast: an untyped placeholder inside
         // `extract(... from $1)` has no type for the engine to resolve.
         if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).isConstValue()) {
-            return this._appendSql(this._typedOperand(valueSource, []), params, true)
+            return this._appendSql(this._typedOperand(valueSource, []), context, true)
         }
-        return this._appendSql(valueSource, params, false)
+        return this._appendSql(valueSource, context, false)
     }
-    _asString(params: any[], valueSource: ToSql): string {
+    _asString(context: SqlBuildContext, valueSource: ToSql): string {
         // Transform an uuid to string
-        return this._appendSqlParenthesis(valueSource, params, false)
+        return this._appendSqlParenthesis(valueSource, context, false)
     }
-    _asNullValue(_params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _asNullValue(_context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeAdapter && typeAdapter.transformPlaceholder) {
             return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), null, this._defaultTypeAdapter)
         } else {
@@ -4099,32 +3878,32 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     // Oracle recursive
-    _prior(params: any[], valueSource: ToSql): string {
-        return 'prior ' + this._appendSql(valueSource, params, false)
+    _prior(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'prior ' + this._appendSql(valueSource, context, false)
     }
     // SqlFunction1
-    _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'coalesce(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'coalesce(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    _nullIfValue(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'nullif(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    _nullIfValue(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'nullif(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    _and(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        this._setResultingOperation(params, undefined)
-        const sql = this._appendConditionSql(valueSource, params, false)
-        const op = this._getResultingOperation(params)
-        this._setResultingOperation(params, undefined)
+    _and(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        context.resultingOperation = undefined
+        const sql = this._appendConditionSql(valueSource, context, false)
+        const op = context.resultingOperation
+        context.resultingOperation = undefined
         // With nothing on the left the value stands alone, and in a select it needs its type as any other value
-        const sql2 = this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, !sql)
-        const op2 = this._getResultingOperation(params)
-        this._setResultingOperation(params, undefined)
+        const sql2 = this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, !sql)
+        const op2 = context.resultingOperation
+        context.resultingOperation = undefined
         if (!sql || sql === this._trueValueForCondition) {
             // sql === this._trueValueForCondition reduce unnecesary ands allowing dynamic queries
-            this._setResultingOperation(params, op2)
+            context.resultingOperation = op2
             return sql2
         } else if (!sql2 || sql2 === this._trueValueForCondition) {
             // sql2 === this._trueValueForCondition reduce unnecesary ands allowing dynamic queries
-            this._setResultingOperation(params, op)
+            context.resultingOperation = op
             return sql
         } else {
             let result
@@ -4139,26 +3918,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 result += sql2
             }
-            this._setResultingOperation(params, '_and')
+            context.resultingOperation = '_and'
             return result
         }
     }
-    _or(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        this._setResultingOperation(params, undefined)
-        const sql = this._appendConditionSql(valueSource, params, false)
-        const op = this._getResultingOperation(params)
-        this._setResultingOperation(params, undefined)
+    _or(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        context.resultingOperation = undefined
+        const sql = this._appendConditionSql(valueSource, context, false)
+        const op = context.resultingOperation
+        context.resultingOperation = undefined
         // With nothing on the left the value stands alone, and in a select it needs its type as any other value
-        const sql2 = this._appendConditionValue(value, params, columnType, columnTypeName, typeAdapter, !sql)
-        const op2 = this._getResultingOperation(params)
-        this._setResultingOperation(params, undefined)
+        const sql2 = this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, !sql)
+        const op2 = context.resultingOperation
+        context.resultingOperation = undefined
         if (!sql || sql === this._falseValueForCondition) {
             // !sql || sql === this._falseValueForCondition reduce unnecesary ors allowing dynamic queries
-            this._setResultingOperation(params, op2)
+            context.resultingOperation = op2
             return sql2
         } else if (!sql2 || sql2 === this._falseValueForCondition) {
             // !sql2 || sql2 === this._falseValueForCondition reduce unnecesary ors allowing dynamic queries
-            this._setResultingOperation(params, op)
+            context.resultingOperation = op
             return sql
         } else {
             let result
@@ -4173,14 +3952,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 result += sql2
             }
-            this._setResultingOperation(params, '_or')
+            context.resultingOperation = '_or'
             return result
         }
     }
-    _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _concat(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._concatSql(
-            this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false),
-            this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concat', false)
+            this._appendSqlParenthesisExcluding(valueSource, context, '_concat', false),
+            this._appendValueParenthesisExcluding(value, context, columnType, columnTypeName, typeAdapter, '_concat', false)
         )
     }
     /**
@@ -4197,18 +3976,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * both short-circuiting) while `concat` is one, and because PostgreSQL declares `concat`
      * STABLE, which bars it from an expression index or a generated column.
      */
-    _concatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _concatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._isNullValue(value)) {
             if (this._isNullValue(valueSource)) {
                 // Nothing left to concatenate: the empty string is what the operation answers.
                 return "''"
             }
-            return this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false)
+            return this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false)
         }
         if (this._isNullValue(valueSource)) {
-            return this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
+            return this._appendValueParenthesisExcluding(value, context, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
         }
-        return this._appendConcatIgnoringNull(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return this._appendConcatIgnoringNull(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
     /**
      * Glues two operands that both survived the build-time NULL check above — the only part of
@@ -4222,12 +4001,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * one, and because PostgreSQL declares `concat` STABLE, which bars it from an expression index
      * or a generated column.
      */
-    _appendConcatIgnoringNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        let left = this._appendSqlParenthesisExcluding(valueSource, params, '_concatIgnoringNull', false)
+    _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        let left = this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false)
         if (this._isOptionalValue(valueSource)) {
             left = "coalesce(" + left + ", '')"
         }
-        let right = this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
+        let right = this._appendValueParenthesisExcluding(value, context, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false)
         if (this._isOptionalValue(value)) {
             right = "coalesce(" + right + ", '')"
         }
@@ -4248,27 +4027,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
     //
     // A value-source index cannot be resolved at build time (the sign is unknown until the
     // query runs) and keeps the `+ 1`: see LIMITATIONS.md.
-    _substrToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number') {
             if (value < 0) {
                 // SQLite counts a negative start from the end and clamps an out-of-range one
                 // to the whole string, which is exactly `String.prototype.substr`.
-                return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
+                return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, 'int', 'int', typeAdapter, false) + ')'
             }
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value + 1, context, 'int', 'int', typeAdapter, false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1)'
         }
     }
-    _substringToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _substringToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number') {
             // `String.prototype.substring` clamps a negative index to 0 — unlike `substr`,
             // it never counts from the end — so the clamp is applied before the `+ 1` and
             // the emitted SQL is the same one a 0 would have produced.
             const start = value < 0 ? 0 : value
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, 'int', 'int', typeAdapter, false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1)'
         }
     }
     _getMathArgumentType(columnType: ValueType, _columnTypeName: string, value: any): ValueType {
@@ -4359,23 +4138,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return typeof value === 'number' && !Number.isInteger(value)
     }
-    _power(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'power(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    _power(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'power(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _logn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // The public API `value.logn(n)` means log base n of value, i.e. `log_n(value)`.
         // PostgreSQL, MariaDB, MySQL, SQLite and Oracle all spell this as `LOG(base, value)`
         // — base first. SQL Server's LOG is `LOG(value, base)` and overrides this method.
-        return 'log(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', ' + this._appendSql(valueSource, params, false) + ')'
+        return 'log(' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', ' + this._appendSql(valueSource, context, false) + ')'
     }
-    _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'round(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+    _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'round(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
-    _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'least(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'least(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
-    _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'greatest(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'greatest(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     /**
      * Shared min/max builder for the dialects whose native `least`/`greatest` (or
@@ -4410,40 +4189,40 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * is settled while the query is built — and the user-function opt-in exists for the rare
      * expensive value-source receiver.
      */
-    _minAndMaxValueBetweenTwoValuesPoisoningNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, userFunction: string | undefined, functionName: string): string {
+    _minAndMaxValueBetweenTwoValuesPoisoningNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, userFunction: string | undefined, functionName: string): string {
         const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
         const argumentTypeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
         const argumentNeedsTypeCast = this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)
         if (this._connectionConfiguration.ignoreNullInMinAndMaxValue) {
             // Opt-out: keep the engine's native least/greatest, which ignores a NULL operand.
-            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
+            return this._minAndMaxValueSelection(context, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
         }
         if (userFunction) {
             // Opt-in: a user-provided null-propagating function; it poisons NULL itself, no CASE.
-            return userFunction + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, argumentNeedsTypeCast) + ')'
+            return userFunction + '(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, argumentType, argumentTypeName, typeAdapter, argumentNeedsTypeCast) + ')'
         }
         if (this._isNullValue(valueSource) || this._isNullValue(value)) {
             // A NULL operand poisons the result, and this operand is already known to be NULL
             // here, so the result is NULL: asking the database to compute a value it cannot
             // reach is pure noise.
-            return this._asNullValue(params, argumentType, argumentTypeName, typeAdapter)
+            return this._asNullValue(context, argumentType, argumentTypeName, typeAdapter)
         }
         const receiverOptional = this._canBeNullWhenTheQueryRuns(valueSource)
         const operandOptional = this._canBeNullWhenTheQueryRuns(value)
         if (!receiverOptional && !operandOptional) {
             // Nothing can be null, emit the bare native form.
-            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
+            return this._minAndMaxValueSelection(context, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast)
         }
         // Build the null check first so its parameters are appended before the inner's.
         let nullCheck: string
         if (receiverOptional && operandOptional) {
-            nullCheck = this._isNull(params, valueSource) + ' or ' + this._isNull(params, value)
+            nullCheck = this._isNull(context, valueSource) + ' or ' + this._isNull(context, value)
         } else if (receiverOptional) {
-            nullCheck = this._isNull(params, valueSource)
+            nullCheck = this._isNull(context, valueSource)
         } else {
-            nullCheck = this._isNull(params, value)
+            nullCheck = this._isNull(context, value)
         }
-        return 'case when ' + nullCheck + ' then null else ' + this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast) + ' end'
+        return 'case when ' + nullCheck + ' then null else ' + this._minAndMaxValueSelection(context, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName, argumentNeedsTypeCast) + ' end'
     }
     /**
      * The bare two-value min/max selection with NO null handling: `<functionName>(a, b)`,
@@ -4451,19 +4230,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * by any dialect that keeps `least`/`greatest`). SQL Server overrides this to emulate
      * the pair with `iif` on the versions where `least`/`greatest` do not exist.
      */
-    _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string, argumentNeedsTypeCast: boolean): string {
-        return functionName + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, argumentNeedsTypeCast) + ')'
+    _minAndMaxValueSelection(context: SqlBuildContext, valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string, argumentNeedsTypeCast: boolean): string {
+        return functionName + '(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, argumentType, argumentTypeName, typeAdapter, argumentNeedsTypeCast) + ')'
     }
-    _add(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_add', this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _add(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_add', this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _subtract(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_subtract', false) + ' - ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _subtract(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_subtract', false) + ' - ' + this._appendValueParenthesis(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _multiply(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_multiply', this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _multiply(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_multiply', this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _divide(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // `divide` always yields a double — it mirrors JavaScript's `/`, which has no
         // integer division. Engines are not so kind: dividing two exact operands either
         // truncates the quotient (MySQL / MariaDB cut it at div_precision_increment
@@ -4471,18 +4250,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // SQL Server). A single floating point operand makes the whole division floating
         // point on every dialect, so the cast is emitted only when neither operand is
         // already known to be one.
-        const dividend = this._appendSqlParenthesis(valueSource, params, false)
-        const divisor = this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        const dividend = this._appendSqlParenthesis(valueSource, context, false)
+        const divisor = this._appendValueParenthesis(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
         if (this._numericKindOf(valueSource) === 'approximate' || this._numericKindOf(value) === 'approximate') {
             return dividend + ' / ' + divisor
         }
         return this._appendCastAsDouble(dividend) + ' / ' + divisor
     }
-    _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' % ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+    _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' % ' + this._appendValueParenthesis(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
     }
-    _atan2(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'atan2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'atan2(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
     }
     // SqlFunction2
     /**
@@ -4498,7 +4277,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return count
     }
-    _substr(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number') {
             if (value < 0) {
@@ -4508,30 +4287,30 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 // 2-argument form — which clamps — and the count applied to that tail. This
                 // nests rather than guarding with `max(start, -length(x))` so the receiver is
                 // still referenced ONCE: a guard would emit it (and bind it) twice.
-                return 'substr(substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + '), 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+                return 'substr(substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, 'int', 'int', typeAdapter, false) + '), 1, ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
             }
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value + 1, context, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
         }
     }
-    _substring(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && typeof value2 === 'number') {
             // `String.prototype.substring` clamps both indexes to 0 and SWAPS them when
             // start > end: `'abcdef'.substring(2, 0)` is 'ab', not an error. Emitting the
             // arguments as given produced a negative length, which PostgreSQL rejects
             // outright ("negative substring length not allowed") — a crash on a legal call.
             const [start, end] = this._clampAndOrderSubstringBounds(value, value2)
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(end - start, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(end - start, context, 'int', 'int', typeAdapter, false) + ')'
         }
         if (typeof value === 'number') {
             const start = value < 0 ? 0 : value
             if (start === 0) {
-                return 'substr(' + this._appendSql(valueSource, params, false) + ', 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+                return 'substr(' + this._appendSql(valueSource, context, false) + ', 1, ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
             }
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(start, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(start, context, 'int', 'int', typeAdapter, false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, context, 'int', 'int', typeAdapter, false) + ')'
         }
     }
     /**
@@ -4543,8 +4322,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const e = end < 0 ? 0 : end
         return s > e ? [e, s] : [s, e]
     }
-    _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'replace(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+    _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'replace(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, context, columnType, columnTypeName, typeAdapter, false) + ')'
     }
     /**
      * Case-insensitive `replaceAll`. The base form is the SQLite behaviour: emit the
@@ -4553,12 +4332,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * error. The engines whose `REPLACE`/`REGEXP_REPLACE` can fold case override this:
      * SQL Server / Oracle (collation-driven), MySQL / MariaDB / PostgreSQL (regex-driven).
      */
-    _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const fn = this._connectionConfiguration.replaceAllInsensitiveFunction
         if (fn) {
-            return fn + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return fn + '(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, context, columnType, columnTypeName, typeAdapter, false) + ')'
         }
-        return this._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+        return this._replaceAll(context, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
     }
     /**
      * Escape a search term for use as a regular-expression pattern in the regex-driven
@@ -4568,11 +4347,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * SQL level with nested `replace(...)`. The backslash is escaped first so the
      * backslashes added for the other metacharacters are not doubled again.
      */
-    _escapeRegexpForReplace(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _escapeRegexpForReplace(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
-            return this._appendValue(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), context, columnType, columnTypeName, typeAdapter, forceTypeCast)
         }
-        let sql = this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        let sql = this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
         sql = "replace(" + sql + ", '\\', '\\\\')"
         const metachars = '.*+?^${}()|[]'
         for (let i = 0, length = metachars.length; i < length; i++) {
@@ -4594,18 +4373,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * Mirrors {@link _escapeRegexpForReplace}: a string literal is escaped in JS at build time
      * (bound as a param); a value source is escaped at the SQL level with nested `replace`.
      */
-    _escapeRegexpReplacement(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    _escapeRegexpReplacement(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
-            return this._appendValue(value.replace(/\\/g, '\\\\'), params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value.replace(/\\/g, '\\\\'), context, columnType, columnTypeName, typeAdapter, forceTypeCast)
         }
-        return "replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\', '\\\\')"
+        return "replace(" + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\', '\\\\')"
     }
-    _typedConst(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _typedConst(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // A const that must carry its type (see _typedOperand)
-        return this._const(params, value, columnType, columnTypeName, typeAdapter, true)
+        return this._const(context, value, columnType, columnTypeName, typeAdapter, true)
     }
-    _typedConstForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._constForCondition(params, value, columnType, columnTypeName, typeAdapter, true)
+    _typedConstForCondition(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._constForCondition(context, value, columnType, columnTypeName, typeAdapter, true)
     }
     _typedOperand<T>(operand: T, _otherOperands: any[], _operation?: string): T {
         // The operand of an operation, written with its type when the database can't learn it from the other
@@ -4616,14 +4395,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // The argument types decide which overload of a function or procedure the database calls
         return false
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
+    _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()
         let result = 'call ' + this._escape(procedureName, false, true) + '('
         if (procedureParams.length > 0) {
-            result += this._appendSql(procedureParams[0]!, params, forceTypeCast)
+            result += this._appendSql(procedureParams[0]!, context, forceTypeCast)
 
             for (let i = 1, length = procedureParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(procedureParams[i]!, params, forceTypeCast)
+                result += ', ' + this._appendSql(procedureParams[i]!, context, forceTypeCast)
             }
         }
 
@@ -4634,52 +4413,52 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * (`_appendColumnValue`): the uuid of a database that doesn't store it as text is read as text, as its parameters
      * are sent in the form it's stored
      */
-    _buildCallFunction(params: any[], functionCall: AnyValueSource): string {
-        return 'select ' + this._appendResultColumnProjection(functionCall, this._appendColumnValue(functionCall, params, true), params)
+    _buildCallFunction(context: SqlBuildContext, functionCall: AnyValueSource): string {
+        return 'select ' + this._appendResultColumnProjection(functionCall, this._appendColumnValue(functionCall, context, true), context)
     }
-    _appendFunctionCall(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
+    _appendFunctionCall(context: SqlBuildContext, functionName: string, functionParams: AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()
         let result = this._escape(functionName, false, true) + '('
         if (functionParams.length > 0) {
-            result += this._appendSql(functionParams[0]!, params, forceTypeCast)
+            result += this._appendSql(functionParams[0]!, context, forceTypeCast)
 
             for (let i = 1, length = functionParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(functionParams[i]!, params, forceTypeCast)
+                result += ', ' + this._appendSql(functionParams[i]!, context, forceTypeCast)
             }
         }
 
         return result + ')'
     }
-    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string {
+    _fragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }
         let result = ''
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             result += sql[i]
-            result += this._appendConditionSql(sqlParams[i]!, params, false)
+            result += this._appendConditionSql(sqlParams[i]!, context, false)
         }
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string {
+    _rawFragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }
         let result = ''
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             result += sql[i]
-            result += this._appendSql(sqlParams[i]!, params, false)
+            result += this._appendSql(sqlParams[i]!, context, false)
         }
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragmentTableName(params: any[], tableOrView: AnyTableOrView): string {
-        return this._appendTableOrViewNameForFrom(tableOrView, params)
+    _rawFragmentTableName(context: SqlBuildContext, tableOrView: AnyTableOrView): string {
+        return this._appendTableOrViewNameForFrom(tableOrView, context)
     }
-    _rawFragmentTableAlias(params: any[], tableOrView: AnyTableOrView): string {
-        const forceAliasFor = this._getForceAliasFor(params)
-        const forceAliasAs = this._getForceAliasAs(params)
+    _rawFragmentTableAlias(context: SqlBuildContext, tableOrView: AnyTableOrView): string {
+        const forceAliasFor = context.forceAliasFor
+        const forceAliasAs = context.forceAliasAs
         const as = __getTableOrViewPrivate(tableOrView).__as
         const prefix = this._supportTableAliasWithAs ? 'as ' : ''
 
@@ -4690,37 +4469,37 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return ''
     }
-    _countAll(_params: any[]): string {
+    _countAll(_context: SqlBuildContext): string {
         return 'count(*)'
     }
-    _count(params: any[], value: any): string {
-        return 'count(' + this._appendSql(value, params, false) + ')'
+    _count(context: SqlBuildContext, value: any): string {
+        return 'count(' + this._appendSql(value, context, false) + ')'
     }
-    _countDistinct(params: any[], value: any): string {
-        return 'count(distinct ' + this._appendSql(value, params, false) + ')'
+    _countDistinct(context: SqlBuildContext, value: any): string {
+        return 'count(distinct ' + this._appendSql(value, context, false) + ')'
     }
-    _max(params: any[], value: any): string {
-        return 'max(' + this._appendSql(value, params, false) + ')'
+    _max(context: SqlBuildContext, value: any): string {
+        return 'max(' + this._appendSql(value, context, false) + ')'
     }
-    _min(params: any[], value: any): string {
-        return 'min(' + this._appendSql(value, params, false) + ')'
+    _min(context: SqlBuildContext, value: any): string {
+        return 'min(' + this._appendSql(value, context, false) + ')'
     }
-    _sum(params: any[], value: any): string {
-        return 'sum(' + this._appendSql(value, params, false) + ')'
+    _sum(context: SqlBuildContext, value: any): string {
+        return 'sum(' + this._appendSql(value, context, false) + ')'
     }
-    _sumDistinct(params: any[], value: any): string {
-        return 'sum(distinct ' + this._appendSql(value, params, false) + ')'
+    _sumDistinct(context: SqlBuildContext, value: any): string {
+        return 'sum(distinct ' + this._appendSql(value, context, false) + ')'
     }
-    _average(params: any[], value: any): string {
-        return 'avg(' + this._averageOperandSql(params, value) + ')'
+    _average(context: SqlBuildContext, value: any): string {
+        return 'avg(' + this._averageOperandSql(context, value) + ')'
     }
-    _averageDistinct(params: any[], value: any): string {
-        return 'avg(distinct ' + this._averageOperandSql(params, value) + ')'
+    _averageDistinct(context: SqlBuildContext, value: any): string {
+        return 'avg(distinct ' + this._averageOperandSql(context, value) + ')'
     }
-    _anyValue(params: any[], value: any): string {
-        return 'any_value(' + this._appendSql(value, params, false) + ')'
+    _anyValue(context: SqlBuildContext, value: any): string {
+        return 'any_value(' + this._appendSql(value, context, false) + ')'
     }
-    _averageOperandSql(params: any[], value: any): string {
+    _averageOperandSql(context: SqlBuildContext, value: any): string {
         // `average` exposes a fractional NumberValueSource on the typed surface of every
         // dialect, but an engine averaging an exact operand answers in an exact type, and
         // each one loses a different amount of the fraction: SQL Server truncates to the
@@ -4729,33 +4508,33 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // `1.6666666666666667`). Casting an exact operand homogenises the result without
         // making the caller wrap the column themselves.
         if (this._numericKindOf(value) === 'exact') {
-            return this._appendCastAsDouble(this._appendSql(value, params, false))
+            return this._appendCastAsDouble(this._appendSql(value, context, false))
         }
-        return this._appendSql(value, params, false)
+        return this._appendSql(value, context, false)
     }
-    _stringConcat(params: any[], separator: string | undefined, value: any): string {
+    _stringConcat(context: SqlBuildContext, separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'group_concat(' + this._appendSql(value, params, false) + ')'
+            return 'group_concat(' + this._appendSql(value, context, false) + ')'
         } else if (separator === '') {
-            return 'group_concat(' + this._appendSql(value, params, false) + ", '')"
+            return 'group_concat(' + this._appendSql(value, context, false) + ", '')"
         } else {
-            return 'group_concat(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'group_concat(' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', 'string', undefined, false) + ')'
         }
     }
-    _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
+    _stringConcatDistinct(context: SqlBuildContext, separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ')'
+            return 'group_concat(distinct ' + this._appendSql(value, context, false) + ')'
         } else if (separator === '') {
-            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ", '')"
+            return 'group_concat(distinct ' + this._appendSql(value, context, false) + ", '')"
         } else {
-            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'group_concat(distinct ' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', 'string', undefined, false) + ')'
         }
     }
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, context: SqlBuildContext): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
         const aggregatedArrayDistinct = valueSourcePrivate.__aggregatedArrayDistinct!
-        return this._appendAggragateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, params, undefined)
+        return this._appendAggragateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, context, undefined)
     }
     /**
      * The columns of the select are the values of the JSON of an aggregated array, as the database writes them in the
@@ -4764,12 +4543,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _isSelectOfAggregatedArrayValues(_query: SelectData): boolean {
         return false
     }
-    _needAgggregateArrayColumnsTransformation(query: SelectData, _params: any[]): boolean {
+    _needAgggregateArrayColumnsTransformation(query: SelectData, _context: SqlBuildContext): boolean {
         return !!query.__asInlineAggregatedArrayValue
     }
     _supportOrderByWhenAggregateArray = false
     _supportLimitWhenAggregateArray = false
-    _needAgggregateArrayWrapper(query: SelectData, _params: any[]): boolean {
+    _needAgggregateArrayWrapper(query: SelectData, _context: SqlBuildContext): boolean {
         if (!query.__asInlineAggregatedArrayValue) {
             return false
         }
@@ -4800,10 +4579,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return false
     }
-    _buildSelectAsAggregatedArray(_query: SelectData, _params: any[]): string {
+    _buildSelectAsAggregatedArray(_query: SelectData, _context: SqlBuildContext): string {
         return ''
     }
-    _appendAggragateArrayWrapperBegin(query: SelectData, params: any[], aggregateId: number): string {
+    _appendAggragateArrayWrapperBegin(query: SelectData, context: SqlBuildContext, aggregateId: number): string {
         let aggregatedArrayColumns
         if (query.__oneColumn) {
             aggregatedArrayColumns = query.__columns['result']
@@ -4813,9 +4592,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             aggregatedArrayColumns = query.__columns
         }
-        return 'select ' +  this._appendAggragateArrayWrappedColumns(aggregatedArrayColumns, params, aggregateId) + ' from ('
+        return 'select ' +  this._appendAggragateArrayWrappedColumns(aggregatedArrayColumns, context, aggregateId) + ' from ('
     }
-    _appendAggragateArrayWrapperEnd(_query: SelectData, _params: any[], aggregateId: number): string {
+    _appendAggragateArrayWrapperEnd(_query: SelectData, _context: SqlBuildContext, aggregateId: number): string {
         let result =  ')'
         if (this._supportTableAliasWithAs) {
             result += ' as '
@@ -4825,10 +4604,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += 'a_' + aggregateId + '_'
         return result
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            return 'json_agg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(this._typedOperand(aggregatedArrayColumns, []), params, false)) + ')'
+            return 'json_agg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(this._typedOperand(aggregatedArrayColumns, []), context, false)) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -4838,13 +4617,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(this._typedOperand(columns[prop]!, []), params, false))
+                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(this._typedOperand(columns[prop]!, []), context, false))
             }
 
             return 'json_agg(' +  distict + 'json_build_object(' + result + '))'
         }
     }
-    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_agg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result') + ')'
         } else {

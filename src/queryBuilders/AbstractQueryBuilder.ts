@@ -33,9 +33,6 @@ export class AbstractQueryBuilder {
      * The whole render cache goes, not just the SQL text:
      * - `__params` is the output of that same rendering; keeping it would append the new
      *   render's parameters *after* the previous one's, shifting every placeholder index.
-     *   It also carries the SqlBuilder's per-render state as non-enumerable properties
-     *   (`_withGenerated` among them), so a stale array suppresses the `with` clause of
-     *   the rebuilt statement.
      * - `__withsGenerated` latches the first time the withs are collected, and a value
      *   staged after that first rendering can introduce a CTE that wasn't in the set back
      *   then; keeping it latched rebuilds a statement that *references* the new CTE while

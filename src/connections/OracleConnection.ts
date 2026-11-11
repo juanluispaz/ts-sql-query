@@ -1,6 +1,6 @@
 import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
-import { OracleSqlBuilder } from '../sqlBuilders/OracleSqlBuilder.js'
+import { OracleSqlBuilder, oracleZonedValueSql } from '../sqlBuilders/OracleSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
@@ -10,8 +10,9 @@ import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } fro
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import type { TypeCategory } from '../TypeAdapter.js'
+import { setQueryParamMetadata, type ProjectionOutput, type TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
+import { oracleZonedParam } from '../utils/valueSymbols.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
@@ -160,5 +161,34 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             return Number(value);
         }
         return super.transformValueToDB(value, type, typeCategory)
+    }
+
+    /**
+     * With a databaseTimeZone other than UTC, a localDateTime or a localTime parameter goes as a TIMESTAMP WITH LOCAL
+     * TIME ZONE of its instant, which the database converts with its session (the zone of the database) into the wall
+     * clock it stores or compares with
+     */
+    protected override addQueryParamMetadata(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): void {
+        super.addQueryParamMetadata(params, index, type, typeCategory, valueSentToDB)
+        if (this.isDatabaseOutsideUtc()) {
+            const conversionType = __conversionType(type, typeCategory)
+            if (conversionType === 'localDateTime' || conversionType === 'localTime') {
+                setQueryParamMetadata(params, index, oracleZonedParam, true)
+            }
+        }
+    }
+    /**
+     * With a databaseTimeZone other than UTC, a localDateTime or a localTime leaves the database as the instant the
+     * database completes with its session, `cast(<sql> as timestamp with time zone)` (see oracleZonedValueSql), also
+     * inside the JSON of an aggregated array, where Oracle writes it as a text with its zone
+     */
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+        if (this.isDatabaseOutsideUtc()) {
+            const zoned = oracleZonedValueSql(sql, __conversionType(type, typeCategory), this.localTimeReferenceDate)
+            if (zoned) {
+                return zoned
+            }
+        }
+        return super.transformProjection(sql, type, typeCategory, output)
     }
 }

@@ -6,7 +6,7 @@ import type { DatabaseType } from '../queryRunners/QueryRunner.js'
 import type { QueryRunnerName } from '../queryRunners/MockQueryRunner.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { checkOracleParam } from './oracleParamTypes.js'
+import { checkOracleParam, oraclePlaceholder } from './oracleParamTypes.js'
 import { mySqlPlaceholder } from './mySqlParamTypes.js'
 import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSqlParamTypes.js'
 import { setParamTypeAt } from './queryParamsMetadata.js'
@@ -65,7 +65,11 @@ const sqlServer: ParamBinding = (params, value, type, typeCategory, forceTypeCas
 }
 const oracle: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
     checkOracleParam(params.length, value, type, typeCategory)
-    return ':' + add(params, value, type, typeCategory, forceTypeCast)
+    // A localDateTime or a localTime of a database outside UTC, marked by the connection before it is added, is cast
+    // to the type of the column where it isn't the value of one
+    const placeholder = oraclePlaceholder(':' + params.length, params, params.length, value)
+    add(params, value, type, typeCategory, forceTypeCast)
+    return placeholder
 }
 
 /** The way each query runner of the library that talks to a database adds a parameter */

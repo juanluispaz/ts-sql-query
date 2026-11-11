@@ -17,7 +17,7 @@ export interface ProbeConnection {
     release(): Promise<void>
 }
 
-interface ProbeRun {
+export interface ProbeRun {
     /** The runner the probe builds, and its options */
     readonly runner: string
     readonly options?: Record<string, unknown> | undefined
@@ -26,7 +26,8 @@ interface ProbeRun {
     readonly env?: Record<string, string | undefined> | undefined
 }
 
-function runProbe(probe: string, mode: 'cases' | 'create', run: ProbeRun, connection: unknown): Promise<unknown> {
+/** Runs the probe in a child process started with the zone and the environment of the run, and gives what it printed */
+export function runProbe(probe: string, mode: string, run: ProbeRun, connection: unknown): Promise<unknown> {
     const runtimeArguments = typeof globalThis.Bun !== 'undefined' ? [probe] : ['--import', 'tsx', probe]
     const env: Record<string, string | undefined> = { ...process.env, TZ: run.zone, ORA_SDTZ: undefined, ...run.env }
     env[PROBE_ENV] = JSON.stringify({ mode, runner: run.runner, options: run.options ?? {}, connection })

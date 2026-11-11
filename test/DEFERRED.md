@@ -103,6 +103,21 @@ Each entry says what it is, why it waits, and what is already known.
     `Temporal.ZonedDateTime` maps to (only Oracle `TIMESTAMP WITH TIME ZONE`
     keeps a region name).
 
+## Comparing a `localTime` on Oracle
+
+- **What:** decide whether a comparison of a `localTime` on Oracle must compare
+  only the time of the day, and with which SQL, keeping the index of the column.
+- **Why deferred:** Oracle has no type of a time alone, so a `localTime` is kept
+  in a `TIMESTAMP` or a `DATE` with a day, and `t = :0` (in UTC) or
+  `t = cast(:0 as timestamp)` (with a `databaseTimeZone` other than UTC) also
+  compares that day: a row written by another program with the same time on
+  another day doesn't match. Reading it doesn't depend on the day (in UTC only
+  the time is kept; outside UTC the day is replaced by the
+  `localTimeReferenceDate`). It was left as it was when Oracle outside UTC was
+  added, to review on its own, in UTC and outside UTC.
+- **Known:** `test/runners/oracle/DatabaseOutsideUtc.test.ts` compares only rows
+  the library wrote, whose day is the one of the `Date` sent.
+
 ## `aggregateAsArrayDistinct` on MySQL
 
 - **What:** offering `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` on

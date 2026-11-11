@@ -149,14 +149,21 @@ async function main() {
 
 ## Connection requirements
 
-**Rejected at the first query**, before anything is sent, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION` and `name` `'ORA_SDTZ'` (Oracle doesn't support yet a `databaseTimeZone` other than UTC):
+**Rejected at the first query**, before anything is sent, with a `TsSqlProcessingError` of reason `INVALID_CONFIGURATION` and `name` `'ORA_SDTZ'`:
 
-- **A session outside UTC: the environment variable `ORA_SDTZ` set to another zone, or not set when the process doesn't run in UTC.** oracledb sets the zone of the session from `ORA_SDTZ` when it opens a connection, or else from the offset of the process at that moment. The library takes the database as UTC, and the session must be in its zone: a `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the zone of the session, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, and what the database computes in the session (`current_date`, `localtimestamp`) comes in its zone. `ORA_SDTZ` is accepted as `UTC` or another name of UTC, or as `+00:00`; `LOCAL` and `DBTIMEZONE` are rejected, because their zone can't be known without a query. In a process in UTC nothing is needed: oracledb already sets the session to `+00:00`. If your database isn't in UTC, don't move the session to UTC to pass the check: a database outside UTC isn't supported yet (see [Time zones](../../time-zones.md#the-zone-of-the-database-and-the-session)). How the query runner knows the zone of the process is in [Time zones](../../time-zones.md#the-applications-zone).
+- **A session outside the zone of the database: the environment variable `ORA_SDTZ` set to another zone, or not set when it can't give that zone.** The zone of the database is the `databaseTimeZone` of the connection, UTC by default (see [A database outside UTC](../../time-zones.md#a-database-outside-utc)). oracledb sets the zone of the session from `ORA_SDTZ` when it opens a connection, or else from the offset of the process at that moment. The session must be in the zone of the database: a `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the zone of the session, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, the database completes with it the zone of the values of a database outside UTC, and what the database computes in the session (`current_date`, `localtimestamp`) comes in its zone.
+    - **A database in UTC**: `ORA_SDTZ` is accepted as `UTC` or another name of UTC, or as `+00:00`. In a process in UTC nothing is needed: oracledb already sets the session to `+00:00`.
+    - **A database in another zone**, like `Europe/Madrid`: `ORA_SDTZ` must be that same name, `ORA_SDTZ=Europe/Madrid`. Without it the session has the offset of the process, which doesn't follow summer time, even with the process in Madrid; an offset, like `+01:00`, doesn't either.
+    - `LOCAL` and `DBTIMEZONE` are rejected, because their zone can't be known without a query.
+
+    If your database isn't in UTC, don't move the session to UTC to pass the check: declare its zone in the connection. How the query runner knows the zone of the process is in [Time zones](../../time-zones.md#the-applications-zone).
 
 Set it before the first connection is opened, in the environment or at the top of your entry point:
 
 ```bash
 ORA_SDTZ=UTC node app.js
+# or, with databaseTimeZone = 'Europe/Madrid' on the connection
+ORA_SDTZ=Europe/Madrid node app.js
 ```
 
 ```ts
@@ -168,6 +175,8 @@ A connection opened before, or a session whose zone you change with `ALTER SESSI
 **Not applied to the queries of the library**: the global `oracledb.fetchTypeHandler`, `oracledb.fetchAsString`, `oracledb.fetchAsBuffer` and `oracledb.maxRows`. They don't change what the library receives, and `maxRows` doesn't cut its results; your own executions keep them.
 
 With the process outside UTC, a `DATE` or `TIMESTAMP` holding a wall clock that doesn't exist in the zone of the process comes back moved an hour: see [Time zones → Known limits](../../time-zones.md#known-limits).
+
+With a `databaseTimeZone` other than UTC, a `localDateTime` or a `localTime` is sent as a `TIMESTAMP WITH LOCAL TIME ZONE`, which oracledb writes with the offset of `DBTIMEZONE`: `DBTIMEZONE` must be an offset, like its default `+00:00`. With a region, like `Europe/Madrid`, oracledb rejects the query with `NJS-201`.
 
 ## Running a statement on each new connection
 

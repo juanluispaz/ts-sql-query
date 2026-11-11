@@ -151,36 +151,57 @@ What the drivers do with the session by default: pg, postgres.js, Bun SQL Postgr
 
 ## A database outside UTC
 
-A database that has always been in the zone it was installed in, like `Europe/Madrid`, holds its values without zone as wall clocks of that zone. On PostgreSQL, declare that zone in the connection, with `databaseTimeZone` and an IANA name:
+A database that has always been in the zone it was installed in, like `Europe/Madrid`, holds its values without zone as wall clocks of that zone. On PostgreSQL and Oracle, declare that zone in the connection, with `databaseTimeZone` and an IANA name:
 
-```ts
-import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+=== "Oracle"
+    ```ts
+    import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 
-class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override databaseTimeZone = 'Europe/Madrid'
-}
-```
+    class DBConnection extends OracleConnection<'DBConnection'> {
+        protected override databaseTimeZone = 'Europe/Madrid'
+    }
+    ```
 
-The library then lets the database complete the zone of a `localDateTime` or a `localTime` with its session, which must be in that zone (leave it unset, or set it to that same zone): a `Date` is still an instant, and the database turns it into its wall clock and back.
+===+ "PostgreSQL"
+    ```ts
+    import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
-| | What the library writes | Example, in `Europe/Madrid` |
-|---|---|---|
-| A `localDateTime` sent | `$1::timestamptz` (pg, Bun SQL), or the parameter sent as a `timestamptz` (postgres.js, PGlite) | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123`, and compared with it |
-| A `localDateTime` read | `starts_at::timestamptz` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
-| The date functions | `extract(hour from (starts_at::timestamptz at time zone 'UTC'))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
-| A `localTime` | completed with a day, the `localTimeReferenceDate` | `18:00` is read as `1970-01-01T17:00:00.000Z` |
+    class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+        protected override databaseTimeZone = 'Europe/Madrid'
+    }
+    ```
 
-A `localDate` doesn't change: a date has no instant. A column with zone (`timestamptz`) reads the same as before, its instant.
+The library then lets the database complete the zone of a `localDateTime` or a `localTime` with its session, which must be in that zone: a `Date` is still an instant, and the database turns it into its wall clock and back. On PostgreSQL leave the session unset, or set it to that same zone. On Oracle set the environment variable `ORA_SDTZ` to that same zone, `ORA_SDTZ=Europe/Madrid`: without it oracledb gives the session the offset of the process, which doesn't follow summer time (see [oracledb → Connection requirements](query-runners/recommended/oracledb.md#connection-requirements)).
+
+=== "Oracle"
+    | | What the library writes | Example, in `Europe/Madrid` |
+    |---|---|---|
+    | A `localDateTime` sent as the value of a column (an insert, the set of an update) | `:0`, the parameter sent as a `TIMESTAMP WITH LOCAL TIME ZONE` | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123` |
+    | A `localDateTime` compared | `starts_at = cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a `DATE` column; the index of the column is used | `2024-01-14T09:15:30.123Z` finds `2024-01-14 10:15:30.123` |
+    | A `localDateTime` read | `cast(starts_at as timestamp with time zone)` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
+    | The date functions | `extract(hour from sys_extract_utc(cast(starts_at as timestamp with time zone)))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
+    | A `localTime` | completed with a day, the `localTimeReferenceDate`, instead of the day it is stored with: `cast(timestamp '1970-01-01 00:00:00' + (t - trunc(t)) as timestamp with time zone)` | `18:00` is read as `1970-01-01T17:00:00.000Z` |
+
+===+ "PostgreSQL"
+    | | What the library writes | Example, in `Europe/Madrid` |
+    |---|---|---|
+    | A `localDateTime` sent | `$1::timestamptz` (pg, Bun SQL), or the parameter sent as a `timestamptz` (postgres.js, PGlite) | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123`, and compared with it |
+    | A `localDateTime` read | `starts_at::timestamptz` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
+    | The date functions | `extract(hour from (starts_at::timestamptz at time zone 'UTC'))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
+    | A `localTime` | completed with a day, the `localTimeReferenceDate` | `18:00` is read as `1970-01-01T17:00:00.000Z` |
+
+A `localDate` doesn't change: a date has no instant. A column with zone (`timestamptz`, `TIMESTAMP WITH TIME ZONE`) reads the same as before, its instant.
 
 A `localTime` has no day, and its offset depends on the day: 18:00 in Madrid is 17:00 UTC in winter and 16:00 UTC in summer. `localTimeReferenceDate` says which day completes it: `'1970-01-01'` by default, the day of a `localTime`, a date of yours as `'YYYY-MM-DD'`, or `'today'`, the current date of the database, which gives the offset of today. The `Date` read keeps that day. For anything finer, like the day of another column, use a [type adapter](column-types.md#type-adapters).
 
-A wall clock the zone skips when it changes to summer time (`2024-03-31 02:30` in Madrid) is moved forward by PostgreSQL (`03:30`), and one it repeats when it changes back (`2024-10-27 02:30`) is taken in winter time.
+A wall clock the zone repeats when it changes back from summer time (`2024-10-27 02:30` in Madrid) is taken in winter time. One it skips when it changes to summer time (`2024-03-31 02:30`) can't have been written by the library, only by another program: PostgreSQL moves it forward (`03:30`), and Oracle rejects reading it, or a date function of it, with `ORA-01878`.
 
-**Only on PostgreSQL.** The other databases can't complete the zone for every date, so a `databaseTimeZone` other than UTC is rejected at the first query with `INVALID_CONFIGURATION`, before anything is sent:
+On Oracle, `DBTIMEZONE`, the zone in which Oracle keeps its `TIMESTAMP WITH LOCAL TIME ZONE` columns, must be an offset, like `+00:00`, its default; it isn't the zone of the data. With a region, like `Europe/Madrid`, oracledb can't send a `TIMESTAMP WITH LOCAL TIME ZONE` and the query fails with `NJS-201`.
+
+**Only on PostgreSQL and Oracle.** The other databases can't complete the zone for every date, so a `databaseTimeZone` other than UTC is rejected at the first query with `INVALID_CONFIGURATION`, before anything is sent:
 
 - **MariaDB and MySQL**: the only function that converts with the session, `convert_tz`, returns a value before 1970 without converting it, and without an error.
 - **SQL Server**: `AT TIME ZONE` knows only the zones of Windows, groups of countries with the rules of today: `Romance Standard Time`, the one of Madrid, gives `+02:00` on 1960-07-14, when Madrid was at `+01:00`.
-- **Oracle**: not supported yet.
 - **SQLite**: its [strategies of dates](supported-databases/sqlite.md#working-with-date-and-time) decide.
 
 ## Per database
@@ -231,7 +252,7 @@ Which column types fall in which kind, and what the session zone does:
     | 3 — pinned, delivered with the zone | *none* |
     | 4 — zone stored per value | `TIMESTAMP WITH TIME ZONE` |
 
-    The zone of the database is the one of `SYSTIMESTAMP`: the zone of the server's operating system, or `DBTIMEZONE` when the pluggable database sets `TIME_AT_DBTIMEZONE = DATABASE`. It must be UTC. oracledb sets the session zone when it opens a connection: the one of the environment variable `ORA_SDTZ`, or else the offset of the process at that moment. A `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the session zone, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, and `current_date` and `localtimestamp` come in it. So the query runner requires the session in UTC: `ORA_SDTZ` set to UTC, or not set with the process in UTC; see [oracledb → Connection requirements](query-runners/recommended/oracledb.md#connection-requirements).
+    The zone of the database is the one of `SYSTIMESTAMP`: the zone of the server's operating system, or `DBTIMEZONE` when the pluggable database sets `TIME_AT_DBTIMEZONE = DATABASE`. It must be UTC, unless you declare it (see [A database outside UTC](#a-database-outside-utc)). oracledb sets the session zone when it opens a connection: the one of the environment variable `ORA_SDTZ`, or else the offset of the process at that moment. A `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the session zone, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, and `current_date` and `localtimestamp` come in it. So the query runner requires the session in the zone of the database: in UTC, `ORA_SDTZ` set to UTC, or not set with the process in UTC; in a zone you declare, `ORA_SDTZ` set to it. See [oracledb → Connection requirements](query-runners/recommended/oracledb.md#connection-requirements).
 
     ```sql
     SELECT sessiontimezone, to_char(systimestamp, 'TZR') FROM dual;
@@ -291,7 +312,7 @@ Which column types fall in which kind, and what the session zone does:
 
 ## Known limits
 
-- **Oracle: a wall clock that doesn't exist in the zone of the process.** oracledb builds the `Date` of a `DATE` or a `TIMESTAMP` in the zone of the process, and the query runner takes its digits back as UTC. A stored time that the zone of the process skips when it changes to summer time, like `2024-03-31 02:30:00` with the process in `Europe/Madrid`, has already been moved an hour by oracledb: it's read as `03:30`, and written back as `03:30`. So is such a time given as a constant or as the argument of a fragment and selected as it is. Inside an [aggregated array](../queries/aggregate-as-object-array.md) the value is built by the database and keeps its time. With the process in UTC every value is exact.
+- **Oracle: a wall clock that doesn't exist in the zone of the process.** oracledb builds the `Date` of a `DATE` or a `TIMESTAMP` in the zone of the process, and the query runner takes its digits back as UTC. A stored time that the zone of the process skips when it changes to summer time, like `2024-03-31 02:30:00` with the process in `Europe/Madrid`, has already been moved an hour by oracledb: it's read as `03:30`, and written back as `03:30`. So is such a time given as a constant or as the argument of a fragment and selected as it is. Inside an [aggregated array](../queries/aggregate-as-object-array.md) the value is built by the database and keeps its time. With the process in UTC every value is exact, and so is every `localDateTime` and `localTime` of a [database outside UTC](#a-database-outside-utc), which is read as its instant.
 - **A PGlite database created without `timezone = 'UTC'` by a process that doesn't run in UTC.** PGlite writes the zone of that process into the database, as a fixed offset, and a database in a directory keeps it when it's opened again. The values the library sends and reads are right, but what the database computes in the session zone isn't: a wall clock that the SQL turns into an instant, like a constant `localDateTime` selected and inserted into a `timestamptz` column, and the date functions of a `timestamptz`, like `getHours()`. Create the database with `postgresqlconf: ["timezone = 'UTC'"]` (see [pglite → Connection requirements](query-runners/recommended/pglite.md#connection-requirements)).
 - **A column of kind 4** keeps the instant, not the offset it was written with, as said [above](#4-the-zone-stored-with-each-value).
 - **A column of kind 4 with a value stored with an offset other than `+00:00`**, written by another program or a session in another zone: the value read is its instant, and the date functions of a query give the parts of that instant in UTC, except `getHours()` of a PostgreSQL `timetz`, which gives the hour of its own offset. Values the library writes are stored in UTC and are not affected.
@@ -402,7 +423,7 @@ const container = await new PostgreSqlContainer('postgres:18')
 The rule assumes that the digits of every column without zone are UTC. Check that before anything else:
 
 1. **Find out which kind your temporal columns are.** Kind 3 and kind 4 hold instants, and nothing on this page can shift them.
-2. **Find out the zone of the database**, with the query of its [Per database](#per-database) tab. If it isn't UTC, declare it in the connection on PostgreSQL (see [A database outside UTC](#a-database-outside-utc)); on the other databases it isn't supported: its values without zone are in its zone, and the library takes them as UTC.
+2. **Find out the zone of the database**, with the query of its [Per database](#per-database) tab. If it isn't UTC, declare it in the connection on PostgreSQL or Oracle (see [A database outside UTC](#a-database-outside-utc)); on the other databases it isn't supported: its values without zone are in its zone, and the library takes them as UTC.
 3. **For kind 1 and kind 2, find out in which zone the digits were written.** If the database is in UTC and whoever wrote them wrote UTC, there is nothing to do.
 4. **If some were written in another zone**, the library reads them as UTC, so each one comes out shifted by that zone's offset. Convert the stored values to UTC once, or, if you can't, read and write that column through a type adapter (below).
 

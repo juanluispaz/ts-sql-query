@@ -59,6 +59,8 @@ export interface SessionTimeZone {
     readonly name: string
     readonly value: unknown
     readonly origin: string
+    /** How the user puts the session in another zone, for the message (by default: set it or leave it unset) */
+    readonly howToSet?: string | undefined
 }
 
 /**
@@ -78,7 +80,7 @@ export function rejectSessionNotInDatabaseZone(session: SessionTimeZone | undefi
     return Promise.reject(new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: session.name, value: session.value },
         session.queryRunner + " requires the session in the zone of the database, the databaseTimeZone of the connection ('" + databaseTimeZone + "'): " + session.origin + " sets the session to '" + session.timeZone + "'. " + (databaseInUtc
             ? "Set the session to UTC or leave it unset; if the database isn't in UTC, declare its zone in the databaseTimeZone of the connection instead of moving the session to UTC"
-            : "Set the session to '" + databaseTimeZone + "' or leave it unset: in another zone, what the database produces in it (now(), a default) is not in the zone of its data")))
+            : (session.howToSet ? session.howToSet.replace('{zone}', databaseTimeZone) : "Set the session to '" + databaseTimeZone + "' or leave it unset") + ": in another zone, what the database produces in it (now(), a default) is not in the zone of its data")))
 }
 
 /**
@@ -139,13 +141,15 @@ export function postgreSqlOptionsTimeZone(options: unknown): string | undefined 
  * the process at that moment, which is UTC only when the process runs in UTC (`LOCAL` and `DBTIMEZONE` go as keywords,
  * whose zone can't be known without a query, and never match). Read when the query runner is created.
  */
-export function oracleSessionTimeZone(queryRunner: string): SessionTimeZone | undefined {
+export function oracleSessionTimeZone(queryRunner: string): SessionTimeZone {
     const sessionTimeZone = globalThis.process?.env?.['ORA_SDTZ']
+    // An unset ORA_SDTZ is not the zone of the database: oracledb gives the session the offset of the process
+    const howToSet = "Set the environment variable ORA_SDTZ to '{zone}' before the connections are opened"
     if (sessionTimeZone) {
-        return { queryRunner, timeZone: sessionTimeZone, name: 'ORA_SDTZ', value: sessionTimeZone, origin: 'the environment variable ORA_SDTZ, from which oracledb sets the zone of the session when it connects,' }
+        return { queryRunner, timeZone: sessionTimeZone, name: 'ORA_SDTZ', value: sessionTimeZone, origin: 'the environment variable ORA_SDTZ, from which oracledb sets the zone of the session when it connects,', howToSet }
     }
     if (isProcessInUtc()) {
-        return undefined
+        return { queryRunner, timeZone: 'UTC', name: 'ORA_SDTZ', value: sessionTimeZone, origin: 'ORA_SDTZ is not set, and oracledb, when it connects, with the process in UTC,', howToSet }
     }
-    return { queryRunner, timeZone: 'the offset of the process', name: 'ORA_SDTZ', value: sessionTimeZone, origin: 'ORA_SDTZ is not set, and oracledb, when it connects,' }
+    return { queryRunner, timeZone: 'the offset of the process', name: 'ORA_SDTZ', value: sessionTimeZone, origin: 'ORA_SDTZ is not set, and oracledb, when it connects,', howToSet }
 }

@@ -10,7 +10,7 @@ import { getQueryResultColumns, setQueryParamType } from './QueryRunner.js'
 import { isProcessInUtc, oracleSessionTimeZone, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
-import { oracleTemporalBind } from '../utils/oracleParamTypes.js'
+import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracleParamTypes.js'
 import { oracleDateParam } from '../utils/valueSymbols.js'
 
 export interface OracleDBQueryRunnerConfig {
@@ -205,6 +205,13 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             }
             if ((procedure || nativeBoolean) && getParamTypeCategoryAt(params, i) === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
                 result[i] = { val: value === null || value === undefined ? null : !!value, type: oracleDb.DB_TYPE_BOOLEAN }
+                continue
+            }
+            // A localDateTime or a localTime of a database outside UTC goes as a TIMESTAMP WITH LOCAL TIME ZONE, which
+            // Oracle converts with its session (the zone of the database); oracledb writes it from the UTC of the Date
+            // and the offset of DBTIMEZONE, whatever the zone of the process (NJS-201 when DBTIMEZONE is a region)
+            if (value instanceof Date && !isNaN(value.getTime()) && isOracleZonedParam(params, i)) {
+                result[i] = { val: value, type: oracleDb.DB_TYPE_TIMESTAMP_LTZ }
                 continue
             }
             // A localDate is bound as a date, a localTime or a localDateTime as a timestamp, with their UTC digits

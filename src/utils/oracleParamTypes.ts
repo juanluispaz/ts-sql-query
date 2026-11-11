@@ -1,6 +1,8 @@
 import type { TypeCategory } from '../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from './customDecimalParams.js'
+import { getParamMetadataAt, isParamValueForColumnAt } from './queryParamsMetadata.js'
 import { __conversionType, __isDecimalCategory } from './typeCategory.js'
+import { oracleDateParam, oracleZonedParam } from './valueSymbols.js'
 
 /**
  * Checks a parameter on Oracle, for every query runner of it: the number of the database keeps 38 significant
@@ -60,4 +62,25 @@ export function oracleTemporalBind(value: unknown, type: string | undefined, typ
         default:
             return undefined
     }
+}
+
+/** Whether the parameter at that index is a localDateTime or a localTime of a database outside UTC (oracleZonedParam) */
+export function isOracleZonedParam(params: any[], index: number): boolean {
+    return getParamMetadataAt(params, index, oracleZonedParam) === true
+}
+
+/**
+ * The placeholder of a localDateTime or a localTime of a database outside UTC, about to be added at that index, which
+ * is sent as a TIMESTAMP WITH LOCAL TIME ZONE of its instant: as the value of a column (an insert, the set of an
+ * update) Oracle converts it with its session into the wall clock it stores, and the placeholder is the bare one;
+ * anywhere else it is cast to the type of the column, the wall clock of the session, so the column compares with it as
+ * it is and its index can be used: `cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a DATE
+ * column (oracleDateParam). A null, or any other parameter, keeps the bare placeholder.
+ */
+export function oraclePlaceholder(placeholder: string, params: any[], index: number, value: unknown): string {
+    if (!(value instanceof Date) || !isOracleZonedParam(params, index) || isParamValueForColumnAt(params, index)) {
+        return placeholder
+    }
+    const ofDate = getParamMetadataAt(params, index, oracleDateParam) === true && value.getUTCMilliseconds() === 0
+    return 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
 }

@@ -13,7 +13,7 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __typeCategoryOf } from '../utils/typeCategory.js'
+import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
@@ -1182,7 +1182,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result += this._appendResultColumnProjection(columns[property]!, this._appendSql(columns[property]!, params, false), params)
+            const column = columns[property]!
+            // A localDateTime of a database outside UTC goes as it is: its TIMESTAMP WITH TIME ZONE OUT bind already
+            // receives the instant Oracle completes with its session
+            const sql = this._appendSql(column, params, false)
+            result += this._isZonedReturningColumn(column) && __isLocalDateTimeValueSource(__getValueSourcePrivate(column)) ? sql : this._appendResultColumnProjection(column, sql, params)
             requireComma = true
         }
         if (result) {
@@ -1195,7 +1199,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             const column = columns[property]!
             let placeholder
-            if (this._isConvertedResultColumn(column, params)) {
+            if (!this._isZonedReturningColumn(column) && this._isConvertedResultColumn(column, params)) {
                 // The value is returned as the SQL its transformProjection writes, which is not of the type of the
                 // column: it is received as a text
                 placeholder = this._queryRunner.addOutParam(params, property, 'string', 'string', false)
@@ -1210,6 +1214,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
         return ' returning ' + result
+    }
+    /**
+     * A localDateTime or a localTime of a database outside UTC whose only conversion is the one of the connection: it is
+     * returned in an OUT bind of its type, a TIMESTAMP WITH TIME ZONE, not as a text
+     */
+    _isZonedReturningColumn(column: AnyValueSource): boolean {
+        if (!this._isDatabaseOutsideUtc() || !isValueSource(column)) {
+            return false
+        }
+        const columnPrivate = __getValueSourcePrivate(column)
+        if (columnPrivate.__typeAdapter?.transformProjection) {
+            return false
+        }
+        return __isLocalDateTimeValueSource(columnPrivate) || __isLocalTimeValueSource(columnPrivate)
     }
     override _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
@@ -1323,7 +1341,23 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'log(10, ' + this._appendSql(valueSource, params, false) + ')'
     }
     override _getDate(params: any[], valueSource: ToSql): string {
-        return 'extract(day from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(day from ' + (this._appendZonedUtcTimestamp(params, valueSource) ?? this._appendSql(valueSource, params, false)) + ')'
+    }
+    override _supportDatabaseOutsideUtc(): boolean {
+        return true
+    }
+    /**
+     * With a databaseTimeZone other than UTC, a localDateTime or a localTime for the date functions: a TIMESTAMP with the
+     * digits of the UTC of its instant, which the database completes with its session (see oracleZonedValueSql), so they
+     * keep giving the parts in UTC. Undefined in UTC, or for a value of another type
+     */
+    _appendZonedUtcTimestamp(params: any[], valueSource: ToSql): string | undefined {
+        if (!this._isDatabaseOutsideUtc() || !isValueSource(valueSource)) {
+            return undefined
+        }
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const zoned = oracleZonedValueSql(this._appendSql(valueSource, params, false), __conversionType(valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType)), this._connectionConfiguration.localTimeReferenceDate)
+        return zoned ? 'sys_extract_utc(' + zoned + ')' : undefined
     }
     // Oracle counts a negative start from the end like JS, but answers '' once the start runs
     // past the beginning of the string, where JS clamps it and returns the whole string.
@@ -1355,6 +1389,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return super._substr(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
     }
     override _getTime(params: any[], valueSource: ToSql): string {
+        const zoned = this._appendZonedUtcTimestamp(params, valueSource)
+        if (zoned) {
+            return "(trunc(" + zoned + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + zoned + ", 'SSSSSFF3'))"
+        }
         if (this._isDateReadAsTimestamp(valueSource)) {
             // A DATE has no fraction of a second: the day count is the whole time. A value made from the column may
             // not be a DATE (nullif with a timestamp gives a TIMESTAMP, and a TIMESTAMP minus a DATE is an interval)
@@ -1368,18 +1406,18 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return "(trunc(" + utc + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + utc + ", 'SSSSSFF3'))"
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'extract(year from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(year from ' + (this._appendZonedUtcTimestamp(params, valueSource) ?? this._appendSql(valueSource, params, false)) + ')'
     }
     override _getMonth(params: any[], valueSource: ToSql): string {
-        return 'extract(month from ' + this._appendSql(valueSource, params, false) + ') - 1'
+        return 'extract(month from ' + (this._appendZonedUtcTimestamp(params, valueSource) ?? this._appendSql(valueSource, params, false)) + ') - 1'
     }
     override _getDay(params: any[], valueSource: ToSql): string {
         // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
         // trunc of a value with zone gives the day of the zone it was stored with: a localDateTime is taken to the
         // UTC digits of its instant first. A localDate, and a DATE read as a timestamp, have no zone
-        const day = isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
+        const day = this._appendZonedUtcTimestamp(params, valueSource) ?? (isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
             ? this._appendUtcTimestamp(params, valueSource)
-            : this._appendSql(valueSource, params, false)
+            : this._appendSql(valueSource, params, false))
         return "mod(trunc(" + day + ") - trunc(" + day + ", 'IW') + 1, 7)"
     }
     /**
@@ -1397,6 +1435,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'extract(minute from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
     }
     override _getSeconds(params: any[], valueSource: ToSql): string {
+        const zoned = this._appendZonedUtcTimestamp(params, valueSource)
+        if (zoned) {
+            return 'trunc(extract(second from ' + zoned + '))'
+        }
         if (this._isDateReadAsTimestamp(valueSource)) {
             // A DATE has no fraction of a second to truncate
             return 'extract(second from ' + this._appendTimestampForTimeGetter(params, valueSource) + ')'
@@ -1408,6 +1450,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     /** The value for `extract` of the time or `to_char` of the fraction: a DATE column read as a timestamp is cast */
     _appendTimestampForTimeGetter(params: any[], valueSource: ToSql): string {
+        const zoned = this._appendZonedUtcTimestamp(params, valueSource)
+        if (zoned) {
+            return zoned
+        }
         if (this._isDateReadAsTimestamp(valueSource)) {
             return 'cast(' + this._appendSql(valueSource, params, false) + ' as timestamp)'
         }
@@ -1505,6 +1551,24 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'json_arrayagg(json_object(' + result + '))'
         }
     }
+}
+
+/**
+ * The instant of a localDateTime or a localTime of a database outside UTC, as a timestamp with time zone the database
+ * completes with the zone of its session (the zone of the database): `cast(<sql> as timestamp with time zone)`; a
+ * localTime on the day of the localTimeReferenceDate, replacing the day it is stored with (Oracle has no type of a
+ * time alone): `cast(timestamp '1970-01-01 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or the
+ * current date of the session for `'today'`. A wall clock the zone skips gives ORA-01878. Undefined for any other type.
+ */
+export function oracleZonedValueSql(sql: string, conversionType: string, localTimeReferenceDate: string | undefined): string | undefined {
+    if (conversionType === 'localDateTime') {
+        return 'cast(' + sql + ' as timestamp with time zone)'
+    }
+    if (conversionType === 'localTime') {
+        const day = localTimeReferenceDate === 'today' ? 'cast(trunc(localtimestamp) as timestamp)' : "timestamp '" + (localTimeReferenceDate ?? '1970-01-01') + " 00:00:00'"
+        return 'cast(' + day + ' + (' + sql + ' - trunc(' + sql + ')) as timestamp with time zone)'
+    }
+    return undefined
 }
 
 /*

@@ -12,6 +12,7 @@ import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
+import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -20,7 +21,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return selectColumn.sql
     }
     override _isReservedKeyword(word: string): boolean {
-        return word.toUpperCase() in reservedWords
+        return isPostgreSqlReservedWord(word)
     }
     override _cbrt(params: any[], valueSource: ToSql): string {
         return 'cbrt(' + this._appendSql(valueSource, params, false) + ')'
@@ -676,108 +677,4 @@ export function postgreSqlZonedValueSql(sql: string, conversionType: string, loc
         return '(' + day + ' + ' + sql + ')::timestamptz'
     }
     return undefined
-}
-
-// Source: https://www.postgresql.org/docs/12/sql-keywords-appendix.html (version: 12, only the ones marked as reserved by postgreSql)
-const reservedWords: { [word: string]: boolean | undefined } = {
-    ALL: true,
-    ANALYSE: true,
-    ANALYZE: true,
-    AND: true,
-    ANY: true,
-    ARRAY: true,
-    AS: true,
-    ASC: true,
-    ASYMMETRIC: true,
-    BOTH: true,
-    CASE: true,
-    CAST: true,
-    CHECK: true,
-    COLLATE: true,
-    COLUMN: true,
-    CONSTRAINT: true,
-    CREATE: true,
-    CURRENT_CATALOG: true,
-    CURRENT_DATE: true,
-    CURRENT_ROLE: true,
-    CURRENT_TIME: true,
-    CURRENT_TIMESTAMP: true,
-    CURRENT_USER: true,
-    DEFAULT: true,
-    DEFERRABLE: true,
-    DESC: true,
-    DISTINCT: true,
-    DO: true,
-    ELSE: true,
-    END: true,
-    EXCEPT: true,
-    FALSE: true,
-    FETCH: true,
-    FOR: true,
-    FOREIGN: true,
-    FROM: true,
-    GRANT: true,
-    GROUP: true,
-    HAVING: true,
-    IN: true,
-    INITIALLY: true,
-    INTERSECT: true,
-    INTO: true,
-    LATERAL: true,
-    LEADING: true,
-    LIMIT: true,
-    LOCALTIME: true,
-    LOCALTIMESTAMP: true,
-    NOT: true,
-    NULL: true,
-    OFFSET: true,
-    ON: true,
-    ONLY: true,
-    OR: true,
-    ORDER: true,
-    PLACING: true,
-    PRIMARY: true,
-    REFERENCES: true,
-    RETURNING: true,
-    SELECT: true,
-    SESSION_USER: true,
-    SOME: true,
-    SYMMETRIC: true,
-    TABLE: true,
-    THEN: true,
-    TO: true,
-    TRAILING: true,
-    TRUE: true,
-    UNION: true,
-    UNIQUE: true,
-    USER: true,
-    USING: true,
-    VARIADIC: true,
-    WHEN: true,
-    WHERE: true,
-    WINDOW: true,
-    WITH: true,
-    AUTHORIZATION: true,
-    BINARY: true,
-    COLLATION: true,
-    CONCURRENTLY: true,
-    CROSS: true,
-    CURRENT_SCHEMA: true,
-    FREEZE: true,
-    FULL: true,
-    ILIKE: true,
-    INNER: true,
-    IS: true,
-    ISNULL: true,
-    JOIN: true,
-    LEFT: true,
-    LIKE: true,
-    NATURAL: true,
-    NOTNULL: true,
-    OUTER: true,
-    OVERLAPS: true,
-    RIGHT: true,
-    SIMILAR: true,
-    TABLESAMPLE: true,
-    VERBOSE: true
 }

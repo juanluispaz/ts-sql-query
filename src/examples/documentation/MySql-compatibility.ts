@@ -140,7 +140,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, parent_id as parentId, ubication_latitude as `ubication.latitude`, ubication_longitude as `ubication.longitude`, ubication_comment as `ubication.comment` from company")
+    expectedQuery.push("select id as id, name as name, parent_id as parentId, ubication_latitude as `ubication.latitude`, ubication_longitude as `ubication.longitude`, ubication_comment as `ubication.comment` from company")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
 
@@ -269,7 +269,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc")
+    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc")
     expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
@@ -301,7 +301,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc")
+    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc")
     expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
@@ -334,7 +334,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc")
+    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as name, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(concat(first_name, ?, last_name)), birthday is null, birthday asc")
     expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
@@ -370,7 +370,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.`name` as companyName from customer inner join company as comp on customer.company_id = comp.id where lower(customer.first_name) like concat(lower(?), '%') order by lower(customer.first_name), lower(customer.last_name) asc")
+    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName from customer inner join company as comp on customer.company_id = comp.id where lower(customer.first_name) like concat(lower(?), '%') order by lower(customer.first_name), lower(customer.last_name) asc")
     expectedParams.push(`["John"]`)
     expectedType.push(`selectManyRows`)
 
@@ -401,7 +401,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id as result from company where `name` like concat('%', ?, '%')) order by customerFirstName asc, customerLastName")
+    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id as result from company where name like concat('%', ?, '%')) order by customerFirstName asc, customerLastName")
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 
@@ -426,7 +426,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select company.id as companyId, company.`name` as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.`name`")
+    expectedQuery.push("select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -447,7 +447,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select company.id as companyId, company.`name` as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.`name`")
+    expectedQuery.push("select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -505,7 +505,7 @@ async function main() {
 
     result = null
     expectedResult.push(result)
-    expectedQuery.push("select id::varchar as idAsString, concat(first_name, ?, last_name) as `name` from customer where !!id = !!?")
+    expectedQuery.push("select id::varchar as idAsString, concat(first_name, ?, last_name) as name from customer where !!id = !!?")
     expectedParams.push(`[" ",10]`)
     expectedType.push(`selectOneRow`)
     
@@ -526,7 +526,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
+    expectedQuery.push("select id as id, name as name, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
     expectedParams.push(`[1,2,1]`)
     expectedType.push(`selectManyRows`)
     
@@ -549,7 +549,7 @@ async function main() {
 
     result = [{id: 1, name: 'John'}]
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
+    expectedQuery.push("select id as id, name as name, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
     expectedParams.push(`[null,2,null]`)
     expectedType.push(`selectManyRows`)
     
@@ -572,7 +572,7 @@ async function main() {
 
     result = [{id: 1, name: 'John', idMultiplyBy2: 2}]
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
+    expectedQuery.push("select id as id, name as name, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
     expectedParams.push(`[1,2,1]`)
     expectedType.push(`selectManyRows`)
     
@@ -595,7 +595,7 @@ async function main() {
 
     result = [{id: 1, name: 'John'}]
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
+    expectedQuery.push("select id as id, name as name, id << ? as idMultiplyBy2 from company where (id * ?) = (id << ?)")
     expectedParams.push(`[1,2,1]`)
     expectedType.push(`selectManyRows`)
     
@@ -618,7 +618,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name` from company where id + 1 = ?")
+    expectedQuery.push("select id as id, name as name from company where id + 1 = ?")
     expectedParams.push(`[2]`)
     expectedType.push(`selectManyRows`)
     
@@ -884,7 +884,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customerCountPerCompany.companyId as acmeCompanyId, customerCountPerCompany.companyName as acmeCompanyName, customerCountPerCompany.customerCount as acmeCustomerCount from (select company.id as companyId, company.`name` as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.`name`) as customerCountPerCompany where lower(customerCountPerCompany.companyName) like concat('%', lower(?), '%')")
+    expectedQuery.push("select customerCountPerCompany.companyId as acmeCompanyId, customerCountPerCompany.companyName as acmeCompanyName, customerCountPerCompany.customerCount as acmeCustomerCount from (select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name) as customerCountPerCompany where lower(customerCountPerCompany.companyName) like concat('%', lower(?), '%')")
     expectedParams.push(`["ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -914,7 +914,7 @@ async function main() {
     
     result = 1
     expectedResult.push(result)
-    expectedQuery.push("insert into custom_company (`name`, is_big) values (?, case when ? then 'Y' else 'N' end)")
+    expectedQuery.push("insert into custom_company (name, is_big) values (?, case when ? then 'Y' else 'N' end)")
     expectedParams.push(`["My Big Company",true]`)
     expectedType.push(`insertReturningLastInsertedId`)
     
@@ -932,7 +932,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, (is_big = 'Y') as isBig from custom_company where is_big = 'Y'")
+    expectedQuery.push("select id as id, name as name, (is_big = 'Y') as isBig from custom_company where is_big = 'Y'")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
 
@@ -952,7 +952,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.`name` as companyName from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.`name` = ? order by lower(customer.first_name), lower(customer.last_name) asc")
+    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.name as companyName from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.name = ? order by lower(customer.first_name), lower(customer.last_name) asc")
     expectedParams.push(`["John","Smi","th","ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -998,7 +998,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.`name` as `company.name` from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.`name` = ? order by lower(customer.first_name), lower(customer.last_name) asc")
+    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.name as `company.name` from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like concat(lower(?), '%') or (lower(customer.last_name) like concat(lower(?), '%') and customer.last_name like concat('%', ?))) and company.name = ? order by lower(customer.first_name), lower(customer.last_name) asc")
     expectedParams.push(`["John","Smi","th","ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -1056,7 +1056,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as `name`, ? as `type` from customer union all select id as id, `name` as `name`, ? as `type` from company")
+    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as name, ? as type from customer union all select id as id, name as name, ? as type from company")
     expectedParams.push(`[" ","customer","company"]`)
     expectedType.push(`selectManyRows`)
     
@@ -1098,7 +1098,7 @@ async function main() {
         'company.id': 10,
         'company.name': 'ACME Inc.'
     })
-    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.id as `company.id`, company.`name` as `company.name` from customer inner join company on company.id = customer.company_id where customer.id = ?")
+    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.id as `company.id`, company.name as `company.name` from customer inner join company on company.id = customer.company_id where customer.id = ?")
     expectedParams.push(`[12]`)
     expectedType.push(`selectOneRow`)
     
@@ -1143,7 +1143,7 @@ async function main() {
         'company.id': 10,
         'company.name': 'ACME Inc.'
     })
-    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.`name` as `company.name` from customer inner join company on company.id = customer.company_id where company.`name` = ? and (lower(customer.first_name) like concat('%', lower(?), '%') or lower(customer.last_name) like concat('%', lower(?), '%')) order by lower(company.`name`) asc, birthday desc")
+    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, customer.birthday as birthday, company.id as `company.id`, company.name as `company.name` from customer inner join company on company.id = customer.company_id where company.name = ? and (lower(customer.first_name) like concat('%', lower(?), '%') or lower(customer.last_name) like concat('%', lower(?), '%')) order by lower(company.name) asc, birthday desc")
     expectedParams.push(`["ACME","John","Smi"]`)
     expectedType.push(`selectOneRow`)
     
@@ -1318,7 +1318,7 @@ async function main() {
         'parentId': 18,
         'parentName': 'name'
     }])
-    expectedQuery.push("select company.id as id, company.`name` as `name`, parent.id as parentId, parent.`name` as parentName from company left join company as parent on company.parent_id = parent.id")
+    expectedQuery.push("select company.id as id, company.name as name, parent.id as parentId, parent.name as parentName from company left join company as parent on company.parent_id = parent.id")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -1359,7 +1359,7 @@ async function main() {
         'parent.id': 18,
         'parent.name': 'name'
     }])
-    expectedQuery.push("select company.id as id, company.`name` as `name`, parent.id as `parent.id`, parent.`name` as `parent.name` from company left join company as parent on company.parent_id = parent.id")
+    expectedQuery.push("select company.id as id, company.name as name, parent.id as `parent.id`, parent.name as `parent.name` from company left join company as parent on company.parent_id = parent.id")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -1502,7 +1502,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, company.`name` as companyName from customer inner join company on company.id = customer.company_id where customer.id = ?")
+    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, company.name as companyName from customer inner join company on company.id = customer.company_id where customer.id = ?")
     expectedParams.push(`[12]`)
     expectedType.push(`selectManyRows`)
     
@@ -1624,7 +1624,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, company.`name` as `company.name` from customer inner join company on company.id = customer.company_id where customer.id = ?")
+    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, company.name as `company.name` from customer inner join company on company.id = customer.company_id where customer.id = ?")
     expectedParams.push(`[12]`)
     expectedType.push(`selectManyRows`)
     
@@ -2098,7 +2098,7 @@ async function main() {
         companyId: 7
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, concat(first_name, ?, last_name) as `name`, calculateAge(birthday) as age from customer where id = ?")
+    expectedQuery.push("select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, concat(first_name, ?, last_name) as name, calculateAge(birthday) as age from customer where id = ?")
     expectedParams.push(`[" ",9]`)
     expectedType.push(`selectOneRow`)
     
@@ -2121,7 +2121,7 @@ async function main() {
         companyId: 7
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, concat(first_name, ?, last_name) as `name`, calculateAge(birthday) as age from customer where id = ?")
+    expectedQuery.push("select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, concat(first_name, ?, last_name) as name, calculateAge(birthday) as age from customer where id = ?")
     expectedParams.push(`[" ",9]`)
     expectedType.push(`selectOneRow`)
     
@@ -2183,7 +2183,7 @@ async function main() {
         'parent.name': 'name',
         'parent.parentId': 8
     }])
-    expectedQuery.push("select company.id as id, company.`name` as `name`, parent.id as `parent.id`, parent.`name` as `parent.name`, parent.parent_id as `parent.parentId` from company left join company as parent on company.parent_id = parent.id")
+    expectedQuery.push("select company.id as id, company.name as name, parent.id as `parent.id`, parent.name as `parent.name`, parent.parent_id as `parent.parentId` from company left join company as parent on company.parent_id = parent.id")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -2247,7 +2247,7 @@ async function main() {
         'parent.parent.name': 'name',
         'parent.parent.parentId': 17
     }])
-    expectedQuery.push("select company.id as id, company.`name` as `name`, parent.id as `parent.id`, parent.`name` as `parent.name`, parentParent.id as `parent.parent.id`, parentParent.`name` as `parent.parent.name`, parentParent.parent_id as `parent.parent.parentId` from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id")
+    expectedQuery.push("select company.id as id, company.name as name, parent.id as `parent.id`, parent.name as `parent.name`, parentParent.id as `parent.parent.id`, parentParent.name as `parent.parent.name`, parentParent.parent_id as `parent.parent.parentId` from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -2279,7 +2279,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as `name` from customer where company_id = (select id as result from company where `name` = ?)")
+    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as name from customer where company_id = (select id as result from company where name = ?)")
     expectedParams.push(`[" ","ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -2304,7 +2304,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push("update customer, company set customer.last_name = concat(customer.last_name, ?, company.`name`) where customer.company_id = company.id and lower(company.`name`) like concat('%', lower(?), '%')")
+    expectedQuery.push("update customer, company set customer.last_name = concat(customer.last_name, ?, company.name) where customer.company_id = company.id and lower(company.name) like concat('%', lower(?), '%')")
     expectedParams.push(`[" - ","ACME"]`)
     expectedType.push(`update`)
 
@@ -2325,7 +2325,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push("delete from customer using customer, company where customer.company_id = company.id and lower(company.`name`) like concat('%', lower(?), '%')")
+    expectedQuery.push("delete from customer using customer, company where customer.company_id = company.id and lower(company.name) like concat('%', lower(?), '%')")
     expectedParams.push(`["ACME"]`)
     expectedType.push(`delete`)
 
@@ -2351,7 +2351,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2389,7 +2389,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select company.id as id, company.`name` as `name`, cast(json_arrayagg(json_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id")
+    expectedQuery.push("select company.id as id, company.name as name, cast(json_arrayagg(json_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2424,7 +2424,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(concat(first_name, ?, last_name)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(concat(first_name, ?, last_name)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2458,7 +2458,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select company.id as id, company.`name` as `name`, cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id")
+    expectedQuery.push("select company.id as id, company.name as name, cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id")
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2481,7 +2481,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner2.id as result from company inner join (select id as id, `name` as `name` from custom_company where id = customer.company_id) as inner2 on company.id = inner2.id where company.`name` like concat('%', ?, '%'))")
+    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner2.id as result from company inner join (select id as id, name as name from custom_company where id = customer.company_id) as inner2 on company.id = inner2.id where company.name like concat('%', ?, '%'))")
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 
@@ -2507,7 +2507,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner3.id as result from company inner join (select id as id, `name` as `name` from custom_company) as inner3 on company.id = inner3.id where company.`name` like concat('%', ?, '%'))")
+    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner3.id as result from company inner join (select id as id, name as name from custom_company) as inner3 on company.id = inner3.id where company.name like concat('%', ?, '%'))")
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 
@@ -2533,7 +2533,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner4.id as result from company inner join (select innerInner4.id as id, innerInner4.`name` as `name` from (select id as id, `name` as `name` from custom_company) as innerInner4) as inner4 on company.id = inner4.id where company.`name` like concat('%', ?, '%'))")
+    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner4.id as result from company inner join (select innerInner4.id as id, innerInner4.name as name from (select id as id, name as name from custom_company) as innerInner4) as inner4 on company.id = inner4.id where company.name like concat('%', ?, '%'))")
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 
@@ -2568,7 +2568,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) from customer where company_id = company.id) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2606,7 +2606,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id limit 2147483647) as a_1_) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id limit 2147483647) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2645,7 +2645,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(concat(first_name, ?, last_name)) from customer where company_id = company.id) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(concat(first_name, ?, last_name)) from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2679,7 +2679,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = company.id order by result limit 2147483647) as a_1_) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = company.id order by result limit 2147483647) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2714,7 +2714,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id) as a_1_) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2760,7 +2760,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id limit 2147483647) as a_1_) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id limit 2147483647) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2806,7 +2806,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = company.id union select concat(first_name, ?, last_name) as result from customer where company_id = company.id) as a_1_) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = company.id union select concat(first_name, ?, last_name) as result from customer where company_id = company.id) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[" "," ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2845,7 +2845,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = company.id union select concat(first_name, ?, last_name) as result from customer where company_id = company.id order by result limit 2147483647) as a_1_) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = company.id union select concat(first_name, ?, last_name) as result from customer where company_id = company.id order by result limit 2147483647) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[" "," ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3183,7 +3183,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, customer.company_id as companyId from customer join company on company.id = customer.company_id where company.`name` = ?")
+    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, customer.company_id as companyId from customer join company on company.id = customer.company_id where company.name = ?")
     expectedParams.push(`["My company name"]`)
     expectedType.push(`selectManyRows`)
 
@@ -3202,7 +3202,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday from customer join company on company.id = customer.company_id where company.`name` = ?")
+    expectedQuery.push("select customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday from customer join company on company.id = customer.company_id where company.name = ?")
     expectedParams.push(`["My company name"]`)
     expectedType.push(`selectManyRows`)
 
@@ -3248,7 +3248,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select company.`name` as result from customer join company on company.id = customer.company_id")
+    expectedQuery.push("select company.name as result from customer join company on company.id = customer.company_id")
     expectedParams.push(`[]`)
     expectedType.push(`selectOneColumnManyRows`)
 
@@ -3309,7 +3309,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as `name`, calculateAge(birthday) as age from customer")
+    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as name, calculateAge(birthday) as age from customer")
     expectedParams.push(`[" "]`)
     expectedType.push(`selectManyRows`)
 
@@ -3457,7 +3457,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, ifnull((select count(*) as result from customer where company_id = company.id), ?) as numberOfCustomers from company")
+    expectedQuery.push("select id as id, name as name, ifnull((select count(*) as result from customer where company_id = company.id), ?) as numberOfCustomers from company")
     expectedParams.push(`[0]`)
     expectedType.push(`selectManyRows`)
 
@@ -3504,7 +3504,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, (select count(*) as result from customer where company_id = company.id) as numberOfCustomers from company")
+    expectedQuery.push("select id as id, name as name, (select count(*) as result from customer where company_id = company.id) as numberOfCustomers from company")
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
 
@@ -3722,7 +3722,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.id as companyId, company.`name` as companyName from customer inner join company on company.id = customer.company_id where customer.id = ?")
+    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.id as companyId, company.name as companyName from customer inner join company on company.id = customer.company_id where customer.id = ?")
     expectedParams.push(`[12]`)
     expectedType.push(`selectManyRows`)
     
@@ -3849,7 +3849,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push("update customer inner join company on customer.company_id = company.id set customer.first_name = ?, customer.last_name = ?, company.`name` = ? where customer.id = ?")
+    expectedQuery.push("update customer inner join company on customer.company_id = company.id set customer.first_name = ?, customer.last_name = ?, company.name = ? where customer.id = ?")
     expectedParams.push(`["John","Smith","ACME Inc.",12]`)
     expectedType.push(`update`)
 
@@ -3962,7 +3962,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name` from company where lower(`name`) like concat('%', lower(?), '%') and parent_id = ?")
+    expectedQuery.push("select id as id, name as name from company where lower(name) like concat('%', lower(?), '%') and parent_id = ?")
     expectedParams.push(`["ACME",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -3977,7 +3977,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select company.id as id, company.`name` as `name`, concat(favouriteCustomer.first_name, ?, favouriteCustomer.last_name) as `favouriteCustomer.name` from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where exists(select id as result from customer where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')) and company.parent_id = ?")
+    expectedQuery.push("select company.id as id, company.name as name, concat(favouriteCustomer.first_name, ?, favouriteCustomer.last_name) as `favouriteCustomer.name` from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where exists(select id as result from customer where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')) and company.parent_id = ?")
     expectedParams.push(`[" "," ","smith",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -3992,7 +3992,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select company.id as id, company.`name` as `name` from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where favouriteCustomer.id in (select parent_id as result from company where lower(`name`) like concat('%', lower(?), '%')) and company.parent_id = ?")
+    expectedQuery.push("select company.id as id, company.name as name from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where favouriteCustomer.id in (select parent_id as result from company where lower(name) like concat('%', lower(?), '%')) and company.parent_id = ?")
     expectedParams.push(`["ACME Inc.",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -4007,7 +4007,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name` from company where (exists(select id as result from customer where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')) or exists(select id as result from customer where birthday = ?)) and parent_id = ?")
+    expectedQuery.push("select id as id, name as name from company where (exists(select id as result from customer where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')) or exists(select id as result from customer where birthday = ?)) and parent_id = ?")
     expectedParams.push(`[" ","John","2000-03-01T00:00:00.000Z",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -4281,7 +4281,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, `name` as `name`, parent_id as parentId, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, parent_id as parentId, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -4344,7 +4344,7 @@ async function main() {
             { id: 3, firstName: 'Jane', lastName: 'Doe' }
         ]
     })
-    expectedQuery.push("select id as id, `name` as `name`, parent_id as parentId, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, parent_id as parentId, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -4415,7 +4415,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, companySubQuery.id as `company.id`, companySubQuery.`name` as `company.name` from customer inner join (select id as id, `name` as `name` from company) as companySubQuery on customer.company_id = companySubQuery.id where companySubQuery.`name` = ? union all select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, companySubQuery.id as `company.id`, companySubQuery.`name` as `company.name` from customer inner join (select id as id, `name` as `name` from company) as companySubQuery on customer.company_id = companySubQuery.id where companySubQuery.`name` = ?")
+    expectedQuery.push("select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, companySubQuery.id as `company.id`, companySubQuery.name as `company.name` from customer inner join (select id as id, name as name from company) as companySubQuery on customer.company_id = companySubQuery.id where companySubQuery.name = ? union all select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, companySubQuery.id as `company.id`, companySubQuery.name as `company.name` from customer inner join (select id as id, name as name from company) as companySubQuery on customer.company_id = companySubQuery.id where companySubQuery.name = ?")
     expectedParams.push(`["ACME","FOO"]`)
     expectedType.push(`selectManyRows`)
 
@@ -4475,7 +4475,7 @@ async function main() {
         'company.name': 'ACME Inc.',
         'company.parentId': 1
     }])
-    expectedQuery.push("select customerWithCompanyInfo.id as id, customerWithCompanyInfo.firstName as firstName, customerWithCompanyInfo.lastName as lastName, customerWithCompanyInfo.`company.id` as `company.id`, customerWithCompanyInfo.`company.name` as `company.name`, customerWithCompanyInfo.`company.parentId` as `company.parentId` from (select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, company.id as `company.id`, company.`name` as `company.name`, company.parent_id as `company.parentId` from customer inner join company on customer.company_id = company.id where company.`name` = ?) as customerWithCompanyInfo")
+    expectedQuery.push("select customerWithCompanyInfo.id as id, customerWithCompanyInfo.firstName as firstName, customerWithCompanyInfo.lastName as lastName, customerWithCompanyInfo.`company.id` as `company.id`, customerWithCompanyInfo.`company.name` as `company.name`, customerWithCompanyInfo.`company.parentId` as `company.parentId` from (select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, company.id as `company.id`, company.name as `company.name`, company.parent_id as `company.parentId` from customer inner join company on customer.company_id = company.id where company.name = ?) as customerWithCompanyInfo")
     expectedParams.push(`["ACME"]`)
     expectedType.push(`selectManyRows`)
 

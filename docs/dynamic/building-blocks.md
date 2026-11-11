@@ -500,7 +500,7 @@ Here only `firstName` is set. See [Manipulating values to insert](../queries/ins
 | The choice between a condition and none | `connection.noValueBoolean()` | [The neutral boolean](../queries/dynamic-queries.md#the-neutral-boolean) |
 | The whole condition, as data | `connection.dynamicConditionFor` | [Dynamic filters](caller-decides/filters.md) |
 | A text, if there is a value | `concatIfValue`, `concatIgnoringNullIfValue`, `replaceAllIfValue`, `replaceAllInsensitiveIfValue` | [All the IfValue methods](../queries/dynamic-queries.md#all-the-ifvalue-methods) |
-| The order | `orderByFromString`, `orderByFromStringArray` and their `IfValue` variants | [Order and page from a request](optional-parts/order-and-page.md) |
+| The order | `orderByFromString` and `orderByFromStringIfValue` | [Order and page from a request](optional-parts/order-and-page.md) |
 | The page | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](optional-parts/order-and-page.md#optional-limit-and-offset) |
 | The joins | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](optional-parts/optional-joins.md) |
 | The columns | `dynamicPick`, `dynamicPickPaths` | [Picking columns dynamically](caller-decides/picks.md) |

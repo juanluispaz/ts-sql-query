@@ -136,8 +136,6 @@ export interface CompoundedOrderByExecutableSelectExpression</*in|out*/ FROM ext
     orderBy(column: IRawFragment<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArray(orderBy: readonly string[]): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 // No orderingSiblingsOnly here: Oracle allows ORDER SIBLINGS BY only in the hierarchical query itself, not in a
@@ -210,8 +208,6 @@ export interface OrderByExecutableSelectExpression</*in|out*/ FROM extends HasSo
     orderBy(column: OrderByRecursiveAwareRawFragment<FROM, REQUIRED, FEATURES>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArray(orderBy: readonly string[]): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface OrderByExecutableSelectExpressionProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -243,8 +239,6 @@ export interface OrderableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM
     orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArray(orderBy: readonly string[]): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 
     limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
@@ -264,8 +258,6 @@ export interface OrderByExecutableSelectExpressionWithoutWhere</*in|out*/ FROM e
     orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArray(orderBy: readonly string[]): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface OrderedExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {

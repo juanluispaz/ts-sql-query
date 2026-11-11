@@ -119,8 +119,6 @@ interface SelectExpression {
     orderByFromString(orderBy: string): this
     orderByFromStringIfValue(orderBy: string | null | undefined): this
     /** Specifies an order by dynamically, parsed from the provided array of clauses (each element is one order by clause) */
-    orderByFromStringArray(orderBy: readonly string[]): this
-    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): this
 
     /** Specifies the maximum number of rows returned by the query */
     limit(limit: number): this

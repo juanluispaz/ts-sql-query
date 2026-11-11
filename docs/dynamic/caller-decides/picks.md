@@ -110,7 +110,7 @@ In `dynamicPick`, only the value `true` picks a property: `false`, a missing pro
 
 The optional third argument lists the properties that are always included: they are required in the result type, and the others are optional. The same is achieved by writing them in the `select`, as this example does with `id`. With no property picked and none always included, the query has no columns and the database rejects it.
 
-Ordering depends on what was picked. Given a name, `orderBy` accepts only the properties that are always included, and any other doesn't compile; given a column, like `.orderBy(tCustomer.birthday)`, it doesn't need it in the select. `orderByFromString` and `orderByFromStringArray` receive the name in a text, so they can use any picked property, and they throw `ORDER_BY_COLUMN_NOT_IN_SELECT` when you call them with one that wasn't picked.
+Ordering depends on what was picked. Given a name, `orderBy` accepts only the properties that are always included, and any other doesn't compile; given a column, like `.orderBy(tCustomer.birthday)`, it doesn't need it in the select. `orderByFromString` receives the name in a text, so it can use any picked property, and it throws `ORDER_BY_COLUMN_NOT_IN_SELECT` when you call them with one that wasn't picked.
 
 To return a type with only the picked properties, see [Expanding result types](../helper-types/picks.md#expanding-result-types-from-dynamic-picks). A pick also works in an [array aggregate](../../queries/aggregate-as-object-array.md).
 

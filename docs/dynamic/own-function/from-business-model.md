@@ -12,7 +12,7 @@ The function still builds a map of its columns, usually called `availableFields`
 |---|---|---|
 | The filter | `DynamicConditionForModel<Model>` | `connection.dynamicConditionFor(availableFields).withValues(filter)` |
 | The columns to return | `DeepPickPaths<Model>[]` | `dynamicPickPaths(availableFields, fields, ['id'])` |
-| The order | `OrderByForModel<Model>[]` | `.orderByFromStringArrayIfValue(orderBy)` |
+| The order | `OrderByForModel<Model>[]` | `.orderByFromStringIfValue(orderBy?.join(', '))` |
 | The rows returned | `DeepPick<Model, FIELDS>[]` | `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` |
 
 The types and the functions are imported from `ts-sql-query`. Each section below is a complete function you can copy, and the last one has the three together.
@@ -281,7 +281,7 @@ async function sortCustomers(connection: DBConnection, orderBy: OrderByForModel<
 
     return connection.selectFrom(tCustomer)
         .select(availableFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany()
 }
 
@@ -360,7 +360,7 @@ The executed query is:
 
 The parameters are: `[ ' ' ]`
 
-`orderByFromStringArrayIfValue` also accepts no array at all, and then the query has no order. These methods take plain strings, so `OrderByForModel` is optional. See [Order by from a string](../optional-parts/order-and-page.md#order-by-from-a-string).
+`orderByFromStringIfValue` also accepts no value, `orderBy?.join(', ')` when there is no array, and then the query has no order. These methods take plain strings, so `OrderByForModel` is optional. See [Order by from a string](../optional-parts/order-and-page.md#order-by-from-a-string).
 
 ## The filter, the columns and the order in one function
 
@@ -407,7 +407,7 @@ async function listCustomerDirectory<FIELDS extends DeepPickPaths<CustomerDirect
         .optionalLeftOuterJoin(company).on(company.id.equals(tCustomer.companyId))
         .where(dynamicWhere)
         .select(selectedFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany()
 
     return expandTypeFromDynamicPickPaths(availableFields, fields, customers, ['id'])

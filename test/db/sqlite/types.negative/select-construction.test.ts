@@ -308,9 +308,8 @@ function _typeNegatives() {
     void connection.selectFrom(tIssue).select({ id: tIssue.id }).orderByFromString(1)
     // @ts-expect-error orderByFromStringIfValue takes a string
     void connection.selectFrom(tIssue).select({ id: tIssue.id }).orderByFromStringIfValue(1)
+    // @ts-expect-error there is no orderByFromStringArray: several clauses are joined for orderByFromString
     void connection.selectFrom(tIssue).select({ id: tIssue.id }).orderByFromStringArray(['id'])
-    // @ts-expect-error orderByFromStringArray takes an array of strings
-    void connection.selectFrom(tIssue).select({ id: tIssue.id }).orderByFromStringArray('id')
 
     // ---- LIMIT and OFFSET ---------------------------------------------
 

@@ -12,7 +12,7 @@ You build one map, usually called `availableFields`: each key is a name the call
 |---|---|---|
 | The filter | `DynamicCondition<typeof availableFields>` | `connection.dynamicConditionFor(availableFields).withValues(filter)` |
 | The columns to return | `DynamicPickPaths<typeof availableFields>[]` | `dynamicPickPaths(availableFields, fields, ['id'])` |
-| The order | `OrderByForModel<Row>[]`, where `Row` is the type of a whole row | `.orderByFromStringArrayIfValue(orderBy)` |
+| The order | `OrderByForModel<Row>[]`, where `Row` is the type of a whole row | `.orderByFromStringIfValue(orderBy?.join(', '))` |
 | The rows returned | `PickValuesPath<typeof availableFields, FIELDS>[]` | `expandTypeFromDynamicPickPaths(availableFields, fields, rows, ['id'])` |
 
 The types and the functions are imported from `ts-sql-query`. Each section below is a complete function you can copy, and the last one has the three together.
@@ -276,7 +276,7 @@ type CustomerRow = PickValuesPath<typeof availableFields, DynamicPickPaths<typeo
 async function sortCustomers(connection: DBConnection, orderBy: OrderByForModel<CustomerRow>[]) {
     return connection.selectFrom(tCustomer)
         .select(availableFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany()
 }
 
@@ -355,7 +355,7 @@ The executed query is:
 
 The parameters are: `[ ' ' ]`
 
-`orderByFromStringArrayIfValue` also accepts no array at all, and then the query has no order. These methods take plain strings, so `OrderByForModel` is optional. See [Order by from a string](../optional-parts/order-and-page.md#order-by-from-a-string).
+`orderByFromStringIfValue` also accepts no value, `orderBy?.join(', ')` when there is no array, and then the query has no order. These methods take plain strings, so `OrderByForModel` is optional. See [Order by from a string](../optional-parts/order-and-page.md#order-by-from-a-string).
 
 ## The filter, the columns and the order in one function
 
@@ -395,7 +395,7 @@ async function listCustomerDirectory<FIELDS extends CustomerFields>(
         .optionalLeftOuterJoin(company).on(company.id.equals(tCustomer.companyId))
         .where(dynamicWhere)
         .select(selectedFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany()
 
     return expandTypeFromDynamicPickPaths(availableFields, fields, customers, ['id'])

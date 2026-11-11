@@ -13,7 +13,7 @@ The same function can be typed in two ways:
 - **[From the database](#from-the-database):** the types come from the available columns, with `DynamicPickPaths`, `PickValuesPath` and `DynamicCondition` over the map. See [Typing dynamic queries from the database types](from-database-types.md).
 - **[From the model](#from-the-model):** the signature uses an interface you write, with `DynamicConditionForModel`, `DeepPickPaths`, `DeepPick` and `expandTypeFromDynamicPickPaths`, so no type of a column appears in it. See [Typing dynamic queries from a business model](from-business-model.md) and [Deep utilities](../../advanced/deep-utilities.md).
 
-Both receive the order as an array of clauses typed with [`OrderByForModel`](../helper-types/order-by.md), applied with `orderByFromStringArrayIfValue`, so each clause must be a valid field and mode. `orderByFromString` takes a plain `string`, so this typing is optional.
+Both receive the order as an array of clauses typed with [`OrderByForModel`](../helper-types/order-by.md), joined for `orderByFromStringIfValue`, so each clause must be a valid field and mode. `orderByFromString` takes a plain `string`, so this typing is optional.
 
 ### From the database
 
@@ -99,7 +99,7 @@ async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConne
         .where(dynamicCondition)
         .and(tCompany.parentId.equals(parentCompanyId))
         .select(selectedFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany()
 
     return expandTypeFromDynamicPickPaths(availableFields, fields, companies, ['id'])
@@ -630,7 +630,7 @@ async function getSubcompaniesFromModel<FIELDS extends DeepPickPaths<CompanyInfo
         .where(dynamicCondition)
         .and(tCompany.parentId.equals(parentCompanyId))
         .select(selectedFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany()
 
     return expandTypeFromDynamicPickPaths(availableFields, fields, companies, ['id'])

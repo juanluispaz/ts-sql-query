@@ -15,8 +15,8 @@ export type { OrderByMode }
  *
  * `OrderByForModel<MODEL>` is a SINGLE clause — a field path, optionally followed by an
  * ordering mode (`'name'`, `'name asc'`, `'birthday desc nulls last'`, …). A multi-column
- * order-by is an array of clauses fed to `orderByFromStringArray(...)`:
- * `(['status insensitive', 'birthday asc'] satisfies OrderByForModel<M>[])`.
+ * order-by is an array of clauses, joined for `orderByFromString(...)`:
+ * `orderByFromString(orderBy.join(', '))`, with `orderBy: OrderByForModel<M>[]`.
  *
  * Matching `orderByFromString`'s runtime, the orderable targets are the scalar LEAVES of
  * the model, addressed by their dotted path: a nested object inside a complex projection

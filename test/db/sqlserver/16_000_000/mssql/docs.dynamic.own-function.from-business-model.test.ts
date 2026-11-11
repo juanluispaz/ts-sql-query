@@ -129,7 +129,7 @@ describe(ctx.label, () => {
 
             return connection.selectFrom(tProject)
                 .select(availableFields)
-                .orderByFromStringArrayIfValue(orderBy)
+                .orderByFromStringIfValue(orderBy?.join(', '))
                 .executeSelectMany()
         }
 
@@ -186,7 +186,7 @@ describe(ctx.label, () => {
                 .optionalLeftOuterJoin(company).on(company.id.equals(tProject.organizationId))
                 .where(dynamicWhere)
                 .select(selectedFields)
-                .orderByFromStringArrayIfValue(orderBy)
+                .orderByFromStringIfValue(orderBy?.join(', '))
                 .executeSelectMany()
 
             return expandTypeFromDynamicPickPaths(availableFields, fields, projects, ['id'])
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
         expect(() => ctx.conn.selectFrom(tProject)
             .optionalLeftOuterJoin(company).on(company.id.equals(tProject.organizationId))
             .select(dynamicPickPaths(availableFields, ['name'], ['id']))
-            .orderByFromStringArrayIfValue(orderBy)
+            .orderByFromStringIfValue(orderBy?.join(', '))
         ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
     })
 

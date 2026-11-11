@@ -35,7 +35,7 @@ type CustomerOrder = OrderByForModel<Customer>
 
 Only the properties that hold a value can be ordered by, as in `orderByFromString`. A property inside a nested object is written with a dot, like `'company.name'`. The nested object as a whole, `'company'`, isn't accepted, and neither is a property that is an array.
 
-For an order with several columns, use an array of clauses, with `orderByFromStringArray`, or with `orderByFromStringArrayIfValue` if the array or its elements can be missing:
+For an order with several columns, use an array of clauses, joined for `orderByFromString`, or for `orderByFromStringIfValue` if the array can be missing:
 
 ```ts
 import type { OrderByForModel } from "ts-sql-query"
@@ -63,7 +63,7 @@ const customers = await connection.selectFrom(tCustomer)
             name: company.name
         }
     })
-    .orderByFromStringArray(orderBy)
+    .orderByFromString(orderBy.join(', '))
     .executeSelectMany()
 ```
 
@@ -147,7 +147,7 @@ The executed query is:
 
 The parameters are: `[]`
 
-The type is checked against the model, and the name is checked against the select when the query is written. A clause with a property of the model that the select doesn't return compiles, and `orderByFromStringArray` throws `ORDER_BY_COLUMN_NOT_IN_SELECT`. See [An order that can't be understood](../optional-parts/order-and-page.md#an-order-that-cant-be-understood).
+The type is checked against the model, and the name is checked against the select when the query is written. A clause with a property of the model that the select doesn't return compiles, and `orderByFromString` throws `ORDER_BY_COLUMN_NOT_IN_SELECT`. See [An order that can't be understood](../optional-parts/order-and-page.md#an-order-that-cant-be-understood).
 
 ## OrderByMode
 

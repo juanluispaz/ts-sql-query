@@ -45,40 +45,6 @@ describe(ctx.label, () => {
         expect(projects).toEqual(expected)
     })
 
-    test('docs:order-and-page/order-by-from-string-array-if-value', async () => {
-        // Section "The variants": the elements without a value are skipped.
-        const expected = [
-            { id: 3, name: 'Public API',     slug: 'public-api' },
-            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
-            { id: 4, name: 'Legacy app',     slug: 'legacy' },
-            { id: 2, name: 'Internal tools', slug: 'tools' },
-        ]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-
-        // doc-start
-        const orderBy: Array<string | null | undefined> = ['name desc', null, 'slug insensitive']
-
-        const projects = await connection.selectFrom(tProject)
-            .select({
-                id:   tProject.id,
-                name: tProject.name,
-                slug: tProject.slug,
-            })
-            .orderByFromStringArrayIfValue(orderBy)
-            .executeSelectMany()
-        // doc-end
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, slug as slug from project order by name desc, lower(slug)"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof projects, Array<{
-            id:   number
-            name: string
-            slug: string
-        }>>>()
-        expect(projects).toEqual(expected)
-    })
-
     test('docs:order-and-page/order-by-from-string-error', async () => {
         // Section "Errors of the order": thrown by the call, while the query is being written.
         const connection = ctx.conn

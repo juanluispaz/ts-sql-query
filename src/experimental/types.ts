@@ -9,7 +9,7 @@
 // with no stability guarantees: it may change, break or disappear in any release.
 //
 // The public, ergonomic way to type a multi-column order-by from a model is an
-// `OrderByForModel<Model>[]` array fed to `orderByFromStringArray(...)`.
+// `OrderByForModel<Model>[]` array, joined for `orderByFromString(orderBy.join(', '))`.
 
 import type { OrderByForModel } from '../dynamic/orderBy.js'
 
@@ -37,7 +37,7 @@ import type { OrderByForModel } from '../dynamic/orderBy.js'
  * Used as a DIRECT annotation it does NOT validate: `DynamicOrderByForModel<Model, string>`
  * collapses to `never` (no string is assignable to it). This fails CLOSED — misuse is a hard
  * compile error, never a silently-permissive type. For a multi-column order-by without the
- * generic-inference dance, prefer an `OrderByForModel<Model>[]` array fed to `orderByFromStringArray(...)`.
+ * generic-inference dance, prefer an `OrderByForModel<Model>[]` array, joined for `orderByFromString(...)`.
  */
 export type DynamicOrderByForModel<MODEL, ORDER_BY extends string> =
     ORDER_BY extends `${infer HEAD}, ${infer TAIL}`

@@ -18,7 +18,7 @@ Each part of a query has its own way of being optional:
 | A condition with no value means `true`, `false` or another condition | `trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue` | [When there is no value](#when-there-is-no-value) |
 | A condition applies only if a flag is set, like a role | `onlyWhen`, `ignoreWhen` | [Ignorable conditions: onlyWhen and ignoreWhen](#ignorable-conditions-onlywhen-and-ignorewhen) |
 | A selected value is returned only if a flag is set | `onlyWhenOrNull`, `ignoreWhenAsNull` | [Ignorable values: onlyWhenOrNull](#ignorable-values-onlywhenornull) |
-| The order comes as text, from a request | `orderByFromString`, `orderByFromStringArray` and their `IfValue` variants | [Order by from a string](#order-by-from-a-string) |
+| The order comes as text, from a request | `orderByFromString` and `orderByFromStringIfValue` | [Order by from a string](#order-by-from-a-string) |
 | The limit and the offset may be absent | `limitIfValue`, `offsetIfValue` | [Optional limit and offset](../dynamic/optional-parts/order-and-page.md#optional-limit-and-offset) |
 | A table is joined only if the query uses it | `optionalJoin`, `optionalInnerJoin`, `optionalLeftJoin`, `optionalLeftOuterJoin` | [Optional joins](../dynamic/optional-parts/optional-joins.md) |
 | Your code decides which conditions to add, when nothing above can express them | `dynamicWhere`, `dynamicBooleanExpressionUsing` | [Building a condition step by step](../dynamic/going-further/building-conditions.md) |
@@ -125,7 +125,7 @@ const searchedCustomers = connection.selectFrom(tCustomer)
         birthday: tCustomer.birthday
     })
     .orderByFromString(searchOrderBy)
-    // .orderByFromStringArray(searchOrderBy) // If you use searchOrderBy as string array
+    // .orderByFromString(searchOrderBy.join(', ')) // If you use searchOrderBy as string array
     .executeSelectMany();
 ```
 

@@ -712,72 +712,10 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
     /*
-    test('recursive-result-order-by-from-string-array', async () => {
-        // `.orderByFromStringArray(['title asc', 'id asc'])` — the array form adds
-        // one ORDER BY term per element onto the outer select. Same result order
-        // as the comma-string form.
-        const expected = [
-            { id: 3, title: 'Migrate to ESM' },
-            { id: 2, title: 'Redesign navbar' },
-            { id: 1, title: 'Update hero copy' },
-        ]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-        const result = await connection.selectFrom(tIssue)
-            .where(tIssue.id.in([1, 2, 3]))
-            .select({ id: tIssue.id, title: tIssue.title })
-            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
-                .join(parent).on(tIssue.parentId.equals(parent.id))
-                .select({ id: tIssue.id, title: tIssue.title }))
-            .orderByFromStringArray(['title asc', 'id asc'])
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in (?, ?, ?) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by title asc, id asc"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-            2,
-            3,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
-        expect(result).toEqual(expected)
-    })
     */
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
     /*
-    test('recursive-result-order-by-from-string-array-if-value', async () => {
-        // `.orderByFromStringArrayIfValue(['title asc', null, 'id asc'])` — the
-        // null element is filtered out; the surviving terms are added onto the
-        // outer select. Same result order as the plain array form.
-        const expected = [
-            { id: 3, title: 'Migrate to ESM' },
-            { id: 2, title: 'Redesign navbar' },
-            { id: 1, title: 'Update hero copy' },
-        ]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-        const result = await connection.selectFrom(tIssue)
-            .where(tIssue.id.in([1, 2, 3]))
-            .select({ id: tIssue.id, title: tIssue.title })
-            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
-                .join(parent).on(tIssue.parentId.equals(parent.id))
-                .select({ id: tIssue.id, title: tIssue.title }))
-            .orderByFromStringArrayIfValue(['title asc', null, 'id asc'])
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in (?, ?, ?) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by title asc, id asc"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-            2,
-            3,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
-        expect(result).toEqual(expected)
-    })
     */
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.

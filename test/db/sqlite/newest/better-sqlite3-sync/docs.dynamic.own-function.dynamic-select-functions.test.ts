@@ -85,7 +85,7 @@ async function getSubissues<FIELDS extends IssueFields>(connection: DBConnection
         .where(dynamicCondition)
         .and(tIssue.parentId.equals(parentIssueId))
         .select(selectedFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany())
     return expandTypeFromDynamicPickPaths(availableFields, fields, issues, ['id'])
 }
@@ -117,7 +117,7 @@ async function getSubissuesFromModel<FIELDS extends DeepPickPaths<IssueInformati
         .where(dynamicCondition)
         .and(tIssue.parentId.equals(parentIssueId))
         .select(selectedFields)
-        .orderByFromStringArrayIfValue(orderBy)
+        .orderByFromStringIfValue(orderBy?.join(', '))
         .executeSelectMany())
     return expandTypeFromDynamicPickPaths(availableFields, fields, issues, ['id'])
 }

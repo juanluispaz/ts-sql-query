@@ -132,70 +132,6 @@ describe(ctx.label, () => {
         expect(String(caught)).toMatch(/INVALID_ORDER_BY_ORDERING|Unknow ordering clause/)
     })
 
-    // The array forms process each element through the same per-clause
-    // builder path as `orderByFromString` (no intermediate joined string),
-    // so each case is asserted as an equivalence against the comma-joined
-    // string form — the from-string cases above already pin the per-dialect
-    // SQL, so no new snapshot is needed here.
-
-    test('order-by-from-string-array-matches-the-comma-joined-string', async () => {
-        ctx.mockNext([])
-        await ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id, priority: tIssue.priority })
-            .orderByFromStringArray(['priority asc nulls first', 'id desc nulls last'])
-            .executeSelectMany()
-        const arraySql = ctx.lastSql
-        const arrayParams = ctx.lastParams
-
-        ctx.mockNext([])
-        await ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id, priority: tIssue.priority })
-            .orderByFromString('priority asc nulls first, id desc nulls last')
-            .executeSelectMany()
-
-        expect(arraySql).toBe(ctx.lastSql)
-        expect(arrayParams).toEqual(ctx.lastParams)
-    })
-
-    test('order-by-from-string-array-ifvalue-drops-empty-entries', async () => {
-        // null / undefined / '' entries are filtered out (via the same
-        // `__isValue` gate every IfValue method uses) before joining; the
-        // surviving clauses behave exactly like the from-string form.
-        ctx.mockNext([])
-        await ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id, priority: tIssue.priority })
-            .orderByFromStringArrayIfValue([null, 'priority desc', undefined, ''])
-            .executeSelectMany()
-        const arraySql = ctx.lastSql
-
-        ctx.mockNext([])
-        await ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id, priority: tIssue.priority })
-            .orderByFromString('priority desc')
-            .executeSelectMany()
-
-        expect(arraySql).toBe(ctx.lastSql)
-    })
-
-    test('order-by-from-string-array-ifvalue-all-empty-is-noop', async () => {
-        // When every entry is filtered out (or the array is absent), no
-        // ORDER BY is emitted — the same no-op as `orderByFromStringIfValue(null)`.
-        ctx.mockNext([])
-        await ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id })
-            .orderByFromStringArrayIfValue([null, undefined, ''])
-            .executeSelectMany()
-        const emptySql = ctx.lastSql
-
-        ctx.mockNext([])
-        await ctx.conn.selectFrom(tIssue)
-            .select({ id: tIssue.id })
-            .orderByFromStringIfValue(null)
-            .executeSelectMany()
-
-        expect(emptySql).toBe(ctx.lastSql)
-    })
-
     test('order-by-from-string-bare-column-dialect-default', async () => {
         // A bare column with no ordering keyword routes through the
         // no-explicit-ordering branch — the dialect's default direction,
@@ -273,27 +209,6 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(title) desc nulls last"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-    })
-
-    test('order-by-from-string-array-ifvalue-null-is-noop', async () => {
-        // An absent sort list (`null`, as an optional request parameter arrives)
-        // emits no ORDER BY. Issue 1 is the only row selected.
-        const sortList: string[] | null = null
-        const expected = [{ id: 1 }]
-        ctx.mockNext(expected)
-        const result = await ctx.conn.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
-            .select({ id: tIssue.id })
-            .orderByFromStringArrayIfValue(sortList)
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number }>>>()
-        expect(result).toEqual(expected)
     })
 
     test('order-by-from-string-reaches-a-leaf-inside-a-nested-object', async () => {

@@ -120,93 +120,9 @@ The words must be in that order. They mean the same as in [the order modes](../.
 | Method | Receives | What it does |
 |---|---|---|
 | `orderByFromString` | `string` | Orders by the clauses of the text |
-| `orderByFromStringArray` | `readonly string[]` | The same, when the clauses are already separated. Each element is one clause, so it can't have commas. An empty array adds no order |
 | `orderByFromStringIfValue` | `string \| null \| undefined` | Like `orderByFromString`, but without a value it adds no order |
-| `orderByFromStringArrayIfValue` | `ReadonlyArray<string \| null \| undefined> \| null \| undefined` | Like `orderByFromStringArray`, but without a value it adds no order, and it skips the elements of the array without a value |
 
-```ts
-const orderBy: Array<string | null | undefined> = ['lastName desc', null, 'firstName insensitive'];
-
-const customers = await connection.selectFrom(tCustomer)
-    .select({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName
-    })
-    .orderByFromStringArrayIfValue(orderBy)
-    .executeSelectMany();
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    order by 
-        lastName desc, 
-        lower(first_name)
-    ```
-=== "MySQL"
-    ```mysql
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    order by 
-        lastName desc, 
-        lower(first_name)
-    ```
-=== "Oracle"
-    ```oracle
-    select 
-        id as "id", 
-        first_name as "firstName", 
-        last_name as "lastName" 
-    from customer 
-    order by 
-        "lastName" desc, 
-        lower("firstName")
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    select 
-        id as id, 
-        first_name as "firstName", 
-        last_name as "lastName" 
-    from customer 
-    order by 
-        "lastName" desc, 
-        lower(first_name)
-    ```
-=== "SQLite"
-    ```sqlite
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    order by 
-        lastName desc, 
-        lower(first_name)
-    ```
-=== "SQL Server"
-    ```sqlserver
-    select 
-        id as id, 
-        first_name as firstName, 
-        last_name as lastName 
-    from customer 
-    order by 
-        lastName desc, 
-        lower(first_name)
-    ```
-
-The parameters are: `[]`
+When the clauses come as an array, join them: `orderByFromString(clauses.join(', '))`, or `orderByFromStringIfValue(clauses?.join(', '))` when the array can be missing. An empty array gives an empty text, which `orderByFromStringIfValue` takes as no value, so it adds no order; on a connection with [`allowEmptyString`](../../configuration/connection.md#allowing-empty-string) the empty text is a value, and it throws `ORDER_BY_COLUMN_NOT_IN_SELECT`: write `clauses.join(', ') || undefined` there.
 
 They can be combined with `orderBy` and with each other: each call adds its clauses after the ones already there. They can also be used after a [compound operator](../../queries/compound-select.md#ordering-the-combined-result).
 

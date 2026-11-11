@@ -58,7 +58,7 @@ describe(ctx.label, () => {
                     name: organization.name
                 }
             })
-            .orderByFromStringArray(orderBy)
+            .orderByFromString(orderBy.join(', '))
             .executeSelectMany())
         // doc-end
 
@@ -82,7 +82,7 @@ describe(ctx.label, () => {
         const orderBy: OrderByForModel<Project>[] = ['createdAt desc']
         expect(() => ctx.conn.selectFrom(tProject)
             .select({ id: tProject.id })
-            .orderByFromStringArray(orderBy)
+            .orderByFromString(orderBy.join(', '))
         ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
     })
 

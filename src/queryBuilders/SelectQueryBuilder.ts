@@ -312,29 +312,6 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             return this
         }
     }
-    orderByFromStringArray(orderBy: readonly string[]): any {
-        this.__finishJoinHaving()
-        this.__invalidateQuery()
-
-        for (let i = 0, length = orderBy.length; i < length; i++) {
-            this.__addOrderByClauseFromString(orderBy[i]!.trim().toLowerCase().replace(/\s+/g, ' '))
-        }
-        return this
-    }
-    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): any {
-        this.__finishJoinHaving()
-        this.__invalidateQuery()
-
-        if (orderBy) {
-            for (let i = 0, length = orderBy.length; i < length; i++) {
-                const clause = orderBy[i]
-                if (this.__isValue(clause)) {
-                    this.__addOrderByClauseFromString(clause.trim().toLowerCase().replace(/\s+/g, ' '))
-                }
-            }
-        }
-        return this
-    }
     __addOrderByClauseFromString(clause: string): void {
         const separatorIndex = clause.indexOf(' ')
         let column

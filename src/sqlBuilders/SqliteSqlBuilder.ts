@@ -35,9 +35,6 @@ export function canonicalDecimalText(text: string): string {
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
-    constructor() {
-        super()
-    }
     _getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return this._connectionConfiguration.getDateTimeFormat!(type) as any
     }

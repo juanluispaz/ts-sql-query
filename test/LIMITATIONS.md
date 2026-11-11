@@ -594,8 +594,9 @@ covers **every** SQLite runner, UDF API or not:
 
 1. **Emulate `cot(x)` as `1 / tan(x)`** — exactly what `OracleSqlBuilder._cot`
    already does (Oracle also lacks a native `COT`). SQLite exposes `tan`, so a
-   `SqliteSqlBuilder._cot` override emitting `1 / tan(<x>)` (plus
-   `_operationsThatNeedParenthesis._cot = true`, mirroring Oracle) would make `cot`
+   `SqliteSqlBuilder._cot` override emitting `1 / tan(<x>)` (plus `_cot: true` in a
+   SQLite list of the operations that need parenthesis, built from the base list as
+   `utils/oracle/oracleOperationsThatNeedParenthesis.ts` is) would make `cot`
    work on SQLite and turn every `cot` test there live. This is the cheapest close
    and the recommended one when someone picks this up.
 2. Register a `cot` UDF on the connectors that expose a UDF API. Note this is a

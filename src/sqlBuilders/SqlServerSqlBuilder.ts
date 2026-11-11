@@ -1,4 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
+import { sqlServerOperationsThatNeedParenthesis } from '../utils/sqlServer/sqlServerOperationsThatNeedParenthesis.js'
 import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
@@ -17,31 +18,7 @@ import { isSqlServerReservedWord } from '../utils/sqlServer/sqlServerReservedWor
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
-    constructor() {
-        super()
-        this._operationsThatNeedParenthesis._getDay = true
-        // `_getMilliseconds` is overridden below as a self-contained call, so it never
-        // needs the wrapping the base's trailing-`% 1000` form asks for.
-        this._operationsThatNeedParenthesis._getMilliseconds = false
-        // `_length` is the only dialect's spelling that is not a bare call: it ends in `- 1`.
-        this._operationsThatNeedParenthesis._length = true
-        // `_replaceAll`/`_replaceAllInsensitive` append a trailing `collate DATABASE_DEFAULT`
-        // reset (see those overrides) whenever `replaceCollation`/`insensitiveCollation` forces
-        // a collation. That trailing `collate` binds looser than the operators — and than an
-        // outer `replace`'s own forced collation — that embed it, so the whole expression must
-        // be wrapped when used as an operand. Without this, chaining (`replaceAll().replaceAll()`,
-        // `replaceAll().collate()`, `replaceAll().replaceAllInsensitive()`) emits two adjacent
-        // `collate` clauses — `... collate DATABASE_DEFAULT collate Latin1_General_BIN2` — which
-        // SQL Server rejects (`Msg 156: Incorrect syntax near the keyword 'collate'`). A
-        // PARENTHESISED double collate is valid, so this is only registered on the dialects that
-        // add the reset (SQL Server + Oracle), never on the base (MySQL/MariaDB/PostgreSQL/SQLite
-        // emit a bare `replace(...)` with no trailing collate, so wrapping it would only add noise).
-        this._operationsThatNeedParenthesis._replaceAll = true
-        this._operationsThatNeedParenthesis._replaceAllInsensitive = true
-        // `_concatIgnoringNull` is a `concat(...)` call here, never the `+` operator `_concat`
-        // uses, so it is self-delimiting and needs no wrapping as an operand.
-        this._operationsThatNeedParenthesis._concatIgnoringNull = false
-    }
+    override _operationsThatNeedParenthesis = sqlServerOperationsThatNeedParenthesis
     override _appendGroupBySelectColumn(_entry: AnyValueSource, selectColumn: SelectColumnSql, _context: SqlBuildContext, _isOutermostQuery: boolean): string {
         // No alias nor position in a group by: the same SQL, with the same named parameters
         return selectColumn.sql

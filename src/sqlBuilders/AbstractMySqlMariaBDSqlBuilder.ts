@@ -1,4 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
+import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB/mySqlMariaDBOperationsThatNeedParenthesis.js'
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
@@ -21,18 +22,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return super._buildSelectWithColumnsInfoForCompound(query, context, columnsForInsert, isOutermostQuery, needsGrouping)
     }
-    constructor() {
-        super()
-        this._operationsThatNeedParenthesis._concat = false
-        // Both spellings of `_concatIgnoringNull` here (`concat_ws(...)` / `concat(...)`) are
-        // self-contained calls, so neither needs wrapping as an operand.
-        this._operationsThatNeedParenthesis._concatIgnoringNull = false
-        this._operationsThatNeedParenthesis._is = true
-        this._operationsThatNeedParenthesis._getDate = true
-        // `_getMilliseconds` is overridden below as a self-contained call, so it never
-        // needs the wrapping the base's trailing-`% 1000` form asks for.
-        this._operationsThatNeedParenthesis._getMilliseconds = false
-    }
+    override _operationsThatNeedParenthesis = mySqlMariaDBOperationsThatNeedParenthesis
     /**
      * Compatibility version from which the engine accepts DOUBLE as a cast target
      * (MySQL 8.0.17, MariaDB 10.4.0). Below it, `_appendCastAsDouble` falls back to a

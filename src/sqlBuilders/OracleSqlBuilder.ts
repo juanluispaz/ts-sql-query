@@ -1,4 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
+import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
@@ -19,39 +20,13 @@ import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
-    constructor() {
-        super()
-        this._operationsThatNeedParenthesis._getTime = true
-        // `_getMilliseconds` is overridden below as a self-contained call, so it never
-        // needs the wrapping the base's trailing-`% 1000` form asks for.
-        this._operationsThatNeedParenthesis._getMilliseconds = false
-        this._operationsThatNeedParenthesis._getDay = true
-        this._operationsThatNeedParenthesis._negate = true
-        // _cot is emitted as the compound expression `1 / tan(x)` (Oracle
-        // has no native COT function), so it must be parenthesised when used
-        // as an operand of another operation.
-        this._operationsThatNeedParenthesis._cot = true
-        // `_replaceAll`/`_replaceAllInsensitive` append a trailing `collate USING_NLS_COMP`
-        // reset (see those overrides) whenever `replaceCollation`/`insensitiveCollation` forces
-        // a collation. That trailing `collate` binds looser than the operators — and than an
-        // outer `replace`'s own forced collation — that embed it, so the whole expression must
-        // be wrapped when used as an operand. Without this, chaining (`replaceAll().replaceAll()`,
-        // `replaceAll().collate()`, `replaceAll().replaceAllInsensitive()`) emits two adjacent
-        // `collate` clauses — `... collate USING_NLS_COMP collate BINARY` — which Oracle rejects
-        // (`ORA-00907: missing right parenthesis`). A PARENTHESISED double collate is valid, so
-        // this is only registered on the dialects that add the reset (Oracle + SQL Server), never
-        // on the base (MySQL/MariaDB/PostgreSQL/SQLite emit a bare `replace(...)` with no trailing
-        // collate, so wrapping it would only add noise).
-        this._operationsThatNeedParenthesis._replaceAll = true
-        this._operationsThatNeedParenthesis._replaceAllInsensitive = true
-    }
+    override _operationsThatNeedParenthesis = oracleOperationsThatNeedParenthesis
 
     override _cot(context: SqlBuildContext, valueSource: ToSql): string {
         // Oracle has no COT function (ORA-00904: "COT": invalid identifier).
         // Cotangent is the reciprocal of the tangent; emit 1 / tan(x), which
         // evaluates the argument once (no parameter duplication). Nesting is
-        // handled via `_operationsThatNeedParenthesis._cot` set in the
-        // constructor.
+        // handled via `_cot` in `oracleOperationsThatNeedParenthesis`.
         return '1 / tan(' + this._appendSql(valueSource, context, false) + ')'
     }
 

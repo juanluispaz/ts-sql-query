@@ -85,7 +85,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const tablePrivate = __getTableOrViewPrivate(tableOrView)
             const qualifier = tablePrivate.__as
                 ? this._escape(tablePrivate.__as, true)
-                : this._escape(tablePrivate.__name, false)
+                : this._escape(this._tableOrViewName(tablePrivate, context), false)
             return qualifier + '.' + this._escape(columnPrivate.__name, true)
         }
         return this._escape(columnPrivate.__name, true)

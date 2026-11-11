@@ -43,7 +43,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
     _connectionConfiguration: ConnectionConfiguration
     _operationsThatNeedParenthesis: { [operation in keyof SqlOperation]?: boolean | undefined }
-    _unique = 1
     constructor() {
         this._operationsThatNeedParenthesis = {
             _equals: true,
@@ -81,11 +80,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _collate: true
         }
     }
-    _generateUnique(): number {
-        return this._unique++
-    }
-    _resetUnique(): void {
-        this._unique = 1
+    /** The name of a table or view as it is written in the query (a generated name gets the one it has there) */
+    _tableOrViewName(tablePrivate: { __name: string, __generatedName?: boolean | undefined }, context: SqlBuildContext): string {
+        return tablePrivate.__generatedName ? context.generatedNameOf(tablePrivate.__name) : tablePrivate.__name
     }
     /** Sets the table or view whose columns are written without its name; a dialect may refuse one */
     _setSafeTableOrView(context: SqlBuildContext, tableOrView: AnyTableOrView | undefined): void {
@@ -270,7 +267,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (tablePrivate.__as) {
                 return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + columnPrivate.__name), true)
             } else {
-                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tablePrivate.__name + '__' + columnPrivate.__name), true)
+                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + columnPrivate.__name), true)
             }
         }
 
@@ -279,7 +276,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else if (context.safeTableOrView === tableOrView) {
                 return this._escape(columnPrivate.__name, true)
         } else {
-            return this._escape(tablePrivate.__name, false) + '.' + this._escape(columnPrivate.__name, true)
+            return this._escape(this._tableOrViewName(tablePrivate, context), false) + '.' + this._escape(columnPrivate.__name, true)
         }
     }
     _appendRawColumnNameForValuesForInsert(column: DBColumn, _context: SqlBuildContext): string {
@@ -373,9 +370,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _appendTableOrViewNameForFrom(table: AnyTableOrView, _context: SqlBuildContext): string {
+    _appendTableOrViewNameForFrom(table: AnyTableOrView, context: SqlBuildContext): string {
         const t = __getTableOrViewPrivate(table)
-        return this._escape(t.__name, false)
+        return this._escape(this._tableOrViewName(t, context), false)
     }
     _appendTableOrViewNoAliasForFrom(_table: AnyTableOrView, _context: SqlBuildContext): string {
         return ''
@@ -822,7 +819,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (result) {
                 result += ', '
             }
-            result += this._escape(withView.__name, false)
+            result += this._escape(this._tableOrViewName(withView, context), false)
             result += this._appendWithColumns(withView, context)
             result += ' as '
             if (customization && customization.beforeWithQuery) {
@@ -1099,7 +1096,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const customization = query.__customization
         const needAgggregateArrayWrapper = this._needAgggregateArrayWrapper(query, context)
-        const aggregateId = needAgggregateArrayWrapper ? this._generateUnique() : 0
+        const aggregateId = needAgggregateArrayWrapper ? context.generateUnique() : 0
 
         if (query.__type === 'compound') {
             this._setSafeTableOrView(context, undefined)
@@ -1137,7 +1134,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             context.resultConversionDeferred = oldResultConversionDeferred
 
             if (wrapCompoundOrderBy) {
-                const wrapperAlias = 'o_' + this._generateUnique() + '_'
+                const wrapperAlias = 'o_' + context.generateUnique() + '_'
                 selectQuery += 'select ' + (conversionWrap ? this._appendResultConversionWrapperColumns(query, context, wrapperAlias) : '*') + ' from (' + compoundCore + ')'
                 selectQuery += this._supportTableAliasWithAs ? ' as ' + wrapperAlias : ' ' + wrapperAlias
                 if (emitOrderBy) {
@@ -1382,7 +1379,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (distinctAggregatedArray) {
             // The aggregate over the distinct values, which it converts
-            const aggregateId = this._generateUnique()
+            const aggregateId = context.generateUnique()
             const wrapperAlias = 'a_' + aggregateId + '_'
             const property = distinctAggregatedArray.property
             let aggregate = this._appendAggragateArrayWrappedColumns(distinctAggregatedArray.__aggregatedArrayColumns, context, aggregateId)
@@ -1409,7 +1406,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 // The order by can't be written over the select, or the distinct must compare the values: the select is
                 // wrapped, and the order by is written over the query that wraps it, where the columns of the select are
                 // the columns of the from
-                const wrapperAlias = 'o_' + this._generateUnique() + '_'
+                const wrapperAlias = 'o_' + context.generateUnique() + '_'
                 selectQuery = selectQuery.substring(0, selectStart) + 'select ' + (conversionOnWrapper ? this._appendResultConversionWrapperColumns(query, context, wrapperAlias) : '*') + ' from (' + selectQuery.substring(selectStart) + ')'
                 selectQuery += this._supportTableAliasWithAs ? ' as ' + wrapperAlias : ' ' + wrapperAlias
                 const oldOrderByOnWrapper = context.orderByOnWrapper
@@ -3091,9 +3088,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const t1 = c1Private.__tableOrView
                 const t2 = c2Private.__tableOrView
                 const t1Private = __getTableOrViewPrivate(t1)
-                const t1Name = t1Private.__as || t1Private.__name
+                const t1Name = t1Private.__as || this._tableOrViewName(t1Private, context)
                 const t2Private = __getTableOrViewPrivate(t2)
-                const t2Name = t2Private.__as || t2Private.__name
+                const t2Name = t2Private.__as || this._tableOrViewName(t2Private, context)
 
                 if (t1Name > t2Name) {
                     return 1;
@@ -3121,7 +3118,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (tablePrivate.__as) {
                     from += this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + columnPrivate.__name), true)
                 } else {
-                    from += this._escape(this._identifierWithoutQuotes(tablePrivate.__name + '__' + columnPrivate.__name), true)
+                    from += this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + columnPrivate.__name), true)
                 }
             }
         }

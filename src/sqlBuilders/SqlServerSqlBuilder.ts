@@ -269,7 +269,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _buildSelectWithColumnsInfoForCompound(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, context, columnsForInsert, isOutermostQuery)
         if (needsGrouping || query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
-            return 'select * from (' + result + ') _t_' + this._generateUnique() + '_'
+            return 'select * from (' + result + ') _t_' + context.generateUnique() + '_'
         }
         return result
     }

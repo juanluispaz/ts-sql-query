@@ -349,11 +349,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return this._decimalComparableText(valueSource, this._appendSql(valueSource, context, false)) + (not ? ' not in ' : ' in ') + '(' + this._appendSql(value, context, false) + ')'
         }
         if (hasToSql(value) && this._usesDecimalKeyFunctions()) {
-            const alias = 'q_' + this._generateUnique() + '_'
+            const alias = 'q_' + context.generateUnique() + '_'
             return this._decimalKeySql(this._appendSql(valueSource, context, false)) + (not ? ' not in ' : ' in ') + '(with ' + alias + '(v) as (' + this._appendSql(value, context, false) + ') select ' + this._decimalKeySql(alias + '.v') + ' from ' + alias + ')'
         }
         if (hasToSql(value)) {
-            const alias = 'q_' + this._generateUnique() + '_'
+            const alias = 'q_' + context.generateUnique() + '_'
             return this._decimalNormalForm(this._appendSql(valueSource, context, false)) + (not ? ' not in ' : ' in ') + '(with ' + alias + '(v) as (' + this._appendSql(value, context, false) + ') select ' + this._decimalNormalForm(alias + '.v') + ' from ' + alias + ')'
         }
         return undefined
@@ -579,7 +579,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (!hasDecimal) {
             return super._buildCompoundCore(query, context, columnsForInsert, isOutermostQuery)
         }
-        const firstAlias = 'c_' + this._generateUnique() + '_'
+        const firstAlias = 'c_' + context.generateUnique() + '_'
         const key = (property: string, alias: string) => {
             const column = alias + '.' + this._appendColumnAlias(property, context)
             return this._isCustomDecimal(columns[property]) ? this._decimalGroupingKeySql(undefined, column) : column
@@ -600,7 +600,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             const second = this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, context, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__secondQuery, 'second', 'unionAll'))
             return 'select ' + selectColumns + ' from (' + first + ' union all ' + second + ') as ' + firstAlias + ' group by ' + groupBy
         }
-        const secondAlias = 'c_' + this._generateUnique() + '_'
+        const secondAlias = 'c_' + context.generateUnique() + '_'
         const first = this._buildSelectWithColumnsInfo(query.__firstQuery, context, columnsForInsert, isOutermostQuery)
         const second = this._buildSelectWithColumnsInfo(query.__secondQuery, context, columnsForInsert, isOutermostQuery)
         let sameRow = ''

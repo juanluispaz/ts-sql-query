@@ -309,8 +309,6 @@ export interface SqlBuilder extends SqlOperation {
     _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: AnyValueSource[]): string
     _buildCallFunction(context: SqlBuildContext, functionCall: AnyValueSource): string
     _appendFunctionCall(context: SqlBuildContext, functionName: string, functionParams: AnyValueSource[]): string
-    _generateUnique(): number
-    _resetUnique(): void
 
     _rawFragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string
     _rawFragmentTableName(context: SqlBuildContext, tableOrView: AnyTableOrView): string

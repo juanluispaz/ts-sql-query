@@ -67,7 +67,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -103,7 +102,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -139,7 +137,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnManyRows(this.__query, this.__params).then((values) => {

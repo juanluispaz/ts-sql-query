@@ -226,7 +226,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {
             // The with name must be used as alias
             if (hasWithData(table)) {
-                return table.__name
+                return this._tableOrViewName(__getTableOrViewPrivate(table), context)
             }
         }
 

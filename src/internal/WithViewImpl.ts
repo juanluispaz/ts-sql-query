@@ -28,6 +28,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
     __originalWith?: WithViewImpl
     __ignoreWith?: boolean
     __recursive?: boolean
+    __generatedName?: boolean | undefined
     // @ts-ignore
     __template?: RawFragment<any>
     __hasExternalDependencies?: boolean
@@ -50,6 +51,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
         const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)
+        result.__generatedName = this.__generatedName
         result.__as = as
         result.__originalWith = this as any
         return result as any
@@ -59,6 +61,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
         const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)
+        result.__generatedName = this.__generatedName
         result.__as = as
         result.__forUseInLeftJoin = true
         result.__originalWith = this as any

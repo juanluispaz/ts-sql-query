@@ -87,7 +87,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null)
             }
 
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -129,7 +128,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, {reason: 'NO_COLUMN_SETS' }, 'No values to update due no sets')
                 })
             }
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -171,7 +169,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 // database. The `min`/`max` guard below still runs against the count of 0.
                 result = this.__sqlBuilder._queryRunner.createResolvedPromise([])
             } else if (this.__oneColumn) {
-                this.__sqlBuilder._resetUnique()
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
@@ -192,7 +189,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                this.__sqlBuilder._resetUnique()
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningManyRows(this.__query, this.__params).then((rows) => {
                     const length = rows.length
                     const output = new Array(length)

@@ -76,7 +76,6 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -112,7 +111,6 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -147,7 +145,6 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
@@ -219,7 +216,6 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     __executeSelectCount(source: QueryExecutionSource): Promise<any> {
         let query = ''
         try {
-            this.__sqlBuilder._resetUnique()
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
             const params: any[] = []
             query = this.__buildSelectCount(countAll, new SqlBuildContext(params))
@@ -666,7 +662,9 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             }
             // No outer ordering / paging: the recursive member IS the CTE `as`.
             recursiveView.__name = as
+            recursiveView.__generatedName = false
             this.__recursiveInternalView!.__name = as
+            this.__recursiveInternalView!.__generatedName = false
             this.__recursiveView = undefined
             this.__recursiveInternalView = undefined
             this.__recursiveSelect = undefined
@@ -697,9 +695,10 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
 
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any>, unionAll: boolean): void {
-        const sqlBuilder = this.__sqlBuilder
-        const name = 'recursive_select_' + sqlBuilder._generateUnique()
+        // Unique among every recursive select; each query writes it with a number of its own (generatedNameOf)
+        const name = 'recursive_select_' + (++lastRecursiveSelect)
         const recursiveInternalView = new WithViewImpl(this.__sqlBuilder, name, this as any)
+        recursiveInternalView.__generatedName = true
         recursiveInternalView.__ignoreWith = true
         let recursiveInternalSelect 
         if (unionAll) {
@@ -708,6 +707,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             recursiveInternalSelect = this.union(fn(recursiveInternalView))
         }
         const recursiveView = new WithViewImpl(this.__sqlBuilder, name, recursiveInternalSelect)
+        recursiveView.__generatedName = true
         recursiveView.__recursive = true
 
         const recursiveSelect = new SelectQueryBuilder(this.__sqlBuilder, [recursiveView], false)
@@ -817,6 +817,9 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         return this
     }
 }
+
+/** The number of the last recursive select defined, for a name unique among them all */
+let lastRecursiveSelect = 0
 
 export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSelectData, SelectExpression<any, any, any>, /*SelectExpressionFromNoTable<any, any>,*/ ExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, RecursivelyConnectedExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any>, GroupByOrderByExecutableSelectExpressionProjectableAsNullable<any, any, any, any, any>, RecursivelyConnectedExecutableSelectExpression<any, any, any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any, any>, SelectWhereExpression<any, any, any>, RecursivelyConnectedSelectWhereExpression<any, any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, WhereableExecutableSelectExpressionWithGroupBy<any, any, any, any, any>, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<any, any, any, any, any>, DynamicWhereExecutableSelectExpressionWithGroupBy<any, any, any, any, any>, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, DynamicHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, DynamicWhereSelectExpressionWithoutSelect<any, any, any>, LimitExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, OrderByExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, OrderedExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, OffsetExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExpressionWithoutWhere<any, any, any, any, any>, DynamicWhereLimitExecutableSelectExpression<any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, WhereableCompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, ConnectByExpression<any, any, any>, OrderByExecutableSelectExpressionProjectableAsNullable<any,any,any,any, any>, ExecutableSelectExpressionWithoutWhereProjectableAsNullable<any, any, any, any, any>, DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any> {
     __type: 'plain' = 'plain'

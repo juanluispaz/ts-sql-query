@@ -62,7 +62,36 @@ export class SqlBuildContext {
     /** SQLite: a decimal of the order by is ordered as a real */
     orderByDecimalAsReal: boolean = false
 
+    /** The last number given by generateUnique */
+    private unique = 0
+    /** The name in this query of each generated name (generatedNameOf) */
+    private generatedNames: Map<string, string> | undefined = undefined
+
     constructor(params: any[] = []) {
         this.params = params
+    }
+
+    /** A number not given before in this query, to compose a unique name */
+    generateUnique(): number {
+        return ++this.unique
+    }
+
+    /**
+     * The name in this query of a name the library generated when the query was defined (a recursive select,
+     * recursive_select_<n>, unique among all the queries): the same prefix with a number of this query, given the first
+     * time it is written, so the SQL doesn't depend on the queries defined before
+     */
+    generatedNameOf(generatedName: string): string {
+        let names = this.generatedNames
+        if (!names) {
+            names = new Map()
+            this.generatedNames = names
+        }
+        let result = names.get(generatedName)
+        if (result === undefined) {
+            result = generatedName.replace(/\d+$/, '') + this.generateUnique()
+            names.set(generatedName, result)
+        }
+        return result
     }
 }

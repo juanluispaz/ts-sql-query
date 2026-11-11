@@ -17,7 +17,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _buildSelectWithColumnsInfoForCompound(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         if (needsGrouping) {
             // MySQL 5.7 and MariaDB 10.3 don't accept a compound in parentheses as an operand of another one
-            return 'select * from (' + this._buildSelectWithColumnsInfo(query, context, columnsForInsert, isOutermostQuery) + ') as _t_' + this._generateUnique() + '_'
+            return 'select * from (' + this._buildSelectWithColumnsInfo(query, context, columnsForInsert, isOutermostQuery) + ') as _t_' + context.generateUnique() + '_'
         }
         return super._buildSelectWithColumnsInfoForCompound(query, context, columnsForInsert, isOutermostQuery, needsGrouping)
     }

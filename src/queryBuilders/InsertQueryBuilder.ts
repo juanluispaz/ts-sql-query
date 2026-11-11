@@ -211,7 +211,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
             if (multiple && multiple.length <= 0) {
@@ -253,7 +252,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
             if (multiple && multiple.length <= 0) {
@@ -297,7 +295,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         try {
             this.query()
             __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
-            this.__sqlBuilder._resetUnique()
             const multiple = this.__multiple
             let result
             if (multiple && multiple.length <= 0) {

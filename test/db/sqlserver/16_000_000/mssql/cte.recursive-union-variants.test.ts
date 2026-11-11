@@ -1828,7 +1828,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, parentId: tIssue.parentId }))
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_3 as (select id as id, parent_id as parentId from issue where id = @0 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_3 on recursive_select_3.parentId = @1 and issue.parent_id = recursive_select_3.id) select id as id, parentId as parentId from recursive_select_3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, parent_id as parentId from issue where id = @0 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = @1 and issue.parent_id = recursive_select_1.id) select id as id, parentId as parentId from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

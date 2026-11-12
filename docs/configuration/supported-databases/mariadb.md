@@ -149,6 +149,8 @@ MariaDB's default collation (`utf8mb4_uca1400_ai_ci`) is case- **and accent-inse
 - `'uuid'` *(default strategy)*: UUIDs are treated as strings and stored using the native `UUID` column type. This requires MariaDB version 10.7 or higher.
 - `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. This option can be used with older MariaDB versions or when avoiding the `UUID` type.
 
+With `'uuid'`, `asString()` of a uuid is written `cast(... as char(36))` (MariaDB 10.7 or newer): an expression over a `UUID` column has the type `UUID`, and a text that isn't a uuid mixed with it, as in `valueWhenNull('(no ref)')`, a `case` or a `union`, would become NULL. The `UUID` column gives the uuid in lower case, whatever the case it was sent in; a `CHAR(36)` column keeps the case it was sent in.
+
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```ts

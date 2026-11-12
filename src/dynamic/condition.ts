@@ -46,20 +46,41 @@ export type {
 // A brand adds keys that the base type doesn't have, and a union of literals doesn't.
 type IsBrandOf<T, BASE> = [Exclude<keyof T, keyof BASE>] extends [never] ? false : true
 
-type DynamicDefinitionFieldForModel<T> =
+// The descriptor of a scalar value of the model; never for anything else
+type DynamicDefinitionLeafForModel<T> =
     [T] extends [boolean] ? 'boolean' :
     [T] extends [bigint] ? 'bigint' :
     [T] extends [number] ? ([number] extends [T] ? 'int' : IsBrandOf<T, number> extends true ? ['customComparable', T] : ['enum', T]) :
     [T] extends [string] ? ([string] extends [T] ? 'string' : IsBrandOf<T, string> extends true ? ['customComparable', T] : ['enum', T]) :
     [T] extends [Date] ? 'localDateTime' :
-    // Date matched above; any other terminal value object (RegExp, binary, …) or non-value
-    // object (arrays, Map/Set, …) is not filterable → `never`. Plain objects recurse.
-    [T] extends [TerminalValueObject | NonValueObject] ? never :
-    [T] extends [object] ? DynamicDefinitionForModel<T> :
     never
 
-export type DynamicDefinitionForModel<MODEL> = {
-    [K in keyof MODEL & string]-?: DynamicDefinitionFieldForModel<NonNullable<MODEL[K]>>
+// Whether a value of the model is a nested object, whose properties are filtered one level deeper. Date and the
+// scalars are leaves; any other terminal value object (RegExp, binary, …) or non-value object (arrays, Map/Set, …) is
+// not filterable
+type IsNestedModel<T> =
+    [T] extends [boolean | bigint | number | string | Date] ? false :
+    [T] extends [TerminalValueObject | NonValueObject] ? false :
+    [T] extends [object] ? true :
+    false
+
+// The definition of a model, level by level up to 5 levels, as a complex projection (no recursion): a nested object
+// deeper than that has no filter
+export type DynamicDefinitionForModel<MODEL> = DynamicDefinitionForModel1<MODEL>
+type DynamicDefinitionForModel1<MODEL> = {
+    [K in keyof MODEL & string]-?: IsNestedModel<NonNullable<MODEL[K]>> extends true ? DynamicDefinitionForModel2<NonNullable<MODEL[K]>> : DynamicDefinitionLeafForModel<NonNullable<MODEL[K]>>
+}
+type DynamicDefinitionForModel2<MODEL> = {
+    [K in keyof MODEL & string]-?: IsNestedModel<NonNullable<MODEL[K]>> extends true ? DynamicDefinitionForModel3<NonNullable<MODEL[K]>> : DynamicDefinitionLeafForModel<NonNullable<MODEL[K]>>
+}
+type DynamicDefinitionForModel3<MODEL> = {
+    [K in keyof MODEL & string]-?: IsNestedModel<NonNullable<MODEL[K]>> extends true ? DynamicDefinitionForModel4<NonNullable<MODEL[K]>> : DynamicDefinitionLeafForModel<NonNullable<MODEL[K]>>
+}
+type DynamicDefinitionForModel4<MODEL> = {
+    [K in keyof MODEL & string]-?: IsNestedModel<NonNullable<MODEL[K]>> extends true ? DynamicDefinitionForModel5<NonNullable<MODEL[K]>> : DynamicDefinitionLeafForModel<NonNullable<MODEL[K]>>
+}
+type DynamicDefinitionForModel5<MODEL> = {
+    [K in keyof MODEL & string]-?: IsNestedModel<NonNullable<MODEL[K]>> extends true ? never : DynamicDefinitionLeafForModel<NonNullable<MODEL[K]>>
 }
 
 export type DynamicConditionForModel<MODEL, EXTENSION extends DynamicConditionExtension = never> = DynamicCondition<DynamicDefinitionForModel<MODEL>, EXTENSION>

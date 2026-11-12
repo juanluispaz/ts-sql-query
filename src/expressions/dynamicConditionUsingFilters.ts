@@ -157,8 +157,21 @@ export type DynamicColumnType<T> = 'boolean' | 'int' | 'bigint' | 'double' |
     ['customInt', T] | ['customBigint', T] | ['customDouble', T] | ['customDecimal', T] | ['customUuid', T] | ['customLocalDate', T] | ['customLocalTime', T] | ['customLocalDateTime', T] | 
     ['enum', T] | ['custom', T] | ['customComparable', T]
 
+// The definition of a dynamic condition: up to 5 levels, as a complex projection; the last level only has columns
 export type DynamicDefinition = {
-    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition
+    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition2
+}
+type DynamicDefinition2 = {
+    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition3
+}
+type DynamicDefinition3 = {
+    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition4
+}
+type DynamicDefinition4 = {
+    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition5
+}
+type DynamicDefinition5 = {
+    [key: string]: AnyValueSource | DynamicColumnType<any>
 }
 
 export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DynamicConditionExtension = never> = {

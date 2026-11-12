@@ -241,7 +241,8 @@ Note that `.length()` is **not** affected: it counts characters correctly on SQL
 `ts-sql-query` offers you different strategies to handle UUIDs in Sqlite:
 
 - `uuid-extension`: *(default strategy)* In this case, the UUID is represented and stored as `blob` data type of length 16. This requires the functions `uuid`, `uuid_str` and `uuid_blob` of the [UUID extension](https://sqlite.org/src/file?name=ext/misc/uuid.c): some builds of SQLite have them built in, like the one of macOS, which Bun uses there, with a `uuid()` of version 4 UUIDs, and on the drivers that register functions written in JavaScript [`registerSqliteFunctions`](#registering-the-functions) registers them, replacing those with a `uuid()` of version 7 UUIDs. To compile and load SQLite's uuid extension yourself, see [SQLite functions and extensions](sqlite-extensions.md).
-- `string`: In this case, the UUID is represented as string and stored in a column with `text` data type and length 36 characters.
+- `string`: In this case, the UUID is represented as string and stored in a column with `text` data type and length 36 characters. The library sends and reads the text of a uuid in lower case, the case the other strategies and databases give it: a uuid sent in upper case is stored and read in lower case, and an equality with it finds the uuid stored by the library.
+- `string as sent`: as `string`, but the text of a uuid is sent and read as it is, in the case it has. A uuid stored in upper case is read in upper case, and an equality compares the text as the column's collation does. Choose it for a column that other applications fill in upper case and compare as it is.
 
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 

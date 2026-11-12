@@ -62,8 +62,9 @@ type DataToProjectOfAny4 = {
     [P: string]: AnyValueSource | DataToProjectOfAny5 | AnyTableOrView | AnyForUseInLeftJoin
 }
 
+// The last level: only values, as DataToProject5
 type DataToProjectOfAny5 = {
-    [P: string]: AnyValueSource | DataToProjectOfAny
+    [P: string]: AnyValueSource
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,11 +82,12 @@ type DataToProjectOf3<T> = {
 }
 
 type DataToProjectOf4<T> = {
-    [P: string]: AnyValueSource | DataToProjectOf5<T>
+    [P: string]: T | DataToProjectOf5<T>
 }
 
+// The last level: only values, as DataToProject5
 type DataToProjectOf5<T> = {
-    [P: string]: T | DataToProjectOfAny
+    [P: string]: T
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

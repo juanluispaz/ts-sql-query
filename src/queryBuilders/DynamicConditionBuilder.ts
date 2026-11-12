@@ -25,11 +25,11 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     withValues(filter: DynamicFilter<any, any>): BooleanValueSource<any, any> {
-        return this.processFilter(filter, this.definition, this.extension, '')
+        // The definition is walked as the columns it holds, nested objects included
+        return this.processFilter(filter, this.definition as QueryColumns, this.extension, '')
     }
 
-    processFilter(filter: DynamicFilter<any, any>, definition: Filterable, extension: any, prefix: string): BooleanValueSource<any, any> {
-        const definitionColumns = definition as QueryColumns
+    processFilter(filter: DynamicFilter<any, any>, definitionColumns: QueryColumns, extension: any, prefix: string): BooleanValueSource<any, any> {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
         
         if (filter === null || filter === undefined) {
@@ -180,7 +180,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         return result
     }
 
-    processAndFilter(filter: DynamicFilter<any, any>[], definition: Filterable, extension: any, prefix: string) {
+    processAndFilter(filter: DynamicFilter<any, any>[], definition: QueryColumns, extension: any, prefix: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)
@@ -189,7 +189,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         return result
     }
 
-    processOrFilter(filter: DynamicFilter<any, any>[], definition: Filterable, extension: any, prefix: string) {
+    processOrFilter(filter: DynamicFilter<any, any>[], definition: QueryColumns, extension: any, prefix: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)

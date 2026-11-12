@@ -26,6 +26,7 @@ import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const REF1 = '0a8f9c1e-1111-4222-8333-444455556666' // issue 1 external_ref
+const REF2 = '7b3e9d20-2222-4c55-9b66-dddd00009999' // issue 2 external_ref
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -153,5 +154,125 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof value, string>>()
         expect(value).toEqual(expected)
+    })
+
+    test('uuid-sent-in-upper-case-is-read-back', async () => {
+        // Issue 1's external reference is set to a uuid written in upper case.
+        // PostgreSQL stores a `uuid` as a value, not as the text sent, so it is
+        // read back in lower case, and an equality with the lower-case text of
+        // the same uuid finds the row.
+        const upper = 'C733575E-B5BA-400C-8803-3D3D4BBCD52F'
+        const lower = 'c733575e-b5ba-400c-8803-3d3d4bbcd52f'
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            const updated = await ctx.conn.update(tIssue)
+                .set({ externalRef: upper })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set external_ref = uuid_to_bin(?) where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "C733575E-B5BA-400C-8803-3D3D4BBCD52F",
+                1,
+              ]
+            `)
+            expect(updated).toEqual(1)
+
+            ctx.mockNext(lower)
+            const readBack = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .selectOneColumn(tIssue.externalRef)
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select bin_to_uuid(external_ref) as result from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof readBack, string | null>>()
+            expect(readBack).toEqual(lower)
+
+            ctx.mockNext(1)
+            const foundId = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.externalRef.equals(lower))
+                .selectOneColumn(tIssue.id)
+                .executeSelectNoneOrOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from issue where external_ref = uuid_to_bin(?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "c733575e-b5ba-400c-8803-3d3d4bbcd52f",
+              ]
+            `)
+            assertType<Exact<typeof foundId, number | null>>()
+            expect(foundId).toEqual(1)
+        })
+    })
+
+    test('uuid-column-through-cte-converts-in-outer-select-and-where', async () => {
+        // The CTE projects the uuid column as it is, without `.asString()`; the
+        // outer query reads it as the uuid value and filters on its text with
+        // `.asString().contains('4222')`, a piece only issue 1's reference has.
+        // A database that stores a uuid in a binary form converts it to its text
+        // once, in the outer query, both in the projection and in the where.
+        const expected = { id: 1, title: 'Update hero copy', ref: REF1 }
+        ctx.mockNext(expected)
+        const issueRef = ctx.conn.selectFrom(tIssue)
+            .select({
+                id:    tIssue.id,
+                title: tIssue.title,
+                ref:   tIssue.externalRef,
+            })
+            .forUseInQueryAs('issue_ref')
+        const row = await ctx.conn.selectFrom(issueRef)
+            .select({
+                id:    issueRef.id,
+                title: issueRef.title,
+                ref:   issueRef.ref,
+            })
+            .where(issueRef.ref.asString().contains('4222'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_ref as (select id as id, title as title, external_ref as ref from issue) select id as id, title as title, bin_to_uuid(ref) as ref from issue_ref where bin_to_uuid(ref) like concat('%', ?, '%')"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "4222",
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number, title: string, ref?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('uuid-column-through-cte-in-an-inline-aggregated-array', async () => {
+        // The same raw uuid column of a CTE, read as the elements of an inline
+        // aggregated array ordered by id. Issues 1 and 2 have an external
+        // reference; issues 3 and 4 are left out by the `isNotNull` filter.
+        // Each element gets the uuid text of its row, converted once.
+        const expected = {
+            refs: [
+                { id: 1, ref: REF1 },
+                { id: 2, ref: REF2 },
+            ],
+        }
+        ctx.mockNext(expected)
+        const issueRef = ctx.conn.selectFrom(tIssue)
+            .select({
+                id:  tIssue.id,
+                ref: tIssue.externalRef,
+            })
+            .forUseInQueryAs('issue_ref')
+        const refs = ctx.conn.selectFrom(issueRef)
+            .select({
+                id:  issueRef.id,
+                ref: issueRef.ref,
+            })
+            .where(issueRef.ref.isNotNull())
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ refs })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_ref as (select id as id, external_ref as ref from issue) select cast((select json_arrayagg(json_object('id', a_1_.id, 'ref', bin_to_uuid(a_1_.ref))) from (select id as id, ref as ref from issue_ref where ref is not null order by id limit 2147483647) as a_1_) as char) as refs"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { refs: Array<{ id: number, ref?: string }> }>>()
+        expect(row).toEqual(expected)
     })
 })

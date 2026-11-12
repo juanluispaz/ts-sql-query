@@ -78,6 +78,58 @@ describe(ctx.label, () => {
         })
     })
 
+    test('on-conflict-do-update-where-without-target', async () => {
+        // `onConflictDoUpdateSet(...).where(cond)` with no conflict target: the
+        // update of the existing row runs only when the condition holds. Both
+        // inserts collide on (organization_id, slug): project 1 ('Marketing
+        // site') meets the condition and is renamed; project 2 ('Internal
+        // tools') doesn't, so it keeps its name and the insert counts 0 rows.
+        ctx.mockNext(1)
+        ctx.mockNext(0)
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site v2' },
+            { id: 2, name: 'Internal tools' },
+        ])
+
+        await ctx.withRollback(async () => {
+            const renamed = sync(ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Marketing site v2' })
+                .onConflictDoUpdateSet({ name: 'Marketing site v2' })
+                .where(tProject.name.equals('Marketing site'))
+                .executeInsert())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?1, ?2, ?3) on conflict do update set name = ?4 where project.name = ?5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Marketing site v2",
+                "Marketing site v2",
+                "Marketing site",
+              ]
+            `)
+
+            const kept = sync(ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'tools', name: 'Internal tools v2' })
+                .onConflictDoUpdateSet({ name: 'Internal tools v2' })
+                .where(tProject.name.equals('Marketing site'))
+                .executeInsert())
+
+            const rows = sync(ctx.conn.selectFrom(tProject)
+                .where(tProject.id.in([1, 2]))
+                .select({ id: tProject.id, name: tProject.name })
+                .orderBy('id')
+                .executeSelectMany())
+
+            assertType<Exact<typeof renamed, number>>()
+            expect(renamed).toBe(1)
+            expect(kept).toBe(0)
+            expect(rows).toEqual([
+                { id: 1, name: 'Marketing site v2' },
+                { id: 2, name: 'Internal tools' },
+            ])
+        })
+    })
+
     test('on-conflict-on-columns-do-update', async () => {
         // ON CONFLICT (cols) DO UPDATE. The emitted form is pinned by the
         // snapshot below.

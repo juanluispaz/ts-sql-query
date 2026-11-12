@@ -16,11 +16,36 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { ctx } from './setup.js'
+import type { DBConnection } from '../../domain/connection.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 
 function reasonOf(e: unknown): string | undefined {
     if (e instanceof TsSqlError) return e.errorReason.reason
     return undefined
 }
+
+// 2024-01-15T10:30:45.123Z, a Monday: the components every format must give back.
+const REF = new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 123))
+const REF_COMPONENTS = { y: 2024, mo: 0, d: 15, dow: 1, h: 10, mi: 30, s: 45, ms: 123, t: 1705314645123 }
+
+function selectAllComponents(conn: DBConnection) {
+    const d = conn.const(REF, 'localDateTime')
+    return conn.selectFromNoTable()
+        .select({
+            y:   d.getFullYear(),
+            mo:  d.getMonth(),
+            d:   d.getDate(),
+            dow: d.getDay(),
+            h:   d.getHours(),
+            mi:  d.getMinutes(),
+            s:   d.getSeconds(),
+            ms:  d.getMilliseconds(),
+            t:   d.getTime(),
+        })
+        .executeSelectOne()
+}
+
+type Components = { y: number; mo: number; d: number; dow: number; h: number; mi: number; s: number; ms: number; t: number }
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -145,6 +170,79 @@ describe(ctx.label, () => {
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (unixepoch(date('now')) * 1000) as d, cast(unixepoch(strftime('1970-01-01 %H:%M:%f', 'now'), 'subsec') * 1000 as integer) as t, cast(unixepoch('now', 'subsec') * 1000 as integer) as ts"`)
+    })
+
+    test('getters of a local date time: Julian day as real number', async () => {
+        // The nine getters on a local date time sent as a Julian day (a real
+        // number) give back the components of 2024-01-15 10:30:45.123, the
+        // milliseconds and the instant included.
+        const conn = ctx.withDateTimeFormat('Julian day as real number')
+        ctx.mockNext(REF_COMPONENTS)
+        const row = await selectAllComponents(conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?1) as integer) as y, cast(strftime('%m', ?2) as integer) - 1 as mo, cast(strftime('%d', ?3) as integer) as d, cast(strftime('%w',?4) as integer) as dow, cast(strftime('%H', ?5) as integer) as h, cast(strftime('%M', ?6) as integer) as mi, cast(strftime('%S', ?7) as integer) as s, cast(round(strftime('%f', ?8) * 1000) as integer) % 1000 as ms, round(unixepoch(?9, 'subsec') * 1000) as t"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2460324.938022257,
+            2460324.938022257,
+            2460324.938022257,
+            2460324.938022257,
+            2460324.938022257,
+            2460324.938022257,
+            2460324.938022257,
+            2460324.938022257,
+            2460324.938022257,
+          ]
+        `)
+        assertType<Exact<typeof row, Components>>()
+        expect(row).toEqual(REF_COMPONENTS)
+    })
+
+    test('getters of a local date time: Unix time milliseconds as integer', async () => {
+        // The same nine getters on the date time sent as the milliseconds
+        // since 1970 (an integer).
+        const conn = ctx.withDateTimeFormat('Unix time milliseconds as integer')
+        ctx.mockNext(REF_COMPONENTS)
+        const row = await selectAllComponents(conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?1 / 1000.0, 'unixepoch', 'subsec') as integer) as y, cast(strftime('%m', ?2 / 1000.0, 'unixepoch', 'subsec') as integer) - 1 as mo, cast(strftime('%d', ?3 / 1000.0, 'unixepoch', 'subsec') as integer) as d, cast(strftime('%w',?4 / 1000.0, 'unixepoch', 'subsec') as integer) as dow, cast(strftime('%H', ?5 / 1000.0, 'unixepoch', 'subsec') as integer) as h, cast(strftime('%M', ?6 / 1000.0, 'unixepoch', 'subsec') as integer) as mi, cast(strftime('%S', ?7 / 1000.0, 'unixepoch', 'subsec') as integer) as s, ((?8 % 1000) + 1000) % 1000 as ms, ?9 as t"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+          ]
+        `)
+        assertType<Exact<typeof row, Components>>()
+        expect(row).toEqual(REF_COMPONENTS)
+    })
+
+    test('getters of a local date time: UTC milliseconds as text', async () => {
+        // The same nine getters on the date time sent as the text
+        // '2024-01-15 10:30:45.123'.
+        const conn = ctx.withDateTimeFormat('UTC milliseconds as text')
+        ctx.mockNext(REF_COMPONENTS)
+        const row = await selectAllComponents(conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?1) as integer) as y, cast(strftime('%m', ?2) as integer) - 1 as mo, cast(strftime('%d', ?3) as integer) as d, cast(strftime('%w',?4) as integer) as dow, cast(strftime('%H', ?5) as integer) as h, cast(strftime('%M', ?6) as integer) as mi, cast(strftime('%S', ?7) as integer) as s, cast(round(strftime('%f', ?8) * 1000) as integer) % 1000 as ms, round(unixepoch(?9, 'subsec') * 1000) as t"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+            "2024-01-15 10:30:45.123",
+          ]
+        `)
+        assertType<Exact<typeof row, Components>>()
+        expect(row).toEqual(REF_COMPONENTS)
     })
 
     test('invalid dateTimeFormat throws INVALID_CONFIGURATION', async () => {

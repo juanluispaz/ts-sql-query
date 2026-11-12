@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, type Money, type WorklogActivity, type ReleaseChannel } from '../../domain/connection.js'
+import { DBConnection, type Money, type WorklogActivity, type ReleaseChannel, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // `executeFunction` is protected; a subclass exposes a call with TWO parameters
@@ -684,5 +684,27 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof upper, string>>()
         expect(upper).toBe('ABC')
+    })
+
+    test('execute-procedure-effect-is-read-back', async () => {
+        // archive_project(1, 'manual') updates project 1: it stamps archived_at
+        // with the current time and appends ' [archived: manual]' to the name.
+        // Reading the row back proves the call ran with those arguments. The
+        // time of archived_at depends on the clock, so only its presence is
+        // asserted.
+        ctx.mockNext({ id: 1, name: 'Marketing site [archived: manual]', archivedAt: new Date('2024-03-01T00:00:00.000Z') })
+        await ctx.withRollback(async () => {
+            await ctx.conn.callArchiveProject(1, 'manual')
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin archive_project(:0, :1); end;"`)
+
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, name: tProject.name, archivedAt: tProject.archivedAt })
+                .executeSelectOne()
+            assertType<Exact<typeof row, { id: number; name: string; archivedAt?: Date }>>()
+            expect(row.id).toBe(1)
+            expect(row.name).toBe('Marketing site [archived: manual]')
+            expect(row.archivedAt).toBeInstanceOf(Date)
+        })
     })
 })

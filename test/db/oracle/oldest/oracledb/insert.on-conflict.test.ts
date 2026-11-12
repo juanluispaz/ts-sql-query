@@ -83,6 +83,53 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
+    test('on-conflict-do-update-where-without-target', async () => {
+        // `onConflictDoUpdateSet(...).where(cond)` with no conflict target: the
+        // update of the existing row runs only when the condition holds. Both
+        // inserts collide on (organization_id, slug): project 1 ('Marketing
+        // site') meets the condition and is renamed; project 2 ('Internal
+        // tools') doesn't, so it keeps its name and the insert counts 0 rows.
+        ctx.mockNext(1)
+        ctx.mockNext(0)
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site v2' },
+            { id: 2, name: 'Internal tools' },
+        ])
+
+        await ctx.withRollback(async () => {
+            const renamed = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Marketing site v2' })
+                .onConflictDoUpdateSet({ name: 'Marketing site v2' })
+                .where(tProject.name.equals('Marketing site'))
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+
+            const kept = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'tools', name: 'Internal tools v2' })
+                .onConflictDoUpdateSet({ name: 'Internal tools v2' })
+                .where(tProject.name.equals('Marketing site'))
+                .executeInsert()
+
+            const rows = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.in([1, 2]))
+                .select({ id: tProject.id, name: tProject.name })
+                .orderBy('id')
+                .executeSelectMany()
+
+            assertType<Exact<typeof renamed, number>>()
+            expect(renamed).toBe(1)
+            expect(kept).toBe(0)
+            expect(rows).toEqual([
+                { id: 1, name: 'Marketing site v2' },
+                { id: 2, name: 'Internal tools' },
+            ])
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
     test('on-conflict-on-columns-do-update', async () => {
         // ON CONFLICT (cols) DO UPDATE. The emitted form is pinned by the
         // snapshot below.

@@ -118,4 +118,45 @@ describe(ctx.label, () => {
             expect('assigneeId' in row).toBe(false)
         })
     })
+
+    test('update-from-returning-new-value-expression-and-from-table-column', async () => {
+        // An update ... from whose returning computes over the NEW value of the
+        // updated column and reads a column of the from table. Project 1 (of
+        // Acme Corp) is renamed 'Website'; the returning gives the new name
+        // joined with its organization's name, the length of the new name and
+        // the organization's plan. The row read back has the new name.
+        ctx.mockNext({ id: 1, tag: 'Website/Acme Corp', nameLength: 7, plan: 'pro' })
+        ctx.mockNext({ id: 1, name: 'Website' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ name: 'Website' })
+                .where(tProject.organizationId.equals(tOrganization.id))
+                    .and(tProject.id.equals(1))
+                .returning({
+                    id:         tProject.id,
+                    tag:        tProject.name.concat('/').concat(tOrganization.name),
+                    nameLength: tProject.name.length(),
+                    plan:       tOrganization.plan,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 output inserted.id as id, inserted.name + @1 + organization.name as tag, len(inserted.name + '.') - 1 as nameLength, organization.[plan] as [plan] from organization where project.organization_id = organization.id and project.id = @2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Website",
+                "/",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; tag: string; nameLength: number; plan: string }>>()
+            expect(row).toEqual({ id: 1, tag: 'Website/Acme Corp', nameLength: 7, plan: 'pro' })
+
+            const project = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, name: tProject.name })
+                .executeSelectOne()
+            expect(project).toEqual({ id: 1, name: 'Website' })
+        })
+    })
 })

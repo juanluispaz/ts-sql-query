@@ -228,4 +228,158 @@ describe(ctx.label, () => {
             ],
         })
     })
+
+    test('uuid-strategy: uuid-extension insert stores a blob found with asString().contains', async () => {
+        // The uuid of an insert is sent through `uuid_blob(?)`, so the column
+        // stores the 16 bytes (`typeof` gives 'blob'). Reading it back, the
+        // column goes through `uuid_str(...)` and `asString().contains('12d3')`
+        // filters on that text: only the new issue matches, the seed's uuids
+        // don't contain it.
+        const conn = ctx.withUuidStrategy('uuid-extension')
+        const storedAs = conn.fragmentWithType('string', 'required').sql`typeof(${tIssue.externalRef})`
+        const expected = [{ id: 5, externalRef: UUID_VALUE, storedAs: 'blob' }]
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        let inserted!: number
+        let rows!: Array<{ id: number; externalRef?: string; storedAs: string }>
+        await ctx.withRollback(async () => {
+            inserted = await conn.insertInto(tIssue)
+                .set({ projectId: 3, number: 2, title: 'Record voice memo', status: 'open', priority: 1, externalRef: UUID_VALUE })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, external_ref) values (?1, ?2, ?3, ?4, ?5, uuid_blob(?6))"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                3,
+                2,
+                "Record voice memo",
+                "open",
+                1,
+                "123e4567-e89b-12d3-a456-426614174000",
+              ]
+            `)
+            rows = await conn.selectFrom(tIssue)
+                .where(tIssue.externalRef.asString().contains('12d3'))
+                .select({ id: tIssue.id, externalRef: tIssue.externalRef, storedAs })
+                .executeSelectMany()
+        })
+        expect(inserted).toBe(1)
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as id, uuid_str(external_ref) as externalRef, typeof(external_ref) as storedAs from issue where uuid_str(external_ref) like ('%' || ?1 || '%') escape '\\'"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            "12d3",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; externalRef?: string; storedAs: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('uuid-strategy: uuid-extension on conflict do update sets the uuid as a blob', async () => {
+        // Issue (project 1, number 1) exists, so the insert turns into the
+        // update of its `external_ref`, sent through `uuid_blob(?)` in the
+        // `do update set` too. Read back: issue 1 holds the new uuid as a blob.
+        const conn = ctx.withUuidStrategy('uuid-extension')
+        const storedAs = conn.fragmentWithType('string', 'required').sql`typeof(${tIssue.externalRef})`
+        const expected = { id: 1, externalRef: UUID_VALUE, storedAs: 'blob' }
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        let affected!: number
+        let row!: { id: number; externalRef?: string; storedAs: string }
+        await ctx.withRollback(async () => {
+            affected = await conn.insertInto(tIssue)
+                .set({ projectId: 1, number: 1, title: 'Update hero copy', status: 'open', priority: 2 })
+                .onConflictOn(tIssue.projectId, tIssue.number)
+                .doUpdateSet({ externalRef: UUID_VALUE })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?1, ?2, ?3, ?4, ?5) on conflict (project_id, number) do update set external_ref = uuid_blob(?6)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                1,
+                "Update hero copy",
+                "open",
+                2,
+                "123e4567-e89b-12d3-a456-426614174000",
+              ]
+            `)
+            row = await conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, externalRef: tIssue.externalRef, storedAs })
+                .executeSelectOne()
+        })
+        expect(affected).toBe(1)
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as id, uuid_str(external_ref) as externalRef, typeof(external_ref) as storedAs from issue where id = ?1"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; externalRef?: string; storedAs: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('uuid-strategy: uuid-extension cte re-projects a stored blob uuid', async () => {
+        // Issue 1's `external_ref` is set to a blob uuid. A CTE projects it as
+        // it is stored (no `uuid_str` inside the CTE); the outer query compares
+        // it with `uuid_blob(?)` (blob against blob) and only its outermost
+        // column reads it with `uuid_str(...)`.
+        const conn = ctx.withUuidStrategy('uuid-extension')
+        const expected = [{ id: 1, ref: UUID_VALUE }]
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        let rows!: Array<{ id: number; ref?: string }>
+        await ctx.withRollback(async () => {
+            await conn.update(tIssue).set({ externalRef: UUID_VALUE }).where(tIssue.id.equals(1)).executeUpdate()
+            const refs = conn.selectFrom(tIssue)
+                .select({ id: tIssue.id, ref: tIssue.externalRef })
+                .forUseInQueryAs('refs')
+            rows = await conn.selectFrom(refs)
+                .where(refs.ref.equals(UUID_VALUE))
+                .select({ id: refs.id, ref: refs.ref })
+                .executeSelectMany()
+        })
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"with refs as (select id as id, external_ref as ref from issue) select id as id, uuid_str(ref) as ref from refs where ref = uuid_blob(?1)"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            "123e4567-e89b-12d3-a456-426614174000",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; ref?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('uuid-strategy: uuid-extension json_group_array of stored blob uuids', async () => {
+        // Issues 1 and 2 (project 1) get blob uuids; the inline aggregated
+        // array of the column reads each element with `uuid_str(...)` inside
+        // `json_group_array`. The aggregate has no ORDER BY, so the elements are
+        // compared sorted.
+        const conn = ctx.withUuidStrategy('uuid-extension')
+        const OTHER_UUID = '89bf68fc-7002-11ec-90d6-0242ac120003'
+        const expected = { id: 1, refs: [UUID_VALUE, OTHER_UUID] }
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(expected)
+        let row!: { id: number; refs: string[] }
+        await ctx.withRollback(async () => {
+            await conn.update(tIssue).set({ externalRef: UUID_VALUE }).where(tIssue.id.equals(1)).executeUpdate()
+            await conn.update(tIssue).set({ externalRef: OTHER_UUID }).where(tIssue.id.equals(2)).executeUpdate()
+            row = await conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    id:   tProject.id,
+                    refs: conn.subSelectUsing(tProject).from(tIssue)
+                        .where(tIssue.projectId.equals(tProject.id))
+                        .selectOneColumn(tIssue.externalRef)
+                        .forUseAsInlineAggregatedArrayValue(),
+                })
+                .executeSelectOne()
+        })
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as id, (select json_group_array(uuid_str(external_ref)) from issue where project_id = project.id) as refs from project where id = ?1"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; refs: string[] }>>()
+        expect({ ...row, refs: [...row.refs].sort() }).toEqual(expected)
+    })
 })

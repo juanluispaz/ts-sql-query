@@ -15,7 +15,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -639,5 +639,36 @@ describe(ctx.label, () => {
         const sql = built.query()
         expect(sql).toMatchInlineSnapshot(`"update issue set title = :0, status = :1 where id = :2"`)
         assertType<Exact<typeof sql, string>>()
+    })
+
+    test('update-that-changes-nothing-counts-the-matched-row', async () => {
+        // An update that sets a column to the value it already has still counts
+        // the row its where matches: project 1 is named 'Marketing site' in the
+        // seed, so setting that same name reports 1, and the row read back keeps
+        // the name.
+        ctx.mockNext(1)
+        ctx.mockNext({ id: 1, name: 'Marketing site' })
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site' })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = :0 where id = :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, name: tProject.name })
+                .executeSelectOne()
+            expect(row).toEqual({ id: 1, name: 'Marketing site' })
+        })
     })
 })

@@ -531,6 +531,124 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }, { n: 4 }])
     })
 
+    test('connect-by-correlated-inside-inline-aggregated-array', async () => {
+        // The ancestors of each outer issue as an inline array of objects: the
+        // hierarchical walk over `issue` aliased `ancestor` starts at the outer
+        // row's parent (`start with ancestor.id = issue.parent_id`) and climbs
+        // through `prior ancestor.parent_id = ancestor.id`. Chain after seeding:
+        // 1 → 2 → 3. For issue 1 the walk is 2 then 3, in walk order; issue 3
+        // has no parent, so its `parentId` is absent in the array element.
+        const expected = [{
+            id: 1,
+            title: 'Update hero copy',
+            parentId: 2,
+            ancestors: [
+                { id: 2, title: 'Redesign navbar', parentId: 3 },
+                { id: 3, title: 'Migrate to ESM' },
+            ],
+        }]
+        ctx.mockNext(expected)
+
+        const ancestor = tIssue.as('ancestor')
+        const ancestors = ctx.conn.subSelectUsing(tIssue)
+            .from(ancestor)
+            .select({
+                id:       ancestor.id,
+                title:    ancestor.title,
+                parentId: ancestor.parentId,
+            })
+            .startWith(ancestor.id.equals(tIssue.parentId))
+            .connectBy(prior => prior(ancestor.parentId).equals(ancestor.id))
+            .forUseAsInlineAggregatedArrayValue()
+
+        const runQuery = () => ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:       tIssue.id,
+                title:    tIssue.title,
+                parentId: tIssue.parentId,
+                ancestors,
+            })
+            .executeSelectMany()
+
+        type Row = { id: number; title: string; parentId?: number; ancestors?: Array<{ id: number; title: string; parentId?: number }> }
+        let rows!: Array<Row>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "id", title as "title", parent_id as "parentId", (select json_arrayagg(json_object('id' value ancestor.id, 'title' value ancestor.title, 'parentId' value ancestor.parent_id)) from issue ancestor start with ancestor.id = issue.parent_id connect by prior ancestor.parent_id = ancestor.id) as "ancestors" from issue where id = :0"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<Row>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('connect-by-objects-over-aliased-table', async () => {
+        // The same walk of objects over `issue` aliased `ancestor`, not
+        // correlated: it starts at issue 2 and climbs to its parent 3. Used as
+        // an inline array of the outer issue 1, which only carries it. Chain
+        // after seeding: 1 → 2 → 3; the array is in walk order.
+        const expected = [{
+            id: 1,
+            ancestors: [
+                { id: 2, title: 'Redesign navbar', parentId: 3 },
+                { id: 3, title: 'Migrate to ESM' },
+            ],
+        }]
+        ctx.mockNext(expected)
+
+        const ancestor = tIssue.as('ancestor')
+        const ancestors = ctx.conn.selectFrom(ancestor)
+            .select({
+                id:       ancestor.id,
+                title:    ancestor.title,
+                parentId: ancestor.parentId,
+            })
+            .startWith(ancestor.id.equals(2))
+            .connectBy(prior => prior(ancestor.parentId).equals(ancestor.id))
+            .forUseAsInlineAggregatedArrayValue()
+
+        const runQuery = () => ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ancestors,
+            })
+            .executeSelectMany()
+
+        type Row = { id: number; ancestors?: Array<{ id: number; title: string; parentId?: number }> }
+        let rows!: Array<Row>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(json_object('id' value ancestor.id, 'title' value ancestor.title, 'parentId' value ancestor.parent_id)) from issue ancestor start with ancestor.id = :0 connect by prior ancestor.parent_id = ancestor.id) as "ancestors" from issue where id = :1"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<Row>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('start-with-if-value-without-value-drops-the-start-with-clause', async () => {
         // `startWith(tIssue.id.equalsIfValue(rootId))` with no root given: the
         // condition renders nothing, so `start with` is left out and every row is a

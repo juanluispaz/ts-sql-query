@@ -632,4 +632,29 @@ describe(ctx.label, () => {
         assertType<Exact<typeof upper, string>>()
         expect(upper).toBe('ABC')
     })
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
+    test('execute-procedure-effect-is-read-back', async () => {
+        // archive_project(1, 'manual') updates project 1: it stamps archived_at
+        // with the current time and appends ' [archived: manual]' to the name.
+        // Reading the row back proves the call ran with those arguments. The
+        // time of archived_at depends on the clock, so only its presence is
+        // asserted.
+        ctx.mockNext({ id: 1, name: 'Marketing site [archived: manual]', archivedAt: new Date('2024-03-01T00:00:00.000Z') })
+        await ctx.withRollback(async () => {
+            await ctx.conn.callArchiveProject(1, 'manual')
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, name: tProject.name, archivedAt: tProject.archivedAt })
+                .executeSelectOne()
+            assertType<Exact<typeof row, { id: number; name: string; archivedAt?: Date }>>()
+            expect(row.id).toBe(1)
+            expect(row.name).toBe('Marketing site [archived: manual]')
+            expect(row.archivedAt).toBeInstanceOf(Date)
+        })
+    })
+    */
 })

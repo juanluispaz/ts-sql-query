@@ -104,20 +104,33 @@ Set it to another collation name to force a different one, or to the empty strin
 
 ## UUID management
 
-In SQL Server, UUIDs are stored in columns of type `uniqueidentifier`, which preserve values in uppercase. If you prefer to convert them to lowercase during projection, you can override the `transformValueFromDB` method as shown below:
+In SQL Server, UUIDs are stored in columns of type `uniqueidentifier`, which SQL Server gives in upper case. `ts-sql-query` gives a uuid in lower case, as the other databases do: a uuid read is lowered, the text of a uuid (`asString()`) read as a column of the result is lowered too, and where that text is transformed in the query (concatenated, cut, trimmed, aggregated with `stringConcat`, replaced, collated, in `valueWhenNull`, in a column of a `union` whose other select has another text, or as a value of a fragment) the query writes `lower(convert(nvarchar(36), ...))`. Where the text is only compared (an equality, `like`, `length`) it is written `convert(nvarchar(36), ...)`, because the case doesn't change the result.
+
+```ts
+const code = await connection.selectFrom(tRecord)
+    .where(tRecord.title.equals('First'))
+    .selectOneColumn(tRecord.id.asString().concat('-x'))
+    .executeSelectOne()
+```
+
+```sqlserver
+select lower(convert(nvarchar(36), id)) + @0 as result from record where title = @1
+```
+
+The parameters are: `[ '-x', 'First' ]`
+
+The result type is:
+```tsx
+const code: Promise<string>
+```
+
+To keep the upper case of SQL Server, set `useUpperCaseUuid` in your connection: a uuid and its text are then given as SQL Server gives them, and the query has no `lower(...)`.
 
 ```ts
 import { SqlServerConnection } from "ts-sql-query/sqlserver";
-import type { TypeCategory } from "ts-sql-query"
 
-class DBConnection extends SqlServerConnection<'DBConnection'> { 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
-        const result = super.transformValueFromDB(value, type, typeCategory);
-        if (result && type === 'uuid') {
-            return (result as string).toLowerCase();
-        }
-        return result;
-    }
+class DBConnection extends SqlServerConnection<'DBConnection'> {
+    protected override useUpperCaseUuid = true
 }
 ```
 

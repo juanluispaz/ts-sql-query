@@ -459,11 +459,69 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (this._connectionConfiguration.useSimultaneousAssignment) {
             return undefined
         }
-        const assignments = this._updateAssignmentsOf(query)
+        const multipleTables = (!!query.__froms && query.__froms.length > 0) || (!!query.__joins && query.__joins.length > 0)
+        const analysis = this._analyzeAssignments(query.__table, this._updateAssignmentsOf(query), multipleTables)
+        if (!analysis) {
+            return undefined
+        }
+        if (analysis.ordered) {
+            return analysis.ordered.map((assignment) => assignment.property)
+        }
+        if (query.__columns) {
+            // MariaDB answers an update with returning whose set reads the table through a derived table without the
+            // rows of the returning (measured on 13.0.2)
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MariaDB gives to a value of the set of an update the value an earlier assignment wrote, and the value before the update can only be read without returning: set useSimultaneousAssignment on the connection when the sql_mode of the session has SIMULTANEOUS_ASSIGNMENT')
+        }
+        context.updateOldRowColumns = analysis.oldRowColumns
+        return undefined
+    }
+    /**
+     * The on duplicate key update has the same order of the assignments as an update (see _analyzeAssignments): they
+     * are reordered, or the columns involved are read with their value before the insert where the database can do it
+     * (_supportOldRowReadInOnDuplicateKeyUpdate)
+     */
+    override _buildInsertOnConflictUpdateSetColumns(query: InsertData, context: SqlBuildContext): string {
+        if (this._connectionConfiguration.useSimultaneousAssignment) {
+            return super._buildInsertOnConflictUpdateSetColumns(query, context)
+        }
+        let assignments = this._resolveInsertOnConflictUpdateSetColumns(query)
+        const analysis = this._analyzeAssignments(query.__table, assignments, false)
+        const oldRowColumns = context.updateOldRowColumns
+        if (analysis && analysis.ordered) {
+            assignments = analysis.ordered
+        } else if (analysis) {
+            if (!this._supportOldRowReadInOnDuplicateKeyUpdate()) {
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MySQL and MariaDB before 10.5 give to a value of the on duplicate key update the value an earlier assignment wrote, and they can\'t read there the value the row had: assignments that read each other can\'t be written so that they give the rows of the other databases')
+            }
+            context.updateOldRowColumns = analysis.oldRowColumns
+        }
+        let columns = ''
+        for (let i = 0, length = assignments.length; i < length; i++) {
+            const { property, column, value } = assignments[i]!
+            if (columns) {
+                columns += ', '
+            }
+            columns += this._appendColumnNameForUpdate(column, context)
+            columns += ' = '
+            columns += this._appendSetValue(property, undefined, column, value, context)
+        }
+        context.updateOldRowColumns = oldRowColumns
+        return columns
+    }
+    /** The on duplicate key update can read a column of the row with a subquery over a derived table of its table */
+    _supportOldRowReadInOnDuplicateKeyUpdate(): boolean {
+        return false
+    }
+    /**
+     * What the order of the assignments of a set needs on MySQL and MariaDB, where each one reads the value an earlier
+     * one already wrote: undefined when no value reads a column that another assignment writes before it; the
+     * assignments reordered when that is enough (one table, no cycle); otherwise the columns to read with the value
+     * they had before (it needs the primary key of the table)
+     */
+    _analyzeAssignments(table: AnyTableOrView, assignments: UpdateAssignment[], multipleTables: boolean): { ordered?: UpdateAssignment[], oldRowColumns: Set<DBColumn> } | undefined {
         if (assignments.length < 2) {
             return undefined
         }
-        const table = query.__table
         const onlyTable = new Set<AnyTableOrView>([table])
         const reads = assignments.map((assignment) => {
             const result = new Set<DBColumn>()
@@ -471,13 +529,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return result
         })
         // The columns read by another assignment than the one that writes them
-        const sharedColumns = new Set<DBColumn>()
+        const oldRowColumns = new Set<DBColumn>()
         let conflict = false
         for (let writer = 0; writer < assignments.length; writer++) {
             const column = assignments[writer]!.column
             for (let reader = 0; reader < assignments.length; reader++) {
                 if (reader !== writer && reads[reader]!.has(column)) {
-                    sharedColumns.add(column)
+                    oldRowColumns.add(column)
                     if (reader > writer) {
                         conflict = true
                     }
@@ -487,23 +545,16 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (!conflict) {
             return undefined
         }
-        const multipleTables = (!!query.__froms && query.__froms.length > 0) || (!!query.__joins && query.__joins.length > 0)
         if (!multipleTables) {
             const ordered = this._orderUpdateAssignmentsReadingFirst(assignments, reads)
             if (ordered) {
-                return ordered.map((assignment) => assignment.property)
+                return { ordered, oldRowColumns }
             }
         }
         if (!this._hasPrimaryKey(table)) {
-            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MySQL and MariaDB give to a value of the set of an update the value an earlier assignment wrote: reading the value before the update needs the primary key of the table, and this table has none')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MySQL and MariaDB give to a value of the set the value an earlier assignment wrote: reading the value before the change needs the primary key of the table, and this table has none')
         }
-        if (query.__columns) {
-            // MariaDB answers an update with returning whose set reads the table through a derived table without the
-            // rows of the returning (measured on 13.0.2)
-            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MariaDB gives to a value of the set of an update the value an earlier assignment wrote, and the value before the update can only be read without returning: set useSimultaneousAssignment on the connection when the sql_mode of the session has SIMULTANEOUS_ASSIGNMENT')
-        }
-        context.updateOldRowColumns = sharedColumns
-        return undefined
+        return { oldRowColumns }
     }
     /**
      * The assignments of the set of an update that are columns of the table, in the order given: the properties of

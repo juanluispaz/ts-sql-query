@@ -585,6 +585,21 @@ The library emits valid SQL (the same shape PostgreSQL and SQL Server
 accept), so the `newest` tests that use an old value inside an expression
 stay `NOT-SUPPORTED` with a marker citing MDEV-40126.
 
+### MySQL and MariaDB before 10.5 can't read the row before in an `on duplicate key update`
+
+MySQL and MariaDB compute the assignments of an `on duplicate key update` from
+left to right, each one reading what an earlier one wrote. The library reorders
+them when that is enough; when they read each other (a swap), the value the row
+had must be read with a subquery over a derived table of the table, and only
+MariaDB 10.5+ accepts it there (measured on 10.5.29 and 13.0.2, with a
+returning too). MySQL rejects it (1093 `You can't specify target table … for
+update in FROM clause` on 8.0+, 1054 `Unknown column 'project.id'` on 5.7), and
+MariaDB 10.4 and 10.3 too (1054). No other emission gives the rows of the other
+databases, so such an insert is refused with `UNSUPPORTED_QUERY` there. The
+tests are `insert.on-conflict-set-reads-the-row-before` →
+`an-on-conflict-update-that-swaps-two-columns-swaps-them` (the refusal in the
+MySQL cells and in the MariaDB cells below 10.5).
+
 ### MariaDB drops the rows of RETURNING when the set reads the updated table through a derived table
 
 An `UPDATE … RETURNING` whose set has a subquery over a derived table of the

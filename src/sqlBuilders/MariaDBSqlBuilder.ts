@@ -10,6 +10,11 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { isMariaDBReservedWord } from '../utils/mySqlMariaDB/mariaDBReservedWords.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
+    // MariaDB 10.5+ reads a column of the row in its on duplicate key update with a subquery over a derived table of
+    // the table (measured on 10.5.29 and 13.0.2; 10.4 and 10.3 reject the outer reference, 1054)
+    override _supportOldRowReadInOnDuplicateKeyUpdate(): boolean {
+        return this._connectionConfiguration.compatibilityVersion >= 10_005_000
+    }
     mariaDB: true = true
     // MariaDB 10.4.0 added DOUBLE as a cast target.
     override _castAsDoubleMinCompatibilityVersion: number = 10_004_000

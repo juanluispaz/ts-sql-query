@@ -14,8 +14,9 @@
  *  - `deepPick(obj, paths)` / `deepOmit(obj, paths)` are the runtime
  *    companions that produce such an object from any plain object.
  *
- * `DeepPick` is intentionally a plain path-driven recursive mapped type: that shape is
- * covariant in its first type argument over a generic path union, which is what lets a
+ * `DeepPick` is intentionally a plain path-driven mapped type, written level by level up to 5
+ * levels (no recursion) with the same mapped shape at every level and no conditional on the
+ * model: that shape is covariant in its first type argument over a generic path union, which is what lets a
  * generic helper returning `DeepPick<ResultModel, FIELDS>` be assignable to a caller's
  * hand-written `DeepPick<BusinessModel, FIELDS>` (see how `expandTypeFromDynamicPickPaths`
  * uses it as a bridge). More elaborate community deep-pick types (built on
@@ -37,16 +38,55 @@ import type { TerminalValue } from '../utils/objectUtils.js'
  * Union of every legal dotted path of `MODEL` (the deep analogue of `keyof MODEL`).
  *
  * For `{ id: number; org?: { id: number; name: string } }` it yields
- * `'id' | 'org' | 'org.id' | 'org.name'`.
+ * `'id' | 'org' | 'org.id' | 'org.name'`. The paths go up to 5 levels deep, the deepest
+ * nesting of a complex projection, built level by level with no recursion, so a model that
+ * refers to itself gives its paths up to that depth.
  */
-export type DeepPickPaths<MODEL> =
+export type DeepPickPaths<MODEL> = DeepPickPaths1<MODEL>
+type DeepPickPaths1<MODEL> =
     NonNullable<MODEL> extends TerminalValue
     ? never
     : {
         [K in keyof NonNullable<MODEL> & string]:
             NonNullable<NonNullable<MODEL>[K]> extends TerminalValue
             ? K
-            : K | `${K}.${DeepPickPaths<NonNullable<NonNullable<MODEL>[K]>> & string}`
+            : K | `${K}.${DeepPickPaths2<NonNullable<NonNullable<MODEL>[K]>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+type DeepPickPaths2<MODEL> =
+    NonNullable<MODEL> extends TerminalValue
+    ? never
+    : {
+        [K in keyof NonNullable<MODEL> & string]:
+            NonNullable<NonNullable<MODEL>[K]> extends TerminalValue
+            ? K
+            : K | `${K}.${DeepPickPaths3<NonNullable<NonNullable<MODEL>[K]>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+type DeepPickPaths3<MODEL> =
+    NonNullable<MODEL> extends TerminalValue
+    ? never
+    : {
+        [K in keyof NonNullable<MODEL> & string]:
+            NonNullable<NonNullable<MODEL>[K]> extends TerminalValue
+            ? K
+            : K | `${K}.${DeepPickPaths4<NonNullable<NonNullable<MODEL>[K]>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+type DeepPickPaths4<MODEL> =
+    NonNullable<MODEL> extends TerminalValue
+    ? never
+    : {
+        [K in keyof NonNullable<MODEL> & string]:
+            NonNullable<NonNullable<MODEL>[K]> extends TerminalValue
+            ? K
+            : K | `${K}.${DeepPickPaths5<NonNullable<NonNullable<MODEL>[K]>> & string}`
+    }[keyof NonNullable<MODEL> & string]
+type DeepPickPaths5<MODEL> =
+    NonNullable<MODEL> extends TerminalValue
+    ? never
+    : {
+        [K in keyof NonNullable<MODEL> & string]:
+            NonNullable<NonNullable<MODEL>[K]> extends TerminalValue
+            ? K
+            : K
     }[keyof NonNullable<MODEL> & string]
 
 // What a nested path can't narrow: the null a property may hold
@@ -61,13 +101,46 @@ type DeepPickTail<PATH extends string, KEY extends string> = PATH extends `${KEY
  * selecting a leaf (`'org.name'`) narrows the inner object. Top-level optionality of
  * `MODEL` is preserved, exactly like `Pick`.
  */
-export type DeepPick<MODEL, PATHS extends string> = {
+export type DeepPick<MODEL, PATHS extends string> = DeepPick1<MODEL, PATHS>
+type DeepPick1<MODEL, PATHS extends string> = {
     [K in keyof MODEL as K extends string ? (K extends DeepPickHead<PATHS> ? K : never) : never]:
         [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
             ? MODEL[K]
             : Extract<K, string> extends PATHS
             ? MODEL[K]
-            : DeepPick<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+            : DeepPick2<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepPick2<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as K extends string ? (K extends DeepPickHead<PATHS> ? K : never) : never]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : Extract<K, string> extends PATHS
+            ? MODEL[K]
+            : DeepPick3<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepPick3<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as K extends string ? (K extends DeepPickHead<PATHS> ? K : never) : never]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : Extract<K, string> extends PATHS
+            ? MODEL[K]
+            : DeepPick4<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepPick4<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as K extends string ? (K extends DeepPickHead<PATHS> ? K : never) : never]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : Extract<K, string> extends PATHS
+            ? MODEL[K]
+            : DeepPick5<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepPick5<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as K extends string ? (K extends DeepPickHead<PATHS> ? K : never) : never]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : Extract<K, string> extends PATHS
+            ? MODEL[K]
+            : MODEL[K]
 }
 
 // Bare (non-dotted) paths — the top-level keys to drop entirely.
@@ -79,11 +152,36 @@ type DeepOmitWholeKeys<PATHS extends string> = PATHS extends `${string}.${string
  * omitting a leaf (`'org.name'`) keeps the inner object and removes only that property.
  * Top-level optionality of `MODEL` is preserved, exactly like `Omit`.
  */
-export type DeepOmit<MODEL, PATHS extends string> = {
+export type DeepOmit<MODEL, PATHS extends string> = DeepOmit1<MODEL, PATHS>
+type DeepOmit1<MODEL, PATHS extends string> = {
     [K in keyof MODEL as Extract<K, string> extends DeepOmitWholeKeys<PATHS> ? never : K]:
         [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
             ? MODEL[K]
-            : DeepOmit<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+            : DeepOmit2<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepOmit2<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as Extract<K, string> extends DeepOmitWholeKeys<PATHS> ? never : K]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : DeepOmit3<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepOmit3<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as Extract<K, string> extends DeepOmitWholeKeys<PATHS> ? never : K]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : DeepOmit4<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepOmit4<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as Extract<K, string> extends DeepOmitWholeKeys<PATHS> ? never : K]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : DeepOmit5<NonNullable<MODEL[K]>, DeepPickTail<PATHS, Extract<K, string>>> | DeepNullOf<MODEL, K>
+}
+type DeepOmit5<MODEL, PATHS extends string> = {
+    [K in keyof MODEL as Extract<K, string> extends DeepOmitWholeKeys<PATHS> ? never : K]:
+        [DeepPickTail<PATHS, Extract<K, string>>] extends [never]
+            ? MODEL[K]
+            : MODEL[K]
 }
 
 /**

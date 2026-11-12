@@ -43,6 +43,8 @@ interface CustomerWithCompany {
 type CustomerPaths = DeepPickPaths<CustomerWithCompany>;
 ```
 
+The paths go up to 5 levels deep, like the nested objects of a [complex projection](../queries/complex-projections.md): `'a.b.c.d.e'`. A property deeper than that has no path. A model that refers to itself, like `{ name: string; parent?: Node }`, gives its paths up to that depth: `'parent.parent.parent.parent.name'`.
+
 ### DeepPick
 
 **Type**: `DeepPick<Model, Paths>`

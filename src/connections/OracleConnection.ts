@@ -16,7 +16,13 @@ import { oracleZonedParam, setParamMetadata } from '../utils/metadataSymbols.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
-    protected uuidStrategy: 'string' | 'custom-functions' | 'built-in' = 'built-in'
+    protected uuidStrategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in' = 'built-in'
+
+    protected override __normalizeUuidText(value: string): string {
+        // A uuid in a text column is written and read in lower case, as the other strategies and databases give it;
+        // 'string as sent' keeps the text as it is
+        return this.uuidStrategy === 'string' ? value.toLowerCase() : value
+    }
 
     /**
      * How a boolean is stored: `'number'` (the default), a `NUMBER(1)` with 1 / 0, the form every version of Oracle

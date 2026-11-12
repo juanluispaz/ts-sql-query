@@ -65,6 +65,11 @@ export class SqlBuildContext {
      * update (the database gives the value an earlier assignment of the same set already wrote)
      */
     updateOldRowColumns: Set<DBColumn> | undefined = undefined
+    /**
+     * The uuid texts (`asString()`) of the columns of the arms of the compound query being written that are converted
+     * to a text, because another arm has a text that isn't a uuid in that column (_convertUuidTextInCompound)
+     */
+    uuidTextsAsText: Set<AnyValueSource> | undefined = undefined
     /** SQLite: a decimal of the order by is ordered as a real */
     orderByDecimalAsReal: boolean = false
 

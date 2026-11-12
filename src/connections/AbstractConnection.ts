@@ -1172,6 +1172,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new DynamicConditionBuilder(this.__sqlBuilder, definition, extension)
     }
 
+    /**
+     * The text of a uuid sent to or received from the database. A database that keeps the text of a uuid as it is
+     * (a uuid strategy that stores it in a text column) writes it in lower case, as the others give it.
+     */
+    protected __normalizeUuidText(value: string): string {
+        return value
+    }
     protected transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         const conversionType = __conversionType(type, typeCategory)
         if (value === undefined) {
@@ -1337,7 +1344,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid string value received from the db: ' + value)
             case 'uuid':
                 if (typeof value === 'string') {
-                    return value
+                    return this.__normalizeUuidText(value)
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid uuid value received from the db: ' + value)
             case 'localDate': {
@@ -1456,7 +1463,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid string value to send to the db: ' + value)
             case 'uuid':
                 if (typeof value === 'string') {
-                    return value
+                    return this.__normalizeUuidText(value)
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid uuid value to send to the db: ' + value)
             case 'localDate':

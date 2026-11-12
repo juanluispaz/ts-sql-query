@@ -19,7 +19,13 @@ import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 
-    protected uuidStrategy: 'string' | 'uuid-extension' = 'uuid-extension'
+    protected uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' = 'uuid-extension'
+
+    protected override __normalizeUuidText(value: string): string {
+        // A uuid in a text column is written and read in lower case, as the other strategies and databases give it;
+        // 'string as sent' keeps the text as it is
+        return this.uuidStrategy === 'string' ? value.toLowerCase() : value
+    }
 
     /**
      * How a `customDecimal` is stored, computed, compared and ordered. SQLite has no exact decimal type: a

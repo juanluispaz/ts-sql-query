@@ -147,7 +147,7 @@ unless `allowEmptyString` (default `false`, `connections/AbstractConnection.ts:4
 | `double` | any `number` (`NaN`, `Infinity` included) | non-number | the number | `AbstractConnection.ts:1415-1419` |
 | `stringDecimal`, `customDecimal` | a string matching `^-?(\d+(\.\d+)?\|\.\d+)$` (point separator, no exponent) | other strings, non-strings | the text | `AbstractConnection.ts:1420-1430` |
 | `string` | `string` | non-string | the string | `AbstractConnection.ts:1431-1435` |
-| `uuid` | `string` (format not checked) | non-string | the string | `AbstractConnection.ts:1436-1440` |
+| `uuid` | `string` (format not checked) | non-string | the string; in lower case with the uuid strategy `'string'` (MariaDB, MySQL, Oracle, SQLite: `__normalizeUuidText`) | `AbstractConnection.ts:1436-1440` |
 | `localDate` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC day is the value) | `AbstractConnection.ts:1441-1445` |
 | `localTime` | a valid `Date` | invalid `Date`, non-Date | a new `Date` on 1970-01-01 UTC with the UTC time of the given one (`Date.UTC(1970, 0, 1, h, m, s, ms)` from the UTC getters), for every database | `AbstractConnection.ts:1446-1453` |
 | `localDateTime` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC getters are the digits; the instant for a zoned column) | `AbstractConnection.ts:1454-1458` |
@@ -357,7 +357,7 @@ Common (`connections/AbstractConnection.ts:1157-1166`): `undefined` and `null` �
 | `bigint` | safe integer number → bigint; text → `BigInt(text without a trailing .0+)` (`BigInt()` also takes `0x1f` and blanks, which no database delivers); bigint | integer number not safe | non-integer number, text `BigInt` refuses, other types | `:1233-1266` |
 | `double` | number; text `^(-?(\d+(\.\d+)?\|\.\d+)([eE][-+]?\d+)?\|NaN\|-?Infinity)$` → `+v`; bigint → `Number(v)` (a `double` is approximate by definition: rounding a bigint is not a loss to report) | — | other text, other types | `:1267-1288` |
 | `stringDecimal`, `customDecimal` | text `^-?(\d+(\.\d+)?\|\.\d+)$` (`.5` → `0.5`, `-.5` → `-0.5`); bigint → its text | any number | other text (an exponent too), other types | `:1289-1313` |
-| `string`, `uuid` | text, unchanged | — | non-text | `:1314-1323` |
+| `string`, `uuid` | text, unchanged; a `uuid` in lower case with the uuid strategy `'string'` (`__normalizeUuidText`) | — | non-text | `:1314-1323` |
 | `localDate` | valid Date, read with its UTC getters, or text parsed by `parseUtcDateTimeText` → a new Date at 10:00 UTC of the UTC day of the received one | — | anything else, invalid Date, unparsable text, text outside the calendar | `:1324-1342,1376-1384` |
 | `localTime` | same inputs → a Date on 1970-01-01 with the UTC time of the received one | — | same | `:1343-1354` |
 | `localDateTime` | same inputs → the received Date (the parsed one for text) | — | same | `:1355-1364` |

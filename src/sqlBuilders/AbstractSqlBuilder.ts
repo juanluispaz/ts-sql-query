@@ -1046,6 +1046,78 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** The two queries of a compound query joined by its operator, without its order by and its limit */
     _buildCompoundCore(query: CompoundSelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+        if (this._convertUuidTextInCompound()) {
+            const uuidTexts = this._uuidTextsMixedWithOtherTexts(query)
+            if (uuidTexts) {
+                const previous = context.uuidTextsAsText
+                if (previous) {
+                    previous.forEach(value => uuidTexts.add(value))
+                }
+                context.uuidTextsAsText = uuidTexts
+                try {
+                    return this._buildCompoundCoreArms(query, context, columnsForInsert, isOutermostQuery)
+                } finally {
+                    context.uuidTextsAsText = previous
+                }
+            }
+        }
+        return this._buildCompoundCoreArms(query, context, columnsForInsert, isOutermostQuery)
+    }
+    /**
+     * The text of a uuid (`asString()`) in a column of a compound query whose other arm has a text that isn't a uuid
+     * must be converted to a text: the database gives the column the type of the uuid (SQL Server rejects the other
+     * text, MariaDB's native UUID makes it NULL)
+     */
+    _convertUuidTextInCompound(): boolean {
+        return false
+    }
+    /** The text of a uuid written as a text where it meets a text that isn't a uuid (_convertUuidTextInCompound) */
+    _appendUuidTextAsText(sql: string): string {
+        return sql
+    }
+    /** The uuid texts of the columns of the arms of a compound query where another arm has a text that isn't a uuid */
+    _uuidTextsMixedWithOtherTexts(query: CompoundSelectData): Set<AnyValueSource> | undefined {
+        const arms: FlatQueryColumns[] = []
+        const collect = (select: SelectData) => {
+            if (select.__type === 'compound') {
+                collect(select.__firstQuery)
+                collect(select.__secondQuery)
+            } else {
+                const columns: FlatQueryColumns = {}
+                flattenQueryColumns(select.__columns, columns, '')
+                arms.push(columns)
+            }
+        }
+        collect(query)
+        let result: Set<AnyValueSource> | undefined
+        for (const name in arms[0]) {
+            let uuidText = false
+            let otherText = false
+            for (const arm of arms) {
+                const value = arm[name]
+                if (value) {
+                    if (__getValueSourcePrivate(value).__uuidString) {
+                        uuidText = true
+                    } else {
+                        otherText = true
+                    }
+                }
+            }
+            if (uuidText && otherText) {
+                for (const arm of arms) {
+                    const value = arm[name]
+                    if (value && __getValueSourcePrivate(value).__uuidString) {
+                        if (!result) {
+                            result = new Set()
+                        }
+                        result.add(value)
+                    }
+                }
+            }
+        }
+        return result
+    }
+    _buildCompoundCoreArms(query: CompoundSelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         let compoundCore = ''
         compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, context, columnsForInsert, isOutermostQuery, this._compoundOperandNeedsGrouping(query.__firstQuery, 'first', query.__compoundOperator))
         compoundCore += this._appendCompoundOperator(query.__compoundOperator, context)
@@ -1416,7 +1488,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 return sql
             }
         }
-        return this._appendColumnValue(value, context, isOutermostQuery)
+        const sql = this._appendColumnValue(value, context, isOutermostQuery)
+        if (context.uuidTextsAsText?.has(value)) {
+            return this._appendUuidTextAsText(sql)
+        }
+        return sql
     }
     _fromNoTable() {
         return ''
@@ -4461,10 +4537,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = ''
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             result += sql[i]
-            result += this._appendConditionSql(sqlParams[i]!, context, false)
+            result += this._appendFragmentParam(sqlParams[i]!, context)
         }
         result += sql[sql.length - 1]
         return result
+    }
+    /** A value of a fragment (`fragment.sql`), written where the user's SQL puts it */
+    _appendFragmentParam(value: AnyValueSource, context: SqlBuildContext): string {
+        return this._appendConditionSql(value, context, false)
     }
     _rawFragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string {
         if (sqlParams.length <= 0) {
@@ -4473,10 +4553,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = ''
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             result += sql[i]
-            result += this._appendSql(sqlParams[i]!, context, false)
+            result += this._appendRawFragmentParam(sqlParams[i]!, context)
         }
         result += sql[sql.length - 1]
         return result
+    }
+    /** A value or a query of a raw fragment (`rawFragment`), written where the user's SQL puts it */
+    _appendRawFragmentParam(value: AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>, context: SqlBuildContext): string {
+        return this._appendSql(value, context, false)
     }
     _rawFragmentTableName(context: SqlBuildContext, tableOrView: AnyTableOrView): string {
         return this._appendTableOrViewNameForFrom(tableOrView, context)

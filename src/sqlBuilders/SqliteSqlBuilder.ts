@@ -39,7 +39,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._connectionConfiguration.getDateTimeFormat!(type) as any
     }
     _getUuidStrategy(): 'string' | 'uuid-extension' {
-        return this._connectionConfiguration.uuidStrategy as any || 'uuid-extension'
+        // 'string as sent' stores a uuid as 'string' does; only the connection reads it otherwise
+        const strategy = this._connectionConfiguration.uuidStrategy
+        return strategy === 'string as sent' ? 'string' : strategy as any || 'uuid-extension'
     }
     /** How a customDecimal is computed and compared (`decimalStrategy`) */
     _getDecimalStrategy(): SqliteDecimalStrategy {

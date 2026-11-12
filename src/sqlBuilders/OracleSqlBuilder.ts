@@ -68,7 +68,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._escape(columnPrivate.__name, true)
     }
     _getUuidStrategy(): 'string' | 'custom-functions' | 'built-in' {
-        return this._connectionConfiguration.uuidStrategy as any || 'built-in'
+        // 'string as sent' stores a uuid as 'string' does; only the connection reads it otherwise
+        const strategy = this._connectionConfiguration.uuidStrategy
+        return strategy === 'string as sent' ? 'string' : strategy as any || 'built-in'
     }
     _uuidUsesRawFunctions(): boolean {
         const strategy = this._getUuidStrategy()

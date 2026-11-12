@@ -27,7 +27,13 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      * same with both strategies: the driver hands both back as a string, and a string
      * parameter binds against either.
      */
-    protected uuidStrategy: 'string' | 'uuid' = 'uuid'
+    protected uuidStrategy: 'string' | 'string as sent' | 'uuid' = 'uuid'
+
+    protected override __normalizeUuidText(value: string): string {
+        // A uuid in a text column is written and read in lower case, as the other strategies and databases give it;
+        // 'string as sent' keeps the text as it is
+        return this.uuidStrategy === 'string' ? value.toLowerCase() : value
+    }
 
     /**
      * Minimum MariaDB version the generated SQL must support, encoded as

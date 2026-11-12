@@ -1189,18 +1189,18 @@ interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
 
 // Protected configuration properties that each connection adds
 interface MariaDBConnectionConfiguration {
-    uuidStrategy: 'string' | 'uuid' // Default: 'uuid'
+    uuidStrategy: 'string' | 'string as sent' | 'uuid' // Default: 'uuid'
     usePlatformDependentRound: boolean // Default: false
     useSimultaneousAssignment: boolean // Default: false
 }
 
 interface MySqlConnectionConfiguration {
-    uuidStrategy: 'string' | 'binary' // Default: 'binary'
+    uuidStrategy: 'string' | 'string as sent' | 'binary' // Default: 'binary'
     usePlatformDependentRound: boolean // Default: false
 }
 
 interface OracleConnectionConfiguration {
-    uuidStrategy: 'string' | 'custom-functions' | 'built-in' // Default: 'built-in'
+    uuidStrategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in' // Default: 'built-in'
     ignoreNullInConcat: boolean // Default: false
     concatFunction?: string
     usePlatformDependentRound: boolean // Default: false
@@ -1217,7 +1217,7 @@ interface PostgreSqlConnectionConfiguration {
 }
 
 interface SqliteConnectionConfiguration {
-    uuidStrategy: 'string' | 'uuid-extension' // Default: 'uuid-extension'
+    uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' // Default: 'uuid-extension'
     replaceAllInsensitiveFunction?: string
     /** Protected method with the format of a date, a time or a date time. By default, 'localdate milliseconds as text' */
     getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate seconds as text' | 'localdate milliseconds as text' | 'localdate seconds as text using T separator' | 'localdate milliseconds as text using T separator' | 'UTC seconds as text' | 'UTC milliseconds as text' | 'UTC seconds as text using T separator' | 'UTC milliseconds as text using T separator' | 'UTC seconds as text using Z timezone' | 'UTC milliseconds as text using Z timezone' | 'UTC seconds as text using T separator and Z timezone' | 'UTC milliseconds as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'

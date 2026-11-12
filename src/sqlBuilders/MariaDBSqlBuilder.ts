@@ -1,6 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
-import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
-import { isValueSource } from '../expressions/values.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
+import { __getValueSourcePrivate, isValueSource } from '../expressions/values.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData, ToSql } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
@@ -22,16 +23,54 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         return isMariaDBReservedWord(word)
     }
     _getUuidStrategy(): 'string' | 'uuid' {
-        return this._connectionConfiguration.uuidStrategy as any || 'uuid'
+        // 'string as sent' stores a uuid as 'string' does; only the connection reads it otherwise
+        const strategy = this._connectionConfiguration.uuidStrategy
+        return strategy === 'string as sent' ? 'string' : strategy as any || 'uuid'
     }
-    override _asString(context: SqlBuildContext, valueSource: ToSql): string {
-        // Transform an uuid to string. An expression over a native UUID column (10.7+) has the type UUID: a text that
-        // isn't a uuid in the same ifnull, coalesce, case, greatest or union becomes NULL (measured on 13.0.2), so the
-        // text of the uuid is a char
-        if (this._getUuidStrategy() === 'uuid' && this._connectionConfiguration.compatibilityVersion >= 10_007_000) {
-            return 'cast(' + this._appendSql(valueSource, context, false) + ' as char(36))'
+    /**
+     * A uuid is in a native UUID column (MariaDB 10.7+): an expression whose operands are a UUID and a text that isn't
+     * a uuid has the type UUID, and gives NULL for that text (ifnull, coalesce, case, greatest, the columns of a union;
+     * measured on 13.0.2). The text of a uuid (`asString()`) is then written as a char where it meets another text, and as it is
+     * everywhere else.
+     */
+    _hasNativeUuid(): boolean {
+        return this._getUuidStrategy() === 'uuid' && this._connectionConfiguration.compatibilityVersion >= 10_007_000
+    }
+    _isUuidText(value: unknown): boolean {
+        return isValueSource(value) && !!__getValueSourcePrivate(value).__uuidString
+    }
+    _appendUuidTextAsChar(sql: string): string {
+        return 'cast(' + sql + ' as char(36))'
+    }
+    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._hasNativeUuid()) {
+            const receiverIsUuidText = this._isUuidText(valueSource)
+            if (receiverIsUuidText !== this._isUuidText(value)) {
+                const receiver = this._appendSql(valueSource, context, false)
+                const fallback = this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+                return 'ifnull(' + (receiverIsUuidText ? this._appendUuidTextAsChar(receiver) : receiver) + ', ' + (receiverIsUuidText ? fallback : this._appendUuidTextAsChar(fallback)) + ')'
+            }
         }
-        return super._asString(context, valueSource)
+        return super._valueWhenNull(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
+    override _convertUuidTextInCompound(): boolean {
+        return this._hasNativeUuid()
+    }
+    override _appendUuidTextAsText(sql: string): string {
+        return this._appendUuidTextAsChar(sql)
+    }
+    override _appendFragmentParam(value: AnyValueSource, context: SqlBuildContext): string {
+        // The SQL around a value of a fragment is the user's: a uuid text is written as a char
+        if (this._hasNativeUuid() && this._isUuidText(value)) {
+            return this._appendUuidTextAsChar(this._appendConditionSql(value, context, false))
+        }
+        return super._appendFragmentParam(value, context)
+    }
+    override _appendRawFragmentParam(value: AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>, context: SqlBuildContext): string {
+        if (this._hasNativeUuid() && this._isUuidText(value)) {
+            return this._appendUuidTextAsChar(this._appendSql(value, context, false))
+        }
+        return super._appendRawFragmentParam(value, context)
     }
     override _useInsertSupportWith(): boolean {
         // MariaDB rejects the leading `WITH cte AS (...) INSERT INTO ...`

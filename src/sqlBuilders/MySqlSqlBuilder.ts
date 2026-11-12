@@ -17,7 +17,9 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // MySQL 8.0.17 added DOUBLE (and FLOAT / REAL) as cast targets.
     override _castAsDoubleMinCompatibilityVersion: number = 8_000_017
     _getUuidStrategy(): 'string' | 'binary' {
-        return this._connectionConfiguration.uuidStrategy as any || 'binary'
+        // 'string as sent' stores a uuid as 'string' does; only the connection reads it otherwise
+        const strategy = this._connectionConfiguration.uuidStrategy
+        return strategy === 'string as sent' ? 'string' : strategy as any || 'binary'
     }
     override _isReservedKeyword(word: string): boolean {
         return isMySqlReservedWord(word)

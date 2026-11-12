@@ -119,6 +119,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return false
     }
+    override _convertUuidTextInCompound(): boolean {
+        return true
+    }
+    override _appendUuidTextAsText(sql: string): string {
+        return 'convert(nvarchar(36), ' + sql + ')'
+    }
     _appendSqlMaybeUuid(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext): string {
         if (this._isUuid(value)) {
             return 'convert(nvarchar(36), ' + this._appendSql(value, context, false) + ')'
@@ -1447,38 +1453,16 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
         return this._appendJsonValue(valueSource, 'a_' + aggregateId + '_.' + this._escape(prop, true))
     }
-    override _fragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string {
-        if (sqlParams.length <= 0) {
-            return sql[0]!
+    override _appendFragmentParam(value: AnyValueSource, context: SqlBuildContext): string {
+        if (__getValueSourcePrivate(value).__uuidString) {
+            return 'convert(nvarchar(36), ' + this._appendConditionSql(value, context, false) + ')'
         }
-        let result = ''
-        for (let i = 0, length = sqlParams.length; i < length; i++) {
-            result += sql[i]
-            const value = sqlParams[i]!
-            if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-                result += 'convert(nvarchar(36), ' + this._appendConditionSql(sqlParams[i]!, context, false) + ')'
-            } else {
-                result += this._appendConditionSql(sqlParams[i]!, context, false)
-            }
-        }
-        result += sql[sql.length - 1]
-        return result
+        return this._appendConditionSql(value, context, false)
     }
-    override _rawFragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any>>): string {
-        if (sqlParams.length <= 0) {
-            return sql[0]!
+    override _appendRawFragmentParam(value: AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext): string {
+        if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
+            return 'convert(nvarchar(36), ' + this._appendSql(value, context, false) + ')'
         }
-        let result = ''
-        for (let i = 0, length = sqlParams.length; i < length; i++) {
-            result += sql[i]
-            const value = sqlParams[i]!
-            if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-                result += 'convert(nvarchar(36), ' + this._appendSql(sqlParams[i]!, context, false) + ')'
-            } else {
-                result += this._appendSql(sqlParams[i]!, context, false)
-            }
-        }
-        result += sql[sql.length - 1]
-        return result
+        return this._appendSql(value, context, false)
     }
 }

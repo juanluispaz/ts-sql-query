@@ -13,7 +13,13 @@ import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class MySqlConnection</*in|out*/ NAME extends string> extends AbstractConnection<NConnection<'mySql', NAME>> {
 
-    protected uuidStrategy: 'string' | 'binary' = 'binary'
+    protected uuidStrategy: 'string' | 'string as sent' | 'binary' = 'binary'
+
+    protected override __normalizeUuidText(value: string): string {
+        // A uuid in a text column is written and read in lower case, as the other strategies and databases give it;
+        // 'string as sent' keeps the text as it is
+        return this.uuidStrategy === 'string' ? value.toLowerCase() : value
+    }
 
     /**
      * Minimum MySQL version the generated SQL must support, encoded as

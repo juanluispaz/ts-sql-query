@@ -39,6 +39,10 @@ function _typeNegatives() {
     // ---- Connection subclass: protected members
 
     class _ConnectionSurface extends DBConnection {
+        // Rule: declaring that the session computes the set with the row before the update is only of MariaDBConnection.
+        // @ts-expect-error useSimultaneousAssignment is not declared on OracleConnection
+        protected override useSimultaneousAssignment = true
+
         // Positive control: protected members every connection has.
         protected override compatibilityVersion = 1
         callProcedure = () => this.executeProcedure('refresh_stats', [])

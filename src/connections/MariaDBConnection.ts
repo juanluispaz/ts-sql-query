@@ -87,6 +87,16 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      * on it.
      */
     protected usePlatformDependentRound: boolean = false
+    /**
+     * MariaDB computes the assignments of the set of an update from left to right, and each one reads the value an
+     * earlier assignment already wrote (`set a = b, b = a` leaves both equal), while the other databases read the row as
+     * it was before the update. ts-sql-query makes MariaDB give the same rows: it reorders the assignments, or reads the
+     * columns involved with their value before the update.
+     *
+     * Set this flag to `true` when the session already computes them with the row before the update, because its
+     * `sql_mode` has `SIMULTANEOUS_ASSIGNMENT` (MariaDB 10.3.5+): the set is then written as it is given.
+     */
+    protected useSimultaneousAssignment: boolean = false
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new MariaDBSqlBuilder()) {
         super(queryRunner, sqlBuilder)

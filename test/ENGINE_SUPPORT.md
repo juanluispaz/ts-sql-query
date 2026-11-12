@@ -585,6 +585,22 @@ The library emits valid SQL (the same shape PostgreSQL and SQL Server
 accept), so the `newest` tests that use an old value inside an expression
 stay `NOT-SUPPORTED` with a marker citing MDEV-40126.
 
+### MariaDB drops the rows of RETURNING when the set reads the updated table through a derived table
+
+An `UPDATE … RETURNING` whose set has a subquery over a derived table of the
+same table, like `set name = (select x.slug from (select id, slug from project)
+as x where x.id = project.id) … returning name`, runs and changes the row, but
+MariaDB answers with an OK packet instead of the rows of the returning
+(measured on 13.0.2); a subquery over another table, or over the table without a
+derived table, keeps them. That is the form the library writes for a set whose
+assignments read each other on MariaDB (they are computed from left to right),
+so with a returning such an update is refused with `UNSUPPORTED_QUERY`; with
+`useSimultaneousAssignment` (a session with `SIMULTANEOUS_ASSIGNMENT`) the set is
+written as it is and the returning works. The tests are
+`update.set-reads-the-row-before-the-update` →
+`a-set-that-swaps-two-columns-returns-them-swapped` (the refusal, on the MariaDB
+cells) and `config.simultaneous-assignment` (the flag).
+
 ### MariaDB rejects RETURNING on multi-table DML (verified against 13.0.2)
 
 Separate from the version gate above, the `mariadb` SqlBuilder emits a

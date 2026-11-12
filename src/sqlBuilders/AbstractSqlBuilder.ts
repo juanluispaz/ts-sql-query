@@ -36,6 +36,13 @@ function isIntersectOperator(operator: CompoundOperator): boolean {
     return operator === 'intersect' || operator === 'intersectAll'
 }
 
+/** One assignment of the set of an update: the property of the values, the column of the table and its value */
+export interface UpdateAssignment {
+    readonly property: string
+    readonly column: DBColumn
+    readonly value: any
+}
+
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
     _defaultTypeAdapter: DefaultTypeAdapter
@@ -2785,7 +2792,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         updateQuery += this._buildAfterUpdateTable(query, context)
 
         const shape = query.__shape
-        let columns = ''
+        const collected: UpdateAssignment[] = []
         let updatePrimaryKey = false
         if (shape) { // Follow shape order
             const properties = Object.getOwnPropertyNames(shape)
@@ -2814,15 +2821,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
                 const columnPrivate = __getColumnPrivate(column)
                 updatePrimaryKey = updatePrimaryKey || columnPrivate.__isPrimaryKey
-
-                if (columns) {
-                    columns += ', '
-                }
-                const value = sets[property]
-
-                columns += this._appendColumnNameForUpdate(column, context)
-                columns += ' = '
-                columns += this._appendSetValue(property, undefined, column, value, context)
+                collected.push({ property, column, value: sets[property] })
             }
         } else { // No shape, follow set order
             const properties = Object.getOwnPropertyNames(sets)
@@ -2835,20 +2834,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     // This allows to have more complex objects used in the query
                     continue
                 }
-    
+
                 const columnPrivate = __getColumnPrivate(column)
                 updatePrimaryKey = updatePrimaryKey || columnPrivate.__isPrimaryKey
-    
-                if (columns) {
-                    columns += ', '
-                }
-                const value = sets[property]
-    
-                columns += this._appendColumnNameForUpdate(column, context)
-                columns += ' = '
-                columns += this._appendSetValue(property, undefined, column, value, context)
+                collected.push({ property, column, value: sets[property] })
             }
         }
+        const oldUpdateOldRowColumns = context.updateOldRowColumns
+        const assignments = this._prepareUpdateAssignments(query, collected, context)
+        let columns = ''
+        for (const assignment of assignments) {
+            if (columns) {
+                columns += ', '
+            }
+            columns += this._appendColumnNameForUpdate(assignment.column, context)
+            columns += ' = '
+            columns += this._appendSetValue(assignment.property, undefined, assignment.column, assignment.value, context)
+        }
+        context.updateOldRowColumns = oldUpdateOldRowColumns
         updateQuery += ' set ' + columns
 
         updateQuery += this._buildUpdateOutput(query, context)
@@ -2916,6 +2919,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         context.fakeNamesOf = oldFakeNameOf
         this._resetRootQuery(query, context)
         return updateQuery
+    }
+    /**
+     * The assignments of the set of an update in the order they are written. Every database but MySQL and MariaDB
+     * computes all of them with the row as it was before the update, so they are written as given
+     */
+    _prepareUpdateAssignments(_query: UpdateData, assignments: UpdateAssignment[], _context: SqlBuildContext): UpdateAssignment[] {
+        return assignments
     }
     _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _context: SqlBuildContext): Set<AnyTableOrView> | undefined {
         if (!this._useUpdateOldValueInFrom() || !query.__oldValues) {

@@ -1191,6 +1191,7 @@ interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface MariaDBConnectionConfiguration {
     uuidStrategy: 'string' | 'uuid' // Default: 'uuid'
     usePlatformDependentRound: boolean // Default: false
+    useSimultaneousAssignment: boolean // Default: false
 }
 
 interface MySqlConnectionConfiguration {

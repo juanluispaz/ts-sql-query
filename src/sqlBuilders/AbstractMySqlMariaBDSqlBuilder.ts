@@ -5,12 +5,13 @@ import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, IAnyBooleanValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type SelectColumnSql, type UpdateAssignment } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
-import { isColumn, __getColumnPrivate } from '../utils/Column.js'
+import { isColumn, __getColumnPrivate, __getColumnOfObject } from '../utils/Column.js'
+import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
@@ -417,9 +418,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         const columnPrivate = __getColumnPrivate(column)
         return 'values(' + this._escape(columnPrivate.__name, true) + ')'
     }
-    override _appendColumnNameForUpdate(column: DBColumn, context: SqlBuildContext) {
-        return this._appendRawColumnName(column, context)
-    }
     override _buildAfterUpdateTable(query: UpdateData, context: SqlBuildContext): string {
         const result = this._buildFromJoins(query.__froms, query.__joins, undefined, context)
         if (!result) {
@@ -438,6 +436,156 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     // paired with that subquery) and the unused `requiredTables`/`requiredColumns`
     // computation. MariaDB 13.0.1+ uses the native `OLD_VALUE(col)` function for
     // old-value references instead, handled in `MariaDBSqlBuilder`.
+    /**
+     * MySQL and MariaDB compute the assignments of the set of an update from left to right, and each one reads the value
+     * an earlier assignment already wrote (with several tables, in no order MySQL promises); every other database reads
+     * the row as it was before the update. So that the same update gives the same rows everywhere, when a value of the
+     * set reads a column of the table that another assignment writes before it:
+     * - with one table and no cycle, the assignments are reordered: one that reads a column goes before the one that
+     *   writes it, and the SQL is otherwise the same;
+     * - with a cycle (set a = b, b = a), or with several tables, those columns are read with their value before the
+     *   update (_appendUpdateOldRowColumn), which needs the primary key of the table.
+     * Nothing changes when the session already computes them with the row before the update
+     * (useSimultaneousAssignment, MariaDB's SIMULTANEOUS_ASSIGNMENT).
+     */
+    override _prepareUpdateAssignments(query: UpdateData, assignments: UpdateAssignment[], context: SqlBuildContext): UpdateAssignment[] {
+        if (assignments.length < 2 || this._connectionConfiguration.useSimultaneousAssignment) {
+            return assignments
+        }
+        const table = query.__table
+        const onlyTable = new Set<AnyTableOrView>([table])
+        const reads = assignments.map((assignment) => {
+            const result = new Set<DBColumn>()
+            __registerRequiredColumn(assignment.value, this, result, onlyTable)
+            return result
+        })
+        // The columns read by another assignment than the one that writes them
+        const sharedColumns = new Set<DBColumn>()
+        let conflict = false
+        for (let writer = 0; writer < assignments.length; writer++) {
+            const column = assignments[writer]!.column
+            for (let reader = 0; reader < assignments.length; reader++) {
+                if (reader !== writer && reads[reader]!.has(column)) {
+                    sharedColumns.add(column)
+                    if (reader > writer) {
+                        conflict = true
+                    }
+                }
+            }
+        }
+        if (!conflict) {
+            return assignments
+        }
+        const multipleTables = (!!query.__froms && query.__froms.length > 0) || (!!query.__joins && query.__joins.length > 0)
+        if (!multipleTables) {
+            const ordered = this._orderUpdateAssignmentsReadingFirst(assignments, reads)
+            if (ordered) {
+                return ordered
+            }
+        }
+        if (!this._hasPrimaryKey(table)) {
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MySQL and MariaDB give to a value of the set of an update the value an earlier assignment wrote: reading the value before the update needs the primary key of the table, and this table has none')
+        }
+        if (query.__columns) {
+            // MariaDB answers an update with returning whose set reads the table through a derived table without the
+            // rows of the returning (measured on 13.0.2)
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MariaDB gives to a value of the set of an update the value an earlier assignment wrote, and the value before the update can only be read without returning: set useSimultaneousAssignment on the connection when the sql_mode of the session has SIMULTANEOUS_ASSIGNMENT')
+        }
+        context.updateOldRowColumns = sharedColumns
+        return assignments
+    }
+    /**
+     * The assignments in an order where each one that reads a column goes before the one that writes it, keeping the
+     * given order where it can; undefined when there is no such order (a cycle)
+     */
+    _orderUpdateAssignmentsReadingFirst(assignments: UpdateAssignment[], reads: Set<DBColumn>[]): UpdateAssignment[] | undefined {
+        const count = assignments.length
+        // before[i]: the assignments that must be written before assignment i (they read the column i writes)
+        const before: number[][] = assignments.map((assignment, writer) => {
+            const result: number[] = []
+            for (let reader = 0; reader < count; reader++) {
+                if (reader !== writer && reads[reader]!.has(assignment.column)) {
+                    result.push(reader)
+                }
+            }
+            return result
+        })
+        const written = new Array<boolean>(count).fill(false)
+        const result: UpdateAssignment[] = []
+        while (result.length < count) {
+            let next = -1
+            for (let i = 0; i < count; i++) {
+                if (!written[i] && before[i]!.every((reader) => written[reader])) {
+                    next = i
+                    break
+                }
+            }
+            if (next < 0) {
+                return undefined
+            }
+            written[next] = true
+            result.push(assignments[next]!)
+        }
+        return result
+    }
+    /**
+     * A column of the table being updated read with the value it had before the update, in the set
+     * (context.updateOldRowColumns, _prepareUpdateAssignments): a subquery over a derived table of that table, which the database fills before it
+     * changes any row, correlated with the row by its primary key
+     */
+    _appendUpdateOldRowColumn(column: DBColumn, context: SqlBuildContext): string {
+        const columnPrivate = __getColumnPrivate(column)
+        const tableOrView = columnPrivate.__tableOrView
+        const tablePrivate = __getTableOrViewPrivate(tableOrView)
+        const tableName = this._escape(this._tableOrViewName(tablePrivate, context), false)
+        const outer = tablePrivate.__as ? this._escape(tablePrivate.__as, true) : tableName
+        const oldAlias = this._escape('_old_', true)
+        const name = this._escape(columnPrivate.__name, true)
+        let keys = ''
+        let where = ''
+        for (const property of __columnPathsOf(tableOrView)) {
+            const key = __getColumnOfObject(tableOrView, property)
+            if (!key || !__getColumnPrivate(key).__isPrimaryKey) {
+                continue
+            }
+            const keyName = this._escape(__getColumnPrivate(key).__name, true)
+            if (keyName === name) {
+                continue
+            }
+            keys += keyName + ', '
+            where += (where ? ' and ' : '') + oldAlias + '.' + keyName + ' = ' + outer + '.' + keyName
+        }
+        if (__getColumnPrivate(column).__isPrimaryKey) {
+            where += (where ? ' and ' : '') + oldAlias + '.' + name + ' = ' + outer + '.' + name
+        }
+        return '(select ' + oldAlias + '.' + name + ' from (select ' + keys + name + ' from ' + tableName + ') ' + (this._supportTableAliasWithAs ? 'as ' : '') + oldAlias + ' where ' + where + ')'
+    }
+    override _appendColumnNameForUpdate(column: DBColumn, context: SqlBuildContext): string {
+        // The column assigned is the one of the table, not its value before the update
+        const oldRowColumns = context.updateOldRowColumns
+        if (!oldRowColumns) {
+            return this._appendRawColumnName(column, context)
+        }
+        context.updateOldRowColumns = undefined
+        const result = this._appendRawColumnName(column, context)
+        context.updateOldRowColumns = oldRowColumns
+        return result
+    }
+    override _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
+        if (context.updateOldRowColumns && context.updateOldRowColumns.has(column)) {
+            return this._appendUpdateOldRowColumn(column, context)
+        }
+        return super._appendRawColumnName(column, context)
+    }
+    _hasPrimaryKey(table: AnyTableOrView): boolean {
+        for (const property of __columnPathsOf(table)) {
+            const column = __getColumnOfObject(table, property)
+            if (column && __getColumnPrivate(column).__isPrimaryKey) {
+                return true
+            }
+        }
+        return false
+    }
     override _useUpdateOldValueInFrom(): boolean {
         return false
     }

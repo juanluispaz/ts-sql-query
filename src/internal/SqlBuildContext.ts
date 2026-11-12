@@ -1,6 +1,7 @@
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import type { AnyValueSource } from '../expressions/values.js'
 import type { SelectColumnSql } from '../sqlBuilders/AbstractSqlBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
 
 /**
  * The state of the construction of the SQL of one query: the params the query runner receives, and what the SQL builder
@@ -59,6 +60,11 @@ export class SqlBuildContext {
      * of the column; a value elsewhere has the type its parameter gives
      */
     assigningValueToColumn: boolean = false
+    /**
+     * MySQL, MariaDB: the columns of the table being updated that the set reads with the value they had before the
+     * update (the database gives the value an earlier assignment of the same set already wrote)
+     */
+    updateOldRowColumns: Set<DBColumn> | undefined = undefined
     /** SQLite: a decimal of the order by is ordered as a real */
     orderByDecimalAsReal: boolean = false
 

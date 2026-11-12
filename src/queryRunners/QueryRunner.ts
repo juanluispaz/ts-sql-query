@@ -169,6 +169,11 @@ export interface ConnectionConfiguration {
      * ties, and every database the scale of roundn
      */
     readonly usePlatformDependentRound?: boolean
+    /**
+     * MariaDB: the session computes the assignments of an update with the row before it (`SIMULTANEOUS_ASSIGNMENT` in
+     * its `sql_mode`), declared with `useSimultaneousAssignment`
+     */
+    readonly useSimultaneousAssignment?: boolean
     /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
     readonly useLikeInsteadOfIlike?: boolean
     /** SQLite: how a customDecimal is computed and compared (`decimalStrategy`) */

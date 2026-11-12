@@ -31,7 +31,7 @@ npm run tests:index -- --no-resolve   # name-based, low-memory / fast build
 npm run tests:index:verify         # structural smoke test of the extractors (a few seconds)
 # or, directly (under Node the heap must be raised by hand; the script does it for you):
 bun test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]
-NODE_OPTIONS=--max-old-space-size=20480 npx tsx test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]
+NODE_OPTIONS=--max-old-space-size=28672 npx tsx test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]
 ```
 
 **`--no-resolve`** (experimental, internal — **not** part of the searcher's documented usage) skips the

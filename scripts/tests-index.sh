@@ -120,5 +120,5 @@ fi
 # Node needs its heap raised well past the 4 GB default: the resolved build would otherwise
 # die with a bare OOM stack trace that says nothing about why (figures in the RUNTIME note).
 # Override with TESTS_INDEX_HEAP_MB; if it still OOMs, use --use-bun or --no-resolve.
-NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=${TESTS_INDEX_HEAP_MB:-20480}" \
+NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=${TESTS_INDEX_HEAP_MB:-28672}" \
     exec tsx test/lib/codeIndexer/build.ts "${args[@]}"

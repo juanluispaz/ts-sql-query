@@ -286,6 +286,20 @@ To keep the name of a region, write `TZR` in the `to_char` instead of `TZH:TZM`,
 
 Oracle counts the dates before 15 October 1582 in the Julian calendar, and a JavaScript `Date` in the Gregorian one for every year. The digits the library sends and reads are the same, but what Oracle computes from a date before that day doesn't agree with JavaScript: `getDay()` of `0999-01-14` is `6` (a Saturday, for Oracle) where the `Date` gives `1` (a Monday), and `getTime()` is five days later than the `Date`'s. The days from 5 to 14 October 1582 don't exist in Oracle: `to_date('1582-10-10', 'YYYY-MM-DD')` is 15 October 1582. Dates from 15 October 1582 on agree.
 
+## The scale of `roundn`
+
+The scale of `roundn` is a whole number of decimals. Oracle truncates a fractional one: its `round(2.345, 1.6)` is `2.3`, rounded to 1 decimal, while PostgreSQL, MySQL and MariaDB round the scale and give `2.35`. ts-sql-query rounds the scale on every database, ties away from zero, so `roundn(1.6)` is 2 decimals here too: a number is sent rounded (`round(:0, :1)` with the params `[2.345, 2]`), and an expression that isn't an integer, like `priority.divide(2)`, is written rounded (`round(<scale>)`). An integer scale is sent and written as it is.
+
+To keep Oracle's native behavior, set `usePlatformDependentRound = true` on the connection: the scale is then sent and written as it is, and Oracle truncates it.
+
+```ts
+import { OracleConnection } from "ts-sql-query/oracle";
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override usePlatformDependentRound = true
+}
+```
+
 ## Concatenation and NULL
 
 Oracle reads NULL as the empty string when concatenating, so `'x' || null` is `'x'` and `null || null` is NULL. JavaScript's `null` does not survive the trip:

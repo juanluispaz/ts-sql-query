@@ -162,3 +162,5 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
 ```
 
 With the flag on, `value.round()` and `value.roundn(n)` emit `round(x)` directly: when `x` is an exact expression you still get away-from-zero, but when `x` is a `DOUBLE` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows the C library's rules.
+
+The flag also sends and writes the scale of `roundn` as it is. MariaDB rounds a fractional scale (`roundn(1.6)` is 2 decimals), which is what the library does on every database without the flag.

@@ -361,6 +361,20 @@ A function written in JavaScript costs more than the ones of SQLite. Ordering 10
 
 SQLite's `GROUP_CONCAT` rejects `DISTINCT` together with a separator argument: `DISTINCT aggregates must have exactly one argument`. So `SqliteConnection` only has `stringConcatDistinct(value)`, with the default separator `,`, and the version with a separator doesn't compile. Use `stringConcat(value, separator)` if you need a separator and don't need `distinct`.
 
+## The scale of `roundn`
+
+The scale of `roundn` is a whole number of decimals. SQLite truncates a fractional one: its `round(2.345, 1.6)` is `2.3`, rounded to 1 decimal, while PostgreSQL, MySQL and MariaDB round the scale and give `2.35`. ts-sql-query rounds the scale on every database, ties away from zero, so `roundn(1.6)` is 2 decimals here too: a number is sent rounded (`round(?1, ?2)` with the params `[2.345, 2]`), and an expression that isn't an integer, like `priority.divide(2)`, is written rounded (`round(<scale>)`). An integer scale is sent and written as it is.
+
+To keep SQLite's native behavior, set `usePlatformDependentRound = true` on the connection: the scale is then sent and written as it is, and SQLite truncates it.
+
+```ts
+import { SqliteConnection } from "ts-sql-query/sqlite";
+
+class DBConnection extends SqliteConnection<'DBConnection'> {
+    protected override usePlatformDependentRound = true
+}
+```
+
 ## Compatibility version
 
 The `compatibilityVersion` property says which SQLite version the SQL must work on, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `3_035_000` for SQLite 3.35.0, `3_029_000` for SQLite 3.29.0. The numeric separator `_` is for readability only (`3_035_000 === 3035000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.

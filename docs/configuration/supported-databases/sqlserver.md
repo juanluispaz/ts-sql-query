@@ -252,6 +252,20 @@ And its parameters are: `[ 4, '2024-07-01T10:30:15.123+09:00' ]`
 
 Read back, the value is `'2024-07-01T10:30:15.1230000+09:00'`. A value assigned from another column of this type keeps the offset of that column, because it doesn't go through the text, and the `output` of an insert or an update gives the text too. `datetimeoffset` has no regions: to show a value in the zone it belongs to, like `Europe/Madrid`, keep the name of the zone in a column of its own.
 
+## The scale of `roundn`
+
+The scale of `roundn` is a whole number of decimals. SQL Server truncates a fractional one: its `round(2.345, 1.6)` is `2.3`, rounded to 1 decimal, while PostgreSQL, MySQL and MariaDB round the scale and give `2.35`. ts-sql-query rounds the scale on every database, ties away from zero, so `roundn(1.6)` is 2 decimals here too: a number is sent rounded (`round(@0, @1)` with the params `[2.345, 2]`), and an expression that isn't an integer, like `priority.divide(2)`, is written rounded (`round(<scale>, 0)`). An integer scale is sent and written as it is.
+
+To keep SQL Server's native behavior, set `usePlatformDependentRound = true` on the connection: the scale is then sent and written as it is, and SQL Server truncates it.
+
+```ts
+import { SqlServerConnection } from "ts-sql-query/sqlserver";
+
+class DBConnection extends SqlServerConnection<'DBConnection'> {
+    protected override usePlatformDependentRound = true
+}
+```
+
 ## `.length()` and trailing blanks
 
 `.length()` mirrors JavaScript's `String.length`, which counts trailing blanks; T-SQL's native `LEN()` excludes them (`LEN('Draft  ')` is 5, not 7). To match JavaScript, ts-sql-query appends a sentinel and subtracts it back — `len(<x> + '.') - 1` — which is character-correct for every string **except one exact extreme**: a value whose length already equals its column's declared maximum. T-SQL string `+` on two non-`max` character types caps the concatenation at the type's maximum and silently drops the appended sentinel, so `.length()` under-reports that one value by one.

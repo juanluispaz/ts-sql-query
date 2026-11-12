@@ -164,6 +164,8 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 With the flag on, `value.round()` emits `round(x)` directly: when `x` is a `numeric` expression you still get away-from-zero, but when `x` is a `double precision` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows PostgreSQL's `round(double precision)` rules.
 
+The flag also sends and writes the scale of `roundn` as it is. PostgreSQL rounds a fractional scale (`roundn(1.6)` is 2 decimals), which is what the library does on every database without the flag.
+
 ## `minValue` / `maxValue` and NULL
 
 `value.minValue(x)` (floor at `x` — the *greater* of the two) and `value.maxValue(x)` (cap at `x` — the *lesser*) are typed **optional whenever either operand is optional** — the same rule `add` / `subtract` / `concat` follow — so a NULL operand is expected to propagate to a NULL result. MySQL, MariaDB, Oracle and SQLite already do this. PostgreSQL's native `least` / `greatest` **ignore** a NULL operand and return the present value:

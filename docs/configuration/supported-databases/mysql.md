@@ -81,6 +81,16 @@ There is no alternative function on this engine (`STRING_AGG` does not exist), s
 pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
 ```
 
+## The set of an update reads the row before the update
+
+MySQL computes the assignments of the set of an update from left to right, and each one reads the value an earlier one already wrote; the other databases read the row as it was before the update. ts-sql-query writes the set so that MySQL gives the same rows:
+
+- When a value reads a column that another assignment writes before it, and the update has one table, the assignments are reordered: `set({ name: tProject.name.concat('!'), slug: tProject.name })` is written `update project set slug = name, name = concat(name, ?) where id = ?`, and `slug` gets the name before the update.
+- When the assignments read each other (`set({ name: tProject.slug, slug: tProject.name })`, which swaps the two columns), or the update has more than one table, the columns involved are read with their value before the update, by the primary key: `update project set name = (select _old_.slug from (select id, slug from project) as _old_ where _old_.id = project.id), slug = (select _old_.name from (select id, name from project) as _old_ where _old_.id = project.id) where id = ?`.
+- A table without primary key can't be read that way, and such an update is refused with `UNSUPPORTED_QUERY` before anything is sent.
+
+An update whose values don't read the columns it writes is written as it is.
+
 ## Collations & case sensitivity
 
 MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).

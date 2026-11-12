@@ -100,6 +100,28 @@ pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000')
 
 Further reading: [MDEV-35124](https://jira.mariadb.org/browse/MDEV-35124) (`innodb_snapshot_isolation` turned on by default), [Jepsen's note on MariaDB's fix](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation) and [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34), whose anomalies MariaDB shared.
 
+## The set of an update reads the row before the update
+
+MariaDB computes the assignments of the set of an update from left to right, and each one reads the value an earlier one already wrote; the other databases read the row as it was before the update. ts-sql-query writes the set so that MariaDB gives the same rows:
+
+- When a value reads a column that another assignment writes before it, and the update has one table, the assignments are reordered: `set({ name: tProject.name.concat('!'), slug: tProject.name })` is written `update project set slug = name, name = concat(name, ?) where id = ?`, and `slug` gets the name before the update.
+- When the assignments read each other (`set({ name: tProject.slug, slug: tProject.name })`, which swaps the two columns), or the update has more than one table, the columns involved are read with their value before the update, by the primary key: `update project set name = (select _old_.slug from (select id, slug from project) as _old_ where _old_.id = project.id), slug = (select _old_.name from (select id, name from project) as _old_ where _old_.id = project.id) where id = ?`.
+- A table without primary key can't be read that way, and such an update is refused with `UNSUPPORTED_QUERY` before anything is sent.
+- With a returning, MariaDB answers the update without its rows when the set reads the table that way (measured on MariaDB 13.0.2), so such an update is also refused with `UNSUPPORTED_QUERY`.
+
+An update whose values don't read the columns it writes is written as it is.
+
+When the `sql_mode` of your sessions has `SIMULTANEOUS_ASSIGNMENT` (MariaDB 10.3.5+), MariaDB already reads the row before the update; say it with `useSimultaneousAssignment`, and the set is written as it is given, also with a returning:
+
+```ts
+import { MariaDBConnection } from "ts-sql-query/mariadb";
+
+class DBConnection extends MariaDBConnection<'DBConnection'> {
+    protected override useSimultaneousAssignment = true
+}
+```
+
+
 ## Collations & case sensitivity
 
 MariaDB's default collation (`utf8mb4_uca1400_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MariaDB, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).

@@ -536,7 +536,7 @@ describe(ctx.label, () => {
         // hierarchical walk over `issue` aliased `ancestor` starts at the outer
         // row's parent (`start with ancestor.id = issue.parent_id`) and climbs
         // through `prior ancestor.parent_id = ancestor.id`. Chain after seeding:
-        // 1 → 2 → 3. For issue 1 the walk is 2 then 3, in walk order; issue 3
+        // 1 → 2 → 3. For issue 1 the walk gives 2 and 3; issue 3
         // has no parent, so its `parentId` is absent in the array element.
         const expected = [{
             id: 1,
@@ -590,14 +590,15 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<Row>>>()
-        expect(rows).toEqual(expected)
+        // json_arrayagg has no order: the ancestors are compared by their id
+        expect(rows.map(row => ({ ...row, ancestors: row.ancestors && [...row.ancestors].sort((a, b) => a.id - b.id) }))).toEqual(expected)
     })
 
     test('connect-by-objects-over-aliased-table', async () => {
         // The same walk of objects over `issue` aliased `ancestor`, not
         // correlated: it starts at issue 2 and climbs to its parent 3. Used as
         // an inline array of the outer issue 1, which only carries it. Chain
-        // after seeding: 1 → 2 → 3; the array is in walk order.
+        // after seeding: 1 → 2 → 3.
         const expected = [{
             id: 1,
             ancestors: [
@@ -646,7 +647,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<Row>>>()
-        expect(rows).toEqual(expected)
+        // json_arrayagg has no order: the ancestors are compared by their id
+        expect(rows.map(row => ({ ...row, ancestors: row.ancestors && [...row.ancestors].sort((a, b) => a.id - b.id) }))).toEqual(expected)
     })
 
     test('start-with-if-value-without-value-drops-the-start-with-clause', async () => {

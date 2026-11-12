@@ -19,7 +19,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProjectRelease } from '../../domain/connection.js'
+import { tIssue, tProjectRelease, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const UUID_VALUE = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
@@ -362,6 +362,33 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof ref, string | null>>()
         expect(ref).toEqual(expected)
+    })
+
+    test('uuid-asString-in-a-union-with-a-text-column', async () => {
+        // The column `ref` of the union is the text of issue 1's uuid in one arm
+        // and the slug of project 2, a text that isn't a uuid, in the other: each
+        // row keeps its text.
+        const expected = [{ id: 1, ref: REF1 }, { id: 2, ref: 'tools' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })
+            .unionAll(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(2))
+                    .select({ id: tProject.id, ref: tProject.slug.asOptional() })
+            )
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", raw_to_uuid(external_ref) as "ref" from issue where id = :0 union all select id as "id", slug as "ref" from project where id = :1 order by 1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; ref?: string }>>>()
+        expect(rows).toEqual(expected)
     })
     test('customuuid-asString-on-optional-column', async () => {
         // `.asString()` on a branded `customUuid` column erases both the brand

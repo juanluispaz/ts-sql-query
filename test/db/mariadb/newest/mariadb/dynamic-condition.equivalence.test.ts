@@ -465,7 +465,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(cast(external_ref as char(36))) like concat('%', lower(?), '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like concat('%', lower(?), '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -841,7 +841,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and cast(signing_key as char(36)) like concat('%', ?, '%') and cast(signing_key as char(36)) like concat(?, '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key like concat('%', ?, '%') and signing_key like concat(?, '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -1153,7 +1153,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(cast(external_ref as char(36))) like concat('%', lower(?), '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like concat('%', lower(?), '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "abc",
@@ -1368,7 +1368,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(cast(signing_key as char(36))) = lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key) = lower(?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F9C1E-1111-4222-8333-444455556666",
@@ -1513,7 +1513,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(cast(external_ref as char(36))) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) <> lower(?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F9C1E-1111-4222-8333-444455556666",
@@ -1543,7 +1543,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(cast(signing_key as char(36))) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key) <> lower(?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F9C1E-1111-4222-8333-444455556666",
@@ -1699,7 +1699,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and cast(signing_key as char(36)) like concat('%', ?, '%') and cast(signing_key as char(36)) like concat(?, '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key like concat('%', ?, '%') and signing_key like concat(?, '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556666",
@@ -4695,7 +4695,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(cast(external_ref as char(36))) = lower(?) and lower(cast(external_ref as char(36))) <> lower(?) and cast(external_ref as char(36)) like ? and cast(external_ref as char(36)) not like ? and lower(cast(external_ref as char(36))) like lower(?) and lower(cast(external_ref as char(36))) not like lower(?) and cast(external_ref as char(36)) like concat(?, '%') and cast(external_ref as char(36)) not like concat(?, '%') and cast(external_ref as char(36)) like concat('%', ?) and cast(external_ref as char(36)) not like concat('%', ?) and cast(external_ref as char(36)) like concat('%', ?, '%') and cast(external_ref as char(36)) not like concat('%', ?, '%') and lower(cast(external_ref as char(36))) like concat(lower(?), '%') and lower(cast(external_ref as char(36))) not like concat(lower(?), '%') and lower(cast(external_ref as char(36))) like concat('%', lower(?)) and lower(cast(external_ref as char(36))) not like concat('%', lower(?)) and lower(cast(external_ref as char(36))) like concat('%', lower(?), '%') and lower(cast(external_ref as char(36))) not like concat('%', lower(?), '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) = lower(?) and lower(external_ref) <> lower(?) and external_ref like ? and external_ref not like ? and lower(external_ref) like lower(?) and lower(external_ref) not like lower(?) and external_ref like concat(?, '%') and external_ref not like concat(?, '%') and external_ref like concat('%', ?) and external_ref not like concat('%', ?) and external_ref like concat('%', ?, '%') and external_ref not like concat('%', ?, '%') and lower(external_ref) like concat(lower(?), '%') and lower(external_ref) not like concat(lower(?), '%') and lower(external_ref) like concat('%', lower(?)) and lower(external_ref) not like concat('%', lower(?)) and lower(external_ref) like concat('%', lower(?), '%') and lower(external_ref) not like concat('%', lower(?), '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F",
@@ -4759,7 +4759,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(cast(external_ref as char(36))) = lower(?) and lower(cast(external_ref as char(36))) <> lower(?) and cast(external_ref as char(36)) like ? and cast(external_ref as char(36)) not like ? and lower(cast(external_ref as char(36))) like lower(?) and lower(cast(external_ref as char(36))) not like lower(?) and cast(external_ref as char(36)) like concat(?, '%') and cast(external_ref as char(36)) not like concat(?, '%') and cast(external_ref as char(36)) like concat('%', ?) and cast(external_ref as char(36)) not like concat('%', ?) and cast(external_ref as char(36)) like concat('%', ?, '%') and cast(external_ref as char(36)) not like concat('%', ?, '%') and lower(cast(external_ref as char(36))) like concat(lower(?), '%') and lower(cast(external_ref as char(36))) not like concat(lower(?), '%') and lower(cast(external_ref as char(36))) like concat('%', lower(?)) and lower(cast(external_ref as char(36))) not like concat('%', lower(?)) and lower(cast(external_ref as char(36))) like concat('%', lower(?), '%') and lower(cast(external_ref as char(36))) not like concat('%', lower(?), '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) = lower(?) and lower(external_ref) <> lower(?) and external_ref like ? and external_ref not like ? and lower(external_ref) like lower(?) and lower(external_ref) not like lower(?) and external_ref like concat(?, '%') and external_ref not like concat(?, '%') and external_ref like concat('%', ?) and external_ref not like concat('%', ?) and external_ref like concat('%', ?, '%') and external_ref not like concat('%', ?, '%') and lower(external_ref) like concat(lower(?), '%') and lower(external_ref) not like concat(lower(?), '%') and lower(external_ref) like concat('%', lower(?)) and lower(external_ref) not like concat('%', lower(?)) and lower(external_ref) like concat('%', lower(?), '%') and lower(external_ref) not like concat('%', lower(?), '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0A8F",
@@ -4819,7 +4819,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref <=> ? and not (external_ref <=> ?) and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and cast(external_ref as char(36)) like ? and cast(external_ref as char(36)) like concat('%', ?, '%') and cast(external_ref as char(36)) like concat(?, '%') and lower(cast(external_ref as char(36))) = lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref <=> ? and not (external_ref <=> ?) and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and external_ref like ? and external_ref like concat('%', ?, '%') and external_ref like concat(?, '%') and lower(external_ref) = lower(?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -4875,7 +4875,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref <=> ? and not (external_ref <=> ?) and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and cast(external_ref as char(36)) like ? and cast(external_ref as char(36)) like concat('%', ?, '%') and cast(external_ref as char(36)) like concat(?, '%') and lower(cast(external_ref as char(36))) = lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = ? and external_ref <> ? and external_ref <=> ? and not (external_ref <=> ?) and external_ref in (?, ?) and external_ref not in (?) and external_ref < ? and external_ref <= ? and external_ref > ? and external_ref >= ? and external_ref like ? and external_ref like concat('%', ?, '%') and external_ref like concat(?, '%') and lower(external_ref) = lower(?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -5037,7 +5037,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cast(signing_key as char(36)) like ? and cast(signing_key as char(36)) not like ? and lower(cast(signing_key as char(36))) like lower(?) and lower(cast(signing_key as char(36))) not like lower(?) and cast(signing_key as char(36)) not like concat(?, '%') and cast(signing_key as char(36)) like concat('%', ?) and cast(signing_key as char(36)) not like concat('%', ?) and cast(signing_key as char(36)) not like concat('%', ?, '%') and lower(cast(signing_key as char(36))) like concat(lower(?), '%') and lower(cast(signing_key as char(36))) not like concat(lower(?), '%') and lower(cast(signing_key as char(36))) like concat('%', lower(?)) and lower(cast(signing_key as char(36))) not like concat('%', lower(?)) and lower(cast(signing_key as char(36))) like concat('%', lower(?), '%') and lower(cast(signing_key as char(36))) not like concat('%', lower(?), '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key like ? and signing_key not like ? and lower(signing_key) like lower(?) and lower(signing_key) not like lower(?) and signing_key not like concat(?, '%') and signing_key like concat('%', ?) and signing_key not like concat('%', ?) and signing_key not like concat('%', ?, '%') and lower(signing_key) like concat(lower(?), '%') and lower(signing_key) not like concat(lower(?), '%') and lower(signing_key) like concat('%', lower(?)) and lower(signing_key) not like concat('%', lower(?)) and lower(signing_key) like concat('%', lower(?), '%') and lower(signing_key) not like concat('%', lower(?), '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "%1111%",
@@ -5092,7 +5092,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cast(signing_key as char(36)) like ? and cast(signing_key as char(36)) not like ? and lower(cast(signing_key as char(36))) like lower(?) and lower(cast(signing_key as char(36))) not like lower(?) and cast(signing_key as char(36)) not like concat(?, '%') and cast(signing_key as char(36)) like concat('%', ?) and cast(signing_key as char(36)) not like concat('%', ?) and cast(signing_key as char(36)) not like concat('%', ?, '%') and lower(cast(signing_key as char(36))) like concat(lower(?), '%') and lower(cast(signing_key as char(36))) not like concat(lower(?), '%') and lower(cast(signing_key as char(36))) like concat('%', lower(?)) and lower(cast(signing_key as char(36))) not like concat('%', lower(?)) and lower(cast(signing_key as char(36))) like concat('%', lower(?), '%') and lower(cast(signing_key as char(36))) not like concat('%', lower(?), '%') order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key like ? and signing_key not like ? and lower(signing_key) like lower(?) and lower(signing_key) not like lower(?) and signing_key not like concat(?, '%') and signing_key like concat('%', ?) and signing_key not like concat('%', ?) and signing_key not like concat('%', ?, '%') and lower(signing_key) like concat(lower(?), '%') and lower(signing_key) not like concat(lower(?), '%') and lower(signing_key) like concat('%', lower(?)) and lower(signing_key) not like concat('%', lower(?)) and lower(signing_key) like concat('%', lower(?), '%') and lower(signing_key) not like concat('%', lower(?), '%') order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "%1111%",
@@ -5148,7 +5148,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key <> ? and signing_key <=> ? and not (signing_key <=> ?) and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key <= ? and signing_key > ? and signing_key >= ? and cast(signing_key as char(36)) like ? and lower(cast(signing_key as char(36))) like concat('%', lower(?), '%') and cast(signing_key as char(36)) not like concat(?, '%') and lower(cast(signing_key as char(36))) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key <> ? and signing_key <=> ? and not (signing_key <=> ?) and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key <= ? and signing_key > ? and signing_key >= ? and signing_key like ? and lower(signing_key) like concat('%', lower(?), '%') and signing_key not like concat(?, '%') and lower(signing_key) <> lower(?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",
@@ -5204,7 +5204,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(refSql)
         expect(ctx.lastParams).toEqual(refParams)
-        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key <> ? and signing_key <=> ? and not (signing_key <=> ?) and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key <= ? and signing_key > ? and signing_key >= ? and cast(signing_key as char(36)) like ? and lower(cast(signing_key as char(36))) like concat('%', lower(?), '%') and cast(signing_key as char(36)) not like concat(?, '%') and lower(cast(signing_key as char(36))) <> lower(?) order by id"`)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ? and signing_key <> ? and signing_key <=> ? and not (signing_key <=> ?) and signing_key in (?, ?) and signing_key not in (?) and signing_key < ? and signing_key <= ? and signing_key > ? and signing_key >= ? and signing_key like ? and lower(signing_key) like concat('%', lower(?), '%') and signing_key not like concat(?, '%') and lower(signing_key) <> lower(?) order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
             "0a8f9c1e-1111-4222-8333-444455556661",

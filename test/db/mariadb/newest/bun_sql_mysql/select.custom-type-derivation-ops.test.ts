@@ -2165,7 +2165,7 @@ describe(ctx.label, () => {
                     .toUpperCase(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(cast(signing_key as char(36))) as result from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper((signing_key)) as result from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

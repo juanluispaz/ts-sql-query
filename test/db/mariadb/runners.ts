@@ -63,7 +63,7 @@ export interface MariaDBTestContext extends TestContext<DBConnection> {
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
-    withUuidStrategy(strategy: 'string' | 'uuid'): DBConnection
+    withUuidStrategy(strategy: 'string' | 'string as sent' | 'uuid'): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
 }
@@ -84,9 +84,9 @@ function decorateMariaDBContext(base: TestContext<DBConnection>): MariaDBTestCon
             }
             return base.withConnection(C)
         },
-        withUuidStrategy(strategy: 'string' | 'uuid'): DBConnection {
+        withUuidStrategy(strategy: 'string' | 'string as sent' | 'uuid'): DBConnection {
             class C extends DBConnection {
-                protected override uuidStrategy: 'string' | 'uuid' = strategy
+                protected override uuidStrategy: 'string' | 'string as sent' | 'uuid' = strategy
             }
             return base.withConnection(C)
         },

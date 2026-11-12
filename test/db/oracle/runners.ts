@@ -71,7 +71,7 @@ export interface OracleTestContext extends TestContext<DBConnection> {
      */
     withReplaceInsensitiveCollation(collation: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
-    withUuidStrategy(strategy: 'string' | 'custom-functions' | 'built-in'): DBConnection
+    withUuidStrategy(strategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in'): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` whose `replaceCollation` is pinned to `collation` (`''` opts out to a bare `replace(...)`). */
@@ -128,9 +128,9 @@ function decorateOracleContext(base: TestContext<DBConnection>): OracleTestConte
             }
             return base.withConnection(C)
         },
-        withUuidStrategy(strategy: 'string' | 'custom-functions' | 'built-in'): DBConnection {
+        withUuidStrategy(strategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in'): DBConnection {
             class C extends DBConnection {
-                protected override uuidStrategy: 'string' | 'custom-functions' | 'built-in' = strategy
+                protected override uuidStrategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in' = strategy
             }
             return base.withConnection(C)
         },

@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().allowWhen(true, 'ref gate').concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(cast(external_ref as char(36)), ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(external_ref, ?) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().disallowWhen(false, 'ref gate').concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(cast(external_ref as char(36)), ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(external_ref, ?) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().asOptional().concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(cast(external_ref as char(36)), ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(external_ref, ?) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -118,7 +118,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().asRequiredInOptionalObject().concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(cast(external_ref as char(36)), ?) as result from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(external_ref, ?) as result from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
             })
             .where(issueRef.ref.asString().contains('4222'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_ref as (select id as id, title as title, external_ref as \`ref\` from issue) select id as id, title as title, \`ref\` as \`ref\` from issue_ref where cast(\`ref\` as char(36)) like concat('%', ?, '%')"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_ref as (select id as id, title as title, external_ref as \`ref\` from issue) select id as id, title as title, \`ref\` as \`ref\` from issue_ref where \`ref\` like concat('%', ?, '%')"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "4222",

@@ -133,7 +133,7 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
     // still pinned explicitly — and mock-only — by
     // `config.uuid-strategy.test.ts` and `select.value-source.uuid-cast.test.ts`,
     // both of which opt in via `ctx.withUuidStrategy('uuid-extension')`.
-    protected override uuidStrategy: 'string' | 'uuid-extension' = 'string'
+    protected override uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' = 'string'
 
     // `uuid_blob` (registered by the harness, like the uuid extension) returns the
     // uuid as the 'uuid-extension' strategy stores it: a blob of 16 bytes

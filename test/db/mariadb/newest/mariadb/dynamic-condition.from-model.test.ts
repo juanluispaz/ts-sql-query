@@ -99,7 +99,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toBe(modelSql)
         expect(ctx.lastParams).toEqual(modelParams)
-        expect(modelSql).toMatchInlineSnapshot(`"select id as id from issue where (lower(title) like concat(lower(?), '%') or priority > ?) and view_count >= ? and lower(cast(external_ref as char(36))) like concat('%', lower(?), '%') order by id"`)
+        expect(modelSql).toMatchInlineSnapshot(`"select id as id from issue where (lower(title) like concat(lower(?), '%') or priority > ?) and view_count >= ? and lower(external_ref) like concat('%', lower(?), '%') order by id"`)
         expect(modelParams).toMatchInlineSnapshot(`
           [
             "Re",

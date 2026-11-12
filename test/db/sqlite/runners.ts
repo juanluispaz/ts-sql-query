@@ -71,7 +71,7 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
      */
     withReplaceAllInsensitiveFunction(functionName: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
-    withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
+    withUuidStrategy(strategy: 'string' | 'string as sent' | 'uuid-extension'): DBConnection
     /** A `DBConnection` whose `decimalStrategy` is pinned to `strategy`. */
     withDecimalStrategy(strategy: SqliteDecimalStrategy): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
@@ -144,9 +144,9 @@ function decorateSqliteContext(
             }
             return base.withConnection(C)
         },
-        withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection {
+        withUuidStrategy(strategy: 'string' | 'string as sent' | 'uuid-extension'): DBConnection {
             class C extends DBConnection {
-                protected override uuidStrategy: 'string' | 'uuid-extension' = strategy
+                protected override uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' = strategy
             }
             return base.withConnection(C)
         },

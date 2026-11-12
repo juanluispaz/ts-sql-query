@@ -75,6 +75,11 @@ const tEncIssue = new class TEncIssue extends Table<DBConnection, 'TEncIssue'> {
     constructor() { super('issue') }
 }()
 
+// The sequence of the ids of the issues, whose values are encrypted ids
+class EncryptedIdSequenceConnection extends EncryptedIdConnection {
+    encryptedIssueIdSeq = this.sequence<string, 'encryptedID'>('issue_id_seq', 'customComparable', 'encryptedID')
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -405,7 +410,8 @@ describe(ctx.label, () => {
                 parentId?: string
                 parents: Array<{ id: string; title: string; parentId?: string }>
             }>>()
-            expect(low).toEqual({
+            // The aggregate has no order: the parents are compared by their title
+            expect({ ...low, parents: [...low.parents].sort((a, b) => a.title.localeCompare(b.title)) }).toEqual({
                 id: lowId,
                 title: 'Low issue',
                 parentId: middleId,
@@ -417,4 +423,29 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('encrypted-id-sequence-next-and-current-value', async () => {
+        // The next value and the current value of a sequence declared with the
+        // encrypted id type come back encrypted, the same id, which decrypts to
+        // the number of the sequence
+        const connection = ctx.withConnection(EncryptedIdSequenceConnection)
+        await ctx.withCommit(async () => {
+            ctx.mockNext(42)
+            const next = await connection.selectFromNoTable()
+                .selectOneColumn(connection.encryptedIssueIdSeq.nextValue())
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval(issue_id_seq) as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof next, string>>()
+
+            ctx.mockNext(42)
+            const current = await connection.selectFromNoTable()
+                .selectOneColumn(connection.encryptedIssueIdSeq.currentValue())
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select lastval(issue_id_seq) as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            expect(current).toBe(next)
+            expect(enc(dec(next))).toBe(next)
+        })
+    })
 })

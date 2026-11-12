@@ -1369,7 +1369,7 @@ describe(ctx.label, () => {
                 lo:  s.toLowerCase(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, char_length(cast(external_ref as char(36))) as len, upper(cast(external_ref as char(36))) as up, lower(cast(external_ref as char(36))) as lo from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, char_length(external_ref) as len, upper(external_ref) as up, lower(external_ref) as lo from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

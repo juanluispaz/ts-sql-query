@@ -3810,7 +3810,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_ref as (select id as id, cast(external_ref as char(36)) as \`ref.external\` from issue) select id as id, \`ref.external\` as \`ref.external\` from issue_ref order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_ref as (select id as id, external_ref as \`ref.external\` from issue) select id as id, \`ref.external\` as \`ref.external\` from issue_ref order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             id:   number

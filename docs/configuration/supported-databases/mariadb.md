@@ -111,6 +111,8 @@ MariaDB computes the assignments of the set of an update from left to right, and
 
 An update whose values don't read the columns it writes is written as it is.
 
+The `on duplicate key update` of an insert (`onConflictDoUpdateSet`) is written the same way: its assignments are reordered when that is enough. When they read each other, MariaDB 10.5+ reads the columns involved there with their value before, as in an update; before 10.5 it can't (1054); where it can't, the insert is refused with `UNSUPPORTED_QUERY` before anything is sent.
+
 When the `sql_mode` of your sessions has `SIMULTANEOUS_ASSIGNMENT` (MariaDB 10.3.5+), MariaDB already reads the row before the update; say it with `useSimultaneousAssignment`, and the set is written as it is given, also with a returning:
 
 ```ts

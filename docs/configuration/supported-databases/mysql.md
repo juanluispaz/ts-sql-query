@@ -91,6 +91,8 @@ MySQL computes the assignments of the set of an update from left to right, and e
 
 An update whose values don't read the columns it writes is written as it is.
 
+The `on duplicate key update` of an insert (`onConflictDoUpdateSet`) is written the same way: its assignments are reordered when that is enough. When they read each other, MySQL can't read there the value the row had (it refuses a subquery over the table, 1093, and 5.7 the outer reference, 1054); where it can't, the insert is refused with `UNSUPPORTED_QUERY` before anything is sent.
+
 ## Collations & case sensitivity
 
 MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).

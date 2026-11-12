@@ -1263,7 +1263,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             } else {
                 result += ' '
             }
-            result += 'a_' + aggregateId + '_ for json path'
+            result += 'a_' + aggregateId + '_'
+            if (query.__orderBy && query.__orderBy.length > 0) {
+                // The order by of the compound, inside the derived table, chooses the rows of its offset and fetch, but
+                // doesn't order the select that reads it: the JSON is written in the order of this select
+                const oldSafeTableOrView = context.safeTableOrView
+                const oldOrderByOnWrapper = context.orderByOnWrapper
+                this._setSafeTableOrView(context, undefined)
+                context.orderByOnWrapper = true
+                result += this._buildSelectOrderByForWrapper(query, context)
+                context.orderByOnWrapper = oldOrderByOnWrapper
+                this._setSafeTableOrView(context, oldSafeTableOrView)
+            }
+            result += ' for json path'
             return result
         }
         return super._appendAggregateArrayWrapperEnd(query, context, aggregateId)

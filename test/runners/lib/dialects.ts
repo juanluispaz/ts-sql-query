@@ -54,6 +54,11 @@ export interface RunnerDialect {
     readonly sleep?: string
     /** A statement whose failure makes the database roll back the whole transaction it runs in, by itself. */
     readonly statementThatRollsBackTheTransaction?: string
+    /**
+     * A script of several statements for one executeDatabaseSchemaModification call, whose last statement creates the
+     * table rt_script_b, and the statements that remove what it creates (they may fail when it doesn't exist).
+     */
+    readonly schemaScript: { readonly script: string, readonly cleanup: readonly string[] }
 }
 
 function returningClause(names: readonly string[]) {
@@ -77,6 +82,10 @@ export const postgresDialect: RunnerDialect = {
     fromNoTable: '',
     column: (name) => name,
     connectionConfiguration: "set application_name = 'rt_probe'",
+    schemaScript: {
+        script: 'create table rt_script_a (id integer);\ncreate or replace function rt_script_f() returns integer language plpgsql as $$ begin return 1; end; $$;\ncreate table rt_script_b (id integer)',
+        cleanup: ['drop table if exists rt_script_a', 'drop table if exists rt_script_b', 'drop function if exists rt_script_f'],
+    },
     sleep: 'select pg_sleep(2)',
     insertReturningId: (r, p, name) => `insert into rt_auto (name) values (${r.addParam(p, name, 'string', 'string', false)}) returning id`,
     insertReturningIds: (r, p, names) => `insert into rt_auto (name) values ${names.map(n => '(' + r.addParam(p, n, 'string', 'string', false) + ')').join(', ')} returning id`,
@@ -105,6 +114,10 @@ export const sqliteDialect: RunnerDialect = {
     fromNoTable: '',
     column: (name) => name,
     connectionConfiguration: 'pragma foreign_keys = on',
+    schemaScript: {
+        script: 'create table rt_script_a (id integer);\ncreate trigger rt_script_t after insert on rt_script_a begin select 1; end;\ncreate table rt_script_b (id integer)',
+        cleanup: ['drop table if exists rt_script_a', 'drop table if exists rt_script_b'],
+    },
     ...sqliteLike,
     insertReturningIds: (r, p, names) => `insert into rt_auto (name) values ${names.map(n => '(' + r.addParam(p, n, 'string', 'string', false) + ')').join(', ')} returning id`,
     insertReturningRow: postgresDialect.insertReturningRow!,
@@ -137,6 +150,10 @@ export const mysqlDialect: RunnerDialect = {
     fromNoTable: '',
     column: (name) => name,
     connectionConfiguration: 'set @rt_probe = 1',
+    schemaScript: {
+        script: 'create table rt_script_a (id int);\ncreate table rt_script_b (id int)',
+        cleanup: ['drop table if exists rt_script_a', 'drop table if exists rt_script_b'],
+    },
     ...sqliteLike,
     procedureCall: 'call rt_touch()',
     functionCall: 'select rt_answer()',
@@ -176,6 +193,11 @@ export const oracleDialect: RunnerDialect = {
     fromNoTable: ' from dual',
     column: (name) => name + ' as "' + name + '"',
     connectionConfiguration: "alter session set nls_date_format = 'YYYY-MM-DD'",
+    // Oracle runs one statement per call: a script is a PL/SQL block
+    schemaScript: {
+        script: "begin execute immediate 'create table rt_script_a (id number(10))'; execute immediate 'create table rt_script_b (id number(10))'; end;",
+        cleanup: ['drop table rt_script_a', 'drop table rt_script_b'],
+    },
     sleep: 'begin dbms_session.sleep(2); end;',
     insertReturningId: (r, p, name) => `insert into rt_auto (name) values (${r.addParam(p, name, 'string', 'string', false)}) returning id into ${r.addOutParam(p, '', 'int', 'int', false)}`,
     insertReturningRow: (r, p, id, name) => `insert into rt_probe (id, name) values (${r.addParam(p, id, 'int', 'int', false)}, ${r.addParam(p, name, 'string', 'string', false)})` + oracleReturningInto(r, p, ['id', 'name']),
@@ -208,6 +230,10 @@ export const sqlServerDialect: RunnerDialect = {
     fromNoTable: '',
     column: (name) => name,
     connectionConfiguration: 'set nocount off',
+    schemaScript: {
+        script: 'create table rt_script_a (id int);\ncreate table rt_script_b (id int)',
+        cleanup: ['drop table if exists rt_script_a', 'drop table if exists rt_script_b'],
+    },
     sleep: "waitfor delay '00:00:02'",
     insertReturningId: (r, p, name) => `insert into rt_auto (name)${mssqlOutput('inserted', ['id'])} values (${r.addParam(p, name, 'string', 'string', false)})`,
     insertReturningIds: (r, p, names) => `insert into rt_auto (name)${mssqlOutput('inserted', ['id'])} values ${names.map(n => '(' + r.addParam(p, n, 'string', 'string', false) + ')').join(', ')}`,

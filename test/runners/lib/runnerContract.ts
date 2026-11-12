@@ -65,6 +65,11 @@ export interface RunnerContractOptions {
      * in the error), and the library sends no query to ask: the tests of such a transaction don't apply.
      */
     readonly rolledBackTransactionUndetected?: boolean
+    /**
+     * The driver rejects a script of several statements in one call unless it is configured to accept them (mysql2 and
+     * mariadb without `multipleStatements`)
+     */
+    readonly schemaScriptRejected?: boolean
     /** Runs a statement with the driver's own API on the connection execute(fn) / getCurrentNativeConnection() give */
     readonly nativeExecute: (connection: any, sql: string) => Promise<unknown>
 }
@@ -798,6 +803,31 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                 await runner.executeCommit()
             } else {
                 expect(await runner.executeConnectionConfiguration(dialect.connectionConfiguration)).toBeUndefined()
+            }
+        })
+
+        test('schema-modification-script-of-several-statements-runs-whole', async () => {
+            // Every statement of the script runs, or the call fails: never only the first one
+            const runner = r()
+            const { script, cleanup } = dialect.schemaScript
+            const removeIt = async () => {
+                for (const sql of cleanup) {
+                    await runner.executeDatabaseSchemaModification(sql).catch(() => undefined)
+                }
+            }
+            await removeIt()
+            try {
+                const failure = await runner.executeDatabaseSchemaModification(script).then(() => undefined, (e: unknown) => e)
+                const lastTableExists = await runner.executeSelectOneColumnOneRow('select count(*) from rt_script_b').then(() => true, () => false)
+                if (opts.schemaScriptRejected) {
+                    expect(failure).toBeInstanceOf(Error)
+                    expect(lastTableExists).toBe(false)
+                } else {
+                    expect(failure).toBeUndefined()
+                    expect(lastTableExists).toBe(true)
+                }
+            } finally {
+                await removeIt()
             }
         })
 

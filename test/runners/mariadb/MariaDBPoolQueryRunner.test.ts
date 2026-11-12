@@ -9,6 +9,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 
 describeRunnerContract({
     label: 'MariaDBPoolQueryRunner',
+    schemaScriptRejected: true,
     pool: true,
     dialect: mariadbDialect,
     nativeExecute: (connection, sql) => connection.query(sql),

@@ -9,6 +9,7 @@ import { describeRunnerContract } from '../lib/runnerContract.js'
 
 describeRunnerContract({
     label: 'MySql2QueryRunner',
+    schemaScriptRejected: true,
     dialect: mysqlDialect,
     nativeExecute: (connection, sql) => new Promise((resolve, reject) => connection.query(sql, (error: unknown, result: unknown) => error ? reject(error) : resolve(result))),
     runnerClass: MySql2QueryRunner,

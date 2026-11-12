@@ -63,6 +63,22 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
             return this.statementOfTheTransactionFailed(e)
         }
     }
+    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+        // A script of several statements, without params, runs whole with exec: a prepared statement runs only the first one and ignores the rest without an error
+        if (params.length > 0) {
+            return super.executeDatabaseSchemaModification(query, params)
+        }
+        const rejected = this.rejectWhenRolledBackByTheDatabase()
+        if (rejected) {
+            return rejected
+        }
+        try {
+            this.connection.exec(query)
+            return this.promise.resolve(undefined)
+        } catch (e) {
+            return this.statementOfTheTransactionFailed(e)
+        }
+    }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         const rejected = this.rejectWhenRolledBackByTheDatabase()
         if (rejected) {

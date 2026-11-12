@@ -81,6 +81,14 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, postgreSqlDriverParams(params), this.queryOptions(params)).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
+    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+        // A script of several statements, without params, runs whole with exec: a query with the extended protocol
+        // rejects more than one
+        if (params.length > 0) {
+            return super.executeDatabaseSchemaModification(query, params)
+        }
+        return this.rejectWhenRolledBackByTheDatabase() || this.connection.exec(query).then(() => undefined, (error) => this.statementOfTheTransactionFailed(error))
+    }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, postgreSqlDriverParams(params), this.queryOptions(params)).then((result) => result.affectedRows || 0, (error) => this.statementOfTheTransactionFailed(error))
     }

@@ -115,7 +115,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, ?) as v from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(cast(external_ref as char(36)), cast(external_ref as char(36)), ?) as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, regexp_replace(external_ref, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), ?) as v from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, regexp_replace(cast(external_ref as char(36)), replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(cast(external_ref as char(36)), '\\\\', '\\\\\\\\'), '.', '\\\\.'), '*', '\\\\*'), '+', '\\\\+'), '?', '\\\\?'), '^', '\\\\^'), '$', '\\\\$'), '{', '\\\\{'), '}', '\\\\}'), '(', '\\\\('), ')', '\\\\)'), '|', '\\\\|'), '[', '\\\\['), ']', '\\\\]'), ?) as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, s) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, external_ref) as v from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(cast(external_ref as char(36)), cast(external_ref as char(36)), cast(external_ref as char(36))) as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -589,7 +589,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: tIssue.externalRef.asString().collate('utf8mb4_bin') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref collate utf8mb4_bin as v from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(external_ref as char(36)) collate utf8mb4_bin as v from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -610,7 +610,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })
             .orderBy('ref', 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as \`ref\` from issue where external_ref is not null order by external_ref collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(external_ref as char(36)) as \`ref\` from issue where external_ref is not null order by cast(external_ref as char(36)) collate utf8mb4_general_ci"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; ref?: string }>>>()
         expect(result).toEqual(expected)
@@ -628,7 +628,7 @@ describe(ctx.label, () => {
                 nl: collated.const('x', 'string').notLikeInsensitive(tIssue.externalRef.asString()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? = external_ref collate utf8mb4_general_ci as eq, ? <> external_ref collate utf8mb4_general_ci as ne, ? like external_ref collate utf8mb4_general_ci as lk, ? not like external_ref collate utf8mb4_general_ci as nl from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? = cast(external_ref as char(36)) collate utf8mb4_general_ci as eq, ? <> cast(external_ref as char(36)) collate utf8mb4_general_ci as ne, ? like cast(external_ref as char(36)) collate utf8mb4_general_ci as lk, ? not like cast(external_ref as char(36)) collate utf8mb4_general_ci as nl from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",
@@ -664,7 +664,7 @@ describe(ctx.label, () => {
                 notContains: collated.const('x', 'string').notContainsInsensitive(tIssue.externalRef.asString()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? like concat(replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as starts, ? not like concat(replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notStarts, ? like concat('%', replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as ends, ? not like concat('%', replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as notEnds, ? like concat('%', replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as contains, ? not like concat('%', replace(replace(replace(external_ref, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notContains from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? like concat(replace(replace(replace(cast(external_ref as char(36)), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as starts, ? not like concat(replace(replace(replace(cast(external_ref as char(36)), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notStarts, ? like concat('%', replace(replace(replace(cast(external_ref as char(36)), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as ends, ? not like concat('%', replace(replace(replace(cast(external_ref as char(36)), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) collate utf8mb4_general_ci as notEnds, ? like concat('%', replace(replace(replace(cast(external_ref as char(36)), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as contains, ? not like concat('%', replace(replace(replace(cast(external_ref as char(36)), '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') collate utf8mb4_general_ci as notContains from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "x",

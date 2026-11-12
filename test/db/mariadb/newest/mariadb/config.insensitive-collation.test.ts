@@ -226,26 +226,26 @@ describe(ctx.label, () => {
             .where(tIssue.externalRef.asString().startsWithInsensitive('0a8f'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like concat(?, '%') collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) like concat(?, '%') collate utf8mb4_general_ci"`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().containsInsensitive('1111'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like concat('%', ?, '%') collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) like concat('%', ?, '%') collate utf8mb4_general_ci"`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().endsWithInsensitive('6666'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like concat('%', ?) collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) like concat('%', ?) collate utf8mb4_general_ci"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().containsInsensitive('1111'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like concat('%', ?, '%')"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) like concat('%', ?, '%')"`)
     })
 
     test('collation: negated affix operators with a uuid receiver', async () => {
@@ -268,26 +268,26 @@ describe(ctx.label, () => {
             .where(tIssue.externalRef.asString().notStartsWithInsensitive('0a8f'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like concat(?, '%') collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) not like concat(?, '%') collate utf8mb4_general_ci"`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notContainsInsensitive('1111'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like concat('%', ?, '%') collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) not like concat('%', ?, '%') collate utf8mb4_general_ci"`)
 
         await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notEndsWithInsensitive('6666'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like concat('%', ?) collate utf8mb4_general_ci"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) not like concat('%', ?) collate utf8mb4_general_ci"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().notContainsInsensitive('1111'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like concat('%', ?, '%')"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where cast(external_ref as char(36)) not like concat('%', ?, '%')"`)
     })
 
     test('collation: aggregate-array-order-by-insensitive', async () => {

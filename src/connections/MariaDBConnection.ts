@@ -20,14 +20,12 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      * How UUID values are stored: in MariaDB's native `UUID` column type (`'uuid'`,
      * requiring MariaDB 10.7+) or in a character column such as `CHAR(36)` (`'string'`).
      *
-     * **Both strategies currently emit identical SQL, by nature and not by omission** —
-     * unlike MySQL's `binary` strategy, which needs `UUID_TO_BIN` / `BIN_TO_UUID`, or
-     * SQLite's and Oracle's. MariaDB's native `UUID` compares, concatenates and measures
-     * exactly like a `CHAR(36)`, the driver hands both back as a string, and binding a
-     * string parameter against either needs no conversion — so there is nothing for the
-     * builder to do differently. The property declares the application's schema intent and
-     * is kept as the seam for a future strategy that does need one; don't take the absence
-     * of a `_getUuidStrategy()` on the MariaDB builder for an unwired knob.
+     * With `'uuid'` (and a `compatibilityVersion` of 10.7 or newer) `asString()` of a uuid
+     * is written `cast(... as char(36))`: an expression over a native `UUID` column has the
+     * type `UUID`, and a text that isn't a uuid mixed with it (`valueWhenNull('(no ref)')`,
+     * a `case`, the other arm of a `union`) becomes NULL. Everything else is written the
+     * same with both strategies: the driver hands both back as a string, and a string
+     * parameter binds against either.
      */
     protected uuidStrategy: 'string' | 'uuid' = 'uuid'
 

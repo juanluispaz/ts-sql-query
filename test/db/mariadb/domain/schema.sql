@@ -82,6 +82,11 @@ CREATE TABLE issue (
     UNIQUE (project_id, `number`)
 );
 
+-- external_ref is of MariaDB's native UUID type from 10.7 on (the uuid strategy
+-- the connection uses by default), and CHAR(36) before: the part between /*M!100700
+-- and */ runs only on MariaDB 10.7 or newer.
+ALTER TABLE issue COMMENT '' /*M!100700 , MODIFY external_ref UUID */;
+
 CREATE TABLE country (
     code VARCHAR(2) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,

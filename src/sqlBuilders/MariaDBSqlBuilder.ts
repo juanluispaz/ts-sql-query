@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
-import type { FlatQueryColumns, InsertData, SelectData } from './SqlBuilder.js'
+import type { FlatQueryColumns, InsertData, SelectData, ToSql } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
@@ -20,6 +20,18 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _castAsDoubleMinCompatibilityVersion: number = 10_004_000
     override _isReservedKeyword(word: string): boolean {
         return isMariaDBReservedWord(word)
+    }
+    _getUuidStrategy(): 'string' | 'uuid' {
+        return this._connectionConfiguration.uuidStrategy as any || 'uuid'
+    }
+    override _asString(context: SqlBuildContext, valueSource: ToSql): string {
+        // Transform an uuid to string. An expression over a native UUID column (10.7+) has the type UUID: a text that
+        // isn't a uuid in the same ifnull, coalesce, case, greatest or union becomes NULL (measured on 13.0.2), so the
+        // text of the uuid is a char
+        if (this._getUuidStrategy() === 'uuid' && this._connectionConfiguration.compatibilityVersion >= 10_007_000) {
+            return 'cast(' + this._appendSql(valueSource, context, false) + ' as char(36))'
+        }
+        return super._asString(context, valueSource)
     }
     override _useInsertSupportWith(): boolean {
         // MariaDB rejects the leading `WITH cte AS (...) INSERT INTO ...`

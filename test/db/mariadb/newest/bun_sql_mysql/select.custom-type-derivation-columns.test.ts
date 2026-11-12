@@ -1198,7 +1198,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.fragmentWithType('string', 'required').sql`${tDerivedColumn.signingKey.asString()}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_uuid as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_uuid as char(36)) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
         expect(v).toBe('0a8f9c1e-1111-4222-8333-444455556666')

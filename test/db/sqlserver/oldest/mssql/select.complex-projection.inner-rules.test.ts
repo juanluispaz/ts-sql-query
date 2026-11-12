@@ -3784,11 +3784,12 @@ describe(ctx.label, () => {
 
     test('cte-inner-object-of-a-uuid-read-as-string', async () => {
         // The CTE keeps the string reading of the uuid inside its inner object;
-        // SQL Server renders a uniqueidentifier read as a string in uppercase.
+        // SQL Server renders a uniqueidentifier read as a string in uppercase, and
+        // the library gives it in lower case.
         // Issues 1 and 2 have an external reference, issues 3 and 4 have none.
         const expected = [
-            { id: 1, ref: { external: '0A8F9C1E-1111-4222-8333-444455556666' } },
-            { id: 2, ref: { external: '7B3E9D20-2222-4C55-9B66-DDDD00009999' } },
+            { id: 1, ref: { external: '0a8f9c1e-1111-4222-8333-444455556666' } },
+            { id: 2, ref: { external: '7b3e9d20-2222-4c55-9b66-dddd00009999' } },
             { id: 3 },
             { id: 4 },
         ]

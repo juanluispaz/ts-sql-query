@@ -39,6 +39,10 @@ function _typeNegatives() {
     // ---- Connection subclass: protected members
 
     class _ConnectionSurface extends DBConnection {
+        // Rule: keeping the upper case SQL Server gives a uuid is only of SqlServerConnection.
+        // @ts-expect-error useUpperCaseUuid is not declared on OracleConnection
+        protected override useUpperCaseUuid = true
+
         // Rule: declaring that the session computes the set with the row before the update is only of MariaDBConnection.
         // @ts-expect-error useSimultaneousAssignment is not declared on OracleConnection
         protected override useSimultaneousAssignment = true

@@ -190,17 +190,8 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         }
     }
 
-    // SQL Server stores uuids in `uniqueidentifier` columns, which hand the
-    // value back uppercased. Lowercase it on read so a uuid round-trips to
-    // the exact string it was inserted with — the pattern documented in
-    // docs/configuration/supported-databases/sqlserver.md.
     protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
-        const base = DBConnection.baseTypeForCustom(type)
-        const result = super.transformValueFromDB(value, base, typeCategory)
-        if (result && base === 'uuid') {
-            return (result as string).toLowerCase()
-        }
-        return result
+        return super.transformValueFromDB(value, DBConnection.baseTypeForCustom(type), typeCategory)
     }
     protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
         return super.transformValueToDB(value, DBConnection.baseTypeForCustom(type), typeCategory)

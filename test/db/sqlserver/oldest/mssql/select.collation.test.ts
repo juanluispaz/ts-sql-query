@@ -131,7 +131,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as v from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(lower(convert(nvarchar(36), external_ref)) collate Latin1_General_BIN2, lower(convert(nvarchar(36), external_ref)) collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as v from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -150,7 +150,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, @0) collate DATABASE_DEFAULT as v from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(lower(convert(nvarchar(36), external_ref)) collate Latin1_General_CI_AI, lower(convert(nvarchar(36), external_ref)) collate Latin1_General_CI_AI, @0) collate DATABASE_DEFAULT as v from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "X",
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: s.replaceAll(s, s) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, external_ref) collate DATABASE_DEFAULT as v from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(lower(convert(nvarchar(36), external_ref)) collate Latin1_General_BIN2, lower(convert(nvarchar(36), external_ref)) collate Latin1_General_BIN2, external_ref) collate DATABASE_DEFAULT as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -603,13 +603,14 @@ describe(ctx.label, () => {
     // `orderBy` over a projected uuid alias, and an insensitive comparison whose uuid VALUE
     // operand carries the forced collation. The uuid is rendered per this dialect's `asString()`.
     test('collate on a uuid receiver converts before collate', async () => {
-        const expected = [{ id: 1, v: '0A8F9C1E-1111-4222-8333-444455556666' }]
+        // The text of the uuid is written in lower case, then collated
+        const expected = [{ id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, v: tIssue.externalRef.asString().collate('Latin1_General_BIN2') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2 as v from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(convert(nvarchar(36), external_ref)) collate Latin1_General_BIN2 as v from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -620,11 +621,13 @@ describe(ctx.label, () => {
     })
     test('insensitive orderBy on a uuid alias converts before collate', async () => {
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        // SQL Server gives the text of a uniqueidentifier in upper case; the
+        // library gives it in lower case
         const expected = [
-            { id: 1, ref: '0A8F9C1E-1111-4222-8333-444455556666' },
-            { id: 2, ref: '7B3E9D20-2222-4C55-9B66-DDDD00009999' },
+            { id: 1, ref: '0a8f9c1e-1111-4222-8333-444455556666' },
+            { id: 2, ref: '7b3e9d20-2222-4c55-9b66-dddd00009999' },
         ]
-        ctx.mockNext(expected)
+        ctx.mockNext(expected.map(row => ({ ...row, ref: row.ref.toUpperCase() })))
         const result = await collated.selectFrom(tIssue)
             .where(tIssue.externalRef.isNotNull())
             .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })

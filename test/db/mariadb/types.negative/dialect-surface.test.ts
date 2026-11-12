@@ -34,6 +34,10 @@ function _typeNegatives() {
     // ---- Connection subclass: protected members
 
     class _ConnectionSurface extends DBConnection {
+        // Rule: keeping the upper case SQL Server gives a uuid is only of SqlServerConnection.
+        // @ts-expect-error useUpperCaseUuid is not declared on MariaDBConnection
+        protected override useUpperCaseUuid = true
+
         // Positive control: protected members every connection has.
         protected override compatibilityVersion = 1
         callProcedure = () => this.executeProcedure('refresh_stats', [])

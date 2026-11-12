@@ -155,6 +155,10 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         super(queryRunner)
         if (compatibilityVersion !== undefined) {
             this.compatibilityVersion = compatibilityVersion
+            // Before MariaDB 10.7 there is no UUID column type: the schema has a CHAR(36)
+            if (compatibilityVersion < 10_007_000) {
+                this.uuidStrategy = 'string'
+            }
         }
     }
 

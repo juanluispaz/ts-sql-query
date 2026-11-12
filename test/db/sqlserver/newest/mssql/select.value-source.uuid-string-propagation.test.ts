@@ -42,7 +42,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().allowWhen(true, 'ref gate').concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), external_ref) + @0 as result from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(convert(nvarchar(36), external_ref)) + @0 as result from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().disallowWhen(false, 'ref gate').concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), external_ref) + @0 as result from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(convert(nvarchar(36), external_ref)) + @0 as result from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().asOptional().concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), external_ref) + @0 as result from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(convert(nvarchar(36), external_ref)) + @0 as result from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -118,7 +118,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().asRequiredInOptionalObject().concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), external_ref) + @0 as result from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(convert(nvarchar(36), external_ref)) + @0 as result from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-x",
@@ -172,7 +172,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set external_ref = @0 where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "C733575E-B5BA-400C-8803-3D3D4BBCD52F",
+                "c733575e-b5ba-400c-8803-3d3d4bbcd52f",
                 1,
               ]
             `)

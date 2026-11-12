@@ -158,9 +158,9 @@ describe(ctx.label, () => {
 
     test('uuid-sent-in-upper-case-is-read-back', async () => {
         // Issue 1's external reference is set to a uuid written in upper case.
-        // Before MariaDB 10.7 the column is a CHAR(36), which keeps the text sent:
-        // it is read back in upper case, and an equality with the lower-case text
-        // of the same uuid finds the row (the collation ignores the case).
+        // Before MariaDB 10.7 the column is a CHAR(36), with the uuid strategy
+        // 'string': the connection sends and reads the uuid in lower case, and an
+        // equality with the lower-case text of the same uuid finds the row.
         const upper = 'C733575E-B5BA-400C-8803-3D3D4BBCD52F'
         const lower = 'c733575e-b5ba-400c-8803-3d3d4bbcd52f'
         await ctx.withRollback(async () => {
@@ -172,13 +172,13 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set external_ref = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                "C733575E-B5BA-400C-8803-3D3D4BBCD52F",
+                "c733575e-b5ba-400c-8803-3d3d4bbcd52f",
                 1,
               ]
             `)
             expect(updated).toEqual(1)
 
-            ctx.mockNext(upper)
+            ctx.mockNext(lower)
             const readBack = await ctx.conn.selectFrom(tIssue)
                 .where(tIssue.id.equals(1))
                 .selectOneColumn(tIssue.externalRef)
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof readBack, string | null>>()
-            expect(readBack).toEqual(upper)
+            expect(readBack).toEqual(lower)
 
             ctx.mockNext(1)
             const foundId = await ctx.conn.selectFrom(tIssue)

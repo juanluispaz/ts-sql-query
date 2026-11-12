@@ -52,7 +52,7 @@ describe(ctx.label, () => {
             "treatUnexpectedIntegerDateTimeAsJulian": undefined,
             "treatUnexpectedStringDateTimeAsUTC": undefined,
             "unexpectedUnixDateTimeAreMilliseconds": undefined,
-            "uuidStrategy": "uuid",
+            "uuidStrategy": "string",
           }
         `)
         expect(names).toEqual(['Acme Corp'])

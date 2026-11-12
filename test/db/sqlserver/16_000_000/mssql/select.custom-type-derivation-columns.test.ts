@@ -1198,13 +1198,12 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(ctx.conn.fragmentWithType('string', 'required').sql`${tDerivedColumn.signingKey.asString()}`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), m_uuid) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(convert(nvarchar(36), m_uuid)) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, string>>()
-        // SQL Server stores a uuid in `uniqueidentifier` and renders it upper-cased,
-        // whichever way it is read; the mock echoes the seeded lower-case value.
-        if (ctx.realDbEnabled) expect(v).toBe('0A8F9C1E-1111-4222-8333-444455556666')
-        else expect(v).toBe('0a8f9c1e-1111-4222-8333-444455556666')
+        // SQL Server renders a uniqueidentifier in upper case; the library writes
+        // the text of the uuid in lower case.
+        expect(v).toBe('0a8f9c1e-1111-4222-8333-444455556666')
     })
 
     // -- the `Values` column factories ------------------------------------

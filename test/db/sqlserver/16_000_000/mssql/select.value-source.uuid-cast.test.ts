@@ -45,10 +45,9 @@ describe(ctx.label, () => {
             "f47ac10b-58cc-4372-a567-0e02b2c3d479",
           ]
         `)
-        // SQL Server's native `uniqueidentifier` round-trips the value
-        // upper-cased; the mock echoes the lower-case input verbatim.
-        if (ctx.realDbEnabled) expect(result).toBe(UUID_VALUE.toUpperCase())
-        else expect(result).toBe(UUID_VALUE)
+        // SQL Server gives a uniqueidentifier in upper case; the library gives
+        // its text in lower case.
+        expect(result).toBe(UUID_VALUE)
     })
 
     test('uuid-asString-on-column', async () => {
@@ -64,10 +63,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        // SQL Server stores uuids in `uniqueidentifier` and returns them
-        // upper-cased; the mock echoes the seeded lower-case value.
-        if (ctx.realDbEnabled) expect(ref).toEqual(REF1.toUpperCase())
-        else expect(ref).toEqual(REF1)
+        // SQL Server gives a uniqueidentifier in upper case; the library gives
+        // its text in lower case.
+        expect(ref).toEqual(REF1)
     })
 
     test('uuid-asString-concat', async () => {
@@ -79,15 +77,14 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().concat(tIssue.externalRef.asString()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(36), external_ref) + convert(nvarchar(36), external_ref) as result from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(convert(nvarchar(36), external_ref)) + lower(convert(nvarchar(36), external_ref)) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        if (ctx.realDbEnabled) expect(ref).toEqual(expected.toUpperCase())
-        else expect(ref).toEqual(expected)
+        expect(ref).toEqual(expected)
     })
 
     test('uuid-asString-trim', async () => {
@@ -96,15 +93,14 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().trim())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select trim(convert(nvarchar(36), external_ref)) as result from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select trim(lower(convert(nvarchar(36), external_ref))) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        if (ctx.realDbEnabled) expect(ref).toEqual(REF1.toUpperCase())
-        else expect(ref).toEqual(REF1)
+        expect(ref).toEqual(REF1)
     })
 
     test('uuid-asString-substring', async () => {
@@ -114,7 +110,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substring(0, 8))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substring(convert(nvarchar(36), external_ref), @0, @1) as result from issue where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substring(lower(convert(nvarchar(36), external_ref)), @0, @1) as result from issue where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -123,8 +119,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        if (ctx.realDbEnabled) expect(ref).toEqual(expected.toUpperCase())
-        else expect(ref).toEqual(expected)
+        expect(ref).toEqual(expected)
     })
 
     test('uuid-asString-valueWhenNull-fallback', async () => {
@@ -135,7 +130,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .selectOneColumn(tIssue.externalRef.asString().valueWhenNull('(no ref)'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(convert(nvarchar(36), external_ref), @0) as result from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(lower(convert(nvarchar(36), external_ref)), @0) as result from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "(no ref)",
@@ -154,15 +149,14 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.body.valueWhenNull(tIssue.externalRef.asString()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(body, convert(nvarchar(36), external_ref)) as result from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(body, lower(convert(nvarchar(36), external_ref))) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        if (ctx.realDbEnabled) expect(ref).toEqual(REF1.toUpperCase())
-        else expect(ref).toEqual(REF1)
+        expect(ref).toEqual(REF1)
     })
 
     test('uuid-asString-stringConcat', async () => {
@@ -174,15 +168,14 @@ describe(ctx.label, () => {
             .where(tIssue.projectId.equals(1))
             .selectOneColumn(ctx.conn.stringConcat(tIssue.externalRef.asString(), ','))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(convert(nvarchar(36), external_ref), ',') as result from issue where project_id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(lower(convert(nvarchar(36), external_ref)), ',') as result from issue where project_id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof refs, string | null>>()
-        const cmp = ctx.realDbEnabled ? expected.map(s => s.toUpperCase()) : expected
-        expect(refs!.split(',').sort()).toEqual([...cmp].sort())
+        expect(refs!.split(',').sort()).toEqual([...expected].sort())
     })
 
     // NOT-APPLICABLE: SQL Server's STRING_AGG has no DISTINCT, so
@@ -324,7 +317,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(ctx.conn.fragmentWithType('string', 'required').sql`upper(${tIssue.externalRef.asString()})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(convert(nvarchar(36), external_ref)) as result from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(lower(convert(nvarchar(36), external_ref))) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -344,7 +337,7 @@ describe(ctx.label, () => {
                 beforeColumns: ctx.conn.rawFragment`upper(${tIssue.externalRef.asString()}) as ref_upper, `,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(convert(nvarchar(36), external_ref)) as ref_upper,  id as id from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(lower(convert(nvarchar(36), external_ref))) as ref_upper,  id as id from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -367,7 +360,7 @@ describe(ctx.label, () => {
         const ref = await ctx.conn.selectFrom(inner)
             .selectOneColumn(inner.ref.concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select external_ref as ref from issue where id = @0) select convert(nvarchar(36), ref) + @1 as result from w_uuid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select external_ref as ref from issue where id = @0) select lower(convert(nvarchar(36), ref)) + @1 as result from w_uuid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -375,15 +368,13 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        if (ctx.realDbEnabled) expect(ref).toEqual(REF1.toUpperCase() + '-x')
-        else expect(ref).toEqual(expected)
+        expect(ref).toEqual(expected)
     })
 
     test('uuid-asString-in-a-union-with-a-text-column', async () => {
         // The column `ref` of the union is the text of issue 1's uuid in one arm
         // and the slug of project 2, a text that isn't a uuid, in the other: each
-        // row keeps its text. SQL Server converts a uniqueidentifier to its text
-        // in upper case.
+        // row keeps its text, the uuid in lower case.
         const expected = [{ id: 1, ref: REF1 }, { id: 2, ref: 'tools' }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)
@@ -396,7 +387,7 @@ describe(ctx.label, () => {
             )
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(36), external_ref) as ref from issue where id = @0 union all select id as id, slug as ref from project where id = @1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(convert(nvarchar(36), external_ref)) as ref from issue where id = @0 union all select id as id, slug as ref from project where id = @1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -404,8 +395,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; ref?: string }>>>()
-        if (ctx.realDbEnabled) expect(rows).toEqual([{ id: 1, ref: REF1.toUpperCase() }, { id: 2, ref: 'tools' }])
-        else expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
     test('customuuid-asString-on-optional-column', async () => {
         // `.asString()` on a branded `customUuid` column erases both the brand
@@ -424,9 +414,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof key, string | null>>()
-        // SQL Server's uniqueidentifier round-trips uppercased.
-        if (ctx.realDbEnabled) expect(key).toEqual(SIGNING_KEY1.toUpperCase())
-        else expect(key).toEqual(SIGNING_KEY1)
+        // SQL Server gives a uniqueidentifier in upper case; the library gives
+        // its text in lower case.
+        expect(key).toEqual(SIGNING_KEY1)
     })
 
     test('customuuid-comparison-surface-in-where', async () => {
@@ -715,17 +705,16 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().reverse())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select reverse(convert(nvarchar(36), external_ref)) as result from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select reverse(lower(convert(nvarchar(36), external_ref))) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        // SQL Server returns the uniqueidentifier upper-cased, so the reversed
-        // letter-bearing value differs under a real engine.
-        if (ctx.realDbEnabled) expect(ref).toEqual([...REF1.toUpperCase()].reverse().join(''))
-        else expect(ref).toEqual(expected)
+        // The library gives the text of the uuid in lower case, reversed in the
+        // query: SQL Server writes lower(...) before reverse.
+        expect(ref).toEqual(expected)
     })
 
     test('uuid-asString-trimLeft', async () => {
@@ -736,15 +725,14 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().trimLeft())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ltrim(convert(nvarchar(36), external_ref)) as result from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ltrim(lower(convert(nvarchar(36), external_ref))) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        if (ctx.realDbEnabled) expect(ref).toEqual(REF1.toUpperCase())
-        else expect(ref).toEqual(REF1)
+        expect(ref).toEqual(REF1)
     })
 
     test('uuid-asString-trimRight', async () => {
@@ -755,15 +743,14 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().trimRight())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select rtrim(convert(nvarchar(36), external_ref)) as result from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select rtrim(lower(convert(nvarchar(36), external_ref))) as result from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof ref, string | null>>()
-        if (ctx.realDbEnabled) expect(ref).toEqual(REF1.toUpperCase())
-        else expect(ref).toEqual(REF1)
+        expect(ref).toEqual(REF1)
     })
 
     test('uuid-asString-substr-negative-start', async () => {
@@ -776,7 +763,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substr(-8, 4))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select left(right(convert(nvarchar(36), external_ref), @0), @1) as result from issue where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select left(right(lower(convert(nvarchar(36), external_ref)), @0), @1) as result from issue where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -797,7 +784,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substrToEnd(-6))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select right(convert(nvarchar(36), external_ref), @0) as result from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select right(lower(convert(nvarchar(36), external_ref)), @0) as result from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             6,
@@ -817,7 +804,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().substringToEnd(24))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substring(convert(nvarchar(36), external_ref), @0, 2147483647) as result from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substring(lower(convert(nvarchar(36), external_ref)), @0, 2147483647) as result from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             25,

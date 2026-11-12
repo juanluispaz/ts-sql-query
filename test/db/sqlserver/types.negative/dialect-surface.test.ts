@@ -58,6 +58,9 @@ function _typeNegatives() {
         // @ts-expect-error useSimultaneousAssignment is not declared on SqlServerConnection
         protected override useSimultaneousAssignment = true
 
+        // Positive control: keeping the upper case SQL Server gives a uuid is declared here.
+        protected override useUpperCaseUuid = true
+
         // Positive control: protected members every connection has.
         protected override compatibilityVersion = 1
         callProcedure = () => this.executeProcedure('refresh_stats', [])

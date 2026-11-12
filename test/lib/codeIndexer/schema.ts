@@ -79,7 +79,7 @@ CREATE INDEX idx_heritage_sym    ON heritage(symbol_id);
 CREATE INDEX idx_heritage_base   ON heritage(base_name);   -- implementedBy joins heritage by base_name (interface→class bridge)
 
 -- ── reconcile: simplified definitions ↔ the real implementing class ──────────
--- src/examples/documentation/simplifiedQueryDefinition.ts holds hand-maintained,
+-- src/undistributed/simplifiedQueryDefinition.ts holds hand-maintained,
 -- compiler-protection-free SIMPLIFIED versions of the query types (the ones the
 -- docs render). Each maps to the CLASS that implements it (via the curated table in
 -- reconcileSimplified.ts) — NOT the dozens of collapsed real interfaces — and members

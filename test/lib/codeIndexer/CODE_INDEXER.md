@@ -339,7 +339,7 @@ internal).
 
 ### 3. simplified definitions → the real implementing class (and drift detection)
 
-[`src/examples/documentation/simplifiedQueryDefinition.ts`](../../../src/examples/documentation/simplifiedQueryDefinition.ts)
+[`src/undistributed/simplifiedQueryDefinition.ts`](../../../src/undistributed/simplifiedQueryDefinition.ts)
 holds hand-maintained, compiler-protection-free SIMPLIFIED versions of the query types —
 the ones the docs render (indexed as `area='simplified'`, and as the generated `decl`
 doc cells). A curated table in [`reconcileSimplified.ts`](reconcileSimplified.ts) maps each to the
@@ -398,7 +398,7 @@ index touches several files; know which is which:
 
 | File | Role | How the index reads it |
 |---|---|---|
-| `src/examples/documentation/simplifiedQueryDefinition.ts` | **The MASTER** — the COMPLETE simplified defs of `src/expressions` (Select/Insert/Update/Delete/Connection/ValueSource hierarchy/…). The author writes it, then manually decomposes it across doc pages. | `extractSrc.ts` indexes it as the `simplified` pseudo-module (`area='simplified'`) — symbols + members. Feeds reconcile passes 1 (`via='class'`) & 2 (`via='name'`, `source='master'`). |
+| `src/undistributed/simplifiedQueryDefinition.ts` | **The MASTER** — the COMPLETE simplified defs of `src/expressions` (Select/Insert/Update/Delete/Connection/ValueSource hierarchy/…). The author writes it, then manually decomposes it across doc pages. | `extractSrc.ts` indexes it as the `simplified` pseudo-module (`area='simplified'`) — symbols + members. Feeds reconcile passes 1 (`via='class'`) & 2 (`via='name'`, `source='master'`). |
 | `src/TsSqlError.ts` | The error types. Self-contained, so it is NOT replicated in the master — it IS the source, shown in the docs directly with the few internal impls stripped (the extractor injects dummies by replacing strategic comments, without shifting lines). | Indexed as normal `src/` symbols. Its simplified doc copy is read from the generated cell (below) for reconcile pass 3. |
 | `docs/**/*.md` | The master decomposed into pages + the additions (the `TsSqlError` ecosystem, query-runner config, filter types). | The snippets become the documentation dimension (`extractDocTests.ts` → `doc_test_*`). |
 | `test/db/general/newest/documentation/simplifiedDefinition.generated.test.ts` | The generated cell that reassembles those doc pages = master + additions. | reconcile `source='doc'`: a per-source row for **every** def it shows (incl. master defs) + the **doc-only additions**. Also a `doc_test_block` per snippet, tagged `simplified_def`. |

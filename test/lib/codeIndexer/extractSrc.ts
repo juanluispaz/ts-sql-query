@@ -36,7 +36,7 @@ export interface SrcExtract {
 
 // The hand-maintained simplified query API map (a valid .ts). Indexed as its own
 // 'simplified' pseudo-module, restricted to its BEGIN/END region.
-const SIMPLIFIED = 'src/examples/documentation/simplifiedQueryDefinition.ts'
+const SIMPLIFIED = 'src/undistributed/simplifiedQueryDefinition.ts'
 
 // ── public surface: (declaring file, name) pairs reachable through exports ───
 interface PublicInfo {

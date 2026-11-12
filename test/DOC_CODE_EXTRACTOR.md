@@ -298,7 +298,7 @@ richest; the others were brought to parity by the doc author.
 
 Three similarly-named things, different roles, two locations:
 
-- **[`src/examples/documentation/simplifiedQueryDefinition.ts`](../src/examples/documentation/simplifiedQueryDefinition.ts)**
+- **[`src/undistributed/simplifiedQueryDefinition.ts`](../src/undistributed/simplifiedQueryDefinition.ts)**
   (stays under `src/`) — a hand-maintained, **valid `.ts`** view of the
   query-building API (formerly `src/simplifiedDefinition.txt`). An **authoring
   source**: the docs are written *from* it + real library files like

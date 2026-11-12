@@ -1071,6 +1071,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _convertUuidTextInCompound(): boolean {
         return false
     }
+    /**
+     * The text of a uuid received in a column of the result (`asString()`) is lowered by the library: the database
+     * gives it in upper case (SQL Server)
+     */
+    _lowerCaseUuidTextReceived(): boolean {
+        return false
+    }
     /** The text of a uuid written as a text where it meets a text that isn't a uuid (_convertUuidTextInCompound) */
     _appendUuidTextAsText(sql: string): string {
         return sql

@@ -88,6 +88,18 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
     protected usePlatformDependentRound: boolean = false
 
     /**
+     * SQL Server gives a `uniqueidentifier`, and its text (`asString()`), in upper case. By default the library gives it
+     * in lower case, as the other databases: it lowers a uuid read, and writes `lower(...)` where the text of a uuid is
+     * transformed in the query (concatenated, cut, trimmed, aggregated...). Set it to `true` to keep the upper case of
+     * SQL Server.
+     */
+    protected useUpperCaseUuid: boolean = false
+
+    protected override __normalizeUuidText(value: string): string {
+        return this.useUpperCaseUuid ? value : value.toLowerCase()
+    }
+
+    /**
      * Keep SQL Server's native NULL handling for `.minValue(x)` / `.maxValue(x)`.
      *
      * SQL Server's `least(a, b)` / `greatest(a, b)` (2022+) and the `iif(a < b, a, b)`

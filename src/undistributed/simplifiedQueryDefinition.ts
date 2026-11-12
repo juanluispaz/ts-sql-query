@@ -1231,6 +1231,7 @@ interface SqliteConnectionConfiguration {
 interface SqlServerConnectionConfiguration {
     excludeTrailingBlanksInLength: boolean // Default: false
     usePlatformDependentRound: boolean // Default: false
+    useUpperCaseUuid: boolean // Default: false
     ignoreNullInMinAndMaxValue: boolean // Default: false
     minValueFunction?: string
     maxValueFunction?: string

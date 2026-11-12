@@ -71,6 +71,10 @@ export class AbstractQueryBuilder {
     __transformValueFromDB(valueSource: AnyValueSource, value: any, column?: string, index?: number, count?: boolean) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
+        if (valueSourcePrivate.__uuidString && typeof value === 'string' && this.__sqlBuilder._lowerCaseUuidTextReceived()) {
+            // The text of a uuid, which the database gives in upper case
+            value = value.toLowerCase()
+        }
         let result
         try {
             if (typeAdapter) {

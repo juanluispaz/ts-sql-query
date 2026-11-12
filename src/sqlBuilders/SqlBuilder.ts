@@ -292,6 +292,7 @@ export interface SqlBuilder extends SqlOperation {
     _connectionConfiguration: ConnectionConfiguration
     _checkConnectionConfiguration(): void
     _isValue(value: any): boolean
+    _lowerCaseUuidTextReceived(): boolean
     _resultColumnKey(name: string): string
     _isReservedKeyword(word: string): boolean
     _forceAsIdentifier(identifier: string): string

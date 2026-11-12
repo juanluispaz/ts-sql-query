@@ -169,6 +169,8 @@ export interface ConnectionConfiguration {
      * ties, and every database the scale of roundn
      */
     readonly usePlatformDependentRound?: boolean
+    /** SQL Server: a uuid and its text are given in upper case, as the database gives them (`useUpperCaseUuid`) */
+    readonly useUpperCaseUuid?: boolean
     /**
      * MariaDB: the session computes the assignments of an update with the row before it (`SIMULTANEOUS_ASSIGNMENT` in
      * its `sql_mode`), declared with `useSimultaneousAssignment`

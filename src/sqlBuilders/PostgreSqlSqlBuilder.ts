@@ -452,28 +452,15 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // different tie-breaking rule. `round(numeric, s)` breaks ties away from
         // zero, the rule ts-sql-query follows on every dialect.
         const receiver = this._appendSql(valueSource, context, false)
-        const integerScale = this._isIntegerOperand(value, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter)
-        const scale = this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, !integerScale)
+        const roundnScale = this._roundnScale(value, columnType, columnTypeName, typeAdapter)
+        const integerScale = this._isIntegerOperand(roundnScale.value, roundnScale.type, roundnScale.typeName, roundnScale.typeAdapter)
+        const scale = this._appendValue(roundnScale.value, context, roundnScale.type, roundnScale.typeName, roundnScale.typeAdapter, !integerScale)
         if (integerScale) {
             return 'round((' + receiver + ')::numeric, ' + scale + ')'
         }
         // The scale must be an integer (`round(numeric, integer)`): a double operand or a fractional number is
         // rounded to one
         return 'round((' + receiver + ')::numeric, (' + scale + ')::int4)'
-    }
-    _isIntegerOperand(value: any, valueType: ValueType, valueTypeName: string, typeAdapter: TypeAdapter | undefined): boolean {
-        // As sent to the database: a type adapter can turn a fractional number into an integer one
-        if (typeof value === 'number') {
-            return Number.isInteger(this._transformParamToDB(value, valueType, valueTypeName, typeAdapter))
-        }
-        if (isValueSource(value)) {
-            const valuePrivate = __getValueSourcePrivate(value)
-            if (valuePrivate.isConstValue()) {
-                return Number.isInteger(this._transformParamToDB(valuePrivate.getConstValue(), valuePrivate.__valueType, valuePrivate.__valueTypeName, valuePrivate.__typeAdapter))
-            }
-            return valuePrivate.__valueType === 'int' || valuePrivate.__valueType === 'bigint' || valuePrivate.__valueType === 'customInt' || valuePrivate.__valueType === 'customBigint'
-        }
-        return false
     }
     override _round(context: SqlBuildContext, valueSource: ToSql): string {
         // PostgreSQL has two overloads of `round`: `round(numeric)` breaks ties

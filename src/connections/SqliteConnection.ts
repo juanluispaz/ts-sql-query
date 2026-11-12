@@ -75,6 +75,15 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * See the SQLite page of the documentation.
      */
     protected sqliteRunsInApplicationTimeZone: boolean = false
+    /**
+     * The scale of `roundn` is a whole number of decimals, and SQLite truncates a fractional one (`roundn(1.6)` rounds to
+     * 1 decimal), while the other databases round it. ts-sql-query rounds it on every database: a number is sent
+     * rounded, ties away from zero, and an expression that isn't an integer is written rounded (`round(<scale>)`), so
+     * `roundn(1.6)` rounds to 2 decimals.
+     *
+     * Setting this flag to `true` sends and writes the scale as it is, and SQLite truncates it as it does natively.
+     */
+    protected usePlatformDependentRound: boolean = false
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqliteSqlBuilder()) {
         super(queryRunner, sqlBuilder)

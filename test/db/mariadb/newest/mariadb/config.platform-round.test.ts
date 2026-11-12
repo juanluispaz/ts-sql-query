@@ -3,6 +3,8 @@
 // break away from zero on every platform; setting the flag opts into the bare
 // `round(<x>)` over the engine's own type. This file pins the `true` branch and
 // contrasts it against the default on the same query.
+// With the flag the scale of `roundn` is also sent and written as it is; this
+// database rounds a fractional one, as the library does without the flag.
 //
 // A subclass of `DBConnection` flips the protected flag while sharing
 // `ctx.conn`'s CaptureInterceptor, so the emitted SQL is captured in
@@ -67,5 +69,43 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ id: number; dr: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('platform-round: roundn sends a fractional number scale as it is', async () => {
+        // The scale 1.6 reaches the database as it is: the database rounds it to 2 decimals, so 2.345 gives 2.35.
+        const conn = ctx.withConnection(PlatformRoundConnection)
+        ctx.mockNext({ r: 2.35 })
+        const row = await conn.selectFromNoTable()
+            .select({ r: conn.const(2.345, 'double').roundn(1.6) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(?, ?) as r"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.345,
+            1.6,
+          ]
+        `)
+        assertType<Exact<typeof row, { r: number }>>()
+        expect(row.r).toBe(2.35)
+    })
+
+    test('platform-round: roundn writes a fractional expression scale as it is', async () => {
+        // The scale 3.2 / 2 = 1.6 is written without rounding it: the database rounds it to 2 decimals, so
+        // 2.345 gives 2.35.
+        const conn = ctx.withConnection(PlatformRoundConnection)
+        ctx.mockNext({ r: 2.35 })
+        const row = await conn.selectFromNoTable()
+            .select({ r: conn.const(2.345, 'double').roundn(conn.const(3.2, 'double').divide(2)) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(?, ? / ?) as r"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.345,
+            3.2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { r: number }>>()
+        expect(row.r).toBe(2.35)
     })
 })

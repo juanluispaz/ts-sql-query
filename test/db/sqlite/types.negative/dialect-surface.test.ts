@@ -55,8 +55,7 @@ function _typeNegatives() {
         // @ts-expect-error sequence does not exist on SqliteConnection
         issueIdSeq = this.sequence('issue_id_seq', 'int')
 
-        // Rule: the platform-dependent round opt-out is not part of SqliteConnection.
-        // @ts-expect-error usePlatformDependentRound is not declared on SqliteConnection
+        // Positive control: the platform-dependent round opt-out (the scale of roundn) is declared here too.
         protected override usePlatformDependentRound = true
 
         // Rule: the native NULL handling of minValue/maxValue is not configurable on SqliteConnection.

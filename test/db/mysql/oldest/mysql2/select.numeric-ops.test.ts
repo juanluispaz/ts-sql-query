@@ -433,6 +433,44 @@ describe(ctx.label, () => {
         }
     })
 
+    test('roundn-with-a-fractional-number-scale-rounds-the-scale', async () => {
+        // The scale is a whole number of decimals: a fractional one is rounded
+        // (ties away from zero) before it is sent, so 1.6 is 2 decimals and
+        // 2.345 rounds to 2.35 on every database.
+        ctx.mockNext({ r: 2.35 })
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ r: ctx.conn.const(2.345, 'double').roundn(1.6) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(cast(? as decimal(65, 30)), ?) as r"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.345,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { r: number }>>()
+        expect(row.r).toBe(2.35)
+    })
+
+    test('roundn-with-a-fractional-expression-scale-rounds-the-scale', async () => {
+        // A scale computed as a double (3.2 / 2 = 1.6) is rounded too, to 2
+        // decimals, so 2.345 rounds to 2.35 on every database.
+        ctx.mockNext({ r: 2.35 })
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ r: ctx.conn.const(2.345, 'double').roundn(ctx.conn.const(3.2, 'double').divide(2)) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(cast(? as decimal(65, 30)), ? / ?) as r"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.345,
+            3.2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { r: number }>>()
+        expect(row.r).toBe(2.35)
+    })
+
     test('atan2', async () => {
         // atan2(y, x) — the public form is `y.atan2(x)`. We pick
         // priority(id=1)=2 and atan2(2, 2) = π/4 ≈ 0.7854.

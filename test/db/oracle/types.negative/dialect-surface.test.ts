@@ -43,8 +43,7 @@ function _typeNegatives() {
         protected override compatibilityVersion = 1
         callProcedure = () => this.executeProcedure('refresh_stats', [])
 
-        // Rule: the platform-dependent round opt-out is not part of OracleConnection.
-        // @ts-expect-error usePlatformDependentRound is not declared on OracleConnection
+        // Positive control: the platform-dependent round opt-out (the scale of roundn) is declared here too.
         protected override usePlatformDependentRound = true
 
         // Rule: the native NULL handling of minValue/maxValue is not configurable on OracleConnection.

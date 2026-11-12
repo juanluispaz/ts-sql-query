@@ -4109,7 +4109,57 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'log(' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ', ' + this._appendSql(valueSource, context, false) + ')'
     }
     _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'round(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        return 'round(' + this._appendSql(valueSource, context, false) + ', ' + this._appendRoundnScale(value, context, columnType, columnTypeName, typeAdapter) + ')'
+    }
+    /**
+     * The scale of roundn is a whole number of decimals, which TypeScript can't express: a number whose value sent to
+     * the database (after the type adapter, which can scale it) is fractional is sent rounded, ties away from zero (the
+     * rule of round), as an int, so every database receives the same scale. Anything else is kept, and everything with
+     * usePlatformDependentRound
+     */
+    _roundnScale(value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): { value: any, type: ValueType, typeName: string, typeAdapter: TypeAdapter | undefined } {
+        const type = this._getMathArgumentType(columnType, columnTypeName, value)
+        const typeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
+        if (typeof value === 'number' && !this._connectionConfiguration.usePlatformDependentRound) {
+            const sent = this._transformParamToDB(value, type, typeName, typeAdapter)
+            if (typeof sent === 'number' && Number.isFinite(sent) && !Number.isInteger(sent)) {
+                return { value: Math.sign(sent) * Math.round(Math.abs(sent)), type: 'int', typeName: 'int', typeAdapter: undefined }
+            }
+        }
+        return { value, type, typeName, typeAdapter }
+    }
+    /**
+     * The database truncates a fractional scale of round (SQLite, SQL Server, Oracle) instead of rounding it as the
+     * other databases do: a scale that is a value source and isn't an integer is written rounded
+     */
+    _roundnTruncatesTheScale = false
+    /** The SQL that rounds an expression to an integer, for the scale of roundn */
+    _appendRoundToInteger(sql: string): string {
+        return 'round(' + sql + ')'
+    }
+    /** The operand is an integer as sent to the database: a number, a constant or a value source of an integer type */
+    _isIntegerOperand(value: any, valueType: ValueType, valueTypeName: string, typeAdapter: TypeAdapter | undefined): boolean {
+        // As sent to the database: a type adapter can turn a fractional number into an integer one
+        if (typeof value === 'number') {
+            return Number.isInteger(this._transformParamToDB(value, valueType, valueTypeName, typeAdapter))
+        }
+        if (isValueSource(value)) {
+            const valuePrivate = __getValueSourcePrivate(value)
+            if (valuePrivate.isConstValue()) {
+                return Number.isInteger(this._transformParamToDB(valuePrivate.getConstValue(), valuePrivate.__valueType, valuePrivate.__valueTypeName, valuePrivate.__typeAdapter))
+            }
+            return valuePrivate.__valueType === 'int' || valuePrivate.__valueType === 'bigint' || valuePrivate.__valueType === 'customInt' || valuePrivate.__valueType === 'customBigint'
+        }
+        return false
+    }
+    /** The scale of roundn: a fractional number is rounded, and a value source that isn't an integer where the database truncates it */
+    _appendRoundnScale(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const scale = this._roundnScale(value, columnType, columnTypeName, typeAdapter)
+        const sql = this._appendValue(scale.value, context, scale.type, scale.typeName, scale.typeAdapter, false)
+        if (this._roundnTruncatesTheScale && !this._connectionConfiguration.usePlatformDependentRound && isValueSource(scale.value) && !this._isIntegerOperand(scale.value, scale.type, scale.typeName, scale.typeAdapter)) {
+            return this._appendRoundToInteger(sql)
+        }
+        return sql
     }
     _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'least(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'

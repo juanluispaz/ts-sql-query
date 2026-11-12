@@ -652,12 +652,14 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return super._round(context, valueSource)
     }
+    // SQLite truncates a fractional scale of round
+    override _roundnTruncatesTheScale = true
     override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (__isDecimalCategory(columnType)) {
             if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('rounding')
             }
-            return 'tsq_decimal_round(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+            return 'tsq_decimal_round(' + this._appendSql(valueSource, context, false) + ', ' + this._appendRoundnScale(value, context, columnType, columnTypeName, typeAdapter) + ')'
         }
         return super._roundn(context, valueSource, value, columnType, columnTypeName, typeAdapter)
     }

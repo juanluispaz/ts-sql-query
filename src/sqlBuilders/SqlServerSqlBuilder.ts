@@ -1182,6 +1182,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _useForJsonInAggreagteArrayWhenPossible = true
+    // SQL Server truncates a fractional scale of round, and its round always takes the scale
+    override _roundnTruncatesTheScale = true
+    override _appendRoundToInteger(sql: string): string {
+        return 'round(' + sql + ', 0)'
+    }
     /**
      * The inline aggregated array of a select of objects is the select itself with `for json path`, whose columns are
      * the leaves, converted in place (`_isSelectOfAggregatedArrayValues`). A converted leaf can't be one of its columns

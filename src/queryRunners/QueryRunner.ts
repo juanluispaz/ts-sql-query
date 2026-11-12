@@ -164,7 +164,10 @@ export interface ConnectionConfiguration {
     readonly compatibilityVersion: number
     /** MariaDB, MySQL, Oracle and SQLite: how a uuid is stored (`uuidStrategy`) */
     readonly uuidStrategy?: string
-    /** MariaDB, MySQL and PostgreSQL: round with the function of the database as it is (`usePlatformDependentRound`) */
+    /**
+     * Round with the function of the database as it is (`usePlatformDependentRound`): MariaDB, MySQL and PostgreSQL its
+     * ties, and every database the scale of roundn
+     */
     readonly usePlatformDependentRound?: boolean
     /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
     readonly useLikeInsteadOfIlike?: boolean

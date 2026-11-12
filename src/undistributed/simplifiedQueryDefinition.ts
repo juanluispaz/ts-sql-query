@@ -1202,6 +1202,7 @@ interface OracleConnectionConfiguration {
     uuidStrategy: 'string' | 'custom-functions' | 'built-in' // Default: 'built-in'
     ignoreNullInConcat: boolean // Default: false
     concatFunction?: string
+    usePlatformDependentRound: boolean // Default: false
     replaceCollation: string // Default: 'BINARY'
     replaceInsensitiveCollation: string // Default: 'BINARY_CI'
 }
@@ -1220,6 +1221,7 @@ interface SqliteConnectionConfiguration {
     /** Protected method with the format of a date, a time or a date time. By default, 'localdate milliseconds as text' */
     getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate seconds as text' | 'localdate milliseconds as text' | 'localdate seconds as text using T separator' | 'localdate milliseconds as text using T separator' | 'UTC seconds as text' | 'UTC milliseconds as text' | 'UTC seconds as text using T separator' | 'UTC milliseconds as text using T separator' | 'UTC seconds as text using Z timezone' | 'UTC milliseconds as text using Z timezone' | 'UTC seconds as text using T separator and Z timezone' | 'UTC milliseconds as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
     sqliteRunsInApplicationTimeZone: boolean // Default: false
+    usePlatformDependentRound: boolean // Default: false
     treatUnexpectedIntegerDateTimeAsJulian: boolean // Default: false
     treatUnexpectedStringDateTimeAsUTC: boolean // Default: false
     unexpectedUnixDateTimeAreMilliseconds: boolean // Default: false
@@ -1227,6 +1229,7 @@ interface SqliteConnectionConfiguration {
 
 interface SqlServerConnectionConfiguration {
     excludeTrailingBlanksInLength: boolean // Default: false
+    usePlatformDependentRound: boolean // Default: false
     ignoreNullInMinAndMaxValue: boolean // Default: false
     minValueFunction?: string
     maxValueFunction?: string

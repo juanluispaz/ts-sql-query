@@ -77,6 +77,15 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * data does not depend on trailing blanks.
      */
     protected excludeTrailingBlanksInLength: boolean = false
+    /**
+     * The scale of `roundn` is a whole number of decimals, and SQL Server truncates a fractional one (`roundn(1.6)` rounds to
+     * 1 decimal), while the other databases round it. ts-sql-query rounds it on every database: a number is sent
+     * rounded, ties away from zero, and an expression that isn't an integer is written rounded (`round(<scale>, 0)`), so
+     * `roundn(1.6)` rounds to 2 decimals.
+     *
+     * Setting this flag to `true` sends and writes the scale as it is, and SQL Server truncates it as it does natively.
+     */
+    protected usePlatformDependentRound: boolean = false
 
     /**
      * Keep SQL Server's native NULL handling for `.minValue(x)` / `.maxValue(x)`.

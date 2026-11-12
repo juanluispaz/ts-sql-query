@@ -1,12 +1,14 @@
 // Per-connection coverage of PostgreSqlConnection's
-// `usePlatformDependentRound` flag — PG-only.
+// `usePlatformDependentRound` flag.
 //
 // PostgreSQL has two `round` overloads: `round(numeric)` breaks ties away from
 // zero (the portable rule), while `round(double precision)` defers to libm
 // (round-to-even, platform dependent). The default `false` casts the operand
 // to `::numeric` first; setting `usePlatformDependentRound = true` opts into
 // the bare `round(<x>)` form. This file pins the `true` branch and contrasts
-// it against the default on the same query.
+// it against the default on the same query. With the flag the scale of
+// `roundn` is also sent and written as it is; PostgreSQL rounds a fractional
+// one (its cast to int4), as the library does without the flag.
 //
 // A subclass of `DBConnection` flips the protected flag while sharing
 // `ctx.conn`'s underlying CaptureInterceptor, so the emitted SQL is captured in
@@ -72,5 +74,43 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ id: number; vr: bigint; dr: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('platform-round: roundn sends a fractional number scale as it is', async () => {
+        // The scale 1.6 reaches the database as it is: the database rounds it to 2 decimals, so 2.345 gives 2.35.
+        const conn = ctx.withUsePlatformDependentRound()
+        ctx.mockNext({ r: 2.35 })
+        const row = await conn.selectFromNoTable()
+            .select({ r: conn.const(2.345, 'double').roundn(1.6) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(($1)::numeric, ($2::float8)::int4) as r"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.345,
+            1.6,
+          ]
+        `)
+        assertType<Exact<typeof row, { r: number }>>()
+        expect(row.r).toBe(2.35)
+    })
+
+    test('platform-round: roundn writes a fractional expression scale as it is', async () => {
+        // The scale 3.2 / 2 = 1.6 is written without rounding it: the database rounds it to 2 decimals, so
+        // 2.345 gives 2.35.
+        const conn = ctx.withUsePlatformDependentRound()
+        ctx.mockNext({ r: 2.35 })
+        const row = await conn.selectFromNoTable()
+            .select({ r: conn.const(2.345, 'double').roundn(conn.const(3.2, 'double').divide(2)) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(($1)::numeric, ($2::float8 / $3)::int4) as r"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.345,
+            3.2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { r: number }>>()
+        expect(row.r).toBe(2.35)
     })
 })

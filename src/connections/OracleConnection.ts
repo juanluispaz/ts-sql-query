@@ -45,6 +45,15 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * operand-repeating `CASE`.
      */
     protected ignoreNullInConcat: boolean = false
+    /**
+     * The scale of `roundn` is a whole number of decimals, and Oracle truncates a fractional one (`roundn(1.6)` rounds to
+     * 1 decimal), while the other databases round it. ts-sql-query rounds it on every database: a number is sent
+     * rounded, ties away from zero, and an expression that isn't an integer is written rounded (`round(<scale>)`), so
+     * `roundn(1.6)` rounds to 2 decimals.
+     *
+     * Setting this flag to `true` sends and writes the scale as it is, and Oracle truncates it as it does natively.
+     */
+    protected usePlatformDependentRound: boolean = false
 
     /**
      * Name of a null-propagating concatenation function to emit instead of the default

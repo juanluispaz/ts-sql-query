@@ -19,6 +19,8 @@ import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
+    // Oracle truncates a fractional scale of round
+    override _roundnTruncatesTheScale = true
     oracle: true = true
     override _operationsThatNeedParenthesis = oracleOperationsThatNeedParenthesis
 

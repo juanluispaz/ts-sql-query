@@ -58,8 +58,7 @@ function _typeNegatives() {
         protected override compatibilityVersion = 1
         callProcedure = () => this.executeProcedure('refresh_stats', [])
 
-        // Rule: the platform-dependent round opt-out is not part of SqlServerConnection.
-        // @ts-expect-error usePlatformDependentRound is not declared on SqlServerConnection
+        // Positive control: the platform-dependent round opt-out (the scale of roundn) is declared here too.
         protected override usePlatformDependentRound = true
 
         // Rule: SQL Server has a native uuid data type, so the uuid storage strategy is not

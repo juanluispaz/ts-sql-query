@@ -260,4 +260,110 @@ describe(ctx.label, () => {
             expect(count).toBe(2)
         })
     })
+
+    test('insert-multiple-rows-on-a-sequence-primary-key-returning-last-inserted-ids-in-order', async () => {
+        // Two rows inserted at once, each taking its id from the sequence, with
+        // `returningLastInsertedId()`: the ids come back as an array, one per row,
+        // in the order of the rows given. The sequence hands consecutive values,
+        // so the second id is the first plus one. tAuditEntry.id reads with an
+        // offset of +1000: the mock queues the raw ids 50 and 51 (read 1050 and
+        // 1051); on a real database the raw value is >= 1, so the ids are >= 1001.
+        // Reading the rows back by those ids gives each id the action of its row,
+        // which proves the order of the array. Committed with a reseed because the
+        // sequence does not roll back.
+        await ctx.withCommit(async () => {
+            ctx.mockNext([50, 51])
+            const ids = await ctx.conn.insertInto(tAuditEntry)
+                .values([{ action: 'archived' }, { action: 'restored' }])
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) output inserted.id values (next value for audit_tag_seq, @0), (next value for audit_tag_seq, @1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+                "restored",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids.length).toBe(2)
+            expect(ids[0]).toBeGreaterThanOrEqual(1001)
+            expect(ids[1]).toBe(ids[0]! + 1)
+
+            ctx.mockNext([{ id: 50, action: 'archived' }, { id: 51, action: 'restored' }])
+            const rows = await ctx.conn.selectFrom(tAuditEntry)
+                .where(tAuditEntry.id.in(ids))
+                .select({ id: tAuditEntry.id, action: tAuditEntry.action })
+                .orderBy('id')
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, action as action from audit_entry where id in (@0, @1) order by id"`)
+            // The adapter writes each id back as its raw value (id - 1000).
+            expect(ctx.lastParams).toEqual(ids.map(id => id - 1000))
+            assertType<Exact<typeof rows, Array<{ id: number, action: string }>>>()
+            expect(rows).toEqual([
+                { id: ids[0], action: 'archived' },
+                { id: ids[1], action: 'restored' },
+            ])
+        })
+    })
+
+    test('insert-on-a-sequence-primary-key-returning-the-row', async () => {
+        // `returning({...})` on an insert whose id comes from the sequence: the
+        // id the sequence gave and the inserted action come back in one row.
+        // The mock queues the raw id 50 (read 1050 with the offset adapter); on a
+        // real database the id is >= 1001. Committed with a reseed because the
+        // sequence does not roll back.
+        await ctx.withCommit(async () => {
+            ctx.mockNext({ id: 50, action: 'exported' })
+            const row = await ctx.conn.insertInto(tAuditEntry)
+                .set({ action: 'exported' })
+                .returning({ id: tAuditEntry.id, action: tAuditEntry.action })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) output inserted.id as id, inserted.action as action values (next value for audit_tag_seq, @0)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "exported",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, action: string }>>()
+            expect(row.action).toBe('exported')
+            if (!ctx.realDbEnabled) expect(row.id).toBe(1050)
+            else expect(row.id).toBeGreaterThanOrEqual(1001)
+        })
+    })
+
+    test('insert-from-select-into-a-sequence-primary-key-returning-the-rows', async () => {
+        // INSERT ... SELECT into the table whose id comes from the sequence, with
+        // `returning({...})`: one row per source row, each with its own sequence
+        // value. The source is the issues of project 1 (issue 1 'open', issue 2
+        // 'in_progress'). The engine doesn't promise the order of the returned
+        // rows, so they are compared sorted by action; the two ids are distinct
+        // and consecutive. The mock queues the raw ids 50 and 51 (read 1050 and
+        // 1051); on a real database they are >= 1001. Committed with a reseed
+        // because the sequence does not roll back.
+        await ctx.withCommit(async () => {
+            ctx.mockNext([{ id: 50, action: 'open' }, { id: 51, action: 'in_progress' }])
+            const rows = await ctx.conn.insertInto(tAuditEntry)
+                .from(ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.projectId.equals(1))
+                    .select({ action: tIssue.status }))
+                .returning({ id: tAuditEntry.id, action: tAuditEntry.action })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (action, id) output inserted.id as id, inserted.action as action select status as action, next value for audit_tag_seq as id from issue where project_id = @0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number, action: string }>>>()
+            const byAction = [...rows].sort((a, b) => a.action.localeCompare(b.action))
+            expect(byAction.map(row => row.action)).toEqual(['in_progress', 'open'])
+            const ids = rows.map(row => row.id).sort((a, b) => a - b)
+            expect(ids[1]).toBe(ids[0]! + 1)
+            expect(ids[0]).toBeGreaterThanOrEqual(1001)
+        })
+    })
 })

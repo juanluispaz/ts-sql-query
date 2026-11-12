@@ -1036,4 +1036,203 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; events: WebhookEventType[] }>>()
         expect(row).toEqual({ id: 2, events: ['updated'] })
     })
+
+    test('aggregate-of-object-with-custom-booleans-expressions-and-cte-columns', async () => {
+        // Custom-adapter booleans as elements of a top-level `aggregateAsArray`:
+        // the optional `approved` ('A'/'R'), the numeric `invoiced` (1/0), the plain
+        // optional `billable`, and/or chains of the three, and the same flags read
+        // back from a CTE. Each element must hold a JS boolean, and a NULL value must
+        // leave its key absent.
+        // Seeded worklogs: 1 = billable true, approved 'A', invoiced 1;
+        // 2 = billable false, approved 'R', invoiced 0; 3 = billable NULL,
+        // approved NULL, invoiced 1. So row 3's `ands` (NULL and NULL and true) is
+        // NULL, while its `ors` is true. The aggregate has no order here, so the
+        // elements are sorted by id before comparing.
+        const flagsCte = ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:       tIssueWorklog.id,
+                approved: tIssueWorklog.approved,
+                invoiced: tIssueWorklog.invoiced,
+                ands:     tIssueWorklog.approved.and(tIssueWorklog.invoiced),
+            })
+            .forUseInQueryAs('flagsCte')
+
+        ctx.mockNext({
+            data: JSON.stringify([
+                { id: 1, billable: true,  approved: true,  invoiced: true,  ands: true,  ors: true,  cteApproved: true,  cteInvoiced: true,  cteAnds: true },
+                { id: 2, billable: false, approved: false, invoiced: false, ands: false, ors: false, cteApproved: false, cteInvoiced: false, cteAnds: false },
+                { id: 3, billable: null,  approved: null,  invoiced: true,  ands: null,  ors: true,  cteApproved: null,  cteInvoiced: true,  cteAnds: null },
+            ]),
+        })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .innerJoin(flagsCte).on(flagsCte.id.equals(tIssueWorklog.id))
+            .select({
+                data: ctx.conn.aggregateAsArray({
+                    id:          tIssueWorklog.id,
+                    billable:    tIssueWorklog.billable,
+                    approved:    tIssueWorklog.approved,
+                    invoiced:    tIssueWorklog.invoiced,
+                    ands:        tIssueWorklog.approved.and(tIssueWorklog.billable).and(tIssueWorklog.invoiced),
+                    ors:         tIssueWorklog.approved.or(tIssueWorklog.billable).or(tIssueWorklog.invoiced),
+                    cteApproved: flagsCte.approved,
+                    cteInvoiced: flagsCte.invoiced,
+                    cteAnds:     flagsCte.ands,
+                }),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with flagsCte as (select id as id, (approved = 'A') as approved, (invoiced = 1) as invoiced, approved = 'A' and invoiced = 1 as ands from issue_worklog) select json_arrayagg(json_object('id' value issue_worklog.id, 'billable' value issue_worklog.billable, 'approved' value (issue_worklog.approved = 'A'), 'invoiced' value (issue_worklog.invoiced = 1), 'ands' value issue_worklog.approved = 'A' and issue_worklog.billable and issue_worklog.invoiced = 1, 'ors' value issue_worklog.approved = 'A' or issue_worklog.billable or issue_worklog.invoiced = 1, 'cteApproved' value flagsCte.approved, 'cteInvoiced' value flagsCte.invoiced, 'cteAnds' value flagsCte.ands)) as "data" from issue_worklog inner join flagsCte on flagsCte.id = issue_worklog.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            data: Array<{
+                id:           number
+                billable?:    boolean
+                approved?:    boolean
+                invoiced:     boolean
+                ands?:        boolean
+                ors?:         boolean
+                cteApproved?: boolean
+                cteInvoiced:  boolean
+                cteAnds?:     boolean
+            }>
+        }>>()
+        expect([...row.data].sort((a, b) => a.id - b.id)).toEqual([
+            { id: 1, billable: true,  approved: true,  invoiced: true,  ands: true,  ors: true,  cteApproved: true,  cteInvoiced: true,  cteAnds: true },
+            { id: 2, billable: false, approved: false, invoiced: false, ands: false, ors: false, cteApproved: false, cteInvoiced: false, cteAnds: false },
+            { id: 3, invoiced: true, ors: true, cteInvoiced: true },
+        ])
+        // The NULL values of row 3 are absent keys, not present as null.
+        const third = row.data.find((element) => element.id === 3)!
+        expect(['billable', 'approved', 'ands', 'cteApproved', 'cteAnds'].filter((key) => key in third)).toEqual([])
+    })
+
+    test('aggregate-of-object-with-custom-booleans-of-inline-subqueries', async () => {
+        // Inline subqueries returning custom-adapter booleans as elements of a
+        // top-level `aggregateAsArray`: the optional `approved` ('A'/'R') and the
+        // numeric `invoiced` (1/0) of the same worklog. Seeded worklogs: 1 =
+        // approved 'A', invoiced 1; 2 = approved 'R', invoiced 0; 3 = approved
+        // NULL, invoiced 1, so row 3's `approved` key is absent. The aggregate has
+        // no order here, so the elements are sorted by id before comparing.
+        const otherWorklog = tIssueWorklog.as('otherWorklog')
+
+        ctx.mockNext({
+            data: JSON.stringify([
+                { id: 1, approved: true,  invoiced: true },
+                { id: 2, approved: false, invoiced: false },
+                { id: 3, approved: null,  invoiced: true },
+            ]),
+        })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                data: ctx.conn.aggregateAsArray({
+                    id:       tIssueWorklog.id,
+                    approved: ctx.conn.subSelectUsing(tIssueWorklog).from(otherWorklog)
+                        .where(otherWorklog.id.equals(tIssueWorklog.id))
+                        .selectOneColumn(otherWorklog.approved)
+                        .forUseAsInlineQueryValue(),
+                    invoiced: ctx.conn.subSelectUsing(tIssueWorklog).from(otherWorklog)
+                        .where(otherWorklog.id.equals(tIssueWorklog.id))
+                        .selectOneColumn(otherWorklog.invoiced)
+                        .forUseAsInlineQueryValue(),
+                }),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_arrayagg(json_object('id' value id, 'approved' value (select (otherWorklog.approved = 'A') as "result" from issue_worklog otherWorklog where otherWorklog.id = issue_worklog.id), 'invoiced' value (select (otherWorklog.invoiced = 1) as "result" from issue_worklog otherWorklog where otherWorklog.id = issue_worklog.id))) as "data" from issue_worklog"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            data: Array<{
+                id:        number
+                approved?: boolean
+                invoiced?: boolean
+            }>
+        }>>()
+        expect([...row.data].sort((a, b) => a.id - b.id)).toEqual([
+            { id: 1, approved: true,  invoiced: true },
+            { id: 2, approved: false, invoiced: false },
+            { id: 3, invoiced: true },
+        ])
+        expect('approved' in row.data.find((element) => element.id === 3)!).toBe(false)
+    })
+
+    test('inline-aggregate-of-object-with-custom-booleans-expressions-cte-columns-and-inline-values', async () => {
+        // The same custom-adapter booleans as elements of an inline aggregated
+        // array (`forUseAsInlineAggregatedArrayValue`), ordered by id, read from a
+        // select without table. The order by wraps the select in a derived table,
+        // so each flag is projected there and read back by the JSON builder.
+        // Seeded worklogs: 1 = billable true, approved 'A', invoiced 1;
+        // 2 = billable false, approved 'R', invoiced 0; 3 = billable NULL,
+        // approved NULL, invoiced 1. Row 3's NULL values leave their keys absent.
+        const flagsCte = ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:       tIssueWorklog.id,
+                approved: tIssueWorklog.approved,
+                invoiced: tIssueWorklog.invoiced,
+                ands:     tIssueWorklog.approved.and(tIssueWorklog.invoiced),
+            })
+            .forUseInQueryAs('flagsCte')
+        const otherWorklog = tIssueWorklog.as('otherWorklog')
+
+        const flags = ctx.conn.selectFrom(tIssueWorklog)
+            .innerJoin(flagsCte).on(flagsCte.id.equals(tIssueWorklog.id))
+            .select({
+                id:             tIssueWorklog.id,
+                billable:       tIssueWorklog.billable,
+                approved:       tIssueWorklog.approved,
+                invoiced:       tIssueWorklog.invoiced,
+                ands:           tIssueWorklog.approved.and(tIssueWorklog.billable).and(tIssueWorklog.invoiced),
+                ors:            tIssueWorklog.approved.or(tIssueWorklog.billable).or(tIssueWorklog.invoiced),
+                cteApproved:    flagsCte.approved,
+                cteInvoiced:    flagsCte.invoiced,
+                cteAnds:        flagsCte.ands,
+                inlineApproved: ctx.conn.subSelectUsing(tIssueWorklog).from(otherWorklog)
+                    .where(otherWorklog.id.equals(tIssueWorklog.id))
+                    .selectOneColumn(otherWorklog.approved)
+                    .forUseAsInlineQueryValue(),
+                inlineInvoiced: ctx.conn.subSelectUsing(tIssueWorklog).from(otherWorklog)
+                    .where(otherWorklog.id.equals(tIssueWorklog.id))
+                    .selectOneColumn(otherWorklog.invoiced)
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({
+            data: JSON.stringify([
+                { id: 1, billable: true,  approved: true,  invoiced: true,  ands: true,  ors: true,  cteApproved: true,  cteInvoiced: true,  cteAnds: true,  inlineApproved: true,  inlineInvoiced: true },
+                { id: 2, billable: false, approved: false, invoiced: false, ands: false, ors: false, cteApproved: false, cteInvoiced: false, cteAnds: false, inlineApproved: false, inlineInvoiced: false },
+                { id: 3, billable: null,  approved: null,  invoiced: true,  ands: null,  ors: true,  cteApproved: null,  cteInvoiced: true,  cteAnds: null,  inlineApproved: null,  inlineInvoiced: true },
+            ]),
+        })
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ data: flags })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with flagsCte as (select id as id, (approved = 'A') as approved, (invoiced = 1) as invoiced, approved = 'A' and invoiced = 1 as ands from issue_worklog) select (select json_arrayagg(json_object('id' value a_1_.id, 'billable' value a_1_.billable, 'approved' value a_1_.approved, 'invoiced' value a_1_.invoiced, 'ands' value a_1_.ands, 'ors' value a_1_.ors, 'cteApproved' value a_1_.cteApproved, 'cteInvoiced' value a_1_.cteInvoiced, 'cteAnds' value a_1_.cteAnds, 'inlineApproved' value a_1_.inlineApproved, 'inlineInvoiced' value a_1_.inlineInvoiced)) from (select issue_worklog.id as id, issue_worklog.billable as billable, (issue_worklog.approved = 'A') as approved, (issue_worklog.invoiced = 1) as invoiced, issue_worklog.approved = 'A' and issue_worklog.billable and issue_worklog.invoiced = 1 as ands, issue_worklog.approved = 'A' or issue_worklog.billable or issue_worklog.invoiced = 1 as ors, flagsCte.approved as cteApproved, flagsCte.invoiced as cteInvoiced, flagsCte.ands as cteAnds, (select (otherWorklog.approved = 'A') as result from issue_worklog otherWorklog where otherWorklog.id = issue_worklog.id) as inlineApproved, (select (otherWorklog.invoiced = 1) as result from issue_worklog otherWorklog where otherWorklog.id = issue_worklog.id) as inlineInvoiced from issue_worklog inner join flagsCte on flagsCte.id = issue_worklog.id order by id offset 0 rows) a_1_) as "data" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            data: Array<{
+                id:              number
+                billable?:       boolean
+                approved?:       boolean
+                invoiced:        boolean
+                ands?:           boolean
+                ors?:            boolean
+                cteApproved?:    boolean
+                cteInvoiced:     boolean
+                cteAnds?:        boolean
+                inlineApproved?: boolean
+                inlineInvoiced?: boolean
+            }>
+        }>>()
+        expect(row).toEqual({
+            data: [
+                { id: 1, billable: true,  approved: true,  invoiced: true,  ands: true,  ors: true,  cteApproved: true,  cteInvoiced: true,  cteAnds: true,  inlineApproved: true,  inlineInvoiced: true },
+                { id: 2, billable: false, approved: false, invoiced: false, ands: false, ors: false, cteApproved: false, cteInvoiced: false, cteAnds: false, inlineApproved: false, inlineInvoiced: false },
+                { id: 3, invoiced: true, ors: true, cteInvoiced: true, inlineInvoiced: true },
+            ],
+        })
+        // The NULL values of row 3 are absent keys, not present as null.
+        expect(['billable', 'approved', 'ands', 'cteApproved', 'cteAnds', 'inlineApproved'].filter((key) => key in row.data[2]!)).toEqual([])
+    })
 })

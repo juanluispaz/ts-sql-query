@@ -255,4 +255,195 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    test('custom-boolean-remap/the-negation-of-a-custom-column-stores-the-target-literals', async () => {
+        // approved takes `not invoiced`: worklog 2 (invoiced 0) becomes 'A' (true)
+        // and worklog 3 (invoiced 1) becomes 'R' (false); worklog 1 is outside the
+        // where and keeps 'A'.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(2)
+            const affected = await ctx.conn.update(tIssueWorklog)
+                .set({ approved: tIssueWorklog.invoiced.negate() })
+                .where(tIssueWorklog.id.in([2, 3]))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case when not invoiced = 1 then 'A' when not not invoiced = 1 then 'R' else null end where id in (?1, ?2)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+                3,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+
+            const expected = [
+                { id: 1, approved: true },
+                { id: 2, approved: true },
+                { id: 3, approved: false },
+            ]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(tIssueWorklog)
+                .select({ id: tIssueWorklog.id, approved: tIssueWorklog.approved })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (approved = 'A') as approved from issue_worklog order by id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof rows, Array<{ id: number; approved?: boolean }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
+    test('custom-boolean-remap/an-optional-custom-column-with-value-when-null-stores-the-target-literals', async () => {
+        // invoiced (1 / 0) takes `approved` with NULL read as false: worklog 1 ('A')
+        // stays 1, worklog 2 ('R') stays 0 and worklog 3 (NULL) goes from 1 to 0.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(3)
+            const affected = await ctx.conn.update(tIssueWorklog)
+                .set({ invoiced: tIssueWorklog.approved.valueWhenNull(false) })
+                .where(tIssueWorklog.id.in([1, 2, 3]))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set invoiced = case when ifnull((approved = 'A'), ?1) then 1 else 0 end where id in (?2, ?3, ?4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                false,
+                1,
+                2,
+                3,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(3)
+
+            const expected = [
+                { id: 1, invoiced: true },
+                { id: 2, invoiced: false },
+                { id: 3, invoiced: false },
+            ]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(tIssueWorklog)
+                .select({ id: tIssueWorklog.id, invoiced: tIssueWorklog.invoiced })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (invoiced = 1) as invoiced from issue_worklog order by id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof rows, Array<{ id: number; invoiced: boolean }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
+    test('custom-boolean-remap/a-custom-column-into-an-optional-plain-boolean-target-stores-its-truth-value', async () => {
+        // billable (a plain boolean) takes invoiced (1 / 0): worklog 3 goes from NULL
+        // to true; worklogs 1 (true) and 2 (false) already agreed with invoiced.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(3)
+            const affected = await ctx.conn.update(tIssueWorklog)
+                .set({ billable: tIssueWorklog.invoiced })
+                .where(tIssueWorklog.id.in([1, 2, 3]))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set billable = (invoiced = 1) where id in (?1, ?2, ?3)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                2,
+                3,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(3)
+
+            const expected = [
+                { id: 1, billable: true },
+                { id: 2, billable: false },
+                { id: 3, billable: true },
+            ]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(tIssueWorklog)
+                .select({ id: tIssueWorklog.id, billable: tIssueWorklog.billable })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as billable from issue_worklog order by id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof rows, Array<{ id: number; billable?: boolean }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
+    test('custom-boolean-remap/a-custom-column-into-a-required-plain-boolean-target-stores-its-truth-value', async () => {
+        // col_matrix.m_bool (a required plain boolean, true in its only row) takes
+        // the verified of organization 2 ('N'), so it becomes false. The two tables
+        // share no key: the rows are picked by id.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            const affected = await ctx.conn.update(tColMatrixColumn)
+                .from(tOrganization)
+                .set({ mBool: tOrganization.verified })
+                .where(tColMatrixColumn.id.equals(1))
+                .and(tOrganization.id.equals(2))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update col_matrix set m_bool = (organization.verified = 'Y') from organization where col_matrix.id = ?1 and organization.id = ?2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            const expected = { mBool: false }
+            ctx.mockNext(expected)
+            const row = await ctx.conn.selectFrom(tColMatrixColumn)
+                .where(tColMatrixColumn.id.equals(1))
+                .select({ mBool: tColMatrixColumn.mBool })
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_bool as mBool from col_matrix where id = ?1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { mBool: boolean }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('custom-boolean-remap/null-into-an-optional-custom-column-stores-null', async () => {
+        // approved of worklog 1 goes from 'A' to NULL, read back as an absent key.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            const affected = await ctx.conn.update(tIssueWorklog)
+                .set({ approved: null })
+                .where(tIssueWorklog.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set approved = case ?1 when 1 then 'A' when 0 then 'R' else null end where id = ?2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                null,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            const expected = [
+                { id: 1 },
+                { id: 2, approved: false },
+                { id: 3 },
+            ]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(tIssueWorklog)
+                .select({ id: tIssueWorklog.id, approved: tIssueWorklog.approved })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (approved = 'A') as approved from issue_worklog order by id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof rows, Array<{ id: number; approved?: boolean }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
 })

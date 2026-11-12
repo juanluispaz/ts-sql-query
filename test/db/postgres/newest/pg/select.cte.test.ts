@@ -232,4 +232,49 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; worklogs: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('with-clause/select-the-whole-cte-object-with-a-nested-group', async () => {
+        // `.select(cte)` gives the CTE object itself as the projection. The CTE
+        // projects the project with its issue as a nested group, and the issue
+        // body is optional: the nested group keeps its shape, and `body` is an
+        // optional key inside the required object. Project 1 has issue 1 (no
+        // body) and issue 2 ('Use new tokens'); a NULL body leaves the key out.
+        const expected = [
+            { id: 1, name: 'Marketing site', issue: { id: 1, title: 'Update hero copy' } },
+            { id: 1, name: 'Marketing site', issue: { id: 2, title: 'Redesign navbar', body: 'Use new tokens' } },
+        ]
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site', 'issue.id': 1, 'issue.title': 'Update hero copy', 'issue.body': null },
+            { id: 1, name: 'Marketing site', 'issue.id': 2, 'issue.title': 'Redesign navbar', 'issue.body': 'Use new tokens' },
+        ])
+        const connection = ctx.conn
+
+        const projectIssues = connection.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id: tProject.id,
+                name: tProject.name,
+                issue: { id: tIssue.id, title: tIssue.title, body: tIssue.body },
+            })
+            .forUseInQueryAs('project_issues')
+
+        const result = await connection.selectFrom(projectIssues)
+            .select(projectIssues)
+            .orderBy('issue.id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with project_issues as (select project.id as id, project.name as name, issue.id as "issue.id", issue.title as "issue.title", issue.body as "issue.body" from project inner join issue on issue.project_id = project.id where project.id = $1) select id as id, name as name, "issue.id" as "issue.id", "issue.title" as "issue.title", "issue.body" as "issue.body" from project_issues order by "issue.id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number
+            name: string
+            issue: { id: number; title: string; body?: string }
+        }>>>()
+        expect(result).toEqual(expected)
+    })
 })

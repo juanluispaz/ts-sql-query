@@ -1083,6 +1083,42 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('inline-query-value-of-an-aggregate-as-array-of-one-column-then-use-empty-array-for-no-value', async () => {
+        // `aggregateAsArrayOfOneColumn` of an expression (`title || ' (' || status
+        // || ')'`) as a correlated inline query value in the select list, with
+        // `useEmptyArrayForNoValue()`. Org 2 has project 3, with issue 4
+        // 'Document /v2/users' (closed), and project 4, without issues: its
+        // aggregate is NULL and comes back as an empty array.
+        ctx.mockNext([
+            { pid: 3, titles: JSON.stringify(['Document /v2/users (closed)']) },
+            { pid: 4, titles: null },
+        ])
+        const titles = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title.concat(' (').concat(tIssue.status).concat(')')))
+            .forUseAsInlineQueryValue()
+            .useEmptyArrayForNoValue()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({ pid: tProject.id, titles })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, ((select json_agg(title || $1 || status || $2) as result from issue where project_id = project.id))::text as titles from project where organization_id = $3 order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            " (",
+            ")",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pid: number; titles: string[] }>>>()
+        expect(rows).toEqual([
+            { pid: 3, titles: ['Document /v2/users (closed)'] },
+            { pid: 4, titles: [] },
+        ])
+    })
+
     test('inline-query-value-of-an-aggregate-as-array-then-as-optional-non-empty-array', async () => {
         ctx.mockNext([
             { pid: 3, issues: [{ id: 4, title: 'Document /v2/users' }] },

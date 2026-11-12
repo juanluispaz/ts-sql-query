@@ -662,6 +662,234 @@ describe(ctx.label, () => {
         })
     })
 
+    test('inline-aggregate-of-compound-union-with-order-by', async () => {
+        // A compound (UNION) with its own `orderBy`, used as the inline aggregated
+        // array: the order by stays inside the derived table the JSON aggregate
+        // reads, so the array keeps that order. Org 2 has project 3 'Public API'
+        // (active, first arm) and project 4 'Legacy app' (archived, second arm);
+        // ordered by name the array is project 4 then project 3, which is neither
+        // the id order nor the order of the arms. The order is what this test
+        // proves, so the array is compared as returned.
+        ctx.mockNext({
+            id: 2, name: 'Globex Ltd',
+            projects: JSON.stringify([
+                { id: 4, name: 'Legacy app' },
+                { id: 3, name: 'Public API' },
+            ]),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNull())
+            .select({ id: tProject.id, name: tProject.name })
+            .union(
+                ctx.conn.subSelectUsing(tOrganization).from(tProject)
+                    .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNotNull())
+                    .select({ id: tProject.id, name: tProject.name }),
+            )
+            .orderBy('name')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(2))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select a_1_.id as id, a_1_.name as name from (select id as id, name as name from project where organization_id = organization.id and archived_at is null union select id as id, name as name from project where organization_id = organization.id and archived_at is not null order by name offset 0 rows) as a_1_ order by name for json path) as projects from organization where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(row).toEqual({
+            id: 2, name: 'Globex Ltd',
+            projects: [
+                { id: 4, name: 'Legacy app' },
+                { id: 3, name: 'Public API' },
+            ],
+        })
+    })
+
+    test('inline-aggregate-of-one-column-compound-union-with-order-by', async () => {
+        // The one-column form: each arm selects the expression `name || ' / ' ||
+        // slug`, and the union is ordered by its `result` column inside the
+        // derived table. Org 2's active project 3 ('Public API / public-api', first
+        // arm) and archived project 4 ('Legacy app / legacy', second arm) come back
+        // in alphabetical order, the reverse of the arms. The array is compared as
+        // returned.
+        ctx.mockNext({
+            id: 2,
+            projects: JSON.stringify(['Legacy app / legacy', 'Public API / public-api']),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNull())
+            .selectOneColumn(tProject.name.concat(' / ').concat(tProject.slug))
+            .union(
+                ctx.conn.subSelectUsing(tOrganization).from(tProject)
+                    .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNotNull())
+                    .selectOneColumn(tProject.name.concat(' / ').concat(tProject.slug)),
+            )
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(2))
+            .select({
+                id:       tOrganization.id,
+                projects: orgProjects.useEmptyArrayForNoValue(),
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:       number
+            projects: string[]
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.result), 'json') + '"', ','), ']') from (select name + @0 + slug as result from project where organization_id = organization.id and archived_at is null union select name + @1 + slug as result from project where organization_id = organization.id and archived_at is not null order by result offset 0 rows) as a_1_) as projects from organization where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            " / ",
+            " / ",
+            2,
+          ]
+        `)
+        expect(row).toEqual({
+            id: 2,
+            projects: ['Legacy app / legacy', 'Public API / public-api'],
+        })
+    })
+
+    // NOT-APPLICABLE: SQL Server does not allow a recursive WITH inside the aggregate subquery, so forUseAsInlineAggregatedArrayValue is typed never on a recursive inline aggregate
+    /*
+    test('inline-aggregate-of-correlated-recursive-select-over-a-chain-of-ancestors', async () => {
+        // A recursive select correlated with the outer issue, used as an inline
+        // aggregated array: it starts at the outer issue's parent and walks up the
+        // parent chain. Inside the rollback issue 2's parent becomes issue 3 and
+        // issue 3's parent becomes issue 4 (which has no parent), so issue 2 gets
+        // two ancestors, the second found by the recursive step. Issue 4's NULL
+        // parent_id inside its JSON element leaves `parentId` absent. The
+        // recursive select has no order by, so the elements are sorted by id.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext({
+            id: 2, parentId: 3,
+            ancestors: JSON.stringify([
+                { id: 3, title: 'Migrate to ESM', parentId: 4 },
+                { id: 4, title: 'Document /v2/users', parentId: null },
+            ]),
+        })
+        await ctx.withRollback(async () => {
+            await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+            await ctx.conn.update(tIssue).set({ parentId: 4 }).where(tIssue.id.equals(3)).executeUpdate()
+
+            const parentIssue = tIssue.as('parentIssue')
+            const ancestors = ctx.conn.subSelectUsing(tIssue)
+                .from(parentIssue)
+                .where(parentIssue.id.equals(tIssue.parentId))
+                .select({
+                    id:       parentIssue.id,
+                    title:    parentIssue.title,
+                    parentId: parentIssue.parentId,
+                })
+                .recursiveUnionAllOn((child) => child.parentId.equals(parentIssue.id))
+                .forUseAsInlineAggregatedArrayValue()
+
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(2))
+                .select({
+                    id:       tIssue.id,
+                    parentId: tIssue.parentId,
+                    ancestors,
+                })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                id:        number
+                parentId?: number
+                ancestors: Array<{ id: number; title: string; parentId?: number }>
+            }>>()
+            expect({ ...row, ancestors: [...row.ancestors].sort((a, b) => a.id - b.id) }).toEqual({
+                id: 2, parentId: 3,
+                ancestors: [
+                    { id: 3, title: 'Migrate to ESM', parentId: 4 },
+                    { id: 4, title: 'Document /v2/users' },
+                ],
+            })
+            expect('parentId' in row.ancestors.find((a) => a.id === 4)!).toBe(false)
+        })
+    })
+    */
+
+    test('inline-aggregate-of-uncorrelated-recursive-select-over-a-chain-of-ancestors', async () => {
+        // The uncorrelated form: the recursive select starts at a fixed issue
+        // (issue 3) and walks up its parent chain; the outer query only places
+        // the array on issue 2. Inside the rollback issue 2's parent becomes
+        // issue 3 and issue 3's parent becomes issue 4 (which has no parent), so
+        // the array holds issue 3 and, from the recursive step, issue 4, whose
+        // NULL parent_id leaves `parentId` absent. The recursive select has no
+        // order by, so the elements are sorted by id.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext({
+            id: 2, parentId: 3,
+            ancestors: JSON.stringify([
+                { id: 3, title: 'Migrate to ESM', parentId: 4 },
+                { id: 4, title: 'Document /v2/users', parentId: null },
+            ]),
+        })
+        await ctx.withRollback(async () => {
+            await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+            await ctx.conn.update(tIssue).set({ parentId: 4 }).where(tIssue.id.equals(3)).executeUpdate()
+
+            const parentIssue = tIssue.as('parentIssue')
+            const ancestors = ctx.conn.selectFrom(parentIssue)
+                .where(parentIssue.id.equals(3))
+                .select({
+                    id:       parentIssue.id,
+                    title:    parentIssue.title,
+                    parentId: parentIssue.parentId,
+                })
+                .recursiveUnionAllOn((child) => child.parentId.equals(parentIssue.id))
+                .forUseAsInlineAggregatedArrayValue()
+
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(2))
+                .select({
+                    id:       tIssue.id,
+                    parentId: tIssue.parentId,
+                    ancestors,
+                })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue where parentIssue.id = @0 union all select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue join recursive_select_1 on recursive_select_1.parentId = parentIssue.id) select id as id, parent_id as parentId, (select id as id, title as title, parentId as parentId from recursive_select_1 for json path) as ancestors from issue where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                3,
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:        number
+                parentId?: number
+                ancestors: Array<{ id: number; title: string; parentId?: number }>
+            }>>()
+            expect({ ...row, ancestors: [...row.ancestors].sort((a, b) => a.id - b.id) }).toEqual({
+                id: 2, parentId: 3,
+                ancestors: [
+                    { id: 3, title: 'Migrate to ESM', parentId: 4 },
+                    { id: 4, title: 'Document /v2/users' },
+                ],
+            })
+            expect('parentId' in row.ancestors.find((a) => a.id === 4)!).toBe(false)
+        })
+    })
+
 
     test('inline-aggregate-of-compound-union-with-customize-query-survives-in-derived-table', async () => {
         // A compound (UNION) consumed via `forUseAsInlineAggregatedArrayValue()` that

@@ -14,9 +14,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { getQueryExecutionMetadata, getQueryExecutionName } from '../../../../../src/queryRunners/QueryRunner.js'
-import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
+import { tIssue, tProject, tProjectReview, tAppUser } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
+import { dynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -1839,5 +1840,69 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number, parentId?: number }>>>()
         expect(result).toEqual(expected)
+    })
+
+    test('recursive-execute-select-page-drops-an-optional-left-join-not-picked-in-both-arms', async () => {
+        // A recursive select walks up the parents of issue 3. Both arms have an
+        // optional left join of the assignee, and the projection comes from
+        // `dynamicPickPaths`, which picks `title` (with `id` and `parentId`
+        // always there) but not the assignee's name. Nothing reads the joined
+        // table, so neither arm has the join, in the data query nor in the
+        // count query of `executeSelectPage`. The seed has no parents, so the
+        // chain 3 → 2 → 1 is set up first and rolled back. The page is ordered
+        // by id: issue 1 (no parent), 2 (parent 1), 3 (parent 2); count 3.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(3)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ parentId: 1 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const dataRows = [
+                { id: 1, title: 'Update hero copy' },
+                { id: 2, title: 'Redesign navbar', parentId: 1 },
+                { id: 3, title: 'Migrate to ESM', parentId: 2 },
+            ]
+            ctx.mockNext(dataRows)
+            ctx.mockNext(3)
+            const connection = ctx.conn
+            const assignee = tAppUser.forUseInLeftJoin()
+            const availableFields = {
+                id: tIssue.id,
+                title: tIssue.title,
+                parentId: tIssue.parentId,
+                assigneeName: assignee.fullName,
+            }
+            const picked = dynamicPickPaths(availableFields, ['title'], ['id', 'parentId'])
+
+            const page = await connection.selectFrom(tIssue)
+                .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+                .where(tIssue.id.equals(3))
+                .select(picked)
+                .recursiveUnionAll((child) => connection.selectFrom(tIssue)
+                    .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+                    .join(child).on(child.parentId.equals(tIssue.id))
+                    .select(picked))
+                .orderBy('id')
+                .executeSelectPage()
+
+            const [dataQuery, countQuery] = ctx.history.slice(-2)
+            expect(dataQuery!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select id as id, title as title, parentId as "parentId" from recursive_select_1 order by id"`)
+            expect(dataQuery!.params).toMatchInlineSnapshot(`
+              [
+                3,
+              ]
+            `)
+            expect(countQuery!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select count(*) from recursive_select_1"`)
+            expect(countQuery!.params).toMatchInlineSnapshot(`
+              [
+                3,
+              ]
+            `)
+            assertType<Exact<typeof page, {
+                data: Array<{ id: number; parentId?: number; title?: string; assigneeName?: string }>
+                count: number
+            }>>()
+            expect(page).toEqual({ data: dataRows, count: 3 })
+        })
     })
 })

@@ -206,4 +206,64 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('cte-joined-in-both-arms-of-a-union-all-is-declared-once', async () => {
+        // One CTE of the projects is joined by both arms of a `unionAll`, each
+        // arm projecting the issue with its project as a nested object. The
+        // `with` is declared once at the top of the statement and both arms read
+        // it. The first arm keeps the issues of 'Marketing site' (issues 1 and
+        // 2, project 1) and the second those of 'Public API' (issue 4, project 3);
+        // the compound is ordered by id.
+        const expected = [
+            { id: 1, title: 'Update hero copy',   project: { id: 1, name: 'Marketing site' } },
+            { id: 2, title: 'Redesign navbar',    project: { id: 1, name: 'Marketing site' } },
+            { id: 4, title: 'Document /v2/users', project: { id: 3, name: 'Public API' } },
+        ]
+        ctx.mockNext([
+            { id: 1, title: 'Update hero copy',   'project.id': 1, 'project.name': 'Marketing site' },
+            { id: 2, title: 'Redesign navbar',    'project.id': 1, 'project.name': 'Marketing site' },
+            { id: 4, title: 'Document /v2/users', 'project.id': 3, 'project.name': 'Public API' },
+        ])
+        const connection = ctx.conn
+
+        const projectSub = connection.selectFrom(tProject)
+            .select({ id: tProject.id, name: tProject.name })
+            .forUseInQueryAs('project_sub')
+
+        const result = await connection.selectFrom(tIssue)
+            .innerJoin(projectSub).on(tIssue.projectId.equals(projectSub.id))
+            .where(projectSub.name.equals('Marketing site'))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+                project: { id: projectSub.id, name: projectSub.name },
+            })
+            .unionAll(
+                connection.selectFrom(tIssue)
+                    .innerJoin(projectSub).on(tIssue.projectId.equals(projectSub.id))
+                    .where(projectSub.name.equals('Public API'))
+                    .select({
+                        id: tIssue.id,
+                        title: tIssue.title,
+                        project: { id: projectSub.id, name: projectSub.name },
+                    })
+            )
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with project_sub as (select id as id, name as name from project) select issue.id as "id", issue.title as "title", project_sub.id as "project.id", project_sub.name as "project.name" from issue inner join project_sub on issue.project_id = project_sub.id where project_sub.name = :0 union all select issue.id as "id", issue.title as "title", project_sub.id as "project.id", project_sub.name as "project.name" from issue inner join project_sub on issue.project_id = project_sub.id where project_sub.name = :1 order by 1"`)
+        expect(ctx.lastSql.match(/project_sub as \(/g)?.length).toBe(1)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Marketing site",
+            "Public API",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number
+            title: string
+            project: { id: number; name: string }
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

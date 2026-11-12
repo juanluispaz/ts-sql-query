@@ -163,4 +163,33 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('and-or-of-nullable-custom-boolean-projected-as-nullable-gives-null', async () => {
+        // With `projectingOptionalValuesAsNullable()` a NULL value is a present
+        // `null` key instead of an absent one. Worklog 3 has approved NULL, billable
+        // NULL and invoiced 1: `approved and invoiced` is NULL, `approved or
+        // invoiced` is true, and approved itself is NULL. Worklog 2 ('R', 0) gives
+        // false for all three; worklog 1 ('A', 1) true.
+        const expected = [
+            { id: 1, approved: true, approvedAndInvoiced: true, approvedOrInvoiced: true },
+            { id: 2, approved: false, approvedAndInvoiced: false, approvedOrInvoiced: false },
+            { id: 3, approved: null, approvedAndInvoiced: null, approvedOrInvoiced: true },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:                  tIssueWorklog.id,
+                approved:            tIssueWorklog.approved,
+                approvedAndInvoiced: tIssueWorklog.approved.and(tIssueWorklog.invoiced),
+                approvedOrInvoiced:  tIssueWorklog.approved.or(tIssueWorklog.invoiced),
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case approved when 'A' then 1 when 'R' then 0 else null end as "approved", case when (approved = 'A') and (invoiced = 1) then 1 when not ((approved = 'A') and (invoiced = 1)) then 0 else null end as "approvedAndInvoiced", case when (approved = 'A') or (invoiced = 1) then 1 when not ((approved = 'A') or (invoiced = 1)) then 0 else null end as "approvedOrInvoiced" from issue_worklog order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; approved: boolean | null; approvedAndInvoiced: boolean | null; approvedOrInvoiced: boolean | null }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

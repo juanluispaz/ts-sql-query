@@ -1714,4 +1714,257 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(elidedRows).toEqual(elided)
     })
+
+    test('in-subquery: numeric custom boolean receiver in a subquery of a plain boolean', async () => {
+        // The subquery selects billable of worklog 2 (false), so the worklogs not
+        // invoiced match: only worklog 2.
+        const other = tIssueWorklog.as('other')
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.in(
+                ctx.conn.selectFrom(other).where(other.id.equals(2)).selectOneColumn(other.billable)
+            ))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where case when invoiced = 1 then 1 else 0 end in (select other.billable as "result" from issue_worklog other where other.id = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('in-subquery: plain boolean receiver in a subquery of an optional custom boolean', async () => {
+        // The subquery selects approved of worklog 1 ('A', true), so the billable
+        // worklogs match: only worklog 1.
+        const other = tIssueWorklog.as('other')
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.in(
+                ctx.conn.selectFrom(other).where(other.id.equals(1)).selectOneColumn(other.approved)
+            ))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where billable in (select case other.approved when 'A' then 1 when 'R' then 0 else null end as "result" from issue_worklog other where other.id = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('in-subquery: custom boolean receiver in a subquery of a custom boolean with other literals', async () => {
+        // organization.verified stores 'Y'/'N' and project.published 't'/'f'. The
+        // subquery selects published of project 4 ('f', false), so the organizations
+        // not verified match: Globex (id 2, 'N').
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.in(
+                ctx.conn.selectFrom(tProject).where(tProject.id.equals(4)).selectOneColumn(tProject.published)
+            ))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where case when verified = 'Y' then 1 else 0 end in (select case when published = 't' then 1 else 0 end as "result" from project where id = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('in-subquery: custom boolean receiver in a subquery of a custom boolean with the same literals', async () => {
+        // organization.verified and app_user.verified both store 'Y'/'N'. The
+        // subquery selects the verified of every user (Ada 'Y', Grace 'Y', Alan
+        // 'N'), so both organizations match.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.in(
+                ctx.conn.selectFrom(tAppUser).selectOneColumn(tAppUser.verified)
+            ))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where case when verified = 'Y' then 1 else 0 end in (select case when verified = 'Y' then 1 else 0 end as "result" from app_user) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('in-subquery: optional custom boolean with value-when-null in a subquery of a plain boolean with value-when-null', async () => {
+        // Worklog 3 has billable NULL, read as true by valueWhenNull(true), so the
+        // subquery gives true. On the left, approved NULL (worklog 3) is read as true
+        // too: worklogs 1 ('A') and 3 (NULL) match, worklog 2 ('R') doesn't.
+        const other = tIssueWorklog.as('other')
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.valueWhenNull(true).in(
+                ctx.conn.selectFrom(other).where(other.id.equals(3)).selectOneColumn(other.billable.valueWhenNull(true))
+            ))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where nvl(case approved when 'A' then 1 when 'R' then 0 else null end, :0) in (select nvl(other.billable, :1) as "result" from issue_worklog other where other.id = :2) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('projection: and-or chain of custom plain and optional booleans', async () => {
+        const expected = [
+            { id: 1, ands: true, ors: true, andNotInvoiced: false, orNotInvoiced: true },
+            { id: 2, ands: false, ors: false, andNotInvoiced: false, orNotInvoiced: true },
+            { id: 3, ors: true, andNotInvoiced: false },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:             tIssueWorklog.id,
+                ands:           tIssueWorklog.approved.and(tIssueWorklog.billable).and(tIssueWorklog.invoiced),
+                ors:            tIssueWorklog.approved.or(tIssueWorklog.billable).or(tIssueWorklog.invoiced),
+                andNotInvoiced: tIssueWorklog.approved.and(tIssueWorklog.invoiced.negate()),
+                orNotInvoiced:  tIssueWorklog.approved.or(tIssueWorklog.invoiced.negate()),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when (approved = 'A') and (billable = 1) and (invoiced = 1) then 1 when not ((approved = 'A') and (billable = 1) and (invoiced = 1)) then 0 else null end as "ands", case when (approved = 'A') or (billable = 1) or (invoiced = 1) then 1 when not ((approved = 'A') or (billable = 1) or (invoiced = 1)) then 0 else null end as "ors", case when (approved = 'A') and not (invoiced = 1) then 1 when not ((approved = 'A') and not (invoiced = 1)) then 0 else null end as "andNotInvoiced", case when (approved = 'A') or not (invoiced = 1) then 1 when not ((approved = 'A') or not (invoiced = 1)) then 0 else null end as "orNotInvoiced" from issue_worklog order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; ands?: boolean; ors?: boolean; andNotInvoiced?: boolean; orNotInvoiced?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('projection: and-or chain of custom plain and optional booleans through a cte', async () => {
+        // The cte projects the custom columns and the chains as plain booleans; the
+        // outer query reads them back and combines two of the cte columns again,
+        // without remapping them a second time: `flags.approved and flags.invoiced`
+        // gives row 1 true, row 2 false, row 3 NULL.
+        const flags = ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:       tIssueWorklog.id,
+                approved: tIssueWorklog.approved,
+                invoiced: tIssueWorklog.invoiced,
+                ands:     tIssueWorklog.approved.and(tIssueWorklog.billable).and(tIssueWorklog.invoiced),
+                ors:      tIssueWorklog.approved.or(tIssueWorklog.billable).or(tIssueWorklog.invoiced),
+            })
+            .forUseInQueryAs('flags')
+        const expected = [
+            { id: 1, approved: true, invoiced: true, ands: true, ors: true, approvedAndInvoiced: true },
+            { id: 2, approved: false, invoiced: false, ands: false, ors: false, approvedAndInvoiced: false },
+            { id: 3, invoiced: true, ors: true },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(flags)
+            .select({
+                id:                  flags.id,
+                approved:            flags.approved,
+                invoiced:            flags.invoiced,
+                ands:                flags.ands,
+                ors:                 flags.ors,
+                approvedAndInvoiced: flags.approved.and(flags.invoiced),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with flags as (select id as id, case approved when 'A' then 1 when 'R' then 0 else null end as approved, case when invoiced = 1 then 1 else 0 end as invoiced, case when (approved = 'A') and (billable = 1) and (invoiced = 1) then 1 when not ((approved = 'A') and (billable = 1) and (invoiced = 1)) then 0 else null end as ands, case when (approved = 'A') or (billable = 1) or (invoiced = 1) then 1 when not ((approved = 'A') or (billable = 1) or (invoiced = 1)) then 0 else null end as ors from issue_worklog) select id as "id", approved as "approved", invoiced as "invoiced", ands as "ands", ors as "ors", case when (approved = 1) and (invoiced = 1) then 1 when not ((approved = 1) and (invoiced = 1)) then 0 else null end as "approvedAndInvoiced" from flags order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; approved?: boolean; invoiced: boolean; ands?: boolean; ors?: boolean; approvedAndInvoiced?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('projection: boolean scalar subqueries of custom booleans as inline query values', async () => {
+        // Each worklog reads, through a correlated subquery on its own id, its
+        // approved column and the and/or of approved with invoiced. Row 3 (approved
+        // NULL, invoiced true): approved and the and are NULL (absent keys), the or
+        // is true.
+        const other = tIssueWorklog.as('other')
+        const expected = [
+            { id: 1, approved: true, approvedAndInvoiced: true, approvedOrInvoiced: true },
+            { id: 2, approved: false, approvedAndInvoiced: false, approvedOrInvoiced: false },
+            { id: 3, approvedOrInvoiced: true },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:       tIssueWorklog.id,
+                approved: ctx.conn.subSelectUsing(tIssueWorklog).from(other)
+                    .where(other.id.equals(tIssueWorklog.id))
+                    .selectOneColumn(other.approved)
+                    .forUseAsInlineQueryValue(),
+                approvedAndInvoiced: ctx.conn.subSelectUsing(tIssueWorklog).from(other)
+                    .where(other.id.equals(tIssueWorklog.id))
+                    .selectOneColumn(other.approved.and(other.invoiced))
+                    .forUseAsInlineQueryValue(),
+                approvedOrInvoiced: ctx.conn.subSelectUsing(tIssueWorklog).from(other)
+                    .where(other.id.equals(tIssueWorklog.id))
+                    .selectOneColumn(other.approved.or(other.invoiced))
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select case other.approved when 'A' then 1 when 'R' then 0 else null end as "result" from issue_worklog other where other.id = issue_worklog.id) as "approved", (select case when (other.approved = 'A') and (other.invoiced = 1) then 1 when not ((other.approved = 'A') and (other.invoiced = 1)) then 0 else null end as "result" from issue_worklog other where other.id = issue_worklog.id) as "approvedAndInvoiced", (select case when (other.approved = 'A') or (other.invoiced = 1) then 1 when not ((other.approved = 'A') or (other.invoiced = 1)) then 0 else null end as "result" from issue_worklog other where other.id = issue_worklog.id) as "approvedOrInvoiced" from issue_worklog order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; approved?: boolean; approvedAndInvoiced?: boolean; approvedOrInvoiced?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('cte-group-by-a-parametrised-boolean-predicate-and-an-outer-parameter', async () => {
+        // The cte counts the projects of each organization and groups by
+        // `name ends with 'corp'` (insensitive), a predicate with a parameter that
+        // the group by repeats. The outer query filters with its own parameter
+        // (`name contains 'E'`, insensitive) and reads the predicate back as a
+        // boolean. Acme Corp (projects 1, 2) ends with 'corp'; Globex Ltd (projects
+        // 3, 4) doesn't. Both names contain an 'e'.
+        const perOrganization = ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                organizationId:   tOrganization.id,
+                organizationName: tOrganization.name,
+                endsWithCorp:     tOrganization.name.endsWithInsensitive('corp'),
+                projects:         ctx.conn.count(tProject.id),
+            })
+            .groupBy('organizationId', 'organizationName', 'endsWithCorp')
+            .forUseInQueryAs('perOrganization')
+        const expected = [
+            { organizationId: 1, organizationName: 'Acme Corp', endsWithCorp: true, projects: 2 },
+            { organizationId: 2, organizationName: 'Globex Ltd', endsWithCorp: false, projects: 2 },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(perOrganization)
+            .where(perOrganization.organizationName.containsInsensitive('E'))
+            .select({
+                organizationId:   perOrganization.organizationId,
+                organizationName: perOrganization.organizationName,
+                endsWithCorp:     perOrganization.endsWithCorp,
+                projects:         perOrganization.projects,
+            })
+            .orderBy('organizationId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with perOrganization as (select "organization".id as organizationId, "organization".name as organizationName, case when lower("organization".name) like lower('%' || :0) escape '\\' then 1 else 0 end as endsWithCorp, count(project.id) as projects from "organization" inner join project on project.organization_id = "organization".id group by "organization".id, "organization".name, case when lower("organization".name) like lower('%' || :0) escape '\\' then 1 else 0 end) select organizationId as "organizationId", organizationName as "organizationName", endsWithCorp as "endsWithCorp", projects as "projects" from perOrganization where lower(organizationName) like lower('%' || :1 || '%') escape '\\' order by "organizationId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "corp",
+            "E",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ organizationId: number; organizationName: string; endsWithCorp: boolean; projects: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

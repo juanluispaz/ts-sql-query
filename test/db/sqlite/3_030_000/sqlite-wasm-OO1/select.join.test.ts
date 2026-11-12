@@ -509,4 +509,62 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ project: string; email: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('optional-join-kept-when-select-one-column-reads-it', async () => {
+        // An optional join is emitted only when something reads its table. Here
+        // the one column of `selectOneColumn` is the project name, so the join
+        // stays, as a plain `join`. The four issues belong to projects 1, 1, 2
+        // and 3; ordered by name.
+        const expected = ['Internal tools', 'Marketing site', 'Marketing site', 'Public API']
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .selectOneColumn(tProject.name)
+            .orderBy('result')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as result from issue join project on project.id = issue.project_id order by result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, string[]>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('optional-left-join-not-read-is-dropped-from-the-data-and-the-count-of-a-page', async () => {
+        // `executeSelectPage` runs two queries: the rows and the count. The
+        // optional left join of the assignee is read by nothing, so neither query
+        // has it. Project 1 has issues 1 and 2: the page holds both and the count
+        // is 2.
+        const dataRows = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(2)
+        const assignee = tAppUser.forUseInLeftJoin()
+        const page = await ctx.conn.selectFrom(tIssue)
+            .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.projectId.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy('id')
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as id, title as title from issue where project_id = ?1 order by id"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from issue where project_id = ?1"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; title: string }>
+            count: number
+        }>>()
+        expect(page).toEqual({ data: dataRows, count: 2 })
+    })
 })

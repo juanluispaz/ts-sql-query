@@ -409,6 +409,55 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
+    test('customize-select-before-order-by-items-without-order-by', async () => {
+        // `beforeOrderByItems` on a select that has no `orderBy`: the fragment
+        // becomes the only item, so the query gets an `order by` of its own.
+        // Ordered by id descending, the four seeded issues come back 4, 3, 2, 1.
+        const expected = [{ id: 4 }, { id: 3 }, { id: 2 }, { id: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`${tIssue.id} desc`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.id desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-select-before-and-after-order-by-items-without-order-by', async () => {
+        // `beforeOrderByItems` and `afterOrderByItems` on a select that has no
+        // `orderBy`: the two fragments are the whole `order by`, comma-joined,
+        // the before one first. Priorities of the seeded issues: 1 → 2, 2 → 1,
+        // 3 → 3, 4 → 2. By priority ascending, then id descending among the two
+        // of priority 2: 2, 4, 1, 3. A where with a param keeps the hooks apart
+        // from the bound values: issue status is never 'archived'.
+        const expected = [{ id: 2 }, { id: 4 }, { id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.status.notEquals('archived'))
+            .select({ id: tIssue.id })
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`${tIssue.priority}`,
+                afterOrderByItems: connection.rawFragment`${tIssue.id} desc`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status <> @0 order by issue.priority, issue.id desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "archived",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the named WINDOW clause (customizeQuery.customWindow emits `window <name> as (…)`) requires SQL Server 2022+; 2019 rejects the `window` keyword (Incorrect syntax).
 //     test('customize-select-all-rawfragment-hooks-kitchen-sink', async () => {
 //         // All seven RawFragment-typed hooks on SELECT applied at once

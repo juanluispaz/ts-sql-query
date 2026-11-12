@@ -1940,6 +1940,65 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — recursive queries require MySQL 8.0.1+ (recursive WITH); below it the library refuses to emit them (UNSUPPORTED_QUERY), and MySQL 5.7 has no recursive CTE.
+    /*
+    test('recursive-execute-select-page-drops-an-optional-left-join-not-picked-in-both-arms', async () => {
+        // A recursive select walks up the parents of issue 3. Both arms have an
+        // optional left join of the assignee, and the projection comes from
+        // `dynamicPickPaths`, which picks `title` (with `id` and `parentId`
+        // always there) but not the assignee's name. Nothing reads the joined
+        // table, so neither arm has the join, in the data query nor in the
+        // count query of `executeSelectPage`. The seed has no parents, so the
+        // chain 3 → 2 → 1 is set up first and rolled back. The page is ordered
+        // by id: issue 1 (no parent), 2 (parent 1), 3 (parent 2); count 3.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(3)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ parentId: 1 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const dataRows = [
+                { id: 1, title: 'Update hero copy' },
+                { id: 2, title: 'Redesign navbar', parentId: 1 },
+                { id: 3, title: 'Migrate to ESM', parentId: 2 },
+            ]
+            ctx.mockNext(dataRows)
+            ctx.mockNext(3)
+            const connection = ctx.conn
+            const assignee = tAppUser.forUseInLeftJoin()
+            const availableFields = {
+                id: tIssue.id,
+                title: tIssue.title,
+                parentId: tIssue.parentId,
+                assigneeName: assignee.fullName,
+            }
+            const picked = dynamicPickPaths(availableFields, ['title'], ['id', 'parentId'])
+
+            const page = await connection.selectFrom(tIssue)
+                .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+                .where(tIssue.id.equals(3))
+                .select(picked)
+                .recursiveUnionAll((child) => connection.selectFrom(tIssue)
+                    .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+                    .join(child).on(child.parentId.equals(tIssue.id))
+                    .select(picked))
+                .orderBy('id')
+                .executeSelectPage()
+
+            const [dataQuery, countQuery] = ctx.history.slice(-2)
+            expect(dataQuery!.sql).toMatchInlineSnapshot()
+            expect(dataQuery!.params).toMatchInlineSnapshot()
+            expect(countQuery!.sql).toMatchInlineSnapshot()
+            expect(countQuery!.params).toMatchInlineSnapshot()
+            assertType<Exact<typeof page, {
+                data: Array<{ id: number; parentId?: number; title?: string; assigneeName?: string }>
+                count: number
+            }>>()
+            expect(page).toEqual({ data: dataRows, count: 3 })
+        })
+    })
+    */
 })
 
 // Tests referencing these are commented out above with NOT-SUPPORTED

@@ -729,7 +729,10 @@ Verified against real `mysql:5.7` (5.7.44): the inline aggregate-as-array querie
 `config.type-adapter.transform-projection-decoded` are commented out with
 `// NOT-SUPPORTED: see ENGINE_SUPPORT.md` on any cell whose engine is below MySQL
 8.0.14 (today only the 5.7 `oldest` cell) and run live on the rest — keyed to the
-real engine version, not the `newest` label.
+real engine version, not the `newest` label. A correlated CTE (`subSelectUsing(...)…forUseInQueryAs`)
+is written on 5.7 as a derived table with the same outer reference, so
+`cte.aliased-and-left-join` → `correlated-cte-is-declared-inside-the-in-subquery` is commented
+out the same way on the 5.7 cell (1054 `Unknown column 'project.id' in 'where clause'`).
 
 
 
@@ -915,6 +918,21 @@ NOT-SUPPORTED: see ENGINE_SUPPORT.md` on the `sqlserver/oldest` cell (real 2019)
 and run live on 2022 / 2025. The operator is version-specific, not a library
 defect; a portable pre-2022 form (`x * power(2, n)`) exists, but the fragment
 deliberately demonstrates the native operator.
+
+### SQL Server rejects a subquery inside an aggregate function
+
+An aggregate function can't take an expression with a subquery: an
+`aggregateAsArray` whose element is an inline query value
+(`forUseAsInlineQueryValue`), written as `json_arrayagg(json_object(…, 'x':
+(select … ))))`, fails with error 130 (`Cannot perform an aggregate function on
+an expression containing an aggregate or a subquery`), measured on SQL Server
+2025. The same elements in an inline aggregated array
+(`forUseAsInlineAggregatedArrayValue`) run, because that one is a `for json
+path` select and not an aggregate. The test
+`select.aggregate-as-array.value-type-coverage` →
+`aggregate-of-object-with-custom-booleans-of-inline-subqueries` is commented out
+with `// NOT-SUPPORTED` in the SQL Server cells, and runs live on the other
+databases.
 
 
 

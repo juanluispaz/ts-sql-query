@@ -18,13 +18,12 @@
 //     alias must appear exactly once in the `WITH` clause; the
 //     `if (!withs.includes(this))` short-circuit makes that happen.
 //
-// The `__hasExternalDependencies = true` branch is set only
-// when the underlying `selectData.__subSelectUsing` is non-empty, but
-// `subSelectUsing(...)` returns a `SelectExpressionSubquery` that
-// does not type-expose `forUseInQueryAs(...)`. The branch is currently
-// not reachable via the public API; left uncovered.
+// A CTE built with `subSelectUsing(outerTable)...forUseInQueryAs(name)`
+//     references a column of the outer query, so it can't go in the
+//     top-level `WITH`: it is declared inside the subquery that uses it
+//     (`in (with name as (...) select ...)`).
 //
-// All four are dialect-portable (every dialect supports CTEs in SELECT
+// The others are dialect-portable (every dialect supports CTEs in SELECT
 // FROM and as a left-join target). The snapshots differ only in
 // boolean spelling / alias quoting; the test names are identical
 // across every cell.
@@ -180,6 +179,47 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ projectId: number; leftId: number; rightId: number }>>>()
     })
+
+    // NOT-APPLICABLE: MariaDB doesn't see a column of the outer query inside an inner with, so forUseInQueryAs is typed never on a select that uses a table of the outer query.
+    /*
+    test('correlated-cte-is-declared-inside-the-in-subquery', async () => {
+        // A CTE built with `subSelectUsing(tProject)` reads `project.id` of the
+        // outer query: it holds the issues of the outer project. It is joined
+        // inside a subquery of `project.id in (...)`, so the `with` goes inside
+        // the parentheses, not at the top of the statement. The subquery keeps
+        // the issues that are 'open', so the outer query lists the projects with
+        // an open issue: project 1 (issue 1) and project 2 (issue 3). Projects 3
+        // (only a closed issue) and 4 (no issues) are left out.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const projectIssues = connection.subSelectUsing(tProject)
+            .from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, projectId: tIssue.projectId })
+            .forUseInQueryAs('project_issues')
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.in(
+                connection.selectFrom(tIssue)
+                    .innerJoin(projectIssues).on(projectIssues.id.equals(tIssue.id))
+                    .where(tIssue.status.equals('open'))
+                    .selectOneColumn(projectIssues.projectId)
+            ))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
     test('cte-only-referenced-by-a-pruned-optional-join-is-omitted-from-with', async () => {
         // A CTE used ONLY as the table of an optional join that ends up
         // pruned (nothing in the surviving query requires it) must NOT be

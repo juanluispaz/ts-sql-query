@@ -5,7 +5,7 @@ import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, IAnyBooleanValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
-import { AbstractSqlBuilder, type SelectColumnSql, type UpdateAssignment } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnPrivate, __getColumnOfObject } from '../utils/Column.js'
@@ -14,6 +14,13 @@ import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+
+/** One assignment of the set of an update: the property of the values, the column of the table and its value */
+interface UpdateAssignment {
+    readonly property: string
+    readonly column: DBColumn
+    readonly value: any
+}
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _buildSelectWithColumnsInfoForCompound(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
@@ -448,9 +455,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * Nothing changes when the session already computes them with the row before the update
      * (useSimultaneousAssignment, MariaDB's SIMULTANEOUS_ASSIGNMENT).
      */
-    override _prepareUpdateAssignments(query: UpdateData, assignments: UpdateAssignment[], context: SqlBuildContext): UpdateAssignment[] {
-        if (assignments.length < 2 || this._connectionConfiguration.useSimultaneousAssignment) {
-            return assignments
+    override _updateSetPropertiesInOrder(query: UpdateData, context: SqlBuildContext): string[] | undefined {
+        if (this._connectionConfiguration.useSimultaneousAssignment) {
+            return undefined
+        }
+        const assignments = this._updateAssignmentsOf(query)
+        if (assignments.length < 2) {
+            return undefined
         }
         const table = query.__table
         const onlyTable = new Set<AnyTableOrView>([table])
@@ -474,13 +485,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             }
         }
         if (!conflict) {
-            return assignments
+            return undefined
         }
         const multipleTables = (!!query.__froms && query.__froms.length > 0) || (!!query.__joins && query.__joins.length > 0)
         if (!multipleTables) {
             const ordered = this._orderUpdateAssignmentsReadingFirst(assignments, reads)
             if (ordered) {
-                return ordered
+                return ordered.map((assignment) => assignment.property)
             }
         }
         if (!this._hasPrimaryKey(table)) {
@@ -492,7 +503,29 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'MariaDB gives to a value of the set of an update the value an earlier assignment wrote, and the value before the update can only be read without returning: set useSimultaneousAssignment on the connection when the sql_mode of the session has SIMULTANEOUS_ASSIGNMENT')
         }
         context.updateOldRowColumns = sharedColumns
-        return assignments
+        return undefined
+    }
+    /**
+     * The assignments of the set of an update that are columns of the table, in the order given: the properties of
+     * the shape that the set has, or the properties of the set
+     */
+    _updateAssignmentsOf(query: UpdateData): UpdateAssignment[] {
+        const table = query.__table
+        const sets = query.__sets
+        const shape = query.__shape
+        const result: UpdateAssignment[] = []
+        for (const property of Object.getOwnPropertyNames(shape || sets)) {
+            if (shape && !(property in sets)) {
+                continue
+            }
+            const target = shape ? shape[property] : property
+            const column = typeof target === 'string' ? __getColumnOfObject(table, target) : target
+            if (!isColumn(column)) {
+                continue
+            }
+            result.push({ property, column, value: sets[property] })
+        }
+        return result
     }
     /**
      * The assignments in an order where each one that reads a column goes before the one that writes it, keeping the
@@ -530,7 +563,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     }
     /**
      * A column of the table being updated read with the value it had before the update, in the set
-     * (context.updateOldRowColumns, _prepareUpdateAssignments): a subquery over a derived table of that table, which the database fills before it
+     * (context.updateOldRowColumns, _updateSetPropertiesInOrder): a subquery over a derived table of that table, which the database fills before it
      * changes any row, correlated with the row by its primary key
      */
     _appendUpdateOldRowColumn(column: DBColumn, context: SqlBuildContext): string {

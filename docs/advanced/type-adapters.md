@@ -4,14 +4,14 @@ search:
 ---
 # Type adapters
 
-A type adapter changes how a value is converted on its way to the database and back: the value sent, the SQL of its parameter, and the SQL of the value as it leaves the database. Use one when the conversion of the library for the [data type](data-types.md) of a column isn't the one you need: a value of your own type the library doesn't know, like an RGB colour kept as bytes, a custom type whose values aren't those of the type it is based on, like a decimal kept as text, or a value the database must give in another form, like a date as its text.
+A type adapter changes how a value is converted on its way to the database and back: the value sent, the SQL of its parameter, and the SQL of the value as it leaves the database. Use one when the conversion of the library for the [data type](../configuration/data-types.md) of a column isn't the one you need: a value of your own type the library doesn't know, like an RGB colour kept as bytes, a custom type whose values aren't those of the type it is based on, like a decimal kept as text, or a value the database must give in another form, like a date as its text.
 
 The conversion goes in one of two places:
 
 - In a column, as the last argument of its definition: a [type adapter of a column](#the-type-adapter-of-a-column) applies only to that column.
 - In the connection, overriding its transformations: [a conversion for every column of a type](#a-conversion-for-every-column-of-a-type) applies everywhere that type is used, and it's the `next` the type adapters of the columns call.
 
-Every transformation receives what it converts and a context with the type of the value, the original one and the one requested for it (see [The original and the requested type](#the-original-and-the-requested-type)). The signatures and every property of the contexts are in the [Type adapters API](../api/type-adapters.md).
+Every transformation receives what it converts and a context with the type of the value, the original one and the one requested for it (see [The original and the requested type](#the-original-and-the-requested-type)). The signatures and every property of the contexts are in the [Type adapters API](../api/type-adapters.md). A type adapter can also keep, for the query runner, what it knows of a parameter or of the whole query: see [Metadata of a query and its parameters](metadata.md).
 
 ## The type adapter of a column
 
@@ -78,7 +78,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor', new RgbCol
 
 !!! tip
 
-    Use a column-specific type adapter when the transformation logic only applies to a single field — for example, the `CustomBooleanTypeAdapter` used in the [Custom boolean values](../advanced/custom-booleans-values.md) section, where a specific column may store booleans as `'Y'`/`'N'`.
+    Use a column-specific type adapter when the transformation logic only applies to a single field — for example, the `CustomBooleanTypeAdapter` used in the [Custom boolean values](custom-booleans-values.md) section, where a specific column may store booleans as `'Y'`/`'N'`.
 
     However, when the transformation is generic and applicable to many columns or tables — such as with the `RgbColor` example — it's better to define the adapter globally in the connection object. This improves consistency and avoids repeating the logic for every field.
 
@@ -151,7 +151,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ### A custom type kept as text
 
-Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on: without it, the value is converted as the [data type](data-types.md#custom-types) says.
+Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on: without it, the value is converted as the [data type](../configuration/data-types.md#custom-types) says.
 
 Write it in the connection, as above, so it applies everywhere that type is used:
 
@@ -159,9 +159,9 @@ Write it in the connection, as above, so it applies everywhere that type is used
 - `transformValueToDB`: converts a value that is sent to the database.
 - `transformPlaceholder`, optional: changes how the parameter is written in the SQL, like wrapping it in a function.
 
-The SQL type a parameter is sent with comes from [the type requested for it](data-types.md#how-a-value-is-sent-to-the-database), by default its own; the `typesByName` option of the query runner gives a type of your own another one.
+The SQL type a parameter is sent with comes from [the type requested for it](../configuration/data-types.md#how-a-value-is-sent-to-the-database), by default its own; the `typesByName` option of the query runner gives a type of your own another one.
 
-For example, a `customDouble` kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is. A [`customDecimal`](data-types.md#exact-decimals) does this without a conversion of your own:
+For example, a `customDouble` kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is. A [`customDecimal`](../configuration/data-types.md#exact-decimals) does this without a conversion of your own:
 
 ```ts
 import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query"
@@ -407,7 +407,7 @@ When neither the type adapter nor the connection says it, `comparison` is `'valu
 
 ### Inside the JSON of an aggregated array
 
-An aggregated array (`aggregateAsArray`, `aggregateAsArrayOfOneColumn`, or a select used with `forUseAsInlineAggregatedArrayValue`, see [Aggregate as an object array](../queries/aggregate-as-object-array.md)) reaches the driver as a JSON text, and each value inside it is one of that JSON. For a value of the JSON, `transformProjection` receives `'aggregatedArrayValue'` and returns the SQL of the value that goes in the JSON, of any type the JSON function of the database takes: a text, like `DD/MM/YYYY`, or a number. `transformValueFromDB` receives each value of the JSON as its text, a number too, with all its digits. On SQL Server before 2025, where the library writes the JSON itself, a converted value goes in it as a string. When it doesn't convert the value, the value goes in the JSON as the library writes it on that database, and `next.transformProjection(...)` returns the SQL it receives, except with a [database outside UTC](time-zones.md#a-database-outside-utc) on PostgreSQL and Oracle, where a `localDateTime` or a `localTime` goes with its zone.
+An aggregated array (`aggregateAsArray`, `aggregateAsArrayOfOneColumn`, or a select used with `forUseAsInlineAggregatedArrayValue`, see [Aggregate as an object array](../queries/aggregate-as-object-array.md)) reaches the driver as a JSON text, and each value inside it is one of that JSON. For a value of the JSON, `transformProjection` receives `'aggregatedArrayValue'` and returns the SQL of the value that goes in the JSON, of any type the JSON function of the database takes: a text, like `DD/MM/YYYY`, or a number. `transformValueFromDB` receives each value of the JSON as its text, a number too, with all its digits. On SQL Server before 2025, where the library writes the JSON itself, a converted value goes in it as a string. When it doesn't convert the value, the value goes in the JSON as the library writes it on that database, and `next.transformProjection(...)` returns the SQL it receives, except with a [database outside UTC](../configuration/time-zones.md#a-database-outside-utc) on PostgreSQL and Oracle, where a `localDateTime` or a `localTime` goes with its zone.
 
 With the adapter above, which gives the text `DD/MM/YYYY` in both places, the birthdays of the customers of each company:
 

@@ -4,7 +4,7 @@ search:
 ---
 # Data types
 
-Each column you [map](mapping.md) has a type, which decides two things: the TypeScript type of its values, and the operations a query offers for it. This page has the types, which one to choose, and how each one is sent to the database; to convert the values in your own way on their way to and from the database, see [Type adapters](type-adapters.md).
+Each column you [map](mapping.md) has a type, which decides two things: the TypeScript type of its values, and the operations a query offers for it. This page has the types, which one to choose, and how each one is sent to the database; to convert the values in your own way on their way to and from the database, see [Type adapters](../advanced/type-adapters.md).
 
 ## The types of a column
 
@@ -121,14 +121,14 @@ costCents = this.column<Cents, 'Cents'>('cost_cents', 'customInt', 'Cents')
 
     Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on, like a `customDouble` kept as text. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The conversion is written in the connection, so it applies everywhere that type is used, or in a type adapter of one column: see [Type adapters](type-adapters.md), which also covers how to send a value of a custom type with another SQL type, like a `customDouble` kept as text.
+The conversion is written in the connection, so it applies everywhere that type is used, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md), which also covers how to send a value of a custom type with another SQL type, like a `customDouble` kept as text.
 
 ## Exact decimals
 
 JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:
 
 - `stringDecimal`: the value is a `string`. Choose it when a string is enough in your code.
-- `customDecimal`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](type-adapters.md).
+- `customDecimal`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](../advanced/type-adapters.md).
 
 ```typescriptreact
 amount = this.optionalColumn('amount', 'stringDecimal')

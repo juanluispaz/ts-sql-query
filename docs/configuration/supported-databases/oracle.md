@@ -155,11 +155,11 @@ On a column of any other type, the adapter does nothing. A column stored in a `T
 
 ## A date and time with its time zone
 
-A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written with: an offset like `+09:00`, or a region like `Europe/Madrid`. A `localDateTime` column reads only its instant, because oracledb gives a `Date`, which has no zone (see [The zone stored with each value](../time-zones.md#4-the-zone-stored-with-each-value)). When the zone is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../type-adapters.md) that keeps the value as the text the database writes:
+A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written with: an offset like `+09:00`, or a region like `Europe/Madrid`. A `localDateTime` column reads only its instant, because oracledb gives a `Date`, which has no zone (see [The zone stored with each value](../time-zones.md#4-the-zone-stored-with-each-value)). When the zone is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../advanced/type-adapters.md) that keeps the value as the text the database writes:
 
-- `transformProjection` has the database give the value as text, with `to_char`, in the columns of the result (also those of a `returning`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../type-adapters.md#the-sql-of-a-value-read-from-the-database)).
+- `transformProjection` has the database give the value as text, with `to_char`, in the columns of the result (also those of a `returning`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../../advanced/type-adapters.md#the-sql-of-a-value-read-from-the-database)).
 - `transformPlaceholder` converts the text sent with `to_timestamp_tz`, which reads an offset or a region.
-- `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../type-adapters.md#how-the-converted-sql-compares)).
+- `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../../advanced/type-adapters.md#how-the-converted-sql-compares)).
 - `transformValueFromDB` and `transformValueToDB` keep the text as the value.
 
 The column is a `customComparable` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as text.

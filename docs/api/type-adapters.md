@@ -8,7 +8,7 @@ This page documents the API for defining and customizing type adapters in `ts-sq
 
 Type adapters control how values are serialized when writing to the database and deserialized when reading from it. They can be applied at the field level (when defining a table or view), or globally by overriding the `transformValueFromDB`, `transformValueToDB`, `transformPlaceholder` and `transformProjection` methods in the connection.
 
-To learn how to write a type adapter, where it goes and when to choose one, see [Type adapters](../configuration/type-adapters.md); for the data types it converts, [Data types](../configuration/data-types.md); and for a boolean stored as other values, [Custom booleans values](../advanced/custom-booleans-values.md).
+To learn how to write a type adapter, where it goes and when to choose one, see [Type adapters](../advanced/type-adapters.md); for the data types it converts, [Data types](../configuration/data-types.md); for a boolean stored as other values, [Custom booleans values](../advanced/custom-booleans-values.md); and for what an adapter keeps for the query runner, [Metadata of a query and its parameters](../advanced/metadata.md).
 
 !!! info
 
@@ -35,7 +35,7 @@ type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
 - `transformValueFromDB` converts a value read from the database, and `transformValueToDB` a value before it is sent.
 - `transformPlaceholder` receives the placeholder as the query runner wrote it, like `$1` or `$1::int4`, and returns the one written in the SQL.
-- `transformProjection` receives the SQL of a value as it leaves the database, as the library writes it, and returns the SQL to write. Where the value leaves is the `output` of its context: `'resultColumn'` is a column of the result of the query (a column of the select that is executed or of the `returning` of an insert, an update or a delete, or the value of a function called), and `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array, where it returns the SQL of a value of any type the JSON function of the database takes, and `transformValueFromDB` receives its text. `transformValueFromDB` reads what it gives. `next.transformProjection` writes the conversion of the library: on SQL Server a decimal of a column of the result as its text, and on PostgreSQL and Oracle, with a database outside UTC, a `localDateTime` or a `localTime` with its zone. It adds no parameter, and when it doesn't convert the value it returns the SQL it receives. See [The SQL of a value read from the database](../configuration/type-adapters.md#the-sql-of-a-value-read-from-the-database).
+- `transformProjection` receives the SQL of a value as it leaves the database, as the library writes it, and returns the SQL to write. Where the value leaves is the `output` of its context: `'resultColumn'` is a column of the result of the query (a column of the select that is executed or of the `returning` of an insert, an update or a delete, or the value of a function called), and `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array, where it returns the SQL of a value of any type the JSON function of the database takes, and `transformValueFromDB` receives its text. `transformValueFromDB` reads what it gives. `next.transformProjection` writes the conversion of the library: on SQL Server a decimal of a column of the result as its text, and on PostgreSQL and Oracle, with a database outside UTC, a `localDateTime` or a `localTime` with its zone. It adds no parameter, and when it doesn't convert the value it returns the SQL it receives. See [The SQL of a value read from the database](../advanced/type-adapters.md#the-sql-of-a-value-read-from-the-database).
 
 ## The original and the requested type
 
@@ -66,9 +66,51 @@ What the requested type is in each transformation:
 | `transformProjection` | the type of the value the SQL returned gives, which the query runner receives; it is read only when the SQL is converted | yes |
 | `transformValueFromDB` | the type of the value received: the one `transformProjection` requested | yes, for what it gives `next` |
 
-See [The original and the requested type](../configuration/type-adapters.md#the-original-and-the-requested-type) for an adapter that sends a date as its text, with its query and its SQL.
+See [The original and the requested type](../advanced/type-adapters.md#the-original-and-the-requested-type) for an adapter that sends a date as its text, with its query and its SQL.
 
 ## What each context has
+
+Each transformation receives the context of what it works on. What each one has, and whether it can change it:
+
+| Member | `transformValueToDB` | `transformPlaceholder` | `transformProjection` | `transformValueFromDB` |
+|---|---|---|---|---|
+| `connectionConfiguration` | reads | reads | reads | reads |
+| `originalType`, `originalCustomType` | reads | reads | reads | reads |
+| `requestedType`, `requestedCustomType` | reads | reads | reads | reads |
+| `setRequestedType`, `resetRequestedType` | changes | — | changes | changes |
+| `forceTypeCast` | reads and changes | reads | — | — |
+| `index`, `valueSentToDB` | — | reads | — | — |
+| `setMetadata`, `getMetadata`, of the parameter | writes and reads | writes and reads | — | — |
+| `setQueryMetadata`, `getQueryMetadata`, of the query | writes and reads | writes and reads | writes and reads | — |
+| `output` | — | — | reads | — |
+| `comparison` | — | — | reads and changes | — |
+
+### In every context
+
+- `connectionConfiguration` is the configuration of the connection, the same the [context of the query](../advanced/query-execution-metadata.md#get-the-configuration-of-the-connection) has.
+- `originalType` and `originalCustomType` are the type declared for the value; `requestedType` and `requestedCustomType`, the one requested for it, which `setRequestedType` changes and `resetRequestedType` takes back to the original: see [The original and the requested type](#the-original-and-the-requested-type).
+
+### Of a parameter
+
+- `forceTypeCast`, in `transformValueToDB`, says whether the database must receive the type of the parameter: it comes `true` where the position in the SQL gives the parameter no type, and the adapter can change it. The query runner then writes a cast of the requested type, like `$1::int4`, or sends the parameter with its type when the driver can. Only the PostgreSQL query runners use it. In `transformPlaceholder` it can only be read: the placeholder is already written.
+- `index`, in `transformPlaceholder`, is the position of the parameter in the params, `undefined` when the placeholder is the literal `null`; `valueSentToDB` is the value `transformValueToDB` gave, `null` for the literal `null`.
+- `setMetadata(key, value)` keeps, for the query runner, what the adapter knows of the parameter, under a `symbol` of its own; `getMetadata(key)` reads it back. See [Metadata of a query and its parameters](../advanced/metadata.md).
+
+### Of the query
+
+- `setQueryMetadata(key, value)` keeps, for the query runner, what the adapter knows of the whole query, under a `symbol` of its own; `getQueryMetadata(key)` reads it back. See [Metadata of a query and its parameters](../advanced/metadata.md).
+
+### Of a projection
+
+- `output` is where the value leaves the database: `'resultColumn'` or `'aggregatedArrayValue'` (see above).
+- `comparison` says how the SQL returned compares with the value: `'value'` (the default) compares and orders like the value; `'equality'` compares like it but orders otherwise; `'columnEquality'`, as `'equality'` but only among the values of one column; `'none'` neither compares nor orders like it. The conversion of the library says `'columnEquality'` for a decimal of a column of the result on SQL Server. It's read only when the SQL is converted. See [How the converted SQL compares](../advanced/type-adapters.md#how-the-converted-sql-compares).
+- `setRequestedType` says the SQL returned gives a value of another type, like `setRequestedType('string')` for the text of a date: the query runner receives it in the [context of the query](../advanced/query-execution-metadata.md#get-the-type-of-each-column-of-the-result), and on Oracle the out parameter of the `returning` of the column is of that type.
+
+### Calls whose context is discarded
+
+The library may call `transformValueToDB` only to look at a value, and `transformProjection` with an empty `sql` to know whether it converts the value: what those calls write in their context is discarded, so a transformation must say the same whatever the `sql` it receives.
+
+### The interfaces
 
 ```typescript
 interface TypeAdapterContext {
@@ -86,6 +128,8 @@ interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
     getMetadata(key: symbol): unknown
+    setQueryMetadata(key: symbol, value: unknown): void
+    getQueryMetadata(key: symbol): unknown
 }
 
 interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
@@ -94,6 +138,8 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
     readonly forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
     getMetadata(key: symbol): unknown
+    setQueryMetadata(key: symbol, value: unknown): void
+    getQueryMetadata(key: symbol): unknown
 }
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
@@ -102,6 +148,8 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
     resetRequestedType(): void
     readonly output: ProjectionOutput
     comparison: ProjectionComparison
+    setQueryMetadata(key: symbol, value: unknown): void
+    getQueryMetadata(key: symbol): unknown
 }
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
@@ -110,16 +158,6 @@ interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     resetRequestedType(): void
 }
 ```
-
-- `connectionConfiguration` is the configuration of the connection, the same the [context of the query](../advanced/query-execution-metadata.md#get-the-configuration-of-the-connection) has.
-- `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType`, `setRequestedType` and `resetRequestedType`: see [The original and the requested type](#the-original-and-the-requested-type).
-- `forceTypeCast`, in `transformValueToDB`, says whether the database must receive the type of the parameter the value is sent in: it comes `true` where the position in the SQL gives the parameter no type, and the adapter can change it. The query runner then writes a cast of the requested type, like `$1::int4`, or sends the parameter with its type when the driver can. Only the PostgreSQL query runners use it. In `transformPlaceholder` it can only be read: the placeholder is already written.
-- `setMetadata(key, value)` keeps, for the query runner, what the adapter knows of the parameter, under a `symbol` of its own as the `key`, so it can't collide with anything else; the query runner reads it in the context of the query, with `getParam(index)?.getMetadata(key)` (see [The context of a query](../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)). It isn't a parameter and isn't sent. `OracleDateAsTimestampTypeAdapter` uses it to have its parameters sent as a `DATE`.
-- `index`, in `transformPlaceholder`, is the position of the parameter, `undefined` when the placeholder is the literal `null`, and `valueSentToDB` the value `transformValueToDB` gave, `null` for the literal `null`.
-- `output`, in `transformProjection`, is where the value leaves the database (see above).
-- `comparison`, in `transformProjection`, says how the SQL it returns compares with the value: `'value'` (the default), it compares and orders like the value, and the query only has the converted SQL in place; `'equality'`, equal values give equal SQL and different values different SQL, but it orders otherwise, so the query orders by the value; `'columnEquality'`, as `'equality'` but only among the values of one column (the text of a decimal, whose scale is the one of its column), so the query also compares the value in a compound select; `'none'`, it neither compares nor orders like the value, so the query also compares the value in a distinct. The conversion of the library says `'columnEquality'` for a decimal of a column of the result on SQL Server. It's read only when the SQL is converted. See [How the converted SQL compares](../configuration/type-adapters.md#how-the-converted-sql-compares).
-- In `transformProjection`, `setRequestedType` says the SQL returned gives a value of another type, like `setRequestedType('string')` for the text of a date. The query runner receives it in the [context of the query](../advanced/query-execution-metadata.md#get-the-type-of-each-column-of-the-result) (`requestedType`, `requestedCustomType`), and on Oracle the out parameter of the `returning` of the column is of that type; without it, of the type of the column.
-- The library may call `transformValueToDB` only to look at a value, and `transformProjection` with an empty `sql` to know whether it converts the value: the context of that call is discarded, so a transformation must say the same whatever the `sql` it receives.
 
 ```typescript
 interface DefaultTypeAdapter {

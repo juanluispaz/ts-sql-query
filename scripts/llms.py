@@ -49,7 +49,7 @@ AREAS = [
         'queries/transaction.md',
     ], False),
     ('extending', 'Extending the library', 'going beyond what it offers: your own SQL with fragments, the data types of the columns, and your own conversions with type adapters', [
-        'queries/sql-fragments.md', 'configuration/data-types.md', 'configuration/type-adapters.md',
+        'queries/sql-fragments.md', 'configuration/data-types.md', 'advanced/type-adapters.md',
     ], True),
     ('dynamic', 'Optional parts of a query', 'the detail of dynamic queries: the order and the page from a request, optional joins, booleans and null, and conditions built with your own ifs', [
         'dynamic/optional-parts/*.md', 'dynamic/going-further/*.md',
@@ -67,7 +67,7 @@ AREAS = [
         'configuration/*.md', 'configuration/supported-databases/*.md', 'advanced/custom-booleans-values.md',
     ], True),
     ('query-runners', 'Query runners', 'connecting each driver, wrapping the runner, and what it can read of each query', [
-        'configuration/query-runners/**', 'advanced/query-execution-metadata.md',
+        'configuration/query-runners/**', 'advanced/query-execution-metadata.md', 'advanced/metadata.md',
     ], False),
     ('api', 'API reference', 'every method, to look up', ['api/*.md'], False),
     ('errors', 'Errors', 'the errors the library raises and their reasons', ['api/error-management/*.md'], False),

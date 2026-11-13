@@ -171,7 +171,7 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
     }
 }()
 
-// The adapter and the table of the example of `transformProjection` in docs/configuration/type-adapters.md, used by the
+// The adapter and the table of the example of `transformProjection` in docs/advanced/type-adapters.md, used by the
 // examples after it on that page
 class DayAsTextTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {

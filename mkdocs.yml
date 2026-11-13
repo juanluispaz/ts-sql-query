@@ -74,6 +74,7 @@ plugins:
         'advanced-usage.md': 'advanced/custom-booleans-values.md'
         'column-types.md': 'configuration/data-types.md'
         'configuration/column-types.md': 'configuration/data-types.md'
+        'configuration/type-adapters.md': 'advanced/type-adapters.md'
         'composing-and-splitting-results.md': 'queries/complex-projections.md'
         'configuration/query-runners/recommended/sqlite3.md': 'configuration/query-runners/index.md#which-one-for-your-database'
         'configuration/query-runners/additional/prisma.md': 'configuration/query-runners/combining-with-another-library.md#example-prisma'
@@ -185,7 +186,6 @@ nav:
     - Connection: configuration/connection.md
     - Mapping: configuration/mapping.md
     - Data types: configuration/data-types.md
-    - Type adapters: configuration/type-adapters.md
     - Time zones: configuration/time-zones.md
     - Collations: configuration/collations.md
     - Supported databases:
@@ -269,6 +269,7 @@ nav:
     - Going further:
       - Building a condition step by step: dynamic/going-further/building-conditions.md
   - Advanced:
+    - Type adapters: advanced/type-adapters.md
     - Custom booleans values: advanced/custom-booleans-values.md
     - Synchronous query runners: advanced/synchronous-query-runners.md
     - ID manipulation: advanced/id-manipulation.md
@@ -276,7 +277,8 @@ nav:
     - Utility types: advanced/utility-types.md
     - Deep utilities: advanced/deep-utilities.md
     - Passing tables and views as parameter: advanced/tables-views-as-parameter.md
-    - Query execution metadata: advanced/query-execution-metadata.md
+    - The context of a query: advanced/query-execution-metadata.md
+    - Metadata of a query and its parameters: advanced/metadata.md
   - Keywords:
     - Select Keywords: keywords/select.md
     - Insert Keywords: keywords/insert.md

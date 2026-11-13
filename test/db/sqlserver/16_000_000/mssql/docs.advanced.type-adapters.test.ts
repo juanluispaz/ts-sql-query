@@ -1,4 +1,4 @@
-// Documentation snippets for the Type adapters page (docs/configuration/type-adapters.md).
+// Documentation snippets for the Type adapters page (docs/advanced/type-adapters.md).
 //
 // The page stores the color in a binary column; organization.plan holds it here as a hex string, which keeps the
 // round trip through the connection on every database.

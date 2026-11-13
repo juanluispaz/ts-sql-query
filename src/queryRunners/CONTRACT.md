@@ -726,7 +726,11 @@ writes no zone arithmetic. With UTC the SQL doesn't change.
   (no copy of the `Date`). As the value of a column (`isParamValueForColumnAt`: an insert, the set of an update) the
   placeholder is the bare one, and Oracle converts it with its session into the wall clock it stores; anywhere else the
   binding casts it to the type of the column, `cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole
-  seconds of a `DATE` column (`oracleDateParam`), so the column compares with it as it is and its index is used
+  seconds of a `DATE` column (`oracleDateParam`), so the column compares with it as it is and its index is used. A
+  `localTime` is sent as the instant of its own day (the connection doesn't move it to 1970-01-01 outside UTC), and in
+  every position, the value of a column too, its time of the day goes on 1970-01-01, the day every `localTime` is kept
+  on: `timestamp '1970-01-01 00:00:00' + (cast(:0 as timestamp) - trunc(cast(:0 as timestamp)))`, so a time after
+  midnight in the zone of the database isn't kept on another day
   (measured: `INDEX RANGE SCAN`; a `TIMESTAMP WITH LOCAL TIME ZONE` compared as it is makes Oracle convert the column,
   a full scan). `transformProjection` reads it as `cast(<sql> as timestamp with time zone)`, also inside the JSON of an
   aggregated array, where Oracle writes it as a text with its zone (`+01:00` on 23, `Z` on 21; both are read as the
@@ -739,8 +743,9 @@ writes no zone arithmetic. With UTC the SQL doesn't change.
   follow summer time, and an offset, `LOCAL` or `DBTIMEZONE` are rejected. Limits, with an error, never a wrong value:
   `DBTIMEZONE` as a region (oracledb NJS-201 for a `TIMESTAMP WITH LOCAL TIME ZONE` bind; it reads `DBTIMEZONE` itself
   when it connects), a stored wall clock the zone skips (ORA-01878 when it is read or given to a date function; one it
-  repeats is taken in winter time). To review: a comparison of a `localTime` also compares the day it is stored with,
-  in UTC too. Measured on Oracle 23 and 21; `test/runners/oracle/DatabaseOutsideUtc.test.ts` (Oracle 23, `ORA_SDTZ`
+  repeats is taken in winter time). A `localTime` compares with the day it is kept on, 1970-01-01, in UTC too: one
+  written by another program on another day doesn't match (keeping that day is the user's convention, as for every
+  library that maps a time of the day on Oracle). Measured on Oracle 23 and 21; `test/runners/oracle/DatabaseOutsideUtc.test.ts` (Oracle 23, `ORA_SDTZ`
   in Madrid, the process in Madrid, UTC and Tokyo; and the sessions rejected).
 - **Rejected** at the first query (`_checkConnectionConfiguration`, from `__setQueryMetadata`), as limits of the
   database (`test/runners/general/DatabaseTimeZone.test.ts`): MariaDB and MySQL (`convert_tz` leaves a value before

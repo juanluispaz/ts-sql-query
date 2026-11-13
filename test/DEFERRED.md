@@ -103,20 +103,31 @@ Each entry says what it is, why it waits, and what is already known.
     `Temporal.ZonedDateTime` maps to (only Oracle `TIMESTAMP WITH TIME ZONE`
     keeps a region name).
 
-## Comparing a `localTime` on Oracle
+## Other conventions of a `localTime` on Oracle
 
-- **What:** decide whether a comparison of a `localTime` on Oracle must compare
-  only the time of the day, and with which SQL, keeping the index of the column.
-- **Why deferred:** Oracle has no type of a time alone, so a `localTime` is kept
-  in a `TIMESTAMP` or a `DATE` with a day, and `t = :0` (in UTC) or
-  `t = cast(:0 as timestamp)` (with a `databaseTimeZone` other than UTC) also
-  compares that day: a row written by another program with the same time on
-  another day doesn't match. Reading it doesn't depend on the day (in UTC only
-  the time is kept; outside UTC the day is replaced by the
-  `localTimeReferenceDate`). It was left as it was when Oracle outside UTC was
-  added, to review on its own, in UTC and outside UTC.
-- **Known:** `test/runners/oracle/DatabaseOutsideUtc.test.ts` compares only rows
-  the library wrote, whose day is the one of the `Date` sent.
+- **What:** Oracle has no type of a time alone, and the library keeps a
+  `localTime` in a `TIMESTAMP` (or a `DATE`) on the fixed day 1970-01-01, and
+  compares it with that day (`currentTime()` too), keeping the index of the
+  column. Two things were left for later: a convention of the connection other
+  than the fixed day, `INTERVAL DAY(0) TO SECOND(n)` (and a fixed day other
+  than 1970-01-01, like 1900-01-01); and type adapters that give one column
+  another convention than its connection.
+- **Why deferred:** the fixed day is what almost every library does (jOOQ, JDBC
+  and Hibernate with 1970-01-01; Django and Doctrine with 1900-01-01; AWS DMS
+  maps a `TIME` to a `TIMESTAMP(0)`), and none compares only the time of the
+  day. `INTERVAL DAY TO SECOND` as a time of the day is real but niche: schemas
+  made from .NET (DataObjects.NET `TimeOnly`, Dapper.NodaTime.Oracle
+  `LocalTime`, linq2db and Devart `TimeSpan`) and a well-known Stack Overflow
+  answer; no library outside .NET does it. Its cost is high: node-oracledb
+  gives it as an `IntervalDS` (a bare one as a bind fails with NJS-044, `{ val }`
+  works; fetched as text, NJS-119; its typings lack the constructor), the
+  date functions need `extract`, the JSON of an aggregate `to_char`, and mixing
+  it with a `TIMESTAMP` needs a conversion. A convention per column only serves a
+  mixed database, and each one adds comparisons between conventions the SQL
+  builder would have to reconcile.
+- **Known:** `DAY(0)` accepts negative values (a `CHECK` is needed) and
+  `SECOND(0)` rounds the fraction (23:59:59.9 fails with ORA-01873); measured on
+  Oracle 23 with node-oracledb 26, which decodes it without any time zone.
 
 ## `aggregateAsArrayDistinct` on MySQL
 

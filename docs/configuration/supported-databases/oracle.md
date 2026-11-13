@@ -78,6 +78,12 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 A column stored the other way is declared with a [custom boolean](../../advanced/custom-booleans-values.md): with `'boolean'`, a `NUMBER(1)` column takes `new CustomBooleanTypeAdapter(1, 0)`; with `'number'`, a `CHAR(1)` column with `'Y'` and `'N'` takes `new CustomBooleanTypeAdapter('Y', 'N')`. The library then writes that column in the form you chose wherever it's used as a boolean, so it can be compared, combined and assigned with the other boolean columns: with `'boolean'`, a `NUMBER(1)` column `invoiced` is read as `(invoiced = 1)`, and `select billable ... union select (invoiced = 1) ...` works. Without the custom boolean, Oracle rejects a `NUMBER(1)` and a `BOOLEAN` in the two sides of a `union` (`ORA-01790`).
 
+## A time of the day
+
+Oracle has no type of a time alone. A `localTime` is kept in a `TIMESTAMP` column (or a `DATE` one, see below) on the day 1970-01-01: the library writes it on that day, compares a value with it on that day, and gives `currentTime()` on that day, so a comparison is by the time of the day and uses the index of the column. When it reads one, the day is dropped.
+
+That day is a convention every program that writes in the column has to keep, the same as JDBC, Hibernate and jOOQ, which keep a time on 1970-01-01 too. A row another program wrote with another day, like `2024-05-07 10:30:00`, is read as `10:30`, but it doesn't match a comparison with `10:30`. To compare only the time of the day of such a column, write it in a fragment, `t - trunc(t)`, with an index on that expression in your schema.
+
 ## A date and time in a `DATE` column
 
 An Oracle `DATE` holds a date and a time to the second, with no fraction of a second and no time zone. Many schemas keep a `localDateTime`, or a `localTime`, in a `DATE` column. Reading it, comparing it and writing it work as with a `TIMESTAMP`, but the getters of the time fail, because Oracle's `extract` reads a `DATE` as a date without time, and `to_char` has no fraction of a second for it:

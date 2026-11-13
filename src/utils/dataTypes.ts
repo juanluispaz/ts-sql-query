@@ -85,13 +85,3 @@ export function __isLocalDateTime(type: string | undefined, customType: CustomTy
 export function __isAggregatedArray(type: string | undefined, customType: CustomType | undefined): boolean {
     return customType === undefined && type === 'aggregatedArray'
 }
-
-const customTypes = new Set<string>([
-    'customInt', 'customBigint', 'customDouble', 'customDecimal', 'customUuid',
-    'customLocalDate', 'customLocalTime', 'customLocalDateTime', 'enum', 'custom', 'customComparable',
-])
-
-/** Which custom type a value type of the library is, or undefined for a built-in type */
-export function __customTypeOf(valueType: string): CustomType | undefined {
-    return customTypes.has(valueType) ? valueType as CustomType : undefined
-}

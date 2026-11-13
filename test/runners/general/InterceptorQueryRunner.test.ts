@@ -66,9 +66,9 @@ describe('ChainedQueryRunner', () => {
         expect(runner.isTransactionActive()).toBe(false)
         expect(await runner.executeInTransaction(async () => 'r', runner)).toBe('r')
         const params: any[] = []
-        expect(addParam(runner, params, 1, 'int', 'int', false)).toBe('?1')
+        expect(addParam(runner, params, 1, 'int', undefined, false)).toBe('?1')
         let error: unknown
-        try { addOutParam(runner, params, 'id', 'int', 'int', false) } catch (e) { error = e }
+        try { addOutParam(runner, params, 'id', 'int', undefined, false) } catch (e) { error = e }
         expect(error).toBeDefined()
         expect(await runner.executeCombined(async () => 1, async () => 2)).toEqual([1, 2])
         expect(await runner.createResolvedPromise(3)).toBe(3)

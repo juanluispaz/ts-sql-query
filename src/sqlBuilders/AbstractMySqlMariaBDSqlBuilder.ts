@@ -3,7 +3,7 @@ import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, IAnyBooleanValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
+import type { AnyValueSource, IAnyBooleanValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
@@ -14,6 +14,7 @@ import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { CustomType } from '../TypeAdapter.js'
 
 /** One assignment of the set of an update: the property of the values, the column of the table and its value */
 interface UpdateAssignment {
@@ -352,7 +353,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
 
         const limit = query.__limit
         if (limit !== null && limit !== undefined) {
-            result += ' limit ' + this._appendValue(limit, context, 'int', 'int', undefined, false)
+            result += ' limit ' + this._appendValue(limit, context, 'int', undefined, undefined, false)
         }
 
         const offset = query.__offset
@@ -361,7 +362,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                 // MySQL/MariaDB don't accept an offset without a limit, so put the max value of an int
                 result += ' limit 2147483647'
             }
-            result += ' offset ' + this._appendValue(offset, context, 'int', 'int', undefined, false)
+            result += ' offset ' + this._appendValue(offset, context, 'int', undefined, undefined, false)
         }
 
         if (!result && context.aggregateArrayWrapped && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems)) {
@@ -686,17 +687,17 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return ''
     }
-    override _is(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _is(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' <=>' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
     }
-    override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'not (' + this._appendRawColumnName(valueSource, context) + ' <=> ' + this._appendRawColumnName(value, context) + ')'
         }
-        return 'not (' + this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+        return 'not (' + this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')'
     }
     override _appendCastAsDouble(sql: string): string {
         if (this._connectionConfiguration.compatibilityVersion >= this._castAsDoubleMinCompatibilityVersion) {
@@ -737,31 +738,31 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _round(context: SqlBuildContext, valueSource: ToSql): string {
         return 'round(' + this._appendRoundOperandAsExact(context, valueSource) + ')'
     }
-    override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'round(' + this._appendRoundOperandAsExact(context, valueSource) + ', ' + this._appendRoundnScale(value, context, columnType, columnTypeName, typeAdapter) + ')'
+    override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+        return 'round(' + this._appendRoundOperandAsExact(context, valueSource) + ', ' + this._appendRoundnScale(value, context, type, customType, typeAdapter) + ')'
     }
-    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'ifnull(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')'
+    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+        return 'ifnull(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')'
     }
-    override _escapeLikeWildcard(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _escapeLikeWildcard(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
             value = value.replace(/\\/g, '\\\\')
             value = value.replace(/%/g, '\\%')
             value = value.replace(/_/g, '\\_')
-            return this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value, context, type, customType, typeAdapter, forceTypeCast)
         } else {
-            return "replace(replace(replace(" + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')"
+            return "replace(replace(replace(" + this._appendValue(value, context, type, customType, typeAdapter, forceTypeCast) + ", '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')"
         }
     }
-    override _escapeRegexpForReplace(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _escapeRegexpForReplace(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
-            return this._appendValue(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), context, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), context, type, customType, typeAdapter, forceTypeCast)
         }
         // MySQL/MariaDB treat backslash as an escape inside string literals, so a single
         // backslash is written `'\\'` (two in the SQL text) — the same doubling
         // `_escapeLikeWildcard` does above. Escape the term's backslashes first, then prefix
         // every other regex metacharacter with one.
-        let sql = this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        let sql = this._appendValue(value, context, type, customType, typeAdapter, forceTypeCast)
         sql = "replace(" + sql + ", '\\\\', '\\\\\\\\')"
         const metachars = '.*+?^${}()|[]'
         for (let i = 0, length = metachars.length; i < length; i++) {
@@ -770,119 +771,119 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return sql
     }
-    override _escapeRegexpReplacement(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _escapeRegexpReplacement(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         // MariaDB (like PostgreSQL) treats only the backslash as a replacement metacharacter.
         // The JS-literal escape matches the base (the escaped term is bound as a param, so it
         // has no string-literal quirk); only the value-source path needs MySQL/MariaDB's
         // backslash doubling inside a string literal (see `_escapeRegexpForReplace`).
         if (typeof value === 'string') {
-            return this._appendValue(value.replace(/\\/g, '\\\\'), context, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value.replace(/\\/g, '\\\\'), context, type, customType, typeAdapter, forceTypeCast)
         }
-        return "replace(" + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\\\', '\\\\\\\\')"
+        return "replace(" + this._appendValue(value, context, type, customType, typeAdapter, forceTypeCast) + ", '\\\\', '\\\\\\\\')"
     }
-    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         // MySQL/MariaDB `REPLACE` ignores collation, so fold case with `REGEXP_REPLACE`, whose
         // operands' collation governs the match (case + accent). The default collation is already
         // case-insensitive; when `insensitiveCollation` names one, force it on the source and the
         // (regex-escaped) search term. `REGEXP_REPLACE` needs MySQL 8.0+ / MariaDB 10.0.5+.
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return 'regexp_replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._escapeRegexpForReplace(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._escapeRegexpReplacement(value2, context, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'regexp_replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._escapeRegexpForReplace(value, context, type, customType, typeAdapter, false) + ' collate ' + collation + ', ' + this._escapeRegexpReplacement(value2, context, type, customType, typeAdapter, false) + ')'
         }
-        return 'regexp_replace(' + this._appendSql(valueSource, context, false) + ', ' + this._escapeRegexpForReplace(value, context, columnType, columnTypeName, typeAdapter, false) + ', ' + this._escapeRegexpReplacement(value2, context, columnType, columnTypeName, typeAdapter, false) + ')'
+        return 'regexp_replace(' + this._appendSql(valueSource, context, false) + ', ' + this._escapeRegexpForReplace(value, context, type, customType, typeAdapter, false) + ', ' + this._escapeRegexpReplacement(value2, context, type, customType, typeAdapter, false) + ')'
     }
     // This dialect family has no `||` operator by default (`PIPES_AS_CONCAT` is not
     // assumed): concatenation is the n-ary `concat(...)` function. It stands alone, so the
     // pattern needs no wrapping parenthesis, and the insensitive arm folds the term inside
     // the call rather than folding the whole pattern.
-    override _likePatternStartingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
+    override _likePatternStartingWith(context: SqlBuildContext, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
         return fold ? 'concat(lower(' + term + "), '%')" : 'concat(' + term + ", '%')"
     }
-    override _likePatternEndingWith(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
+    override _likePatternEndingWith(context: SqlBuildContext, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
         return fold ? "concat('%', lower(" + term + '))' : "concat('%', " + term + ')'
     }
-    override _likePatternContaining(context: SqlBuildContext, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
-        const term = this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false)
+    override _likePatternContaining(context: SqlBuildContext, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
         return fold ? "concat('%', lower(" + term + "), '%')" : "concat('%', " + term + ", '%')"
     }
-    override _startsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _startsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' like concat(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like concat(' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' like concat(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' like concat(' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ') like concat(lower(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + "), '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') like concat(lower(' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + "), '%')"
         }
     }
-    override _notStartsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notStartsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' not like concat(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like concat(' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' not like concat(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not like concat(' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ') not like concat(lower(' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + "), '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') not like concat(lower(' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + "), '%')"
         }
     }
-    override _endsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _endsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ')'
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ") like concat('%', lower(" +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + '))'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") like concat('%', lower(" +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + '))'
         }
     }
-    override _notEndsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEndsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ')'
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + '))'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + '))'
         }
     }
-    override _containsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _containsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ") like concat('%', lower(" +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + "), '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") like concat('%', lower(" +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + "), '%')"
         }
     }
-    override _notContainsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notContainsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ", '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ", '%')"
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + "), '%')"
+            return 'lower(' + this._appendSql(valueSource, context, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + "), '%')"
         }
     }
     // `substr()` with a negative start does not count from the end on this dialect, and where
     // it does the out-of-range case still diverges from JS. `right()` / `left()` are exactly
     // `String.prototype.substr`'s negative-start semantics, clamp included. Only the negative
     // arms are overridden; the rest of the family is the base's.
-    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && value < 0) {
-            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', 'int', typeAdapter, false) + ')'
+            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', undefined, typeAdapter, false) + ')'
         }
-        return super._substrToEnd(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._substrToEnd(context, valueSource, value, type, customType, typeAdapter)
     }
-    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', 'int', typeAdapter, false) + '), ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
+            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', undefined, typeAdapter, false) + '), ' + this._appendValue(value2, context, 'int', undefined, typeAdapter, false) + ')'
         }
-        return super._substr(context, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+        return super._substr(context, valueSource, value, value2, type, customType, typeAdapter)
     }
     override _length(context: SqlBuildContext, valueSource: ToSql): string {
         // On this dialect family `length()` counts BYTES, not characters: it answers 5 for
@@ -891,7 +892,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // Do not "simplify" this override away — the base's `length()` is the byte one here.
         return 'char_length(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _concat(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _concat(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         let result = 'concat('
         if (isValueSource(valueSource)) {
             result += this._appendMaybeInnerConcat(valueSource, context)
@@ -902,7 +903,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (isValueSource(value)) {
             result += this._appendMaybeInnerConcat(value, context)
         } else {
-            result += this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false)
+            result += this._appendValue(value, context, type, customType, typeAdapter, false)
         }
         result += ')'
         return result
@@ -915,7 +916,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             if (isValueSource(value)) {
                 result += this._appendMaybeInnerConcat(value, context)
             } else {
-                result += this._appendValue(value, context, valueSource.__valueType, valueSource.__valueTypeName, valueSource.__typeAdapter, false)
+                result += this._appendValue(value, context, valueSource.__type, valueSource.__customType, valueSource.__typeAdapter, false)
             }
             return result
         }
@@ -927,7 +928,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                 if (isValueSource(value)) {
                     result += this._appendMaybeInnerConcat(value, context)
                 } else {
-                    result += this._appendValue(value, context, valueSource.__valueType, valueSource.__valueTypeName, valueSource.__typeAdapter, false)
+                    result += this._appendValue(value, context, valueSource.__type, valueSource.__customType, valueSource.__typeAdapter, false)
                 }
             }
             return result
@@ -941,8 +942,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * separator it needs nothing else: no operand is neutralised, and nesting one call inside
      * another is indistinguishable from one flat call precisely because the separator is empty.
      */
-    override _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return "concat_ws('', " + this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false) + ', ' + this._appendValueParenthesisExcluding(value, context, columnType, columnTypeName, typeAdapter, '_concatIgnoringNull', false) + ')'
+    override _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+        return "concat_ws('', " + this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false) + ', ' + this._appendValueParenthesisExcluding(value, context, type, customType, typeAdapter, '_concatIgnoringNull', false) + ')'
     }
     override _log10(context: SqlBuildContext, valueSource: ToSql): string {
         return 'log10(' +this._appendSql(valueSource, context, false) + ')'

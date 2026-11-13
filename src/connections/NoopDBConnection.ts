@@ -33,12 +33,12 @@ export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends A
     stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
 
     anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'noopDB', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
     }
 
     default(): Default {

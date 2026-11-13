@@ -32,8 +32,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     function insertReturningText(r: OracleDBQueryRunner, text: string, type: string = 'string'): { sql: string, params: any[] } {
         const params: any[] = []
-        const value = addParam(r, params, text, type, 'string', false)
-        const out = addOutParam(r, params, 'v', type, 'string', false)
+        const value = addParam(r, params, text, type, undefined, false)
+        const out = addOutParam(r, params, 'v', type, undefined, false)
         return { sql: `insert into rt_text (v) values (${value}) returning v into ${out}`, params }
     }
 
@@ -44,8 +44,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
             expect(await r.executeInsertReturningOneRow(sql, params)).toEqual({ v: text })
         }
         const params: any[] = []
-        const value = addParam(r, params, 'y'.repeat(3000), 'string', 'string', false)
-        const out = addOutParam(r, params, 'v', 'string', 'string', false)
+        const value = addParam(r, params, 'y'.repeat(3000), 'string', undefined, false)
+        const out = addOutParam(r, params, 'v', 'string', undefined, false)
         const rows = await r.executeUpdateReturningManyRows(`update rt_text set v = ${value} where length(v) = 4000 returning v into ${out}`, params)
         expect(rows).toEqual([{ v: 'y'.repeat(3000) }])
     })
@@ -70,8 +70,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         const r = runner({ typesByName: { LongText: oracledb.DB_TYPE_CLOB } })
         const text = 'z'.repeat(40000)
         const params: any[] = []
-        const value = addParam(r, params, text, 'LongText', 'string', false)
-        const out = addOutParam(r, params, 'c', 'LongText', 'string', false)
+        const value = addParam(r, params, text, 'LongText', undefined, false)
+        const out = addOutParam(r, params, 'c', 'LongText', undefined, false)
         expect(await r.executeInsertReturningOneRow(`insert into rt_text (c) values (${value}) returning c into ${out}`, params)).toEqual({ c: text })
     })
 
@@ -80,8 +80,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         for (const [b, stored] of [[true, 1], [false, 0], [null, null]] as const) {
             const params: any[] = []
             // OracleConnection hands a boolean as 1 or 0
-            const bParam = addParam(r, params, b === null ? null : Number(b), 'boolean', 'boolean', false)
-            const nParam = addParam(r, params, 7, 'int', 'int', false)
+            const bParam = addParam(r, params, b === null ? null : Number(b), 'boolean', undefined, false)
+            const nParam = addParam(r, params, 7, 'int', undefined, false)
             await r.executeProcedure(`begin rt_set_flag(${bParam}, ${nParam}); end;`, params)
             expect(await r.executeSelectOneRow('select b, n from rt_flag where id = (select max(id) from rt_flag)', [])).toEqual({ B: stored, N: 7 })
         }
@@ -90,8 +90,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     test('a-procedure-refuses-a-boolean-for-a-number-parameter', async () => {
         const r = runner()
         const params: any[] = []
-        const bParam = addParam(r, params, 1, 'boolean', 'boolean', false)
-        const nParam = addParam(r, params, 1, 'boolean', 'boolean', false)
+        const bParam = addParam(r, params, 1, 'boolean', undefined, false)
+        const nParam = addParam(r, params, 1, 'boolean', undefined, false)
         const error = await rejectionOf(r.executeProcedure(`begin rt_set_flag(${bParam}, ${nParam}); end;`, params))
         expect(String((error as { message?: unknown }).message)).toContain('PLS-00306')
     })

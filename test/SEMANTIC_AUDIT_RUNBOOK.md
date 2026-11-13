@@ -76,7 +76,7 @@ Three kinds of promise, all equally binding:
 
 | Promise | Broken when | Real example found |
 |---|---|---|
-| **The declared type** (`__valueType`) | the SQL emits a different one | `asBigint()` → `bigint` declared, `float` emitted → wrong beyond 2^53 |
+| **The declared type** (`__type` and `__customType`) | the SQL emits a different one | `asBigint()` → `bigint` declared, `float` emitted → wrong beyond 2^53 |
 | **The JavaScript semantics the method mirrors** | the engine's own rule differs | `getSeconds()` returned **60**; `getMilliseconds()` returned **1000**; `getDay()` shifted by `SET DATEFIRST` |
 | **The documented contract** | the code drifted from the page | `executeSelectPage` docs say the count runs "without pagination"; the code kept the `ORDER BY` |
 
@@ -127,7 +127,7 @@ Ordered by yield. Lens #2 alone found the whole date-part family.
 
 ### 1. Declared vs emitted
 
-Walk `src/internal/ValueSourceImpl.ts` for every `new SqlOperation*ValueSource('_op', this, <declaredType>, …)` and ask: **does `_op`'s SQL actually produce `<declaredType>` on every dialect?** Then walk every guard in `src/sqlBuilders/` that keys on a declared type (`columnType === 'double'`, `__valueType`, `_getMathArgumentType`) and ask: **can a declared-vs-emitted divergence route around it?**
+Walk `src/internal/ValueSourceImpl.ts` for every `new SqlOperation*ValueSource('_op', this, <declaredType>, …)` and ask: **does `_op`'s SQL actually produce `<declaredType>` on every dialect?** Then walk every guard in `src/sqlBuilders/` that keys on a declared type (`customType === undefined && type === 'double'`, `__isDouble`, `_getMathArgumentType`) and ask: **can a declared-vs-emitted divergence route around it?**
 
 Found: `asInt`/`asBigint`, and the `_modulo` guard that a declared-bigint receiver walks straight past.
 

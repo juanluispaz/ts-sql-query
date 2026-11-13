@@ -67,7 +67,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         // Without a type, oracledb returns an OUT date and an OUT number as strings
         for (const [r, expected] of [[runner!, ['string', 'string']], [declared!, ['object', 'number']]] as const) {
             const params: any[] = []
-            const d = addParam(r, params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime', false)
+            const d = addParam(r, params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', undefined, false)
             const dOut = addOutParam(r, params, 'd', 'Moment', 'custom', false)
             const idOut = addOutParam(r, params, 'id', 'Counter', 'custom', false)
             const row = await r.executeInsertReturningOneRow(`insert into rt_typed (d) values (${d}) returning d, id into ${dOut}, ${idOut}`, params)
@@ -128,7 +128,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     async function idsAndPlan(column: string, value: Date, type: 'localDate' | 'localDateTime'): Promise<{ ids: unknown, index: boolean }> {
         const params: any[] = []
-        const placeholder = addParam(runner!, params, value, type, type, false)
+        const placeholder = addParam(runner!, params, value, type, undefined, false)
         const sql = `select id as "id" from rt_indexed where ${column} = ${placeholder}`
         const ids = (await runner!.executeSelectManyRows(sql, params)).map(row => row['id'])
         await runner!.executeUpdate('explain plan for ' + sql, params)

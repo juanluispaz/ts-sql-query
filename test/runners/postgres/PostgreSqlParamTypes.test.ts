@@ -12,7 +12,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import type { ValueType } from '../../../src/expressions/values.js'
+import type { CustomType } from '../../../src/TypeAdapter.js'
 import { PgQueryRunner } from '../../../src/queryRunners/PgQueryRunner.js'
 import { PgPoolQueryRunner } from '../../../src/queryRunners/PgPoolQueryRunner.js'
 import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunner.js'
@@ -40,33 +40,33 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
         beforeAll(async () => { runners = await create() }, 300_000)
         afterAll(async () => { await runners?.close() }, 300_000)
 
-        async function resolvedType(r: QueryRunner, value: unknown, type: string, columnType: ValueType, forceTypeCast: boolean): Promise<{ placeholder: string, type: string }> {
+        async function resolvedType(r: QueryRunner, value: unknown, type: string, customType: CustomType | undefined, forceTypeCast: boolean): Promise<{ placeholder: string, type: string }> {
             const params: any[] = []
-            const placeholder = addParam(r, params, value, type, columnType, forceTypeCast)
+            const placeholder = addParam(r, params, value, type, customType, forceTypeCast)
             expect(getQueryContext('', params).getParam(0)?.forceTypeCast).toBe(forceTypeCast)
             return { placeholder, type: await r.executeSelectOneColumnOneRow(`select pg_typeof(${placeholder})::text`, params) }
         }
 
         test('a-param-the-library-asks-the-type-of', async () => {
-            const cases: [unknown, string, ValueType, string, string][] = [
-                [7, 'int', 'int', 'int4', 'integer'],
-                [9007199254740993n, 'bigint', 'bigint', 'int8', 'bigint'],
-                [1.5, 'double', 'double', 'float8', 'double precision'],
-                ['abc', 'string', 'string', 'text', 'text'],
-                [true, 'boolean', 'boolean', 'bool', 'boolean'],
-                ['3f2504e0-4f89-41d3-9a0c-0305e82c3301', 'uuid', 'uuid', 'uuid', 'uuid'],
-                [new Date(Date.UTC(2024, 0, 15)), 'localDate', 'localDate', 'date', 'date'],
-                [new Date(Date.UTC(2024, 0, 15, 10, 30)), 'localDateTime', 'localDateTime', 'timestamp', 'timestamp without time zone'],
-                [null, 'int', 'int', 'int4', 'integer'],
-                [null, 'localDate', 'localDate', 'date', 'date'],
+            const cases: [unknown, string, CustomType | undefined, string, string][] = [
+                [7, 'int', undefined, 'int4', 'integer'],
+                [9007199254740993n, 'bigint', undefined, 'int8', 'bigint'],
+                [1.5, 'double', undefined, 'float8', 'double precision'],
+                ['abc', 'string', undefined, 'text', 'text'],
+                [true, 'boolean', undefined, 'bool', 'boolean'],
+                ['3f2504e0-4f89-41d3-9a0c-0305e82c3301', 'uuid', undefined, 'uuid', 'uuid'],
+                [new Date(Date.UTC(2024, 0, 15)), 'localDate', undefined, 'date', 'date'],
+                [new Date(Date.UTC(2024, 0, 15, 10, 30)), 'localDateTime', undefined, 'timestamp', 'timestamp without time zone'],
+                [null, 'int', undefined, 'int4', 'integer'],
+                [null, 'localDate', undefined, 'date', 'date'],
                 [7, 'Cents', 'customInt', 'int4', 'integer'],
-                // The type of the value of an enum, a custom or a value without category
+                // The type of the value of an enum, a custom or a value without a built-in type
                 [5, 'Status', 'enum', 'int4', 'integer'],
                 [5000000000, 'Big', 'custom', 'int8', 'bigint'],
                 [2.5, 'Ratio', 'customComparable', 'float8', 'double precision'],
             ]
-            for (const [value, type, columnType, cast, expected] of cases) {
-                const resolved = await resolvedType(runners!.plain, value, type, columnType, true)
+            for (const [value, type, customType, cast, expected] of cases) {
+                const resolved = await resolvedType(runners!.plain, value, type, customType, true)
                 expect([type, value, resolved]).toEqual([type, value, { placeholder: typesTheParam ? '$1' : '$1::' + cast, type: expected }])
             }
         })
@@ -81,14 +81,14 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
 
         test('a-param-compared-with-a-column-goes-untyped', async () => {
             const params: any[] = []
-            const placeholder = addParam(runners!.plain, params, 1, 'int', 'int', false)
+            const placeholder = addParam(runners!.plain, params, 1, 'int', undefined, false)
             expect(placeholder).toBe('$1')
             expect(await runners!.plain.executeSelectOneColumnOneRow(`select name from organization where id = ${placeholder}`, params)).toBe('Acme Corp')
         })
 
         test('the-params-of-the-query-are-not-changed', async () => {
             const params: any[] = []
-            const placeholder = addParam(runners!.declared, params, 7, 'int', 'int', true)
+            const placeholder = addParam(runners!.declared, params, 7, 'int', undefined, true)
             const decimal = addParam(runners!.declared, params, exactDecimal, 'ExactDecimal', 'customDouble', false)
             await runners!.declared.executeSelectOneRow(`select ${placeholder} as a, ${decimal}::text as b`, params)
             expect(params).toEqual([7, exactDecimal])
@@ -98,7 +98,7 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             const r = runners!.plain
             const type = await r.executeInTransaction(() => {
                 const params: any[] = []
-                return r.executeSelectOneColumnOneRow(`select pg_typeof(${addParam(r, params, 7, 'int', 'int', true)})::text`, params)
+                return r.executeSelectOneColumnOneRow(`select pg_typeof(${addParam(r, params, 7, 'int', undefined, true)})::text`, params)
             }, r)
             expect(type).toBe('integer')
         })
@@ -110,7 +110,7 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             expect(placeholder).toBe(typesTheParam ? '$1' : '$1::numeric')
             expect(await r.executeSelectOneRow(`select (${placeholder})::text as v, pg_typeof(${placeholder})::text as t`, params)).toEqual({ v: exactDecimal, t: 'numeric' })
 
-            // Without the declaration, the category gives it the type of a double, which loses digits
+            // Without the declaration, a customDouble gets the type of a double, which loses digits
             const plainParams: any[] = []
             const asDouble = await runners!.plain.executeSelectOneColumnOneRow(`select (${addParam(runners!.plain, plainParams, exactDecimal, 'ExactDecimal', 'customDouble', true)})::text`, plainParams)
             expect(asDouble).not.toBe(exactDecimal)

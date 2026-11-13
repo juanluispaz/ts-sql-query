@@ -1,6 +1,6 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
-import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
-import { isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isUuidValueType } from '../expressions/values.js'
+import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
+import { isValueSource, __getValueSourcePrivate, __isUuidValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -11,6 +11,8 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
 import { isMySqlReservedWord } from '../utils/mySqlMariaDB/mySqlReservedWords.js'
+import type { CustomType } from '../TypeAdapter.js'
+import { __isUuid } from '../utils/dataTypes.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
@@ -106,11 +108,11 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return 'select * from (' + select + ') as ' + this._escape(this._updateNewAlias, true) + ' (' + columns + ')'
     }
-    override _appendParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'binary') {
-            return 'uuid_to_bin(' + super._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
+    override _appendParam(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        if (__isUuid(type, customType) && this._getUuidStrategy() === 'binary') {
+            return 'uuid_to_bin(' + super._appendParam(value, context, type, customType, typeAdapter, forceTypeCast) + ')'
         }
-        return super._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        return super._appendParam(value, context, type, customType, typeAdapter, forceTypeCast)
     }
     override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'binary') {
@@ -130,17 +132,17 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return 'bin_to_uuid(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _escapeRegexpReplacement(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _escapeRegexpReplacement(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         // MySQL's `REGEXP_REPLACE` uses the ICU engine, whose replacement treats BOTH `$`
         // (group references `$0` / `$1`) and `\` as metacharacters — unlike MariaDB/PostgreSQL,
         // where only `\` is special. Escape both with a leading backslash (`$` → `\$`,
         // `\` → `\\`) so the replacement stays literal, matching `replaceAll`.
         if (typeof value === 'string') {
-            return this._appendValue(value.replace(/[\\$]/g, '\\$&'), context, columnType, columnTypeName, typeAdapter, forceTypeCast)
+            return this._appendValue(value.replace(/[\\$]/g, '\\$&'), context, type, customType, typeAdapter, forceTypeCast)
         }
         // Value source: escape the backslash first (doubled for the MySQL string literal), then
         // the dollar, so the backslash added for `$` is not doubled again.
-        let sql = this._appendValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        let sql = this._appendValue(value, context, type, customType, typeAdapter, forceTypeCast)
         sql = "replace(" + sql + ", '\\\\', '\\\\\\\\')"
         sql = "replace(" + sql + ", '$', '\\\\$')"
         return sql

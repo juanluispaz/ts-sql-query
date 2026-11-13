@@ -216,7 +216,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     __executeSelectCount(source: QueryExecutionSource): Promise<any> {
         let query = ''
         try {
-            const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
+            const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', undefined, 'required', undefined)
             const params: any[] = []
             query = this.__buildSelectCount(countAll, new SqlBuildContext(params))
             const executionParams = __setQueryMetadata(source, params, this.__sqlBuilder, __resultColumnsOf({ '': countAll }, this.__sqlBuilder), this.__customization, true)
@@ -915,7 +915,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     selectCountAll(): any {
         this.__requiredResult = true
-        const column = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
+        const column = new AggregateFunctions0ValueSource('_countAll', 'int', undefined, 'required', undefined)
         this.__finishJoinHaving()
         this.__invalidateQuery()
         this.__oneColumn = true

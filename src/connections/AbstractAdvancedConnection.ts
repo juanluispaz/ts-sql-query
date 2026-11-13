@@ -1,11 +1,12 @@
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { Sequence } from '../expressions/sequence.js'
 import { AbstractConnection } from './AbstractConnection.js'
 import { SequenceQueryBuilder } from '../queryBuilders/SequenceQueryBuilder.js'
 import type { NDB, NNoTableOrViewRequired } from '../utils/sourceName.js'
+import type { CustomType } from '../TypeAdapter.js'
 
 export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> extends AbstractConnection<DB> {
 
@@ -36,8 +37,8 @@ export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> exte
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<ComparableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Sequence<any> {
         if (typeof adapter === 'string') {
-            return new SequenceQueryBuilder(name, type as ValueType, adapter, adapter2)
+            return new SequenceQueryBuilder(name, adapter, type as CustomType, adapter2)
         }
-        return new SequenceQueryBuilder(name, type as ValueType, type, adapter)
+        return new SequenceQueryBuilder(name, type, undefined, adapter)
     }
 }

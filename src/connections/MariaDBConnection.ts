@@ -117,7 +117,7 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
     stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mariaDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mariaDB', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'mariaDB', NAME>>, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
 
     default(): Default {

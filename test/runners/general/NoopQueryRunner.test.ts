@@ -1,7 +1,7 @@
 // NoopQueryRunner: every query answers "nothing", transactions are counted.
 
 import { SynchronousPromise } from 'synchronous-promise'
-import type { ValueType } from '../../../src/expressions/values.js'
+import type { CustomType } from '../../../src/TypeAdapter.js'
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { SqliteConnection } from '../../../src/connections/SqliteConnection.js'
 import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
@@ -77,7 +77,7 @@ describe('NoopQueryRunner', () => {
         test(`params-on-${database}`, () => {
             const runner = new NoopQueryRunner(database)
             const params: any[] = []
-            expect([addParam(runner, params, 'a', 'string', 'string', false), addParam(runner, params, 'b', 'string', 'string', false)]).toEqual([first, second])
+            expect([addParam(runner, params, 'a', 'string', undefined, false), addParam(runner, params, 'b', 'string', undefined, false)]).toEqual([first, second])
             expect(runner.database).toBe(database)
         })
     }
@@ -89,17 +89,17 @@ describe('NoopQueryRunner', () => {
     for (const [database, placeholder] of FORCED) {
         test(`forced-type-on-${database}`, () => {
             const runner = new NoopQueryRunner(database)
-            expect(addParam(runner, [], 1, 'int', 'int', true)).toBe(placeholder)
+            expect(addParam(runner, [], 1, 'int', undefined, true)).toBe(placeholder)
         })
     }
     test('forced-type-on-postgreSql-by-the-value', () => {
         const runner = new NoopQueryRunner('postgreSql')
-        const cases: [unknown, string, ValueType, string][] = [
+        const cases: [unknown, string, CustomType | undefined, string][] = [
             [1, 'Status', 'enum', '$1::int4'], [5000000000, 'Big', 'custom', '$1::int8'], [1.5, 'Ratio', 'customComparable', '$1::float8'],
-            [5n, 'Count', '', '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
+            [5n, 'Count', undefined, '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
         ]
-        for (const [value, type, columnType, placeholder] of cases) {
-            expect([type, value, addParam(runner, [], value, type, columnType, true)]).toEqual([type, value, placeholder])
+        for (const [value, type, customType, placeholder] of cases) {
+            expect([type, value, addParam(runner, [], value, type, customType, true)]).toEqual([type, value, placeholder])
         }
     })
 
@@ -107,7 +107,7 @@ describe('NoopQueryRunner', () => {
         const runner = new NoopQueryRunner()
         runner.useDatabase('dbase' as any)
         let error: unknown
-        try { addParam(runner, [], 1, 'int', 'int', false) } catch (e) { error = e }
+        try { addParam(runner, [], 1, 'int', undefined, false) } catch (e) { error = e }
         expect(reasonOf(error)).toBe('UNSUPPORTED_DATABASE')
     })
 

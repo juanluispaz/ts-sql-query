@@ -1,4 +1,4 @@
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, IStringDecimalValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomDecimalValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, IStringDecimalValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomDecimalValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
 import type { ITable, IWithView, ITableOrView, HasIsValue, OfDB } from './utils/ITableOrView.js'
 import { __addWiths, __registerTableOrView, __registerRequiredColumn, __getTableOrViewPrivate } from './utils/ITableOrView.js'
 import type { TypeAdapter } from './TypeAdapter.js'
@@ -13,6 +13,7 @@ import { ValueSourceFromBuilder } from './internal/ValueSourceImpl.js'
 import { FragmentQueryBuilder } from './queryBuilders/FragmentQueryBuilder.js'
 import type { NNoTableOrViewRequiredFrom, NSourceAllowingNoTableOrViewRequired, NTable } from './utils/sourceName.js'
 import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
+import type { CustomType } from './TypeAdapter.js'
 
 class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -105,9 +106,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
     protected column(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asColumn()
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asColumn()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asColumn()
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asColumn()
     }
 
     protected optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'> & Column
@@ -133,9 +134,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & Column
     protected optionalColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asOptionalColumn()
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asOptionalColumn()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asOptionalColumn()
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asOptionalColumn()
     }
 
     protected columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
@@ -161,9 +162,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & ColumnWithDefaultValue */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asColumnWithDefaultValue()
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asColumnWithDefaultValue()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asColumnWithDefaultValue()
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asColumnWithDefaultValue()
     }
 
     protected optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
@@ -189,9 +190,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & ColumnWithDefaultValue */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asOptionalColumnWithDefaultValue()
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asOptionalColumnWithDefaultValue()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asOptionalColumnWithDefaultValue()
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asOptionalColumnWithDefaultValue()
     }
 
     protected autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
@@ -217,9 +218,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asAutogeneratedPrimaryKey()
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asAutogeneratedPrimaryKey()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asAutogeneratedPrimaryKey()
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asAutogeneratedPrimaryKey()
     }
 
     protected primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & PrimaryKeyColumn
@@ -245,9 +246,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asPrimaryKey()
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asPrimaryKey()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asPrimaryKey()
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asPrimaryKey()
     }
 
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
@@ -273,9 +274,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asAutogeneratedPrimaryKeyBySequence(sequenceName)
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asAutogeneratedPrimaryKeyBySequence(sequenceName)
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asAutogeneratedPrimaryKeyBySequence(sequenceName)
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asAutogeneratedPrimaryKeyBySequence(sequenceName)
     }
 
     protected computedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>
@@ -301,9 +302,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'>
     protected computedColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new DBColumnImpl(this, name, type as ValueType, adapter, adapter2).__asComputedColumn()
+            return new DBColumnImpl(this, name, adapter, type as CustomType, adapter2).__asComputedColumn()
         }
-        return new DBColumnImpl(this, name, type as ValueType, type, adapter).__asComputedColumn()
+        return new DBColumnImpl(this, name, type, undefined, adapter).__asComputedColumn()
     }
 
     protected optionalComputedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'>
@@ -329,9 +330,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'optional'>
     protected optionalComputedColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asOptionalColumn().__asOptionalComputedColumn()
+            return (new DBColumnImpl(this, name, adapter, type as CustomType, adapter2)).__asOptionalColumn().__asOptionalComputedColumn()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asOptionalColumn().__asOptionalComputedColumn()
+        return (new DBColumnImpl(this, name, type, undefined, adapter)).__asOptionalColumn().__asOptionalComputedColumn()
     }
 
     protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>
@@ -357,11 +358,11 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: ComparableFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'required'>) => IComparableValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'required'>, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'>
     protected virtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(type as ValueType, arg1, 'required', arg3)
-            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueType, arg1, 'required', arg3)
+            const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'required', arg3)
+            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'required', arg3)
         }
-        const fragmentBuilder =  new FragmentQueryBuilder(type as ValueType, type, 'required', arg2 as TypeAdapter | undefined)
-        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueType, type, 'required', arg2 as TypeAdapter | undefined)
+        const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'required', arg2 as TypeAdapter | undefined)
+        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'required', arg2 as TypeAdapter | undefined)
     }
 
     protected optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'>
@@ -387,11 +388,11 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: ComparableFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'optional'>) => IComparableValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'optional'>, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'optional'>
     protected optionalVirtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(type as ValueType, arg1, 'optional', arg3)
-            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueType, arg1, 'optional', arg3)
+            const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'optional', arg3)
+            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'optional', arg3)
         }
-        const fragmentBuilder =  new FragmentQueryBuilder(type as ValueType, type, 'optional', arg2 as TypeAdapter | undefined)
-        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueType, type, 'optional', arg2 as TypeAdapter | undefined)
+        const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'optional', arg2 as TypeAdapter | undefined)
+        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'optional', arg2 as TypeAdapter | undefined)
     }
 
     // @ts-ignore

@@ -84,12 +84,12 @@ const SEED: readonly { id: number, name: string, amount: number | null }[] = [
 const ALL_LEVELS = ['read uncommitted', 'read committed', 'repeatable read', 'snapshot', 'serializable'] as const
 
 /**
- * Adds a parameter with the name and the category of its type, as the SqlBuilders do: SQL Server
+ * Adds a parameter with its type, as the SqlBuilders do: SQL Server
  * binds it with that type instead of inferring one from the value (a null can't be inferred).
  * Harmless on the databases whose runner doesn't read it.
  */
 export function addTypedParam(runner: QueryRunner, params: any[], value: unknown, type: 'int' | 'string'): string {
-    return addParam(runner, params, value, type, type, false)
+    return addParam(runner, params, value, type, undefined, false)
 }
 
 /** Rows with their id as a number (an Oracle OUT bind returns it as a string; the library converts it later). */
@@ -158,13 +158,13 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('select-one-row', async () => {
             const p: any[] = []
-            const row = await r().executeSelectOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', 'int', false)}`, p)
+            const row = await r().executeSelectOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', undefined, false)}`, p)
             expect(row).toEqual({ id: 1, name: 'one' })
         })
 
         test('select-one-row-without-rows-is-undefined', async () => {
             const p: any[] = []
-            const row = await r().executeSelectOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 99, 'int', 'int', false)}`, p)
+            const row = await r().executeSelectOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 99, 'int', undefined, false)}`, p)
             expect(row).toBeUndefined()
         })
 
@@ -181,19 +181,19 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('select-one-column-one-row', async () => {
             const p: any[] = []
-            const value = await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p, 2, 'int', 'int', false)}`, p)
+            const value = await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
             expect(value).toBe('two')
         })
 
         test('select-one-column-one-row-without-rows-is-undefined', async () => {
             const p: any[] = []
-            const value = await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p, 99, 'int', 'int', false)}`, p)
+            const value = await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p, 99, 'int', undefined, false)}`, p)
             expect(value).toBeUndefined()
         })
 
         test('select-one-column-one-row-with-two-columns-fails', async () => {
             const p: any[] = []
-            const error = await rejectionOf(r().executeSelectOneColumnOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', 'int', false)}`, p))
+            const error = await rejectionOf(r().executeSelectOneColumnOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', undefined, false)}`, p))
             expect(reasonOf(error)).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
@@ -214,7 +214,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('select-null-value', async () => {
             const p: any[] = []
-            const value = await r().executeSelectOneColumnOneRow(`select ${col('amount')} from rt_probe where id = ${addParam(r(), p, 3, 'int', 'int', false)}`, p)
+            const value = await r().executeSelectOneColumnOneRow(`select ${col('amount')} from rt_probe where id = ${addParam(r(), p, 3, 'int', undefined, false)}`, p)
             expect(value).toBeNull()
         })
 
@@ -222,7 +222,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('insert-reports-inserted-rows', async () => {
             const p: any[] = []
-            const inserted = await r().executeInsert(`insert into rt_probe (id, name) values (${addParam(r(), p, 10, 'int', 'int', false)}, ${addParam(r(), p, 'ten', 'string', 'string', false)})`, p)
+            const inserted = await r().executeInsert(`insert into rt_probe (id, name) values (${addParam(r(), p, 10, 'int', undefined, false)}, ${addParam(r(), p, 'ten', 'string', undefined, false)})`, p)
             expect(inserted).toBe(1)
             expect(await count()).toBe(4)
         })
@@ -259,7 +259,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('update-reports-updated-rows', async () => {
             const p: any[] = []
-            const updated = await r().executeUpdate(`update rt_probe set amount = ${addParam(r(), p, 5, 'int', 'int', false)} where id >= ${addParam(r(), p, 2, 'int', 'int', false)}`, p)
+            const updated = await r().executeUpdate(`update rt_probe set amount = ${addParam(r(), p, 5, 'int', undefined, false)} where id >= ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
             expect(updated).toBe(2)
         })
 
@@ -304,19 +304,19 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             // clause and flag the params; the runner then runs a plain update and
             // reports no returned rows.
             const p: any[] = []
-            const sql = `update rt_probe set name = ${addParam(r(), p, 'plain', 'string', 'string', false)} where id = ${addParam(r(), p, 1, 'int', 'int', false)}`
+            const sql = `update rt_probe set name = ${addParam(r(), p, 'plain', 'string', undefined, false)} where id = ${addParam(r(), p, 1, 'int', undefined, false)}`
             queryContextOf(p).containsMutationReturningClause = false
             const rows = await r().executeUpdateReturningManyRows(sql, p)
             expect(rows).toEqual([])
             const p2: any[] = []
-            expect(await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p2, 1, 'int', 'int', false)}`, p2)).toBe('plain')
+            expect(await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p2, 1, 'int', undefined, false)}`, p2)).toBe('plain')
         })
 
         // ---- deletes -----------------------------------------------------
 
         test('delete-reports-deleted-rows', async () => {
             const p: any[] = []
-            const deleted = await r().executeDelete(`delete from rt_probe where id >= ${addParam(r(), p, 2, 'int', 'int', false)}`, p)
+            const deleted = await r().executeDelete(`delete from rt_probe where id >= ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
             expect(deleted).toBe(2)
             expect(await count()).toBe(1)
         })
@@ -427,14 +427,14 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test('insert-of-a-duplicate-key-fails', async () => {
             const runner = r()
             const p: any[] = []
-            const error = await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (${addParam(runner, p, 1, 'int', 'int', false)}, ${addParam(runner, p, 'dup', 'string', 'string', false)})`, p))
+            const error = await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (${addParam(runner, p, 1, 'int', undefined, false)}, ${addParam(runner, p, 'dup', 'string', undefined, false)})`, p))
             expect(runner.isSqlError(error)).toBe(true)
             expect(typeof runner.getErrorReason(error).reason).toBe('string')
         })
 
         test.skipIf(dialect.database !== 'sqlite')('boolean-params-are-sent-as-numbers', async () => {
             const p: any[] = []
-            expect(await r().executeSelectOneColumnOneRow(`select ${addParam(r(), p, true, '', '', false)} + ${addParam(r(), p, false, '', '', false)}`, p)).toBe(1)
+            expect(await r().executeSelectOneColumnOneRow(`select ${addParam(r(), p, true, '', undefined, false)} + ${addParam(r(), p, false, '', undefined, false)}`, p)).toBe(1)
         })
 
         // ---- procedures and functions ------------------------------------
@@ -847,12 +847,12 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             const runner = r()
             const params: any[] = []
             if (dialect.database === 'oracle') {
-                expect(addOutParam(runner, params, 'id', 'int', 'int', false)).toBe(':0')
+                expect(addOutParam(runner, params, 'id', 'int', undefined, false)).toBe(':0')
                 expect(params).toHaveLength(1)
             } else {
                 let error: unknown
                 try {
-                    addOutParam(runner, params, 'id', 'int', 'int', false)
+                    addOutParam(runner, params, 'id', 'int', undefined, false)
                 } catch (e) {
                     error = e
                 }

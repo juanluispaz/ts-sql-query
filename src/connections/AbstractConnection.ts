@@ -4,7 +4,7 @@ import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, StringDecimalValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, AnyValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, StringDecimalValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, AnyValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
@@ -34,6 +34,7 @@ import type { ResultObjectValuesForAggregatedArray } from '../complexProjections
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../utils/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
+import type { CustomType } from '../TypeAdapter.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -551,27 +552,27 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // visibility-narrowed inherited method would produce.
     pi(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
     pi(): any {
-        return new SqlOperationStatic0ValueSource('_pi', 'double', 'double', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_pi', 'double', undefined, 'required', undefined)
     }
     random(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
     random(): any {
-        return new SqlOperationStatic0ValueSource('_random', 'double', 'double', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_random', 'double', undefined, 'required', undefined)
     }
     currentDate(): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentDate(): any {
-        return new SqlOperationStatic0ValueSource('_currentDate', 'localDate', 'localDate', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentDate', 'localDate', undefined, 'required', undefined)
     }
     currentTime(): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentTime(): any {
-        return new SqlOperationStatic0ValueSource('_currentTime', 'localTime', 'localTime', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentTime', 'localTime', undefined, 'required', undefined)
     }
     currentDateTime(): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentDateTime(): any {
-        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'localDateTime', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', undefined, 'required', undefined)
     }
     currentTimestamp(): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentTimestamp(): any {
-        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'localDateTime', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', undefined, 'required', undefined)
     }
 
     const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NNoTableOrViewRequired<DB>, 'required'>
@@ -597,9 +598,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     const<T, TYPE_NAME extends string>(value: T, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
     const(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new SqlOperationConstValueSource(value, type as ValueType, adapter, 'required', adapter2)
+            return new SqlOperationConstValueSource(value, adapter, type as CustomType, 'required', adapter2)
         }
-        return new SqlOperationConstValueSource(value, type as ValueType, type, 'required', adapter)
+        return new SqlOperationConstValueSource(value, type, undefined, 'required', adapter)
     }
 
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NNoTableOrViewRequired<DB>, 'optional'>
@@ -625,9 +626,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
     optionalConst(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new SqlOperationConstValueSource(value, type as ValueType, adapter, 'optional', adapter2)
+            return new SqlOperationConstValueSource(value, adapter, type as CustomType, 'optional', adapter2)
         }
-        return new SqlOperationConstValueSource(value, type as ValueType, type, 'optional', adapter)
+        return new SqlOperationConstValueSource(value, type, undefined, 'optional', adapter)
     }
 
     true(): BooleanValueSource<NNoTableOrViewRequired<DB>, 'required'> {
@@ -643,12 +644,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         // (e.g. `(exists(...) = 1)`, which SQL Server rejects as a syntax
         // error). Marking the result as a condition-only boolean keeps the
         // wrap from kicking in inside `where`/`and`/`or`.
-        const vs = new SqlOperationStatic1ValueSource('_exists', select, 'boolean', 'boolean', 'required', undefined)
+        const vs = new SqlOperationStatic1ValueSource('_exists', select, 'boolean', undefined, 'required', undefined)
         vs.__isBooleanForCondition = true
         return vs
     }
     notExists<SOURCE extends NSource>(select: IExecutableSelectQuery<SOURCE, any, any> & SameDB<DB>): BooleanValueSource<SOURCE, 'required'> {
-        const vs = new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', 'boolean', 'required', undefined)
+        const vs = new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', undefined, 'required', undefined)
         vs.__isBooleanForCondition = true
         return vs
     }
@@ -714,15 +715,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         const source = new QueryExecutionSource('Query executed at')
         let query: string | undefined
         try {
-            // The value type of the result (like 'customUuid'), and the name of its type (the type name for a custom type)
-            const valueType = returnType
+            // With a type name, the return type is a custom type (like 'customUuid') and the name is its type
+            let customType: CustomType | undefined = undefined
             if (typeof adapter === 'string') {
+                customType = returnType as CustomType
                 returnType = required
                 required = adapter
             } else {
                 adapter2 = adapter
             }
-            const functionCall = new FunctionCallValueSource(functionName, params as AnyValueSource[], valueType as ValueType, returnType, required === 'optional' ? 'optional' : 'required', adapter2)
+            const functionCall = new FunctionCallValueSource(functionName, params as AnyValueSource[], returnType, customType, required === 'optional' ? 'optional' : 'required', adapter2)
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallFunction(new SqlBuildContext(queryParams), functionCall)
             const executionParams = __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall, this.__sqlBuilder))
@@ -814,9 +816,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
     fragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            return new FragmentQueryBuilder(type as ValueType, required, adapter as any, adapter2)
+            return new FragmentQueryBuilder(required, type as CustomType, adapter as any, adapter2)
         }
-        return new FragmentQueryBuilder(type as ValueType, type, required as any, adapter)
+        return new FragmentQueryBuilder(type, undefined, required as any, adapter)
     }
 
     protected arg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'combined', boolean>
@@ -863,9 +865,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected arg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'combined', T, TYPE_NAME>
     protected arg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            return new Argument(type as any, required, adapter as any, 'combined', adapter2)
+            return new Argument(type as any, required, type as CustomType, adapter as any, 'combined', adapter2)
         }
-        return new Argument(type as any, type, required as any, 'combined', adapter)
+        return new Argument(type as any, type, undefined, required as any, 'combined', adapter)
     }
 
     protected valueArg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'value', boolean>
@@ -912,9 +914,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected valueArg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'value', T, TYPE_NAME>
     protected valueArg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            return new Argument(type as any, required, adapter as any, 'value', adapter2)
+            return new Argument(type as any, required, type as CustomType, adapter as any, 'value', adapter2)
         }
-        return new Argument(type as any, type, required as any, 'value', adapter)
+        return new Argument(type as any, type, undefined, required as any, 'value', adapter)
     }
 
     protected buildFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>>
@@ -996,9 +998,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            return new FragmentQueryBuilder(type as ValueType, required, adapter as any, adapter2, true)
+            return new FragmentQueryBuilder(required, type as CustomType, adapter as any, adapter2, true)
         }
-        return new FragmentQueryBuilder(type as ValueType, type, required as any, adapter, true)
+        return new FragmentQueryBuilder(type, undefined, required as any, adapter, true)
     }
 
     protected buildAggregateFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>, NAggregate<DB>>
@@ -1088,21 +1090,21 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     // Agregate functions
     countAll(): NumberValueSource<NNoTableOrViewRequired<DB> | NAggregate<DB>, 'required'> {
-        return new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
+        return new AggregateFunctions0ValueSource('_countAll', 'int', undefined, 'required', undefined)
     }
     count<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'required'> {
-        return new AggregateFunctions1ValueSource('_count', value, 'int', 'int', 'required', undefined)
+        return new AggregateFunctions1ValueSource('_count', value, 'int', undefined, 'required', undefined)
     }
     countDistinct<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'required'> {
-        return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', 'int', 'required', undefined)
+        return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', undefined, 'required', undefined)
     }
     max<TYPE extends IComparableValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
     }
     min<TYPE extends IComparableValueSource<NSource, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
     }
     sum<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     sum<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): BigintValueSource<SOURCE | NAggregate<DB>, 'optional'>
@@ -1113,7 +1115,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     sum<TYPE extends ICustomDecimalValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomDecimalValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sum(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
     sumDistinct<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     sumDistinct<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): BigintValueSource<SOURCE | NAggregate<DB>, 'optional'>
@@ -1124,7 +1126,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     sumDistinct<TYPE extends ICustomDecimalValueSource<any, any, any, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): CustomDecimalValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sumDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
     // `AVG` is conceptually a fractional operation: averaging any set of
     // numerics may yield a non-integer scalar. Every supported engine
@@ -1141,18 +1143,18 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_average', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_average', value, 'double', undefined, 'optional', valuePrivate.__typeAdapter)
     }
     averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_averageDistinct', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_averageDistinct', value, 'double', undefined, 'optional', valuePrivate.__typeAdapter)
     }
     stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): StringValueSource<SOURCE | NAggregate<DB>, 'optional'>
     stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>, separator: string): StringValueSource<SOURCE | NAggregate<DB>, 'optional'>
     stringConcat(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
     // `stringConcatDistinct` is declared on each concrete connection whose
     // dialect accepts DISTINCT inside its string-aggregation function (PG,

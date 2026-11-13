@@ -77,7 +77,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
                 if (!__isBooleanValueSource(valueSourcePrivate) && !(extensionResult instanceof SqlOperationValueSourceIfValueAlwaysNoop)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__valueTypeName, path: joinPath(prefix, key), extensionName: key}, 'Invalid return type for the extension ' + joinPath(prefix, key) + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueTypeName + '. Processed value: ' +  value);
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__type, path: joinPath(prefix, key), extensionName: key}, 'Invalid return type for the extension ' + joinPath(prefix, key) + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__type + '. Processed value: ' +  value);
                     (error as any).key = joinPath(prefix, key);
                     (error as any).extensionResult = extensionResult;
                     (error as any).processedValue = value;
@@ -127,7 +127,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
                 if (!__isBooleanValueSource(valueSourcePrivate) && !(extensionResult instanceof SqlOperationValueSourceIfValueAlwaysNoop)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__valueTypeName, path: column, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + column + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueTypeName + '. Processed value: ' +  value);
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__type, path: column, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + column + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__type + '. Processed value: ' +  value);
                     (error as any).path = column;
                     (error as any).rule = key;
                     (error as any).extensionResult = extensionResult;
@@ -218,7 +218,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
                 if (!__isBooleanValueSource(valueSourcePrivate) && !(extensionResult instanceof SqlOperationValueSourceIfValueAlwaysNoop)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__valueTypeName, path, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + path + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueTypeName + '. Processed value: ' +  value);
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__type, path, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + path + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__type + '. Processed value: ' +  value);
                     (error as any).path = path;
                     (error as any).rule = key;
                     (error as any).extensionResult = extensionResult;

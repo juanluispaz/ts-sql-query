@@ -1,12 +1,12 @@
 // How MssqlPoolQueryRunner binds each parameter: with the type declared for the
-// name of its type in typesByName, then by the category of its type, then by
-// the name of its type, and otherwise (a parameter added without them, or a
-// custom type) with a type inferred from the JavaScript value. The value read
+// name of its type in typesByName, then by its type and its custom type, and
+// otherwise (a parameter added without them, or an enum, a custom or a
+// customComparable) with a type inferred from the JavaScript value. The value read
 // back proves the binding.
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
-import type { ValueType } from '../../../src/expressions/values.js'
+import type { CustomType } from '../../../src/TypeAdapter.js'
 import { TsSqlError } from '../../../src/TsSqlError.js'
 import { MssqlPoolQueryRunner } from '../../../src/queryRunners/MssqlPoolQueryRunner.js'
 import { MssqlPoolPromiseQueryRunner } from '../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js'
@@ -30,9 +30,9 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     }, 300_000)
 
     // The base type SQL Server bound the parameter with.
-    async function boundAs(value: unknown, type: string = '', columnType: ValueType = ''): Promise<string> {
+    async function boundAs(value: unknown, type: string = '', customType: CustomType | undefined = undefined): Promise<string> {
         const params: any[] = []
-        const placeholder = addParam(runner!, params, value, type, columnType, false)
+        const placeholder = addParam(runner!, params, value, type, customType, false)
         return await runner!.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
     }
 
@@ -57,44 +57,34 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     test('a-null-without-a-data-type', async () => {
         for (const value of [null, undefined]) {
             const params: any[] = []
-            const placeholder = addParam(runner!, params, value, '', '', false)
+            const placeholder = addParam(runner!, params, value, '', undefined, false)
             expect(await runner!.executeSelectOneColumnOneRow(`select case when ${placeholder} is null then 1 else 0 end`, params)).toBe(1)
         }
     })
 
-    test('the-category-of-the-type-wins', async () => {
-        const cases: [unknown, string, ValueType, string][] = [
-            [1, 'boolean', 'boolean', 'bit'], [1, 'int', 'int', 'int'], [1, 'bigint', 'bigint', 'bigint'],
-            [1, 'double', 'double', 'float'], ['12', 'string', 'string', 'nvarchar'],
-            ['3f2504e0-4f89-41d3-9a0c-0305e82c3301', 'uuid', 'uuid', 'uniqueidentifier'], [new Date(), 'localDate', 'localDate', 'date'],
-            [new Date(), 'localTime', 'localTime', 'time'], [new Date(), 'localDateTime', 'localDateTime', 'datetime2'],
+    test('the-type-and-the-custom-type-decide', async () => {
+        const cases: [unknown, string, CustomType | undefined, string][] = [
+            [1, 'boolean', undefined, 'bit'], [1, 'int', undefined, 'int'], [1, 'bigint', undefined, 'bigint'],
+            [1, 'double', undefined, 'float'], ['12', 'string', undefined, 'nvarchar'],
+            ['3f2504e0-4f89-41d3-9a0c-0305e82c3301', 'uuid', undefined, 'uniqueidentifier'], [new Date(), 'localDate', undefined, 'date'],
+            [new Date(), 'localTime', undefined, 'time'], [new Date(), 'localDateTime', undefined, 'datetime2'],
             [1, 'Cents', 'customInt', 'int'], [10n, 'Downloads', 'customBigint', 'bigint'], [1, 'Money', 'customDouble', 'float'],
             ['3f2504e0-4f89-41d3-9a0c-0305e82c3301', 'SigningKey', 'customUuid', 'uniqueidentifier'],
             [new Date(), 'ReleaseDay', 'customLocalDate', 'date'], [new Date(), 'CutoffClock', 'customLocalTime', 'time'],
             [new Date(), 'SignOffStamp', 'customLocalDateTime', 'datetime2'],
         ]
-        for (const [value, type, columnType, expected] of cases) {
-            expect([type, await boundAs(value, type, columnType)]).toEqual([type, expected])
-        }
-    })
-
-    test('without-a-category-the-name-of-the-type-decides', async () => {
-        const cases: [unknown, string, string][] = [
-            [1, 'boolean', 'bit'], [1, 'double', 'float'],
-            ['12', 'string', 'nvarchar'],
-        ]
-        for (const [value, type, expected] of cases) {
-            expect([type, await boundAs(value, type)]).toEqual([type, expected])
+        for (const [value, type, customType, expected] of cases) {
+            expect([type, await boundAs(value, type, customType)]).toEqual([type, expected])
         }
     })
 
     test('a-custom-type-sends-a-text-as-text', async () => {
-        const cases: [unknown, string, ValueType, string][] = [
+        const cases: [unknown, string, CustomType | undefined, string][] = [
             ['1.2', 'Semver', 'customComparable', 'nvarchar'], ['12', 'ReleaseChannel', 'custom', 'nvarchar'],
-            ['2026-01-02', 'Stage', 'enum', 'nvarchar'], [7, 'aCustomTypeName', '', 'int'], ['constructor', 'constructor', '', 'nvarchar'],
+            ['2026-01-02', 'Stage', 'enum', 'nvarchar'], [7, 'aCustomTypeName', undefined, 'int'], ['constructor', 'constructor', undefined, 'nvarchar'],
         ]
-        for (const [value, type, columnType, expected] of cases) {
-            expect([type, await boundAs(value, type, columnType)]).toEqual([type, expected])
+        for (const [value, type, customType, expected] of cases) {
+            expect([type, await boundAs(value, type, customType)]).toEqual([type, expected])
         }
     })
 
@@ -114,7 +104,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
             const read = await declared.executeSelectManyRows(`select cast(v as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs from rt_exact_decimal where v = ${placeholder}`, selectParams)
             expect(read).toEqual([{ v: exactDecimal, boundAs: 'nvarchar' }])
 
-            // Without the declaration, the category binds it as a float, which loses digits
+            // Without the declaration, a customDouble is bound as a float, which loses digits
             const floatParams: any[] = []
             const asFloat = await runner!.executeSelectOneColumnOneRow(`select cast(cast(${addParam(runner!, floatParams, exactDecimal, 'ExactDecimal', 'customDouble', false)} as decimal(38,10)) as nvarchar(50))`, floatParams)
             expect(asFloat).not.toBe(exactDecimal)
@@ -147,15 +137,15 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         expect(row).toEqual({ v: '1.2346', boundAs: 'decimal', scale: 4 })
     })
 
-    test('typesByName/the-declared-type-wins-over-the-category-and-applies-to-that-name-only', async () => {
+    test('typesByName/the-declared-type-wins-over-the-type-and-applies-to-that-name-only', async () => {
         const { TYPES } = db!.mssql
         const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { int: TYPES.BigInt, Code: TYPES.Decimal(10, 2) } })
-        const boundBy = async (value: unknown, type: string, columnType: ValueType) => {
+        const boundBy = async (value: unknown, type: string, customType: CustomType | undefined) => {
             const params: any[] = []
-            const placeholder = addParam(declared, params, value, type, columnType, false)
+            const placeholder = addParam(declared, params, value, type, customType, false)
             return await declared.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
         }
-        expect(await boundBy(1, 'int', 'int')).toBe('bigint')
+        expect(await boundBy(1, 'int', undefined)).toBe('bigint')
         expect(await boundBy(12, 'Code', 'customInt')).toBe('decimal')
         expect(await boundBy(12, 'Cents', 'customInt')).toBe('int')
     })

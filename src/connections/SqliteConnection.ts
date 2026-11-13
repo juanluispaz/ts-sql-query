@@ -115,12 +115,12 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'sqlite', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'sqlite', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'sqlite', NAME>>, 'optional'>
     stringConcatDistinct(value: IStringValueSource<any, any>): StringValueSource<any, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', undefined, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', undefined, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
 
     anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'sqlite', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'sqlite', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'sqlite', NAME>>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
     }
 
     /**

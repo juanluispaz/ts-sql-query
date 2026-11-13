@@ -7,11 +7,11 @@ import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.j
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
-import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
+import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __customTypeOf, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
+import { __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../utils/dataTypes.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 
@@ -111,7 +111,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         if (operation !== undefined) {
             // An aggregated array (`json_agg($1)`, `json_build_object('a', $1)`) has no operation and always needs it
-            if (operandPrivate.__valueType === 'string' || !this._operationNeedsTypedConst(operation, operand, operandPrivate.__valueType, otherOperands)) {
+            if (__isString(operandPrivate.__type, operandPrivate.__customType) || !this._operationNeedsTypedConst(operation, operand, operandPrivate.__type, operandPrivate.__customType, otherOperands)) {
                 return operand
             }
         }
@@ -122,7 +122,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         typed.__forceTypeCast = true
         return typed
     }
-    _operationNeedsTypedConst(operation: string, operand: unknown, valueType: ValueType, otherOperands: any[]): boolean {
+    _operationNeedsTypedConst(operation: string, operand: unknown, type: string, customType: CustomType | undefined, otherOperands: any[]): boolean {
         switch (operation) {
             case '_add':
             case '_subtract':
@@ -152,7 +152,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 return this._numericKindOf(operand) === 'approximate' || this._numericKindOf(otherOperands[0]) === 'approximate'
             case '_modulo':
                 // The fractional form casts its operands to numeric itself
-                return !this._moduloRequiresFloatHandling(valueType, otherOperands[0])
+                return !this._moduloRequiresFloatHandling(type, customType, otherOperands[0])
             case '_equals':
             case '_notEquals':
             case '_is':
@@ -160,18 +160,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             case '_in':
             case '_notIn':
                 // Compared as text, a uuid ignores the case and a date the time of day it was sent with
-                switch (valueType) {
-                    case 'uuid':
-                    case 'customUuid':
-                    case 'localDate':
-                    case 'localTime':
-                    case 'localDateTime':
-                    case 'customLocalDate':
-                    case 'customLocalTime':
-                    case 'customLocalDateTime':
-                        return true
-                }
-                return false
+                return __isUuid(type, customType) || __isLocalDate(type, customType) || __isLocalTime(type, customType) || __isLocalDateTime(type, customType)
         }
         return false
     }
@@ -232,12 +221,12 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
 
         const limit = query.__limit
         if (limit !== null && limit !== undefined) {
-            result += ' limit ' + this._appendValue(limit, context, 'int', 'int', undefined, false)
+            result += ' limit ' + this._appendValue(limit, context, 'int', undefined, undefined, false)
         }
 
         const offset = query.__offset
         if (offset !== null && offset !== undefined) {
-            result += ' offset ' + this._appendValue(offset, context, 'int', 'int', undefined, false)
+            result += ' offset ' + this._appendValue(offset, context, 'int', undefined, undefined, false)
         }
         return result
     }
@@ -274,11 +263,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // registered in `_operationsThatNeedParenthesis`).
         return this._appendSqlParenthesis(valueSource, context, false) + ' collate "' + collation + '"'
     }
-    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         // PostgreSQL's `REPLACE` ignores collation; fold case with `regexp_replace(..., 'gi')`.
         // The `'gi'` flag is **case-only** — it cannot honour `insensitiveCollation`, a language
         // collation, or accents (a documented per-engine limitation). `g` replaces every match.
-        return 'regexp_replace(' + this._appendSql(valueSource, context, false) + ', ' + this._escapeRegexpForReplace(value, context, columnType, columnTypeName, typeAdapter, false) + ', ' + this._escapeRegexpReplacement(value2, context, columnType, columnTypeName, typeAdapter, false) + ", 'gi')"
+        return 'regexp_replace(' + this._appendSql(valueSource, context, false) + ', ' + this._escapeRegexpForReplace(value, context, type, customType, typeAdapter, false) + ', ' + this._escapeRegexpReplacement(value2, context, type, customType, typeAdapter, false) + ", 'gi')"
     }
     override _finalizeAggregatedArrayResult(sql: string): string {
         // node-postgres / postgres / pglite decode a `json` column with `JSON.parse`, rounding
@@ -322,8 +311,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
-        const columnTypeName = columnPrivate.__valueTypeName
-        const columnType = columnPrivate.__valueType
+        const type = columnPrivate.__type
+        const customType = columnPrivate.__customType
 
         if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
@@ -353,28 +342,28 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 } else {
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                        return 'case ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, true) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, true) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case ' + this._appendConditionValue(value, context, columnType, columnTypeName, columnTypeAdapter, true) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, true) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -393,30 +382,30 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // Transform an uuid to string
         return this._appendSqlParenthesis(valueSource, context, false) + '::text'
     }
-    override _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         // maxValue(x) — the SMALLER of the two. PostgreSQL's `least` ignores a NULL
         // operand, contradicting the optional type the library declares; wrap it so a
         // NULL operand poisons the result. `maxValueFunction` is the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.maxValueFunction, 'least')
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, type, customType, typeAdapter, this._connectionConfiguration.maxValueFunction, 'least')
     }
-    override _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         // minValue(x) — the LARGER of the two. PostgreSQL's `greatest` ignores a NULL
         // operand; wrap it so a NULL operand poisons the result. `minValueFunction` is
         // the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, type, customType, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
     }
-    override _asNullValue(context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _asNullValue(context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         // A null of a type PostgreSQL knows is a parameter that carries its type, written as a cast or sent with it by
         // the query runner: a bare null has none where the position gives it none (a row of a union, a Values row, a
         // case). A null of any other type stays a literal null, that PostgreSQL resolves as text where it can't infer it.
-        if (postgreSqlParamType(columnTypeName, __customTypeOf(columnType), null)) {
-            const sent = this._transformParamToDB(null, columnType, columnTypeName, typeAdapter, context, true)
-            return this._appendParam(sent, context, columnType, columnTypeName, typeAdapter, true)
+        if (postgreSqlParamType(type, customType, null)) {
+            const sent = this._transformParamToDB(null, type, customType, typeAdapter, context, true)
+            return this._appendParam(sent, context, type, customType, typeAdapter, true)
         }
-        return super._asNullValue(context, columnType, columnTypeName, typeAdapter)
+        return super._asNullValue(context, type, customType, typeAdapter)
     }
-    override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (this._moduloRequiresFloatHandling(columnType, value)) {
+    override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+        if (this._moduloRequiresFloatHandling(type, customType, value)) {
             // PostgreSQL defines neither the `%` operator nor `mod(...)` for
             // `double precision` — both exist only for integer / numeric — so
             // the inherited `<col> % <rhs>` form fails at runtime with
@@ -425,11 +414,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             // Cast both operands to numeric so `mod(numeric, numeric)` resolves
             // (the same numeric-cast strategy `_logn` / `_roundn` use). Pure
             // integer / bigint receivers and operands keep the plain `%` form below.
-            return 'mod((' + this._appendSql(valueSource, context, false) + ')::numeric, (' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')::numeric)'
+            return 'mod((' + this._appendSql(valueSource, context, false) + ')::numeric, (' + this._appendValue(value, context, this._getMathArgumentType(type, customType, value), this._getMathArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')::numeric)'
         }
-        return super._modulo(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._modulo(context, valueSource, value, type, customType, typeAdapter)
     }
-    override _logn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _logn(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         // PostgreSQL only defines the two-argument logarithm for `numeric`:
         // `log(b numeric, x numeric) → numeric`. There is no
         // `log(double precision, double precision)` overload, and the
@@ -440,9 +429,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // fails at runtime with `function log(unknown, double precision)
         // does not exist`. Cast both operands to numeric so the overload
         // resolves regardless of how the chain was built.
-        return 'log((' + this._appendValue(value, context, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value)) + ')::numeric, (' + this._appendSql(valueSource, context, false) + ')::numeric)'
+        return 'log((' + this._appendValue(value, context, this._getMathArgumentType(type, customType, value), this._getMathArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')::numeric, (' + this._appendSql(valueSource, context, false) + ')::numeric)'
     }
-    override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         // PostgreSQL only has the `round(numeric, integer)` overload — there is
         // no `round(double precision, integer)` (the engine errors with
         // `function round(double precision, integer) does not exist`). `_divide`
@@ -453,9 +442,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // different tie-breaking rule. `round(numeric, s)` breaks ties away from
         // zero, the rule ts-sql-query follows on every dialect.
         const receiver = this._appendSql(valueSource, context, false)
-        const roundnScale = this._roundnScale(value, columnType, columnTypeName, typeAdapter)
-        const integerScale = this._isIntegerOperand(roundnScale.value, roundnScale.type, roundnScale.typeName, roundnScale.typeAdapter)
-        const scale = this._appendValue(roundnScale.value, context, roundnScale.type, roundnScale.typeName, roundnScale.typeAdapter, !integerScale)
+        const roundnScale = this._roundnScale(value, type, customType, typeAdapter)
+        const integerScale = this._isIntegerOperand(roundnScale.value, roundnScale.type, roundnScale.customType, roundnScale.typeAdapter)
+        const scale = this._appendValue(roundnScale.value, context, roundnScale.type, roundnScale.customType, roundnScale.typeAdapter, !integerScale)
         if (integerScale) {
             return 'round((' + receiver + ')::numeric, ' + scale + ')'
         }
@@ -491,112 +480,112 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // PostgreSQL folds an unquoted name to lowercase, and `und-x-icu` isn't valid without the quotes.
         return '"' + collation + '"'
     }
-    override _equalsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _equalsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false) + ' collate "' + collation + '"'
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false)
+            return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false)
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ') = lower(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') = lower(' + this._appendValue(value, context, type, customType, typeAdapter, false) + ')'
         }
     }
-    override _notEqualsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEqualsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false) + ' collate "' + collation + '"'
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false)
+            return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false)
         } else {
-            return 'lower(' + this._appendSql(valueSource, context, false) + ') <> lower(' + this._appendValue(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'lower(' + this._appendSql(valueSource, context, false) + ') <> lower(' + this._appendValue(value, context, type, customType, typeAdapter, false) + ')'
         }
     }
-    override _likeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _likeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._likeInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._likeInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false) + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false)
+            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false)
         }
     }
-    override _notLikeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notLikeInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._notLikeInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._notLikeInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false) + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike ' + this._appendValueParenthesis(value, context, columnType, columnTypeName, typeAdapter, false)
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false)
         }
     }
-    override _startsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _startsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._startsWithInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._startsWithInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike (' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' ilike (' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')"
         }
     }
-    override _notStartsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notStartsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._notStartsWithInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._notStartsWithInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike (' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike (' +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + ' not ilike (' +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')"
         }
     }
-    override _endsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _endsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._endsWithInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._endsWithInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ') collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ')'
         }
     }
-    override _notEndsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEndsWithInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._notEndsWithInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._notEndsWithInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ') collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ') collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + ')'
+            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + ')'
         }
     }
-    override _containsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _containsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._containsInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._containsInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')"
         }
     }
-    override _notContainsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notContainsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._connectionConfiguration.useLikeInsteadOfIlike) {
-            return super._notContainsInsensitive(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+            return super._notContainsInsensitive(context, valueSource, value, type, customType, typeAdapter)
         }
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, columnType, columnTypeName, typeAdapter, false) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, context, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false) + " || '%')"
         }
     }
     override _stringConcat(context: SqlBuildContext, separator: string | undefined, value: any): string {
@@ -605,7 +594,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         } else if (separator === '') {
             return 'string_agg(' + this._appendSql(value, context, false) + ", '')"
         } else {
-            return 'string_agg(' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', 'string', undefined, false) + ')'
+            return 'string_agg(' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', undefined, undefined, false) + ')'
         }
     }
     override _stringConcatDistinct(context: SqlBuildContext, separator: string | undefined, value: any): string {
@@ -614,25 +603,25 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         } else if (separator === '') {
             return 'string_agg(distinct ' + this._appendSql(value, context, false) + ", '')"
         } else {
-            return 'string_agg(distinct ' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', 'string', undefined, false) + ')'
+            return 'string_agg(distinct ' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', undefined, undefined, false) + ')'
         }
     }
     // `substr()` with a negative start does not count from the end on this dialect, and where
     // it does the out-of-range case still diverges from JS. `right()` / `left()` are exactly
     // `String.prototype.substr`'s negative-start semantics, clamp included. Only the negative
     // arms are overridden; the rest of the family is the base's.
-    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && value < 0) {
-            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', 'int', typeAdapter, false) + ')'
+            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', undefined, typeAdapter, false) + ')'
         }
-        return super._substrToEnd(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._substrToEnd(context, valueSource, value, type, customType, typeAdapter)
     }
-    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', 'int', typeAdapter, false) + '), ' + this._appendValue(value2, context, 'int', 'int', typeAdapter, false) + ')'
+            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, 'int', undefined, typeAdapter, false) + '), ' + this._appendValue(value2, context, 'int', undefined, typeAdapter, false) + ')'
         }
-        return super._substr(context, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+        return super._substr(context, valueSource, value, value2, type, customType, typeAdapter)
     }
     // The date-part family (`_getTime` / `_getMonth` / `_getDay` / …) lives in
     // AbstractSqlBuilder, written in this dialect's form, and PostgreSQL reaches it
@@ -650,7 +639,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return sql
         }
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = postgreSqlZonedValueSql(sql, valueSourcePrivate.__valueTypeName, __customTypeOf(valueSourcePrivate.__valueType), this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = postgreSqlZonedValueSql(sql, valueSourcePrivate.__type, valueSourcePrivate.__customType, this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? '(' + zoned + " at time zone 'UTC')" : sql
     }
 }

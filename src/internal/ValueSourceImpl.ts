@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from './SqlBuildContext.js'
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData, SqlBoolean0 } from '../sqlBuilders/SqlBuilder.js'
 import { hasToSql } from '../sqlBuilders/SqlBuilder.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, AggregatedArrayValueSourceProjectableAsNullable, ValueType, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, AggregatedArrayValueSourceProjectableAsNullable, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
@@ -14,7 +14,8 @@ import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __customTypeOf, __isExactDecimal } from '../utils/dataTypes.js'
+import { __isDouble, __isExactDecimal, __isUuid } from '../utils/dataTypes.js'
+import type { CustomType } from '../TypeAdapter.js'
 
 export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, NumberValueSource<any, any>, BigintValueSource<any, any>, CustomIntValueSource<any, any, any, any>, CustomBigintValueSource<any, any, any, any>, CustomDoubleValueSource<any, any, any, any>, StringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, CustomLocalDateValueSource<any, any, any, any>, CustomLocalTimeValueSource<any, any, any, any>, CustomLocalDateTimeValueSource<any, any, any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, UuidValueSource<any, any>, CustomUuidValueSource<any, any, any, any>, ToSql, __ValueSourcePrivate {
     [nullableValueSource]!: 'NullableValueSource'
@@ -46,8 +47,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     [optionalType_]: any
 
     [isValueSourceObject]: true = true
-    __valueType: ValueType
-    __valueTypeName: string
+    __type: string
+    __customType: CustomType | undefined
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter | undefined
     __isBooleanForCondition?: boolean | undefined
@@ -57,9 +58,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
     __uuidString?: boolean | undefined
 
-    constructor(valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
-        this.__valueType = valueType
-        this.__valueTypeName = valueTypeName
+    constructor(type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
+        this.__type = type
+        this.__customType = customType
         this.__optionalType = optionalType
         this.__typeAdapter = typeAdapter
         if (aggregatedArrayColumns) {
@@ -127,14 +128,14 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return result
     }
     asOptional(): any {
-        const result = new NoopValueSource(this, this.__valueType, this.__valueTypeName, 'optional', this.__typeAdapter)
+        const result = new NoopValueSource(this, this.__type, this.__customType, 'optional', this.__typeAdapter)
         if (this.__uuidString) {
             result.__uuidString = this.__uuidString
         }
         return result
     }
     asRequiredInOptionalObject(): any {
-        const result = new NoopValueSource(this, this.__valueType, this.__valueTypeName, 'requiredInOptionalObject', this.__typeAdapter)
+        const result = new NoopValueSource(this, this.__type, this.__customType, 'requiredInOptionalObject', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
@@ -146,7 +147,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return result
     }
     useEmptyArrayForNoValue(): any {
-        const result = new NoopValueSource(this, this.__valueType, this.__valueTypeName, 'required', this.__typeAdapter)
+        const result = new NoopValueSource(this, this.__type, this.__customType, 'required', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
@@ -158,7 +159,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return result
     }
     asOptionalNonEmptyArray(): any {
-        const result = new NoopValueSource(this, this.__valueType, this.__valueTypeName, 'optional', this.__typeAdapter)
+        const result = new NoopValueSource(this, this.__type, this.__customType, 'optional', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
@@ -174,23 +175,23 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     }
     // SqlComparator0
     isNull(): any {
-        return condition(new SqlOperationIsNullValueSource('_isNull', this, 'boolean', 'boolean', 'required', this.__typeAdapter))
+        return condition(new SqlOperationIsNullValueSource('_isNull', this, 'boolean', undefined, 'required', this.__typeAdapter))
     }
     isNotNull(): any {
-        return condition(new SqlOperationIsNullValueSource('_isNotNull', this, 'boolean', 'boolean', 'required', this.__typeAdapter))
+        return condition(new SqlOperationIsNullValueSource('_isNotNull', this, 'boolean', undefined, 'required', this.__typeAdapter))
     }
     // SqlComparator1
     equalsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     equals(value: any): any {
-        return condition(new SqlOperation1ValueSource('_equals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_equals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEqualsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEquals(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notEquals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     /* The `is`/`isNot` family is a TOTAL predicate: `IS [NOT] DISTINCT FROM` (and the per-dialect emulation of it)
      * answers true or false even when an operand is NULL — which is the reason to reach for it instead of `equals`.
@@ -201,198 +202,198 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
      * into the neutral they become when the operand has no value — a neutral inherits the optional type of the
      * expression it stands for, and for a total predicate that is `'required'`. */
     isIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     is(value: any): any {
-        return condition(new SqlOperation1NotOptionalValueSource('_is', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1NotOptionalValueSource('_is', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     isNotIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     isNot(value: any): any {
-        return condition(new SqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', 'boolean', 'required', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     asString(): any {
-        const result = new SqlOperation0ValueSource('_asString', this, 'string', 'string', this.__optionalType, this.__typeAdapter)
-        result.__uuidString = this.__valueType === 'uuid' || this.__valueType === 'customUuid'
+        const result = new SqlOperation0ValueSource('_asString', this, 'string', undefined, this.__optionalType, this.__typeAdapter)
+        result.__uuidString = __isUuid(this.__type, this.__customType)
         return result
     }
     onlyWhenOrNull(when: boolean): any {
         if (when) {
             return this
         } else {
-            return new NullValueSource(this.__valueType, this.__valueTypeName, 'optional', this.__typeAdapter)
+            return new NullValueSource(this.__type, this.__customType, 'optional', this.__typeAdapter)
         }
     }
     ignoreWhenAsNull(when: boolean): any {
         if (when) {
-            return new NullValueSource(this.__valueType, this.__valueTypeName, 'optional', this.__typeAdapter)
+            return new NullValueSource(this.__type, this.__customType, 'optional', this.__typeAdapter)
         } else {
             return this
         }
     }
     equalsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     equalsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_equalsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_equalsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEqualsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEqualsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessThanIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessThan(value: any): any {
-        return condition(new SqlOperation1ValueSource('_lessThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_lessThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterThanIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterThan(value: any): any {
-        return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessOrEqualIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessOrEqual(value: any): any {
-        return condition(new SqlOperation1ValueSource('_lessOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_lessOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterOrEqualIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterOrEqual(value: any): any {
-        return condition(new SqlOperation1ValueSource('_greaterOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_greaterOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     inIfValue(value: any): any {
-        return condition(new SqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     in(value: any): any {
-        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', 'boolean', getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', undefined, getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
     }
     notInIfValue(value: any): any {
-        return condition(new SqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notIn(value: any): any {
-        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', 'boolean', getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', undefined, getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
     }
     inN(...value: any[]): any {
-        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', 'boolean', getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', undefined, getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
     }
     notInN(...value: any[]): any {
-        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', 'boolean', getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', undefined, getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
     }
     likeIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_like', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_like', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     like(value: any): any {
-        return condition(new SqlOperation1ValueSource('_like', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_like', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLikeIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notLike', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notLike', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLike(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notLike', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notLike', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     likeInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     likeInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_likeInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_likeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLikeInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLikeInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notLikeInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notLikeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_startsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_startsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notStartsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notStartsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_endsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_endsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEndsWith', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notEndsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_startsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_startsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notStartsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notStartsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_endsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_endsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEndsWithInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notEndsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     containsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_contains', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_contains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     contains(value: any): any {
-        return condition(new SqlOperation1ValueSource('_contains', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_contains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContainsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notContains', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notContains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContains(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notContains', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notContains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     containsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     containsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_containsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_containsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContainsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContainsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notContainsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_notContainsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     // SqlComparator2
     between(value: any, value2: any): any {
-        return condition(new SqlOperation2ValueSource('_between', this, value, value2, 'boolean', 'boolean', getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
+        return condition(new SqlOperation2ValueSource('_between', this, value, value2, 'boolean', undefined, getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
     }
     notBetween(value: any, value2: any): any {
-        return condition(new SqlOperation2ValueSource('_notBetween', this, value, value2, 'boolean', 'boolean', getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
+        return condition(new SqlOperation2ValueSource('_notBetween', this, value, value2, 'boolean', undefined, getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
     }
     // SqlFunctionStatic: never used here
     // SqlFunction0
     // Boolean
     negate(): any {
-        return condition(new SqlOperation0ValueSource('_negate', this, 'boolean', 'boolean', this.__optionalType, this.__typeAdapter))
+        return condition(new SqlOperation0ValueSource('_negate', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter))
     }
     onlyWhen(condition: boolean): any {
         if (condition) {
@@ -409,12 +410,12 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         }
     }
     trueWhenNoValue(): any {
-        const result = new BooleanValueWhenNoValueValueSource('_true', this, 'boolean', 'boolean', this.__optionalType, this.__typeAdapter)
+        const result = new BooleanValueWhenNoValueValueSource('_true', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }
     falseWhenNoValue(): any {
-        const result = new BooleanValueWhenNoValueValueSource('_false', this, 'boolean', 'boolean', this.__optionalType, this.__typeAdapter)
+        const result = new BooleanValueWhenNoValueValueSource('_false', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }
@@ -426,203 +427,203 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return this.falseWhenNoValue()
         }
         
-        const result = new ValueWhenNoValueValueSource(value, this, 'boolean', 'boolean', mergeOptional(this.__optionalType, __getValueSourcePrivate(value).__optionalType), this.__typeAdapter)
+        const result = new ValueWhenNoValueValueSource(value, this, 'boolean', undefined, mergeOptional(this.__optionalType, __getValueSourcePrivate(value).__optionalType), this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }
     // String
     collate(collation: any): any {
-        return new SqlOperationCollateValueSource(this, collation, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperationCollateValueSource(this, collation, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     toLowerCase(): any {
-        return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_toLowerCase', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     toUpperCase(): any {
-        return new SqlOperation0ValueSource('_toUpperCase', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_toUpperCase', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     length(): any {
-        return new SqlOperation0ValueSource('_length', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_length', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     trim(): any {
-        return new SqlOperation0ValueSource('_trim', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_trim', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     trimLeft(): any {
-        return new SqlOperation0ValueSource('_trimLeft', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_trimLeft', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     trimRight(): any {
-        return new SqlOperation0ValueSource('_trimRight', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_trimRight', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     reverse(): any {
-        return new SqlOperation0ValueSource('_reverse', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_reverse', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     // Number functions
     asDouble(): any {
-        return new SqlOperation0ValueSource('_asDouble', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_asDouble', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
     }
     asInt(): any { // test function
-        if (this.__valueType === 'double') {
+        if (this.__customType === undefined && this.__type === 'double') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return new SqlOperation0ValueSource('_asInt', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_asInt', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
-        return new NoopValueSource(this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new NoopValueSource(this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     asBigint(): any {
-        if (this.__valueType === 'double') {
+        if (this.__customType === undefined && this.__type === 'double') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return new SqlOperation0ValueSource('_asBigint', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_asBigint', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
         }
-        return new NoopValueSource(this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
+        return new NoopValueSource(this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
     }
     abs(): any {
-        return new SqlOperation0ValueSource('_abs', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_abs', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     ceil(): any {
-        if (this.__valueType === 'bigint') {
-            return new SqlOperation0ValueSource('_ceil', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
-            return new SqlOperation0ValueSource('_ceil', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === undefined && this.__type === 'bigint') {
+            return new SqlOperation0ValueSource('_ceil', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+        } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
+            return new SqlOperation0ValueSource('_ceil', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_ceil', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_ceil', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     floor(): any {
-        if (this.__valueType === 'bigint') {
-            return new SqlOperation0ValueSource('_floor', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
-            return new SqlOperation0ValueSource('_floor', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === undefined && this.__type === 'bigint') {
+            return new SqlOperation0ValueSource('_floor', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+        } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
+            return new SqlOperation0ValueSource('_floor', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_floor', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_floor', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     round(): any {
-        if (this.__valueType === 'bigint') {
-            return new SqlOperation0ValueSource('_round', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
-            return new SqlOperation0ValueSource('_round', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === undefined && this.__type === 'bigint') {
+            return new SqlOperation0ValueSource('_round', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+        } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
+            return new SqlOperation0ValueSource('_round', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_round', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_round', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     exp(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_exp', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_exp', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_exp', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_exp', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     ln(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_ln', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_ln', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_ln', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_ln', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     log10(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_log10', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_log10', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_log10', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_log10', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     sqrt(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_sqrt', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_sqrt', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_sqrt', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_sqrt', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     cbrt(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_cbrt', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_cbrt', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_cbrt', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_cbrt', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     sign(): any {
-        return new SqlOperation0ValueSource('_sign', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_sign', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     // Trigonometric Functions
     acos(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_acos', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_acos', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_acos', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_acos', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     asin(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_asin', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_asin', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_asin', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_asin', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     atan(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_atan', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_atan', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_atan', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_atan', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     cos(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_cos', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_cos', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_cos', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_cos', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     cot(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_cot', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_cot', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_cot', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_cot', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     sin(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_sin', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_sin', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_sin', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_sin', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     tan(): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation0ValueSource('_tan', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation0ValueSource('_tan', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_tan', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_tan', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     // Date & Time Functions
     getDate(): any {
-        return new SqlOperation0ValueSource('_getDate', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getDate', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getTime(): any {
-        return new SqlOperation0ValueSource('_getTime', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getTime', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getFullYear(): any {
-        return new SqlOperation0ValueSource('_getFullYear', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getFullYear', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getMonth(): any {
-        return new SqlOperation0ValueSource('_getMonth', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getMonth', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getDay(): any {
-        return new SqlOperation0ValueSource('_getDay', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getDay', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getHours(): any {
-        return new SqlOperation0ValueSource('_getHours', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getHours', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getMinutes(): any {
-        return new SqlOperation0ValueSource('_getMinutes', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getMinutes', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getSeconds(): any {
-        return new SqlOperation0ValueSource('_getSeconds', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getSeconds', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getMilliseconds(): any {
-        return new SqlOperation0ValueSource('_getMilliseconds', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_getMilliseconds', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     // SqlFunction1
     valueWhenNull(value: any): any {
-        let valueType = this.__valueType
-        let valueTypeName = this.__valueTypeName
+        let type = this.__type
+        let customType = this.__customType
         // Promote the declared numeric type from the fallback operand, the same way the
         // overloaded-number operations do (createSqlOperation1ofOverloadedNumber): an `int`
         // receiver with a `double` fallback emits `coalesce(<int>, <double>)`, which the
@@ -638,16 +639,16 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         // belongs to the runtime half, which has the value in hand; `_getWidenedArgumentType` binds
         // the operand with the matching type, and the two have to agree or the fraction is rejected
         // on one of the two crossings.
-        if (valueType === 'int') {
+        if (customType === undefined && type === 'int') {
             if (isValueSource(value)) {
-                const operandType = __getValueSourcePrivate(value).__valueType
-                if (operandType === 'double' || operandType === 'customDouble') {
-                    valueType = 'double'
-                    valueTypeName = 'double'
+                const operandPrivate = __getValueSourcePrivate(value)
+                if (__isDouble(operandPrivate.__type, operandPrivate.__customType)) {
+                    type = 'double'
+                    customType = undefined
                 }
             } else if (typeof value === 'number' && !Number.isInteger(value)) {
-                valueType = 'double'
-                valueTypeName = 'double'
+                type = 'double'
+                customType = undefined
             }
         }
         let typeAdapter = getTypeAdapter2(this, value)
@@ -657,70 +658,70 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             // DATE, and the result keeps the adapter
             typeAdapter = undefined
         }
-        return new SqlOperationValueWhenNullValueSource(this, value, valueType, valueTypeName, getOptionalType2(this, value), typeAdapter)
+        return new SqlOperationValueWhenNullValueSource(this, value, type, customType, getOptionalType2(this, value), typeAdapter)
     }
     nullIfValue(value: any): any {
-        return new SqlOperation1ValueSource('_nullIfValue', this, value, this.__valueType, this.__valueTypeName, 'optional', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSource('_nullIfValue', this, value, this.__type, this.__customType, 'optional', getTypeAdapter2(this, value))
     }
     and(value: any): any {
-        return condition(new SqlOperation1ValueSource('_and', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_and', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     or(value: any): any {
-        return condition(new SqlOperation1ValueSource('_or', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_or', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     // Trigonometric Functions
     atan2(value: any): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation1ValueSource('_atan2', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation1ValueSource('_atan2', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_atan2', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return new SqlOperation1ValueSource('_atan2', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     // String Functions
     concat(value: any): any {
-        return new SqlOperation1ValueSource('_concat', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSource('_concat', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     concatIfValue(value: any): any {
-        return new SqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     concatIgnoringNullIfValue(value: any): any {
         // The optionality is the RECEIVER's (`getOptionalType2` with a plain value), not the
         // stricter one `concatIgnoringNull` computes: an ABSENT value leaves the receiver alone,
         // and whether it is absent is a run-time fact. Absence also depends on the connection's
         // `allowEmptyString`, which this constructor cannot see.
-        return new SqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     concatIgnoringNull(value: any): any {
         // A NULL operand counts as the empty string, so the result is optional only when EVERY
         // operand is: `getRequiredType2` keeps the STRICTEST operand instead of the loosest.
-        return new SqlOperation1ValueSource('_concatIgnoringNull', this, value, this.__valueType, this.__valueTypeName, getRequiredType2(this, value), getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSource('_concatIgnoringNull', this, value, this.__type, this.__customType, getRequiredType2(this, value), getTypeAdapter2(this, value))
     }
     substrToEnd(start: any): any {
-        return new SqlOperation1ValueSource('_substrToEnd', this, start, this.__valueType, this.__valueTypeName, getOptionalType2(this, start), getTypeAdapter2(this, start))
+        return new SqlOperation1ValueSource('_substrToEnd', this, start, this.__type, this.__customType, getOptionalType2(this, start), getTypeAdapter2(this, start))
     }
     substringToEnd(start: any): any {
-        return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__valueType, this.__valueTypeName, getOptionalType2(this, start), getTypeAdapter2(this, start))
+        return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__type, this.__customType, getOptionalType2(this, start), getTypeAdapter2(this, start))
     }
     // Number
     power(value: any): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation1ValueSource('_power', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation1ValueSource('_power', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_power', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return new SqlOperation1ValueSource('_power', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     logn(value: any): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation1ValueSource('_logn', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation1ValueSource('_logn', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_logn', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return new SqlOperation1ValueSource('_logn', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     roundn(value: any): any {
-        if (this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
-            return new SqlOperation1ValueSource('_roundn', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        if (this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
+            return new SqlOperation1ValueSource('_roundn', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_roundn', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return new SqlOperation1ValueSource('_roundn', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     /**
@@ -746,10 +747,10 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return createSqlOperation1ofOverloadedNumber(this, value, '_multiply')
     }
     divide(value: any): any {
-        if (this.__valueType === 'customDouble') {
-            return new SqlOperation1ValueSource('_divide', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        if (this.__customType === 'customDouble') {
+            return new SqlOperation1ValueSource('_divide', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_divide', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return new SqlOperation1ValueSource('_divide', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     modulo(value: any): any {
@@ -757,34 +758,34 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     }
     // SqlFunction2
     substr(start: any, count: any): any {
-        return new SqlOperation2ValueSource('_substr', this, start, count, this.__valueType, this.__valueTypeName, getOptionalType3(this, start, count), getTypeAdapter3(this, start, count))
+        return new SqlOperation2ValueSource('_substr', this, start, count, this.__type, this.__customType, getOptionalType3(this, start, count), getTypeAdapter3(this, start, count))
     }
     substring(start: any, end: any): any {
-        return new SqlOperation2ValueSource('_substring', this, start, end, this.__valueType, this.__valueTypeName, getOptionalType3(this, start, end), getTypeAdapter3(this, start, end))
+        return new SqlOperation2ValueSource('_substring', this, start, end, this.__type, this.__customType, getOptionalType3(this, start, end), getTypeAdapter3(this, start, end))
     }
     replaceAllIfValue(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     replaceAll(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     replaceAllInsensitiveIfValue(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     replaceAllInsensitive(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     // Oracle recursive
     __prior(): any {
-        return new SqlOperation0ValueSource('_prior', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_prior', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
 }
 
 export class SqlOperationStatic0ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof SqlOperationStatic0
 
-    constructor(operation: keyof SqlOperationStatic0, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperationStatic0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__operation = operation
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
@@ -796,7 +797,7 @@ export class SqlOperationStaticBooleanValueSource extends ValueSourceImpl implem
     __operation: keyof SqlOperationStatic0
 
     constructor(operation: '_true' | '_false') {
-        super('boolean', 'boolean', 'required', undefined)
+        super('boolean', undefined, 'required', undefined)
         this.__operation = operation
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
@@ -815,8 +816,8 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
     __valueSource: ValueSourceImpl
     __operation: '_true' | '_false'
 
-    constructor(operation: '_true' | '_false', valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: '_true' | '_false', valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
     }
@@ -869,8 +870,8 @@ export class ValueWhenNoValueValueSource extends ValueSourceImpl {
     __valueSource: ValueSourceImpl
     __valueWhenNoValue: __ValueSourcePrivate & ToSql
 
-    constructor(valueWhenNoValue: __ValueSourcePrivate & ToSql, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(valueWhenNoValue: __ValueSourcePrivate & ToSql, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__valueWhenNoValue = valueWhenNoValue
     }
@@ -922,13 +923,13 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     __operation: keyof SqlOperationStatic1
     __value: any
 
-    constructor(operation: keyof SqlOperationStatic1, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperationStatic1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__operation = operation
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
+        return sqlBuilder[this.__operation](context, this.__value, this.__type, this.__customType, this.__typeAdapter, forceTypeCast)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         __addWiths(this.__value, sqlBuilder, withs)
@@ -957,8 +958,8 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     __operation: keyof SqlOperationStatic1
     __value: any
 
-    constructor(value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__operation = '_const'
         this.__value = value
     }
@@ -966,15 +967,15 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     __forceTypeCast?: boolean | undefined
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (this.__forceTypeCast) {
-            return sqlBuilder._typedConst(context, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+            return sqlBuilder._typedConst(context, this.__value, this.__type, this.__customType, this.__typeAdapter)
         }
-        return sqlBuilder._const(context, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
+        return sqlBuilder._const(context, this.__value, this.__type, this.__customType, this.__typeAdapter, forceTypeCast)
     }
     override __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (this.__forceTypeCast) {
-            return sqlBuilder._typedConstForCondition(context, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+            return sqlBuilder._typedConstForCondition(context, this.__value, this.__type, this.__customType, this.__typeAdapter)
         }
-        return sqlBuilder._constForCondition(context, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
+        return sqlBuilder._constForCondition(context, this.__value, this.__type, this.__customType, this.__typeAdapter, forceTypeCast)
     }
     override isConstValue(): boolean {
         return true
@@ -1009,8 +1010,8 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     __valueSource: ValueSourceImpl
     __operation: keyof SqlFunction0 | keyof SqlBoolean0
 
-    constructor(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
     }
@@ -1045,8 +1046,8 @@ export class SqlOperationCollateValueSource extends ValueSourceImpl implements H
     __operation: '_collate' = '_collate'
     __collation: string
 
-    constructor(valueSource: ValueSourceImpl, collation: string, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(valueSource: ValueSourceImpl, collation: string, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__collation = collation
     }
@@ -1080,8 +1081,8 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
     __valueSource: ValueSourceImpl
     __operation: keyof SqlComparator0
 
-    constructor(operation: keyof SqlComparator0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlComparator0, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
     }
@@ -1116,14 +1117,14 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     __operation: keyof SqlOperation1
     __value: any
 
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1156,14 +1157,14 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
     __operation: '_in' | '_notIn'
     __value: any
 
-    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1278,14 +1279,14 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
     __operation: keyof SqlOperation1
     __value: any
 
-    constructor(valueSource: ValueSourceImpl, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = '_valueWhenNull'
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1318,14 +1319,14 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
     __operation: keyof SqlOperation1
     __value: any
 
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1358,8 +1359,8 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
     __operation: keyof SqlOperation1
     __value: any
 
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
@@ -1368,7 +1369,7 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
         }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         if (!sqlBuilder._isValue(this.__value)) {
@@ -1422,8 +1423,8 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
     __operation: '_in' | '_notIn'
     __value: any
 
-    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
@@ -1432,7 +1433,7 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
         }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         if (!sqlBuilder._isValue(this.__value)) {
@@ -1573,7 +1574,7 @@ export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
      * Each site says which of the two cases it is.
      */
     constructor(optionalType: OptionalType) {
-        super('', '', optionalType, undefined)
+        super('', undefined, optionalType, undefined)
     }
     override valueWhenNoValue(value: any): any {
         // The neutral element of the four-valued dynamic-boolean system
@@ -1599,8 +1600,8 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     __operation: keyof SqlOperation1
     __value: any
 
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
@@ -1609,7 +1610,7 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         if (!sqlBuilder._isValue(this.__value)) {
             return this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
         }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1643,15 +1644,15 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     __value: any
     __value2: any
 
-    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
         this.__value2 = value2
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1688,8 +1689,8 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     __value: any
     __value2: any
 
-    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
@@ -1702,7 +1703,7 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         if (!sqlBuilder._isValue(this.__value2)) {
             return this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
         }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1735,8 +1736,8 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
 
 export class NoopValueSource extends ValueSourceImpl {
     __valueSource: ValueSourceImpl
-    constructor(valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__valueSource = valueSource
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
@@ -1768,13 +1769,13 @@ export class NoopValueSource extends ValueSourceImpl {
 export class SequenceValueSource extends ValueSourceImpl {
     __operation: keyof SqlSequenceOperation
     __sequenceName: string
-    constructor(operation: keyof SqlSequenceOperation, sequenceName: string, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof SqlSequenceOperation, sequenceName: string, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__operation = operation
         this.__sequenceName = sequenceName
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, this.__sequenceName, this.__valueType)
+        return sqlBuilder[this.__operation](context, this.__sequenceName, this.__type, this.__customType)
     }
 }
 
@@ -1783,11 +1784,11 @@ export class FragmentValueSource extends ValueSourceImpl {
     __sql: TemplateStringsArray
     __sqlParams: AnyValueSource[]
 
-    constructor(sql: TemplateStringsArray, sqlParams: AnyValueSource[], valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate?: boolean) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(sql: TemplateStringsArray, sqlParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate?: boolean) {
+        super(type, customType, optionalType, typeAdapter)
         this.__sql = sql
         this.__sqlParams = sqlParams
-        if (valueTypeName === 'boolean') {
+        if (type === 'boolean') {
             this.__isBooleanForCondition = true
         }
         if (isAggregate) {
@@ -1875,8 +1876,8 @@ export class FragmentValueSource extends ValueSourceImpl {
 export class FunctionCallValueSource extends ValueSourceImpl {
     __functionName: string
     __functionParams: AnyValueSource[]
-    constructor(functionName: string, functionParams: AnyValueSource[], valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(functionName: string, functionParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__functionName = functionName
         this.__functionParams = functionParams
     }
@@ -1890,11 +1891,11 @@ export class ValueSourceFromBuilder extends ValueSourceImpl {
     __fragmentBuilder: FragmentQueryBuilder
     __builderOutput?: AnyValueSource | undefined 
 
-    constructor(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__builder = builder
         this.__fragmentBuilder = fragmentBuilder
-        if (valueTypeName === 'boolean') {
+        if (type === 'boolean') {
             this.__isBooleanForCondition = true
         }
     }
@@ -1910,7 +1911,7 @@ export class ValueSourceFromBuilder extends ValueSourceImpl {
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         const builderOutput = this.__getBuilderOutput()
         if (!hasToSql(builderOutput)) {
-            throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: this.__valueTypeName }, 'The result of value from fragment functions is no a valid sql element')
+            throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: this.__type }, 'The result of value from fragment functions is no a valid sql element')
         }
         return builderOutput.__toSql(sqlBuilder, context, forceTypeCast)
     }
@@ -1949,7 +1950,7 @@ export class AllowWhenValueSource extends ValueSourceImpl {
         // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
         // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
         // is mishandled at read time.
-        super(valueSource.__valueType, valueSource.__valueTypeName, valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__uuidString, valueSource.__aggreagtedProjectingOptionalValuesAsNullable)
+        super(valueSource.__type, valueSource.__customType, valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__uuidString, valueSource.__aggreagtedProjectingOptionalValuesAsNullable)
         this.__valueSource = valueSource
         this.__error = error
         this.__allowed = allowed
@@ -2034,8 +2035,8 @@ export class AllowWhenValueSource extends ValueSourceImpl {
 export class AggregateFunctions0ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof AggregateFunctions0
 
-    constructor(operation: keyof AggregateFunctions0, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof AggregateFunctions0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__operation = operation
         this.__isAggregate = true
     }
@@ -2047,11 +2048,11 @@ export class AggregateFunctions0ValueSource extends ValueSourceImpl implements H
 export class NullValueSource extends ValueSourceImpl implements HasOperation {
     __operation = '_asNullValue' as const
 
-    constructor(valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._asNullValue(context, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+        return sqlBuilder._asNullValue(context, this.__type, this.__customType, this.__typeAdapter)
     }
     override __isAllowed(_sqlBuilder: HasIsValue): boolean {
         return true
@@ -2062,8 +2063,8 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
     __operation: keyof AggregateFunctions1
     __value: any
 
-    constructor(operation: keyof AggregateFunctions1, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof AggregateFunctions1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__operation = operation
         this.__value = value
         this.__isAggregate = true
@@ -2096,8 +2097,8 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     __value: any
     __separator: string | undefined
 
-    constructor(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(valueType, valueTypeName, optionalType, typeAdapter)
+    constructor(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(type, customType, optionalType, typeAdapter)
         this.__operation = operation
         this.__separator = separator
         this.__value = value
@@ -2254,21 +2255,21 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
 }
 
 function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
-    if (thiz.__valueType === 'double' || thiz.__valueType === 'bigint' || thiz.__valueType === 'customInt' || thiz.__valueType === 'customBigint' || thiz.__valueType === 'customDouble' || __isExactDecimal(thiz.__valueTypeName, __customTypeOf(thiz.__valueType))) {
-        return new SqlOperation1ValueSource(operation, thiz, value, thiz.__valueType, thiz.__valueTypeName, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
+    if ((thiz.__customType === undefined && thiz.__type === 'double') || (thiz.__customType === undefined && thiz.__type === 'bigint') || thiz.__customType === 'customInt' || thiz.__customType === 'customBigint' || thiz.__customType === 'customDouble' || __isExactDecimal(thiz.__type, thiz.__customType)) {
+        return new SqlOperation1ValueSource(operation, thiz, value, thiz.__type, thiz.__customType, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
     } else {
         if (isValueSource(value)) {
             const valuePrivate = __getValueSourcePrivate(value)
-            if (valuePrivate.__valueType === 'int') {
-                return new SqlOperation1ValueSource(operation, thiz, value, 'int', 'int', getOptionalType2(thiz, value), thiz.__typeAdapter)
+            if (valuePrivate.__customType === undefined && valuePrivate.__type === 'int') {
+                return new SqlOperation1ValueSource(operation, thiz, value, 'int', undefined, getOptionalType2(thiz, value), thiz.__typeAdapter)
             } else {
-                return new SqlOperation1ValueSource(operation, thiz, value, 'double', 'double', getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
+                return new SqlOperation1ValueSource(operation, thiz, value, 'double', undefined, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
             }
         }
         if (Number.isInteger(value)) {
-            return new SqlOperation1ValueSource(operation, thiz, value, 'int', 'int', getOptionalType2(thiz, value), thiz.__typeAdapter)
+            return new SqlOperation1ValueSource(operation, thiz, value, 'int', undefined, getOptionalType2(thiz, value), thiz.__typeAdapter)
         } else {
-            return new SqlOperation1ValueSource(operation, thiz, value, 'double', 'double', getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
+            return new SqlOperation1ValueSource(operation, thiz, value, 'double', undefined, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
         }
     }
 }
@@ -2285,8 +2286,8 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     [typeName]: any
 
     [isValueSourceObject]: true = true
-    __valueType: ValueType = ''
-    __valueTypeName: string = ''
+    __type: string = ''
+    __customType: CustomType | undefined = undefined
     __optionalType: OptionalType = 'required'
     __typeAdapter?: TypeAdapter | undefined
     __tableOrView: AnyTableOrView
@@ -2415,8 +2416,8 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
 
     [isValueSourceObject]: true = true
-    __valueType: ValueType = 'aggregatedArray'
-    __valueTypeName: string = 'aggregatedArray'
+    __type: string = 'aggregatedArray'
+    __customType: CustomType | undefined = undefined
     __optionalType: OptionalType
     __operation = '_inlineSelectAsValue' as const
     __selectData: InlineSelectData
@@ -2544,8 +2545,8 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
     // Replaced by null (onlyWhenOrNull / ignoreWhenAsNull): nothing is aggregated, as for any other value
     // replaced by null (NullValueSource); the other walkers ignore the replaced query too
     __isAggregate = false
-    __valueType: ValueType = 'aggregatedArray'
-    __valueTypeName: string = 'aggregatedArray'
+    __type: string = 'aggregatedArray'
+    __customType: CustomType | undefined = undefined
     __optionalType: OptionalType
     __operation = '_inlineSelectAsValue' as const
     __selectData: InlineSelectData
@@ -2581,7 +2582,7 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
     }
 
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._asNullValue(context, this.__valueType, this.__valueTypeName, undefined)
+        return sqlBuilder._asNullValue(context, this.__type, this.__customType, undefined)
     }
     __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         return this.__toSql(sqlBuilder, context, forceTypeCast)
@@ -2699,7 +2700,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
             // Avoid treat the column as a custom boolean
             typeAdapter = proxyTypeAdapterFor(typeAdapter)
         }
-        return [valueSourcePrivate.__valueType, valueSourcePrivate.__valueTypeName, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
+        return [valueSourcePrivate.__type, valueSourcePrivate.__customType, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
     } else {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline select')
     }
@@ -2714,8 +2715,8 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
 
     [isValueSourceObject]: true = true
     __isAggregate = true
-    __valueType: ValueType = 'aggregatedArray'
-    __valueTypeName: string = 'aggregatedArray'
+    __type: string = 'aggregatedArray'
+    __customType: CustomType | undefined = undefined
     __optionalType: OptionalType
     __operation: '_aggregateValueAsArray' = '_aggregateValueAsArray'
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
@@ -2925,8 +2926,8 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
     // Replaced by null (onlyWhenOrNull / ignoreWhenAsNull): nothing is aggregated, as for any other value
     // replaced by null (NullValueSource); the other walkers ignore the replaced query too
     __isAggregate = false
-    __valueType: ValueType = 'aggregatedArray'
-    __valueTypeName: string = 'aggregatedArray'
+    __type: string = 'aggregatedArray'
+    __customType: CustomType | undefined = undefined
     __optionalType: OptionalType
     __operation: '_aggregateValueAsArray' = '_aggregateValueAsArray'
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
@@ -2979,7 +2980,7 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
         return this.__isAggregate ?? false
     }
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._asNullValue(context, this.__valueType, this.__valueTypeName, undefined)
+        return sqlBuilder._asNullValue(context, this.__type, this.__customType, undefined)
     }
     __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         return this.__toSql(sqlBuilder, context, forceTypeCast)

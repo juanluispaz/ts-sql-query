@@ -10,7 +10,6 @@ import type { QueryExecutionSource } from '../TsSqlError.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
 import { paramsForExecution, QueryParamContextImpl, queryContextOf } from '../internal/QueryContextImpl.js'
 import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
-import { __customTypeOf } from '../utils/dataTypes.js'
 import type { ProjectionOutput } from '../TypeAdapter.js'
 
 export class AbstractQueryBuilder {
@@ -97,7 +96,7 @@ export class AbstractQueryBuilder {
                 }
                 throw e
             } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: column }, e)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: column }, e)
             }
         }
         if (result !== null && result !== undefined) {
@@ -115,7 +114,7 @@ export class AbstractQueryBuilder {
                 errorMessage += ' of the count number of rows query'
             }
             errorMessage += ', but null or undefined value was found'
-            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: column }, errorMessage)
+            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: column }, errorMessage)
         }
         return result
     }
@@ -185,7 +184,7 @@ export class AbstractQueryBuilder {
                     errorMessage += ' at index `' + index + '`'
                 }
                 errorMessage += '. ' + e + '. JSON: ' + value
-                throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: errorPrefix }, errorMessage)
+                throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: errorPrefix }, errorMessage)
             }
         }
 
@@ -202,7 +201,7 @@ export class AbstractQueryBuilder {
                 errorMessage += ' at index `' + index + '`'
             }
             errorMessage += '. An array were expected'
-            throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: errorPrefix }, errorMessage)
+            throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: errorPrefix }, errorMessage)
         }
 
         const columns = valueSourcePrivate.__aggregatedArrayColumns!
@@ -569,7 +568,7 @@ export function __unnamedResultColumn(valueSource: AnyValueSource, projectedBy?:
  */
 function resultColumnOf(name: string, path: string, valueSource: AnyValueSource, projectedBy: SqlBuilder | undefined, types: QueryParamContextImpl): QueryResultColumn {
     const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-    types.setOriginalType(valueSourcePrivate.__valueTypeName, __customTypeOf(valueSourcePrivate.__valueType))
+    types.setOriginalType(valueSourcePrivate.__type, valueSourcePrivate.__customType)
     if (projectedBy) {
         projectedBy._resolveRequestedTypeOfProjection(valueSource, 'resultColumn', types)
     }

@@ -99,7 +99,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (e instanceof TsSqlError) {
                             throw e
                         } else {
-                            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: idColumnPrivate.__valueTypeName }, e)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: idColumnPrivate.__type }, e)
                         }
                     }
                     // Without a conflict to skip the row, an id is always returned: a do nothing, a where of the
@@ -108,7 +108,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (result === undefined) {
                             throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                         } else if (result === null) {
-                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName }, 'Expected a value as result of the insert returning last inserted id, but null value was found')
+                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type }, 'Expected a value as result of the insert returning last inserted id, but null value was found')
                         }
                     }
                     if (this.__isMultiple) {
@@ -123,7 +123,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, executionParams).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
-                    const columnTypeName = idColumnPrivate.__valueTypeName
+                    const idType = idColumnPrivate.__type
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
                     if (typeAdapter) {
                         const length = rows.length
@@ -140,11 +140,11 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                                     }
                                     throw e
                                 } else {
-                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: columnTypeName, rowIndex: index }, e)
+                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: idType, rowIndex: index }, e)
                                 }
                             }
                             if (result === null || result === undefined) {
-                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
+                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                             }
                             output[index] = result
                         }
@@ -164,11 +164,11 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                                     }
                                     throw e
                                 } else {
-                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: columnTypeName, rowIndex: index }, e)
+                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: idType, rowIndex: index }, e)
                                 }
                             }
                             if (result === null || result === undefined) {
-                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
+                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                             }
                             output[index] = result
                         }

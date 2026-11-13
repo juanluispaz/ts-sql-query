@@ -1,5 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
-import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../expressions/values.js'
 import { __getValueSourcePrivate, isValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
@@ -9,6 +9,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { isMariaDBReservedWord } from '../utils/mySqlMariaDB/mariaDBReservedWords.js'
+import type { CustomType } from '../TypeAdapter.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // MariaDB 10.5+ reads a column of the row in its on duplicate key update with a subquery over a derived table of
@@ -42,16 +43,16 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     _appendUuidTextAsChar(sql: string): string {
         return 'cast(' + sql + ' as char(36))'
     }
-    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._hasNativeUuid()) {
             const receiverIsUuidText = this._isUuidText(valueSource)
             if (receiverIsUuidText !== this._isUuidText(value)) {
                 const receiver = this._appendSql(valueSource, context, false)
-                const fallback = this._appendValue(value, context, this._getWidenedArgumentType(columnType, columnTypeName, value), this._getWidenedArgumentTypeName(columnType, columnTypeName, value), typeAdapter, this._widenedArgumentNeedsTypeCast(columnType, columnTypeName, value))
+                const fallback = this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
                 return 'ifnull(' + (receiverIsUuidText ? this._appendUuidTextAsChar(receiver) : receiver) + ', ' + (receiverIsUuidText ? fallback : this._appendUuidTextAsChar(fallback)) + ')'
             }
         }
-        return super._valueWhenNull(context, valueSource, value, columnType, columnTypeName, typeAdapter)
+        return super._valueWhenNull(context, valueSource, value, type, customType, typeAdapter)
     }
     override _convertUuidTextInCompound(): boolean {
         return this._hasNativeUuid()
@@ -115,13 +116,13 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return super._appendRawColumnName(column, context)
     }
-    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType): string {
+    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined): string {
         // MariaDB sequences (MDEV-10139, MariaDB 10.3.0) expose NEXTVAL(seq) for the
         // function form and the SQL-standard NEXT VALUE FOR seq alias; we emit the
         // function form because it accepts a regular (back-tick-escaped) identifier.
         return 'nextval(' + this._escape(sequenceName, false) + ')'
     }
-    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _columnType: ValueType): string {
+    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined): string {
         // LASTVAL(seq) returns the most recent NEXTVAL(seq) issued in the current
         // connection (NULL if none); equivalent to PostgreSQL's currval() and to
         // the SQL-standard PREVIOUS VALUE FOR seq.

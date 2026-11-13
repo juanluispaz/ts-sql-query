@@ -2,6 +2,7 @@ import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import type { AnyValueSource } from '../expressions/values.js'
 import type { SelectColumnSql } from '../sqlBuilders/AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
+import { queryContextOf, type QueryContextImpl } from './QueryContextImpl.js'
 
 /**
  * The state of the construction of the SQL of one query: the params the query runner receives, and what the SQL builder
@@ -9,7 +10,7 @@ import type { DBColumn } from '../utils/Column.js'
  * One per rendering of a query; nothing of it but the params reaches the query runner.
  */
 export class SqlBuildContext {
-    /** The params of the query, which the query runner receives with the metadata hung on them (metadataSymbols.ts) */
+    /** The params of the query, which the query runner receives with the context of the query hung on them */
     readonly params: any[]
 
     /** The table or view whose columns are written without its name (the only one of the from) */
@@ -78,8 +79,12 @@ export class SqlBuildContext {
     /** The name in this query of each generated name (generatedNameOf) */
     private generatedNames: Map<string, string> | undefined = undefined
 
+    /** The context of the query, hung on the params: what the query runner reads of the query (QueryContext) */
+    readonly queryContext: QueryContextImpl
+
     constructor(params: any[] = []) {
         this.params = params
+        this.queryContext = queryContextOf(params)
     }
 
     /** A number not given before in this query, to compose a unique name */

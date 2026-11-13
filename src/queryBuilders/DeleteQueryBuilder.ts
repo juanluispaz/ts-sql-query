@@ -42,8 +42,8 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, [], this.__customization)
-            let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, [], this.__customization)
+            let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, executionParams).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
             if (min !== undefined || max !== undefined) {
@@ -66,10 +66,10 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -82,7 +82,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -101,10 +101,10 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -117,7 +117,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -136,10 +136,10 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
+                result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnManyRows(this.__query, executionParams).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -159,7 +159,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeDeleteReturningManyRows(this.__query, this.__params).then((rows) => {
+                result = this.__sqlBuilder._queryRunner.executeDeleteReturningManyRows(this.__query, executionParams).then((rows) => {
                     const length = rows.length
                     const output = new Array(length)
                     for (let index = 0; index < length; index++) {

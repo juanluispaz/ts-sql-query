@@ -12,14 +12,17 @@ export {
     type QueryRunner,
     /** @deprecated Import it from 'ts-sql-query' */
     type QueryType,
-    /** @deprecated Import it from 'ts-sql-query' */
-    getFunctionExecutingQuery,
-    /** @deprecated Import it from 'ts-sql-query' */
-    getQueryExecutionMetadata,
-    /** @deprecated Import it from 'ts-sql-query' */
-    getQueryExecutionName,
-    /** @deprecated Import it from 'ts-sql-query' */
-    getQueryExecutionStack,
-    /** @deprecated Import it from 'ts-sql-query' */
-    isSelectPageCountQuery,
 } from '../../v2/index.js'
+
+export {
+    /** @deprecated Use getQueryContext(query, params).functionExecutingQuery, from 'ts-sql-query' */
+    getFunctionExecutingQuery,
+    /** @deprecated Use getQueryContext(query, params).executionMetadata, from 'ts-sql-query' */
+    getQueryExecutionMetadata,
+    /** @deprecated Use getQueryContext(query, params).executionName, from 'ts-sql-query' */
+    getQueryExecutionName,
+    /** @deprecated Use getQueryContext(query, params).executionStack, from 'ts-sql-query' */
+    getQueryExecutionStack,
+    /** @deprecated Use getQueryContext(query, params).isSelectPageCount, from 'ts-sql-query' */
+    isSelectPageCountQuery,
+} from '../../../queryRunners/QueryRunner.js'

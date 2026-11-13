@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryExecutionMetadata, getQueryExecutionName } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
@@ -1823,8 +1823,8 @@ describe(ctx.label, () => {
     //
     //     expect(ctx.lastSql).toMatchInlineSnapshot()
     //     expect(ctx.lastParams).toMatchInlineSnapshot()
-    //     expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('issue-depth-tree')
-    //     expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+    //     expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('issue-depth-tree')
+    //     expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toBeUndefined()
     //     assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
     //     expect(result).toEqual(expected)
     // })
@@ -1863,8 +1863,8 @@ describe(ctx.label, () => {
     //
     //     expect(ctx.lastSql).toMatchInlineSnapshot()
     //     expect(ctx.lastParams).toMatchInlineSnapshot()
-    //     expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'recursion' })
-    //     expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+    //     expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ tag: 'recursion' })
+    //     expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBeUndefined()
     //     assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
     //     expect(result).toEqual(expected)
     // })
@@ -2003,5 +2003,5 @@ describe(ctx.label, () => {
 
 // Tests referencing these are commented out above with NOT-SUPPORTED
 // markers; keep the bindings referenced so noUnusedLocals stays green.
-void assertType; void expect; void tIssue; void tProject; void tProjectReview; void test; void getQueryExecutionMetadata; void getQueryExecutionName; void TsSqlError
+void assertType; void expect; void tIssue; void tProject; void tProjectReview; void test; void getQueryContext; void TsSqlError
 export type { Exact }

@@ -10,7 +10,7 @@ import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn } from '../utils/Column.js'
-import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, SequenceValueSource } from '../internal/ValueSourceImpl.js'
@@ -24,7 +24,6 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { getMetadata, queryContainsInsertReturningClause, queryContainsMutationReturningClause, queryForcedAffectedRowCount, queryParamValueForColumn, setMetadata, setParamMetadata } from '../utils/metadataSymbols.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
 
@@ -95,10 +94,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // Read in the query runner
     _getContainsInsertReturningClause(context: SqlBuildContext): boolean | undefined {
-        return getMetadata<boolean>(context.params, queryContainsInsertReturningClause)
+        return context.queryContext.containsInsertReturningClause
     }
     _setContainsInsertReturningClause(context: SqlBuildContext, value: boolean | undefined): void {
-        setMetadata(context.params, queryContainsInsertReturningClause, value)
+        context.queryContext.containsInsertReturningClause = value
     }
     // Read in the query runner (AbstractQueryRunner.executeMutationReturning).
     // Set to `false` when the outermost mutation's returning projection collapses
@@ -109,7 +108,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // instead of rows (mysql2, mariadb). Only set for the outermost query, whose
     // statement is the one actually executed.
     _setContainsMutationReturningClause(context: SqlBuildContext, value: boolean | undefined): void {
-        setMetadata(context.params, queryContainsMutationReturningClause, value)
+        context.queryContext.containsMutationReturningClause = value
     }
     // Read in the query runner (see AbstractQueryRunner.getForcedAffectedRowCount).
     // Set when the affected-row count is known while building the query but the
@@ -118,7 +117,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // rowsAffected for PL/SQL blocks). The query runner returns this value as the
     // affected-row count instead of the driver's (absent) one.
     _setForcedAffectedRowCount(context: SqlBuildContext, value: number | undefined): void {
-        setMetadata(context.params, queryForcedAffectedRowCount, value)
+        context.queryContext.forcedAffectedRowCount = value
     }
     _ensureRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, context: SqlBuildContext) {
         if (!context.rootQuery) {
@@ -473,8 +472,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             forceTypeCast = this._defaultTypeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast)
         }
+        // What the library knows of the parameter, for the query runner
+        const paramContext = context.queryContext.paramAt(context.params.length)
+        paramContext.type = columnTypeName
+        paramContext.typeCategory = typeCategory
+        paramContext.forceTypeCast = forceTypeCast
         if (context.assigningValueToColumn) {
-            setParamMetadata(context.params, context.params.length, queryParamValueForColumn, true)
+            paramContext.isValueForColumn = true
         }
         // What the type adapter or the connection keeps for the query runner, before the parameter is added
         if (typeAdapter && typeAdapter.addQueryParamMetadata) {
@@ -489,6 +493,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             placeholder = this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value)
         }
         return placeholder
+    }
+    /** Adds an out parameter of the query, with what the library knows of it for the query runner */
+    _addOutParam(context: SqlBuildContext, name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+        const paramContext = context.queryContext.paramAt(context.params.length)
+        paramContext.type = type
+        paramContext.typeCategory = typeCategory
+        paramContext.forceTypeCast = forceTypeCast
+        return this._queryRunner.addOutParam(context.params, name, type, typeCategory, forceTypeCast)
     }
     _appendConditionParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         return this._appendParam(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
@@ -2256,7 +2268,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const columnPrivate = __getColumnPrivate(column)
         // A value given for a column of a table takes the type of the column, not the one of its parameter: its parameter
-        // is marked so (see isQueryParamValueForColumn), which a query runner may use not to cast it
+        // is marked so (isValueForColumn in the context of the parameter), which a query runner may use not to cast it
         if (hasToSql(value) || __getTableOrViewPrivate(columnPrivate.__tableOrView).__type === 'values') {
             return this._appendValue(value, context, columnPrivate.__valueType, columnPrivate.__valueTypeName, columnPrivate.__typeAdapter, forceTypeCast)
         }

@@ -1146,7 +1146,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             this._setContainsInsertReturningClause(context, true)
             const idColumnSql = this._appendSql(idColumn, context, false)
             const idColumnPrivate = __getValueSourcePrivate(idColumn)
-            const placeholder = this._queryRunner.addOutParam(context.params, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), false) // Empty name for the out params, no special name is requiered
+            const placeholder = this._addOutParam(context, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), false) // Empty name for the out params, no special name is requiered
             return ' returning ' + idColumnSql + ' into ' + placeholder
         }
 
@@ -1187,10 +1187,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (!this._isZonedReturningColumn(column) && this._isConvertedResultColumn(column, context)) {
                 // The value is returned as the SQL its transformProjection writes, which is not of the type of the
                 // column: it is received as a text
-                placeholder = this._queryRunner.addOutParam(context.params, property, 'string', 'string', false)
+                placeholder = this._addOutParam(context, property, 'string', 'string', false)
             } else {
                 const columnPrivate = __getValueSourcePrivate(column)
-                placeholder = this._queryRunner.addOutParam(context.params, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
+                placeholder = this._addOutParam(context, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
             }
             result += placeholder
             requireComma = true

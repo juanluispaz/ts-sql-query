@@ -49,14 +49,14 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, [], this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, [], this.__customization)
             let result: Promise<number>
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve 0 without touching the
                 // database. The `min`/`max` guard below still runs against the count of 0.
                 result = this.__sqlBuilder._queryRunner.createResolvedPromise(0)
             } else {
-                result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
+                result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, executionParams).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
@@ -81,7 +81,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null)
@@ -89,7 +89,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -102,7 +102,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -121,7 +121,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null).then(() => {
@@ -130,7 +130,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -143,7 +143,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -162,14 +162,14 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (!this.__hasColumnsToSet()) {
                 // Nothing to update, nothing to set: resolve [] without touching the
                 // database. The `min`/`max` guard below still runs against the count of 0.
                 result = this.__sqlBuilder._queryRunner.createResolvedPromise([])
             } else if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
+                result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnManyRows(this.__query, executionParams).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -189,7 +189,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeUpdateReturningManyRows(this.__query, this.__params).then((rows) => {
+                result = this.__sqlBuilder._queryRunner.executeUpdateReturningManyRows(this.__query, executionParams).then((rows) => {
                     const length = rows.length
                     const output = new Array(length)
                     for (let index = 0; index < length; index++) {

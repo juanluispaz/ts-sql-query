@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryParamType, getQueryParamTypeCategory } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { Table } from '../../../../../src/Table.js'
 import { TsSqlError, type TsSqlErrorReason } from '../../../../../src/TsSqlError.js'
 import type { CustomDecimalFilter, DynamicCondition } from '../../../../../src/dynamic/condition.js'
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
           ]
         `)
         const params = ctx.lastParams
-        expect(params.map((_value, index) => [getQueryParamType(ctx.lastSql, params, index), getQueryParamTypeCategory(ctx.lastSql, params, index)])).toEqual([
+        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.typeCategory])).toEqual([
             ['Amount', 'customDecimal'],
             ['Amount', 'customDecimal'],
             ['Amount', 'customDecimal'],

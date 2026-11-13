@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryExecutionMetadata, getQueryExecutionName } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { dynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import { tAppUser, tIssue, tProject, tProjectReview } from '../../domain/connection.js'
@@ -1725,8 +1725,8 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('issue-depth-tree')
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('issue-depth-tree')
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toBeUndefined()
         assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
         expect(result).toEqual(expected)
     })
@@ -1770,8 +1770,8 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'recursion' })
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ tag: 'recursion' })
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBeUndefined()
         assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
         expect(result).toEqual(expected)
     })

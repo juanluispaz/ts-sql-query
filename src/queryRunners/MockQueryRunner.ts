@@ -2,7 +2,7 @@ import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, Q
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import { databaseParamBinding, queryRunnerDatabases, queryRunnerParamBindings, type ParamBinding } from '../utils/queryRunnerParams.js'
-import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from '../utils/metadataSymbols.js'
+import { getQueryContext, type QueryContext } from '../QueryContext.js'
 
 export type MockQueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -77,6 +77,10 @@ export interface MockQueryRunnerConfig {
  * any guard.
  */
 export class MockQueryRunner implements QueryRunner {
+    /** The context of the query with these params: what the library knows of it (see getQueryContext) */
+    getQueryContext(query: string, params: any[]): QueryContext {
+        return getQueryContext(query, params)
+    }
     private count = 0
     private transactionDepth = 0
     readonly queryExecutor: MockQueryExecutor
@@ -530,10 +534,7 @@ export class MockQueryRunner implements QueryRunner {
     addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
         return this.paramBinding(params, value, type, typeCategory, forceTypeCast, this.typesByName)
     }
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setParamMetadata(params, params.length, queryParamType, type)
-        setParamMetadata(params, params.length, queryParamTypeCategory, typeCategory)
-        setParamMetadata(params, params.length, queryParamForceTypeCast, forceTypeCast)
+    addOutParam(params: any[], name: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean): string {
         if (this.database !== 'oracle') {
             throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
         }

@@ -1,7 +1,8 @@
 import type { TypeCategory } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
 import { __conversionType, __isDecimalCategory } from '../typeCategory.js'
-import { getParamMetadata, oracleDateParam, oracleZonedParam, queryParamValueForColumn } from '../metadataSymbols.js'
+import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
+import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
  * Checks a parameter on Oracle, for every query runner of it: the number of the database keeps 38 significant
@@ -65,7 +66,7 @@ export function oracleTemporalBind(value: unknown, type: string | undefined, typ
 
 /** Whether the parameter at that index is a localDateTime or a localTime of a database outside UTC (oracleZonedParam) */
 export function isOracleZonedParam(params: any[], index: number): boolean {
-    return getParamMetadata(params, index, oracleZonedParam) === true
+    return existingParamContextOf(params, index)?.getMetadata(oracleZonedParam) === true
 }
 
 /**
@@ -77,9 +78,9 @@ export function isOracleZonedParam(params: any[], index: number): boolean {
  * column (oracleDateParam). A null, or any other parameter, keeps the bare placeholder.
  */
 export function oraclePlaceholder(placeholder: string, params: any[], index: number, value: unknown): string {
-    if (!(value instanceof Date) || !isOracleZonedParam(params, index) || (getParamMetadata(params, index, queryParamValueForColumn) === true)) {
+    if (!(value instanceof Date) || !isOracleZonedParam(params, index) || (existingParamContextOf(params, index)?.isValueForColumn === true)) {
         return placeholder
     }
-    const ofDate = getParamMetadata(params, index, oracleDateParam) === true && value.getUTCMilliseconds() === 0
+    const ofDate = existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true && value.getUTCMilliseconds() === 0
     return 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
 }

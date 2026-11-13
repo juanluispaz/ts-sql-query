@@ -16,7 +16,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryExecutionName, getQueryExecutionMetadata } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -157,8 +157,8 @@ describe(ctx.label, () => {
             99999,
           ]
         `)
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('compound label query')
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ team: 'platform' })
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('compound label query')
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ team: 'platform' })
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })

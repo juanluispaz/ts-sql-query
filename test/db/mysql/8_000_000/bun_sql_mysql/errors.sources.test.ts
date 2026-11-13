@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { QueryExecutionSource, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
-import { getQueryExecutionStack } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner.js'
 import { DBConnection, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
     test('a-procedure-gives-its-source-to-the-query-runner', async () => {
         let stack: string | undefined
         const runner = new MockQueryRunner((_type, query, params) => {
-            stack = getQueryExecutionStack(query, params)
+            stack = getQueryContext(query, params).executionStack
             return undefined
         })
         const connection = new DBConnection(runner, Number.POSITIVE_INFINITY)
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
     test('a-function-gives-its-source-to-the-query-runner', async () => {
         let stack: string | undefined
         const runner = new MockQueryRunner((_type, query, params) => {
-            stack = getQueryExecutionStack(query, params)
+            stack = getQueryContext(query, params).executionStack
             return 1
         })
         const connection = new DBConnection(runner, Number.POSITIVE_INFINITY)

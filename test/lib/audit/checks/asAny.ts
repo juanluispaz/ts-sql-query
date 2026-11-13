@@ -378,6 +378,9 @@ const TYPE_ADAPTER_METHODS = new Set(['transformValueToDB', 'transformValueFromD
 // `const x: unknown = api(...)` annotation is required, not meaningless. Minimal
 // allow-list — keep it tiny, like FILE_SCOPED_AS_ANY.
 const PUBLIC_API_UNKNOWN_RESULT = new Set(['getQueryExecutionMetadata'])
+// Properties of a public-API result typed `unknown` by the library
+// (`getQueryContext(query, params).executionMetadata`), the same case.
+const PUBLIC_API_UNKNOWN_PROPERTY = new Set(['executionMetadata'])
 // An error-ish parameter name: an `unknown`-typed param with one of these names
 // is a caught error the helper receives (`reasonOf(e: unknown)`), not a chosen
 // meaningless annotation.
@@ -427,13 +430,14 @@ function inTypeAdapterMethod(n: ts.Node): boolean {
     return false
 }
 
-// `const x: unknown = getQueryExecutionMetadata(...)` — the var's `unknown` is the
+// `const x: unknown = getQueryExecutionMetadata(...)` (or `….executionMetadata`) — the var's `unknown` is the
 // public API's result type, not a chosen meaningless annotation.
 function fromPublicApiResult(n: ts.Node): boolean {
     const p = n.parent
     if (!ts.isVariableDeclaration(p) || p.type !== n || !p.initializer) return false
     let init: ts.Expression = p.initializer
     while (ts.isAwaitExpression(init) || ts.isParenthesizedExpression(init)) init = init.expression
+    if (ts.isPropertyAccessExpression(init)) return PUBLIC_API_UNKNOWN_PROPERTY.has(init.name.text)
     return ts.isCallExpression(init) && ts.isIdentifier(init.expression)
         && PUBLIC_API_UNKNOWN_RESULT.has(init.expression.text)
 }

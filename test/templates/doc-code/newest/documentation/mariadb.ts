@@ -25,7 +25,7 @@ import {
     type OrderByMode,
 } from '../../../../../src/dynamic/orderBy.js'
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
-import { getQueryExecutionSource } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
@@ -190,7 +190,8 @@ void Values
 void extractColumnsFrom
 void extractWritableColumnsFrom
 void extractWritableShapeFrom
-void getQueryExecutionSource
+void getQueryContext
+void function(_qc: QueryContext, _qpc: QueryParamContext) {}
 void expandTypeProjectedAsNullableFromDynamicPickPaths
 void (null as unknown as [OrderByMode, StringFilter, DynamicDefinitionForModel<{}>, Pickable, PickValuesPathProjectedAsNullable<{}, never>, PickValuesPathWithAllPropertiesProjectedAsNullable<{}, never>, PickValuesPathWithAllProperties<{}, never>])
 void (null as unknown as UpdatableValuesShapedAs<any, any>)

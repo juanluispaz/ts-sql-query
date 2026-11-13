@@ -5,6 +5,7 @@
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import { Sqlite3WasmOO1QueryRunner } from '../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
+import { addParam } from '../lib/params.js'
 
 describe.skipIf(!isRealDbEnabled('sqlite', 'wasm', 'newest', 'sqlite-wasm-OO1'))('Sqlite3WasmOO1QueryRunner: numbers beyond a 64-bit integer', () => {
     let db: import('@sqlite.org/sqlite-wasm').Database | undefined
@@ -27,7 +28,7 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'wasm', 'newest', 'sqlite-wasm-OO1'))
         for (const value of values) {
             await runner!.executeDelete('delete from numbers')
             const params: any[] = []
-            await runner!.executeInsert(`insert into numbers (v) values (${runner!.addParam(params, value, 'double', 'double', false)})`, params)
+            await runner!.executeInsert(`insert into numbers (v) values (${addParam(runner!, params, value, 'double', 'double', false)})`, params)
             const read = await runner!.executeSelectOneColumnOneRow('select v from numbers')
             expect([value, read]).toEqual([value, value])
         }
@@ -37,7 +38,7 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'wasm', 'newest', 'sqlite-wasm-OO1'))
         // An integer within the 64-bit range comes back from an expression as a bigint, as the driver reads an integer
         for (const value of [1e20, -1e20, 2 ** 63, 1.5e300, -1.5e300, 1.5]) {
             const params: any[] = []
-            const read = await runner!.executeSelectOneColumnOneRow(`select ${runner!.addParam(params, value, 'double', 'double', false)}`, params)
+            const read = await runner!.executeSelectOneColumnOneRow(`select ${addParam(runner!, params, value, 'double', 'double', false)}`, params)
             expect([value, read]).toEqual([value, value])
         }
     })

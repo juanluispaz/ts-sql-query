@@ -61,7 +61,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, this.__idColumn ? __unnamedResultColumn(this.__idColumn) : [], this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, this.__idColumn ? __unnamedResultColumn(this.__idColumn) : [], this.__customization)
             const idColumn = this.__idColumn
             const multiple = this.__multiple
             let result
@@ -77,11 +77,11 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     result = this.__sqlBuilder._queryRunner.createResolvedPromise(0)
                 }
             } else if (!idColumn) {
-                result = this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
+                result = this.__sqlBuilder._queryRunner.executeInsert(this.__query, executionParams).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else if (!multiple && !this.__from) {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, executionParams).then((value) => {
                     if (value === undefined) {
                         value = null
                     }
@@ -119,7 +119,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, executionParams).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
                     const columnTypeName = idColumnPrivate.__valueTypeName
@@ -210,7 +210,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             const multiple = this.__multiple
             let result
             if (multiple && multiple.length <= 0) {
@@ -219,7 +219,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 // string `_buildInsertMultiple` produces, which every driver rejects.
                 result = this.__sqlBuilder._queryRunner.createResolvedPromise(null)
             } else if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -232,7 +232,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -251,7 +251,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             const multiple = this.__multiple
             let result
             if (multiple && multiple.length <= 0) {
@@ -262,7 +262,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 const noResult = new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                 result = this.__sqlBuilder._queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(noResult), noResult))
             } else if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -275,7 +275,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -294,7 +294,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         try {
             this.query()
-            __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
+            const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             const multiple = this.__multiple
             let result
             if (multiple && multiple.length <= 0) {
@@ -304,7 +304,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 // `min`/`max` guards below still run against the resulting count of 0.
                 result = this.__sqlBuilder._queryRunner.createResolvedPromise([])
             } else if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnManyRows(this.__query, executionParams).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -324,7 +324,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeInsertReturningManyRows(this.__query, this.__params).then((rows) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningManyRows(this.__query, executionParams).then((rows) => {
                     const length = rows.length
                     const output = new Array(length)
                     for (let index = 0; index < length; index++) {

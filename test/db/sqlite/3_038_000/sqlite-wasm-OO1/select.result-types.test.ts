@@ -1,16 +1,17 @@
-// Each query the library builds goes with the columns of its result, read with getQueryResultColumns: the key of the
+// Each query the library builds goes with the columns of its result, read from the context of the query (getQueryContext): the key of the
 // column in a row returned by the database, its path in the result, and the type name and type category its value
 // is converted with, in the order of the select list. A query that returns no columns has none. They travel hidden in
 // the params: they are not listed, nor sent to the database.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryResultColumn, getQueryResultColumns, type QueryResultColumn } from '../../../../../src/queryRunners/QueryRunner.js'
+import { type QueryResultColumn } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { tColMatrixOptional, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 function resultColumns(params = ctx.lastParams): readonly QueryResultColumn[] | undefined {
-    return getQueryResultColumns(ctx.lastSql, params)
+    return getQueryContext(ctx.lastSql, params).resultColumns
 }
 
 describe(ctx.label, () => {
@@ -149,8 +150,8 @@ describe(ctx.label, () => {
             },
           ]
         `)
-        expect(getQueryResultColumn(ctx.lastSql, ctx.lastParams, 'money')).toEqual({ name: 'money', path: 'money', type: 'Money', typeCategory: 'customDouble' })
-        expect(getQueryResultColumn(ctx.lastSql, ctx.lastParams, 'unknown')).toBeUndefined()
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('money')).toEqual({ name: 'money', path: 'money', type: 'Money', typeCategory: 'customDouble' })
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('unknown')).toBeUndefined()
         // Hidden: the params list only the values sent to the database
         expect(Object.keys(ctx.lastParams)).toEqual(['0'])
         expect(JSON.stringify(ctx.lastParams)).toBe('[1]')
@@ -568,7 +569,7 @@ describe(ctx.label, () => {
             return await ctx.conn.selectFrom(tOrganization).where(tOrganization.id.equals(1)).selectOneColumn(tOrganization.name).executeSelectMany()
         })
         // The params of the transaction are its options
-        expect(getQueryResultColumns('', ctx.lastTransactionOpts ?? [])).toEqual([])
+        expect(getQueryContext('', ctx.lastTransactionOpts ?? []).resultColumns).toEqual([])
         expect(names).toEqual(['Acme Corp'])
     })
 })

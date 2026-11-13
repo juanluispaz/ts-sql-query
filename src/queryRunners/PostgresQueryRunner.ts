@@ -10,7 +10,7 @@ import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } f
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { postgreSqlOptionsTimeZone } from '../utils/postgreSql/postgreSqlSessionTimeZone.js'
-import { getParamMetadata, queryParamForceTypeCast, queryParamType, queryParamTypeCategory } from '../utils/metadataSymbols.js'
+import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 
 export interface PostgresQueryRunnerConfig {
     /**
@@ -81,15 +81,15 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         let result: any[] | undefined = values === params ? undefined : values
         for (let i = 0, length = params.length; i < length; i++) {
             const value = values[i]
-            const type = getParamMetadata<string>(params, i, queryParamType)
+            const type = existingParamContextOf(params, i)?.type
             const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             let typed: Parameter<any> | undefined
             if (typeof declared === 'function') {
                 typed = declared(value)
             } else if (declared !== undefined) {
                 typed = sql.typed(value, declared)
-            } else if (getParamMetadata<boolean>(params, i, queryParamForceTypeCast)) {
-                const paramType = postgreSqlParamType(type, getParamMetadata<TypeCategory>(params, i, queryParamTypeCategory), value, isPostgreSqlZonedParam(params, i))
+            } else if (existingParamContextOf(params, i)?.forceTypeCast || isPostgreSqlZonedParam(params, i)) {
+                const paramType = postgreSqlParamType(type, existingParamContextOf(params, i)?.typeCategory, value, isPostgreSqlZonedParam(params, i))
                 if (paramType) {
                     typed = sql.typed(value, paramType.oid)
                 }

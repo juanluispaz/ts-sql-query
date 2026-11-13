@@ -1,6 +1,6 @@
-import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
+import type { TsSqlErrorReason } from "../TsSqlError.js"
 import type { TypeCategory } from '../TypeAdapter.js'
-import { getMetadata, getParamMetadata, queryConnectionConfiguration, queryExecutionMetadata, queryExecutionSource, queryParamForceTypeCast, queryParamType, queryParamTypeCategory, queryParamValueForColumn, queryResultColumns, querySelectPageCount } from '../utils/metadataSymbols.js'
+import { getQueryContext } from '../QueryContext.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -51,10 +51,9 @@ export interface QueryRunner {
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
     /**
-     * Adds the value to the params and returns its placeholder, the final one as it is written in the SQL. A query
-     * runner that adds it keeps its type with `setQueryParamMetadata` (`ts-sql-query/QueryMetadata`), under
-     * `queryParamType`, `queryParamTypeCategory` and `queryParamForceTypeCast`, at the index of the value; one that delegates to
-     * another passes the type on. forceTypeCast tells the database must receive the type of the parameter, because the
+     * Adds the value to the params and returns its placeholder, the final one as it is written in the SQL. The library
+     * keeps the type of the parameter in the context of the query (`getQueryContext`) before it calls this method; a
+     * query runner that delegates to another passes the type on. forceTypeCast tells the database must receive the type of the parameter, because the
      * position where it is written in the SQL gives it none: the query runner writes a cast in the placeholder, or
      * sends the parameter with its type when the driver can.
      */
@@ -115,33 +114,6 @@ export type BeginTransactionOpts = [transactionLevel?: 'read uncommitted' | 'rea
 export type CommitOpts = []
 export type RollbackOpts = []
 
-/** The type name of the parameter at that index, or undefined when it was added without it */
-export function getQueryParamType(query: string, params: any[], index: number): string | undefined {
-    query
-    return getParamMetadata<string>(params, index, queryParamType)
-}
-/** The type category of the parameter at that index, or undefined when it was added without it */
-export function getQueryParamTypeCategory(query: string, params: any[], index: number): TypeCategory | undefined {
-    query
-    return getParamMetadata<TypeCategory>(params, index, queryParamTypeCategory)
-}
-/**
- * Whether the database must receive the type of the parameter at that index (the forceTypeCast given to `addParam`), or
- * undefined when it was added without it
- */
-export function getQueryParamForceTypeCast(query: string, params: any[], index: number): boolean | undefined {
-    query
-    return getParamMetadata<boolean>(params, index, queryParamForceTypeCast)
-}
-/**
- * Whether the parameter at that index is the value given to a column of a table, in the values of an insert or the
- * set of an update, where the column gives it its type; false for a parameter elsewhere, or added by a query the
- * library didn't build
- */
-export function isQueryParamValueForColumn(query: string, params: any[], index: number): boolean {
-    query
-    return getParamMetadata(params, index, queryParamValueForColumn) === true
-}
 /**
  * The configuration of the connection that executes a query: the connection itself, as its SQL builder reads it, so
  * each value is the one the connection has when it is read, field initialisers of a subclass included. A setting that
@@ -229,48 +201,16 @@ export interface QueryResultColumn {
     readonly typeCategory: TypeCategory
 }
 
-/**
- * The columns of the result of the query, in the order of its select list, each with the key it has in a row returned
- * by the database, its property path in the result, its type name and its type category; an empty array when the
- * query returns no columns, or undefined when the library didn't build the query
- */
-export function getQueryResultColumns(query: string, params: any[]): readonly QueryResultColumn[] | undefined {
-    query
-    return getMetadata<readonly QueryResultColumn[]>(params, queryResultColumns)
-}
-/** The column of the result of the query with that key in a row returned by the database, or undefined */
-export function getQueryResultColumn(query: string, params: any[], name: string): QueryResultColumn | undefined {
-    query
-    return getMetadata<readonly QueryResultColumn[]>(params, queryResultColumns)?.find(column => column.name === name)
-}
-/**
- * The configuration of the connection that executes the query (the connection itself, whose values are read when
- * used), or undefined when the library didn't build the query
- */
-export function getQueryConnectionConfiguration(query: string, params: any[]): ConnectionConfiguration | undefined {
-    query
-    return getMetadata<ConnectionConfiguration>(params, queryConnectionConfiguration)
-}
-/** The name and metadata given to the query execution by the user (`customizeQuery`) */
-interface QueryExecutionMetadata {
-    queryExecutionName?: string
-    queryExecutionMetadata?: any
-}
+// The readers of version 1, exported only by its paths: version 2 reads the context of the query (getQueryContext)
+
 export function getQueryExecutionName(query: string, params: any[]): string | undefined {
-    query
-    return getMetadata<QueryExecutionMetadata>(params, queryExecutionMetadata)?.queryExecutionName
+    return getQueryContext(query, params).executionName
 }
 export function getQueryExecutionMetadata(query: string, params: any[]): unknown {
-    query
-    return getMetadata<QueryExecutionMetadata>(params, queryExecutionMetadata)?.queryExecutionMetadata
-}
-export function getQueryExecutionSource(query: string, params: any[]): QueryExecutionSource | undefined {
-    query
-    return getMetadata<QueryExecutionSource>(params, queryExecutionSource)
+    return getQueryContext(query, params).executionMetadata
 }
 export function getQueryExecutionStack(query: string, params: any[]): string | undefined {
-    query
-    return getMetadata<QueryExecutionSource>(params, queryExecutionSource)?.stack
+    return getQueryContext(query, params).executionStack
 }
 export interface FunctionExecutingQueryInformation {
     functionName?: string | undefined,
@@ -279,44 +219,8 @@ export interface FunctionExecutingQueryInformation {
     positionNumber?: string | undefined
 }
 export function getFunctionExecutingQuery(query: string, params: any[]): FunctionExecutingQueryInformation | undefined {
-    const stack = getQueryExecutionStack(query, params)
-    if (!stack) {
-        return undefined
-    }
-    const lineRegex = /^.+?\n.+?\n\s+?at(?: async)? (.+?)(?: (?:\((.+?)\)))?$/m
-    const lineMatch = stack.match(lineRegex)
-    if (!lineMatch) {
-        return undefined
-    }
-    let functionName = lineMatch[1]
-    if (!functionName) {
-        return undefined
-    }
-    let file = lineMatch[2]
-    if (!file) {
-        file = functionName
-        functionName = undefined
-    }
-    if (functionName === '<anonymous>') {
-        functionName = undefined
-    }
-    if (file === '<anonymous>') {
-        return undefined
-    }
-    const fileRegex = /^(.+?)(?:\:(\d+?)(?:\:(\d+?))?)?$/
-    const fileMatch = file.match(fileRegex)
-    if (!fileMatch) {
-        return { functionName }
-    }
-    const result = {
-        functionName,
-        fileName: fileMatch[1], 
-        lineNumber: fileMatch[2], 
-        positionNumber: fileMatch[3]
-    }
-    return result
+    return getQueryContext(query, params).functionExecutingQuery
 }
 export function isSelectPageCountQuery(query: string, params: any[]): boolean {
-    query
-    return getMetadata(params, querySelectPageCount) === true
+    return getQueryContext(query, params).isSelectPageCount
 }

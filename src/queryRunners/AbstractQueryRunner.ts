@@ -1,10 +1,15 @@
 import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
-import { getMetadata, queryContainsInsertReturningClause, queryContainsMutationReturningClause, queryForcedAffectedRowCount } from '../utils/metadataSymbols.js'
+import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
 import type { TypeCategory } from '../TypeAdapter.js'
+import { getQueryContext, type QueryContext } from '../QueryContext.js'
 
 export abstract class AbstractQueryRunner implements QueryRunner {
+    /** The context of the query with these params: what the library knows of it (see getQueryContext) */
+    getQueryContext(query: string, params: any[]): QueryContext {
+        return getQueryContext(query, params)
+    }
     abstract readonly database: DatabaseType
     abstract useDatabase(database: DatabaseType): void
     abstract getNativeRunner(): unknown
@@ -248,7 +253,7 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     protected abstract executeQueryReturning(query: string, params: any[]): Promise<any[]>
     protected abstract executeMutation(query: string, params: any[]): Promise<number>
     protected containsInsertReturningClause(query: string, params: any[]) {
-        const containsInsertReturningClause = getMetadata<boolean>(params, queryContainsInsertReturningClause)
+        const containsInsertReturningClause = existingQueryContextOf(params)?.containsInsertReturningClause
         if (containsInsertReturningClause === true) {
             return true
         } else if (containsInsertReturningClause === false) {
@@ -262,10 +267,10 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     // AbstractSqlBuilder._setForcedAffectedRowCount — Oracle's multi-row INSERT
     // PL/SQL block). `undefined` when the driver's own count should be used.
     protected getForcedAffectedRowCount(params: any[]): number | undefined {
-        return getMetadata<number>(params, queryForcedAffectedRowCount)
+        return existingQueryContextOf(params)?.forcedAffectedRowCount
     }
     protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
-        if (getMetadata<boolean>(params, queryContainsMutationReturningClause) === false) {
+        if (existingQueryContextOf(params)?.containsMutationReturningClause === false) {
             // The outermost mutation's returning projection collapsed to nothing
             // (an empty `returning({})`), so the emitted SQL carries no returning
             // clause and there is no data to read back. Run it as a plain mutation:

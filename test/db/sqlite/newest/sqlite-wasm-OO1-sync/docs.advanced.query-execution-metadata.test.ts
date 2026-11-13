@@ -11,7 +11,8 @@
 // receives in `onQuery(...)`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { getQueryExecutionStack, getFunctionExecutingQuery, isSelectPageCountQuery, getQueryExecutionName, getQueryExecutionMetadata, type FunctionExecutingQueryInformation, getQueryExecutionSource } from '../../../../../src/queryRunners/QueryRunner.js'
+import { type FunctionExecutingQueryInformation } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext, type QueryContext } from '../../../../../src/QueryContext.js'
 import { tIssue, tProject, DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { InterceptorQueryRunner } from '../../../../../src/queryRunners/InterceptorQueryRunner.js'
@@ -24,21 +25,21 @@ interface ObservedMetadata {
     info: FunctionExecutingQueryInformation | undefined
     isCount: boolean
     name: string | undefined
-    metadata: ReturnType<typeof getQueryExecutionMetadata>
+    metadata: QueryContext['executionMetadata']
 }
 
 // What the page's runner reads in onQuery, kept for the assertion instead of logged.
 const observed: ObservedMetadata[] = []
 
 class MetadataReadingQueryRunner extends InterceptorQueryRunner<boolean> {
-    onQuery(queryType: QueryType, query: string, params: Parameters<typeof getQueryExecutionStack>[1]): boolean {
+    onQuery(queryType: QueryType, query: string, params: Parameters<typeof getQueryContext>[1]): boolean {
         observed.push({
             queryType,
-            stack: getQueryExecutionStack(query, params),
-            info: getFunctionExecutingQuery(query, params),
-            isCount: isSelectPageCountQuery(query, params),
-            name: getQueryExecutionName(query, params),
-            metadata: getQueryExecutionMetadata(query, params),
+            stack: getQueryContext(query, params).executionStack,
+            info: getQueryContext(query, params).functionExecutingQuery,
+            isCount: getQueryContext(query, params).isSelectPageCount,
+            name: getQueryContext(query, params).executionName,
+            metadata: getQueryContext(query, params).executionMetadata,
         })
         return true
     }
@@ -78,7 +79,7 @@ describe(ctx.label, () => {
             .executeSelectOne())
 
         // doc-start
-        const stack: string | undefined = getQueryExecutionStack(ctx.lastSql, ctx.lastParams)
+        const stack: string | undefined = getQueryContext(ctx.lastSql, ctx.lastParams).executionStack
         // doc-end
         expect(typeof stack).toBe('string')
         // The leading line is hard-coded by __setQueryMetadata.
@@ -93,10 +94,10 @@ describe(ctx.label, () => {
             .executeSelectOne())
 
         // doc-start
-        const source: Error | undefined = getQueryExecutionSource(ctx.lastSql, ctx.lastParams)
+        const source: Error | undefined = getQueryContext(ctx.lastSql, ctx.lastParams).executionSource
         // doc-end
         expect(source).toBeInstanceOf(Error)
-        expect(source?.stack).toBe(getQueryExecutionStack(ctx.lastSql, ctx.lastParams))
+        expect(source?.stack).toBe(getQueryContext(ctx.lastSql, ctx.lastParams).executionStack)
     })
 
     test('docs:query-execution-metadata/get-function-executing-query', async () => {
@@ -105,7 +106,7 @@ describe(ctx.label, () => {
 
         // doc-start
         const info: FunctionExecutingQueryInformation | undefined =
-            getFunctionExecutingQuery(ctx.lastSql, ctx.lastParams)
+            getQueryContext(ctx.lastSql, ctx.lastParams).functionExecutingQuery
         // doc-end
         expect(info?.functionName).toBe('functionRequestingTheQuery')
         expect(info?.fileName?.split('/').at(-1)).toBe('docs.advanced.query-execution-metadata.test.ts')
@@ -121,7 +122,7 @@ describe(ctx.label, () => {
             .executeSelectOne())
 
         // doc-start
-        const isCount: boolean = isSelectPageCountQuery(ctx.lastSql, ctx.lastParams)
+        const isCount: boolean = getQueryContext(ctx.lastSql, ctx.lastParams).isSelectPageCount
         // doc-end
         expect(isCount).toBe(false)
     })
@@ -141,7 +142,7 @@ describe(ctx.label, () => {
             .executeSelectOne())
         // doc-end
 
-        const name: string | undefined = getQueryExecutionName(ctx.lastSql, ctx.lastParams)
+        const name: string | undefined = getQueryContext(ctx.lastSql, ctx.lastParams).executionName
         expect(name).toBe('My query name')
     })
 
@@ -160,13 +161,13 @@ describe(ctx.label, () => {
             .executeSelectOne())
         // doc-end
 
-        const metadata: unknown = getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)
+        const metadata: unknown = getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata
         expect(metadata).toEqual({ myMetadataProp: 'my metadata value' })
     })
 
     test('docs-extra:query-execution-metadata/is-select-page-count-query-true-on-page-count', async () => {
         // The count query inside executeSelectPage is the one and only
-        // place ts-sql-query flags `$isSelectPageCountQuery=true`. The
+        // place the context of the query says `isSelectPageCount`. The
         // page promises this in prose; lock the contract in.
         ctx.mockNext([{ id: 1, name: 'Marketing site' }])
         ctx.mockNext(1)  // count: single int value
@@ -175,7 +176,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectPage())
         // After executeSelectPage the LAST query is the count query.
-        const isCount = isSelectPageCountQuery(ctx.lastSql, ctx.lastParams)
+        const isCount = getQueryContext(ctx.lastSql, ctx.lastParams).isSelectPageCount
         expect(isCount).toBe(true)
     })
 
@@ -188,8 +189,8 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectOne())
 
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBeUndefined()
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBeUndefined()
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toBeUndefined()
     })
 
     test('docs-extra:query-execution-metadata/name-and-metadata-coexist', async () => {
@@ -205,14 +206,14 @@ describe(ctx.label, () => {
             })
             .executeSelectOne())
 
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('find-project')
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'hot-path' })
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('find-project')
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ tag: 'hot-path' })
     })
 
     test('docs-extra:query-execution-metadata/insert-carries-name-and-metadata', async () => {
         // queryExecutionName / queryExecutionMetadata set via customizeQuery on an
         // INSERT ride through to the runner and are read back through the public
-        // getQueryExecutionName / getQueryExecutionMetadata. Read inside the rollback
+        // context of the query (getQueryContext). Read inside the rollback
         // (before it reverts) so ctx.lastSql/lastParams still reflect the insert.
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
@@ -224,8 +225,8 @@ describe(ctx.label, () => {
                 })
                 .executeInsert())
 
-            expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('insert-project')
-            expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'insert-path' })
+            expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('insert-project')
+            expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ tag: 'insert-path' })
         })
     })
 
@@ -244,8 +245,8 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate())
 
-            expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('update-project')
-            expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'update-path' })
+            expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('update-project')
+            expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ tag: 'update-path' })
         })
     })
 
@@ -264,8 +265,8 @@ describe(ctx.label, () => {
                 })
                 .executeDelete())
 
-            expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('delete-project')
-            expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'delete-path' })
+            expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('delete-project')
+            expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ tag: 'delete-path' })
         })
     })
 
@@ -273,7 +274,7 @@ describe(ctx.label, () => {
     test('docs-extra:query-execution-metadata/select-page-carries-name-and-metadata-on-count', async () => {
         // A queryExecutionName / queryExecutionMetadata set on an executeSelectPage
         // is retrievable by the interceptor on BOTH queries it runs: the data query
-        // AND the auto-generated COUNT query (the one place isSelectPageCountQuery is
+        // AND the auto-generated COUNT query (the one place isSelectPageCount is
         // true). The metadata is non-SQL — it rides through to the runner regardless
         // of the count query's shape — so a monitoring interceptor can label and tell
         // apart both halves of the page. This is the user-facing reason the customized
@@ -295,13 +296,13 @@ describe(ctx.label, () => {
         const data = ctx.history[0]!
         const count = ctx.history[1]!
         // data query: not the count, carries the name + metadata
-        expect(isSelectPageCountQuery(data.sql, data.params)).toBe(false)
-        expect(getQueryExecutionName(data.sql, data.params)).toBe('projects-page')
-        expect(getQueryExecutionMetadata(data.sql, data.params)).toEqual({ tag: 'page-path' })
+        expect(getQueryContext(data.sql, data.params).isSelectPageCount).toBe(false)
+        expect(getQueryContext(data.sql, data.params).executionName).toBe('projects-page')
+        expect(getQueryContext(data.sql, data.params).executionMetadata).toEqual({ tag: 'page-path' })
         // count query: flagged as the page count AND carries the same name + metadata
-        expect(isSelectPageCountQuery(count.sql, count.params)).toBe(true)
-        expect(getQueryExecutionName(count.sql, count.params)).toBe('projects-page')
-        expect(getQueryExecutionMetadata(count.sql, count.params)).toEqual({ tag: 'page-path' })
+        expect(getQueryContext(count.sql, count.params).isSelectPageCount).toBe(true)
+        expect(getQueryContext(count.sql, count.params).executionName).toBe('projects-page')
+        expect(getQueryContext(count.sql, count.params).executionMetadata).toEqual({ tag: 'page-path' })
     })
 
     test('docs-extra:query-execution-metadata/compound-select-carries-name-and-metadata', async () => {
@@ -319,8 +320,8 @@ describe(ctx.label, () => {
             })
             .executeSelectMany())
 
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('compound-select')
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'compound-path' })
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionName).toBe('compound-select')
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).executionMetadata).toEqual({ tag: 'compound-path' })
     })
 
     test('docs-extra:query-execution-metadata/interceptor-subclass-reads-metadata-in-on-query', async () => {
@@ -373,7 +374,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectOne())
 
-        const info = getFunctionExecutingQuery(ctx.lastSql, ctx.lastParams)
+        const info = getQueryContext(ctx.lastSql, ctx.lastParams).functionExecutingQuery
         expect(info?.fileName?.split('/').at(-1)).toBe('docs.advanced.query-execution-metadata.test.ts')
         expect(Number(info?.lineNumber)).toBeGreaterThan(0)
     })

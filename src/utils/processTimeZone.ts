@@ -2,8 +2,7 @@
 // process in UTC the local getters of a Date are its UTC getters, and what the driver does with them is already right.
 
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
-import { getMetadata, queryConnectionConfiguration } from './metadataSymbols.js'
+import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
 
 // The names of a zone that is UTC all year (IANA names and their aliases, and the POSIX UTC0), in upper case
 const utcZoneNames = new Set<string>([
@@ -73,7 +72,7 @@ export function rejectSessionNotInDatabaseZone(session: SessionTimeZone | undefi
     if (!session) {
         return undefined
     }
-    const databaseTimeZone = getMetadata<ConnectionConfiguration>(params, queryConnectionConfiguration)?.databaseTimeZone ?? 'UTC'
+    const databaseTimeZone = existingQueryContextOf(params)?.connectionConfiguration?.databaseTimeZone ?? 'UTC'
     const databaseInUtc = isUtcTimeZoneName(databaseTimeZone)
     if (databaseInUtc ? isUtcSessionTimeZone(session.timeZone) : session.timeZone.trim().toLowerCase() === databaseTimeZone.trim().toLowerCase()) {
         return undefined

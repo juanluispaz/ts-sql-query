@@ -10,6 +10,7 @@ import type { DatabaseType } from '../../../src/queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from '../../../src/TsSqlError.js'
 import { QUERY_CALLS } from '../lib/queryRunnerCalls.js'
 import { reasonOf, rejectionOf } from '../lib/runnerContract.js'
+import { addParam } from '../lib/params.js'
 
 describe('NoopQueryRunner', () => {
     for (const { type, shape, call } of QUERY_CALLS) {
@@ -76,7 +77,7 @@ describe('NoopQueryRunner', () => {
         test(`params-on-${database}`, () => {
             const runner = new NoopQueryRunner(database)
             const params: any[] = []
-            expect([runner.addParam(params, 'a', 'string', 'string', false), runner.addParam(params, 'b', 'string', 'string', false)]).toEqual([first, second])
+            expect([addParam(runner, params, 'a', 'string', 'string', false), addParam(runner, params, 'b', 'string', 'string', false)]).toEqual([first, second])
             expect(runner.database).toBe(database)
         })
     }
@@ -88,7 +89,7 @@ describe('NoopQueryRunner', () => {
     for (const [database, placeholder] of FORCED) {
         test(`forced-type-on-${database}`, () => {
             const runner = new NoopQueryRunner(database)
-            expect(runner.addParam([], 1, 'int', 'int', true)).toBe(placeholder)
+            expect(addParam(runner, [], 1, 'int', 'int', true)).toBe(placeholder)
         })
     }
     test('forced-type-on-postgreSql-by-the-value', () => {
@@ -98,7 +99,7 @@ describe('NoopQueryRunner', () => {
             [5n, 'Count', '', '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
         ]
         for (const [value, type, typeCategory, placeholder] of cases) {
-            expect([type, value, runner.addParam([], value, type, typeCategory, true)]).toEqual([type, value, placeholder])
+            expect([type, value, addParam(runner, [], value, type, typeCategory, true)]).toEqual([type, value, placeholder])
         }
     })
 
@@ -106,7 +107,7 @@ describe('NoopQueryRunner', () => {
         const runner = new NoopQueryRunner()
         runner.useDatabase('dbase' as any)
         let error: unknown
-        try { runner.addParam([], 1, 'int', 'int', false) } catch (e) { error = e }
+        try { addParam(runner, [], 1, 'int', 'int', false) } catch (e) { error = e }
         expect(reasonOf(error)).toBe('UNSUPPORTED_DATABASE')
     })
 

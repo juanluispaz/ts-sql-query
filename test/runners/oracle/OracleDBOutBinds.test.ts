@@ -9,9 +9,10 @@ import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunne
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { TypeCategory } from '../../../src/TypeAdapter.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
-import { queryForcedAffectedRowCount, setMetadata } from '../../../src/utils/metadataSymbols.js'
+import { queryContextOf } from '../../../src/internal/QueryContextImpl.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
+import { addOutParam, addParam } from '../lib/params.js'
 
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: out binds', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
@@ -34,10 +35,10 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     function insertReturningMoments(types: [TypeCategory, TypeCategory]): { sql: string, params: any[] } {
         const params: any[] = []
-        const d = r().addParam(params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime', false)
-        const ts = r().addParam(params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', 'localDateTime', false)
-        const dOut = r().addOutParam(params, 'd', types[0], types[0], false)
-        const tsOut = r().addOutParam(params, 'ts', types[1], types[1], false)
+        const d = addParam(r(), params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime', false)
+        const ts = addParam(r(), params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', 'localDateTime', false)
+        const dOut = addOutParam(r(), params, 'd', types[0], types[0], false)
+        const tsOut = addOutParam(r(), params, 'ts', types[1], types[1], false)
         return { sql: `insert into rt_moment (d, ts) values (${d}, ${ts}) returning d, ts into ${dOut}, ${tsOut}`, params }
     }
 
@@ -55,9 +56,9 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         // session: its digits for a date or a timestamp, the instant for a timestamp with time zone (bound as a
         // timestamp, the instant lost its offset)
         const params: any[] = []
-        const dOut = r().addOutParam(params, 'd', 'localDateTime', 'localDateTime', false)
-        const tsOut = r().addOutParam(params, 'ts', 'localDateTime', 'localDateTime', false)
-        const tstzOut = r().addOutParam(params, 'tstz', 'localDateTime', 'localDateTime', false)
+        const dOut = addOutParam(r(), params, 'd', 'localDateTime', 'localDateTime', false)
+        const tsOut = addOutParam(r(), params, 'ts', 'localDateTime', 'localDateTime', false)
+        const tstzOut = addOutParam(r(), params, 'tstz', 'localDateTime', 'localDateTime', false)
         const sql = `insert into rt_moment (d, ts, tstz) values (date '2026-10-25', timestamp '2026-10-25 10:30:15.123', timestamp '2026-10-25 19:30:15.123 +09:00') returning d, ts, tstz into ${dOut}, ${tsOut}, ${tstzOut}`
         const row = await r().executeInsertReturningOneRow(sql, params)
         expect(row).toEqual({ d: new Date(Date.UTC(2026, 9, 25)), ts: new Date(Date.UTC(2026, 9, 25, 10, 30, 15, 123)), tstz: new Date(Date.UTC(2026, 9, 25, 10, 30, 15, 123)) })
@@ -72,7 +73,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     function callEcho(value: string): { sql: string, params: any[] } {
         const params: any[] = []
-        const sql = `begin rt_echo(${r().addParam(params, value, 'string', 'string', false)}, ${r().addOutParam(params, 'message', 'string', 'string', false)}); end;`
+        const sql = `begin rt_echo(${addParam(r(), params, value, 'string', 'string', false)}, ${addOutParam(r(), params, 'message', 'string', 'string', false)}); end;`
         return { sql, params }
     }
 
@@ -89,8 +90,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('out-binds-of-a-pl-sql-block-make-one-row-per-repeated-name', async () => {
         const params: any[] = []
-        const sql = `begin insert into rt_moment (d) values (${r().addParam(params, new Date(), 'localDateTime', 'localDateTime', false)}) returning id into ${r().addOutParam(params, '', 'int', 'int', false)};`
-            + ` insert into rt_moment (d) values (${r().addParam(params, new Date(), 'localDateTime', 'localDateTime', false)}) returning id into ${r().addOutParam(params, '', 'int', 'int', false)}; end;`
+        const sql = `begin insert into rt_moment (d) values (${addParam(r(), params, new Date(), 'localDateTime', 'localDateTime', false)}) returning id into ${addOutParam(r(), params, '', 'int', 'int', false)};`
+            + ` insert into rt_moment (d) values (${addParam(r(), params, new Date(), 'localDateTime', 'localDateTime', false)}) returning id into ${addOutParam(r(), params, '', 'int', 'int', false)}; end;`
         const ids = (await r().executeInsertReturningMultipleLastInsertedId(sql, params)).map(Number)
         expect(ids).toHaveLength(2)
         expect(ids[1]!).toBeGreaterThan(ids[0]!)
@@ -98,14 +99,14 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('a-pl-sql-block-reports-the-affected-rows-the-builder-recorded', async () => {
         const params: any[] = []
-        setMetadata(params, queryForcedAffectedRowCount, 2)
+        queryContextOf(params).forcedAffectedRowCount = 2
         const inserted = await r().executeInsert('begin insert into rt_moment (d) values (sysdate); insert into rt_moment (d) values (sysdate); end;', params)
         expect(inserted).toBe(2)
     })
 
     test('a-mutation-returning-nothing-into-out-binds', async () => {
         const params: any[] = []
-        const sql = `update rt_moment set d = d where id < 0 returning id into ${r().addOutParam(params, 'id', 'int', 'int', false)}`
+        const sql = `update rt_moment set d = d where id < 0 returning id into ${addOutParam(r(), params, 'id', 'int', 'int', false)}`
         expect(await r().executeUpdateReturningManyRows(sql, params)).toEqual([])
     })
 })

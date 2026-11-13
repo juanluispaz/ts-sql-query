@@ -9,7 +9,6 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam, oraclePlaceholder } from './oracle/oracleParamTypes.js'
 import { mySqlMariaDBPlaceholder } from './mySqlMariaDB/mySqlMariaDBParamTypes.js'
 import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSql/postgreSqlParamTypes.js'
-import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from './metadataSymbols.js'
 import { sqlServerPlaceholder } from './sqlServer/sqlServerParamTypes.js'
 
 /** The PostgreSQL type, by type name, written as the cast of a parameter (the typesByName of pg and Bun SQL) */
@@ -18,59 +17,56 @@ export type CastTypesByName = { readonly [typeName: string]: string }
 /** Adds the parameter to the params and returns its placeholder, as a query runner does in addParam */
 export type ParamBinding = (params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, castTypesByName?: CastTypesByName | undefined) => string
 
-function add(params: any[], value: unknown, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): number {
+function add(params: any[], value: unknown): number {
     const index = params.length
-    setParamMetadata(params, index, queryParamType, type)
-    setParamMetadata(params, index, queryParamTypeCategory, typeCategory)
-    setParamMetadata(params, index, queryParamForceTypeCast, forceTypeCast)
     params.push(value)
     return index
 }
 
 /** SQLite: a boolean stays a boolean in the params; the query runners whose driver rejects it give it as 1 or 0 */
-const sqlite: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
-    return '?' + (add(params, value, type, typeCategory, forceTypeCast) + 1)
+const sqlite: ParamBinding = (params, value, _type, _typeCategory, _forceTypeCast) => {
+    return '?' + (add(params, value) + 1)
 }
 /**
  * sqlite-wasm binds a number that is an integer as a 64-bit integer, so one beyond that range would wrap without an
  * error (1e20 → 7766279631452241920): its text converted to a real keeps the value
  */
-const sqliteWasm: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
+const sqliteWasm: ParamBinding = (params, value, _type, _typeCategory, _forceTypeCast) => {
     if (typeof value === 'number' && Number.isInteger(value) && (value >= 2 ** 63 || value < -(2 ** 63))) {
-        return 'cast(?' + (add(params, String(value), type, typeCategory, forceTypeCast) + 1) + ' as real)'
+        return 'cast(?' + (add(params, String(value)) + 1) + ' as real)'
     }
-    return '?' + (add(params, value, type, typeCategory, forceTypeCast) + 1)
+    return '?' + (add(params, value) + 1)
 }
 /** pg and Bun SQL can't send a parameter with its type: the type goes as a cast in the placeholder */
 const postgreSqlCast: ParamBinding = (params, value, type, typeCategory, forceTypeCast, castTypesByName) => {
     // A localDateTime or a localTime of a database outside UTC, marked by the connection before it is added, goes with
     // its type, a timestamptz
     const zoned = isPostgreSqlZonedParam(params, params.length)
-    const index = add(params, value, type, typeCategory, forceTypeCast || zoned)
+    const index = add(params, value)
     return postgreSqlPlaceholder(index, value, type, typeCategory, forceTypeCast, castTypesByName, zoned)
 }
 /** postgres.js and PGlite send the parameter with its type: the placeholder needs no cast */
-const postgreSqlTyped: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
+const postgreSqlTyped: ParamBinding = (params, value, type, typeCategory, _forceTypeCast) => {
     // A localDateTime or a localTime of a database outside UTC goes with its type, a timestamptz
     const zoned = isPostgreSqlZonedParam(params, params.length)
-    return '$' + (add(params, value, type, typeCategory, forceTypeCast || zoned) + 1) + postgreSqlZonedTimeCast(type, typeCategory, zoned)
+    return '$' + (add(params, value) + 1) + postgreSqlZonedTimeCast(type, typeCategory, zoned)
 }
-const mySql: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
+const mySql: ParamBinding = (params, value, type, typeCategory, _forceTypeCast) => {
     const placeholder = mySqlMariaDBPlaceholder('?', params, params.length, value, type, typeCategory)
-    add(params, value, type, typeCategory, forceTypeCast)
+    add(params, value)
     return placeholder
 }
-const sqlServer: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
+const sqlServer: ParamBinding = (params, value, type, typeCategory, _forceTypeCast) => {
     const placeholder = sqlServerPlaceholder('@' + params.length, params, params.length, value, type, typeCategory)
-    add(params, value, type, typeCategory, forceTypeCast)
+    add(params, value)
     return placeholder
 }
-const oracle: ParamBinding = (params, value, type, typeCategory, forceTypeCast) => {
+const oracle: ParamBinding = (params, value, type, typeCategory, _forceTypeCast) => {
     checkOracleParam(params.length, value, type, typeCategory)
     // A localDateTime or a localTime of a database outside UTC, marked by the connection before it is added, is cast
     // to the type of the column where it isn't the value of one
     const placeholder = oraclePlaceholder(':' + params.length, params, params.length, value)
-    add(params, value, type, typeCategory, forceTypeCast)
+    add(params, value)
     return placeholder
 }
 
@@ -133,7 +129,7 @@ export function databaseParamBinding(database: DatabaseType): ParamBinding {
         case 'mySql':
             return mySql
         case 'noopDB':
-            return (params, value, type, typeCategory, forceTypeCast) => '$' + add(params, value, type, typeCategory, forceTypeCast)
+            return (params, value, _type, _typeCategory, _forceTypeCast) => '$' + add(params, value)
         case 'oracle':
             return oracle
         case 'postgreSql':

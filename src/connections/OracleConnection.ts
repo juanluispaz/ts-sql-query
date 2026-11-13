@@ -12,7 +12,8 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
-import { oracleZonedParam, setParamMetadata } from '../utils/metadataSymbols.js'
+import { oracleZonedParam } from '../utils/metadataSymbols.js'
+import { queryParamContextOf } from '../internal/QueryContextImpl.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
@@ -188,7 +189,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         if (this.isDatabaseOutsideUtc()) {
             const conversionType = __conversionType(type, typeCategory)
             if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-                setParamMetadata(params, index, oracleZonedParam, true)
+                queryParamContextOf(params, index).setMetadata(oracleZonedParam, true)
             }
         }
     }

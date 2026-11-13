@@ -1,17 +1,17 @@
-// Each parameter of a query goes with the name of its type and its category, read with getQueryParamType and
-// getQueryParamTypeCategory at its index: the type of the column it's compared with, or the type of the argument when
+// Each parameter of a query goes with the name of its type and its category, read from the context of the query
+// (getQueryContext) at its index: the type of the column it's compared with, or the type of the argument when
 // a function takes another one, like the positions of a substring.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryParamType, getQueryParamTypeCategory } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { tProjectRelease, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
 function paramTypes(): Array<[string | undefined, string | undefined]> {
     const params = ctx.lastParams
-    return params.map((_value, index) => [getQueryParamType(ctx.lastSql, params, index), getQueryParamTypeCategory(ctx.lastSql, params, index)])
+    return params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.typeCategory])
 }
 
 describe(ctx.label, () => {

@@ -28,15 +28,14 @@ export {
 } from '../../TypeAdapter.js'
 
 export {
-    getQueryParamMetadata,
     setQueryParamMetadata,
 } from '../../QueryMetadata.js'
 
 export {
-    queryParamForceTypeCast,
-    queryParamType,
-    queryParamTypeCategory,
-} from '../../utils/metadataSymbols.js'
+    getQueryContext,
+    type QueryContext,
+    type QueryParamContext,
+} from '../../QueryContext.js'
 
 export {
     Values,
@@ -165,19 +164,6 @@ export {
 } from '../../extras/deepUtilities.js'
 
 export {
-    getQueryParamType,
-    getQueryParamTypeCategory,
-    getQueryParamForceTypeCast,
-    isQueryParamValueForColumn,
-    getQueryResultColumns,
-    getQueryResultColumn,
-    getQueryConnectionConfiguration,
-    getQueryExecutionName,
-    getQueryExecutionMetadata,
-    getQueryExecutionSource,
-    getQueryExecutionStack,
-    getFunctionExecutingQuery,
-    isSelectPageCountQuery,
     type QueryRunner,
     type DatabaseType,
     type QueryType,

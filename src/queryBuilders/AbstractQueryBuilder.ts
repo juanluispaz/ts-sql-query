@@ -8,7 +8,7 @@ import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import type { QueryExecutionSource } from '../TsSqlError.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
-import { queryConnectionConfiguration, queryExecutionMetadata, queryExecutionSource, queryResultColumns, querySelectPageCount, setMetadata } from '../utils/metadataSymbols.js'
+import { paramsForExecution, queryContextOf } from '../internal/QueryContextImpl.js'
 import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
 import { __typeCategoryOf } from '../utils/typeCategory.js'
 
@@ -555,20 +555,21 @@ export function __unnamedResultColumn(valueSource: AnyValueSource): QueryResultC
 }
 
 /**
- * Hangs on the params what the query runner may read of the query being executed: where it was executed, the name and
- * metadata the user gave it, the columns of its result, and the configuration of the connection.
+ * The params of one execution of the query: a copy of its params with the context of the query, where the query runner
+ * reads where it was executed, the name and metadata the user gave it, the columns of its result, and the
+ * configuration of the connection. The query is executed with these params.
  */
-export function  __setQueryMetadata(source: Error, params: any[], sqlBuilder: SqlBuilder, resultColumns: readonly QueryResultColumn[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean) {
+export function __setQueryMetadata<PARAMS extends any[]>(source: Error, params: PARAMS, sqlBuilder: SqlBuilder, resultColumns: readonly QueryResultColumn[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean): PARAMS {
     sqlBuilder._checkConnectionConfiguration()
-    setMetadata(params, queryExecutionSource, source)
-    setMetadata(params, queryResultColumns, resultColumns)
-    setMetadata(params, queryConnectionConfiguration, sqlBuilder._connectionConfiguration)
-    if (queryMetadata) {
-        setMetadata(params, queryExecutionMetadata, queryMetadata)
-    }
-    if (isSelectPageCountQuery) {
-        setMetadata(params, querySelectPageCount, true)
-    }
+    const executionParams = paramsForExecution(params) as PARAMS
+    const queryContext = queryContextOf(executionParams)
+    queryContext.executionSource = source
+    queryContext.resultColumns = resultColumns
+    queryContext.connectionConfiguration = sqlBuilder._connectionConfiguration
+    queryContext.executionName = queryMetadata?.queryExecutionName
+    queryContext.executionMetadata = queryMetadata?.queryExecutionMetadata
+    queryContext.isSelectPageCount = !!isSelectPageCountQuery
+    return executionParams
 }
 
 /**

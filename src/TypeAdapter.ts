@@ -1,4 +1,5 @@
-import { oracleDateParam, setParamMetadata } from './utils/metadataSymbols.js'
+import { oracleDateParam } from './utils/metadataSymbols.js'
+import { queryParamContextOf } from './internal/QueryContextImpl.js'
 import { __conversionType } from './utils/typeCategory.js'
 
 /**
@@ -71,7 +72,8 @@ export interface TypeAdapter {
     forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
     /**
      * Keeps, for the query runner, what the adapter knows of the parameter at `index` of the params, which is about to
-     * be added (also a `null`): `setQueryParamMetadata(params, index, key, value)` (`ts-sql-query/QueryMetadata`), under a symbol of its own. Called
+     * be added (also a `null`): `setQueryParamMetadata(params, index, key, value)` (`ts-sql-query`), under a symbol of its own, which the query
+     * runner reads in the context of the query (`getParam(index)?.getMetadata(key)`). Called
      * after `transformValueToDB`, with the value sent; `next.addQueryParamMetadata(...)` keeps the one of the connection
      */
     addQueryParamMetadata?(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): void
@@ -156,7 +158,7 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
         next.addQueryParamMetadata(params, index, type, typeCategory, valueSentToDB)
         const conversionType = __conversionType(type, typeCategory)
         if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-            setParamMetadata(params, index, oracleDateParam, true)
+            queryParamContextOf(params, index).setMetadata(oracleDateParam, true)
         }
     }
 }

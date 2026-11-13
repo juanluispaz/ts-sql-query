@@ -1,9 +1,8 @@
-import { isSelectPageCountQuery } from './QueryRunner.js'
 import { databaseParamBinding } from '../utils/queryRunnerParams.js'
 import type { TypeCategory } from '../TypeAdapter.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, type TsSqlErrorReason } from '../TsSqlError.js';
-import { queryParamForceTypeCast, queryParamType, queryParamTypeCategory, setParamMetadata } from '../utils/metadataSymbols.js'
+import { getQueryContext, type QueryContext } from '../QueryContext.js'
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType
@@ -12,6 +11,10 @@ export interface NoopQueryRunnerConfig {
 }
 
 export class NoopQueryRunner implements QueryRunner {
+    /** The context of the query with these params: what the library knows of it (see getQueryContext) */
+    getQueryContext(query: string, params: any[]): QueryContext {
+        return getQueryContext(query, params)
+    }
     readonly database: DatabaseType
     readonly promise: PromiseProvider
     private transactionLevel = 0
@@ -51,7 +54,7 @@ export class NoopQueryRunner implements QueryRunner {
     }
     executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         // The count of a page of no rows: the query can't find out by other means
-        return this.promise.resolve(isSelectPageCountQuery(query, params) ? 0 : undefined)
+        return this.promise.resolve(this.getQueryContext(query, params).isSelectPageCount ? 0 : undefined)
     }
     executeSelectOneColumnManyRows(_query: string, _params: any[] = []): Promise<any[]> {
         return this.promise.resolve([])
@@ -142,10 +145,7 @@ export class NoopQueryRunner implements QueryRunner {
         // The placeholders of the database, as MockQueryRunner writes them
         return databaseParamBinding(this.database)(params, value, type, typeCategory, forceTypeCast)
     }
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        setParamMetadata(params, params.length, queryParamType, type)
-        setParamMetadata(params, params.length, queryParamTypeCategory, typeCategory)
-        setParamMetadata(params, params.length, queryParamForceTypeCast, forceTypeCast)
+    addOutParam(params: any[], name: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean): string {
         const index = params.length
         params.push({ out_param_with_name: name })
         return ':' + index

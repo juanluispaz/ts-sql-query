@@ -97,9 +97,13 @@ describe('The exports of the package', () => {
         for (const key of v1Entries) {
             for (const spec of specifiers.get(key)!) {
                 expect({ key, name: spec.exported, deprecated: spec.deprecated }).toEqual({ key, name: spec.exported, deprecated: true })
-                // It comes from a path of version 2, so it is the same object or type
-                expect(spec.from.startsWith('exports/v2/')).toBe(true)
-                expect(specifiers.get(v2Entries.find(v2 => sourceOf(v2) === join(root, 'src', spec.from + '.ts'))!)!.some(v2 => v2.exported === spec.name)).toBe(true)
+                if (spec.from.startsWith('exports/v2/')) {
+                    // It comes from a path of version 2, so it is the same object or type
+                    expect(specifiers.get(v2Entries.find(v2 => sourceOf(v2) === join(root, 'src', spec.from + '.ts'))!)!.some(v2 => v2.exported === spec.name)).toBe(true)
+                } else {
+                    // A name version 2 dropped, kept for the code of version 1: no path of version 2 exports it
+                    expect({ key, name: spec.exported, inVersion2: v2Entries.some(v2 => specifiers.get(v2)!.some(v2Spec => v2Spec.exported === spec.exported)) }).toEqual({ key, name: spec.exported, inVersion2: false })
+                }
             }
         }
     })

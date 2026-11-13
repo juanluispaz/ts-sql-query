@@ -17,6 +17,7 @@ import { OracleConnection } from '../../../src/connections/OracleConnection.js'
 import { Table } from '../../../src/Table.js'
 import { OracleDateAsTimestampTypeAdapter } from '../../../src/TypeAdapter.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
+import { addOutParam, addParam } from '../lib/params.js'
 
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: typesByName', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
@@ -43,7 +44,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     async function dumpOf(r: QueryRunner, type: string): Promise<string> {
         const params: any[] = []
-        const placeholder = r.addParam(params, day, type, 'customLocalDateTime', false)
+        const placeholder = addParam(r, params, day, type, 'customLocalDateTime', false)
         return await r.executeSelectOneColumnOneRow(`select dump(${placeholder}) from dual`, params)
     }
 
@@ -56,7 +57,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('a-null-in-bind-of-a-declared-type-name', async () => {
         const params: any[] = []
-        const placeholder = declared!.addParam(params, null, 'Code', 'customInt', false)
+        const placeholder = addParam(declared!, params, null, 'Code', 'customInt', false)
         // A VARCHAR2 null in a union with a text: a NUMBER null there is ORA-01790
         const rows = await declared!.executeSelectManyRows(`select ${placeholder} as v from dual union all select 'x' as v from dual`, params)
         expect(rows).toEqual([{ V: null }, { V: 'x' }])
@@ -66,9 +67,9 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         // Without a type, oracledb returns an OUT date and an OUT number as strings
         for (const [r, expected] of [[runner!, ['string', 'string']], [declared!, ['object', 'number']]] as const) {
             const params: any[] = []
-            const d = r.addParam(params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime', false)
-            const dOut = r.addOutParam(params, 'd', 'Moment', 'custom', false)
-            const idOut = r.addOutParam(params, 'id', 'Counter', 'custom', false)
+            const d = addParam(r, params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime', false)
+            const dOut = addOutParam(r, params, 'd', 'Moment', 'custom', false)
+            const idOut = addOutParam(r, params, 'id', 'Counter', 'custom', false)
             const row = await r.executeInsertReturningOneRow(`insert into rt_typed (d) values (${d}) returning d, id into ${dOut}, ${idOut}`, params)
             expect([typeof row.d, typeof row.id]).toEqual(expected)
             if (r === declared) {
@@ -127,7 +128,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     async function idsAndPlan(column: string, value: Date, type: 'localDate' | 'localDateTime'): Promise<{ ids: unknown, index: boolean }> {
         const params: any[] = []
-        const placeholder = runner!.addParam(params, value, type, type, false)
+        const placeholder = addParam(runner!, params, value, type, type, false)
         const sql = `select id as "id" from rt_indexed where ${column} = ${placeholder}`
         const ids = (await runner!.executeSelectManyRows(sql, params)).map(row => row['id'])
         await runner!.executeUpdate('explain plan for ' + sql, params)
@@ -182,11 +183,11 @@ describe('OracleDBQueryRunner: a customDecimal parameter in hand-written SQL', (
         const params: any[] = []
         let error: unknown
         try {
-            runner.addParam(params, '0.' + '1'.repeat(39), 'Amount', 'customDecimal', false)
+            addParam(runner, params, '0.' + '1'.repeat(39), 'Amount', 'customDecimal', false)
         } catch (e) {
             error = e
         }
         expect(error instanceof TsSqlError ? error.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: '0.' + '1'.repeat(39), typeName: 'Amount', paramIndex: 0 })
-        expect(runner.addParam(params, '0.' + '1'.repeat(38), 'Amount', 'customDecimal', false)).toBe(':0')
+        expect(addParam(runner, params, '0.' + '1'.repeat(38), 'Amount', 'customDecimal', false)).toBe(':0')
     })
 })

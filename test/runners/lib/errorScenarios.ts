@@ -15,6 +15,7 @@ import { expect } from '../../lib/testRunner.js'
 import type { DatabaseType, QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { TsSqlErrorReason } from '../../../src/TsSqlError.js'
 import type { RunnerConnectionFailure } from '../../lib/containerLifecycle.js'
+import { addParam } from './params.js'
 
 type Expected = { reason: TsSqlErrorReason['reason'], [field: string]: unknown }
 
@@ -452,7 +453,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
         name: 'parameter-of-unknown-type',
         run: ({ runner }) => {
             const params: any[] = []
-            return runner.executeSelectManyRows(`select ${runner.addParam(params, null, '', '', false)} is null`, params)
+            return runner.executeSelectManyRows(`select ${addParam(runner, params, null, '', '', false)} is null`, params)
         },
         expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'type mismatch' },
     },

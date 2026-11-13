@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryParamType, getQueryParamTypeCategory } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -43,7 +43,7 @@ describe(ctx.label, () => {
           ]
         `)
         const params = ctx.lastParams
-        expect(params.map((_value, index) => [getQueryParamType(ctx.lastSql, params, index), getQueryParamTypeCategory(ctx.lastSql, params, index)])).toEqual([
+        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.typeCategory])).toEqual([
             ['Downloads', 'customBigint'],
             ['Downloads', 'customBigint'],
         ])

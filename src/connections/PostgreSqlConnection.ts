@@ -15,7 +15,8 @@ import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { postgreSqlZonedParam, setParamMetadata } from '../utils/metadataSymbols.js'
+import { postgreSqlZonedParam } from '../utils/metadataSymbols.js'
+import { queryParamContextOf } from '../internal/QueryContextImpl.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
 
@@ -45,7 +46,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
         if (this.isDatabaseOutsideUtc()) {
             const conversionType = __conversionType(type, typeCategory)
             if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-                setParamMetadata(params, index, postgreSqlZonedParam, true)
+                queryParamContextOf(params, index).setMetadata(postgreSqlZonedParam, true)
             }
         }
     }

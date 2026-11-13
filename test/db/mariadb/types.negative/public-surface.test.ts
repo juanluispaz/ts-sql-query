@@ -10,13 +10,14 @@ import { deepOmit, deepPick, type DeepPick, type DeepOmit } from '../../../../sr
 import { sync } from '../../../../src/extras/sync.js'
 import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extras/utils.js'
 import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
-import { getQueryConnectionConfiguration, type ConnectionConfiguration, type QueryResultColumn } from '../../../../src/queryRunners/QueryRunner.js'
+import { type ConnectionConfiguration, type QueryResultColumn } from '../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../src/QueryContext.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
 import { tCountry } from '../domain/connection.js'
 
 function _typeNegatives() {
     // Rule: the configuration of the connection a query runner reads has the settings of the connection, and only them.
-    const configuration: ConnectionConfiguration | undefined = getQueryConnectionConfiguration('', [])
+    const configuration: ConnectionConfiguration | undefined = getQueryContext('', []).connectionConfiguration
     void configuration?.compatibilityVersion
     void configuration?.getDateTimeFormat?.('dateTime')
     // @ts-expect-error not a setting of the connection
@@ -25,8 +26,19 @@ function _typeNegatives() {
         // @ts-expect-error the configuration of the connection is read-only
         configuration.compatibilityVersion = 1
     }
-    // The readers of the query runner are exported by the root entry; what is specific to a database is not
-    void root.getQueryConnectionConfiguration
+    // The context of a query is read with a function of the root entry; what is specific to a database is not
+    void root.getQueryContext
+    // @ts-expect-error the readers of version 1 are not exported by the paths of version 2
+    void root.getQueryExecutionName
+    // Rule: the context of a query and of its parameters is read-only.
+    const queryContext = getQueryContext('', [])
+    // @ts-expect-error the context of a query is read-only
+    queryContext.executionName = 'name'
+    const paramContext = queryContext.getParam(0)
+    if (paramContext) {
+        // @ts-expect-error the context of a parameter is read-only
+        paramContext.type = 'int'
+    }
     // @ts-expect-error the connection of a database is exported by the entry of that database
     void root.MariaDBConnection
 

@@ -16,7 +16,8 @@
 // no-ops here — they are the parts this interceptor does not care about.
 
 import { InterceptorQueryRunner } from '../../src/queryRunners/InterceptorQueryRunner.js'
-import { getQueryConnectionConfiguration, getQueryExecutionSource, getQueryParamForceTypeCast, getQueryParamType, getQueryParamTypeCategory, getQueryResultColumns, type BeginTransactionOpts, type QueryRunner, type QueryType } from '../../src/queryRunners/QueryRunner.js'
+import type { BeginTransactionOpts, QueryRunner, QueryType } from '../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../src/QueryContext.js'
 
 const TYPE_CATEGORIES = new Set<string>([
     'boolean', 'int', 'bigint', 'customInt', 'customBigint', 'double', 'customDouble', 'stringDecimal', 'customDecimal', 'string', 'uuid', 'customUuid',
@@ -25,13 +26,14 @@ const TYPE_CATEGORIES = new Set<string>([
 ])
 
 // Every parameter the library adds goes with the name of its type, its category and its forceTypeCast, kept by the
-// query runner: a parameter without them, or with an unknown category, is a place where the library lost the type of
+// library in the context of the query: a parameter without them, or with an unknown category, is a place where the library lost the type of
 // the value.
 function checkParamTypes(query: string, params: unknown[]): void {
     for (let index = 0; index < params.length; index++) {
-        const type = getQueryParamType(query, params as any[], index)
-        const typeCategory = getQueryParamTypeCategory(query, params as any[], index)
-        const forceTypeCast = getQueryParamForceTypeCast(query, params as any[], index)
+        const param = getQueryContext(query, params as any[]).getParam(index)
+        const type = param?.type
+        const typeCategory = param?.typeCategory
+        const forceTypeCast = param?.forceTypeCast
         if (typeof type !== 'string' || typeCategory === undefined || !TYPE_CATEGORIES.has(typeCategory) || typeof forceTypeCast !== 'boolean') {
             throw new Error('The parameter ' + index + ' of the query has no type (type: ' + String(type) + ', category: ' + JSON.stringify(typeCategory) + ', forceTypeCast: ' + String(forceTypeCast) + '): ' + query)
         }
@@ -55,14 +57,15 @@ const ROWS_QUERY_TYPES = new Set<QueryType>([
 // result and the configuration of the connection: a query without them, a column without its type, or a number of
 // columns that doesn't fit the query, is a place where the library lost what the query runner may read.
 function checkResultColumns(queryType: QueryType, query: string, params: unknown[]): void {
-    if (!getQueryExecutionSource(query, params as any[])) {
+    const queryContext = getQueryContext(query, params as any[])
+    if (!queryContext.executionSource) {
         // A query the library didn't build (a raw query of a test through the runner)
         return
     }
-    if (!getQueryConnectionConfiguration(query, params as any[])) {
+    if (!queryContext.connectionConfiguration) {
         throw new Error('The query has no connection configuration: ' + query)
     }
-    const columns = getQueryResultColumns(query, params as any[])
+    const columns = queryContext.resultColumns
     if (!Array.isArray(columns)) {
         throw new Error('The query has no result columns: ' + query)
     }
@@ -85,14 +88,15 @@ function checkResultColumns(queryType: QueryType, query: string, params: unknown
 // the row is a column the query runner would look up under the wrong key. The row can have more keys: a
 // `customizeQuery({ beforeColumns })` fragment can add columns of its own.
 function checkResultColumnNames(queryType: QueryType, query: string, params: unknown[], result: unknown): void {
-    if (!ROWS_QUERY_TYPES.has(queryType) || !getQueryExecutionSource(query, params as any[])) {
+    const queryContext = getQueryContext(query, params as any[])
+    if (!ROWS_QUERY_TYPES.has(queryType) || !queryContext.executionSource) {
         return
     }
     const row = Array.isArray(result) ? result[0] : result
     if (!row || typeof row !== 'object') {
         return
     }
-    const columns = getQueryResultColumns(query, params as any[]) ?? []
+    const columns = queryContext.resultColumns ?? []
     const missing = columns.map(column => column.name).filter(name => !(name in row))
     if (missing.length > 0) {
         throw new Error('The result columns ' + JSON.stringify(missing) + ' of the query are not keys of the row returned by the database (' + JSON.stringify(Object.keys(row)) + '): ' + query)

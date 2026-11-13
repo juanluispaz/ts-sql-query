@@ -8,6 +8,7 @@ import { TsSqlError } from '../../../src/TsSqlError.js'
 import { MySql2QueryRunner } from '../../../src/queryRunners/MySql2QueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/mysql/runners.js'
+import { addParam } from '../lib/params.js'
 
 // 30 digits, 10 of them decimals: a double keeps about 16
 const exact = '12345678901234567890.1234567891'
@@ -29,7 +30,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('MySQL 
 
     test('computes-with-every-digit', async () => {
         const params: any[] = []
-        const placeholder = runner!.addParam(params, exact, 'Amount', 'customDecimal', false)
+        const placeholder = addParam(runner!, params, exact, 'Amount', 'customDecimal', false)
         expect(placeholder).toBe('cast(? as decimal(30, 10))')
         expect(await runner!.executeSelectOneColumnOneRow(`select cast(${placeholder} + 0 as char)`, params)).toBe(exact)
     })
@@ -38,7 +39,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('MySQL 
         const params: any[] = []
         let error: unknown
         try {
-            runner!.addParam(params, '1.' + '1'.repeat(31), 'Amount', 'customDecimal', false)
+            addParam(runner!, params, '1.' + '1'.repeat(31), 'Amount', 'customDecimal', false)
         } catch (e) {
             error = e
         }

@@ -1,9 +1,10 @@
-// Each query the library builds goes with the configuration of its connection, read with
-// getQueryConnectionConfiguration: the connection itself, so its values are read when used, and a subclass that sets
+// Each query the library builds goes with the configuration of its connection, read from the
+// context of the query (getQueryContext): the connection itself, so its values are read when used, and a subclass that sets
 // them in its field initialisers, which run after the constructor of the base connection, is seen with its values.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { getQueryConnectionConfiguration, type ConnectionConfiguration } from '../../../../../src/queryRunners/QueryRunner.js'
+import { type ConnectionConfiguration } from '../../../../../src/queryRunners/QueryRunner.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { DBConnection, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
@@ -16,7 +17,7 @@ class ConnectionWithFieldSettings extends DBConnection {
 }
 
 function configurationOf(params: typeof ctx.lastParams): ConnectionConfiguration | undefined {
-    return getQueryConnectionConfiguration('', params)
+    return getQueryContext('', params).connectionConfiguration
 }
 
 function plain(configuration: ConnectionConfiguration | undefined) {

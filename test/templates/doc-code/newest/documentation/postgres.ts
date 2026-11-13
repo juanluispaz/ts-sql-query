@@ -46,18 +46,8 @@ import {
 } from '../../../../../src/extras/utils.js'
 
 import { InterceptorQueryRunner } from '../../../../../src/queryRunners/InterceptorQueryRunner.js'
+import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { 
-    getFunctionExecutingQuery, 
-    getQueryExecutionMetadata, 
-    getQueryExecutionName, 
-    getQueryExecutionSource,
-    getQueryExecutionStack, 
-    isSelectPageCountQuery, 
-    getQueryParamType,
-    getQueryParamTypeCategory,
-    getQueryParamForceTypeCast,
-    getQueryResultColumns,
-    getQueryConnectionConfiguration,
     type QueryResultColumn,
     type ConnectionConfiguration,
     type FunctionExecutingQueryInformation, 
@@ -363,17 +353,8 @@ void extractProvidedIdColumnsFrom
 void extractProvidedIdColumnNamesFrom
 void InterceptorQueryRunner
 
-void getFunctionExecutingQuery
-void getQueryExecutionMetadata
-void getQueryExecutionName
-void getQueryExecutionSource
-void getQueryExecutionStack
-void isSelectPageCountQuery
-void getQueryParamType
-void getQueryParamTypeCategory
-void getQueryParamForceTypeCast
-void getQueryResultColumns
-void getQueryConnectionConfiguration
+void getQueryContext
+void function(_qc: QueryContext, _qpc: QueryParamContext) {}
 void dynamicPick, 
 void dynamicPickPaths, 
 void fromRef

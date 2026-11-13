@@ -9,6 +9,7 @@ import type { DatabaseType, QueryType } from '../../../src/queryRunners/QueryRun
 import { TsSqlProcessingError } from '../../../src/TsSqlError.js'
 import { QUERY_CALLS, sampleResult, type ResultShape } from '../lib/queryRunnerCalls.js'
 import { reasonOf, rejectionOf } from '../lib/runnerContract.js'
+import { addOutParam, addParam } from '../lib/params.js'
 
 const INVALID: { [shape in ResultShape]: readonly unknown[] } = {
     row: [1, new Date()],
@@ -141,7 +142,7 @@ describe('MockQueryRunner', () => {
         test(`params-on-${database}`, () => {
             const runner = new MockQueryRunner(() => undefined, database)
             const params: any[] = []
-            expect([runner.addParam(params, 'a', 'string', 'string', false), runner.addParam(params, 'b', 'string', 'string', false)]).toEqual([first, second])
+            expect([addParam(runner, params, 'a', 'string', 'string', false), addParam(runner, params, 'b', 'string', 'string', false)]).toEqual([first, second])
             expect(params).toEqual(['a', 'b'])
             expect(runner.database).toBe(database)
         })
@@ -154,7 +155,7 @@ describe('MockQueryRunner', () => {
     for (const [database, placeholder] of FORCED) {
         test(`forced-type-on-${database}`, () => {
             const runner = new MockQueryRunner(() => undefined, database)
-            expect(runner.addParam([], 1, 'int', 'int', true)).toBe(placeholder)
+            expect(addParam(runner, [], 1, 'int', 'int', true)).toBe(placeholder)
         })
     }
     test('forced-type-on-postgreSql-by-the-value', () => {
@@ -164,7 +165,7 @@ describe('MockQueryRunner', () => {
             [5n, 'Count', '', '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
         ]
         for (const [value, type, typeCategory, placeholder] of cases) {
-            expect([type, value, runner.addParam([], value, type, typeCategory, true)]).toEqual([type, value, placeholder])
+            expect([type, value, addParam(runner, [], value, type, typeCategory, true)]).toEqual([type, value, placeholder])
         }
     })
 
@@ -172,15 +173,15 @@ describe('MockQueryRunner', () => {
         const runner = new MockQueryRunner(() => undefined)
         runner.useDatabase('dbase' as any)
         let error: unknown
-        try { runner.addParam([], 1, 'int', 'int', false) } catch (e) { error = e }
+        try { addParam(runner, [], 1, 'int', 'int', false) } catch (e) { error = e }
         expect(reasonOf(error)).toBe('UNSUPPORTED_DATABASE')
     })
 
     test('out-params', () => {
         const oracle = new MockQueryRunner(() => undefined, { database: 'oracle' })
         const params: any[] = []
-        expect(oracle.addOutParam(params, 'id', 'int', 'int', false)).toBe(':0')
-        expect(oracle.addOutParam(params, '', 'int', 'int', false)).toBe(':1')
+        expect(addOutParam(oracle, params, 'id', 'int', 'int', false)).toBe(':0')
+        expect(addOutParam(oracle, params, '', 'int', 'int', false)).toBe(':1')
         expect(params).toEqual([{ dir: 3003, as: 'id' }, { dir: 3003 }])
         let error: unknown
         try { new MockQueryRunner(() => undefined).addOutParam([], 'id', 'int', 'int', false) } catch (e) { error = e }

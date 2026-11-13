@@ -1,7 +1,7 @@
 import type { TypeCategory } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
 import { __isDecimalCategory } from '../typeCategory.js'
-import { getParamMetadata, queryParamValueForColumn } from '../metadataSymbols.js'
+import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
  * The placeholder of a parameter on SQL Server, for every query runner of it. A customDecimal is sent as an nvarchar:
@@ -21,7 +21,7 @@ export function sqlServerPlaceholder(placeholder: string, params: any[], index: 
     if (digits.precision > 38) {
         rejectCustomDecimalParam(value, type, index, 'decimal(38)')
     }
-    if ((getParamMetadata(params, index, queryParamValueForColumn) === true)) {
+    if ((existingParamContextOf(params, index)?.isValueForColumn === true)) {
         return placeholder
     }
     return 'cast(' + placeholder + ' as decimal(' + digits.precision + ', ' + digits.scale + '))'

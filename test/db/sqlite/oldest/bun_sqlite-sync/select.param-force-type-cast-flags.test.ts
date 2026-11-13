@@ -2,7 +2,7 @@
 // constant selected alone, a row of a Values list, the argument of a function,
 // `extract(... from <param>)`. For those positions the library marks the
 // parameter with forceTypeCast, which any query runner can read with
-// getQueryParamForceTypeCast (public API) to send the parameter with its type,
+// the context of the query (getQueryContext, public API) to send the parameter with its type,
 // either as a cast in the placeholder or as a type of the driver. Which
 // positions get the flag depends on the database: each cell snapshots the flags
 // its connection sets. A parameter compared with a column gets its type from the
@@ -12,7 +12,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryParamForceTypeCast } from '../../../../../src/exports/v2/index.js'
+import { getQueryContext } from '../../../../../src/exports/v2/index.js'
 import { Values } from '../../../../../src/Values.js'
 import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -25,7 +25,7 @@ class VAmount extends Values<DBConnection, 'vAmount'> {
 
 function forceTypeCasts(): Array<boolean | undefined> {
     const params = ctx.lastParams
-    return params.map((_value, index) => getQueryParamForceTypeCast(ctx.lastSql, params, index))
+    return params.map((_value, index) => getQueryContext(ctx.lastSql, params).getParam(index)?.forceTypeCast)
 }
 
 describe(ctx.label, () => {

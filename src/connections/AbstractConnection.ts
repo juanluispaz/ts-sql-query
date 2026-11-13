@@ -32,7 +32,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __conversionType } from '../utils/typeCategory.js'
+import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../utils/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
@@ -1183,7 +1183,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     /** Converts a value received from the database as the requested type */
     protected transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
         const type = context.requestedType
-        const conversionType = __conversionType(type, context.requestedCustomType)
+        const customType = context.requestedCustomType
         if (value === undefined) {
             return null
         }
@@ -1193,212 +1193,215 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (value === '' && !this.allowEmptyString) {
             return null
         }
-        switch (conversionType) {
-            case 'boolean':
-                if (typeof value === 'boolean') {
-                    return value
-                }
-                if (typeof value === 'number') {
-                    return !!value
-                }
-                if (typeof value === 'bigint') {
-                    return !!value
-                }
-                if (typeof value === 'string') {
-                    // Engines without a native boolean type store it as 0/1, and
-                    // some drivers (notably oracledb) hand a numeric column back
-                    // as a string to preserve precision — exactly as the `int`
-                    // case below already accommodates. Accept a numeric string
-                    // the same way the `number` branch does (`!!value`).
-                    if (/^(-?\d+)$/g.test(value)) {
-                        return !!(+value)
-                    }
-                    // A boolean as text, in any case: PostgreSQL writes 't' and 'f' (a driver that hands the text,
-                    // or a mock that imitates it), Oracle 'TRUE' and 'FALSE' (the RETURNING of a BOOLEAN column)
-                    const lowerCase = value.toLowerCase()
-                    if (lowerCase === 't' || lowerCase === 'true') {
-                        return true
-                    }
-                    if (lowerCase === 'f' || lowerCase === 'false') {
-                        return false
-                    }
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid boolean value received from the db: ' + value)
-            case 'int':
-                if (typeof value === 'number') {
-                    if (!Number.isInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
-                    }
-                    // An integer beyond the safe range arrived as a rounded JavaScript number:
-                    // the exact value is already gone. Refuse it the same way the string/bigint
-                    // arms below do, so every route reaches the same verdict (homogeneous read).
-                    if (!Number.isSafeInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Read the column as bigint, or enable the driver big-integer mode.')
-                    }
-                    return value
-                }
-                if (typeof value === 'string') {
-                    // Accept a trailing `.0` (SQLite serialises an integer *expression* such as
-                    // `priority + 1` as `3.0` in a JSON aggregate — the lossless parser keeps
-                    // that as the string `"3.0"`, and the `number` arm above already treats an
-                    // integral float as an int via `Number.isInteger`, so the string arm matches).
-                    if (!/^-?\d+(\.0+)?$/g.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
-                    }
-                    const result = +value
-                    if (!Number.isSafeInteger(result)) {
-                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: ' + value + ' exceeds the JavaScript safe integer range. Read the column as bigint.')
-                    }
-                    return result
-                }
-                if (typeof value === 'bigint') {
-                    const result = Number(value)
-                    if (!Number.isSafeInteger(result)) {
-                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: the bigint ' + value + ' exceeds the JavaScript safe integer range. Read the column as bigint.')
-                    }
-                    return result
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
-            case 'bigint':
-                if (typeof value === 'number') {
-                    if (!Number.isInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
-                    }
-                    // A number that is an integer but not a SAFE integer has already lost
-                    // precision before it reached here: the driver handed the value over as a
-                    // rounded JavaScript number (its big-integer / fetch-as-string mode is off),
-                    // or a bigint travelled through a JSON aggregate as a bare JSON number that
-                    // JSON.parse rounded (the emission side quotes bigint leaves precisely so the
-                    // aggregate path never hits this — finding A). `BigInt(value)` would mint a
-                    // clean but WRONG bigint; throw instead so no route corrupts silently.
-                    if (!Number.isSafeInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a bigint value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Enable the driver big-integer / fetch-as-string mode so the value arrives exactly.')
-                    }
-                    return BigInt(value)
-                }
-                if (typeof value === 'string') {
-                    // Strip a trailing `.0+` (fractional zeros only) before parsing, symmetric to
-                    // the `int` arm: `BigInt('4.0')` throws, so a `bigint` leaf an engine serialises
-                    // with a REAL-affinity suffix (SQLite renders an integer-valued REAL expression
-                    // as `4.0` inside a JSON aggregate) would otherwise be refused. A genuine
-                    // fractional part (`4.5`) leaves the string untouched and still fails `BigInt`,
-                    // so it throws — an integer type is not fractional.
-                    try {
-                        return BigInt(value.replace(/\.0+$/, ''))
-                    } catch {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
-                    }
-                }
-                if (typeof value === 'bigint') {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
-            case 'double':
-                if (typeof value === 'number') {
-                    return value
-                }
-                if (typeof value === 'string') {
-                    // Accept scientific notation and the leading-dot form (`.5`). Scientific is how
-                    // a lossless float→text arrives: SQL Server's `convert(nvarchar, x, 3)` — the
-                    // only lossless float conversion, used by the compat JSON-aggregate fallback —
-                    // emits e.g. `1.2345678900000000e+002`, which travels back as a JSON number and
-                    // is restored exactly by the lossless parser (finding A/B). The leading-dot form
-                    // is defensive for a scalar number a driver may render without a leading zero.
-                    // `+value` parses every accepted form back to the exact double.
-                    if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/g.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
-                    }
-                    const result = +value
-                    return result
-                }
-                if (typeof value === 'bigint') {
-                    return Number(value)
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
-            case 'stringDecimal':
-            case 'customDecimal':
-                if (typeof value === 'string') {
-                    // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
-                    // before the point (`.5`, as Oracle writes it) gets it
-                    if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
-                    }
-                    if (value.startsWith('.')) {
-                        return '0' + value
-                    }
-                    if (value.startsWith('-.')) {
-                        return '-0' + value.substring(1)
-                    }
-                    return value
-                }
-                if (typeof value === 'number') {
-                    // The driver gave a JavaScript number: the digits beyond its precision, and the scale, are already
-                    // lost, and nothing tells which
-                    throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a customDecimal value from the db: the driver returned ' + value + ' as a JavaScript number')
-                }
-                if (typeof value === 'bigint') {
-                    return '' + value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
-            case 'string':
-                if (typeof value === 'string') {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid string value received from the db: ' + value)
-            case 'uuid':
-                if (typeof value === 'string') {
-                    return this.__normalizeUuidText(value)
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid uuid value received from the db: ' + value)
-            case 'localDate': {
-                // Every value in the database is in UTC: the day of a Date received is the one of its UTC getters, and
-                // a text is read as UTC (or as its instant, when it has an offset). Some engines write a date with a
-                // time (Oracle's DATE inside a JSON aggregate is "2024-01-15T00:00:00"): only its day is kept.
-                // A localDate has no time-of-day. If it were pinned at UTC midnight the CALENDAR DATE would shift when
-                // the value is read in another timezone (00:00Z is the previous day everywhere west of UTC), so the
-                // decoded Date is at 10:00 UTC: a buffer that preserves the intended day across every inhabited offset
-                // (UTC-10..+13; only the effectively-uninhabited +14/-11/-12 would still roll over). A future move to
-                // Temporal's plain-date type would remove the need for this offset.
-                const received = this.__receivedDate(value)
-                if (!received) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDate value received from the db: ' + value)
-                }
-                const result: any = new Date(0)
-                result.setUTCFullYear(received.getUTCFullYear(), received.getUTCMonth(), received.getUTCDate())
-                result.setUTCHours(10) // date-stability offset (see the note above)
-                result.___type___ = 'localDate'
-                return result
-            }
-            case 'localTime': {
-                // The time of a Date received is the one of its UTC getters, and a text is read as UTC (or as its
-                // instant, when it has an offset). Some engines write a time with a date (Oracle's TIMESTAMP inside a
-                // JSON aggregate is "1970-01-01T09:15:00"): only its time is kept, on 1970-01-01.
-                const received = this.__receivedDate(value)
-                if (!received) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
-                }
-                // With a databaseTimeZone other than UTC the database gives the instant of the time on the day of the
-                // localTimeReferenceDate: that day gives it its offset, and the Date keeps it
-                const result: any = this.isDatabaseOutsideUtc() ? new Date(received.getTime()) : new Date(Date.UTC(1970, 0, 1, received.getUTCHours(), received.getUTCMinutes(), received.getUTCSeconds(), received.getUTCMilliseconds()))
-                result.___type___ = 'localTime'
-                return result
-            }
-            case 'localDateTime': {
-                // A Date received is kept: the query runner gives the UTC digits of a value without zone in its UTC
-                // getters, and the instant of a zoned one. A text is read as UTC, or as its instant when it has an offset.
-                const received = this.__receivedDate(value)
-                if (!received) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDateTime value received from the db: ' + value)
-                }
-                (received as any).___type___ = 'localDateTime'
-                return received
-            }
-            case 'aggregatedArray': {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays coming from the database')
-            }
-            default:
+        if (__isBoolean(type, customType)) {
+            if (typeof value === 'boolean') {
                 return value
+            }
+            if (typeof value === 'number') {
+                return !!value
+            }
+            if (typeof value === 'bigint') {
+                return !!value
+            }
+            if (typeof value === 'string') {
+                // Engines without a native boolean type store it as 0/1, and
+                // some drivers (notably oracledb) hand a numeric column back
+                // as a string to preserve precision — exactly as the `int`
+                // case below already accommodates. Accept a numeric string
+                // the same way the `number` branch does (`!!value`).
+                if (/^(-?\d+)$/g.test(value)) {
+                    return !!(+value)
+                }
+                // A boolean as text, in any case: PostgreSQL writes 't' and 'f' (a driver that hands the text,
+                // or a mock that imitates it), Oracle 'TRUE' and 'FALSE' (the RETURNING of a BOOLEAN column)
+                const lowerCase = value.toLowerCase()
+                if (lowerCase === 't' || lowerCase === 'true') {
+                    return true
+                }
+                if (lowerCase === 'f' || lowerCase === 'false') {
+                    return false
+                }
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid boolean value received from the db: ' + value)
         }
+        if (__isInt(type, customType)) {
+            if (typeof value === 'number') {
+                if (!Number.isInteger(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
+                }
+                // An integer beyond the safe range arrived as a rounded JavaScript number:
+                // the exact value is already gone. Refuse it the same way the string/bigint
+                // arms below do, so every route reaches the same verdict (homogeneous read).
+                if (!Number.isSafeInteger(value)) {
+                    throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Read the column as bigint, or enable the driver big-integer mode.')
+                }
+                return value
+            }
+            if (typeof value === 'string') {
+                // Accept a trailing `.0` (SQLite serialises an integer *expression* such as
+                // `priority + 1` as `3.0` in a JSON aggregate — the lossless parser keeps
+                // that as the string `"3.0"`, and the `number` arm above already treats an
+                // integral float as an int via `Number.isInteger`, so the string arm matches).
+                if (!/^-?\d+(\.0+)?$/g.test(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
+                }
+                const result = +value
+                if (!Number.isSafeInteger(result)) {
+                    throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: ' + value + ' exceeds the JavaScript safe integer range. Read the column as bigint.')
+                }
+                return result
+            }
+            if (typeof value === 'bigint') {
+                const result = Number(value)
+                if (!Number.isSafeInteger(result)) {
+                    throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: the bigint ' + value + ' exceeds the JavaScript safe integer range. Read the column as bigint.')
+                }
+                return result
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
+        }
+        if (__isBigint(type, customType)) {
+            if (typeof value === 'number') {
+                if (!Number.isInteger(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
+                }
+                // A number that is an integer but not a SAFE integer has already lost
+                // precision before it reached here: the driver handed the value over as a
+                // rounded JavaScript number (its big-integer / fetch-as-string mode is off),
+                // or a bigint travelled through a JSON aggregate as a bare JSON number that
+                // JSON.parse rounded (the emission side quotes bigint leaves precisely so the
+                // aggregate path never hits this — finding A). `BigInt(value)` would mint a
+                // clean but WRONG bigint; throw instead so no route corrupts silently.
+                if (!Number.isSafeInteger(value)) {
+                    throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a bigint value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Enable the driver big-integer / fetch-as-string mode so the value arrives exactly.')
+                }
+                return BigInt(value)
+            }
+            if (typeof value === 'string') {
+                // Strip a trailing `.0+` (fractional zeros only) before parsing, symmetric to
+                // the `int` arm: `BigInt('4.0')` throws, so a `bigint` leaf an engine serialises
+                // with a REAL-affinity suffix (SQLite renders an integer-valued REAL expression
+                // as `4.0` inside a JSON aggregate) would otherwise be refused. A genuine
+                // fractional part (`4.5`) leaves the string untouched and still fails `BigInt`,
+                // so it throws — an integer type is not fractional.
+                try {
+                    return BigInt(value.replace(/\.0+$/, ''))
+                } catch {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
+                }
+            }
+            if (typeof value === 'bigint') {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
+        }
+        if (__isDouble(type, customType)) {
+            if (typeof value === 'number') {
+                return value
+            }
+            if (typeof value === 'string') {
+                // Accept scientific notation and the leading-dot form (`.5`). Scientific is how
+                // a lossless float→text arrives: SQL Server's `convert(nvarchar, x, 3)` — the
+                // only lossless float conversion, used by the compat JSON-aggregate fallback —
+                // emits e.g. `1.2345678900000000e+002`, which travels back as a JSON number and
+                // is restored exactly by the lossless parser (finding A/B). The leading-dot form
+                // is defensive for a scalar number a driver may render without a leading zero.
+                // `+value` parses every accepted form back to the exact double.
+                if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/g.test(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
+                }
+                const result = +value
+                return result
+            }
+            if (typeof value === 'bigint') {
+                return Number(value)
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
+        }
+        if (__isExactDecimal(type, customType)) {
+            if (typeof value === 'string') {
+                // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
+                // before the point (`.5`, as Oracle writes it) gets it
+                if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
+                }
+                if (value.startsWith('.')) {
+                    return '0' + value
+                }
+                if (value.startsWith('-.')) {
+                    return '-0' + value.substring(1)
+                }
+                return value
+            }
+            if (typeof value === 'number') {
+                // The driver gave a JavaScript number: the digits beyond its precision, and the scale, are already
+                // lost, and nothing tells which
+                throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a customDecimal value from the db: the driver returned ' + value + ' as a JavaScript number')
+            }
+            if (typeof value === 'bigint') {
+                return '' + value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
+        }
+        if (__isString(type, customType)) {
+            if (typeof value === 'string') {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid string value received from the db: ' + value)
+        }
+        if (__isUuid(type, customType)) {
+            if (typeof value === 'string') {
+                return this.__normalizeUuidText(value)
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid uuid value received from the db: ' + value)
+        }
+        if (__isLocalDate(type, customType)) {
+            // Every value in the database is in UTC: the day of a Date received is the one of its UTC getters, and
+            // a text is read as UTC (or as its instant, when it has an offset). Some engines write a date with a
+            // time (Oracle's DATE inside a JSON aggregate is "2024-01-15T00:00:00"): only its day is kept.
+            // A localDate has no time-of-day. If it were pinned at UTC midnight the CALENDAR DATE would shift when
+            // the value is read in another timezone (00:00Z is the previous day everywhere west of UTC), so the
+            // decoded Date is at 10:00 UTC: a buffer that preserves the intended day across every inhabited offset
+            // (UTC-10..+13; only the effectively-uninhabited +14/-11/-12 would still roll over). A future move to
+            // Temporal's plain-date type would remove the need for this offset.
+            const received = this.__receivedDate(value)
+            if (!received) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDate value received from the db: ' + value)
+            }
+            const result: any = new Date(0)
+            result.setUTCFullYear(received.getUTCFullYear(), received.getUTCMonth(), received.getUTCDate())
+            result.setUTCHours(10) // date-stability offset (see the note above)
+            result.___type___ = 'localDate'
+            return result
+        }
+        if (__isLocalTime(type, customType)) {
+            // The time of a Date received is the one of its UTC getters, and a text is read as UTC (or as its
+            // instant, when it has an offset). Some engines write a time with a date (Oracle's TIMESTAMP inside a
+            // JSON aggregate is "1970-01-01T09:15:00"): only its time is kept, on 1970-01-01.
+            const received = this.__receivedDate(value)
+            if (!received) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
+            }
+            // With a databaseTimeZone other than UTC the database gives the instant of the time on the day of the
+            // localTimeReferenceDate: that day gives it its offset, and the Date keeps it
+            const result: any = this.isDatabaseOutsideUtc() ? new Date(received.getTime()) : new Date(Date.UTC(1970, 0, 1, received.getUTCHours(), received.getUTCMinutes(), received.getUTCSeconds(), received.getUTCMilliseconds()))
+            result.___type___ = 'localTime'
+            return result
+        }
+        if (__isLocalDateTime(type, customType)) {
+            // A Date received is kept: the query runner gives the UTC digits of a value without zone in its UTC
+            // getters, and the instant of a zoned one. A text is read as UTC, or as its instant when it has an offset.
+            const received = this.__receivedDate(value)
+            if (!received) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDateTime value received from the db: ' + value)
+            }
+            (received as any).___type___ = 'localDateTime'
+            return received
+        }
+        if (__isAggregatedArray(type, customType)) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays coming from the database')
+        }
+        return value
     }
     /**
      * The Date of a localDate, a localTime or a localDateTime received from the database: a valid Date as it is, a text
@@ -1416,7 +1419,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     /** Converts a value to send to the database as the requested type */
     protected transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         const type = context.requestedType
-        const conversionType = __conversionType(type, context.requestedCustomType)
+        const customType = context.requestedCustomType
         if (value === undefined) {
             return null
         }
@@ -1426,75 +1429,81 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (value === '' && !this.allowEmptyString) {
             return null
         }
-        switch (conversionType) {
-            case 'boolean':
-                if (typeof value === 'boolean') {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid boolean value to send to the db: ' + value)
-            case 'int':
-                if (typeof value === 'number') {
-                    if (!Number.isInteger(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
-                    }
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
-            case 'bigint':
-                if (typeof value === 'bigint') {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
-            case 'double':
-                if (typeof value === 'number') {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + value)
-            case 'stringDecimal':
-            case 'customDecimal':
-                // A decimal is sent as its text, with a point as the decimal separator and without an exponent, so every
-                // database reads it with all its digits
-                if (typeof value === 'string') {
-                    if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid customDecimal value to send to the db: ' + value)
-                    }
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid customDecimal value to send to the db: ' + value)
-            case 'string':
-                if (typeof value === 'string') {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid string value to send to the db: ' + value)
-            case 'uuid':
-                if (typeof value === 'string') {
-                    return this.__normalizeUuidText(value)
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid uuid value to send to the db: ' + value)
-            case 'localDate':
-                if (value instanceof Date && !isNaN(value.getTime())) {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDate value to send to the db: ' + value)
-            case 'localTime':
-                if (value instanceof Date && !isNaN(value.getTime())) {
-                    // The time of a localTime is the one of its UTC getters, whatever the zone of the process, on
-                    // 1970-01-01 UTC: the day the value is read back on. Each query runner sends it in the form its
-                    // driver needs (a text, a TIME, a TIMESTAMP).
-                    return new Date(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds()))
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localTime value to send to the db: ' + value)
-            case 'localDateTime':
-                if (value instanceof Date && !isNaN(value.getTime())) {
-                    return value
-                }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDateTime value to send to the db: ' + value)
-            case 'aggregatedArray': {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')
-            }
-            default:
+        if (__isBoolean(type, customType)) {
+            if (typeof value === 'boolean') {
                 return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid boolean value to send to the db: ' + value)
         }
+        if (__isInt(type, customType)) {
+            if (typeof value === 'number') {
+                if (!Number.isInteger(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
+                }
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
+        }
+        if (__isBigint(type, customType)) {
+            if (typeof value === 'bigint') {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
+        }
+        if (__isDouble(type, customType)) {
+            if (typeof value === 'number') {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + value)
+        }
+        if (__isExactDecimal(type, customType)) {
+            // A decimal is sent as its text, with a point as the decimal separator and without an exponent, so every
+            // database reads it with all its digits
+            if (typeof value === 'string') {
+                if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid customDecimal value to send to the db: ' + value)
+                }
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid customDecimal value to send to the db: ' + value)
+        }
+        if (__isString(type, customType)) {
+            if (typeof value === 'string') {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid string value to send to the db: ' + value)
+        }
+        if (__isUuid(type, customType)) {
+            if (typeof value === 'string') {
+                return this.__normalizeUuidText(value)
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid uuid value to send to the db: ' + value)
+        }
+        if (__isLocalDate(type, customType)) {
+            if (value instanceof Date && !isNaN(value.getTime())) {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDate value to send to the db: ' + value)
+        }
+        if (__isLocalTime(type, customType)) {
+            if (value instanceof Date && !isNaN(value.getTime())) {
+                // The time of a localTime is the one of its UTC getters, whatever the zone of the process, on
+                // 1970-01-01 UTC: the day the value is read back on. Each query runner sends it in the form its
+                // driver needs (a text, a TIME, a TIMESTAMP).
+                return new Date(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds()))
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localTime value to send to the db: ' + value)
+        }
+        if (__isLocalDateTime(type, customType)) {
+            if (value instanceof Date && !isNaN(value.getTime())) {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDateTime value to send to the db: ' + value)
+        }
+        if (__isAggregatedArray(type, customType)) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')
+        }
+        return value
     }
 
     protected transformPlaceholder(placeholder: string, _context: TypeAdapterPlaceholderContext): string {

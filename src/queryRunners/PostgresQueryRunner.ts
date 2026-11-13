@@ -80,15 +80,16 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         let result: any[] | undefined = values === params ? undefined : values
         for (let i = 0, length = params.length; i < length; i++) {
             const value = values[i]
-            const type = existingParamContextOf(params, i)?.sentType
+            const param = existingParamContextOf(params, i)
+            const type = param?.requestedType
             const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             let typed: Parameter<any> | undefined
             if (typeof declared === 'function') {
                 typed = declared(value)
             } else if (declared !== undefined) {
                 typed = sql.typed(value, declared)
-            } else if (existingParamContextOf(params, i)?.forceTypeCast || isPostgreSqlZonedParam(params, i)) {
-                const paramType = postgreSqlParamType(type, existingParamContextOf(params, i)?.sentTypeCategory, value, isPostgreSqlZonedParam(params, i))
+            } else if (param?.forceTypeCast || isPostgreSqlZonedParam(params, i)) {
+                const paramType = postgreSqlParamType(type, param?.requestedCustomType, value, isPostgreSqlZonedParam(params, i))
                 if (paramType) {
                     typed = sql.typed(value, paramType.oid)
                 }

@@ -10,7 +10,7 @@ import type { QueryExecutionSource } from '../TsSqlError.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
 import { paramsForExecution, QueryParamContextImpl, queryContextOf } from '../internal/QueryContextImpl.js'
 import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
-import { __customTypeOf } from '../utils/typeCategory.js'
+import { __customTypeOf } from '../utils/dataTypes.js'
 import type { ProjectionOutput } from '../TypeAdapter.js'
 
 export class AbstractQueryBuilder {

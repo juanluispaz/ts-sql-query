@@ -2,7 +2,7 @@ import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../u
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
 import type { TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __conversionType } from '../utils/typeCategory.js'
+import { __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
@@ -42,8 +42,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if (this.isDatabaseOutsideUtc()) {
-            const conversionType = __conversionType(context.requestedType, context.requestedCustomType)
-            if (conversionType === 'localDateTime' || conversionType === 'localTime') {
+            if (__isLocalDateTime(context.requestedType, context.requestedCustomType) || __isLocalTime(context.requestedType, context.requestedCustomType)) {
                 context.setMetadata(postgreSqlZonedParam, true)
             }
         }
@@ -56,7 +55,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = postgreSqlZonedValueSql(sql, __conversionType(context.requestedType, context.requestedCustomType), this.localTimeReferenceDate)
+            const zoned = postgreSqlZonedValueSql(sql, context.requestedType, context.requestedCustomType, this.localTimeReferenceDate)
             if (zoned) {
                 return context.output === 'aggregatedArrayValue' ? zoned + '::text' : zoned
             }

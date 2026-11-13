@@ -14,7 +14,7 @@ import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isDecimalCategory } from '../utils/typeCategory.js'
+import { __customTypeOf, __isExactDecimal } from '../utils/dataTypes.js'
 
 export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, NumberValueSource<any, any>, BigintValueSource<any, any>, CustomIntValueSource<any, any, any, any>, CustomBigintValueSource<any, any, any, any>, CustomDoubleValueSource<any, any, any, any>, StringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, CustomLocalDateValueSource<any, any, any, any>, CustomLocalTimeValueSource<any, any, any, any>, CustomLocalDateTimeValueSource<any, any, any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, UuidValueSource<any, any>, CustomUuidValueSource<any, any, any, any>, ToSql, __ValueSourcePrivate {
     [nullableValueSource]!: 'NullableValueSource'
@@ -479,7 +479,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     ceil(): any {
         if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_ceil', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isDecimalCategory(this.__valueType)) {
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
             return new SqlOperation0ValueSource('_ceil', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_ceil', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
@@ -488,7 +488,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     floor(): any {
         if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_floor', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isDecimalCategory(this.__valueType)) {
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
             return new SqlOperation0ValueSource('_floor', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_floor', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
@@ -497,7 +497,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     round(): any {
         if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_round', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
-        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isDecimalCategory(this.__valueType)) {
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customBigint' || this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
             return new SqlOperation0ValueSource('_round', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_round', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
@@ -717,7 +717,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         }
     }
     roundn(value: any): any {
-        if (this.__valueType === 'customDouble' || __isDecimalCategory(this.__valueType)) {
+        if (this.__valueType === 'customDouble' || __isExactDecimal(this.__valueTypeName, __customTypeOf(this.__valueType))) {
             return new SqlOperation1ValueSource('_roundn', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_roundn', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
@@ -2254,7 +2254,7 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
 }
 
 function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
-    if (thiz.__valueType === 'double' || thiz.__valueType === 'bigint' || thiz.__valueType === 'customInt' || thiz.__valueType === 'customBigint' || thiz.__valueType === 'customDouble' || __isDecimalCategory(thiz.__valueType)) {
+    if (thiz.__valueType === 'double' || thiz.__valueType === 'bigint' || thiz.__valueType === 'customInt' || thiz.__valueType === 'customBigint' || thiz.__valueType === 'customDouble' || __isExactDecimal(thiz.__valueTypeName, __customTypeOf(thiz.__valueType))) {
         return new SqlOperation1ValueSource(operation, thiz, value, thiz.__valueType, thiz.__valueTypeName, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
     } else {
         if (isValueSource(value)) {

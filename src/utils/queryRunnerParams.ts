@@ -47,30 +47,30 @@ const postgreSqlCast: ParamBinding = (params, value, castTypesByName) => {
     const param = existingParamContextOf(params, params.length)
     const zoned = isPostgreSqlZonedParam(params, params.length)
     const index = add(params, value)
-    return postgreSqlPlaceholder(index, value, param?.sentType ?? '', param?.sentTypeCategory ?? '', !!param?.forceTypeCast, castTypesByName, zoned)
+    return postgreSqlPlaceholder(index, value, param?.requestedType ?? '', param?.requestedCustomType, !!param?.forceTypeCast, castTypesByName, zoned)
 }
 /** postgres.js and PGlite send the parameter with its type: the placeholder needs no cast */
 const postgreSqlTyped: ParamBinding = (params, value) => {
     // A localDateTime or a localTime of a database outside UTC goes with its type, a timestamptz
     const param = existingParamContextOf(params, params.length)
     const zoned = isPostgreSqlZonedParam(params, params.length)
-    return '$' + (add(params, value) + 1) + postgreSqlZonedTimeCast(param?.sentType ?? '', param?.sentTypeCategory ?? '', zoned)
+    return '$' + (add(params, value) + 1) + postgreSqlZonedTimeCast(param?.requestedType ?? '', param?.requestedCustomType, zoned)
 }
 const mySql: ParamBinding = (params, value) => {
     const param = existingParamContextOf(params, params.length)
-    const placeholder = mySqlMariaDBPlaceholder('?', params, params.length, value, param?.sentType ?? '', param?.sentTypeCategory ?? '')
+    const placeholder = mySqlMariaDBPlaceholder('?', params, params.length, value, param?.requestedType ?? '', param?.requestedCustomType)
     add(params, value)
     return placeholder
 }
 const sqlServer: ParamBinding = (params, value) => {
     const param = existingParamContextOf(params, params.length)
-    const placeholder = sqlServerPlaceholder('@' + params.length, params, params.length, value, param?.sentType ?? '', param?.sentTypeCategory ?? '')
+    const placeholder = sqlServerPlaceholder('@' + params.length, params, params.length, value, param?.requestedType ?? '', param?.requestedCustomType)
     add(params, value)
     return placeholder
 }
 const oracle: ParamBinding = (params, value) => {
     const param = existingParamContextOf(params, params.length)
-    checkOracleParam(params.length, value, param?.sentType ?? '', param?.sentTypeCategory ?? '')
+    checkOracleParam(params.length, value, param?.requestedType ?? '', param?.requestedCustomType)
     // A localDateTime or a localTime of a database outside UTC, marked by the connection before it is added, is cast
     // to the type of the column where it isn't the value of one
     const placeholder = oraclePlaceholder(':' + params.length, params, params.length, value)

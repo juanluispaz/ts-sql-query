@@ -1,6 +1,6 @@
-import type { TypeCategory } from '../typeCategory.js'
+import type { CustomType } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
-import { __conversionType, __isDecimalCategory } from '../typeCategory.js'
+import { __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime } from '../dataTypes.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
@@ -12,8 +12,8 @@ import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
  * would give 999…9 without an error, and without it the database would compute in double precision; no column can
  * hold it. Call it before adding the parameter at that index.
  */
-export function mySqlMariaDBPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, typeCategory: TypeCategory): string {
-    if (!__isDecimalCategory(typeCategory)) {
+export function mySqlMariaDBPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, customType: CustomType | undefined): string {
+    if (!__isExactDecimal(type, customType)) {
         return placeholder
     }
     const digits = customDecimalDigitsOf(value)
@@ -37,20 +37,20 @@ export function mySqlMariaDBPlaceholder(placeholder: string, params: any[], inde
  * 5.7 and MariaDB reject an offset, and all of them a `Z`). A date sent as a date also compares equal to a `date`
  * column, which the text of a whole date and time doesn't. Any other value is sent as it is.
  */
-export function mySqlMariaDBParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined): unknown {
+export function mySqlMariaDBParamValue(value: unknown, type: string, customType: CustomType | undefined): unknown {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
         return value
     }
-    switch (__conversionType(type, typeCategory)) {
-        case 'localDate':
-            return utcDateText(value)
-        case 'localTime':
-            return utcTimeText(value)
-        case 'localDateTime':
-            return utcDateText(value) + ' ' + utcTimeText(value)
-        default:
-            return value
+    if (__isLocalDate(type, customType)) {
+        return utcDateText(value)
     }
+    if (__isLocalTime(type, customType)) {
+        return utcTimeText(value)
+    }
+    if (__isLocalDateTime(type, customType)) {
+        return utcDateText(value) + ' ' + utcTimeText(value)
+    }
+    return value
 }
 
 /**
@@ -62,14 +62,15 @@ export function mySqlMariaDBDriverParams(params: any[]): any[] {
     let result: any[] | undefined = undefined
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
-        const type = existingParamContextOf(params, i)?.sentType
+        const param = existingParamContextOf(params, i)
+        const type = param?.requestedType
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = mySqlMariaDBParamValue(value, type, existingParamContextOf(params, i)?.sentTypeCategory)
+        result[i] = mySqlMariaDBParamValue(value, type, param?.requestedCustomType)
     }
     return result ?? params
 }

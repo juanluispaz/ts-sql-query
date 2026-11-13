@@ -59,6 +59,14 @@ const tReleaseDayAsText = new class TReleaseDayAsText extends Table<DBConnection
     constructor() { super('project_release') }
 }()
 
+// A custom type decides how its value is converted, whatever its name: a customLocalDate named 'localDateTime' is a
+// localDate
+const tReleaseDayNamedLikeABuiltIn = new class TReleaseDayNamedLikeABuiltIn extends Table<DBConnection, 'TReleaseDayNamedLikeABuiltIn'> {
+    id         = this.primaryKey('id', 'int')
+    releasedOn = this.column<ReleaseDay, 'localDateTime'>('released_on', 'customLocalDate', 'localDateTime')
+    constructor() { super('project_release') }
+}()
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -103,5 +111,25 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ id: number, day: ReleaseDay }>>>()
         expect(rows).toEqual([{ id: 1, day: dayOf(2024, 1, 15) }])
+    })
+
+    test('requested-type/a-custom-type-decides-whatever-its-name', async () => {
+        ctx.mockNext([{ id: 1, releasedOn: '2024-01-15' }])
+        const rows = sync(ctx.conn.selectFrom(tReleaseDayNamedLikeABuiltIn)
+            .where(tReleaseDayNamedLikeABuiltIn.releasedOn.equals(dayOf(2024, 1, 15)))
+            .select({
+                id: tReleaseDayNamedLikeABuiltIn.id,
+                releasedOn: tReleaseDayNamedLikeABuiltIn.releasedOn,
+            })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as releasedOn from project_release where released_on = ?1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number, releasedOn: ReleaseDay }>>>()
+        // Read as a localDate: 10:00 UTC of its day
+        expect(rows).toEqual([{ id: 1, releasedOn: dayOf(2024, 1, 15) }])
     })
 })

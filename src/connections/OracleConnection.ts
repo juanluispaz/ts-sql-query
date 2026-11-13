@@ -11,7 +11,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __conversionType } from '../utils/typeCategory.js'
+import { __isBoolean, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
@@ -175,11 +175,12 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * converts with its session (the zone of the database) into the wall clock it stores or compares with
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const conversionType = __conversionType(context.requestedType, context.requestedCustomType)
-        if ((conversionType === 'localDateTime' || conversionType === 'localTime') && this.isDatabaseOutsideUtc()) {
+        const type = context.requestedType
+        const customType = context.requestedCustomType
+        if ((__isLocalDateTime(type, customType) || __isLocalTime(type, customType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
         }
-        if (conversionType === 'boolean' && typeof value === 'boolean' && this.booleanStorage !== 'boolean') {
+        if (__isBoolean(type, customType) && typeof value === 'boolean' && this.booleanStorage !== 'boolean') {
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);
         }
@@ -193,7 +194,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = oracleZonedValueSql(sql, __conversionType(context.requestedType, context.requestedCustomType), this.localTimeReferenceDate)
+            const zoned = oracleZonedValueSql(sql, context.requestedType, context.requestedCustomType, this.localTimeReferenceDate)
             if (zoned) {
                 return zoned
             }

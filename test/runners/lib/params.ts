@@ -6,7 +6,7 @@
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { ValueType } from '../../../src/expressions/values.js'
 import { queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
-import { __customTypeOf } from '../../../src/utils/typeCategory.js'
+import { __customTypeOf } from '../../../src/utils/dataTypes.js'
 
 function keepParamType(params: any[], type: string, columnType: ValueType, forceTypeCast: boolean): void {
     const paramContext = queryParamContextOf(params, params.length)

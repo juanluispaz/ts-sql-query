@@ -1,5 +1,5 @@
-import type { TypeCategory } from '../typeCategory.js'
-import { __conversionType } from '../typeCategory.js'
+import type { CustomType } from '../../TypeAdapter.js'
+import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../dataTypes.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { postgreSqlZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
@@ -35,35 +35,42 @@ export function isPostgreSqlZonedParam(params: any[], index: number): boolean {
     return existingParamContextOf(params, index)?.getMetadata(postgreSqlZonedParam) === true
 }
 
-const byConversionType: { [conversionType: string]: PostgreSqlParamType } = {
-    boolean: bool,
-    int: int4,
-    bigint: int8,
-    double: float8,
-    stringDecimal: numeric,
-    customDecimal: numeric,
-    string: text,
-    uuid: uuid,
-    localDate: date,
-    localTime: time,
-    localDateTime: timestamp,
-}
-
 /**
- * The PostgreSQL type of a parameter, from the type it is converted as (see `__conversionType`); an `enum`, a
- * `custom`, a `customComparable` or a value without category gets the type of the JS value sent: a bigint is an
- * `int8`, an integer number an `int4` or an `int8` by its range, any other number a `float8`. Undefined when there is
- * none, like for a text or a null of those types.
+ * The PostgreSQL type of a parameter, from its type and its custom type; an `enum`, a `custom`, a `customComparable`
+ * or a value without type gets the type of the JS value sent: a bigint is an `int8`, an integer number an `int4` or an
+ * `int8` by its range, any other number a `float8`. Undefined when there is none, like for a text or a null of those
+ * types.
  */
-export function postgreSqlParamType(type: string | undefined, typeCategory: TypeCategory | undefined, valueSentToDB: unknown, zoned: boolean = false): PostgreSqlParamType | undefined {
-    if (type !== undefined) {
-        const conversionType = __conversionType(type, typeCategory)
-        if (zoned && (conversionType === 'localDateTime' || conversionType === 'localTime')) {
-            return timestamptz
-        }
-        if (Object.hasOwn(byConversionType, conversionType)) {
-            return byConversionType[conversionType]
-        }
+export function postgreSqlParamType(type: string | undefined, customType: CustomType | undefined, valueSentToDB: unknown, zoned: boolean = false): PostgreSqlParamType | undefined {
+    if (__isBoolean(type, customType)) {
+        return bool
+    }
+    if (__isInt(type, customType)) {
+        return int4
+    }
+    if (__isBigint(type, customType)) {
+        return int8
+    }
+    if (__isDouble(type, customType)) {
+        return float8
+    }
+    if (__isExactDecimal(type, customType)) {
+        return numeric
+    }
+    if (__isString(type, customType)) {
+        return text
+    }
+    if (__isUuid(type, customType)) {
+        return uuid
+    }
+    if (__isLocalDate(type, customType)) {
+        return date
+    }
+    if (__isLocalTime(type, customType)) {
+        return zoned ? timestamptz : time
+    }
+    if (__isLocalDateTime(type, customType)) {
+        return zoned ? timestamptz : timestamp
     }
     if (typeof valueSentToDB === 'bigint') {
         return int8
@@ -84,7 +91,7 @@ export function postgreSqlParamType(type: string | undefined, typeCategory: Type
  * The placeholder `$<index + 1>` of the parameter at that index of the params, with its cast when forceTypeCast and the
  * parameter has a PostgreSQL type: the one declared for its type name in typesByName, or the one of postgreSqlParamType.
  */
-export function postgreSqlPlaceholder(index: number, value: unknown, type: string, typeCategory: TypeCategory, forceTypeCast: boolean, typesByName?: { readonly [typeName: string]: string } | undefined, zoned: boolean = false): string {
+export function postgreSqlPlaceholder(index: number, value: unknown, type: string, customType: CustomType | undefined, forceTypeCast: boolean, typesByName?: { readonly [typeName: string]: string } | undefined, zoned: boolean = false): string {
     const placeholder = '$' + (index + 1)
     if (!forceTypeCast && !zoned) {
         return placeholder
@@ -93,16 +100,16 @@ export function postgreSqlPlaceholder(index: number, value: unknown, type: strin
     if (declared !== undefined) {
         return placeholder + '::' + declared
     }
-    const cast = postgreSqlParamType(type, typeCategory, value, zoned)?.cast
+    const cast = postgreSqlParamType(type, customType, value, zoned)?.cast
     if (cast) {
-        return placeholder + '::' + cast + postgreSqlZonedTimeCast(type, typeCategory, zoned)
+        return placeholder + '::' + cast + postgreSqlZonedTimeCast(type, customType, zoned)
     }
     return placeholder
 }
 
 /** A localTime of a database outside UTC, sent as a timestamptz, is turned into the time of the session: `::time` */
-export function postgreSqlZonedTimeCast(type: string, typeCategory: TypeCategory, zoned: boolean): string {
-    return zoned && __conversionType(type, typeCategory) === 'localTime' ? '::time' : ''
+export function postgreSqlZonedTimeCast(type: string, customType: CustomType | undefined, zoned: boolean): string {
+    return zoned && __isLocalTime(type, customType) ? '::time' : ''
 }
 
 /**
@@ -113,7 +120,7 @@ export function postgreSqlZonedTimeCast(type: string, typeCategory: TypeCategory
  * it) and a `timestamptz`. A year before 1 is written as PostgreSQL does, `0044-03-15 BC` for the year -43. Any other
  * value is sent as it is.
  */
-export function postgreSqlParamValue(value: unknown, type: string, typeCategory: TypeCategory | undefined, zoned: boolean = false): unknown {
+export function postgreSqlParamValue(value: unknown, type: string, customType: CustomType | undefined, zoned: boolean = false): unknown {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
         return value
     }
@@ -121,20 +128,20 @@ export function postgreSqlParamValue(value: unknown, type: string, typeCategory:
     const era = year < 1 ? ' BC' : ''
     // The year 0 is 1 BC
     const eraYear = year < 1 ? 1 - year : year
-    switch (__conversionType(type, typeCategory)) {
-        case 'localDate':
-            return utcDateText(value, eraYear) + era
-        case 'localTime':
-            if (zoned) {
-                // Its own day gives the offset the database converts it with
-                return utcDateText(value, eraYear) + ' ' + utcTimeText(value) + '+00' + era
-            }
-            return utcTimeText(value)
-        case 'localDateTime':
-            return utcDateText(value, eraYear) + ' ' + utcTimeText(value) + '+00' + era
-        default:
-            return value
+    if (__isLocalDate(type, customType)) {
+        return utcDateText(value, eraYear) + era
     }
+    if (__isLocalTime(type, customType)) {
+        if (zoned) {
+            // Its own day gives the offset the database converts it with
+            return utcDateText(value, eraYear) + ' ' + utcTimeText(value) + '+00' + era
+        }
+        return utcTimeText(value)
+    }
+    if (__isLocalDateTime(type, customType)) {
+        return utcDateText(value, eraYear) + ' ' + utcTimeText(value) + '+00' + era
+    }
+    return value
 }
 
 /**
@@ -145,14 +152,15 @@ export function postgreSqlDriverParams(params: any[]): any[] {
     let result: any[] | undefined = undefined
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
-        const type = existingParamContextOf(params, i)?.sentType
+        const param = existingParamContextOf(params, i)
+        const type = param?.requestedType
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = postgreSqlParamValue(value, type, existingParamContextOf(params, i)?.sentTypeCategory, isPostgreSqlZonedParam(params, i))
+        result[i] = postgreSqlParamValue(value, type, param?.requestedCustomType, isPostgreSqlZonedParam(params, i))
     }
     return result ?? params
 }

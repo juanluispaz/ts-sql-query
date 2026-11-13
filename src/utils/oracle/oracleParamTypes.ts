@@ -1,6 +1,6 @@
-import type { TypeCategory } from '../typeCategory.js'
+import type { CustomType } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
-import { __conversionType, __isDecimalCategory } from '../typeCategory.js'
+import { __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime } from '../dataTypes.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
@@ -9,8 +9,8 @@ import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
  * digits, so a customDecimal with more, which would be rounded in a computation without an error and that no column
  * can hold, is rejected. Call it before adding the parameter at that index.
  */
-export function checkOracleParam(index: number, value: unknown, type: string, typeCategory: TypeCategory): void {
-    if (!__isDecimalCategory(typeCategory)) {
+export function checkOracleParam(index: number, value: unknown, type: string, customType: CustomType | undefined): void {
+    if (!__isExactDecimal(type, customType)) {
         return
     }
     const digits = customDecimalDigitsOf(value)
@@ -45,23 +45,20 @@ class OracleUtcDigitsDate extends Date {
  * Date goes as it is; otherwise a copy whose local getters are the UTC ones. Undefined for any other value, which is
  * bound as it is. Called when the query is executed: the params of the query don't change.
  */
-export function oracleTemporalBind(value: unknown, type: string | undefined, typeCategory: TypeCategory | undefined, processInUtc: boolean, ofDate: boolean): { val: Date, type: 'date' | 'timestamp' } | undefined {
+export function oracleTemporalBind(value: unknown, type: string | undefined, customType: CustomType | undefined, processInUtc: boolean, ofDate: boolean): { val: Date, type: 'date' | 'timestamp' } | undefined {
     if (!(value instanceof Date) || isNaN(value.getTime()) || type === undefined) {
         return undefined
     }
-    switch (__conversionType(type, typeCategory)) {
-        case 'localDate': {
-            const day = Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate())
-            return { val: processInUtc ? new Date(day) : new OracleUtcDigitsDate(day), type: 'date' }
-        }
-        case 'localTime':
-        case 'localDateTime':
-            // Of a DATE (oracleDateParam of metadataSymbols.ts), a value of whole seconds is a DATE, which the column compares with as it
-            // is; one with a fraction stays a TIMESTAMP, which keeps it (10:00:00.500 is after a DATE of 10:00:00)
-            return { val: processInUtc ? value : new OracleUtcDigitsDate(value.getTime()), type: ofDate && value.getUTCMilliseconds() === 0 ? 'date' : 'timestamp' }
-        default:
-            return undefined
+    if (__isLocalDate(type, customType)) {
+        const day = Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate())
+        return { val: processInUtc ? new Date(day) : new OracleUtcDigitsDate(day), type: 'date' }
     }
+    if (__isLocalTime(type, customType) || __isLocalDateTime(type, customType)) {
+        // Of a DATE (oracleDateParam of metadataSymbols.ts), a value of whole seconds is a DATE, which the column compares with as it
+        // is; one with a fraction stays a TIMESTAMP, which keeps it (10:00:00.500 is after a DATE of 10:00:00)
+        return { val: processInUtc ? value : new OracleUtcDigitsDate(value.getTime()), type: ofDate && value.getUTCMilliseconds() === 0 ? 'date' : 'timestamp' }
+    }
+    return undefined
 }
 
 /** Whether the parameter at that index is a localDateTime or a localTime of a database outside UTC (oracleZonedParam) */

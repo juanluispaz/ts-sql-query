@@ -1,13 +1,13 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { ConnectionPool, ISqlType, ISqlTypeFactory, Request, Transaction } from 'mssql'
 import mssql from 'mssql'
-import type { NativeValueType } from '../expressions/values.js'
 import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../utils/dataTypes.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
@@ -23,7 +23,7 @@ const isolationLevelWords: { [level: number]: string } = {
 export interface MssqlPoolQueryRunnerConfig {
     /**
      * The type of mssql each parameter of a type name (the name given to a custom type, or a built-in one) is bound
-     * with, instead of the one of its category: `TYPES.NVarChar` for an exact decimal kept as text, or
+     * with, instead of the one of its type: `TYPES.NVarChar` for an exact decimal kept as text, or
      * `TYPES.Decimal(18, 4)`
      */
     typesByName?: { readonly [typeName: string]: ISqlTypeFactory | ISqlType } | undefined
@@ -290,32 +290,10 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return request
     }
 
-    protected predefinedTypes: {[type: string]: ISqlTypeFactory | undefined} = {
-        boolean: TYPES.Bit,
-        int: TYPES.Int,
-        bigint: TYPES.BigInt,
-        double: TYPES.Float,
-        string: TYPES.NVarChar,
-        uuid: TYPES.UniqueIdentifier,
-        localDate: TYPES.Date,
-        localTime: TYPES.Time,
-        localDateTime: TYPES.DateTime2,
-        customInt: TYPES.Int,
-        customBigint: TYPES.BigInt,
-        customDouble: TYPES.Float,
-        // TYPES.Decimal converts the value to a JavaScript number before sending it, which loses digits
-        stringDecimal: TYPES.NVarChar,
-        customDecimal: TYPES.NVarChar,
-        customUuid: TYPES.UniqueIdentifier,
-        customLocalDate: TYPES.Date,
-        customLocalTime: TYPES.Time,
-        customLocalDateTime: TYPES.DateTime2
-    } satisfies {[type in NativeValueType]: ISqlTypeFactory | undefined}
-
     // The type the parameter is bound with: the one declared in typesByName for its type name, or the one getType gives
     private getInputType(params: any[], index: number): ISqlType {
         const typesByName = this.config?.typesByName
-        const type = existingParamContextOf(params, index)?.sentType
+        const type = existingParamContextOf(params, index)?.requestedType
         const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
         if (declared) {
             if (typeof declared === 'function') {
@@ -329,24 +307,48 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     }
 
     protected getType(params: any[], index: number): ISqlTypeFactory {
-        // The category of the type decides the type of the parameter, then its name; a parameter added without them,
-        // like one of a query written by hand, gets a type inferred from its value
-        const typeCategory = existingParamContextOf(params, index)?.sentTypeCategory
-        const type = existingParamContextOf(params, index)?.sentType
-        if (typeCategory || type) {
-            const byCategory = typeCategory && Object.hasOwn(this.predefinedTypes, typeCategory) ? this.predefinedTypes[typeCategory] : undefined
-            if (byCategory) {
-                return byCategory
-            }
-            const byName = type && Object.hasOwn(this.predefinedTypes, type) ? this.predefinedTypes[type] : undefined
-            if (byName) {
-                return byName
-            }
-            // Any other type is a custom one (an enum, a custom or a customComparable): what it holds is only known by
-            // the user. A text goes as text, whatever it looks like: '1.2' on a text column can't be sent as a number.
-            return this.inferCustomType(params[index])
+        // The requested type of the parameter decides the type it is bound with; a parameter added without one, like
+        // one of a query written by hand, gets a type inferred from its value
+        const param = existingParamContextOf(params, index)
+        const type = param?.requestedType
+        const customType = param?.requestedCustomType
+        if (!type && !customType) {
+            return this.inferType(params[index])
         }
-        return this.inferType(params[index])
+        if (__isBoolean(type, customType)) {
+            return TYPES.Bit
+        }
+        if (__isInt(type, customType)) {
+            return TYPES.Int
+        }
+        if (__isBigint(type, customType)) {
+            return TYPES.BigInt
+        }
+        if (__isDouble(type, customType)) {
+            return TYPES.Float
+        }
+        if (__isExactDecimal(type, customType)) {
+            // TYPES.Decimal converts the value to a JavaScript number before sending it, which loses digits
+            return TYPES.NVarChar
+        }
+        if (__isString(type, customType)) {
+            return TYPES.NVarChar
+        }
+        if (__isUuid(type, customType)) {
+            return TYPES.UniqueIdentifier
+        }
+        if (__isLocalDate(type, customType)) {
+            return TYPES.Date
+        }
+        if (__isLocalTime(type, customType)) {
+            return TYPES.Time
+        }
+        if (__isLocalDateTime(type, customType)) {
+            return TYPES.DateTime2
+        }
+        // Any other type is a custom one (an enum, a custom or a customComparable): what it holds is only known by the
+        // user. A text goes as text, whatever it looks like: '1.2' on a text column can't be sent as a number.
+        return this.inferCustomType(params[index])
     }
 
     protected inferCustomType(value: any): ISqlTypeFactory {

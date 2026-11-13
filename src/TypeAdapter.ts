@@ -1,6 +1,6 @@
 import { oracleDateParam } from './utils/metadataSymbols.js'
 import type { ConnectionConfiguration } from './queryRunners/QueryRunner.js'
-import { __conversionType } from './utils/typeCategory.js'
+import { __isLocalDateTime, __isLocalTime } from './utils/dataTypes.js'
 
 /**
  * Which custom type a value is, the first argument of its column when it is a custom one, like `'customInt'` in
@@ -260,8 +260,7 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
      */
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         const result = next.transformValueToDB(value, context)
-        const conversionType = __conversionType(context.requestedType, context.requestedCustomType)
-        if (conversionType === 'localDateTime' || conversionType === 'localTime') {
+        if (__isLocalDateTime(context.requestedType, context.requestedCustomType) || __isLocalTime(context.requestedType, context.requestedCustomType)) {
             context.setMetadata(oracleDateParam, true)
         }
         return result

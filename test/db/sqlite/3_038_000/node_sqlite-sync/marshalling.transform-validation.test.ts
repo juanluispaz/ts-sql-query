@@ -32,7 +32,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue, tAppUser } from '../../domain/connection.js'
-import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
@@ -608,20 +607,6 @@ describe(ctx.label, () => {
         // the only way to reach the transformValueFromDB arm under test.
         ctx.mockOnlyConnection()
         expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDateTime'), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-    })
-
-    test('marshalling/from-db-validation/aggregated-array-type-is-rejected', async () => {
-        // `aggregatedArray` is an internal marshalling type the projector handles
-        // through a dedicated path; a value reaching `transformValueFromDB` with
-        // that type is a "this would not happen" state the decoder rejects
-        // deterministically (both modes → unguarded). Reach it via an adapter that
-        // reroutes DECODE to 'aggregatedArray' (encode stays 'string' so building
-        // the const param doesn't throw first).
-        const aggAdapter: TypeAdapter = {
-            transformValueFromDB(value, context, next) { context.setRequestedType('custom', 'aggregatedArray'); return next.transformValueFromDB(value, context) },
-            transformValueToDB(value, context, next) { context.setRequestedType('string'); return next.transformValueToDB(value, context) },
-        }
-        expect(await fromDbReason(ctx.conn.const('x', 'string', aggAdapter), 1)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
 
     test('marshalling/from-db-validation/mandatory-error-in-a-nested-object-carries-its-dotted-column-path', async () => {

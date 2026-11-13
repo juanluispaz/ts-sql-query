@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
-import type { TypeAdapter } from '../TypeAdapter.js'
+import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType, __isUuidValueType, __isLocalDateTimeValueSource, __isLocalTimeValueSource } from '../expressions/values.js'
@@ -15,7 +15,7 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __conversionType, __customTypeOf } from '../utils/typeCategory.js'
+import { __customTypeOf, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
@@ -1318,7 +1318,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return undefined
         }
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __conversionType(valueSourcePrivate.__valueTypeName, __customTypeOf(valueSourcePrivate.__valueType)), this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), valueSourcePrivate.__valueTypeName, __customTypeOf(valueSourcePrivate.__valueType), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? 'sys_extract_utc(' + zoned + ')' : undefined
     }
     // Oracle counts a negative start from the end like JS, but answers '' once the start runs
@@ -1522,11 +1522,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
  * time alone): `cast(timestamp '1970-01-01 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or the
  * current date of the session for `'today'`. A wall clock the zone skips gives ORA-01878. Undefined for any other type.
  */
-export function oracleZonedValueSql(sql: string, conversionType: string, localTimeReferenceDate: string | undefined): string | undefined {
-    if (conversionType === 'localDateTime') {
+export function oracleZonedValueSql(sql: string, type: string, customType: CustomType | undefined, localTimeReferenceDate: string | undefined): string | undefined {
+    if (__isLocalDateTime(type, customType)) {
         return 'cast(' + sql + ' as timestamp with time zone)'
     }
-    if (conversionType === 'localTime') {
+    if (__isLocalTime(type, customType)) {
         const day = localTimeReferenceDate === 'today' ? 'cast(trunc(localtimestamp) as timestamp)' : "timestamp '" + (localTimeReferenceDate ?? '1970-01-01') + " 00:00:00'"
         return 'cast(' + day + ' + (' + sql + ' - trunc(' + sql + ')) as timestamp with time zone)'
     }

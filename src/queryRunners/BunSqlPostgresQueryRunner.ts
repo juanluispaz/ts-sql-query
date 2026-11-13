@@ -11,7 +11,7 @@ import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes
 export interface BunSqlPostgresQueryRunnerConfig {
     /**
      * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
-     * custom type, or a built-in one) where the library writes a cast, instead of the one of its category
+     * custom type, or a built-in one) where the library writes a cast, instead of the one of its type
      */
     typesByName?: { readonly [typeName: string]: string } | undefined
 }

@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
-import type { TypeAdapter } from '../TypeAdapter.js'
+import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -11,7 +11,7 @@ import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../exp
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __conversionType, __customTypeOf, __typeCategory } from '../utils/typeCategory.js'
+import { __customTypeOf, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 
@@ -409,7 +409,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // A null of a type PostgreSQL knows is a parameter that carries its type, written as a cast or sent with it by
         // the query runner: a bare null has none where the position gives it none (a row of a union, a Values row, a
         // case). A null of any other type stays a literal null, that PostgreSQL resolves as text where it can't infer it.
-        if (postgreSqlParamType(columnTypeName, __typeCategory(columnTypeName, __customTypeOf(columnType)), null)) {
+        if (postgreSqlParamType(columnTypeName, __customTypeOf(columnType), null)) {
             const sent = this._transformParamToDB(null, columnType, columnTypeName, typeAdapter, context, true)
             return this._appendParam(sent, context, columnType, columnTypeName, typeAdapter, true)
         }
@@ -649,7 +649,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (!this._isDatabaseOutsideUtc() || !isValueSource(valueSource)) {
             return sql
         }
-        const zoned = postgreSqlZonedValueSql(sql, __conversionType(__getValueSourcePrivate(valueSource).__valueTypeName, __customTypeOf(__getValueSourcePrivate(valueSource).__valueType)), this._connectionConfiguration.localTimeReferenceDate)
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const zoned = postgreSqlZonedValueSql(sql, valueSourcePrivate.__valueTypeName, __customTypeOf(valueSourcePrivate.__valueType), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? '(' + zoned + " at time zone 'UTC')" : sql
     }
 }
@@ -660,12 +661,12 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
  * the day of the localTimeReferenceDate, `(date '1970-01-01' + <sql>)::timestamptz` or `(current_date + <sql>)…`.
  * Undefined for any other type.
  */
-export function postgreSqlZonedValueSql(sql: string, conversionType: string, localTimeReferenceDate: string | undefined): string | undefined {
-    if (conversionType === 'localDateTime') {
+export function postgreSqlZonedValueSql(sql: string, type: string, customType: CustomType | undefined, localTimeReferenceDate: string | undefined): string | undefined {
+    if (__isLocalDateTime(type, customType)) {
         // A column, or a qualified one, needs no parenthesis
         return (/^[\w."]+$/.test(sql) ? sql : '(' + sql + ')') + '::timestamptz'
     }
-    if (conversionType === 'localTime') {
+    if (__isLocalTime(type, customType)) {
         const day = localTimeReferenceDate === 'today' ? 'current_date' : "date '" + (localTimeReferenceDate ?? '1970-01-01') + "'"
         return '(' + day + ' + ' + sql + ')::timestamptz'
     }

@@ -63,10 +63,11 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         const typesByName = this.config?.typesByName
         let paramTypes: number[] | undefined = undefined
         for (let i = 0, length = params.length; i < length; i++) {
-            const type = existingParamContextOf(params, i)?.sentType
+            const param = existingParamContextOf(params, i)
+            const type = param?.requestedType
             let oid = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
-            if (oid === undefined && (existingParamContextOf(params, i)?.forceTypeCast || isPostgreSqlZonedParam(params, i))) {
-                oid = postgreSqlParamType(type, existingParamContextOf(params, i)?.sentTypeCategory, params[i], isPostgreSqlZonedParam(params, i))?.oid
+            if (oid === undefined && (param?.forceTypeCast || isPostgreSqlZonedParam(params, i))) {
+                oid = postgreSqlParamType(type, param?.requestedCustomType, params[i], isPostgreSqlZonedParam(params, i))?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {

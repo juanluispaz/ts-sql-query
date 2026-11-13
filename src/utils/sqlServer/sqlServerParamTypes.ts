@@ -1,6 +1,6 @@
-import type { TypeCategory } from '../typeCategory.js'
+import type { CustomType } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
-import { __isDecimalCategory } from '../typeCategory.js'
+import { __isExactDecimal } from '../dataTypes.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
@@ -10,8 +10,8 @@ import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
  * takes. A value beyond the widest decimal of the database (38 digits) is rejected: the cast would fail, and no
  * column can hold it. Call it before adding the parameter at that index.
  */
-export function sqlServerPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, typeCategory: TypeCategory): string {
-    if (!__isDecimalCategory(typeCategory)) {
+export function sqlServerPlaceholder(placeholder: string, params: any[], index: number, value: unknown, type: string, customType: CustomType | undefined): string {
+    if (!__isExactDecimal(type, customType)) {
         return placeholder
     }
     const digits = customDecimalDigitsOf(value)

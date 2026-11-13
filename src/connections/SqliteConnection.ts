@@ -14,7 +14,7 @@ import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, Aggr
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __conversionType } from '../utils/typeCategory.js'
+import { __isLocalDate, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
@@ -156,395 +156,394 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        const conversionType = __conversionType(context.requestedType, context.requestedCustomType)
+        const customType = context.requestedCustomType
         if (value === undefined || value == null) {
             return super.transformValueFromDB(value, context)
         }
-        switch (conversionType) {
-            case 'localDate': {
-                if (typeof value === 'string') {
-                    const valueAsNumber = +value
-                    if (!isNaN(valueAsNumber)) {
-                        value = valueAsNumber
-                    }
+        if (__isLocalDate(context.requestedType, customType)) {
+            if (typeof value === 'string') {
+                const valueAsNumber = +value
+                if (!isNaN(valueAsNumber)) {
+                    value = valueAsNumber
                 }
-                const dateTimeFormat = this.getDateTimeFormat('date')
-                let result: Date
-                if (value instanceof Date) {
-                    result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
-                } else if (typeof value === 'string') {
-                    if (isDateTimeTextOutOfCalendar(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (out of the calendar)`)
-                    }
-                    if (containsTimezone(value)) {
-                        result = utcDateOnly(new Date(value))
-                    } else switch (dateTimeFormat) {
-                        case 'localdate seconds as text':
-                        case 'localdate milliseconds as text':
-                        case 'localdate seconds as text using T separator':
-                        case 'localdate milliseconds as text using T separator':
+            }
+            const dateTimeFormat = this.getDateTimeFormat('date')
+            let result: Date
+            if (value instanceof Date) {
+                result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
+            } else if (typeof value === 'string') {
+                if (isDateTimeTextOutOfCalendar(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (out of the calendar)`)
+                }
+                if (containsTimezone(value)) {
+                    result = utcDateOnly(new Date(value))
+                } else switch (dateTimeFormat) {
+                    case 'localdate seconds as text':
+                    case 'localdate milliseconds as text':
+                    case 'localdate seconds as text using T separator':
+                    case 'localdate milliseconds as text using T separator':
+                        if (value.length <= 10) {
+                            result = new Date(value + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
+                        } else {
+                            result = new Date(value)
+                        }
+                        result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
+                        break
+                    case 'Julian day as real number':
+                    case 'Unix time seconds as integer':
+                    case 'Unix time milliseconds as integer':
+                        if (!this.treatUnexpectedStringDateTimeAsUTC) {
                             if (value.length <= 10) {
                                 result = new Date(value + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
                             } else {
                                 result = new Date(value)
                             }
                             result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
-                            break
-                        case 'Julian day as real number':
-                        case 'Unix time seconds as integer':
-                        case 'Unix time milliseconds as integer':
-                            if (!this.treatUnexpectedStringDateTimeAsUTC) {
-                                if (value.length <= 10) {
-                                    result = new Date(value + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
-                                } else {
-                                    result = new Date(value)
-                                }
-                                result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
-                            } else {
-                                result = utcDateOnly(new Date(value + 'Z'))
-                            }
-                            break
-                        case 'UTC seconds as text':
-                        case 'UTC milliseconds as text':
-                        case 'UTC seconds as text using T separator':
-                        case 'UTC milliseconds as text using T separator':
-                        case 'UTC seconds as text using Z timezone':
-                        case 'UTC milliseconds as text using Z timezone':
-                        case 'UTC seconds as text using T separator and Z timezone':
-                        case 'UTC milliseconds as text using T separator and Z timezone':
+                        } else {
                             result = utcDateOnly(new Date(value + 'Z'))
-                            break
-                        default:
-                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
-                    }
-                } else if (typeof value === 'number' || typeof value === 'bigint') {
-                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+                        }
+                        break
+                    case 'UTC seconds as text':
+                    case 'UTC milliseconds as text':
+                    case 'UTC seconds as text using T separator':
+                    case 'UTC milliseconds as text using T separator':
+                    case 'UTC seconds as text using Z timezone':
+                    case 'UTC milliseconds as text using Z timezone':
+                    case 'UTC seconds as text using T separator and Z timezone':
+                    case 'UTC milliseconds as text using T separator and Z timezone':
+                        result = utcDateOnly(new Date(value + 'Z'))
+                        break
+                    default:
+                        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
+                }
+            } else if (typeof value === 'number' || typeof value === 'bigint') {
+                let number: number = (typeof value === 'bigint') ? Number(value) : value;
 
-                    if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
-                    } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(number * 1000)
-                    } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
+                if (dateTimeFormat === 'Julian day as real number') {
+                    result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
+                } else if (dateTimeFormat === 'Unix time seconds as integer') {
+                    result = new Date(number * 1000)
+                } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
+                    result = new Date(number)
+                } else {
+                    // Try to automatically detect if it is a julian or a unix time
+                    // If it have decimal, it will be considered julian, otherwise unix time
+                    if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
+                        result = new Date(julianToMilliseconds(number))
+                    } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
                         result = new Date(number)
                     } else {
-                        // Try to automatically detect if it is a julian or a unix time
-                        // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            result = new Date(julianToMilliseconds(number))
-                        } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(number)
-                        } else {
-                            result = new Date(number * 1000)
-                        }
+                        result = new Date(number * 1000)
                     }
-                    result.setUTCHours(0, 0, 0, 0)
-                } else {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (type ${typeof value})`)
                 }
-                if (isNaN(result.getTime())) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
-                }
-                (result as any).___type___ = 'localDate'
-                // date-stability offset (see the note on AbstractConnection's 'localDate' decode)
-                result.setUTCMinutes(600)
-                return result
+                result.setUTCHours(0, 0, 0, 0)
+            } else {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (type ${typeof value})`)
             }
-            case 'localTime': {
-                if (typeof value === 'string') {
-                    const valueAsNumber = +value
-                    if (!isNaN(valueAsNumber)) {
-                        value = valueAsNumber
-                    }
+            if (isNaN(result.getTime())) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
+            }
+            (result as any).___type___ = 'localDate'
+            // date-stability offset (see the note on AbstractConnection's 'localDate' decode)
+            result.setUTCMinutes(600)
+            return result
+        }
+        if (__isLocalTime(context.requestedType, customType)) {
+            if (typeof value === 'string') {
+                const valueAsNumber = +value
+                if (!isNaN(valueAsNumber)) {
+                    value = valueAsNumber
                 }
-                const dateTimeFormat = this.getDateTimeFormat('time')
-                let result: Date
-                if (value instanceof Date) {
-                    result = new Date(value.getTime())
-                } else if (typeof value === 'string') {
-                    if (isDateTimeTextOutOfCalendar(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (out of the calendar)`)
+            }
+            const dateTimeFormat = this.getDateTimeFormat('time')
+            let result: Date
+            if (value instanceof Date) {
+                result = new Date(value.getTime())
+            } else if (typeof value === 'string') {
+                if (isDateTimeTextOutOfCalendar(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (out of the calendar)`)
+                }
+                if (containsTimezone(value)) {
+                    if (containsDate(value)) {
+                        result = new Date(value)
+                    } else {
+                        result = new Date('1970-01-01 ' + value)
                     }
-                    if (containsTimezone(value)) {
+                } else switch (dateTimeFormat) {
+                    case 'localdate seconds as text':
+                    case 'localdate milliseconds as text':
+                    case 'localdate seconds as text using T separator':
+                    case 'localdate milliseconds as text using T separator':
                         if (containsDate(value)) {
                             result = new Date(value)
                         } else {
                             result = new Date('1970-01-01 ' + value)
                         }
-                    } else switch (dateTimeFormat) {
-                        case 'localdate seconds as text':
-                        case 'localdate milliseconds as text':
-                        case 'localdate seconds as text using T separator':
-                        case 'localdate milliseconds as text using T separator':
-                            if (containsDate(value)) {
-                                result = new Date(value)
-                            } else {
-                                result = new Date('1970-01-01 ' + value)
-                            }
-                            break
-                        case 'Julian day as real number':
-                        case 'Unix time seconds as integer':
-                        case 'Unix time milliseconds as integer':
-                            if (containsDate(value)) {
-                                if (this.treatUnexpectedStringDateTimeAsUTC) {
-                                    result = new Date(value + 'Z')
-                                } else {
-                                    result = new Date(value)
-                                }
-                            } else {
-                                if (this.treatUnexpectedStringDateTimeAsUTC) {
-                                    result = new Date('1970-01-01 ' + value + 'Z')
-                                } else {
-                                    result = new Date('1970-01-01 ' + value)
-                                }
-                            }
-                            break
-                        case 'UTC seconds as text':
-                        case 'UTC milliseconds as text':
-                        case 'UTC seconds as text using T separator':
-                        case 'UTC milliseconds as text using T separator':
-                        case 'UTC seconds as text using Z timezone':
-                        case 'UTC milliseconds as text using Z timezone':
-                        case 'UTC seconds as text using T separator and Z timezone':
-                        case 'UTC milliseconds as text using T separator and Z timezone':
-                            if (containsDate(value)) {
-                                result = new Date(value + 'Z')
-                            } else {
-                                result = new Date('1970-01-01 ' + value + 'Z')
-                            }
-                            break
-                        default:
-                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
-                    }
-                } else if (typeof value === 'number' || typeof value === 'bigint') {
-                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
-
-                    if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
-                    } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(number * 1000)
-                    } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
-                        result = new Date(number)
-                    } else {
-                        // Try to automatically detect if it is a julian or a unix time
-                        // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
-                            if (number >= -1 && number <= 1) {
-                                result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
-                            } else {
-                                result = new Date(julianToMilliseconds(number))
-                            }
-                        } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(number)
-                        } else {
-                            result = new Date(number * 1000)
-                        }
-                    }
-                } else {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (type ${typeof value})`)
-                }
-                if (isNaN(result.getTime())) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (.getTime() returns NaN)`)
-                }
-                (result as any).___type___ = 'localTime'
-                result.setFullYear(1970, 0, 1)
-                return result
-            }
-            case 'localDateTime': {
-                if (typeof value === 'string') {
-                    const valueAsNumber = +value
-                    if (!isNaN(valueAsNumber)) {
-                        value = valueAsNumber
-                    }
-                }
-                const dateTimeFormat = this.getDateTimeFormat('dateTime')
-                let result: Date
-                if (value instanceof Date) {
-                    result = value
-                } else if (typeof value === 'string') {
-                    if (isDateTimeTextOutOfCalendar(value)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (out of the calendar)`)
-                    }
-                    if (containsTimezone(value)) {
-                        result = new Date(value)
-                    } else switch (dateTimeFormat) {
-                        case 'localdate seconds as text':
-                        case 'localdate milliseconds as text':
-                        case 'localdate seconds as text using T separator':
-                        case 'localdate milliseconds as text using T separator':
-                            result = new Date(value)
-                            break
-                        case 'Julian day as real number':
-                        case 'Unix time seconds as integer':
-                        case 'Unix time milliseconds as integer':
+                        break
+                    case 'Julian day as real number':
+                    case 'Unix time seconds as integer':
+                    case 'Unix time milliseconds as integer':
+                        if (containsDate(value)) {
                             if (this.treatUnexpectedStringDateTimeAsUTC) {
                                 result = new Date(value + 'Z')
                             } else {
                                 result = new Date(value)
                             }
-                            break
-                        case 'UTC seconds as text':
-                        case 'UTC milliseconds as text':
-                        case 'UTC seconds as text using T separator':
-                        case 'UTC milliseconds as text using T separator':
-                        case 'UTC seconds as text using Z timezone':
-                        case 'UTC milliseconds as text using Z timezone':
-                        case 'UTC seconds as text using T separator and Z timezone':
-                        case 'UTC milliseconds as text using T separator and Z timezone':
+                        } else {
+                            if (this.treatUnexpectedStringDateTimeAsUTC) {
+                                result = new Date('1970-01-01 ' + value + 'Z')
+                            } else {
+                                result = new Date('1970-01-01 ' + value)
+                            }
+                        }
+                        break
+                    case 'UTC seconds as text':
+                    case 'UTC milliseconds as text':
+                    case 'UTC seconds as text using T separator':
+                    case 'UTC milliseconds as text using T separator':
+                    case 'UTC seconds as text using Z timezone':
+                    case 'UTC milliseconds as text using Z timezone':
+                    case 'UTC seconds as text using T separator and Z timezone':
+                    case 'UTC milliseconds as text using T separator and Z timezone':
+                        if (containsDate(value)) {
                             result = new Date(value + 'Z')
-                            break
-                        default:
-                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
-                    }
-                } else if (typeof value === 'number' || typeof value === 'bigint') {
-                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+                        } else {
+                            result = new Date('1970-01-01 ' + value + 'Z')
+                        }
+                        break
+                    default:
+                        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
+                }
+            } else if (typeof value === 'number' || typeof value === 'bigint') {
+                let number: number = (typeof value === 'bigint') ? Number(value) : value;
 
-                    if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
-                    } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(number * 1000)
-                    } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
+                if (dateTimeFormat === 'Julian day as real number') {
+                    result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
+                } else if (dateTimeFormat === 'Unix time seconds as integer') {
+                    result = new Date(number * 1000)
+                } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
+                    result = new Date(number)
+                } else {
+                    // Try to automatically detect if it is a julian or a unix time
+                    // If it have decimal, it will be considered julian, otherwise unix time
+                    if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+                        if (number >= -1 && number <= 1) {
+                            result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
+                        } else {
+                            result = new Date(julianToMilliseconds(number))
+                        }
+                    } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
                         result = new Date(number)
                     } else {
-                        // Try to automatically detect if it is a julian or a unix time
-                        // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            result = new Date(julianToMilliseconds(number))
-                        } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(number)
-                        } else {
-                            result = new Date(number * 1000)
-                        }
+                        result = new Date(number * 1000)
                     }
-                } else {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (type ${typeof value})`)
                 }
-                if (isNaN(result.getTime())) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
-                }
-                (result as any).___type___ = 'localDateTime'
-                return result
+            } else {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (type ${typeof value})`)
             }
+            if (isNaN(result.getTime())) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (.getTime() returns NaN)`)
+            }
+            (result as any).___type___ = 'localTime'
+            result.setFullYear(1970, 0, 1)
+            return result
+        }
+        if (__isLocalDateTime(context.requestedType, customType)) {
+            if (typeof value === 'string') {
+                const valueAsNumber = +value
+                if (!isNaN(valueAsNumber)) {
+                    value = valueAsNumber
+                }
+            }
+            const dateTimeFormat = this.getDateTimeFormat('dateTime')
+            let result: Date
+            if (value instanceof Date) {
+                result = value
+            } else if (typeof value === 'string') {
+                if (isDateTimeTextOutOfCalendar(value)) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (out of the calendar)`)
+                }
+                if (containsTimezone(value)) {
+                    result = new Date(value)
+                } else switch (dateTimeFormat) {
+                    case 'localdate seconds as text':
+                    case 'localdate milliseconds as text':
+                    case 'localdate seconds as text using T separator':
+                    case 'localdate milliseconds as text using T separator':
+                        result = new Date(value)
+                        break
+                    case 'Julian day as real number':
+                    case 'Unix time seconds as integer':
+                    case 'Unix time milliseconds as integer':
+                        if (this.treatUnexpectedStringDateTimeAsUTC) {
+                            result = new Date(value + 'Z')
+                        } else {
+                            result = new Date(value)
+                        }
+                        break
+                    case 'UTC seconds as text':
+                    case 'UTC milliseconds as text':
+                    case 'UTC seconds as text using T separator':
+                    case 'UTC milliseconds as text using T separator':
+                    case 'UTC seconds as text using Z timezone':
+                    case 'UTC milliseconds as text using Z timezone':
+                    case 'UTC seconds as text using T separator and Z timezone':
+                    case 'UTC milliseconds as text using T separator and Z timezone':
+                        result = new Date(value + 'Z')
+                        break
+                    default:
+                        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
+                }
+            } else if (typeof value === 'number' || typeof value === 'bigint') {
+                let number: number = (typeof value === 'bigint') ? Number(value) : value;
+
+                if (dateTimeFormat === 'Julian day as real number') {
+                    result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
+                } else if (dateTimeFormat === 'Unix time seconds as integer') {
+                    result = new Date(number * 1000)
+                } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
+                    result = new Date(number)
+                } else {
+                    // Try to automatically detect if it is a julian or a unix time
+                    // If it have decimal, it will be considered julian, otherwise unix time
+                    if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
+                        result = new Date(julianToMilliseconds(number))
+                    } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
+                        result = new Date(number)
+                    } else {
+                        result = new Date(number * 1000)
+                    }
+                }
+            } else {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (type ${typeof value})`)
+            }
+            if (isNaN(result.getTime())) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
+            }
+            (result as any).___type___ = 'localDateTime'
+            return result
         }
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const conversionType = __conversionType(context.requestedType, context.requestedCustomType)
+        const customType = context.requestedCustomType
         if (value === undefined || value == null) {
             return super.transformValueToDB(value, context)
         }
-        switch (conversionType) {
-            case 'localDate':
-                if (value instanceof Date && !isNaN(value.getTime())) {
-                    const dateTimeFormat = this.getDateTimeFormat('date')
-                    switch (dateTimeFormat) {
-                        case 'localdate seconds as text':
-                        case 'localdate milliseconds as text':
-                        case 'localdate seconds as text using T separator':
-                        case 'localdate milliseconds as text using T separator':
-                        case 'UTC seconds as text':
-                        case 'UTC milliseconds as text':
-                        case 'UTC seconds as text using T separator':
-                        case 'UTC milliseconds as text using T separator':
-                        case 'UTC seconds as text using Z timezone':
-                        case 'UTC milliseconds as text using Z timezone':
-                        case 'UTC seconds as text using T separator and Z timezone':
-                        case 'UTC milliseconds as text using T separator and Z timezone':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
-                        case 'Julian day as real number':
-                            return millisecondsToJulian(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
-                        case 'Unix time seconds as integer':
-                            return Math.trunc(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) / 1000)
-                        case 'Unix time milliseconds as integer':
-                            return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())
-                        default:
-                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
-                    }
+        if (__isLocalDate(context.requestedType, customType)) {
+            if (value instanceof Date && !isNaN(value.getTime())) {
+                const dateTimeFormat = this.getDateTimeFormat('date')
+                switch (dateTimeFormat) {
+                    case 'localdate seconds as text':
+                    case 'localdate milliseconds as text':
+                    case 'localdate seconds as text using T separator':
+                    case 'localdate milliseconds as text using T separator':
+                    case 'UTC seconds as text':
+                    case 'UTC milliseconds as text':
+                    case 'UTC seconds as text using T separator':
+                    case 'UTC milliseconds as text using T separator':
+                    case 'UTC seconds as text using Z timezone':
+                    case 'UTC milliseconds as text using Z timezone':
+                    case 'UTC seconds as text using T separator and Z timezone':
+                    case 'UTC milliseconds as text using T separator and Z timezone':
+                        return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
+                    case 'Julian day as real number':
+                        return millisecondsToJulian(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
+                    case 'Unix time seconds as integer':
+                        return Math.trunc(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) / 1000)
+                    case 'Unix time milliseconds as integer':
+                        return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())
+                    default:
+                        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                 }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
-            case 'localTime':
-                if (value instanceof Date && !isNaN(value.getTime())) {
-                    const dateTimeFormat = this.getDateTimeFormat('time')
-                    switch (dateTimeFormat) {
-                        case 'localdate seconds as text':
-                        case 'localdate seconds as text using T separator':
-                            return doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds())
-                        case 'localdate milliseconds as text':
-                        case 'localdate milliseconds as text using T separator':
-                            return doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + '.' + tripleDigit(value.getMilliseconds())
-                        case 'UTC seconds as text':
-                        case 'UTC seconds as text using T separator':
-                            return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds())
-                        case 'UTC milliseconds as text':
-                        case 'UTC milliseconds as text using T separator':
-                            return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds())
-                        case 'UTC seconds as text using Z timezone':
-                        case 'UTC seconds as text using T separator and Z timezone':
-                            return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + 'Z'
-                        case 'UTC milliseconds as text using Z timezone':
-                        case 'UTC milliseconds as text using T separator and Z timezone':
-                            return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds()) + 'Z'
-                        case 'Julian day as real number':
-                            return millisecondsToJulian(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds())) - 2440587.5 /* 1970-01-01 */
-                        case 'Unix time seconds as integer':
-                            return Math.trunc(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds()) / 1000)
-                        case 'Unix time milliseconds as integer':
-                            return Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds())
-                        default:
-                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
-                    }
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
+        }
+        if (__isLocalTime(context.requestedType, customType)) {
+            if (value instanceof Date && !isNaN(value.getTime())) {
+                const dateTimeFormat = this.getDateTimeFormat('time')
+                switch (dateTimeFormat) {
+                    case 'localdate seconds as text':
+                    case 'localdate seconds as text using T separator':
+                        return doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds())
+                    case 'localdate milliseconds as text':
+                    case 'localdate milliseconds as text using T separator':
+                        return doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + '.' + tripleDigit(value.getMilliseconds())
+                    case 'UTC seconds as text':
+                    case 'UTC seconds as text using T separator':
+                        return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds())
+                    case 'UTC milliseconds as text':
+                    case 'UTC milliseconds as text using T separator':
+                        return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds())
+                    case 'UTC seconds as text using Z timezone':
+                    case 'UTC seconds as text using T separator and Z timezone':
+                        return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + 'Z'
+                    case 'UTC milliseconds as text using Z timezone':
+                    case 'UTC milliseconds as text using T separator and Z timezone':
+                        return doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds()) + 'Z'
+                    case 'Julian day as real number':
+                        return millisecondsToJulian(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds())) - 2440587.5 /* 1970-01-01 */
+                    case 'Unix time seconds as integer':
+                        return Math.trunc(Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds()) / 1000)
+                    case 'Unix time milliseconds as integer':
+                        return Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds())
+                    default:
+                        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                 }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
-            case 'localDateTime':
-                if (value instanceof Date && !isNaN(value.getTime())) {
-                    const dateTimeFormat = this.getDateTimeFormat('dateTime')
-                    switch (dateTimeFormat) {
-                        case 'localdate seconds as text':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
-                                + ' ' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds())
-                        case 'localdate milliseconds as text':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
-                                + ' ' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + '.' + tripleDigit(value.getMilliseconds())
-                        case 'localdate seconds as text using T separator':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
-                                + 'T' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds())
-                        case 'localdate milliseconds as text using T separator':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
-                                + 'T' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + '.' + tripleDigit(value.getMilliseconds())
-                        case 'UTC seconds as text':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds())
-                        case 'UTC milliseconds as text':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds())
-                        case 'UTC seconds as text using Z timezone':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + 'Z'
-                        case 'UTC milliseconds as text using Z timezone':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds()) + 'Z'
-                        case 'UTC seconds as text using T separator':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds())
-                        case 'UTC milliseconds as text using T separator':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds())
-                        case 'UTC seconds as text using T separator and Z timezone':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + 'Z'
-                        case 'UTC milliseconds as text using T separator and Z timezone':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
-                                + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds()) + 'Z'
-                        case 'Julian day as real number':
-                            return millisecondsToJulian(value.getTime())
-                        case 'Unix time seconds as integer':
-                            return Math.trunc(value.getTime() / 1000)
-                        case 'Unix time milliseconds as integer':
-                            return value.getTime()
-                        default:
-                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
-                    }
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
+        }
+        if (__isLocalDateTime(context.requestedType, customType)) {
+            if (value instanceof Date && !isNaN(value.getTime())) {
+                const dateTimeFormat = this.getDateTimeFormat('dateTime')
+                switch (dateTimeFormat) {
+                    case 'localdate seconds as text':
+                        return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
+                            + ' ' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds())
+                    case 'localdate milliseconds as text':
+                        return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
+                            + ' ' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + '.' + tripleDigit(value.getMilliseconds())
+                    case 'localdate seconds as text using T separator':
+                        return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
+                            + 'T' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds())
+                    case 'localdate milliseconds as text using T separator':
+                        return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
+                            + 'T' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + '.' + tripleDigit(value.getMilliseconds())
+                    case 'UTC seconds as text':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds())
+                    case 'UTC milliseconds as text':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds())
+                    case 'UTC seconds as text using Z timezone':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + 'Z'
+                    case 'UTC milliseconds as text using Z timezone':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds()) + 'Z'
+                    case 'UTC seconds as text using T separator':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds())
+                    case 'UTC milliseconds as text using T separator':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds())
+                    case 'UTC seconds as text using T separator and Z timezone':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + 'Z'
+                    case 'UTC milliseconds as text using T separator and Z timezone':
+                        return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
+                            + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + '.' + tripleDigit(value.getUTCMilliseconds()) + 'Z'
+                    case 'Julian day as real number':
+                        return millisecondsToJulian(value.getTime())
+                    case 'Unix time seconds as integer':
+                        return Math.trunc(value.getTime() / 1000)
+                    case 'Unix time milliseconds as integer':
+                        return value.getTime()
+                    default:
+                        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                 }
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
         }
         return super.transformValueToDB(value, context)
     }

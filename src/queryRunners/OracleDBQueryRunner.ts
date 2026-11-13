@@ -7,7 +7,8 @@ import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { __isDecimalCategory, __typeCategory, type TypeCategory } from '../utils/typeCategory.js'
+import type { CustomType } from '../TypeAdapter.js'
+import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
@@ -104,8 +105,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         let names: Set<string> | undefined
         if (columns) {
             for (const column of columns) {
-                const category = __typeCategory(column.requestedType, column.requestedCustomType)
-                if (!__isDecimalCategory(category) && category !== 'bigint' && category !== 'customBigint') {
+                if (!__isExactDecimal(column.requestedType, column.requestedCustomType) && !__isBigint(column.requestedType, column.requestedCustomType)) {
                     continue
                 }
                 if (column.name) {
@@ -151,8 +151,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         })
     }
     /**
-     * A procedure is called in PL/SQL, which has a BOOLEAN type on every version of Oracle: a parameter of the boolean
-     * category, that OracleConnection hands as 1 or 0, is bound as a BOOLEAN (a NUMBER is refused for a BOOLEAN
+     * A procedure is called in PL/SQL, which has a BOOLEAN type on every version of Oracle: a boolean parameter,
+     * that OracleConnection hands as 1 or 0, is bound as a BOOLEAN (a NUMBER is refused for a BOOLEAN
      * parameter with PLS-00306).
      */
     override executeProcedure(query: string, params: any[] = []): Promise<void> {
@@ -178,16 +178,17 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         const processInUtc = isProcessInUtc()
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
-            const typeName = existingParamContextOf(params, i)?.sentType
+            const param = existingParamContextOf(params, i)
+            const typeName = param?.requestedType
+            const customType = param?.requestedCustomType
             const declaredBind = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
             const declared = isOracleDBBindType(declaredBind) ? declaredBind.type : declaredBind
             if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
-                // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam)
-                const category = existingParamContextOf(params, i)?.sentTypeCategory
+                // Each RETURNING OUT bind keeps the type of its column (addOutParam)
                 // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
                 // timestamp column with the zone of the session (the zone of the database, see oracleSessionTimeZone), and oracledb
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
-                const dbType = declared ?? (isTemporalCategory(category) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(category, nativeBoolean))
+                const dbType = declared ?? (isTemporal(typeName, customType) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(typeName, customType, nativeBoolean))
                 // A text, or a value received as one, is returned in a buffer of maxSize bytes
                 const maxSize = (isOracleDBBindType(declaredBind) ? declaredBind.maxSize : undefined) ?? this.config?.returningMaxSize ?? defaultReturningMaxSize
                 if (dbType === undefined || (dbType === oracleDb.DB_TYPE_NUMBER && declared === undefined)) {
@@ -204,7 +205,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 result[i] = { val: value, type: declared }
                 continue
             }
-            if ((procedure || nativeBoolean) && existingParamContextOf(params, i)?.sentTypeCategory === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
+            if ((procedure || nativeBoolean) && __isBoolean(typeName, customType) && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
                 result[i] = { val: value === null || value === undefined ? null : !!value, type: oracleDb.DB_TYPE_BOOLEAN }
                 continue
             }
@@ -216,7 +217,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 continue
             }
             // A localDate is bound as a date, a localTime or a localDateTime as a timestamp, with their UTC digits
-            const temporal = oracleTemporalBind(value, typeName, existingParamContextOf(params, i)?.sentTypeCategory, processInUtc, existingParamContextOf(params, i)?.getMetadata(oracleDateParam) === true)
+            const temporal = oracleTemporalBind(value, typeName, customType, processInUtc, param?.getMetadata(oracleDateParam) === true)
             if (temporal) {
                 result[i] = { val: temporal.val, type: temporal.type === 'date' ? oracleDb.DB_TYPE_DATE : oracleDb.DB_TYPE_TIMESTAMP }
                 continue
@@ -225,7 +226,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // oracledb binds a null without a type Oracle can use where nothing else gives it one: a row of a
                 // union (ORA-01790) or a `case :0 when 1` (ORA-00932). A null of a number, a date or a time is bound
                 // with its type: a DATE for a parameter of a DATE column (oracleDateParam).
-                const type = existingParamContextOf(params, i)?.getMetadata(oracleDateParam) === true ? oracleDb.DB_TYPE_DATE : this.oracleDbType(existingParamContextOf(params, i)?.sentTypeCategory, nativeBoolean)
+                const type = param?.getMetadata(oracleDateParam) === true ? oracleDb.DB_TYPE_DATE : this.oracleDbType(typeName, customType, nativeBoolean)
                 if (type !== undefined) {
                     result[i] = { val: null, type: type }
                     continue
@@ -235,33 +236,21 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         return result
     }
-    // The oracledb DbType of a value of each category, the one oracledb gives the values the library sends: a number
+    // The oracledb DbType of a value of each type, the one oracledb gives the values the library sends: a number
     // or a bigint is a NUMBER, a boolean is sent as a number (see OracleConnection), and a Date is a TIMESTAMP, also
     // for a localDate and a localTime (Oracle has no TIME type). A text has no DbType here: it's how oracledb binds a
     // null.
-    private oracleDbType(typeCategory: TypeCategory | undefined, nativeBoolean: boolean): DbType | undefined {
-        switch (typeCategory) {
-            case 'boolean':
-                return nativeBoolean ? oracleDb.DB_TYPE_BOOLEAN : oracleDb.DB_TYPE_NUMBER
-            case 'int':
-            case 'bigint':
-            case 'customInt':
-            case 'customBigint':
-            case 'double':
-            case 'customDouble':
-            case 'stringDecimal':
-            case 'customDecimal':
-                return oracleDb.DB_TYPE_NUMBER
-            case 'localDate':
-            case 'customLocalDate':
-            case 'localTime':
-            case 'customLocalTime':
-            case 'localDateTime':
-            case 'customLocalDateTime':
-                return oracleDb.DB_TYPE_TIMESTAMP
-            default:
-                return undefined
+    private oracleDbType(type: string | undefined, customType: CustomType | undefined, nativeBoolean: boolean): DbType | undefined {
+        if (__isBoolean(type, customType)) {
+            return nativeBoolean ? oracleDb.DB_TYPE_BOOLEAN : oracleDb.DB_TYPE_NUMBER
         }
+        if (__isInt(type, customType) || __isBigint(type, customType) || __isDouble(type, customType) || __isExactDecimal(type, customType)) {
+            return oracleDb.DB_TYPE_NUMBER
+        }
+        if (isTemporal(type, customType)) {
+            return oracleDb.DB_TYPE_TIMESTAMP
+        }
+        return undefined
     }
     /**
      * Oracle always runs statements inside a transaction, and oracledb doesn't commit it unless asked (its autoCommit
@@ -414,18 +403,9 @@ function isLob(value: unknown): value is { getData(): Promise<unknown> } {
     return typeof value === 'object' && value !== null && typeof (value as { getData?: unknown }).getData === 'function'
 }
 
-function isTemporalCategory(category: TypeCategory | undefined): boolean {
-    switch (category) {
-        case 'localDate':
-        case 'customLocalDate':
-        case 'localTime':
-        case 'customLocalTime':
-        case 'localDateTime':
-        case 'customLocalDateTime':
-            return true
-        default:
-            return false
-    }
+/** Whether the value is a localDate, a localTime or a localDateTime (or one of their custom types) */
+function isTemporal(type: string | undefined, customType: CustomType | undefined): boolean {
+    return __isLocalDate(type, customType) || __isLocalTime(type, customType) || __isLocalDateTime(type, customType)
 }
 
 /**

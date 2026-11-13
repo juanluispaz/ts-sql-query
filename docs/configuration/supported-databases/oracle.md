@@ -166,41 +166,41 @@ The column is a `customComparable` of `string`: it can be compared and ordered, 
 
 <!-- doc-code-snippet-template: oracle -->
 ```ts
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeCategory } from "ts-sql-query"
+import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query"
 
 // A date and time with the zone it was written with, as text, like '2024-07-01T10:30:15.123456000+09:00'
 type ZonedDateTime = string
 
 class ZonedDateTimeTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        if (type === 'ZonedDateTime') {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        if (context.requestedType === 'ZonedDateTime') {
             return value // the text, or null
         }
-        return next.transformValueFromDB(value, type, typeCategory, context)
+        return next.transformValueFromDB(value, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        if (type === 'ZonedDateTime') {
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        if (context.requestedType === 'ZonedDateTime') {
             return value
         }
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     }
 
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        if (type === 'ZonedDateTime') {
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
+        if (context.requestedType === 'ZonedDateTime') {
             return "to_timestamp_tz(" + placeholder + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF TZR')"
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        return next.transformPlaceholder(placeholder, context)
     }
 
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        if (type === 'ZonedDateTime') {
+    transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        if (context.requestedType === 'ZonedDateTime') {
             context.comparison = 'none'
         }
-        if (type === 'ZonedDateTime' && (output === 'resultColumn' || output === 'aggregatedArrayValue')) {
+        if (context.requestedType === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
             return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM')"
         }
-        return next.transformProjection(sql, type, typeCategory, output, context)
+        return next.transformProjection(sql, context)
     }
 }
 

@@ -23,6 +23,7 @@ You can use another way of encrypting: what the library needs is a custom data t
 Create a custom data type and define its conversion, using a type adapter or extending the default type adapter. Here the connection defines the rules for a type called `encryptedID`:
 
 ```typescriptreact
+import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query";
 import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 import { IDEncrypter } from "ts-sql-query/IDEncrypter";
 
@@ -31,9 +32,11 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // Two strings of 16 chars of [A-Za-z0-9] that work as passwords
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
-        if (type === 'encryptedID') {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint');
+    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        if (context.requestedType === 'encryptedID') {
+            // The database gives a bigint
+            context.setRequestedType('bigint');
+            const id = super.transformValueFromDB(value, context);
             if (typeof id === 'bigint') {
                 return this.encrypter.encrypt(id);
             } else {
@@ -41,23 +44,26 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
                 return id;
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory);
+        return super.transformValueFromDB(value, context);
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
-        if (type === 'encryptedID') {
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        if (context.requestedType === 'encryptedID') {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
                 return null;
             } else if (typeof value === 'string') {
                 const id = this.encrypter.decrypt(value);
-                return super.transformValueToDB(id, 'bigint', 'bigint');
+                // Sent to the database as a bigint
+                context.setRequestedType('bigint');
+                return super.transformValueToDB(id, context);
             } else {
                 throw new Error('Invalid id: ' + value);
             }
         }
-        return super.transformValueToDB(value, type, typeCategory);
+        return super.transformValueToDB(value, context);
     }
 }
+
 ```
 
 In the table, the id is a `custom` or `customComparable` column with the type name `encryptedID`, and `string`, the type of the encrypted text, as its TypeScript type:
@@ -119,6 +125,7 @@ In the previous example, the id 1 of a company and the id 1 of a customer have t
 Here the name of the custom data type follows the pattern `ID_<prefix>`, and the connection takes the prefix from it:
 
 ```typescriptreact
+import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query";
 import { PostgreSqlConnection } from "ts-sql-query/postgresql";
 import { IDEncrypter } from "ts-sql-query/IDEncrypter";
 
@@ -127,35 +134,40 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // Two strings of 16 chars of [A-Za-z0-9] that work as passwords
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
-        if (type.startsWith('ID_')) {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint');
+    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        if (context.requestedType.startsWith('ID_')) {
+            const prefix = context.requestedType.substring(3) // 'ID_'.length
+            // The database gives a bigint
+            context.setRequestedType('bigint');
+            const id = super.transformValueFromDB(value, context);
             if (typeof id === 'bigint') {
-                const prefix = type.substring(3) // 'ID_'.length
                 return this.encrypter.encrypt(id, prefix);
             } else {
                 // return the value as is, it could be null
                 return id;
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory);
+        return super.transformValueFromDB(value, context);
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
-        if (type.startsWith('ID_')) {
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        if (context.requestedType.startsWith('ID_')) {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
                 return null;
             } else if (typeof value === 'string') {
-                const prefix = type.substring(3) // 'ID_'.length
+                const prefix = context.requestedType.substring(3) // 'ID_'.length
                 const id = this.encrypter.decrypt(value, prefix);
-                return super.transformValueToDB(id, 'bigint', 'bigint');
+                // Sent to the database as a bigint
+                context.setRequestedType('bigint');
+                return super.transformValueToDB(id, context);
             } else {
                 throw new Error('Invalid id: ' + value);
             }
         }
-        return super.transformValueToDB(value, type, typeCategory);
+        return super.transformValueToDB(value, context);
     }
 }
+
 ```
 
 In the table, the id is a `custom` or `customComparable` column whose type name is `ID_` followed by the prefix, and `string` as its TypeScript type:

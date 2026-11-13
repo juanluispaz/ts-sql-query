@@ -88,16 +88,16 @@ Choose by the values your code handles, not only by the type of the column in th
 | A time with no date, like an opening time | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
 | A date with time, like the moment something happened | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
 | One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
-| A value your code gives a type of its own, like an id with a TypeScript brand | The `custom...` type with the operations it needs | It's converted as the type of its [category](#custom-types), like a `customInt` as an `int`. |
+| A value your code gives a type of its own, like an id with a TypeScript brand | The `custom...` type with the operations it needs | It's converted as the built-in type its [custom type](#custom-types) is based on, like a `customInt` as an `int`. |
 | A value that only your code understands, like a JSON document | `custom`, or `customComparable` if the database can order it | With the [conversion registered](#custom-types). |
 
 On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#working-with-date-and-time), the default, a `localTime` and a `localDateTime` hold the stored text in their local getters instead: see [Time zones](time-zones.md#the-rule-every-value-in-the-database-is-in-utc).
 
 ## Custom types
 
-A custom type (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first word of the type is its category: it says which operations the column offers in a query, and how its values are converted.
+A custom type (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first argument of the column is which custom type it is, a `CustomType`: it says which operations the column offers in a query, and how its values are converted.
 
-| Category | Its values are converted as |
+| Custom type | Its values are converted as |
 |---|---|
 | `customInt` | `int` |
 | `customBigint` | `bigint` |
@@ -119,32 +119,32 @@ costCents = this.column<Cents, 'Cents'>('cost_cents', 'customInt', 'Cents')
 
 !!! important
 
-    Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of its category, like a `customDouble` kept as text. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
+    Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on, like a `customDouble` kept as text. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The best place to register it is the connection, so it applies everywhere that type is used. These are the methods to implement, and all of them receive the name of the type and its category:
+The best place to register it is the connection, so it applies everywhere that type is used. These are the methods to implement. Each one receives what it converts and a context with the type of the value: its original type, the one declared, and the type requested for it, by default the original one, by which the conversion decides (see [The original and the requested type](../api/type-adapters.md#the-original-and-the-requested-type)):
 
 - `transformValueFromDB`: converts a value that comes from the database.
 - `transformValueToDB`: converts a value that is sent to the database.
 - `transformPlaceholder`, optional: changes how the parameter is written in the SQL, like wrapping it in a function.
 
-The SQL type a parameter is sent with comes from [its category](#how-a-value-is-sent-to-the-database); the `typesByName` option of the query runner gives a type of your own another one.
+The SQL type a parameter is sent with comes from [the type requested for it](#how-a-value-is-sent-to-the-database), by default its own; the `typesByName` option of the query runner gives a type of your own another one.
 
 For example, a `customDouble` kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is. A [`customDecimal`](#exact-decimals) does this without a conversion of your own:
 
 ```ts
-import type { TypeCategory } from "ts-sql-query"
+import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext) {
-        if (type === 'ExactDecimal' && value !== null && value !== undefined) {
+    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext) {
+        if (context.requestedType === 'ExactDecimal' && value !== null && value !== undefined) {
             return String(value);
         }
-        return super.transformValueFromDB(value, type, typeCategory, context);
+        return super.transformValueFromDB(value, context);
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext) {
-        if (type === 'ExactDecimal') {
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext) {
+        if (context.requestedType === 'ExactDecimal') {
             return value;
         }
-        return super.transformValueToDB(value, type, typeCategory, context);
+        return super.transformValueToDB(value, context);
     }
 }
 ```
@@ -326,9 +326,9 @@ SQLite has no exact decimal type, and a column declared `decimal` turns the text
 
 ## How a value is sent to the database
 
-Each parameter of a query goes with the name of its type and its category, and the category decides which SQL type it has in the databases where the library declares one:
+Each parameter of a query goes with its type, the one requested for it: by default the type of its column or value, or the one a type adapter requests with `setRequestedType`, like a `string` for a date sent as its text. That type decides which SQL type the parameter has in the databases where the library declares one:
 
-| Category | PostgreSQL type, where the query needs one | SQL Server parameter type |
+| Type | PostgreSQL type, where the query needs one | SQL Server parameter type |
 |---|---|---|
 | `boolean` | `bool` | `bit` |
 | `int`, `customInt` | `int4` | `int` |
@@ -342,11 +342,11 @@ Each parameter of a query goes with the name of its type and its category, and t
 | `localDateTime`, `customLocalDateTime` | `timestamp` | `datetime2` |
 | `enum`, `custom`, `customComparable` | By the value: `int4` or `int8` for a whole number, `float8` for one with decimals, `int8` for a `bigint`, and none otherwise | By the value, and a text always as `nvarchar` |
 
-PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these categories is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
+PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these types is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
 
-So the category also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal is a [`customDecimal`](#exact-decimals).
+So the type also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal is a [`customDecimal`](#exact-decimals).
 
-The `typesByName` option of the query runners of PostgreSQL, SQL Server and Oracle sends the parameters of a type name with the type you declare instead; each query runner's page has its shape.
+The `typesByName` option of the query runners of PostgreSQL, SQL Server and Oracle sends the parameters of a type name, the name of the type requested for them, with the type you declare instead; each query runner's page has its shape.
 
 ## Type adapters
 
@@ -355,7 +355,7 @@ A type adapter controls how the value of one column is sent to the database and 
 For example, to store an RGB colour as three bytes in the database and handle it in your application as an object with the properties `r`, `g` and `b`:
 
 ```ts
-import { type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from "ts-sql-query"
+import { type DefaultTypeAdapter, type TypeAdapter, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext } from "ts-sql-query"
 
 interface RgbColor {r: number, g: number, b: number}
 
@@ -367,33 +367,33 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class RgbColorTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        if (type === 'RgbColor' && value) {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        if (context.requestedType === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return {r: value[0], g: value[1], b: value[2]};
             }
             throw new Error(`Cannot decode database value ${value} (type ${typeof value}) as RgbColor`);
         }
-        return next.transformValueFromDB(value, type, typeCategory, context);
+        return next.transformValueFromDB(value, context);
     }
 
-    transformValueToDB(value: RgbColor, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        if (type === 'RgbColor' && value) {
+    transformValueToDB(value: RgbColor, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        if (context.requestedType === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
             throw new Error(`Cannot encode value ${value} for database`);
         }
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     }
 
     // Optional
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
         // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
-        if (type === 'RgbColor') {
+        if (context.requestedType === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        return next.transformPlaceholder(placeholder, context)
     }
 }
 ```
@@ -421,37 +421,38 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor', new RgbCol
 
 `transformValueFromDB` receives the value as the driver gives it. When the database must give the value in another form, for example as a text the driver doesn't change, `transformProjection` writes the SQL of the value as it leaves the database, and `transformValueFromDB` reads what arrives. It's the pair of `transformPlaceholder`, which writes the SQL of a value sent to the database.
 
-It receives the SQL of the value as the library writes it, the name of the type, its category and where the value leaves: `'resultColumn'`, a column of the result of the query, also of the `returning` of an insert, an update or a delete, or `'aggregatedArrayValue'`, a value inside the JSON of an aggregated array (see [Inside the JSON of an aggregated array](#inside-the-json-of-an-aggregated-array)). It returns the SQL to write there. `next.transformProjection(...)` writes the conversion of the library: SQL Server writes a decimal of a column of the result as its text, `convert(nvarchar(41), ...)`, so the driver doesn't round it; on the other databases, and for the other types, it returns the SQL it receives.
+It receives the SQL of the value as the library writes it, and its context has the type of the value and where the value leaves, its `output`: `'resultColumn'`, a column of the result of the query, also of the `returning` of an insert, an update or a delete, or `'aggregatedArrayValue'`, a value inside the JSON of an aggregated array (see [Inside the JSON of an aggregated array](#inside-the-json-of-an-aggregated-array)). It returns the SQL to write there. `next.transformProjection(...)` writes the conversion of the library: SQL Server writes a decimal of a column of the result as its text, `convert(nvarchar(41), ...)`, so the driver doesn't round it; on the other databases, and for the other types, it returns the SQL it receives.
 
 For example, on PostgreSQL, an adapter that has the database give a day as the text `DD/MM/YYYY` and reads that text as the day:
 
 ```ts
-import { type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeCategory } from "ts-sql-query"
+import { type DefaultTypeAdapter, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from "ts-sql-query"
 
 class DayAsTextTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
-            // The text DD/MM/YYYY, read as the day YYYY-MM-DD
-            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory, context)
+            // The text DD/MM/YYYY, read as the day YYYY-MM-DD: next converts it as the original type
+            context.resetRequestedType()
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], context)
         }
-        return next.transformValueFromDB(value, type, typeCategory, context)
+        return next.transformValueFromDB(value, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory, context)
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, context)
     }
 
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         // In a column of the result and inside the JSON of an aggregated array
-        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+        if (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue') {
             // DD/MM/YYYY compares as the day, but doesn't order as it
             context.comparison = 'equality'
             // The value the database gives is a text
-            context.setProjectedType('string', 'string')
+            context.setRequestedType('string')
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
-        return next.transformProjection(sql, type, typeCategory, output, context)
+        return next.transformProjection(sql, context)
     }
 }
 
@@ -567,7 +568,7 @@ const companies: Promise<{
 
     - `transformProjection` only writes SQL: it can't add parameters.
     - When it doesn't convert the value, return what `next.transformProjection(...)` returns. The library calls it with an empty `sql` to know whether a column is converted, so it must return an empty text when it doesn't convert.
-    - When the converted SQL gives a value of another type than the column, like the text of a date, say it with `context.setProjectedType(type, typeCategory)`: the query runner receives it in the context of the query (`projectedType`), and on Oracle the `returning` of the column is received in an out parameter of that type, of the type of the column otherwise.
+    - When the converted SQL gives a value of another type than the column, like the text of a date, request it with `context.setRequestedType(...)`, like `setRequestedType('string')`: the query runner receives it in the context of the query (`requestedType`), and on Oracle the `returning` of the column is received in an out parameter of that type, of the type of the column otherwise. `transformValueFromDB` receives the value with that requested type; when it gives `next` a value of the original type, like the day read from the text, it requests the original type again with `context.resetRequestedType()`.
     - On MariaDB, the distinct of `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` is always inside the aggregate: MariaDB doesn't see a column of the outer query in a derived table, so a correlated select can't be written over the distinct values.
     - On MariaDB, a converted old value of an update (`oldValues()`) is inside the SQL of the conversion, and MariaDB 13.0.2 returns the new value there ([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126)); see [Update returning old values](../queries/update.md#update-returning-old-values).
 
@@ -576,7 +577,7 @@ const companies: Promise<{
 When the same conversion applies to every column of a type, write it in the connection object, so it isn't repeated in each column definition:
 
 ```ts
-import type { TypeCategory } from "ts-sql-query"
+import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeAdapterPlaceholderContext } from "ts-sql-query"
 interface RgbColor {r: number, g: number, b: number}
 
 function isRgbColor(value: any): value is RgbColor {
@@ -587,30 +588,30 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext) {
-        if (type === 'RgbColor' && value) {
+    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext) {
+        if (context.requestedType === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return { r: value[0], g: value[1], b: value[2] };
             }
             throw new Error(`Cannot decode database value ${value} (type ${typeof value}) as RgbColor`);
         }
-        return super.transformValueFromDB(value, type, typeCategory, context);
+        return super.transformValueFromDB(value, context);
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext) {
-        if (type === 'RgbColor' && value) {
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext) {
+        if (context.requestedType === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
             throw new Error(`Cannot encode value ${value} for database`);
         }
-        return super.transformValueToDB(value, type, typeCategory, context);
+        return super.transformValueToDB(value, context);
     }   
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext): string {
+    protected override transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string {
         // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
-        if (type === 'RgbColor') {
+        if (context.requestedType === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        return super.transformPlaceholder(placeholder, context)
     }
 }
 ```
@@ -624,15 +625,16 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 The connection's `transformProjection` is overridden the same way, and says how its SQL compares in the same context. It's the `next` of the type adapters, so it converts every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` for the values it doesn't convert:
 
 ```ts
-import type { ProjectionOutput, TypeAdapterProjectionContext, TypeCategory } from "ts-sql-query"
+import type { TypeAdapterProjectionContext } from "ts-sql-query"
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string {
-        if (type === 'Birthday' && output === 'resultColumn') {
+    protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
+        if (context.requestedType === 'Birthday' && context.output === 'resultColumn') {
             context.comparison = 'equality'
+            context.setRequestedType('string')
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
-        return super.transformProjection(sql, type, typeCategory, output, context)
+        return super.transformProjection(sql, context)
     }
 }
 ```

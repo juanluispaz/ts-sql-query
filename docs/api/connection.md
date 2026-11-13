@@ -385,17 +385,18 @@ interface Connection {
      */
     compatibilityVersion: number
 
-    /** Protected method that transforms the values received from the database */
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown
+    /** Protected method that transforms the values received from the database, as the type requested for them in the context */
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown
     /**
-     * Protected method that transforms the values sent to the database. In the context, forceTypeCast says whether the
+     * Protected method that transforms the values sent to the database, as the type requested for them in the context
+     * (requestedType, by default the original one, originalType). In the context, forceTypeCast says whether the
      * database must receive the type of the parameter (true where the position in the SQL gives it no type; the query
      * runner then writes a cast or sends the parameter with its type, PostgreSQL only), and setMetadata keeps what the
      * query runner reads of the parameter
      */
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown
     /** Protected method that customizes the value placeholder in the query */
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext): string
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string
     /**
      * Protected method that writes the SQL of a value as it leaves the database, in a column of the result. By default,
      * the conversion of the library: SQL Server writes a decimal as its text (saying 'columnEquality' in the context),
@@ -404,7 +405,7 @@ interface Connection {
      * default, it compares and orders like the value), 'equality' (it compares like the value but orders otherwise),
      * 'columnEquality' (as 'equality', only among the values of one column) or 'none'
      */
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string
+    transformProjection(sql: string, context: TypeAdapterProjectionContext): string
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean

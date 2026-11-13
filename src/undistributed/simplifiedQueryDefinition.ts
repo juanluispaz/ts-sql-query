@@ -954,18 +954,14 @@ interface Connection {
      */
     compatibilityVersion: number
 
-    /** Protected method that transforms the values received from the database */
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    /** Protected method that transforms the values sent to the database */
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
+    /** Protected method that transforms the values received from the database, as the type requested for them */
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown
+    /** Protected method that transforms the values sent to the database, as the type requested for them */
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown
     /** Protected method that customizes the value placeholder in the query */
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
-    /** Protected method that decides whether the database must receive the type of the parameter */
-    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string
     /** Protected method that writes the SQL of a value as it leaves the database, in a column of the result */
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
-    /** Protected method that says how the SQL of transformProjection compares with the value */
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
+    transformProjection(sql: string, context: TypeAdapterProjectionContext): string
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean
@@ -2747,37 +2743,69 @@ type CompoundableSubquery = SelectExpression
 
 
 
-type TypeCategory = 'boolean'
-    | 'int' | 'bigint' | 'customInt' | 'customBigint'
-    | 'double' | 'customDouble' | 'customDecimal'
-    | 'string'
-    | 'uuid' | 'customUuid'
-    | 'localDate' | 'customLocalDate'
-    | 'localTime' | 'customLocalTime'
-    | 'localDateTime' | 'customLocalDateTime'
+type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal'
+    | 'customUuid'
+    | 'customLocalDate' | 'customLocalTime' | 'customLocalDateTime'
     | 'enum' | 'custom' | 'customComparable'
-    | ''
+
+type BuiltInType = 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'
 
 interface TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
-    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
-    forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
-    transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
-    projectionComparison?(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
+    transformPlaceholder?(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
+    transformProjection?(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
 }
 
 type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
 
 type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
+/** The original type of a value never changes; the requested one, by default the original, is the one the next adapter and the library decide by */
+interface TypeAdapterContext {
+    readonly connectionConfiguration: ConnectionConfiguration
+    readonly originalType: string
+    readonly originalCustomType: CustomType | undefined
+    readonly requestedType: string
+    readonly requestedCustomType: CustomType | undefined
+}
+
+interface TypeAdapterValueToDBContext extends TypeAdapterContext {
+    setRequestedType(type: BuiltInType): void
+    setRequestedType(customType: CustomType, type: string): void
+    resetRequestedType(): void
+    forceTypeCast: boolean
+    setMetadata(key: symbol, value: unknown): void
+    getMetadata(key: symbol): unknown
+}
+
+interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
+    readonly index: number | undefined
+    readonly valueSentToDB: unknown
+    readonly forceTypeCast: boolean
+    setMetadata(key: symbol, value: unknown): void
+    getMetadata(key: symbol): unknown
+}
+
+interface TypeAdapterProjectionContext extends TypeAdapterContext {
+    setRequestedType(type: BuiltInType): void
+    setRequestedType(customType: CustomType, type: string): void
+    resetRequestedType(): void
+    readonly output: ProjectionOutput
+    comparison: ProjectionComparison
+}
+
+interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
+    setRequestedType(type: BuiltInType): void
+    setRequestedType(customType: CustomType, type: string): void
+    resetRequestedType(): void
+}
+
 interface DefaultTypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
-    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string
+    transformProjection(sql: string, context: TypeAdapterProjectionContext): string
 }
 
 declare class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -2788,25 +2816,19 @@ declare class CustomBooleanTypeAdapter implements TypeAdapter {
     constructor(trueValue: string, falseValue: string)
     // CustomBooleanTypeAdapter's constructor implementation ...
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
     // CustomBooleanTypeAdapter's transformValueFromDB implementation ...
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
     // CustomBooleanTypeAdapter's transformValueToDB implementation ...
 }
 
 declare class ForceTypeCast implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
     // ForceTypeCast's transformValueFromDB implementation ...
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
     // ForceTypeCast's transformValueToDB implementation ...
-
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
-    // ForceTypeCast's transformPlaceholder implementation ...
-
-    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
-    // ForceTypeCast's forceTypeCast implementation ...
 }
 
 // END
@@ -2824,6 +2846,7 @@ type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>
 type TransactionIsolationLevel = any
+type ConnectionConfiguration = any
 
 void function (_c: Connection, _v: Values, _config: MariaDBConnectionConfiguration | MySqlConnectionConfiguration | OracleConnectionConfiguration | PostgreSqlConnectionConfiguration | SqliteConnectionConfiguration | SqlServerConnectionConfiguration) { return null}
 interface ValueSource<T, TYPE_NAME extends string> {

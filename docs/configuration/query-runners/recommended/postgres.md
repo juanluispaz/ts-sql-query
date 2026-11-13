@@ -102,7 +102,7 @@ async function main() {
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with the type of [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`.
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with [the type requested for it](../../column-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`.
 
 The second argument of `PostgresQueryRunner`, optional, is an object of type `PostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/postgres`, with one option, `typesByName`. It maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the type every parameter of that name is sent with, wherever it is written: the oid of a PostgreSQL type, like `1700` for `numeric`, or a function that gives the parameter, like `value => sql.typed.money(value)` for a type declared in the `types` option of postgres.js.
 

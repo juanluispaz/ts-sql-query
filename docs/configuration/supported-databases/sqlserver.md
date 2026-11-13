@@ -151,41 +151,41 @@ The column is a `customComparable` of `string`: it can be compared and ordered, 
 
 <!-- doc-code-snippet-template: sqlserver -->
 ```ts
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeCategory } from "ts-sql-query"
+import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query"
 
 // A date and time with the offset it was written with, as text, like '2024-07-01T10:30:15.1234567+09:00'
 type ZonedDateTime = string
 
 class ZonedDateTimeTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        if (type === 'ZonedDateTime') {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        if (context.requestedType === 'ZonedDateTime') {
             return value // the text, or null
         }
-        return next.transformValueFromDB(value, type, typeCategory, context)
+        return next.transformValueFromDB(value, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        if (type === 'ZonedDateTime') {
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        if (context.requestedType === 'ZonedDateTime') {
             return value
         }
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     }
 
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        if (type === 'ZonedDateTime') {
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
+        if (context.requestedType === 'ZonedDateTime') {
             return 'cast(' + placeholder + ' as datetimeoffset)'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        return next.transformPlaceholder(placeholder, context)
     }
 
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        if (type === 'ZonedDateTime') {
+    transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        if (context.requestedType === 'ZonedDateTime') {
             context.comparison = 'none'
         }
-        if (type === 'ZonedDateTime' && (output === 'resultColumn' || output === 'aggregatedArrayValue')) {
+        if (context.requestedType === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
             return 'convert(nvarchar(40), ' + sql + ', 126)'
         }
-        return next.transformProjection(sql, type, typeCategory, output, context)
+        return next.transformProjection(sql, context)
     }
 }
 

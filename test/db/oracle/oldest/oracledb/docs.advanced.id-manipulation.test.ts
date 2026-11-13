@@ -19,7 +19,7 @@ class EncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        if (context.originalType === 'encryptedID') {
+        if (context.requestedType === 'encryptedID') {
             context.setRequestedType('bigint')
             const id = super.transformValueFromDB(value, context)
             if (typeof id === 'bigint') {
@@ -31,7 +31,7 @@ class EncryptedIdConnection extends DBConnection {
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if (context.originalType === 'encryptedID') {
+        if (context.requestedType === 'encryptedID') {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
@@ -63,11 +63,11 @@ class GloballyEncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        if (context.originalType.startsWith('ID_')) {
+        if (context.requestedType.startsWith('ID_')) {
+            const prefix = context.requestedType.substring(3)
             context.setRequestedType('bigint')
             const id = super.transformValueFromDB(value, context)
             if (typeof id === 'bigint') {
-                const prefix = context.originalType.substring(3)
                 return this.encrypter.encrypt(id, prefix)
             } else {
                 return id
@@ -76,11 +76,11 @@ class GloballyEncryptedIdConnection extends DBConnection {
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if (context.originalType.startsWith('ID_')) {
+        if (context.requestedType.startsWith('ID_')) {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
-                const prefix = context.originalType.substring(3)
+                const prefix = context.requestedType.substring(3)
                 const id = this.encrypter.decrypt(value, prefix)
                 context.setRequestedType('bigint')
                 return super.transformValueToDB(id, context)

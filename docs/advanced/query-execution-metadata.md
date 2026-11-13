@@ -351,8 +351,9 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 
 | Property | What it is |
 |---|---|
-| `type` | The name of its type, like `'int'` or the one of a custom type |
-| `typeCategory` | The category of that type, the first argument of the column, like `'customInt'` |
+| `originalType` | The name of its original type, the one declared in the library, like `'int'` or the one of a custom type |
+| `originalCustomType` | Which custom type the original type is, the first argument of the column, like `'customInt'`; `undefined` for a built-in type |
+| `requestedType`, `requestedCustomType` | The type the parameter is sent with: the original one, unless the `transformValueToDB` of its type adapter or of the connection requested another with `setRequestedType`, like `'string'` for a date sent as its text (see [The original and the requested type](../api/type-adapters.md#the-original-and-the-requested-type)) |
 | `forceTypeCast` | Whether the database must receive its type, because the position where it's written gives it none: the query runners of PostgreSQL then write a cast or send the parameter with its type |
 | `isValueForColumn` | Whether it's the value given to a column of a table, in the values of an insert or in the set of an update, where the column gives it its type |
 | `getMetadata(key)` | What a type adapter kept for the parameter under that `symbol`, or `undefined` |
@@ -360,18 +361,20 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 ```ts
 import { InterceptorQueryRunner } from "ts-sql-query";
 import type { QueryType } from "ts-sql-query";
-import type { TypeCategory } from "ts-sql-query"
+import type { CustomType } from "ts-sql-query"
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
         const context = this.getQueryContext(query, params)
         for (let index = 0; index < params.length; index++) {
             const param = context.getParam(index)
-            const type: string | undefined = param?.type
-            const typeCategory: TypeCategory | undefined = param?.typeCategory
+            const originalType: string | undefined = param?.originalType
+            const originalCustomType: CustomType | undefined = param?.originalCustomType
+            const requestedType: string | undefined = param?.requestedType
+            const requestedCustomType: CustomType | undefined = param?.requestedCustomType
             const forceTypeCast: boolean | undefined = param?.forceTypeCast
             const isValueForColumn: boolean | undefined = param?.isValueForColumn
-            console.log('parameter', index, params[index], type, typeCategory, forceTypeCast, isValueForColumn)
+            console.log('parameter', index, params[index], originalType, originalCustomType, requestedType, requestedCustomType, forceTypeCast, isValueForColumn)
         }
         // Additional information
         console.log('query type', queryType)
@@ -385,13 +388,13 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 }
 ```
 
-In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7, 10 ]`, the first parameter is `'int'`, `'int'` and `true`: a constant selected on its own. The second is `'int'`, `'int'` and `false`: compared with the column `id`, it takes its type from it.
+In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7, 10 ]`, the first parameter is an `'int'`, original and requested, with `forceTypeCast` `true`: a constant selected on its own. The second is an `'int'` too, with `forceTypeCast` `false`: compared with the column `id`, it takes its type from it.
 
 `isValueForColumn` is `true` for both parameters of `insert into customer (first_name, company_id) values ($1, $2)`, and `false` in a `where`, or anywhere else. The query runners of MariaDB, MySQL and SQL Server use it to leave a `stringDecimal` or a `customDecimal` without the cast they write elsewhere.
 
 `getMetadata(key)` reads what a type adapter kept for the parameter with `context.setMetadata(key, value)`, in its `transformValueToDB` (see [Type adapters API](../api/type-adapters.md)), under the `symbol` the adapter defines. The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
 
-The library keeps all of this before it asks the query runner to add the parameter, so a query runner of your own has it without doing anything: its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params` and returns the placeholder as it is written in the SQL, with the cast if it writes one, and `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes them on to it.
+The library keeps all of this before it asks the query runner to add the parameter, so a query runner of your own has it without doing anything: its `addParam(params, value)` adds the value to `params` and returns the placeholder as it is written in the SQL, with the cast of the requested type if it writes one, reading the parameter in the context of the query at the index the value takes, and `addOutParam(params, name)` does the same for an out parameter. A query runner that wraps another passes them on to it.
 
 ## Get the type of each column of the result
 
@@ -401,9 +404,9 @@ The context of each query the library builds also has the columns of its result,
 |---|---|
 | `name` | The key of the column in a row returned by the database. `''` when the SQL gives the column no alias: the count query of a select page, the id returned by `returningLastInsertedId`, the value of a function |
 | `path` | The property of the result object it fills, like `'customer.name'` for a nested object, `'result'` for a query that selects one column, `''` without one |
-| `type` | The name of the type its value is converted with, like `'int'` or the one of a custom type |
-| `typeCategory` | The category of that type, like `'customInt'`; `''` for an aggregated array, whose JSON text the library converts value by value |
-| `projectedType`, `projectedTypeCategory` | The type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection says with `setProjectedType`, like `'string'` for the text of a date (see [Type adapters API](../api/type-adapters.md)); otherwise `type` and `typeCategory` |
+| `originalType` | The name of the original type of its value, the one declared in the library, like `'int'` or the one of a custom type; `'aggregatedArray'` for an aggregated array, whose JSON text the library converts value by value |
+| `originalCustomType` | Which custom type the original type is, like `'customInt'`; `undefined` for a built-in type and an aggregated array |
+| `requestedType`, `requestedCustomType` | The type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection requests with `setRequestedType`, like `'string'` for the text of a date (see [The original and the requested type](../api/type-adapters.md#the-original-and-the-requested-type)); otherwise the original one |
 
 The array is empty for a query that returns no columns: an insert, update or delete without returning, a procedure, and the statements of a transaction. `resultColumns` is `undefined` for a statement you run through the query runner yourself. `getResultColumn(name)` finds one column by its `name`.
 
@@ -415,7 +418,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
         const columns: readonly QueryResultColumn[] | undefined = this.getQueryContext(query, params).resultColumns
         for (const column of columns ?? []) {
-            console.log('result column', column.name, column.path, column.type, column.typeCategory)
+            console.log('result column', column.name, column.path, column.originalType, column.originalCustomType, column.requestedType, column.requestedCustomType)
         }
         // Additional information
         console.log('query type', queryType)

@@ -193,7 +193,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 
 ### Type adapters and the transforms of the connection
 
-`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive the category of the type, the first argument of the column like `'customInt'`, after the name of the type, and a context: in a type adapter before `next`, in the connection at the end. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: add the parameters and pass them on to `next` or `super`. When your rule changes the type, pass the category of the new one:
+`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive what they transform and a context: in a type adapter before `next`, `transformValueToDB(value, context, next)`, and in the connection at the end, `transformValueToDB(value, context)`. The type of the value is no longer an argument: it is in the context, as the original type, declared in the library, which never changes (`originalType`, `originalCustomType`), and the type requested for the value (`requestedType`, `requestedCustomType`), by default the original one, by which the next type adapter and the conversion of the library decide. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: read the type from the context and pass the context on to `next` or `super`. When your rule changes the type, request the new one with `setRequestedType` before calling `next` or `super`: in `transformValueToDB` it is also the type the parameter is sent with (see [The original and the requested type](../../api/type-adapters.md#the-original-and-the-requested-type)):
 
 In v1:
 
@@ -209,20 +209,21 @@ protected override transformValueToDB(value: unknown, type: string): unknown {
 In v2:
 
 ```ts
-import type { TypeCategory } from "ts-sql-query"
+import type { TypeAdapterValueToDBContext } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
-        if (type === 'MyIntTypeName') {
-            return super.transformValueToDB(value, 'int', 'int', context);
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        if (context.originalType === 'MyIntTypeName') {
+            context.setRequestedType('int')
+            return super.transformValueToDB(value, context);
         }
-        return super.transformValueToDB(value, type, typeCategory, context);
+        return super.transformValueToDB(value, context);
     }
 }
 ```
 
-`transformPlaceholder` no longer receives `forceTypeCast`: it is `transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)` in the connection, with the context and `next` at the end in a type adapter, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
+`transformPlaceholder` no longer receives `forceTypeCast` nor the value sent: it is `transformPlaceholder(placeholder, context)` in the connection, with `next` at the end in a type adapter, the value sent is `context.valueSentToDB`, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
 
-A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `TypeCategory` is exported from `ts-sql-query`.
+A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `CustomType`, which custom type a type is, is exported from `ts-sql-query`.
 
 ### Your own query runner, and the connection of the driver
 
@@ -231,7 +232,7 @@ A rule like this one, that only sends a `customInt` to `int`, is no longer neede
 - `executeInTransaction(fn, ...)` no longer accepts a function returning an array, and `executeBeginTransaction`, `executeCommit`, `executeRollback` and `executeInTransaction` receive an optional `opts` at the end.
 - To log or intercept queries, prefer [`InterceptorQueryRunner`](../../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
 - `MockQueryRunner` no longer calls your function with `'isTransactionActive'`. A branch for that value doesn't compile: remove it.
-- `addParam(params, value, type, typeCategory, forceTypeCast)` and `addOutParam(params, name, type, typeCategory, forceTypeCast)` receive the name of the type, its category and whether the database must receive the type of the parameter, and return the placeholder as it is written in the SQL. A query runner that forwards them to another doesn't compile until it passes them on, and neither does code that calls them to build its own SQL. The library keeps them in the context of the query before it calls `addParam`, so a query runner that adds the value has nothing to keep (see [Get the type of each parameter](../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)).
+- `addParam(params, value)` and `addOutParam(params, name)` keep their parameters and return the placeholder as it is written in the SQL. Before it calls them, the library keeps in the context of the query what it knows of the parameter: the type it is sent with, the one requested for it, and whether the database must receive that type, so a query runner of your own reads it there (see [Get the type of each parameter](../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)).
 - `getQueryExecutionName`, `getQueryExecutionMetadata`, `getQueryExecutionStack`, `getFunctionExecutingQuery` and `isSelectPageCountQuery` keep working from `ts-sql-query/queryRunners/QueryRunner`, marked deprecated. Read them from the context of the query instead, with `this.getQueryContext(query, params)` in a query runner, or `getQueryContext(query, params)` from `ts-sql-query`: `executionName`, `executionMetadata`, `executionStack`, `functionExecutingQuery` and `isSelectPageCount` (see [The context of a query](../../advanced/query-execution-metadata.md)).
 
 ## What changes silently at runtime

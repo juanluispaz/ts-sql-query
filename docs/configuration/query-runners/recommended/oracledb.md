@@ -274,4 +274,4 @@ async function main(pool: oracledb.Pool) {
 
 ## Procedures with a boolean parameter
 
-`executeProcedure` calls the procedure in PL/SQL, which has a `BOOLEAN` type on every version of Oracle: a parameter of the `boolean` category is bound as a `BOOLEAN`. A procedure parameter of type `NUMBER` takes an `int`.
+`executeProcedure` calls the procedure in PL/SQL, which has a `BOOLEAN` type on every version of Oracle: a parameter of the type `boolean` is bound as a `BOOLEAN`. A procedure parameter of type `NUMBER` takes an `int`.

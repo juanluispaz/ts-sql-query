@@ -104,7 +104,7 @@ async function main(mssqlPool: mssql.ConnectionPool) {
 
 ## The type of the parameters
 
-Each parameter is sent with the SQL Server type of [the category of its type](../../column-types.md#how-a-value-is-sent-to-the-database), like `int` or `nvarchar`. The second argument of both query runners, optional, is an object with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the mssql type every parameter of that name is sent with. The value is a type of `TYPES`, like `TYPES.NVarChar`, or one with its arguments, like `TYPES.Decimal(18, 4)`. Its types are `MssqlPoolPromiseQueryRunnerConfig` and `MssqlPoolQueryRunnerConfig`, exported from the module of each query runner.
+Each parameter is sent with the SQL Server type of [the type requested for it](../../column-types.md#how-a-value-is-sent-to-the-database), like `int` or `nvarchar`. The second argument of both query runners, optional, is an object with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the mssql type every parameter of that name is sent with. The value is a type of `TYPES`, like `TYPES.NVarChar`, or one with its arguments, like `TYPES.Decimal(18, 4)`. Its types are `MssqlPoolPromiseQueryRunnerConfig` and `MssqlPoolQueryRunnerConfig`, exported from the module of each query runner.
 
 ```ts
 import mssql from 'mssql'

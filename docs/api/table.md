@@ -6,6 +6,8 @@ search:
 
 This API defines the structure of database tables within `ts-sql-query`. It provides methods to declare columns of different types, including nullable and non-nullable fields, columns with default values, primary keys (auto-generated or not), computed columns, and virtual columns based on SQL fragments. These definitions are used internally by queries to ensure type safety and to generate valid SQL statements.
 
+To learn how to declare a table and its columns, see [Mapping](../configuration/mapping.md); to choose the type of each column, [Data types](../configuration/data-types.md); and to convert the values of a column in your own way, [Type adapters](../configuration/type-adapters.md).
+
 ```typescript
 interface Table {
     /** Defines an alias for the table to be used in select queries */

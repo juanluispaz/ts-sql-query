@@ -201,7 +201,7 @@ A typed fragment is a value like any other: you can select it, compare it and ca
 
 ### The type you declare
 
-`fragmentWithType(type, 'required' | 'optional', adapter?)` takes the same [data types as a column](../configuration/column-types.md). For a custom type or an enum, it also takes a name and the TypeScript type, as a column does:
+`fragmentWithType(type, 'required' | 'optional', adapter?)` takes the same [data types as a column](../configuration/data-types.md). For a custom type or an enum, it also takes a name and the TypeScript type, as a column does:
 
 ```ts
 const customersWithAgeGroup = connection.selectFrom(tCustomer)

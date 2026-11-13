@@ -109,7 +109,7 @@ A statement that fails leaves a PostgreSQL transaction failed, even if its error
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../column-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The second argument of `BunSqlPostgresQueryRunner`, optional, is an object of type `BunSqlPostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/bun-sql`, with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The second argument of `BunSqlPostgresQueryRunner`, optional, is an object of type `BunSqlPostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/bun-sql`, with one option, `typesByName`: it maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
 
 ```ts
 import { SQL } from "bun";

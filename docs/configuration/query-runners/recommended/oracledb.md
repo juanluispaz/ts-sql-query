@@ -207,7 +207,7 @@ The `NLS_COMP` / `NLS_SORT` pair is the [session collation](../../collations.md#
 
 ## Large integers
 
-There is nothing to configure: a `bigint`, a `customBigint`, a [`stringDecimal` or a `customDecimal`](../../column-types.md#exact-decimals) keeps all its digits, whatever the global settings of oracledb. A column read as an `int` arrives as a JavaScript `number`, and a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
+There is nothing to configure: a `bigint`, a `customBigint`, a [`stringDecimal` or a `customDecimal`](../../data-types.md#exact-decimals) keeps all its digits, whatever the global settings of oracledb. A column read as an `int` arrives as a JavaScript `number`, and a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
 
 ## Inside a transaction something else manages
 

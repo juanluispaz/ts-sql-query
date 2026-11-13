@@ -6,6 +6,8 @@ search:
 
 This API defines how to construct SQL `SELECT` statements using a fluent interface in `ts-sql-query`. It supports filtering, ordering, pagination, grouping, and joining tables. It also provides support for compound and recursive queries, as well as integration with advanced features like [Oracle](../configuration/supported-databases/oracle.md)'s `CONNECT BY` or database-specific query customizations.
 
+To learn how to write a select, see [Select](../queries/select.md), and for its parts, [Compound select](../queries/compound-select.md), [Aggregate functions, group by and having](../queries/aggregate-and-group-by.md), [Select page](../queries/select-page.md), [Recursive select](../queries/recursive-select.md), [Complex projections](../queries/complex-projections.md) and [Dynamic queries](../queries/dynamic-queries.md).
+
 The select query definition must follow the logical order or the alternative order:
 
 - **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery

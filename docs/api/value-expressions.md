@@ -6,6 +6,8 @@ search:
 
 This page describes the API surface for all value expressions used in `ts-sql-query`. These expressions represent values from the database (such as strings, numbers, dates, booleans, etc.) and support fluent methods for comparisons, operations, transformations, and conditional expressions. The TypeScript methods map closely to SQL semantics while maintaining static typing and composability in code.
 
+To learn how values are used in a query, see [Basic query structure](../queries/basic-query-structure.md); for the types of the values, [Data types](../configuration/data-types.md); and for the conditions that depend on a value, [Dynamic queries](../queries/dynamic-queries.md).
+
 All values managed by the database are represented as a subclass of `ValueSource`, almost all methods listed here support the TypeScript value and the database value (as overload).
 
 Methods ending in `IfValue` behave like their counterparts without `IfValue`, but only apply the logic if the provided value is not `undefined`, `null`, an empty string (unless `allowEmptyString` is enabled in the connection), or an empty array. Otherwise, the condition is ignored. See [What counts as no value](../queries/dynamic-queries.md#what-counts-as-no-value).

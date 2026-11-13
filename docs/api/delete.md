@@ -6,6 +6,8 @@ search:
 
 This API provides methods to construct and execute SQL `DELETE` statements using a fluent interface in `ts-sql-query`. It allows for conditional deletion, joining with other tables, and optionally returning deleted data.
 
+To learn how to write a delete, see [Delete](../queries/delete.md).
+
 ```typescript
 interface DeleteExpression {
     /** Creates the where dynamically */

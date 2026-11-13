@@ -1331,11 +1331,11 @@ The values travel as JSON, which has no dates or big integers, so the library co
 | `localDate`, `localTime`, `localDateTime` | `Date` |
 | `uuid` | `string`, also in the databases where it's stored in binary: the query converts it to text |
 
-A number arrives as its text, so that no precision is lost, and it's the type of the column that converts it. A custom type is converted as the built-in type it is [based on](../configuration/column-types.md#custom-types), like a `customInt` as an `int`; an `enum`, a `custom` or a `customComparable` needs its conversion registered, and without it a number arrives in the array as text.
+A number arrives as its text, so that no precision is lost, and it's the type of the column that converts it. A custom type is converted as the built-in type it is [based on](../configuration/data-types.md#custom-types), like a `customInt` as an `int`; an `enum`, a `custom` or a `customComparable` needs its conversion registered, and without it a number arrives in the array as text.
 
 An `int` above `Number.MAX_SAFE_INTEGER` raises the `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` error instead of returning a wrong value. Use `bigint` for those columns.
 
-A [type adapter](../configuration/column-types.md) runs for each value of the array. It receives the value as it's in the JSON, which is not always what the driver gives for a plain column: a column stored as binary, for example, doesn't arrive as bytes. Take it into account if you use that column in an array.
+A [type adapter](../configuration/data-types.md) runs for each value of the array. It receives the value as it's in the JSON, which is not always what the driver gives for a plain column: a column stored as binary, for example, doesn't arrive as bytes. Take it into account if you use that column in an array.
 
 ## Availability in each database
 

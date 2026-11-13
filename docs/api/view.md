@@ -6,6 +6,8 @@ search:
 
 This API defines the structure of database views within `ts-sql-query`. It provides methods to declare the columns exposed by the view, including their types and nullability. Although views are read-only and do not support insertions or updates, their column definitions are used internally by queries to ensure type safety and to generate valid SQL statements.
 
+To learn how to declare a view and its columns, see [Mapping](../configuration/mapping.md); to choose the type of each column, [Data types](../configuration/data-types.md).
+
 ```typescript
 interface View {
     /** Defines an alias for the view to be used in select queries */

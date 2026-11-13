@@ -51,12 +51,12 @@ Start with the file of the area of your task. These files are written for you: o
 | Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 11k |
 | Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 25k |
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
-| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 23k |
+| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 24k |
 | Go into the detail of a dynamic query: order and page from a request, optional joins, booleans and null, or a condition built with `if`s | [`llms-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-postgresql.txt) | 10k |
 | Let the caller choose columns, filters and order, fill a table or offer a query API from a request, hide or refuse values, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 14k |
 | Write a function that returns a dynamic select, and type it | [`llms-dynamic-functions-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-functions-postgresql.txt) | 21k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 6k |
-| Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 39k |
+| Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 41k |
 | Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 46k |
 | Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 55k |
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 22k |
@@ -91,7 +91,7 @@ Once you know the area, go straight to the part you need, in those files or in i
 | Write a function where the caller chooses columns, filter and order | [Functions that return a dynamic select](dynamic/own-function/dynamic-select-functions.md) |
 | Write values whose properties aren't named as the columns | [Insert and update with a shape](queries/shapes.md) |
 | Type a row of a table | [Utility types](advanced/utility-types.md), [columns from an object](advanced/columns-from-object.md) |
-| Declare tables and the connection | [Connection](configuration/connection.md), [mapping](configuration/mapping.md), [column types](configuration/column-types.md) |
+| Declare tables and the connection | [Connection](configuration/connection.md), [mapping](configuration/mapping.md), [column types](configuration/data-types.md) |
 | Connect a driver | [Query runners](configuration/query-runners/): one page per driver |
 | Understand an error | [Overview](api/error-management/overview.md), [library errors](api/error-management/library-raised-errors.md); [native mappings](api/error-management/native-mappings/) for a native error of your database |
 | Look up a method | [API](api/) |

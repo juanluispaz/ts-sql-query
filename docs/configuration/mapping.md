@@ -4,11 +4,11 @@ search:
 ---
 # Mapping
 
-To use a table or a view in a query, you describe it in TypeScript: a class with one property for each column. This page has how to map tables and views, the kinds of columns there are, how to group them, how to add columns computed in the query, and how to call the procedures and functions of your database. The [types of the columns](column-types.md) have their own page.
+To use a table or a view in a query, you describe it in TypeScript: a class with one property for each column. This page has how to map tables and views, the kinds of columns there are, how to group them, how to add columns computed in the query, and how to call the procedures and functions of your database. The [types of the columns](data-types.md) have their own page.
 
 ## Mapping the tables
 
-A table is a class that extends `Table`, with two generic arguments: your [connection class](connection.md#defining-the-connection-object), and a unique name for the table in your system. Each property is a column, with the name it has in the database and its [type](column-types.md).
+A table is a class that extends `Table`, with two generic arguments: your [connection class](connection.md#defining-the-connection-object), and a unique name for the table in your system. Each property is a column, with the name it has in the database and its [type](data-types.md).
 
 ```ts
 import { Table } from "ts-sql-query"
@@ -623,7 +623,7 @@ Compared with a view:
 
 Every database can use it in a select. What changes between them:
 
-- **PostgreSQL**: the values are written with a cast, so [your custom types need a valid one](column-types.md#custom-types).
+- **PostgreSQL**: the values are written with a cast, so [your custom types need a valid one](data-types.md#custom-types).
 - **MySQL**: it needs MySQL 8.0.19. With a `compatibilityVersion` below `8_000_000`, [the query is rejected](supported-databases/mysql.md#compatibility-version).
 - **Oracle**: below `compatibilityVersion` `23_004_000`, it's written with `select ... from dual union all` instead of `values`. In the `from` of an update and the `using` of a delete, the database rejects it.
 - **MariaDB and MySQL**: in an update or a delete, they use their multi-table forms. On MariaDB that needs MariaDB 12.3, and [with Bun SQL it can't be used](query-runners/recommended/bun_sql_mysql.md).
@@ -695,7 +695,7 @@ const result: Promise<void>
 
 ## Calling a function of the database
 
-`executeFunction` is also a protected method of the connection. It receives the name of the function, its parameters, the [type](column-types.md) of the result, and `'required'` or `'optional'`: with `'optional'` the result can be `null`. The result is read as a column of that type is read: a `uuid` comes back as text even when the database stores it in binary (MySQL, Oracle and SQLite with their default strategies), so the function returns it in the form the column stores it. On SQLite, a function exists only if you register it in the driver.
+`executeFunction` is also a protected method of the connection. It receives the name of the function, its parameters, the [type](data-types.md) of the result, and `'required'` or `'optional'`: with `'optional'` the result can be `null`. The result is read as a column of that type is read: a `uuid` comes back as text even when the database stores it in binary (MySQL, Oracle and SQLite with their default strategies), so the function returns it in the form the column stores it. On SQLite, a function exists only if you register it in the driver.
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/postgresql";

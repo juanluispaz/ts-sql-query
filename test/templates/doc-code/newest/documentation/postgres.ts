@@ -171,7 +171,7 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
     }
 }()
 
-// The adapter and the table of the example of `transformProjection` in docs/configuration/column-types.md, used by the
+// The adapter and the table of the example of `transformProjection` in docs/configuration/type-adapters.md, used by the
 // examples after it on that page
 class DayAsTextTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
@@ -274,7 +274,7 @@ const tOutboxMessage = new class TOutboxMessage extends Table<DBConnection, 'TOu
 const customers: Array<{ firstName: string, lastName: string, companyId: number }> = []
 void [emailService, fileStorage, customerCache, outboxRelay, logger, jobQueue, registerCustomer, tOutboxMessage, customers]
 
-// A decimal number kept exact as its text (docs/configuration/column-types.md, Exact decimals)
+// A decimal number kept exact as its text (docs/configuration/data-types.md, Exact decimals)
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id = this.primaryKey('id', 'int')
     amount = this.optionalColumn<string, 'Amount'>('amount', 'customDecimal', 'Amount')

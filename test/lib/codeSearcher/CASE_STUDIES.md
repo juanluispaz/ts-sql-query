@@ -235,7 +235,7 @@ implemented on `ValueSourceImpl`. (Line-157 branch fires when the receiver is a 
 
 ## Explained in docs (full)
 aggregate-as-object-array.md (the feature) · value-expressions.md (the signature) · **uuid setup:**
-column-types.md + supported-databases/<db>.md (and SQLite registers uuid functions on the connector).
+data-types.md + supported-databases/<db>.md (and SQLite registers uuid functions on the connector).
 
 ## Coverage (summary)
 covered in 6 dbs (e.g. `select.aggregate-as-array.modifiers.test.ts` → test

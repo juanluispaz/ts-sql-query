@@ -29,7 +29,7 @@ The class is also the place for what your whole application shares:
 
 - The options on this page, and the ones of each database, like its `compatibilityVersion`: see the page of your database.
 - The [stored procedures and functions](mapping.md#calling-a-stored-procedure) you call, and the [sequences](mapping.md#using-a-sequence) you read.
-- The conversion of your [custom types](column-types.md#custom-types).
+- The conversion of your [custom types](data-types.md#custom-types).
 - Your own [SQL fragments](../queries/sql-fragments.md).
 
 ## Instantiating the connection with the database connection

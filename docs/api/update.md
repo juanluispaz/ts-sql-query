@@ -6,6 +6,8 @@ search:
 
 This API provides methods to build and execute SQL `UPDATE` statements using a fluent interface in `ts-sql-query`. It allows you to conditionally set columns, control update behavior dynamically, use joins, and optionally return affected data.
 
+To learn how to write an update, see [Update](../queries/update.md) and [Insert and update with a shape](../queries/shapes.md).
+
 ```typescript
 interface UpdateExpression {
     /**

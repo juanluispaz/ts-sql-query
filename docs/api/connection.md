@@ -6,6 +6,8 @@ search:
 
 This interface exposes all the methods required to interact with the database via `ts-sql-query`. It allows creating, executing and customizing SQL expressions, managing transactions, using constants, aggregates and sequences, and composing raw or typed SQL fragments.
 
+To learn how to create and configure a connection and declare its tables, see [Connection](../configuration/connection.md) and [Mapping](../configuration/mapping.md); for transactions, [Transaction](../queries/transaction.md); for constants and fragments, [Basic query structure](../queries/basic-query-structure.md) and [SQL Fragments](../queries/sql-fragments.md); and for the conversion of the values, [Type adapters](../configuration/type-adapters.md).
+
 ```typescript
 interface Connection {
     /** Query runner used to create the connection */

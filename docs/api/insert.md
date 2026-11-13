@@ -6,6 +6,8 @@ search:
 
 This API provides methods to construct and execute SQL `INSERT` statements using a fluent interface in `ts-sql-query`. It supports inserting single or multiple rows, inserting from a SELECT statement, handling conflict resolution (e.g., upserts), and optionally returning inserted data.
 
+To learn how to write an insert, see [Insert](../queries/insert.md), [Insert on conflict (upsert)](../queries/insert-on-conflict.md) and [Insert and update with a shape](../queries/shapes.md).
+
 ```typescript
 interface InsertExpression {
     /**

@@ -353,7 +353,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 |---|---|
 | `originalType` | The name of its original type, the one declared in the library, like `'int'` or the one of a custom type |
 | `originalCustomType` | Which custom type the original type is, the first argument of the column, like `'customInt'`; `undefined` for a built-in type |
-| `requestedType`, `requestedCustomType` | The type the parameter is sent with: the original one, unless the `transformValueToDB` of its type adapter or of the connection requested another with `setRequestedType`, like `'string'` for a date sent as its text (see [The original and the requested type](../api/type-adapters.md#the-original-and-the-requested-type)) |
+| `requestedType`, `requestedCustomType` | The type the parameter is sent with: the original one, unless the `transformValueToDB` of its type adapter or of the connection requested another with `setRequestedType`, like `'string'` for a date sent as its text (see [The original and the requested type](../configuration/type-adapters.md#the-original-and-the-requested-type)) |
 | `forceTypeCast` | Whether the database must receive its type, because the position where it's written gives it none: the query runners of PostgreSQL then write a cast or send the parameter with its type |
 | `isValueForColumn` | Whether it's the value given to a column of a table, in the values of an insert or in the set of an update, where the column gives it its type |
 | `getMetadata(key)` | What a type adapter kept for the parameter under that `symbol`, or `undefined` |
@@ -406,7 +406,7 @@ The context of each query the library builds also has the columns of its result,
 | `path` | The property of the result object it fills, like `'customer.name'` for a nested object, `'result'` for a query that selects one column, `''` without one |
 | `originalType` | The name of the original type of its value, the one declared in the library, like `'int'` or the one of a custom type; `'aggregatedArray'` for an aggregated array, whose JSON text the library converts value by value |
 | `originalCustomType` | Which custom type the original type is, like `'customInt'`; `undefined` for a built-in type and an aggregated array |
-| `requestedType`, `requestedCustomType` | The type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection requests with `setRequestedType`, like `'string'` for the text of a date (see [The original and the requested type](../api/type-adapters.md#the-original-and-the-requested-type)); otherwise the original one |
+| `requestedType`, `requestedCustomType` | The type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection requests with `setRequestedType`, like `'string'` for the text of a date (see [The original and the requested type](../configuration/type-adapters.md#the-original-and-the-requested-type)); otherwise the original one |
 
 The array is empty for a query that returns no columns: an insert, update or delete without returning, a procedure, and the statements of a transaction. `resultColumns` is `undefined` for a statement you run through the query runner yourself. `getResultColumn(name)` finds one column by its `name`.
 

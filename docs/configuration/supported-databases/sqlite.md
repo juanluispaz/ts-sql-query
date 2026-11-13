@@ -260,11 +260,11 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy the blob of `uuid_blob` keeps the bytes in the order of the text, so v7 sorts on the primary-key index too. The `uuid()` that `registerSqliteFunctions` registers generates v7. See the [column types](../column-types.md) page for more context.
+    When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy the blob of `uuid_blob` keeps the bytes in the order of the text, so v7 sorts on the primary-key index too. The `uuid()` that `registerSqliteFunctions` registers generates v7. See the [column types](../data-types.md) page for more context.
 
 ## Exact decimals: the decimal strategies
 
-SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of an [exact decimal](../column-types.md#exact-decimals) (a `stringDecimal` or a `customDecimal`) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store it in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
+SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of an [exact decimal](../data-types.md#exact-decimals) (a `stringDecimal` or a `customDecimal`) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store it in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
 
 ```sql
 create table exact_amount (

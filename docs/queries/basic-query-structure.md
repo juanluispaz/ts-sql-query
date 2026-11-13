@@ -364,7 +364,7 @@ const customerWithId: Promise<{
 
 ## Constant values
 
-A value that doesn't come from a table is written as a constant with `connection.const(value, type)`; the type is the [column type](../configuration/column-types.md) of the value. When the value can be `null` or `undefined`, use `connection.optionalConst(value, type)`: the constant is optional, like an optional column.
+A value that doesn't come from a table is written as a constant with `connection.const(value, type)`; the type is the [column type](../configuration/data-types.md) of the value. When the value can be `null` or `undefined`, use `connection.optionalConst(value, type)`: the constant is optional, like an optional column.
 
 ```ts
 const noteForTheCustomer: string | null = null;

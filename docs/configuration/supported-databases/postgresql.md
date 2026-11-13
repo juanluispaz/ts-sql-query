@@ -80,7 +80,7 @@ To go on after a statement that may fail, don't run it in the transaction, or fi
 
 ## The type of a parameter
 
-PostgreSQL can't work out the type of a parameter in some positions, like a constant selected on its own, a row of [`Values`](../mapping.md#mapping-constant-values-as-view), the argument of a function or a `null`. There the library gives the parameter its type, and the query runner decides how: `pg` and Bun SQL write a cast in the SQL, like `$1::int4`; postgres.js and PGlite send the parameter with its type, and the SQL has only `$1`. [How a value is sent to the database](../data-types.md#how-a-value-is-sent-to-the-database) has the type of each category, and the `typesByName` option of the query runner sets it for a type of your own.
+PostgreSQL can't work out the type of a parameter in some positions, like a constant selected on its own, a row of [`Values`](../mapping.md#mapping-constant-values-as-view), the argument of a function or a `null`. There the library gives the parameter its type, and the query runner decides how: `pg` and Bun SQL write a cast in the SQL, like `$1::int4`; postgres.js and PGlite send the parameter with its type, and the SQL has only `$1`. [How a value is sent to the database](../data-types.md#how-a-value-is-sent-to-the-database) has the type of each data type, and the `typesByName` option of the query runner sets it for a type of your own.
 
 ### A position the library doesn't detect
 

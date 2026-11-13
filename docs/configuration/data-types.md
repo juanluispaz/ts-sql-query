@@ -109,6 +109,8 @@ A custom type (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `cu
 | `customLocalDateTime` | `localDateTime` |
 | `enum`, `custom` and `customComparable` | Not converted: the value is returned as it comes |
 
+The custom type decides, whatever the name you give it: a `customLocalDate` named `'localDateTime'` is converted as a `localDate`.
+
 So an int with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
 
 ```typescriptreact
@@ -264,7 +266,7 @@ Each parameter of a query goes with its type, the one requested for it: by defau
 | `int`, `customInt` | `int4` | `int` |
 | `bigint`, `customBigint` | `int8` | `bigint` |
 | `double`, `customDouble` | `float8` | `float` |
-| `customDecimal` | `numeric` | `nvarchar`, the text |
+| `stringDecimal`, `customDecimal` | `numeric` | `nvarchar`, the text |
 | `string` | `text` | `nvarchar` |
 | `uuid`, `customUuid` | `uuid` | `uniqueidentifier` |
 | `localDate`, `customLocalDate` | `date` | `date` |

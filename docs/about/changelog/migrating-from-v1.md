@@ -223,7 +223,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 `transformPlaceholder` no longer receives `forceTypeCast` nor the value sent: it is `transformPlaceholder(placeholder, context)` in the connection, with `next` at the end in a type adapter, the value sent is `context.valueSentToDB`, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
 
-A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `CustomType`, which custom type a type is, is exported from `ts-sql-query`.
+A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as its built-in type (see [Custom types are converted as their built-in type](#custom-types-are-converted-as-their-built-in-type)). `CustomType`, which custom type a type is, is exported from `ts-sql-query`.
 
 ### Your own query runner, and the connection of the driver
 
@@ -247,7 +247,7 @@ Everything in this section compiles. These are the changes that alter a result, 
 6. **`NULL` is handled differently**, in `minValue`, `maxValue` and, on Oracle, in `concat` and `contains`; `replaceAll` and `length` also change. [Values, with a way back](#values-with-a-way-back).
 7. **Corrected functions give another value.** [Values, corrected](#values-corrected).
 8. **An old property in your connection class is ignored.** [Properties](#properties-of-the-connection-that-no-longer-exist).
-9. **A custom type without its conversion arrives converted.** [Custom types are converted as their category](#custom-types-are-converted-as-their-category).
+9. **A custom type without its conversion arrives converted.** [Custom types are converted as their built-in type](#custom-types-are-converted-as-their-built-in-type).
 10. **Outside UTC, the dates and times move.** With the process in another zone, a date and time without zone is read and written in UTC, and a query runner can reject the connection. [Dates and times in a process outside UTC](#dates-and-times-in-a-process-outside-utc).
 
 ### Set the version of your database
@@ -470,9 +470,9 @@ These returned a wrong value in v1, or depended on something they shouldn't. If 
 - SQL Server, Oracle: a projected `between` whose upper bound is optional is `NULL` when that bound is `NULL`. It was `false`.
 - [`dynamicPickPaths`](../../dynamic/helper-types/picks.md) with a path of 3 or more levels dropped it.
 
-### Custom types are converted as their category
+### Custom types are converted as their built-in type
 
-A `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime` or `customLocalDateTime` whose conversion you didn't register was returned as the driver gave it, or as text from an array aggregate. It's now converted as an `int`, a `double`, a `uuid` or the type of its date or time, with the same checks: a number past `Number.MAX_SAFE_INTEGER` in a `customInt` is rejected, and an exact decimal kept as text in a `customDouble` becomes a `number` and loses the digits a `number` doesn't hold. On PostgreSQL, the parameter of these types gets the cast of its category where the library writes one, like `$1::float8` for a `customDouble`. On SQL Server, a `customInt` is bound as `int`, as an `int` is; it was bound as `bigint`, so a value above 2,147,483,647 is now rejected by the database: use `customBigint` for it. To keep a value as it comes, register its conversion: see [Custom types](../../configuration/data-types.md#custom-types). An `enum`, a `custom` and a `customComparable` are not converted, as before.
+A `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime` or `customLocalDateTime` whose conversion you didn't register was returned as the driver gave it, or as text from an array aggregate. It's now converted as an `int`, a `double`, a `uuid` or the type of its date or time, whatever its type name, with the same checks: a number past `Number.MAX_SAFE_INTEGER` in a `customInt` is rejected, and an exact decimal kept as text in a `customDouble` becomes a `number` and loses the digits a `number` doesn't hold. On PostgreSQL, the parameter of these types gets the cast of that type where the library writes one, like `$1::float8` for a `customDouble`. On SQL Server, a `customInt` is bound as `int`, as an `int` is; it was bound as `bigint`, so a value above 2,147,483,647 is now rejected by the database: use `customBigint` for it. To keep a value as it comes, register its conversion: see [Custom types](../../configuration/data-types.md#custom-types). An `enum`, a `custom` and a `customComparable` are not converted, as before.
 
 ### Dates and times in a process outside UTC
 
@@ -558,6 +558,7 @@ A property left in your connection class still compiles and does nothing, unless
 
 ### Query runners
 
+- **`MssqlPoolQueryRunner` no longer has `predefinedTypes`.** A subclass that assigned it to bind a type with another type of mssql now has no effect, and one that read it doesn't compile: declare the type in [`typesByName`](../../configuration/query-runners/recommended/mssql.md), or override `getType(params, index)`.
 - `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them.
 - **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../configuration/query-runners/recommended/better-sqlite3.md)).
 - **Some configurations of the driver are rejected** when the query runner is created, with `INVALID_CONFIGURATION`: `pg` with `binary: true`; postgres.js with a `transform` of the results, or with `infer: true` outside UTC; `mssql` with `camelCaseColumns` or `columnNameReplacer`, with a `textsize` below the default of tedious, or with `useUTC: false` outside UTC; `oracledb` without `ORA_SDTZ` set to the zone of the database (UTC, or the `databaseTimeZone` you declare) when the process or the database isn't in UTC. See the *Connection requirements* of each query runner, like [oracledb](../../configuration/query-runners/recommended/oracledb.md#connection-requirements).

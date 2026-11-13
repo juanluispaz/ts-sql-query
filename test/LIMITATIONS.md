@@ -23,7 +23,7 @@ sit down and close.
 
 ## Custom types inside an array aggregate need their conversion
 
-The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. A `customInt`, `customDouble`, `customUuid` or `customLocal*` is converted as the type of its category, so it needs nothing registered; an `enum`, a `custom` or a `customComparable` must register its conversion, the best place being the connection. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. The domain of the tests registers it through `baseTypeForCustom`.
+The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. A `customInt`, `customDouble`, `customUuid` or `customLocal*` is converted as the built-in type of its custom type (a `customInt` as an `int`), so it needs nothing registered; an `enum`, a `custom` or a `customComparable` must register its conversion, the best place being the connection. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. The domain of the tests registers it through `baseTypeForCustom`.
 
 ## A `customDouble` holding an exact decimal
 
@@ -289,9 +289,9 @@ reason this stayed a limitation no longer holds. A future refactor can close it
 by registering each IN param's type in `OracleSqlBuilder._appendParam` (where
 `columnType` is in scope; `_appendParam` is already overridden there for the
 `uuid_to_raw` wrap) and, in the runner's three `connection.execute` paths,
-wrapping each IN value as `{ val, type, dir: BIND_IN }` — with a `ValueType →
-oracledb type` map mirroring `MssqlPoolQueryRunner.predefinedTypes` and its
-`inferType` fallback. That lets `stmtCacheSize` be restored to the driver default
+wrapping each IN value as `{ val, type, dir: BIND_IN }` — with the oracledb type
+decided from the type and custom type of the param, as `MssqlPoolQueryRunner.getType`
+does, and its `inferType` fallback. That lets `stmtCacheSize` be restored to the driver default
 and closes this entry. Deferred by choice, not blocked.
 
 **Exposure — very unlikely outside this suite.** Reaching it needs ALL of

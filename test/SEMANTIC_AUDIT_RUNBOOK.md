@@ -339,8 +339,6 @@ comment — that is what stops the next round re-filing it.
 - **The maintainer owns the forks.** Behaviour changes, public-surface changes,
   and "clean SQL vs fewer casts" are theirs. Bring the fork with the measurement
   attached, not a survey.
-- **Don't touch `src/examples/`** beyond keeping it green — the legacy suite is
-  being replaced and does not get expanded.
 - **Snapshot churn is the tell, not the goal.** A fix that rebakes 585 snapshots
   and changes zero values is fine. A fix that changes one value is the one to
   stare at.

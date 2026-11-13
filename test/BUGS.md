@@ -166,10 +166,9 @@ When the fix lands:
 2. Remove the corresponding entry from the open list above.
 3. **Walk every place that reflected the old behaviour**:
    `bun run tests:where-is --search <symbol> --for post-fix-sync` bundles
-   `emitted-sql full · docs full · examples full · tests detail · bugs
-   · chain none` — every asserted SQL across tests and docs, the doc
-   pages that explain it, the legacy `src/examples/` occurrences,
-   per-test references, and any remaining `// TODO[BUG]` markers that
+   `emitted-sql full · docs full · tests detail · bugs · chain none` —
+   every asserted SQL across tests and docs, the doc pages that explain
+   it, per-test references, and any remaining `// TODO[BUG]` markers that
    still mention the symbol (typically the entry you're closing here).
    Anything still naming the old behaviour needs refreshing.
 4. Walk `grep -rn "TODO\[BUG\]" test/db/` and either uncomment the

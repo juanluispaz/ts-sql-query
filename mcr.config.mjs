@@ -22,7 +22,6 @@ const scope = process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] ?? 'library'
 const filter = {
     '**/node_modules/**': false,
     '**/test/**': false,
-    '**/src/examples/**': false,
     ...(scope === 'runners'
         ? { '**/src/queryRunners/*/**': false, '**/src/queryRunners/**': true, '**/src/utils/transactionIsolationLevel.ts': true, '**/src/**': false }
         : scope === 'mappers'

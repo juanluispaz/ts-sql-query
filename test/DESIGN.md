@@ -1,9 +1,6 @@
-# `test/` — design of the new test suite
+# `test/` — design of the test suite
 
 > Normative document. Anything added under `test/` must comply with these rules.
-> The historical strategy for `src/examples/` is mentioned in
-> [`README.md`](./README.md) for as long as that folder remains the source of
-> truth; this suite will eventually supersede it.
 
 This is the **source of truth** for the rules. Other docs (recipes, how-tos,
 runbooks) cite back here — they do not paraphrase. If a rule in this file
@@ -24,9 +21,9 @@ contradicts text elsewhere, this file wins and the other doc is stale.
 
 ## Why a new suite
 
-`src/examples/` exists as executable scripts so the project never coupled
-itself to whichever testing library was in fashion. That decision aged well,
-but six things were actively missing:
+The suite before this one, `src/examples/` (removed), was executable scripts, so
+the project never coupled itself to whichever testing library was in fashion.
+That decision aged well, but six things were actively missing:
 
 1. No per-case **exact type assertion** of the result object. Type drifts
    were only caught when `tsc` broke somewhere unrelated.
@@ -255,10 +252,9 @@ for how the report should look.
     since the older engines have no `BOOLEAN`. See
     [`NEW_DATABASE.md` § Storage twins](./NEW_DATABASE.md#storage-twins).
 
-16. **`src/examples/` coexists with this suite.** The new suite must reach
-    equivalent coverage before `src/examples/` is retired; until then, both stay
-    green. New coverage goes here; `src/examples/` changes only as far as a
-    library change requires.
+16. **This suite replaced `src/examples/`.** The legacy example scripts were
+    removed once the matrix covered what they proved; there is no second suite
+    to keep green.
 
 17. **Mock-only is a smell** — see [Mock-only is a smell](#mock-only-smell)
     for the full rule: the skip form (always wrong), the sanctioned

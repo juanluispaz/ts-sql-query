@@ -47,7 +47,6 @@ const SECTION_SPECS = {
     '--simplified': { key: 'simplified', levels: ['none', 'summary', 'full'] },
     '--emitted-sql': { key: 'emittedSql', levels: ['none', 'summary', 'full'] },
     '--tests': { key: 'tests', levels: ['none', 'summary', 'detail', 'gaps'] },
-    '--examples': { key: 'examples', levels: ['none', 'summary', 'full'] },
     '--neg-types': { key: 'negTypes', levels: ['none', 'summary', 'full'] },
     '--bugs': { key: 'bugs', levels: ['none', 'summary', 'full'] },
     '--limitation': { key: 'limitation', levels: ['none', 'summary', 'full'] },
@@ -90,12 +89,12 @@ const ALL_OFF: Partial<Sections> = Object.fromEntries(
 ) as Partial<Sections>
 const PRESETS: Record<string, Partial<Sections>> = {
     bare: ALL_OFF,
-    'coverage-gap': { classification: 'full', chain: 'full', refReturn: 'summary', tests: 'gaps', examples: 'full', cellCaveats: 'summary' },
+    'coverage-gap': { classification: 'full', chain: 'full', refReturn: 'summary', tests: 'gaps', cellCaveats: 'summary' },
     'type-bug': { declared: 'full', signature: 'full', refTypeArg: 'full', negTypes: 'full', bugs: 'summary', limitation: 'summary', notApplicable: 'summary', notSupported: 'summary', mockOnly: 'summary', chain: 'none' },
     'emission-bug': { chain: 'none', emittedSql: 'full', refImplements: 'full', versionGates: 'summary', bugs: 'full', limitation: 'summary', notApplicable: 'summary', notSupported: 'summary', mockOnly: 'summary' },
     'version-work': { versionGates: 'full', tests: 'summary', chain: 'none', bugs: 'summary', limitation: 'summary', notApplicable: 'summary', notSupported: 'full', mockOnly: 'summary' },
-    'post-fix-sync': { chain: 'none', emittedSql: 'full', docs: 'full', examples: 'full', tests: 'detail', bugs: 'summary' },
-    'propagation': { classification: 'summary', tests: 'gaps', examples: 'summary', cellCaveats: 'summary', chain: 'none' },
+    'post-fix-sync': { chain: 'none', emittedSql: 'full', docs: 'full', tests: 'detail', bugs: 'summary' },
+    'propagation': { classification: 'summary', tests: 'gaps', cellCaveats: 'summary', chain: 'none' },
 }
 
 interface Args {
@@ -234,7 +233,6 @@ SECTIONS — one level each; default in (parens); "none" hides the section.
   --simplified <none|summary|full>                           (summary)
   --emitted-sql <none|summary|full>                          (none)    asserted SQL snapshots (tests+docs)
   --tests <none|summary|detail|gaps>                         (summary) detail=per-test, gaps=who's-missing
-  --examples <none|summary|full>                             (summary)
   --neg-types <none|summary|full>                            (summary) full=each rule + snippet + line
   --bugs <none|summary|full>                                 (none)    // TODO[BUG] markers naming the symbol (a src/ defect)
   --limitation <none|summary|full>                           (none)    // TODO[LIMITATION] markers naming the symbol (not covered yet / env)
@@ -251,9 +249,8 @@ SECTIONS — one level each; default in (parens); "none" hides the section.
 GLOBAL FOCUS — matrix COORDINATES, the one focus filter (db[/version[/connector[/file]]]):
   --coord <coord>                  focus EVERY db/cell-aware section on a coordinate — glob '*'
                                    and brace '{a,b}', REPEATABLE (union). Best-effort per section:
-                                   tests + emitted-sql + legacy examples match the full
-                                   db/version/connector(/file) cell (examples derive theirs from
-                                   the filename); the db-only sections (docs incl. TS snippets,
+                                   tests + emitted-sql match the full db/version/connector(/file)
+                                   cell; the db-only sections (docs incl. TS snippets,
                                    shown-in-simplified-def, negative-type) match the db segment.
                                    Keeps db-agnostic 'general' docs. The optional 4th (file) segment
                                    is a glob/brace on the test-file basename and coexists with
@@ -527,7 +524,7 @@ async function main(): Promise<void> {
                     process.exit(2)
                 }
                 if (pat.includes('/') && !cells.some(c => coordMatch(c, pat))) {
-                    console.error(`--coord '${pat}': no matrix cell/file matches (the version/connector/file segments apply to the test/example cells).`)
+                    console.error(`--coord '${pat}': no matrix cell/file matches (the version/connector/file segments apply to the test cells).`)
                     process.exit(2)
                 }
             }

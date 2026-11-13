@@ -7,7 +7,7 @@
 
 // Bump when the schema (tables/columns) changes, so a consumer can reject an index built
 // by an older/newer tool. Written to the meta table at build time as schema_version.
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 export const SCHEMA = `
 -- Build metadata (key/value): schema_version, built_at (ISO), git_rev, git_dirty, resolve
@@ -252,45 +252,6 @@ CREATE INDEX idx_inv_module ON invocation(module_id, line);   -- (module_id) pre
 CREATE INDEX idx_inv_rsym   ON invocation(resolved_symbol_id);
 CREATE INDEX idx_inv_rmem   ON invocation(resolved_member_id);
 
--- ── examples dimension (LEGACY src/examples/, its own dimension) ─────────────
--- The old example suite is one giant main() per file with no function-level
--- structure; examples are delimited by their closing assertEquals() call (there
--- are never two consecutive assertEquals, so this segmentation is unambiguous)
--- for the legacy files, while documentation/ examples use the Preparation
--- banner. An example_block is one example case; example_ref links the API names
--- it references — the analogue of test_block/test_ref, answering "which example
--- shows how to use <symbol>?".
-CREATE TABLE example_block (
-    id          INTEGER PRIMARY KEY,
-    file        TEXT NOT NULL,            -- src/examples/<...>.ts
-    db          TEXT,                     -- database the example targets, from the filename (PgExample→postgres, MySql2Example→mysql, …); NULL if unrecognised
-    version     TEXT,                     -- compatibility version, from the filename: '-compatibility' suffix → oldest, else newest
-    connector   TEXT,                     -- driver/connector, from the filename (PgExample→pg, BunSqlPostgresExample→bun_sql_postgres, …); '' for the documentation/ per-db generators
-    is_doc      INTEGER NOT NULL,         -- 1 when under src/examples/documentation/ (renders into docs)
-    ordinal     INTEGER NOT NULL,         -- 1-based index of the example within the file
-    start_line  INTEGER NOT NULL,
-    end_line    INTEGER NOT NULL
-);
--- The legacy examples carry their cell coordinates in the file NAME (no folder structure), so
--- these derived columns let --coord address them by db/version/connector like the matrix cells.
-CREATE INDEX idx_example_block_cell ON example_block(db, version, connector);
-
--- One row per OCCURRENCE (line/col in the example .ts file); count = COUNT(*).
-CREATE TABLE example_ref (
-    example_block_id   INTEGER NOT NULL REFERENCES example_block(id),
-    symbol_name        TEXT NOT NULL,     -- identifier/member name (name-based fallback)
-    line               INTEGER NOT NULL,  -- 1-based line of this occurrence in the example .ts file
-    col                INTEGER NOT NULL,  -- 1-based column of the name token
-    resolved_symbol_id INTEGER REFERENCES symbol(id),  -- checker-resolved declaration (NULL = binds outside the indexed lib)
-    resolved_member_id INTEGER REFERENCES member(id)   -- …and the member, when it resolves to one
-);
-
-CREATE INDEX idx_example_block_file ON example_block(file);
-CREATE INDEX idx_example_ref_name   ON example_ref(symbol_name);
-CREATE INDEX idx_example_ref_block  ON example_ref(example_block_id);
-CREATE INDEX idx_example_ref_rsym   ON example_ref(resolved_symbol_id);
-CREATE INDEX idx_example_ref_rmem   ON example_ref(resolved_member_id);
-
 -- ── negative-type dimension (test/db/<db>/types.negative/) ───────────────────
 -- The negative-type cells assert, with a // @ts-expect-error directive, that a misuse of the API
 -- must NOT compile. They are compile-only (the wrapping function is never run), so the
@@ -445,8 +406,7 @@ CREATE INDEX idx_reference_name ON reference(ref_name, role);
 -- ('test') or a generated documentation cell ('doc'). No block FK: the searcher joins by
 -- file + line-containment against test_block (file/start_line/end_line) or doc_test_block
 -- (gen_file/gen_start_line/gen_end_line), so this stays decoupled from those extractors.
--- The emitted-sql section shows the SQL a symbol's tests/docs assert (cases C/D/F). Legacy
--- examples are not covered here (the legacy suite uses runtime assertions, not inline snapshots).
+-- The emitted-sql section shows the SQL a symbol's tests/docs assert (cases C/D/F).
 CREATE TABLE emitted_sql (
     id     INTEGER PRIMARY KEY,
     source TEXT NOT NULL,                  -- 'test' (matrix cell) | 'doc' (generated documentation cell)

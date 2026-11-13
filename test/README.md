@@ -1,8 +1,7 @@
 # `test/` — ts-sql-query test suite
 
-The new ts-sql-query test suite. Designed to **eventually replace
-[`src/examples/`](../src/examples)** without losing any of its existing
-coverage. Both coexist until parity is reached; this folder is the future.
+The ts-sql-query test suite. It replaced the legacy example scripts of
+`src/examples/`, removed once it covered what they proved.
 
 This file is the **navigation map**. Pick the topic you need; jump to its
 authoritative document.

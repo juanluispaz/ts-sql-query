@@ -16,7 +16,7 @@
 // passed in. This module only READS its source files; it does NOT parse anything in
 // isolation. While walking it builds the declMap (declaration node → emitted row),
 // which the resolver uses to turn name-matches into exact links — here for the
-// invocation callees, and in the test/example/doc extractors for their refs.
+// invocation callees, and in the test/doc extractors for their refs.
 
 import ts from 'typescript6'
 import { readFileSync } from 'node:fs'
@@ -459,11 +459,10 @@ export function extractSrc(program: ts.Program, checker: ts.TypeChecker, ids: Id
     }
 
     // Pass 2 — the LIBRARY-INTERNAL call graph (for the private→public chain), now
-    // that declMap is complete so callees resolve. Example files are leaf consumers
-    // (their usage is the examples dimension) and the simplified master has no runtime
-    // — both excluded to keep the graph to real library code.
+    // that declMap is complete so callees resolve. The simplified master has no runtime,
+    // so it is excluded to keep the graph to real library code.
     for (const { sf, area, moduleId } of srcFiles) {
-        if (area === 'examples' || area === 'simplified') continue
+        if (area === 'simplified') continue
         walkInvocations(sf, moduleId, ids, invocations, checker, declMap)
     }
 

@@ -25,7 +25,7 @@
 #
 # Every slice still type-checks all the shared files (test/lib,
 # test/db/general, test/templates, each db's runners.ts + types.negative +
-# domain, src, src/examples) — nothing is dropped, the TEST CELLS are just
+# domain, src) — nothing is dropped, the TEST CELLS are just
 # partitioned. Per-connector cells are independent .test.ts files with no
 # type dependency between connectors, so partitioning them is sound.
 #

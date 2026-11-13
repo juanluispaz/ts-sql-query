@@ -29,5 +29,8 @@ source "$(dirname "$0")/_test-common.sh"
 if [ "$(detect_runtime)" = "bun" ]; then
     exec bun test/lib/codeIndexer/verify.ts "$@"
 else
-    exec tsx test/lib/codeIndexer/verify.ts "$@"
+    # V8 stops at its default heap (~4 GB) with the matrix of today: the same
+    # limit tests:index raises (override with TESTS_INDEX_HEAP_MB)
+    NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=${TESTS_INDEX_HEAP_MB:-28672}" \
+        exec tsx test/lib/codeIndexer/verify.ts "$@"
 fi

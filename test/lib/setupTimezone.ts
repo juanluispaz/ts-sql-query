@@ -6,8 +6,7 @@
 // text (sqlite), so the emitted param — and therefore the snapshot —
 // would shift with the host timezone.
 //
-// Mirrors the per-file `process.env.TZ = 'UTC'` the legacy
-// src/examples/* scripts set for the same reason. Wired as a bun
+// Wired as a bun
 // `preload` (bunfig.toml) and a vitest `setupFiles` (vitest.config.ts) so
 // it applies under both runners, including direct `bun test` /
 // `npx vitest run` invocations on a single file.

@@ -38,7 +38,6 @@ export interface Sections {
     simplified: Level
     emittedSql: Level
     tests: TestsLevel
-    examples: Level
     negTypes: Level
     bugs: Level             // // TODO[BUG] markers naming the symbol — a src/ defect, re-enabled when fixed
     limitation: Level       // // TODO[LIMITATION] markers naming the symbol — not covered yet / env
@@ -53,7 +52,7 @@ export interface Filters {
     // The single GLOBAL focus filter — matrix coordinates db[/version[/connector[/file]]] with
     // glob `*` and brace `{a,b}`, repeatable (union). Applied to EVERY db/cell-aware section,
     // best-effort per dimension: tests + emitted-sql(test rows) match the full cell; the db-only
-    // dimensions (examples, docs, shown-in-simplified-def, neg-type, emitted-sql doc rows) match
+    // dimensions (docs, shown-in-simplified-def, neg-type, emitted-sql doc rows) match
     // just the db segment. db-agnostic `general` docs are always kept.
     coord: string[]
     // Within-section narrowing (orthogonal to the matrix axes).
@@ -72,7 +71,7 @@ export interface SearchOptions {
 export const DEFAULT_SECTIONS: Sections = {
     classification: 'summary', declared: 'summary', signature: 'summary', chain: 'strict',
     refReturn: 'none', refImplements: 'summary', refTypeArg: 'none', refParam: 'none', refField: 'none', refNew: 'none', refProperty: 'none', refBrand: 'none', surface: 'none', versionGates: 'none', docs: 'summary',
-    simplified: 'summary', emittedSql: 'none', tests: 'summary', examples: 'summary',
+    simplified: 'summary', emittedSql: 'none', tests: 'summary',
     negTypes: 'summary', bugs: 'none', limitation: 'none', notApplicable: 'none', notSupported: 'none', mockOnly: 'none', cellCaveats: 'none', nameSearch: 'none',
 }
 export const DEFAULT_FILTERS: Filters = {
@@ -497,21 +496,9 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         }
     }
 
-    // 5. Coverage — tests (summary / detail / gaps) + examples + negatives
+    // 5. Coverage — tests (summary / detail / gaps) + negatives
     if (S.tests !== 'none') {
         renderTests(push, db, name, S.tests, F)
-    }
-    if (S.examples !== 'none') {
-        // Legacy examples carry their cell (db/version/connector) in the filename, so --coord
-        // matches them at the full-cell level (best-effort: the documentation/ generators have no
-        // connector, so a coord with a connector segment skips them).
-        const occ = Q.exampleOccurrences(db, name).filter(o => coordMatchAny(o, F.coord))
-        if (occ.length) {
-            const blocks = new Set(occ.map(o => o.example_block_id)).size
-            push('## Legacy examples')
-            push(`- ${occ.length} occurrence(s) across ${blocks} block(s)${F.coord.length ? ` (coord-filtered)` : ''}`)
-            push()
-        }
     }
     if (S.negTypes !== 'none') {
         const neg = Q.negCoverage(db, name).filter(r => coordDbMatchAny(r.db, F.coord))

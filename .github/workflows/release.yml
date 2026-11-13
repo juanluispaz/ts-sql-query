@@ -87,10 +87,6 @@ jobs:
       - name: Bun audit test symmetry
         run: bun run tests:audit
 
-      # Light tests (docker tests not supported yet)
-      - name: Bun light tests
-        run: bun run no-docker-examples
-
       # New test suite — full matrix mocked + real WASM (no docker), split into
       # 4 memory-bounded shards (same partition as ci.yml / the node job above).
       # Separate steps so each shard has its own readable log.
@@ -145,10 +141,6 @@ jobs:
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Audit test symmetry
         run: npm run tests:audit
-
-      # Light tests (docker tests not supported yet) — legacy examples under tsx/node.
-      - name: Light tests
-        run: npm run no-docker-examples
 
       # New test suite — full matrix mocked + real WASM (no docker), under vitest,
       # split into 4 memory-bounded shards. Run as one process the matrix peaks

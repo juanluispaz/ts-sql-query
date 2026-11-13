@@ -309,8 +309,6 @@
     "scripts": {
         "codegen": "bash scripts/codegen.sh",
         "codegen:doc-code": "bash scripts/codegen-doc-code.sh",
-        "all-examples": "sh ./scripts/all-examples.sh",
-        "no-docker-examples": "sh ./scripts/no-docker-examples.sh",
         "validate": "tsc --noEmit",
         "validate:tests": "bash scripts/validate-tests.sh",
         "validate:tests:newest": "tsc -p test/tsconfig.newest.json --noEmit",

@@ -136,7 +136,7 @@ export function extractExtras(
         const rel = relative(process.cwd(), sf.fileName)
         const mod = moduleByPath.get(rel)
         if (!mod) continue
-        if (mod.area === 'examples' || mod.area === 'simplified') continue
+        if (mod.area === 'simplified') continue
         const isSqlBuilder = mod.area === 'sqlBuilders'
 
         walkWithScope(sf, (node, scope) => {

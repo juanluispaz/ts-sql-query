@@ -26,7 +26,7 @@ one idea rejected for noise (a combined `--tests` detail+gaps shape, P2a) is fla
 | | Seed | Shape | What it surfaced |
 |---|---|---|---|
 | **A** | `SqlBuilder` line (orderBy insensitive) | coverage gap, reached by *data-flow* | per-section levels, `--chain full`, tests detail/gaps, **combine to cut rounds** |
-| **B** | `ValueSourceImpl` method (aggregate modifier) | coverage gap, reached by *chaining off a producer* | **`--ref-return`** (the receiver question), examples load-bearing for setup |
+| **B** | `ValueSourceImpl` method (aggregate modifier) | coverage gap, reached by *chaining off a producer* | **`--ref-return`** (the receiver question) |
 | **C** | a failing test line (real-vs-mock) | debugging from a *test* | **test-line inverse**, **`--emitted-sql`**, dialect divergence |
 | **D** | a failing test (syntax bug) | debugging where the **stack is useless** | **`--emits-keyword`**, **non-overriders** (absence as finding), `--chain none` |
 | **E** | a new DB version (PG18) | matrix-shaped work | **`--version-gates`** (+ what stayed with `tests:audit`) |
@@ -109,7 +109,7 @@ is the gap.
 
 One read, and I know *what* it is, *what input* triggers it (the `'… insensitive'` mode + collation
 undefined), the *route*, the *feature* (and that `lower()` is the default), the *legal argument*,
-and *that the gap is the collation-undefined branch*. **Searches saved:** grepping four worlds,
+and *that the gap is the collation-undefined branch*. **Searches saved:** grepping three worlds,
 reading `select.ts` for the mode enum, opening 6 test files.
 
 The single-section variants are all valid for re-focusing — `--chain full` alone for just the
@@ -120,7 +120,7 @@ stack, `--docs full` alone for just the feature — but the opening move is the 
 ```bash
 bun run tests:where-is --search orderBy \
     --tests detail --coord postgres/newest/pg --file-name-pattern order --test-name-pattern insensitive \
-    --classification none --chain none --signature none --ref-implements none --docs none --simplified none --examples none --neg-types none
+    --classification none --chain none --signature none --ref-implements none --docs none --simplified none --neg-types none
 ```
 
 → one list: `select.order-by.insensitive.test.ts` exists, its insensitive cases and (with
@@ -164,7 +164,7 @@ bun run tests:where-is --search orderBy --coord '*/newest' --for propagation
 ```
 
 **What A.4 surfaced → what shipped:** the `--for propagation` preset (classification · tests gaps ·
-examples · `--cell-caveats` · chain none) — and its caveat half is exactly Case G's `--cell-caveats`,
+`--cell-caveats` · chain none) — and its caveat half is exactly Case G's `--cell-caveats`,
 which is why the two were decided together. **P2a (a combined detail+gaps `--tests` shape) was
 considered and rejected — not deferred.** It's cheap to build, but it *floods*: to propagate you
 already have your **canonical** (the shape to copy) and `gaps` (the worklist); every other cell's test
@@ -245,24 +245,20 @@ covered in 6 dbs (e.g. `select.aggregate-as-array.modifiers.test.ts` → test
 `--ref-return` is the headline: it answers "how do I get a receiver to call this on" (the inverse of
 the chain), without which I can't even construct a failing test.
 
-## B.2 — locate + per-connector uuid setup (examples earn their keep)
+## B.2 — locate the file to extend
 
 ```bash
 bun run tests:where-is --search asOptionalNonEmptyArray \
-    --tests detail --examples full --coord postgres/newest/pg --file-name-pattern aggregate \
+    --tests detail --coord postgres/newest/pg --file-name-pattern aggregate \
     --classification none --chain none --docs none --simplified none --signature none --ref-return none --neg-types none
 ```
 
-`select.aggregate-as-array.modifiers.test.ts` is the file to extend; the **Legacy examples** section
-points at the per-connector uuid-registration recipe (e.g. the SQLite examples register uuid
-functions on the connector) — the standing rule: for connector-specific behaviour (esp. SQLite
-UUIDs) follow the runner docs + `src/examples`, don't invent handling. Marginal in A, load-bearing here.
+`select.aggregate-as-array.modifiers.test.ts` is the file to extend. For connector-specific behaviour
+(esp. SQLite UUIDs) the standing rule is to follow the query-runner docs, not invent handling.
 
 ### What B taught → what shipped
 - **The receiver question ≠ the reach question** → `--ref-return` (members whose return type resolves
   to the owner interface). Built.
-- **`examples` is load-bearing for setup-heavy features** → `--examples full`, and examples are now
-  `--coord`-addressable by cell (db/version/connector from the filename).
 - **The branch trigger was a *property* (`__uuidString`)** — later generalised (case J) into the
   references-by-role family: `--ref-property` lists where a member is read/written as `x.member` (not a
   call), e.g. `--search __uuidString --ref-property full` → the `DBColumnImpl`/`ValueSourceImpl` sites.
@@ -305,7 +301,7 @@ dialect emission, focused on the failing db:
 ```bash
 bun run tests:where-is --search orderBy --coord sqlserver/newest/mssql \
     --emitted-sql full --ref-implements full --bugs full \
-    --classification summary --chain none --docs none --simplified none --tests detail --examples none --neg-types none
+    --classification summary --chain none --docs none --simplified none --tests detail --neg-types none
 ```
 
 ```markdown
@@ -381,7 +377,7 @@ Then the dialect decision — search the toggle, foreground who does **not** ove
 
 ```bash
 bun run tests:where-is --search _useUpdateOldValueInFrom --ref-implements full --version-gates full \
-    --classification summary --chain none --signature summary --docs none --simplified none --tests none --examples none --neg-types none
+    --classification summary --chain none --signature summary --docs none --simplified none --tests none --neg-types none
 ```
 
 ```markdown
@@ -428,7 +424,7 @@ PG≥18, keep the emulation for <18, add a new `newest` cell (today's → a `<18
 
 ```bash
 bun run tests:where-is --search compatibilityVersion --version-gates full --classification summary \
-    --docs full --chain none --signature none --ref-implements none --tests none --examples none --neg-types none
+    --docs full --chain none --signature none --ref-implements none --tests none --neg-types none
 ```
 
 ```markdown
@@ -471,23 +467,20 @@ bun run tests:audit                        -- # the symmetry gate
 
 ---
 
-# Case F — post-fix sync: a fixed bug left SQL stale, and the limits of indexed SQL
+# Case F — post-fix sync: a fixed bug left SQL stale
 
-F **doesn't need the searcher** — but it's a useful safety net, and it taught where the index's reach
-ends. After a fix changes the emitted SQL, every place that *shows* it is stale, and they refresh
+F **doesn't need the searcher** — but it's a useful safety net. After a fix changes the emitted SQL, every place that *shows* it is stale, and they refresh
 differently:
 
 - **test snapshots** — refresh with `bun run tests <coord> --update-snapshots`; they fail loudly.
 - **docs** — the `.md` is the source the doc-code extractor turns into generated, then indexed,
   tests; a stale doc SQL silently propagates. User-owned (`test/templates/doc-code/`).
-- **legacy examples** — hand-written, **assert at runtime, not via inline snapshots** — so their SQL
-  is **not** in the index.
 
 ## F.1 — find the stale SQL the searcher *can* see (tests + docs)
 
 ```bash
 bun run tests:where-is --search <feature> --emitted-sql full --docs full \
-    --classification summary --chain none --tests detail --examples summary
+    --classification summary --chain none --tests detail
 ```
 
 `--emitted-sql` lists the asserted snapshot occurrences across **tests + docs**, labelled by refresh
@@ -495,21 +488,12 @@ kind (tests auto via `--update-snapshots`; docs user-owned, regen via `codegen:d
 `--emits-keyword '<old fragment>'` is the **inverse of D's debug use**: D went *fragment → emitting
 code*; F goes *fragment → where it's rendered* — to find what a fix left stale.
 
-## The honest limit (the discovery)
-
-The legacy examples' SQL is **not indexed** (runtime assertions, not inline snapshots), so the
-searcher can't list a stale *example SQL string*. It can still point at the example **occurrences**
-of the symbol (`--examples`) and at the ownership boundary, but for examples the agent must open
-them. So `emitted-sql` covers **two** SQL-bearing dimensions (tests + docs), not three.
-
 ### What F taught → what shipped
 - **`emitted-sql` aggregates the SQL it can index — tests + docs** — labelled by refresh kind. Built.
 - **`--emits-keyword` doubles as a stale-sync finder** (fragment → rendered occurrences). Built.
 - **`bugs` is light** — `test/BUGS.md` (and `test/LIMITATIONS.md`) are read directly by the agent;
   only the `// TODO[BUG]` / `// TODO[LIMITATION]` markers are indexed (`--bugs` / `--limitation`).
 - **Ownership travels with the finding** — the doc source is labelled user-owned (locate, don't edit).
-- *The limit:* legacy-example SQL isn't inline, so it isn't in `emitted_sql`; the example dimension is
-  coord-addressable by cell, but its SQL text stays out of the index.
 
 ---
 
@@ -996,8 +980,7 @@ module-local declarations.
 - **K — `--search-body <regex>` (a door over declaration bodies): rejected, recorded.** When the shape
   references a **named** type, `--search-pattern` over that token already finds the sibling aliases
   (K.1) — the common case is covered. The only residue is a *purely structural* shape with no shared
-  named token (`T | null`), which isn't nameable and is honest `grep` territory — the same wall as F's
-  non-inline example SQL. A body-search door buys a rare case `grep` already serves. Recorded in
+  named token (`T | null`), which isn't nameable and is honest `grep` territory. A body-search door buys a rare case `grep` already serves. Recorded in
   [`MODEL.md` §6](./MODEL.md) so it isn't re-proposed.
 - *Verified-false premise (mine):* "`--search-pattern` is exported-only." The matcher has no visibility
   filter; the miss was a sliced-output artifact. Re-running clean is what caught it — the same

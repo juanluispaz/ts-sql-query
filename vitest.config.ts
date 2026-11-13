@@ -82,8 +82,8 @@ export default defineConfig({
                 : process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'mappers'
                     ? { include: ['src/queryRunners/connectorErrorMappers/*.ts', 'src/queryRunners/databaseErrorMappers/*.ts'] }
                 : process.env['TS_SQL_QUERY_COVERAGE_SCOPE'] === 'all'
-                    ? { include: ['src/**/*.ts'], exclude: ['src/examples/**'] }
-                    : { exclude: ['src/examples/**', 'test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*', 'src/utils/transactionIsolationLevel.ts'] }),
+                    ? { include: ['src/**/*.ts'] }
+                    : { exclude: ['test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*', 'src/utils/transactionIsolationLevel.ts'] }),
             reportsDirectory: '.test-report/coverage',
         },
     },

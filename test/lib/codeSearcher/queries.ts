@@ -340,19 +340,6 @@ function callChainByName(db: QueryDb, seed: string, broad: boolean): ChainResult
     return { hops, truncated }
 }
 
-// One row per legacy-example OCCURRENCE of the name, carrying the example's cell coordinates
-// (db/version/connector from the filename) so the searcher can apply --coord per occurrence and
-// then count (occurrences + distinct blocks).
-export interface ExampleOcc { example_block_id: number, db: string, version: string, connector: string }
-export function exampleOccurrences(db: QueryDb, name: string): ExampleOcc[] {
-    return db.all<ExampleOcc>(
-        `SELECT er.example_block_id, COALESCE(eb.db,'') AS db, COALESCE(eb.version,'') AS version, COALESCE(eb.connector,'') AS connector
-         FROM example_ref er JOIN example_block eb ON eb.id=er.example_block_id
-         WHERE er.symbol_name=?`,
-        [name],
-    )
-}
-
 // ── neg_type (§11.2): which negative assertions guard the name, by db ────────
 export interface NegCoverageRow { db: string, assertions: number }
 export function negCoverage(db: QueryDb, name: string): NegCoverageRow[] {
@@ -453,14 +440,12 @@ export function knownDbs(db: QueryDb): string[] {
 export function knownBreakpoints(db: QueryDb): string[] {
     return db.all<{ breakpoint: string }>(`SELECT DISTINCT breakpoint FROM version_gate ORDER BY breakpoint`).map(r => r.breakpoint)
 }
-// Every distinct cell+file the searcher can address with --coord — the matrix test files UNION
-// the legacy-example files (examples carry their cell in the filename). `file` lets a 4th-level
-// coord (db/version/connector/file) be nullglob-validated; coordMatch ignores it for shorter coords.
+// Every distinct cell+file the searcher can address with --coord — the matrix test files.
+// `file` lets a 4th-level coord (db/version/connector/file) be nullglob-validated; coordMatch
+// ignores it for shorter coords.
 export function distinctCells(db: QueryDb): { db: string, version: string, connector: string, file: string }[] {
     return db.all<{ db: string, version: string, connector: string, file: string }>(
-        `SELECT DISTINCT db, version, connector, file FROM test_block
-         UNION
-         SELECT DISTINCT db, version, connector, file FROM example_block WHERE db IS NOT NULL`,
+        `SELECT DISTINCT db, version, connector, file FROM test_block`,
     )
 }
 
@@ -844,8 +829,7 @@ export function discovery(db: QueryDb, name: string): DiscoveryRow[] {
          UNION ALL SELECT 'src-call',    count(*) FROM invocation WHERE callee_name=?
          UNION ALL SELECT 'test',        count(*) FROM test_ref   WHERE symbol_name=?
          UNION ALL SELECT 'doc-test',    count(*) FROM doc_test_ref WHERE symbol_name=?
-         UNION ALL SELECT 'example',     count(*) FROM example_ref  WHERE symbol_name=?
          UNION ALL SELECT 'neg-type',    count(*) FROM neg_type_ref WHERE symbol_name=?`,
-        [name, name, name, name, name, name, name],
+        [name, name, name, name, name, name],
     )
 }

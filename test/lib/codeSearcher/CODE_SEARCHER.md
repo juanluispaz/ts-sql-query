@@ -10,8 +10,8 @@ shot — the questions the coverage-generation agent actually asks:
 - How is it **reached** from the public API — the call-chain up to the public callers
   (any area, grouped), crossing the interface↔class bridge?
 - Where is it **explained** in the docs (page + heading + exact `md_line`), reflected
-  in a **simplified definition**, **exemplified** (legacy examples), and **tested**
-  (matrix coverage by db + negative-type assertions)?
+  in a **simplified definition**, and **tested** (matrix coverage by db + negative-type
+  assertions)?
 
 This folder is the **SEARCHER** — it only *reads* the index. The tool that *builds*
 it ([`tests:index`](../codeIndexer/CODE_INDEXER.md)) is a separate producer. The
@@ -139,7 +139,7 @@ Defaults reproduce the classic report. The `R<n>` recipe labels match the sectio
 | **Surface / siblings** | `surfaceOf` | (`--surface own\|all\|full`) the members of the declaring type(s): a TYPE seed → its members, a MEMBER seed → its siblings. Level = inheritance scope (own / +inherited&implemented flat / broken-down-by-source via the `heritage` closure); every member carries `path:line` + span |
 | **Version gates** | `version_gate` | (`--version-gates`) compatibility-version branches + the methods they gate (case E) |
 | **Emitted SQL** | `emitted_sql` | (`--emitted-sql`) the asserted SQL the symbol's tests/docs produce, de-duped with the asserting cells (case C/D/F) |
-| **Coverage** | R2 + neg_type | (`--tests <summary\|detail\|gaps>`) matrix tests by db (`newest/total`), per-test detail, or who's-missing per db; legacy examples; negative-type assertions |
+| **Coverage** | R2 + neg_type | (`--tests <summary\|detail\|gaps>`) matrix tests by db (`newest/total`), per-test detail, or who's-missing per db; negative-type assertions |
 | **Known divergences** | `todo_marker` | (`--bugs`) `// TODO[BUG]` markers **naming the symbol** (case C/D/F); name-scoped |
 | **Known limitations** | `todo_marker` | (`--limitation`) `// TODO[LIMITATION]` markers **naming the symbol**; name-scoped |
 | **Dialect boundaries** | `todo_marker` | (`--not-applicable`) `// NOT-APPLICABLE` markers **naming the symbol** — a permanent dialect boundary; name-scoped. `summary` groups by reason and reports the cell count |
@@ -193,7 +193,7 @@ not just the public callers — for understanding a deep emission site end to en
 
 **Name-based search (`--name-search full`).** `discovery` in [`queries.ts`](queries.ts) ignores the
 call-chain entirely and counts every occurrence of the name across all dimensions
-(symbol/member/invocation/test/doc/example/neg). It finds usages the graph can't connect
+(symbol/member/invocation/test/doc/neg). It finds usages the graph can't connect
 (dynamic dispatch, re-exports), at the cost of noise — high recall, low precision.
 
 > **Resolution-scatter caveat** (inherited from the index, see
@@ -215,7 +215,7 @@ call-chain entirely and counts every occurrence of the name across all dimension
   realizing the simplified def `SelectExpression`; **Explained in docs** at
   `docs/api/select.md` (the `SelectExpression` decl) plus every `.orderBy(...)`
   query example across `docs/queries/*.md` with exact lines; **Coverage** the matrix
-  tests + the example occurrences + the negative-type assertions.
+  tests + the negative-type assertions.
 
 That is the precise internal→public→docs→tests chain the index was built to support,
 reachable from a single coverage-report symbol.

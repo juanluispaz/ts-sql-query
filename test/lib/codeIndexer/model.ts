@@ -146,27 +146,6 @@ export interface InvocationRow {
     resolved_member_id: number | null   // …and the member, when the callee resolves to one
 }
 
-export interface ExampleBlockRow {
-    id: number
-    file: string
-    db: string | null         // database the example targets, from the filename (null if unrecognised)
-    version: string | null    // 'oldest' (filename has -compatibility) | 'newest'
-    connector: string | null  // driver/connector from the filename ('' for documentation/ generators)
-    is_doc: 0 | 1
-    ordinal: number
-    start_line: number
-    end_line: number
-}
-
-export interface ExampleRefRow {
-    example_block_id: number
-    symbol_name: string
-    line: number          // 1-based line of this occurrence in the example .ts file
-    col: number
-    resolved_symbol_id: number | null   // checker-resolved declaration: indexed symbol (null if it binds outside the lib)
-    resolved_member_id: number | null   // …and the member, when it resolves to one
-}
-
 export interface NegTypeRow {
     id: number
     file: string
@@ -305,14 +284,6 @@ export const INSERTS = {
     docTestRef: {
         sql: 'INSERT INTO doc_test_ref (doc_test_block_id,symbol_name,md_line,md_col,resolved_symbol_id,resolved_member_id) VALUES (?,?,?,?,?,?)',
         row: (r: DocTestRefRow): SqlValue[] => [r.doc_test_block_id, r.symbol_name, r.md_line, r.md_col, r.resolved_symbol_id, r.resolved_member_id],
-    },
-    exampleBlock: {
-        sql: 'INSERT INTO example_block (id,file,db,version,connector,is_doc,ordinal,start_line,end_line) VALUES (?,?,?,?,?,?,?,?,?)',
-        row: (r: ExampleBlockRow): SqlValue[] => [r.id, r.file, r.db, r.version, r.connector, r.is_doc, r.ordinal, r.start_line, r.end_line],
-    },
-    exampleRef: {
-        sql: 'INSERT INTO example_ref (example_block_id,symbol_name,line,col,resolved_symbol_id,resolved_member_id) VALUES (?,?,?,?,?,?)',
-        row: (r: ExampleRefRow): SqlValue[] => [r.example_block_id, r.symbol_name, r.line, r.col, r.resolved_symbol_id, r.resolved_member_id],
     },
     negType: {
         sql: 'INSERT INTO neg_type (id,file,db,marker_line,target_line,description,snippet,scope) VALUES (?,?,?,?,?,?,?,?)',

@@ -28,7 +28,7 @@ detect_runtime() {
 write_scoped_bunfig() {
     local scope="$1" patterns entry name
     case "$scope" in
-        all) patterns='"src/examples/**", "test/**"' ;;
+        all) patterns='"test/**"' ;;
         runners)
             patterns='"test/**", "src/queryRunners/connectorErrorMappers/**", "src/queryRunners/databaseErrorMappers/**"'
             # src/utils/transactionIsolationLevel.ts belongs to the runners

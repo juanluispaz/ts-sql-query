@@ -277,9 +277,8 @@ re-validate" loop benefits the most. Full flag reference in
   `onConflictDoUpdateSet(...)`. A verbatim copy doesn't compile. See
   [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md).
 - **Before marking a test `NOT-APPLICABLE` because of the connector**, read
-  `docs/configuration/query-runners/recommended/<connector>.md` and the
-  connector's example in `src/examples/`: the setup they show may make the
-  test runnable.
+  `docs/configuration/query-runners/recommended/<connector>.md`: the setup
+  it shows may make the test runnable.
 
 ## Engine traps worth knowing
 

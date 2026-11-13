@@ -14,7 +14,6 @@ import { extractExtras, extractTodoMarkers, extractEmittedSql } from './extractE
 import { reconcileSimplified } from './reconcileSimplified.js'
 import { extractTests } from './extractTests.js'
 import { extractDocTests } from './extractDocTests.js'
-import { extractExamples } from './extractExamples.js'
 import { extractNegTypeTests } from './extractNegTypeTests.js'
 import { Ids } from './model.js'
 import type { TestBlockRow, TestRefRow } from './model.js'
@@ -45,7 +44,6 @@ async function main(): Promise<void> {
     const testRefs: TestRefRow[] = []
     extractTests(program, checker, src.declMap, ids, testBlocks, testRefs)
     const docs = extractDocTests(program, checker, src.declMap, ids)
-    const examples = extractExamples(program, checker, src.declMap, ids)
     const negTypes = extractNegTypeTests(program, checker, src.declMap, ids)
     const extras = extractExtras(program, checker, src.declMap, src.modules, ids)
     const todos = extractTodoMarkers(program, ids)
@@ -62,7 +60,6 @@ async function main(): Promise<void> {
     check('test blocks ≥ 10000', testBlocks.length >= 10000, `${testBlocks.length}`)
     check('test refs ≥ 100000', testRefs.length >= 100000, `${testRefs.length}`)
     check('doc-test blocks ≥ 100', docs.docTestBlocks.length >= 100, `${docs.docTestBlocks.length}`)
-    check('example blocks ≥ 100', examples.exampleBlocks.length >= 100, `${examples.exampleBlocks.length}`)
     check('neg-type assertions ≥ 100', negTypes.negTypes.length >= 100, `${negTypes.negTypes.length}`)
 
     // ── referential integrity of the STRUCTURAL FKs (populated regardless of resolve) ──
@@ -80,7 +77,6 @@ async function main(): Promise<void> {
         `${src.heritage.filter(h => typeAliasIds.has(h.symbol_id)).length}`)
     allIn('test_ref.test_block_id → test_block', testRefs.map(r => r.test_block_id), new Set(testBlocks.map(b => b.id)))
     allIn('doc_test_ref.doc_test_block_id → doc_test_block', docs.docTestRefs.map(r => r.doc_test_block_id), new Set(docs.docTestBlocks.map(b => b.id)))
-    allIn('example_ref.example_block_id → example_block', examples.exampleRefs.map(r => r.example_block_id), new Set(examples.exampleBlocks.map(b => b.id)))
     allIn('neg_type_ref.neg_type_id → neg_type', negTypes.negTypeRefs.map(r => r.neg_type_id), new Set(negTypes.negTypes.map(n => n.id)))
 
     // ── id uniqueness (the shared Ids counter must hand out unique ids) ──
@@ -147,12 +143,6 @@ async function main(): Promise<void> {
     check('emitted sql ≥ 1000', emittedSql.length >= 1000, `${emittedSql.length}`)
     check('emitted sql sources ⊆ {test,doc}', emittedSql.every(e => e.source === 'test' || e.source === 'doc'))
     check('emitted sql looks like SQL', emittedSql.every(e => /^(select|insert|update|delete|with|create|drop|alter|truncate|begin|commit|rollback|savepoint|merge|set )/i.test(e.sql)))
-    const KNOWN_DBS = new Set(['mariadb', 'mysql', 'oracle', 'postgres', 'sqlite', 'sqlserver'])
-    check('example.db ⊆ known dbs ∪ null', examples.exampleBlocks.every(b => b.db === null || KNOWN_DBS.has(b.db)))
-    check('most example blocks have a db', examples.exampleBlocks.filter(b => b.db !== null).length > examples.exampleBlocks.length * 0.8, `${examples.exampleBlocks.filter(b => b.db !== null).length}/${examples.exampleBlocks.length}`)
-    check('example.version ⊆ {newest,oldest}', examples.exampleBlocks.every(b => b.version === 'newest' || b.version === 'oldest'))
-    check('some oldest (-compatibility) examples', examples.exampleBlocks.some(b => b.version === 'oldest'))
-    check('most non-doc example blocks have a connector', examples.exampleBlocks.filter(b => b.is_doc === 0 && b.connector).length > examples.exampleBlocks.filter(b => b.is_doc === 0).length * 0.8)
 
     console.log(`\n${failures === 0 ? 'OK — all invariants hold' : `FAILED — ${failures} invariant(s) broken`}`)
     process.exit(failures === 0 ? 0 : 1)

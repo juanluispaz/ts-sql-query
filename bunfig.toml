@@ -3,8 +3,6 @@
 # write_scoped_bunfig in scripts/_test-common.sh).
 #
 # The list scopes coverage to the library without its query runners:
-#   * src/examples/**  — legacy executable examples; not the test/
-#     suite's target.
 #   * test/**          — test infrastructure and the test files
 #                        themselves.
 #   * src/queryRunners/* and the two error-mapper folders — driver code,
@@ -13,4 +11,4 @@
 [test]
 # Force UTC before any test module loads (see test/lib/setupTimezone.ts).
 preload = ["./test/lib/setupTimezone.ts"]
-coveragePathIgnorePatterns = ["src/examples/**", "test/**", "src/queryRunners/*", "src/queryRunners/connectorErrorMappers/*", "src/queryRunners/databaseErrorMappers/*", "src/utils/transactionIsolationLevel.ts"]
+coveragePathIgnorePatterns = ["test/**", "src/queryRunners/*", "src/queryRunners/connectorErrorMappers/*", "src/queryRunners/databaseErrorMappers/*", "src/utils/transactionIsolationLevel.ts"]

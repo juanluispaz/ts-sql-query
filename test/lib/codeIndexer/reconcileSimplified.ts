@@ -144,11 +144,9 @@ export function reconcileSimplified(src: SrcExtract, program: ts.Program): Recon
     }
 
     // The root class + ALL its descendant LIBRARY classes (downward closure over `extends`).
-    // Example/user subclasses (src/examples — a docs' `Connection extends PostgreSqlConnection`
-    // with its own methods) are EXCLUDED: they'd pollute the diff with user API.
     const isLibraryClass = (s: SymbolRow): boolean => {
         const a = areaOfModule.get(s.module_id)
-        return s.kind === 'class' && a !== 'simplified' && a !== 'examples'
+        return s.kind === 'class' && a !== 'simplified'
     }
     const subtreeClasses = (root: string): SymbolRow[] => {
         const out: SymbolRow[] = []; const seen = new Set<string>(); const stack = [root]

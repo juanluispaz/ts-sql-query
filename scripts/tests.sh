@@ -364,7 +364,7 @@ Coverage flags
   --coverage-scope <library|runners|mappers|all>
         Which source the coverage report measures. `library` (default)
         is the library without its query runners: src/ minus
-        src/examples, src/queryRunners/* and the two error-mapper
+        src/queryRunners/* and the two error-mapper
         folders — the scope every coverage:report* /
         coverage:for-discover-tests* script drives. `runners` is the
         query runners only (src/queryRunners/*.ts, without the
@@ -399,7 +399,7 @@ Coverage flags
 
         Scope (which source files end up in the report) is set in
         bunfig.toml and vitest.config.ts — both exclude
-        `src/examples/**` and `test/**` by default. To narrow scope
+        `test/**` by default. To narrow scope
         for a specific cell, prefer `tests <coord>`; to alter
         the project defaults, edit those config files.
 

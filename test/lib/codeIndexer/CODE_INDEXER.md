@@ -1,7 +1,7 @@
 # Code Indexer
 
 A queryable **SQLite map of the whole `ts-sql-query` codebase** — `src/` + the
-`test/` matrix + the published `docs/` + the legacy `src/examples/` — so tooling can
+`test/` matrix + the published `docs/` — so tooling can
 ask precise questions about the project instead of grepping:
 
 - Does symbol `X` exist? Is it public (importable through `package.json` exports) or
@@ -209,16 +209,6 @@ the impl — match by name across the owning family).
   so `md_line = gen_line + (md_start − begin_file_line)` and the column is unchanged.
   Answers "where in the docs is `X` reflected / explained?".
 
-### legacy examples dimension — [`extractExamples.ts`](extractExamples.ts)
-- **example_block.{db,version,connector}** — the matrix CELL each legacy example targets, derived
-  from its filename (no folder structure): db (`PgExample`→postgres), version (`-compatibility`
-  suffix → oldest, else newest), connector (`PgExample`→pg, `BunSqlPostgresExample`→bun_sql_postgres,
-  …; `''` for the `documentation/` per-db generators). Via `dbFromExampleFile` /
-  `versionFromExampleFile` / `connectorFromExampleFile`. These columns let the searcher's `--coord`
-  address the legacy examples by full cell, exactly like the matrix test cells.
-- **example_block** / **example_ref** — `src/examples/` cases; `example_ref` is one row
-  per occurrence with `line`/`col` + `resolved_symbol_id`/`resolved_member_id`.
-
 ### negative-type dimension — [`extractNegTypeTests.ts`](extractNegTypeTests.ts)
 - **neg_type** — one row per `// @ts-expect-error` in a `test/db/<db>/types.negative/` cell:
   the `description` (the rule), `marker_line` → `target_line` (the code asserted to fail),
@@ -294,8 +284,7 @@ Six dimensions the searcher's intents need (see [`../codeSearcher/MODEL.md`](../
   searcher recovers the owning block by `file` + line-containment (`test_block.start_line..end_line`,
   or `doc_test_block.gen_start_line..gen_end_line`), so this stays decoupled from those extractors.
   Surfaced by `--emitted-sql` (the SQL a symbol's tests/docs assert, cases C/D) and matchable by
-  fragment for the stale-SQL sweep (case F). Legacy `src/examples/` use runtime assertions, not
-  inline snapshots, so they are not represented here.
+  fragment for the stale-SQL sweep (case F).
 
 ## Three tricky patterns it captures
 
@@ -471,8 +460,7 @@ WITH fam AS (
   SELECT m.id FROM member m JOIN symbol s ON s.id = m.symbol_id
   JOIN module mo ON mo.id = s.module_id WHERE m.name = :m AND mo.area != 'simplified')
 SELECT 'test' dim, count(*) n FROM test_ref    WHERE resolved_member_id IN (SELECT id FROM fam)
-UNION ALL SELECT 'doc', count(*)  FROM doc_test_ref WHERE resolved_member_id IN (SELECT id FROM fam)
-UNION ALL SELECT 'ex',  count(*)  FROM example_ref  WHERE resolved_member_id IN (SELECT id FROM fam);
+UNION ALL SELECT 'doc', count(*)  FROM doc_test_ref WHERE resolved_member_id IN (SELECT id FROM fam);
 
 -- Negative-type coverage: which API a `@ts-expect-error` guards, with its rule + .md line.
 SELECT nt.db, nt.file, nt.marker_line, nt.description, group_concat(DISTINCT m.name) AS guards_api
@@ -494,10 +482,9 @@ each other (schema ↔ model ↔ extractor), kept in sync by hand.
   extractSrc.ts         ─┐  READ the complete, compiled source files from the Program
   extractTests.ts        │  (BEGIN/END honoured by line range, never sliced); resolve
   extractDocTests.ts     │  each reference via the checker → resolved_*_id; emit row
-  extractExamples.ts     │  objects (ids from a shared Ids counter)
-  extractNegTypeTests.ts │
+  extractNegTypeTests.ts │  objects (ids from a shared Ids counter)
   extractExtras.ts       ─┘
-        │  walk.ts only ENUMERATES paths (test/, src/examples/) to feed the Program lookup
+        │  walk.ts only ENUMERATES paths (test/) to feed the Program lookup
         ▼
   model.ts   row TYPES (one interface per table) + INSERTS (sql + column order)
         │
@@ -516,7 +503,6 @@ each other (schema ↔ model ↔ extractor), kept in sync by hand.
 | [`reconcileSimplified.ts`](reconcileSimplified.ts) | the curated `simplified def → class` table + the synthesised heritage edges and the member-coverage diff (`reconcile`/`reconcile_gap`). Edit the table here to add a mapping. |
 | [`extractTests.ts`](extractTests.ts) | `test_block`/`test_ref`; **exports the shared AST helpers** (`cellOf`, `asTestCall`, `describeName`, `firstStringArg`, `collectRefPositions`) reused by `extractDocTests`. |
 | [`extractDocTests.ts`](extractDocTests.ts) | the documentation dimension (BEGIN/END snippet regions in the compiled generated cells; refs resolved, positions mapped back to the `.md`). |
-| [`extractExamples.ts`](extractExamples.ts) | `example_block`/`example_ref` (interval segmentation of legacy examples). |
 | [`extractNegTypeTests.ts`](extractNegTypeTests.ts) | `neg_type`/`neg_type_ref` — one row per `// @ts-expect-error` in `types.negative` cells + the API it guards (resolved). |
 | [`extractExtras.ts`](extractExtras.ts) | `version_gate`/`sql_emit`/`producer`/`reference` (`extractExtras`), `todo_marker` (`extractTodoMarkers`) and `emitted_sql` (`extractEmittedSql`). |
 | [`verify.ts`](verify.ts) | structural smoke test (`tests:index:verify`) — re-extracts in `--no-resolve` mode and asserts counts/referential-integrity/id-uniqueness/reconcile invariants in memory. |

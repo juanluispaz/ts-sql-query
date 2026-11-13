@@ -23,12 +23,12 @@ and **`--for <intent>` presets the section set**:
 | Intent | Triggered by | Door | Sections it raises | Anti-pattern |
 |---|---|---|---|---|
 | **bare** | "I want only one section" | any | **nothing** — every section `none`; add the one(s) you want explicitly (`--for bare --surface own`). Saves a dozen `--<section> none` | — |
-| **coverage-gap** | a red `src/` line, or a name to cover | `--search-location` (enclosing) · `--search` | classification · `--chain full` · `--ref-return` · simplified · docs · `--tests gaps` · examples · `--cell-caveats` | — |
-| **propagation** | the canonical cell is baked; copy it to siblings | `--search` (`--coord '*/newest'`) | classification · `--tests gaps` · examples · `--cell-caveats` · `--chain none` | replicating ≠ finding — no chain/producers needed |
+| **coverage-gap** | a red `src/` line, or a name to cover | `--search-location` (enclosing) · `--search` | classification · `--chain full` · `--ref-return` · simplified · docs · `--tests gaps` · `--cell-caveats` | — |
+| **propagation** | the canonical cell is baked; copy it to siblings | `--search` (`--coord '*/newest'`) | classification · `--tests gaps` · `--cell-caveats` · `--chain none` | replicating ≠ finding — no chain/producers needed |
 | **type-bug** | a type-resolution error on a name (case J) | `--search <name>` | `--declared full` · `--signature full` · `--ref-type-arg full` · `--neg-types full` · `--bugs` · `--limitation` · `--not-applicable` · `--not-supported` · `--mock-only` · **`--chain none`** | the TYPE twin of emission-bug: the error is in the **signature**, never a frame — chasing the call-chain is wasted |
 | **emission-bug** (real-vs-mock) | "this test fails on the real DB" (a test path) | test-line `--search-location` · `--emits-keyword` | `--emitted-sql` · `--ref-implements` (incl. **non-overriders**) · `--version-gates` · `--bugs` · `--limitation` · `--not-applicable` · `--not-supported` · `--mock-only` · **`--chain none`** | `--chain` is useless here (build→execute is data-flow) |
 | **version-work** | a DB release note / breakpoint | `--search compatibilityVersion` · `--emits-keyword` | `--version-gates full` · tests · `--bugs` · `--limitation` · `--not-applicable` · `--not-supported full` · `--mock-only` | starting from one statement kind hides the others |
-| **post-fix-sync** | a merged fix changed the emitted SQL | `--emits-keyword` · `--search <feature>` | `--emitted-sql` · docs · examples · tests detail · `--bugs` | a `--update-snapshots` run leaves examples + docs stale |
+| **post-fix-sync** | a merged fix changed the emitted SQL | `--emits-keyword` · `--search <feature>` | `--emitted-sql` · docs · tests detail · `--bugs` | a `--update-snapshots` run leaves the docs stale |
 
 The three axes are orthogonal and combine freely:
 
@@ -68,8 +68,7 @@ These recurred across the cases and shaped the model. Each notes how it landed.
 - **L4 — The receiver question ≠ the reach question.** For a method on an intermediate fluent type,
   "who reaches it" is useless; the agent needs "**what public call returns an object I can call this
   on**". *Built:* **`--ref-return`** (members whose return type resolves to the owner interface).
-- **L5 — Dimensions earn their keep per intent.** `examples` is marginal in one gap, *load-bearing*
-  in another (per-connector uuid setup); `bugs`/`emitted-sql` only matter for debugging;
+- **L5 — Dimensions earn their keep per intent.** `bugs`/`emitted-sql` only matter for debugging;
   `version-gates` only for version work. *Built:* every section is independently levelled, default
   `none` for the intent-specific ones, so each intent pays only for what it raises.
 - **L6 — Coordinates are the unit of test work.** Every test task is "this cell first
@@ -80,9 +79,7 @@ These recurred across the cases and shaped the model. Each notes how it landed.
   rendered in **docs** (the doc-code extractor turns docs into generated, then indexed, tests). A
   `--update-snapshots` fixes only the tests; the docs go stale silently. *Built:* **`emitted-sql`**
   aggregates **tests + docs** and labels each by refresh kind (tests auto via `--update-snapshots`;
-  docs user-owned, regen via `codegen:doc-code`). Legacy `src/examples/` use *runtime* assertions,
-  not inline snapshots, so their SQL is **not** in `emitted_sql` — but the examples dimension is
-  still `--coord`-addressable by cell (§4).
+  docs user-owned, regen via `codegen:doc-code`).
 - **L8 — Ownership is part of the answer.** Doc SQL and `test/templates/doc-code/` are the human's
   domain; the agent **locates but doesn't edit** them — `emitted-sql` labels the doc source as
   "user-owned". And `test/BUGS.md` / `test/LIMITATIONS.md` are just *read* (small files); only the
@@ -164,7 +161,6 @@ flag).
 | `--simplified` | none·**summary**·full | reconcile (completeness vs real API + drift) + where the member is shown inside a simplified-def snippet |
 | `--emitted-sql` | **none**·summary·full | the asserted SQL from **tests + docs**, de-duped with the asserting cells + refresh kind (L2, L7) |
 | `--tests` | none·**summary**·detail·gaps | rollup `newest/total` per db / per-test / who's-**missing** per db |
-| `--examples` | none·**summary**·full | legacy `src/examples/` occurrences (L5) |
 | `--neg-types` | none·**summary**·full | `@ts-expect-error` assertions — `summary` = count per db; `full` = each rule comment + rejected snippet + file:line (to model a new lock, cases H/I) |
 | `--bugs` | **none**·summary·full | `// TODO[BUG]` markers **naming the symbol** — a src/ defect (→ `test/BUGS.md`); name-scoped |
 | `--limitation` | **none**·summary·full | `// TODO[LIMITATION]` markers **naming the symbol** — not covered yet / env (→ `test/LIMITATIONS.md`); name-scoped |
@@ -210,9 +206,8 @@ The filter design **collapsed** to a single global focus. An earlier draft had a
 
 - **`--coord <db[/version[/connector[/file]]]>`** — the single focus filter, glob `*` + brace `{a,b}`,
   **repeatable** (union). It focuses **every db/cell-aware section**, best-effort per dimension:
-  - **tests · emitted-sql (test rows) · legacy examples** match the **full cell** (db/version/
-    connector, plus the test-file basename at the 4th level). Examples derive their cell from the
-    *filename* (`PgExample`→`postgres/newest/pg`, `MariaDBExample-compatibility`→`mariadb/oldest/mariadb`).
+  - **tests · emitted-sql (test rows)** match the **full cell** (db/version/connector, plus the
+    test-file basename at the 4th level).
   - **docs · shown-in-simplified-def · neg-types · emitted-sql (doc rows)** match the **db segment**
     only (no version/connector axis); db-agnostic `general` docs are always kept.
   - A coord matching no indexed cell/file is an **error** (nullglob). The 4th (file) segment is a
@@ -230,8 +225,8 @@ views — see §6.
 ## 5. What the index provides
 
 The base — `symbol` / `member` / `heritage` / `invocation` / `reconcile` / `test_block` /
-`doc_test_block` / `example_block` / `neg_type` (+ their `*_ref`) — already powered classification,
-signature, chain, implemented-by, docs, simplified, tests, examples, neg-types. The intents above
+`doc_test_block` / `neg_type` (+ their `*_ref`) — already powered classification,
+signature, chain, implemented-by, docs, simplified, tests, neg-types. The intents above
 added **six dimensions** (built in `extractExtras.ts`, asserted in `verify.ts`):
 
 | Dimension | Powers | How it's derived |
@@ -243,9 +238,7 @@ added **six dimensions** (built in `extractExtras.ts`, asserted in `verify.ts`):
 | `emitted_sql` | `--emitted-sql` | `toMatchInlineSnapshot` SQL in test + documentation cells; the searcher joins it to the block by file + line-containment |
 | `reference` | `--ref-type-arg`/`--ref-param`/`--ref-field`/`--ref-new`/`--ref-property`/`--ref-brand` (roles `type-arg`/`param`/`field`/`new`/`property`/`brand`) | checker-resolved references to an indexed element by syntactic role; resolution-gated (empty under `--no-resolve`) |
 
-`example_block` also gained `db`/`version`/`connector` columns (filename-derived) so `--coord`
-addresses the legacy examples by full cell. `test/BUGS.md` and `test/LIMITATIONS.md` are read
-directly by the agent, not indexed.
+`test/BUGS.md` and `test/LIMITATIONS.md` are read directly by the agent, not indexed.
 
 ---
 
@@ -290,7 +283,7 @@ directly by the agent, not indexed.
   by the *shape* of its definition (reuse-don't-reinvent), but when the shape references a **named** type,
   `--search-pattern <token>` over that token already surfaces the sibling aliases — the common case is
   covered. The only residue is a *purely structural* shape with no shared named token (`T | null`), which
-  isn't nameable and is honest `grep` territory — the same wall as F's non-inline example SQL. A new door
+  isn't nameable and is honest `grep` territory. A new door
   buys a rare case `grep` already serves. (The suspected "exported-only" scope of `--search-pattern` that
   surfaced alongside was **verified false** — `nameIndex` has no visibility filter; the miss was a
   sliced-output artifact.)

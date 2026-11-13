@@ -25,7 +25,6 @@ import { extractExtras, extractTodoMarkers, extractEmittedSql } from './extractE
 import { reconcileSimplified } from './reconcileSimplified.js'
 import { extractTests } from './extractTests.js'
 import { extractDocTests } from './extractDocTests.js'
-import { extractExamples } from './extractExamples.js'
 import { extractNegTypeTests } from './extractNegTypeTests.js'
 
 const DEFAULT_OUT = 'test/lib/codeIndexer/generated/code-index.sqlite'
@@ -126,7 +125,7 @@ async function main(): Promise<void> {
     db.insertMany(INSERTS.meta.sql, meta, ([key, value]) => INSERTS.meta.row({ key, value }))
 
     // Insert each dimension AS SOON AS it's extracted and let it go out of scope before the
-    // next runs, so the big per-occurrence ref arrays (test ~700k, example ~190k) never all
+    // next runs, so the big per-occurrence ref arrays (test ~700k) never all
     // live at once — only one dimension's rows + the persistent Program/declMap are resident.
     const lines: string[] = []
 
@@ -184,12 +183,6 @@ async function main(): Promise<void> {
         db.insertMany(INSERTS.docTestBlock.sql, d.docTestBlocks, INSERTS.docTestBlock.row)
         db.insertMany(INSERTS.docTestRef.sql, d.docTestRefs, INSERTS.docTestRef.row)
         lines.push(`  doc-test blk:${d.docTestBlocks.length}`, `  doc-test ref:${d.docTestRefs.length}  (${pct(d.docTestRefs)})`)
-    }
-    {
-        const e = extractExamples(program, checker, declMap, ids)
-        db.insertMany(INSERTS.exampleBlock.sql, e.exampleBlocks, INSERTS.exampleBlock.row)
-        db.insertMany(INSERTS.exampleRef.sql, e.exampleRefs, INSERTS.exampleRef.row)
-        lines.push(`  example blk: ${e.exampleBlocks.length}`, `  example ref: ${e.exampleRefs.length}  (${pct(e.exampleRefs)})`)
     }
     {
         const n = extractNegTypeTests(program, checker, declMap, ids)

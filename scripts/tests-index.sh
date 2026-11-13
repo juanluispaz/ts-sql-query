@@ -8,7 +8,7 @@ Usage:
 
   --newest     : index only the NEWEST slice of the matrix — `<db>/newest/` +
                  `<db>/types.negative/` (mirrors the runner's `--run-versions newest`),
-                 plus all src/shared/docs/examples. The older version tiers
+                 plus all src/shared/docs. The older version tiers
                  (`<db>/oldest/`, `<db>/8_000_000/`, …) and `<db>/domain/` cells are
                  dropped from the program. Lower RAM / faster (the checker is ~70% of the
                  peak and grows with the matrix), and it's the slice the agent works with
@@ -74,7 +74,7 @@ time instead of as a single tsc program over the whole matrix + `src/` (see CLAU
 grow with the suite — re-measure before assuming the numbers above still hold.
 
 PURPOSE: build the CODE INDEX — a queryable SQLite database that maps the whole
-project (src + tests + docs + legacy examples) so tooling can ask precise questions
+project (src + tests + docs) so tooling can ask precise questions
 about it instead of grepping: does a symbol exist? is it public or internal? which
 tests/docs exercise it, and where? what public call-chain reaches an internal symbol?
 

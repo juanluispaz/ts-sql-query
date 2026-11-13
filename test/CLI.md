@@ -63,7 +63,6 @@ once. The heavy set:
 | `bun run validate:tests:newest` (single tsc program) | ~14 GB |
 | `bun run validate` / `build` | multi-GB |
 | `bun run tests:audit`, `npm run tests:index` / `tests:index:newest` | multi-GB |
-| `bun run all-examples` / `no-docker-examples` | multi-GB + containers |
 
 Two of those together can exceed the RAM of a 16 GB box, and then the OS
 OOM-killer takes one out; when they do fit, the CPU contention still produces
@@ -871,7 +870,7 @@ both write `index.html`).
 
 | Scope | Measures |
 |---|---|
-| `library` (default) | `src/` without the legacy examples (`src/examples/**`), the query runners (`src/queryRunners/*`), the two error-mapper folders and `src/utils/transactionIsolationLevel.ts` (only the runners use it) — the library's own code |
+| `library` (default) | `src/` without the query runners (`src/queryRunners/*`), the two error-mapper folders and `src/utils/transactionIsolationLevel.ts` (only the runners use it) — the library's own code |
 | `runners` | the query runners alone (`src/queryRunners/*.ts`, without the error-mapper folders), plus `src/utils/transactionIsolationLevel.ts` — see [Coverage of the query runners](#coverage-of-the-query-runners) |
 | `mappers` | the two error-mapper folders alone — see [Coverage of the error mappers](#coverage-of-the-error-mappers) |
 | `all` | every file under `src/` but the legacy examples |

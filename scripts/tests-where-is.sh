@@ -10,7 +10,7 @@ search), then shape the report with one levelled flag per section (--chain/--ref
 --version-gates/--bugs/…; "none" hides it), narrow with filters, or preset with --for <intent>.
 Doors include --emits-keyword, --location-target callees, and a TEST-file --search-location (inverse
 search). --coord <db[/version[/connector[/file]]]> is the single global focus (glob/brace,
-repeatable) across every db/cell-aware section, incl. legacy examples; the 4th file level coexists with --file-name-pattern. Index = --index.
+repeatable) across every db/cell-aware section; the 4th file level coexists with --file-name-pattern. Index = --index.
 
 This is the SEARCHER; tests:index BUILDS the index (a separate producer). It only READS the
 index (read-only) and warns if it looks stale. Build/refresh it first with `tests:index:newest`

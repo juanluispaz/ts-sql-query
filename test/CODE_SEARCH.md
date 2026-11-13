@@ -2,8 +2,8 @@
 
 **Search the codebase for a symbol** and get back, in one report, where it lives, how
 it's reached from the public API, where it's explained in the docs, and which tests
-cover it — across `src/`, the `test/` matrix, the published `docs/` and the legacy
-`src/examples/`, without grepping four worlds by hand.
+cover it — across `src/`, the `test/` matrix and the published `docs/`, without grepping three
+worlds by hand.
 
 The searcher is the **feature**. It runs against a queryable **SQLite map of the
 codebase** (the *code index*), which is just a **prerequisite** you build once.
@@ -25,7 +25,7 @@ exist for the person modifying the tools, not for the agent consuming them.
 **This tool understands TypeScript; `grep` understands text.** The searcher runs against a *resolved
 semantic index* — the compiler's view of the code: who declares what, what's public vs internal, which
 call resolves to which member, how a type is used, where the same symbol surfaces across `src/`, the
-`test/` matrix, `docs/` and `src/examples/`. `grep` matches characters. Pick the one that fits the
+`test/` matrix and `docs/`. `grep` matches characters. Pick the one that fits the
 *question*, not the habit.
 
 **Reach for `tests:where-is` when the question is semantic or structural:**
@@ -37,7 +37,7 @@ call resolves to which member, how a type is used, where the same symbol surface
 - **Type usage by role** — *where is this type used as a type argument / parameter / field / `new` / a brand
   key?* Resolved to the exact indexed type — `grep "Foo"` can't tell a type argument from a comment.
 - **Cross-world joins** — *where is it explained in docs, which simplified def reflects it, how saturated is
-  its matrix coverage?* One report across four worlds, instead of grepping each by hand.
+  its matrix coverage?* One report across three worlds, instead of grepping each by hand.
 - **Structure** — *what does this type implement, what else can I call in this state, which overload sits at
   this line?* Overload-aware, brand-aware, owner-aware.
 
@@ -48,7 +48,7 @@ call resolves to which member, how a type is used, where the same symbol surface
   literal times".
 - **Text in files the index doesn't parse** — a `package.json` script name, an env-var or CLI-flag string,
   a key in a config/JSON file, a shell snippet. The index parses **TypeScript + docs** (`src/`, `test/`,
-  `docs/`, `src/examples/`); anything outside that surface is `grep`'s job.
+  `docs/`); anything outside that surface is `grep`'s job.
 - **A quick existence check when the index is stale** and you can't rebuild — `grep` confirms a string is
   present; just don't trust it for *public vs internal* or *reachable from where*.
 
@@ -164,7 +164,6 @@ to hide it (`--chain none`).
 | `--simplified` | none · **summary** · full | when the name IS a simplified def: completeness vs the real API per source + drift; and where the member appears **inside** a simplified-def snippet |
 | `--emitted-sql` | **none** · summary · full | the asserted `toMatchInlineSnapshot` SQL the symbol's **tests + docs** produce, de-duped with the asserting cells + the refresh kind |
 | `--tests` | none · **summary** · detail · gaps | matrix coverage — `summary` = `newest/total` per db (`total` counts the indexed cells only: see [Index scope](#index-scope)); `detail` = per-test; `gaps` = who's-**missing** per db |
-| `--examples` | none · **summary** · full | legacy `src/examples/` occurrences |
 | `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions — `summary` = count per db; `full` = each assertion's **rule comment + rejected snippet + file:line** (what you model a new lock on) |
 | `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** — a **src/ defect** (the library should do this but fails; re-enabled in this cell once fixed) |
 | `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers naming the symbol — the library **doesn't cover this yet** (by choice) or this harness can't drive it (could re-enable here if that changes) |
@@ -246,7 +245,6 @@ global focus). Exact closed-set values; no fuzzy substrings.
 | | Matched against the coord |
 |---|---|
 | **tests**, **emitted-sql** (test rows) | the **full cell** — `db` / `version` / `connector` (/ test-file basename) |
-| **legacy examples** | the **full cell** too — db/version/connector are derived from the filename (`PgExample`→`postgres/newest/pg`, `MariaDBExample-compatibility`→`mariadb/oldest/mariadb`; the `documentation/` generators have no connector) |
 | **docs**, **shown-in-simplified-def**, **negative-type**, **emitted-sql** (doc rows) | the **db segment** only (these have no version/connector). db-agnostic `general` docs are always kept |
 
 The optional **4th (file) segment** is a glob/brace on the test-file **basename**; it **coexists**
@@ -254,7 +252,7 @@ with `--file-name-pattern` (a regex over the full path that also covers doc page
 coord matching no indexed cell/file is an **error** (nullglob), which depends on the [index
 scope](#index-scope). Examples: `--coord postgres`
 (everything postgres) · `--coord 'postgres/*/{pg,postgres}'` (those connectors) · `--coord
-'mariadb/oldest'` (the `-compatibility` examples) · `--coord 'postgres/newest/pg/select.order-by*'`
+'mariadb/oldest'` (an older tier, on a full index) · `--coord 'postgres/newest/pg/select.order-by*'`
 (a test file) · `--coord '*/newest' --coord mysql`.
 
 ### Narrow WITHIN the sections (orthogonal to the matrix axes)
@@ -274,12 +272,12 @@ default. Explicit flags still override.
 | `--for` | section `level` it sets |
 |---|---|
 | `bare` | **every section `none`** — a blank report; add only the section(s) you want instead of typing a dozen `--<section> none`. Explicit flags (and `--refs`) turn things back on: `--for bare --surface own` shows only the surface |
-| `coverage-gap` | classification `full` · chain `full` · ref-return `summary` · tests `gaps` · examples `full` · cell-caveats `summary`→`full` if `--coord` |
+| `coverage-gap` | classification `full` · chain `full` · ref-return `summary` · tests `gaps` · cell-caveats `summary`→`full` if `--coord` |
 | `type-bug` | declared `full` · signature `full` · ref-type-arg `full` · neg-types `full` · bugs `summary` · limitation `summary` · not-applicable `summary` · not-supported `summary` · mock-only `summary` · chain `none` — the TYPE counterpart of `emission-bug`: a type-resolution bug lives in the **signature**, not the call-chain, so it raises every declaration site, the full signature/overloads, the alias's blast radius (where the type is a type argument), the negative type tests, and any dialect-boundary marker (a `never` is often `NOT-APPLICABLE`) |
 | `emission-bug` | emitted-sql `full` · ref-implements `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · not-applicable `summary` · not-supported `summary` · mock-only `summary` · chain `none` |
 | `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · not-applicable `summary` · not-supported `full` · mock-only `summary` · chain `none` |
-| `post-fix-sync` | emitted-sql `full` · docs `full` · examples `full` · tests `detail` · bugs `summary` · chain `none` |
-| `propagation` | classification `summary` · tests `gaps` · examples `summary` · cell-caveats `summary`→`full` if `--coord` · chain `none` — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
+| `post-fix-sync` | emitted-sql `full` · docs `full` · tests `detail` · bugs `summary` · chain `none` |
+| `propagation` | classification `summary` · tests `gaps` · cell-caveats `summary`→`full` if `--coord` · chain `none` — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
 
 The caveat sections split by *scope*: `--bugs`/`--limitation`/`--not-supported`/`--not-applicable`/`--mock-only` are
 **name-scoped** (markers naming the symbol) and ride the feature-centric presets (`type-bug`/`emission-bug`/`version-work`
@@ -300,12 +298,12 @@ npm run tests:index           # full index (all version tiers + domain) — heav
 
 ### Index scope
 
-An index built with `tests:index:newest` (`meta.scope` = `newest`) holds all of `src/`, `docs/` and
-`src/examples/`, but of the matrix only `<db>/newest` and `<db>/types.negative`. **The older version
+An index built with `tests:index:newest` (`meta.scope` = `newest`) holds all of `src/` and `docs/`,
+but of the matrix only `<db>/newest` and `<db>/types.negative`. **The older version
 tiers and the `domain` cells are simply absent, and no report says so**: the header does not print the
 scope, so an empty section can mean "no such test" or "not indexed". On such an index, `--tests summary`
 shows a `newest/total` whose `total` leaves the older tiers out; a `--coord` naming an older tier or a domain cell is an
-error, unless a legacy example maps to it (`mariadb/oldest`), and then only the examples match.
+error.
 
 Before trusting an absence that may live in an older tier, read the scope and rebuild with `tests:index`
 if it says `newest`:
@@ -398,7 +396,7 @@ bun run tests:where-is --search <name> --name-search full       # every place th
 | **`--chain strict`** (default) | call-chain upward, **stop at the first public caller** (grouped by area) | "what public API reaches this — the precise route" |
 | **`--chain broad`** | call-chain, climbing **past** the public callers through the whole graph | "the wider surrounding chain" |
 | **`--chain full`** | the **entire internal stack**, every hop grouped by depth | "the complete route, internal included" — for understanding a deep emission site |
-| **`--name-search full`** | name-based across every dimension (symbols, members, tests, docs, examples, negatives) | "everywhere this name appears" (high recall, low precision) |
+| **`--name-search full`** | name-based across every dimension (symbols, members, tests, docs, negatives) | "everywhere this name appears" (high recall, low precision) |
 
 A hop is *public* when the calling function is itself public (a `public`/`public_impl` member or
 a public-surface symbol), in **any** area. **`--chain` is the wrong tool for an emission/syntax
@@ -425,8 +423,7 @@ the kind of thing a coverage report points you at):
 2. `tests:where-is --search orderBy` → **Implemented by** `AbstractSelect`, realizing the
    simplified def `SelectExpression`; **Explained in docs** at `docs/api/select.md`
    plus every `.orderBy(...)` example across `docs/queries/*.md` with exact lines;
-   **Coverage** the matrix tests across all databases + legacy examples + the
-   negative-type assertions.
+   **Coverage** the matrix tests across all databases + the negative-type assertions.
 
 That's the internal → public → docs → tests trail, from a single symbol.
 

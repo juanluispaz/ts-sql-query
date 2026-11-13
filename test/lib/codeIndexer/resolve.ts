@@ -38,7 +38,7 @@ export interface BuildProgramOptions {
  * domain cells) — i.e. a file under `test/db/<db>/<version>/…` whose `<version>`
  * segment is neither `newest` nor `types.negative`. Files directly under
  * `test/db/<db>/` (e.g. `runners.ts`) and everything outside `test/db/` (src,
- * lib, templates, db/general, docs, examples) are NOT older-tier, so they stay.
+ * lib, templates, db/general, docs) are NOT older-tier, so they stay.
  *
  * Path-shape check on the fileNames tsconfig produces (absolute, forward-slash
  * normalised on every platform ts targets). Auto-adapts to new tiers: any newly

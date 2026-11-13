@@ -53,7 +53,7 @@ describe(ctx.label, () => {
                 t: tTemporalPrecision.microStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(timestampdiff(microsecond, '1970-01-01 00:00:00', micro_stamp) / 1000) as t from temporal_precision where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(timestampdiff(microsecond, '1970-01-01 00:00:00', micro_stamp) / 1000) as t from temporal_precision where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:   tReleaseDraft.shiftedStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(shifted_stamp) as y, month(shifted_stamp) - 1 as mo, dayofmonth(shifted_stamp) as d, dayofweek(shifted_stamp) - 1 as dow, hour(shifted_stamp) as h, minute(shifted_stamp) as m, second(shifted_stamp) as s, floor(microsecond(shifted_stamp) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', shifted_stamp) / 1000) as t from release_draft where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(shifted_stamp) as y, month(shifted_stamp) - 1 as mo, dayofmonth(shifted_stamp) as d, dayofweek(shifted_stamp) - 1 as dow, hour(shifted_stamp) as h, minute(shifted_stamp) as m, second(shifted_stamp) as s, floor(microsecond(shifted_stamp) / 1000) as ms, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', shifted_stamp) / 1000) as t from release_draft where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

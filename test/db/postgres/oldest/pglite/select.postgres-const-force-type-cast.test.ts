@@ -24,7 +24,6 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
-import { assertType, type Exact } from '../../../../lib/assertType.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -155,24 +154,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-bigint-is-cast-as-int8', async () => {
-        // A `customBigint` is converted and cast as a `bigint`: `::int8`, also for a value past int32.
-        type AuditPosition = bigint & { readonly __brand: 'AuditPosition' }
-        const pos = 9_999_999_999n as AuditPosition
-        ctx.mockNext('9999999999')
-        const result = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<AuditPosition, 'AuditPosition'>(pos, 'customBigint', 'AuditPosition'))
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            9999999999n,
-          ]
-        `)
-        assertType<Exact<typeof result, AuditPosition>>()
-        expect(result).toBe(9_999_999_999n)
-    })
-
     test('const-custom-double-is-cast-as-float8', async () => {
         // A `customDouble` is cast as a `double`: `::float8`.
         type Money = number & { readonly __brand: 'Money' }
@@ -288,22 +269,4 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-localdate-in-a-date-part-carries-its-base-type', async () => {
-        // The same `customLocalDate` const as the receiver of a date part: inside
-        // `extract(... from $1)` nothing gives the parameter a type, so it is cast
-        // to the type its custom type is based on.
-        type SettlementDate = Date & { readonly __brand: 'SettlementDate' }
-        const d = new Date('2024-02-20T00:00:00Z') as SettlementDate
-        ctx.mockNext(2024)
-        const year = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<SettlementDate, 'SettlementDate'>(d, 'customLocalDate', 'SettlementDate').getFullYear())
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as result"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            2024-02-20T00:00:00.000Z,
-          ]
-        `)
-        expect(year).toBe(2024)
-    })
 })

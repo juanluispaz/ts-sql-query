@@ -839,4 +839,99 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1])
     })
 
+    test('getTime-is-the-instant-for-each-temporal-type-of-the-engine', async () => {
+        // getTime() of a localDateTime is the milliseconds of its instant, the same as the getTime() of the Date read,
+        // whatever form SQLite holds the value in: a text without zone, a text with Z, a text with an offset, a
+        // julian day number, before 1970 too, and a parameter. The values come from SQL fragments of each form.
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const text = value().sql`'2024-01-14 10:30:15'`
+        const textWithZ = value().sql`'2024-01-14T10:30:15.123Z'`
+        const withOffset = value().sql`'2024-01-14T19:30:15.123+09:00'`
+        const julian = value().sql`julianday('2024-01-14 10:30:15.123')`
+        const beforeEpoch = value().sql`'1960-06-01T00:00:00.250-05:00'`
+        const lastDayBeforeEpoch = value().sql`'1969-12-31T23:30:00.000-05:00'`
+        const parameter = ctx.conn.const(new Date('2024-01-14T10:30:15.123Z'), 'localDateTime')
+        const expected = {
+            text:               Date.UTC(2024, 0, 14, 10, 30, 15),
+            textWithZ:          Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            withOffset:         Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            julian:             Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            beforeEpoch:        Date.UTC(1960, 5, 1, 5, 0, 0, 250),
+            lastDayBeforeEpoch: Date.UTC(1970, 0, 1, 4, 30),
+            parameter:          Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+        }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                text:               text.getTime(),
+                textWithZ:          textWithZ.getTime(),
+                withOffset:         withOffset.getTime(),
+                julian:             julian.getTime(),
+                beforeEpoch:        beforeEpoch.getTime(),
+                lastDayBeforeEpoch: lastDayBeforeEpoch.getTime(),
+                parameter:          parameter.getTime(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(unixepoch('2024-01-14 10:30:15', 'subsec') * 1000) as text, round(unixepoch('2024-01-14T10:30:15.123Z', 'subsec') * 1000) as textWithZ, round(unixepoch('2024-01-14T19:30:15.123+09:00', 'subsec') * 1000) as withOffset, round(unixepoch(julianday('2024-01-14 10:30:15.123'), 'subsec') * 1000) as julian, round(unixepoch('1960-06-01T00:00:00.250-05:00', 'subsec') * 1000) as beforeEpoch, round(unixepoch('1969-12-31T23:30:00.000-05:00', 'subsec') * 1000) as lastDayBeforeEpoch, round(unixepoch(?1, 'subsec') * 1000) as parameter"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 10:30:15.123",
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            text:               number
+            textWithZ:          number
+            withOffset:         number
+            julian:             number
+            beforeEpoch:        number
+            lastDayBeforeEpoch: number
+            parameter:          number
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('getDay-is-the-day-of-the-instant-in-utc', async () => {
+        // getDay() of a value with a zone is the weekday of its instant in UTC (Sunday 0), not the one of the offset
+        // it was written with: 2024-01-15 02:30 +09:00 is Sunday 2024-01-14 17:30 UTC (getDay 0), while the day of
+        // its offset is a Monday. The same for the instant written without zone.
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const withOffset = value().sql`'2024-01-15T02:30:15.123+09:00'`
+        const text = value().sql`'2024-01-14 17:30:15.123'`
+        const expected = { withOffset: 0, text: 0 }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                withOffset: withOffset.getDay(),
+                text:       text.getDay(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%w','2024-01-15T02:30:15.123+09:00') as integer) as withOffset, cast(strftime('%w','2024-01-14 17:30:15.123') as integer) as text"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { withOffset: number; text: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — SQLite rounds the digits below a millisecond when it reads a text (.123789 is .124), so getTime() can't drop them as the Date read does.
+    /*
+    test('getTime-drops-the-digits-below-a-millisecond', async () => {
+        // 10:30:15.123789: getTime() and getMilliseconds() drop the digits below
+        // a millisecond, as the Date read drops them (123, not 124)
+        const expected = { t: 1705228215123, ms: 123, d: new Date(Date.UTC(2024, 0, 14, 10, 30, 15, 123)) }
+        ctx.mockNext(expected)
+        const value = ctx.conn.fragmentWithType('localDateTime', 'required').sql`'2024-01-14 10:30:15.123789'`
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ t: value.getTime(), ms: value.getMilliseconds(), d: value })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(unixepoch('2024-01-14 10:30:15.123789', 'subsec') * 1000) as t, cast(round(strftime('%f', '2024-01-14 10:30:15.123789') * 1000) as integer) % 1000 as ms, '2024-01-14 10:30:15.123789' as d"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { t: number; ms: number; d: Date }>>()
+        expect(row).toEqual(expected)
+        expect(row.t).toBe(row.d.getTime())
+    })
+    */
 })

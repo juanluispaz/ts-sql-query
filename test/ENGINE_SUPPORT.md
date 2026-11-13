@@ -369,6 +369,32 @@ it is declared, `this.sequence('MY_SCHEMA.ABS', 'int')` or
 library writes the name as it is (`MY_SCHEMA.ABS.nextval`). Or give it another
 name. No test of the matrix is gated by this.
 
+### Oracle stores an empty string as NULL
+
+Oracle has no empty string: `''` in a `VARCHAR2` is NULL. With `allowEmptyString`
+on, the library sends `''` as it is, and Oracle stores a NULL, which a `NOT NULL`
+column refuses (`ORA-01400: cannot insert NULL`) and a nullable one reads back as
+null. The round trip of `''` the other databases make can't happen.
+
+**Tests:** `config.allow-empty-string.test.ts` —
+`allow-empty-string: setIfValue keeps an empty string and round-trips it verbatim`
+is commented out with `// NOT-SUPPORTED:` in the `oracle/*` cells.
+
+### SQLite rounds the digits below a millisecond when it reads a text
+
+SQLite keeps a date and time with millisecond precision, and rounds the
+fractional seconds of a text to it when it reads the text:
+`strftime('%f', '2024-01-14 10:30:15.123789')` is `15.124` and
+`unixepoch(..., 'subsec')` ends in `.124`. The library reads the text itself
+and drops those digits, as every other database does (`.123`), so on SQLite
+`getTime()` and `getMilliseconds()` of a value with digits below a millisecond
+can be one millisecond more than the `Date` read. The library can't avoid it:
+the rounding happens inside SQLite's date functions.
+
+**Tests:** `select.date-ops.test.ts` —
+`getTime-drops-the-digits-below-a-millisecond` is commented out with
+`// NOT-SUPPORTED:` in the `sqlite/*` cells.
+
 # 2. Engine version gates
 
 The dialect **does** support the feature — from a given release on. The
@@ -703,6 +729,17 @@ MySQL 8.0+ reports the isolation level of the running transaction in
 read. MySQL 5.7 ships that transaction instrumentation disabled (the
 query returns no row), so the tests are commented out on the
 `mysql/oldest` cells and run on every MySQL 8.0+ cell.
+
+### MySQL accepts a date and time literal with an offset from MySQL 8.0.19
+
+A `DATETIME` or `TIMESTAMP` value written with an offset
+(`'2024-01-15 02:30:15+09:00'`) is accepted from MySQL 8.0.19, which converts it
+to the session zone. MySQL 5.7 rejects it with `Incorrect DATETIME value`.
+
+**Tests:** `select.date-ops.test.ts` —
+`getTime-is-the-instant-for-each-temporal-type-of-the-engine` and
+`getDay-is-the-day-of-the-instant-in-utc` are commented out with
+`// NOT-SUPPORTED:` in the `mysql/oldest/*` cells.
 
 ### MySQL window functions and the named `WINDOW` clause require MySQL 8.0.2+
 

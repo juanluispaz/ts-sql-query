@@ -525,4 +525,21 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('const-custom-localdate-getfullyear', async () => {
+        // getFullYear() of a customLocalDate const: 2024-02-20 gives 2024.
+        const d = new Date('2024-02-20T00:00:00Z')
+        ctx.mockNext(2024)
+        const year = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<Date, 'ReleaseDay'>(d, 'customLocalDate', 'ReleaseDay').getFullYear())
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?1) as integer) as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-02-20",
+          ]
+        `)
+        assertType<Exact<typeof year, number>>()
+        expect(year).toBe(2024)
+    })
+
 })

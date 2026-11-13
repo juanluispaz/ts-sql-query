@@ -193,4 +193,23 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('required-const/custom-bigint-past-int32', async () => {
+        // A customBigint const past int32 (9 999 999 999), selected alone, comes back as a bigint of the same value,
+        // typed as its brand.
+        type AuditPosition = bigint & { readonly __brand: 'AuditPosition' }
+        const pos = 9_999_999_999n as AuditPosition
+        ctx.mockNext('9999999999')
+        const result = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<AuditPosition, 'AuditPosition'>(pos, 'customBigint', 'AuditPosition'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9999999999n,
+          ]
+        `)
+        assertType<Exact<typeof result, AuditPosition>>()
+        expect(result).toBe(9_999_999_999n)
+    })
 })

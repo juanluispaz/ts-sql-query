@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, hour(?) as h, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as t"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, hour(?) as h, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -123,7 +123,7 @@ describe(ctx.label, () => {
                 far: far.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as pre, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as eve, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as sub, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as far"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as pre, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as eve, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as sub, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as far"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1969-12-30T12:00:00.000Z,
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, dayofmonth(?) as d, dayofweek(?) - 1 as dow, hour(?) as h, minute(?) as m, second(?) as s, floor(microsecond(?) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as t"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as y, month(?) - 1 as mo, dayofmonth(?) as d, dayofweek(?) - 1 as dow, hour(?) as h, minute(?) as m, second(?) as s, floor(microsecond(?) / 1000) as ms, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -522,6 +522,23 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ s1: number; ms1: number; s2: number; ms2: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('const-custom-localdate-getfullyear', async () => {
+        // getFullYear() of a customLocalDate const: 2024-02-20 gives 2024.
+        const d = new Date('2024-02-20T00:00:00Z')
+        ctx.mockNext(2024)
+        const year = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<Date, 'ReleaseDay'>(d, 'customLocalDate', 'ReleaseDay').getFullYear())
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-20T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof year, number>>()
+        expect(year).toBe(2024)
     })
 
 })

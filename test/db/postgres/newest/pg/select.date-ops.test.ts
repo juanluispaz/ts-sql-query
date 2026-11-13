@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 t:  tOrganization.createdAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(extract(epoch from created_at) * 1000) as t from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, floor(extract(epoch from created_at) * 1000) as t from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -279,7 +279,7 @@ describe(ctx.label, () => {
                 before: tProjectRelease.releasedOn.lessThan(new Date(Date.UTC(2024, 1, 1, 10, 0, 0))),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from released_on) as y, extract(hour from cutoff_time) as h, round(extract(epoch from signed_off_at) * 1000) as t, released_on < $1 as before from project_release where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from released_on) as y, extract(hour from cutoff_time) as h, floor(extract(epoch from signed_off_at) * 1000) as t, released_on < $1 as before from project_release where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-01T10:00:00.000Z,
@@ -691,7 +691,7 @@ describe(ctx.label, () => {
                     t:   tProject.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as y, extract(month from archived_at) - 1 as mo, extract(day from archived_at) as d, extract(dow from archived_at) as dow, extract(hour from archived_at) as h, extract(minute from archived_at) as m, trunc(extract(second from archived_at))::integer as s, trunc(extract(millisecond from archived_at))::integer % 1000 as ms, round(extract(epoch from archived_at) * 1000) as t from project where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as y, extract(month from archived_at) - 1 as mo, extract(day from archived_at) as d, extract(dow from archived_at) as dow, extract(hour from archived_at) as h, extract(minute from archived_at) as m, trunc(extract(second from archived_at))::integer as s, trunc(extract(millisecond from archived_at))::integer % 1000 as ms, floor(extract(epoch from archived_at) * 1000) as t from project where id = $1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -762,7 +762,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.signedOffAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from signed_off_at) as y, extract(month from signed_off_at) - 1 as mo, extract(day from signed_off_at) as d, extract(dow from signed_off_at) as dow, extract(hour from signed_off_at) as h, extract(minute from signed_off_at) as m, trunc(extract(second from signed_off_at))::integer as s, trunc(extract(millisecond from signed_off_at))::integer % 1000 as ms, round(extract(epoch from signed_off_at) * 1000) as t from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from signed_off_at) as y, extract(month from signed_off_at) - 1 as mo, extract(day from signed_off_at) as d, extract(dow from signed_off_at) as dow, extract(hour from signed_off_at) as h, extract(minute from signed_off_at) as m, trunc(extract(second from signed_off_at))::integer as s, trunc(extract(millisecond from signed_off_at))::integer % 1000 as ms, floor(extract(epoch from signed_off_at) * 1000) as t from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -840,4 +840,99 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1])
     })
 
+    test('getTime-is-the-instant-for-each-temporal-type-of-the-engine', async () => {
+        // getTime() of a localDateTime is the milliseconds of its instant, the same as the getTime() of the Date read,
+        // whatever PostgreSQL type holds the value: a timestamp, a timestamp with microseconds, a timestamptz written
+        // with an offset or with a region, before 1970 too, and a parameter. The values come from SQL fragments of
+        // each type.
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const timestamp = value().sql`timestamp '2024-01-14 10:30:15'`
+        const microseconds = value().sql`timestamp '2024-01-14 10:30:15.123456'`
+        const withOffset = value().sql`timestamptz '2024-01-14 19:30:15.123456+09:00'`
+        const withRegion = value().sql`timestamptz '2024-07-01 19:30:15.123 Europe/Madrid'`
+        const beforeEpoch = value().sql`timestamptz '1960-06-01 00:00:00.250456-05:00'`
+        const lastDayBeforeEpoch = value().sql`timestamptz '1969-12-31 23:30:00-05:00'`
+        const parameter = ctx.conn.const(new Date('2024-01-14T10:30:15.123Z'), 'localDateTime')
+        const expected = {
+            timestamp:          Date.UTC(2024, 0, 14, 10, 30, 15),
+            microseconds:       Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            withOffset:         Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            withRegion:         Date.UTC(2024, 6, 1, 17, 30, 15, 123),
+            beforeEpoch:        Date.UTC(1960, 5, 1, 5, 0, 0, 250),
+            lastDayBeforeEpoch: Date.UTC(1970, 0, 1, 4, 30),
+            parameter:          Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+        }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                timestamp:          timestamp.getTime(),
+                microseconds:       microseconds.getTime(),
+                withOffset:         withOffset.getTime(),
+                withRegion:         withRegion.getTime(),
+                beforeEpoch:        beforeEpoch.getTime(),
+                lastDayBeforeEpoch: lastDayBeforeEpoch.getTime(),
+                parameter:          parameter.getTime(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(extract(epoch from timestamp '2024-01-14 10:30:15') * 1000) as timestamp, floor(extract(epoch from timestamp '2024-01-14 10:30:15.123456') * 1000) as microseconds, floor(extract(epoch from timestamptz '2024-01-14 19:30:15.123456+09:00') * 1000) as "withOffset", floor(extract(epoch from timestamptz '2024-07-01 19:30:15.123 Europe/Madrid') * 1000) as "withRegion", floor(extract(epoch from timestamptz '1960-06-01 00:00:00.250456-05:00') * 1000) as "beforeEpoch", floor(extract(epoch from timestamptz '1969-12-31 23:30:00-05:00') * 1000) as "lastDayBeforeEpoch", floor(extract(epoch from $1::timestamp) * 1000) as parameter"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T10:30:15.123Z,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            timestamp:          number
+            microseconds:       number
+            withOffset:         number
+            withRegion:         number
+            beforeEpoch:        number
+            lastDayBeforeEpoch: number
+            parameter:          number
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('getDay-is-the-day-of-the-instant-in-utc', async () => {
+        // getDay() of a value with a zone is the weekday of its instant in UTC (Sunday 0), not the one of the offset
+        // it was written with: 2024-01-15 02:30 +09:00 is Sunday 2024-01-14 17:30 UTC (getDay 0), while the day of
+        // its offset is a Monday. The same for a region, and for the instant written without zone.
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const withOffset = value().sql`timestamptz '2024-01-15 02:30:15.123+09:00'`
+        const withRegion = value().sql`timestamptz '2024-01-15 00:30:15.123 Europe/Madrid'`
+        const timestamp = value().sql`timestamp '2024-01-14 17:30:15.123'`
+        const expected = { withOffset: 0, withRegion: 0, timestamp: 0 }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                withOffset: withOffset.getDay(),
+                withRegion: withRegion.getDay(),
+                timestamp:  timestamp.getDay(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(dow from timestamptz '2024-01-15 02:30:15.123+09:00') as "withOffset", extract(dow from timestamptz '2024-01-15 00:30:15.123 Europe/Madrid') as "withRegion", extract(dow from timestamp '2024-01-14 17:30:15.123') as timestamp"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { withOffset: number; withRegion: number; timestamp: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+
+    test('getTime-drops-the-digits-below-a-millisecond', async () => {
+        // 10:30:15.123789: getTime() and getMilliseconds() drop the digits below
+        // a millisecond, as the Date read drops them (123, not 124)
+        const expected = { t: 1705228215123, ms: 123, d: new Date(Date.UTC(2024, 0, 14, 10, 30, 15, 123)) }
+        ctx.mockNext(expected)
+        const value = ctx.conn.fragmentWithType('localDateTime', 'required').sql`timestamp '2024-01-14 10:30:15.123789'`
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ t: value.getTime(), ms: value.getMilliseconds(), d: value })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(extract(epoch from timestamp '2024-01-14 10:30:15.123789') * 1000) as t, trunc(extract(millisecond from timestamp '2024-01-14 10:30:15.123789'))::integer % 1000 as ms, timestamp '2024-01-14 10:30:15.123789' as d"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { t: number; ms: number; d: Date }>>()
+        expect(row).toEqual(expected)
+        expect(row.t).toBe(row.d.getTime())
+    })
 })

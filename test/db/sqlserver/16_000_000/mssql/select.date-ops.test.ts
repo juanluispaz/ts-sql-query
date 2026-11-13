@@ -838,4 +838,103 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1])
     })
 
+    test('getTime-is-the-instant-for-each-temporal-type-of-the-engine', async () => {
+        // getTime() of a localDateTime is the milliseconds of its instant, the same as the getTime() of the Date read,
+        // whatever SQL Server type holds the value: a datetime, a datetime2(7) with 100 ns (truncated to the
+        // millisecond, as a Date), a smalldatetime, a datetimeoffset written with an offset or got from a region with
+        // at time zone, before 1970 too, and a parameter. The values come from SQL fragments of each type.
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const datetime = value().sql`cast('2024-01-14T10:30:15' as datetime)`
+        const datetime2 = value().sql`cast('2024-01-14T10:30:15.1234567' as datetime2(7))`
+        const smalldatetime = value().sql`cast('2024-01-14T10:30:00' as smalldatetime)`
+        const withOffset = value().sql`cast('2024-01-14T19:30:15.123+09:00' as datetimeoffset(3))`
+        const withRegion = value().sql`cast('2024-07-01T19:30:15.123' as datetime2(3)) at time zone 'Romance Standard Time'`
+        const beforeEpoch = value().sql`cast('1960-06-01T00:00:00.250-05:00' as datetimeoffset(3))`
+        const lastDayBeforeEpoch = value().sql`cast('1969-12-31T23:30:00-05:00' as datetimeoffset(0))`
+        const parameter = ctx.conn.const(new Date('2024-01-14T10:30:15.123Z'), 'localDateTime')
+        const expected = {
+            datetime:           Date.UTC(2024, 0, 14, 10, 30, 15),
+            datetime2:          Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            smalldatetime:      Date.UTC(2024, 0, 14, 10, 30),
+            withOffset:         Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            withRegion:         Date.UTC(2024, 6, 1, 17, 30, 15, 123),
+            beforeEpoch:        Date.UTC(1960, 5, 1, 5, 0, 0, 250),
+            lastDayBeforeEpoch: Date.UTC(1970, 0, 1, 4, 30),
+            parameter:          Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+        }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                datetime:           datetime.getTime(),
+                datetime2:          datetime2.getTime(),
+                smalldatetime:      smalldatetime.getTime(),
+                withOffset:         withOffset.getTime(),
+                withRegion:         withRegion.getTime(),
+                beforeEpoch:        beforeEpoch.getTime(),
+                lastDayBeforeEpoch: lastDayBeforeEpoch.getTime(),
+                parameter:          parameter.getTime(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datediff_big(millisecond, '1970-01-01 00:00:00', cast('2024-01-14T10:30:15' as datetime)) as datetime, datediff_big(millisecond, '1970-01-01 00:00:00', cast('2024-01-14T10:30:15.1234567' as datetime2(7))) as datetime2, datediff_big(millisecond, '1970-01-01 00:00:00', cast('2024-01-14T10:30:00' as smalldatetime)) as smalldatetime, datediff_big(millisecond, '1970-01-01 00:00:00', cast('2024-01-14T19:30:15.123+09:00' as datetimeoffset(3))) as withOffset, datediff_big(millisecond, '1970-01-01 00:00:00', cast('2024-07-01T19:30:15.123' as datetime2(3)) at time zone 'Romance Standard Time') as withRegion, datediff_big(millisecond, '1970-01-01 00:00:00', cast('1960-06-01T00:00:00.250-05:00' as datetimeoffset(3))) as beforeEpoch, datediff_big(millisecond, '1970-01-01 00:00:00', cast('1969-12-31T23:30:00-05:00' as datetimeoffset(0))) as lastDayBeforeEpoch, datediff_big(millisecond, '1970-01-01 00:00:00', @0) as parameter"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T10:30:15.123Z,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            datetime:           number
+            datetime2:          number
+            smalldatetime:      number
+            withOffset:         number
+            withRegion:         number
+            beforeEpoch:        number
+            lastDayBeforeEpoch: number
+            parameter:          number
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('getDay-is-the-day-of-the-instant-in-utc', async () => {
+        // getDay() of a value with a zone is the weekday of its instant in UTC (Sunday 0), not the one of the offset
+        // it was written with: 2024-01-15 02:30 +09:00 is Sunday 2024-01-14 17:30 UTC (getDay 0), while the day of
+        // its offset is a Monday. The same for a region, and for the instant written without zone.
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const withOffset = value().sql`cast('2024-01-15T02:30:15.123+09:00' as datetimeoffset(3))`
+        const withRegion = value().sql`cast('2024-01-15T00:30:15.123' as datetime2(3)) at time zone 'Romance Standard Time'`
+        const datetime2 = value().sql`cast('2024-01-14T17:30:15.123' as datetime2(3))`
+        const expected = { withOffset: 0, withRegion: 0, datetime2: 0 }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                withOffset: withOffset.getDay(),
+                withRegion: withRegion.getDay(),
+                datetime2:  datetime2.getDay(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (datepart(weekday, switchoffset(cast('2024-01-15T02:30:15.123+09:00' as datetimeoffset(3)), '+00:00')) + @@datefirst - 1) % 7 as withOffset, (datepart(weekday, switchoffset(cast('2024-01-15T00:30:15.123' as datetime2(3)) at time zone 'Romance Standard Time', '+00:00')) + @@datefirst - 1) % 7 as withRegion, (datepart(weekday, switchoffset(cast('2024-01-14T17:30:15.123' as datetime2(3)), '+00:00')) + @@datefirst - 1) % 7 as datetime2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { withOffset: number; withRegion: number; datetime2: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('getTime-drops-the-digits-below-a-millisecond', async () => {
+        // 10:30:15.123789: getTime() and getMilliseconds() drop the digits below
+        // a millisecond, as the Date read drops them (123, not 124)
+        const expected = { t: 1705228215123, ms: 123, d: new Date(Date.UTC(2024, 0, 14, 10, 30, 15, 123)) }
+        ctx.mockNext(expected)
+        const value = ctx.conn.fragmentWithType('localDateTime', 'required').sql`cast('2024-01-14 10:30:15.1237890' as datetime2(7))`
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ t: value.getTime(), ms: value.getMilliseconds(), d: value })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datediff_big(millisecond, '1970-01-01 00:00:00', cast('2024-01-14 10:30:15.1237890' as datetime2(7))) as t, datepart(millisecond, cast('2024-01-14 10:30:15.1237890' as datetime2(7))) as ms, cast('2024-01-14 10:30:15.1237890' as datetime2(7)) as d"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { t: number; ms: number; d: Date }>>()
+        expect(row).toEqual(expected)
+        expect(row.t).toBe(row.d.getTime())
+    })
+
 })

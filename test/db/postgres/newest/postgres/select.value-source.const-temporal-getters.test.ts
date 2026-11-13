@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(hour from $3) as h, round(extract(epoch from $4) * 1000) as t"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(hour from $3) as h, floor(extract(epoch from $4) * 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -123,7 +123,7 @@ describe(ctx.label, () => {
                 far: far.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(extract(epoch from $1) * 1000) as pre, round(extract(epoch from $2) * 1000) as eve, round(extract(epoch from $3) * 1000) as sub, round(extract(epoch from $4) * 1000) as far"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(extract(epoch from $1) * 1000) as pre, floor(extract(epoch from $2) * 1000) as eve, floor(extract(epoch from $3) * 1000) as sub, floor(extract(epoch from $4) * 1000) as far"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1969-12-30T12:00:00.000Z,
@@ -446,7 +446,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(day from $3) as d, extract(dow from $4) as dow, extract(hour from $5) as h, extract(minute from $6) as m, trunc(extract(second from $7))::integer as s, trunc(extract(millisecond from $8))::integer % 1000 as ms, round(extract(epoch from $9) * 1000) as t"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as y, extract(month from $2) - 1 as mo, extract(day from $3) as d, extract(dow from $4) as dow, extract(hour from $5) as h, extract(minute from $6) as m, trunc(extract(second from $7))::integer as s, trunc(extract(millisecond from $8))::integer % 1000 as ms, floor(extract(epoch from $9) * 1000) as t"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -522,6 +522,23 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ s1: number; ms1: number; s2: number; ms2: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('const-custom-localdate-getfullyear', async () => {
+        // getFullYear() of a customLocalDate const: 2024-02-20 gives 2024.
+        const d = new Date('2024-02-20T00:00:00Z')
+        ctx.mockNext(2024)
+        const year = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<Date, 'ReleaseDay'>(d, 'customLocalDate', 'ReleaseDay').getFullYear())
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-20T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof year, number>>()
+        expect(year).toBe(2024)
     })
 
 })

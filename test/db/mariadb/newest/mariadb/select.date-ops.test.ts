@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 t:  tOrganization.createdAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(timestampdiff(microsecond, '1970-01-01 00:00:00', created_at) / 1000) as t from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', created_at) / 1000) as t from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
                 before: tProjectRelease.releasedOn.lessThan(new Date(Date.UTC(2024, 1, 1, 10, 0, 0))),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(released_on) as y, hour(cutoff_time) as h, round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as t, released_on < ? as \`before\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(released_on) as y, hour(cutoff_time) as h, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as t, released_on < ? as \`before\` from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-01T10:00:00.000Z,
@@ -689,7 +689,7 @@ describe(ctx.label, () => {
                     t:   tProject.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(archived_at) as y, month(archived_at) - 1 as mo, dayofmonth(archived_at) as d, dayofweek(archived_at) - 1 as dow, hour(archived_at) as h, minute(archived_at) as m, second(archived_at) as s, floor(microsecond(archived_at) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', archived_at) / 1000) as t from project where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(archived_at) as y, month(archived_at) - 1 as mo, dayofmonth(archived_at) as d, dayofweek(archived_at) - 1 as dow, hour(archived_at) as h, minute(archived_at) as m, second(archived_at) as s, floor(microsecond(archived_at) / 1000) as ms, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', archived_at) / 1000) as t from project where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -760,7 +760,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.signedOffAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(signed_off_at) as y, month(signed_off_at) - 1 as mo, dayofmonth(signed_off_at) as d, dayofweek(signed_off_at) - 1 as dow, hour(signed_off_at) as h, minute(signed_off_at) as m, second(signed_off_at) as s, floor(microsecond(signed_off_at) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as t from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(signed_off_at) as y, month(signed_off_at) - 1 as mo, dayofmonth(signed_off_at) as d, dayofweek(signed_off_at) - 1 as dow, hour(signed_off_at) as h, minute(signed_off_at) as m, second(signed_off_at) as s, floor(microsecond(signed_off_at) / 1000) as ms, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as t from release_overview where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -839,4 +839,84 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1])
     })
 
+    test('getTime-is-the-instant-for-each-temporal-type-of-the-engine', async () => {
+        // getTime() of a localDateTime is the milliseconds of its instant, the same as the getTime() of the Date read,
+        // whatever MariaDB value holds it: a DATETIME, a DATETIME(6) with microseconds, before 1970 too, and a
+        // parameter. MariaDB has no literal with a zone. The values come from SQL fragments of each type.
+        const value = () => ctx.conn.fragmentWithType('localDateTime', 'required')
+        const datetime = value().sql`timestamp '2024-01-14 10:30:15'`
+        const microseconds = value().sql`cast('2024-01-14 10:30:15.123456' as datetime(6))`
+        const beforeEpoch = value().sql`cast('1960-06-01 05:00:00.250456' as datetime(6))`
+        const lastDayBeforeEpoch = value().sql`timestamp '1969-12-31 23:30:00'`
+        const parameter = ctx.conn.const(new Date('2024-01-14T10:30:15.123Z'), 'localDateTime')
+        const expected = {
+            datetime:           Date.UTC(2024, 0, 14, 10, 30, 15),
+            microseconds:       Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+            beforeEpoch:        Date.UTC(1960, 5, 1, 5, 0, 0, 250),
+            lastDayBeforeEpoch: Date.UTC(1969, 11, 31, 23, 30),
+            parameter:          Date.UTC(2024, 0, 14, 10, 30, 15, 123),
+        }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                datetime:           datetime.getTime(),
+                microseconds:       microseconds.getTime(),
+                beforeEpoch:        beforeEpoch.getTime(),
+                lastDayBeforeEpoch: lastDayBeforeEpoch.getTime(),
+                parameter:          parameter.getTime(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(timestampdiff(microsecond, '1970-01-01 00:00:00', timestamp '2024-01-14 10:30:15') / 1000) as datetime, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', cast('2024-01-14 10:30:15.123456' as datetime(6))) / 1000) as microseconds, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', cast('1960-06-01 05:00:00.250456' as datetime(6))) / 1000) as beforeEpoch, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', timestamp '1969-12-31 23:30:00') / 1000) as lastDayBeforeEpoch, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as parameter"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T10:30:15.123Z,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            datetime:           number
+            microseconds:       number
+            beforeEpoch:        number
+            lastDayBeforeEpoch: number
+            parameter:          number
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('getDay-is-the-day-of-the-instant-in-utc', async () => {
+        // getDay() is the weekday of the instant in UTC (Sunday 0): 2024-01-14 17:30 is a Sunday. MariaDB has no
+        // literal with a zone, so only the instant written without zone is checked.
+        const datetime = ctx.conn.fragmentWithType('localDateTime', 'required').sql`timestamp '2024-01-14 17:30:15.123'`
+        const expected = { datetime: 0 }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                datetime: datetime.getDay(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dayofweek(timestamp '2024-01-14 17:30:15.123') - 1 as datetime"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { datetime: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+
+    test('getTime-drops-the-digits-below-a-millisecond', async () => {
+        // 10:30:15.123789: getTime() and getMilliseconds() drop the digits below
+        // a millisecond, as the Date read drops them (123, not 124)
+        const expected = { t: 1705228215123, ms: 123, d: new Date(Date.UTC(2024, 0, 14, 10, 30, 15, 123)) }
+        ctx.mockNext(expected)
+        const value = ctx.conn.fragmentWithType('localDateTime', 'required').sql`cast('2024-01-14 10:30:15.123789' as datetime(6))`
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ t: value.getTime(), ms: value.getMilliseconds(), d: value })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(timestampdiff(microsecond, '1970-01-01 00:00:00', cast('2024-01-14 10:30:15.123789' as datetime(6))) / 1000) as t, floor(microsecond(cast('2024-01-14 10:30:15.123789' as datetime(6))) / 1000) as ms, cast('2024-01-14 10:30:15.123789' as datetime(6)) as d"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { t: number; ms: number; d: Date }>>()
+        expect(row).toEqual(expected)
+        expect(row.t).toBe(row.d.getTime())
+    })
 })

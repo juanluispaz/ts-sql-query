@@ -18,7 +18,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ForceTypeCast } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
-import { DBConnection, tProject } from '../../domain/connection.js'
+import { DBConnection, tProject, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -31,6 +31,17 @@ const tProjectForcedCast = new class TProjectForcedCast extends Table<DBConnecti
     id   = this.column('id',   'int',    forceCast)
     name = this.column('name', 'string', forceCast)
     constructor() { super('project') }
+}()
+
+// The `issue` table with `view_count` as a `customInt` and `estimated_hours` as a
+// `customDouble`, both wrapped in the same adapter: the type given to the
+// database is the one of their category (int and double).
+const tIssueForcedCast = new class TIssueForcedCast extends Table<DBConnection, 'TIssueForcedCast'> {
+    id             = this.column('id', 'int')
+    title          = this.column('title', 'string')
+    viewCount      = this.column<number, 'ViewCount'>('view_count', 'customInt', 'ViewCount', forceCast)
+    estimatedHours = this.optionalColumn<number, 'EstimatedHours'>('estimated_hours', 'customDouble', 'EstimatedHours', forceCast)
+    constructor() { super('issue') }
 }()
 
 describe(ctx.label, () => {
@@ -132,5 +143,54 @@ describe(ctx.label, () => {
           ]
         `)
         expect(rows).toEqual([{ id: 1 }])
+    })
+
+    test('force-type-cast-adapter-on-a-custom-int-column-in-where', async () => {
+        // `view_count` is a `customInt` wrapped in a `ForceTypeCast`: the value
+        // compared with it is given the type of an int (a no-op where the engine
+        // infers types, see the snapshot). Every seeded issue has view_count 0;
+        // issue 1 is 'Update hero copy'.
+        const expected = [{ id: 1, title: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const rows = sync(ctx.conn.selectFrom(tIssueForcedCast)
+            .where(tIssueForcedCast.viewCount.equals(0))
+            .and(tIssueForcedCast.id.equals(1))
+            .select({ id: tIssueForcedCast.id, title: tIssueForcedCast.title })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where view_count = ?1 and id = ?2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('force-type-cast-adapter-on-a-custom-double-column-in-where', async () => {
+        // `estimated_hours` is a `customDouble` wrapped in a `ForceTypeCast`: the
+        // value compared with it is given the type of a double (a no-op where the
+        // engine infers types, see the snapshot). The seed leaves every estimate
+        // null, so issue 2 gets 2.5 inside the rollback and is found by it.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            sync(ctx.conn.update(tIssue).set({ estimatedHours: 2.5 }).where(tIssue.id.equals(2)).executeUpdate())
+
+            const expected = [{ id: 2, title: 'Redesign navbar' }]
+            ctx.mockNext(expected)
+            const rows = sync(ctx.conn.selectFrom(tIssueForcedCast)
+                .where(tIssueForcedCast.estimatedHours.equals(2.5))
+                .select({ id: tIssueForcedCast.id, title: tIssueForcedCast.title })
+                .executeSelectMany())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue where estimated_hours = ?1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2.5,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()
+            expect(rows).toEqual(expected)
+        })
     })
 })

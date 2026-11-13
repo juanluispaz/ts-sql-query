@@ -658,7 +658,7 @@ describe(ctx.label, () => {
                 t:   tProjectRelease.publishedAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_at) as y, extract(month from published_at) - 1 as mo, extract(day from published_at) as d, extract(dow from published_at) as dow, extract(hour from published_at) as h, extract(minute from published_at) as m, trunc(extract(second from published_at))::integer as s, trunc(extract(millisecond from published_at))::integer % 1000 as ms, round(extract(epoch from published_at) * 1000) as t from project_release where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_at) as y, extract(month from published_at) - 1 as mo, extract(day from published_at) as d, extract(dow from published_at) as dow, extract(hour from published_at) as h, extract(minute from published_at) as m, trunc(extract(second from published_at))::integer as s, trunc(extract(millisecond from published_at))::integer % 1000 as ms, floor(extract(epoch from published_at) * 1000) as t from project_release where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -727,7 +727,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.publishStampPlain.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp_plain) as y, extract(month from published_stamp_plain) - 1 as mo, extract(day from published_stamp_plain) as d, extract(dow from published_stamp_plain) as dow, extract(hour from published_stamp_plain) as h, extract(minute from published_stamp_plain) as m, trunc(extract(second from published_stamp_plain))::integer as s, trunc(extract(millisecond from published_stamp_plain))::integer % 1000 as ms, round(extract(epoch from published_stamp_plain) * 1000) as t from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp_plain) as y, extract(month from published_stamp_plain) - 1 as mo, extract(day from published_stamp_plain) as d, extract(dow from published_stamp_plain) as dow, extract(hour from published_stamp_plain) as h, extract(minute from published_stamp_plain) as m, trunc(extract(second from published_stamp_plain))::integer as s, trunc(extract(millisecond from published_stamp_plain))::integer % 1000 as ms, floor(extract(epoch from published_stamp_plain) * 1000) as t from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -759,7 +759,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.publishStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp) as y, extract(month from published_stamp) - 1 as mo, extract(day from published_stamp) as d, extract(dow from published_stamp) as dow, extract(hour from published_stamp) as h, extract(minute from published_stamp) as m, trunc(extract(second from published_stamp))::integer as s, trunc(extract(millisecond from published_stamp))::integer % 1000 as ms, round(extract(epoch from published_stamp) * 1000) as t from release_overview where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp) as y, extract(month from published_stamp) - 1 as mo, extract(day from published_stamp) as d, extract(dow from published_stamp) as dow, extract(hour from published_stamp) as h, extract(minute from published_stamp) as m, trunc(extract(second from published_stamp))::integer as s, trunc(extract(millisecond from published_stamp))::integer % 1000 as ms, floor(extract(epoch from published_stamp) * 1000) as t from release_overview where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -831,7 +831,7 @@ describe(ctx.label, () => {
                     t:   vProjectOverview.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as y, extract(month from archived_at) - 1 as mo, extract(day from archived_at) as d, extract(dow from archived_at) as dow, extract(hour from archived_at) as h, extract(minute from archived_at) as m, trunc(extract(second from archived_at))::integer as s, trunc(extract(millisecond from archived_at))::integer % 1000 as ms, round(extract(epoch from archived_at) * 1000) as t from project_overview where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as y, extract(month from archived_at) - 1 as mo, extract(day from archived_at) as d, extract(dow from archived_at) as dow, extract(hour from archived_at) as h, extract(minute from archived_at) as m, trunc(extract(second from archived_at))::integer as s, trunc(extract(millisecond from archived_at))::integer % 1000 as ms, floor(extract(epoch from archived_at) * 1000) as t from project_overview where id = $1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

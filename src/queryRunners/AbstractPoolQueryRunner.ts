@@ -2,13 +2,8 @@ import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, Rollb
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
-import { getQueryContext, type QueryContext } from '../QueryContext.js'
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
-    /** The context of the query with these params: what the library knows of it (see getQueryContext) */
-    getQueryContext(query: string, params: any[]): QueryContext {
-        return getQueryContext(query, params)
-    }
     abstract readonly database: DatabaseType
     private currentQueryRunner?: QueryRunner | undefined
     private transactionLevel = 0

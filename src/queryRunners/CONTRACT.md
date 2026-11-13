@@ -422,9 +422,8 @@ The SQL build context (`internal/SqlBuildContext.ts`) holds it while the query i
 each execution gets a copy of the params with a context of its own (`paramsForExecution`, called by
 `__setQueryMetadata` in `queryBuilders/AbstractQueryBuilder.ts`): what the construction wrote is the same, where it was
 executed is its own, so a query executed again before an execution ends doesn't change what the first reads. A query
-runner reads it with `this.getQueryContext(query, params)` (`AbstractQueryRunner`, `AbstractPoolQueryRunner`,
-`ChainedQueryRunner`, `MockQueryRunner`, `NoopQueryRunner`) or `getQueryContext(query, params)`, the public function; the
-library's own code reads it with `existingQueryContextOf` / `existingParamContextOf`. The public type is read-only; all
+runner reads it with `getQueryContext(query, params)`, the public function, the only way to read it; the library's own
+code reads it with `existingQueryContextOf` / `existingParamContextOf`. The public type is read-only; all
 of it is optional information, so a runner must still work with params built by hand (an empty context).
 
 | Of | Field | Written by | What it is for |
@@ -432,6 +431,7 @@ of it is optional information, so a runner must still work with params built by 
 | each parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType`, `forceTypeCast` | the SQL builder before `addParam` / `addOutParam` (`_appendParam`, `_addOutParam`); the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
 | each parameter | `isValueForColumn` | the SQL builder before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server (`mySqlMariaDBParamTypes.ts`, `sqlServerParamTypes.ts`); the bare placeholder of a zoned Oracle value (`oracleParamTypes.ts`) |
 | each parameter | `getMetadata(key)`: a symbol of a type adapter or of the connection (`oracleDateParam`, `postgreSqlZonedParam`, `oracleZonedParam` of `utils/metadataSymbols.ts`) | `transformValueToDB` of the type adapter and of the connection (`context.setMetadata`), which the SQL builder calls before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters (`oracleDateParam`): the Oracle runners bind one of whole seconds as a `DATE`, and a `null` as a `DATE` (§2.4); a database outside UTC (§7.3) |
+| the query | `getMetadata(key)`: a symbol of a type adapter | `setQueryMetadata` in the context of `transformValueToDB`, `transformPlaceholder` and `transformProjection` of a type adapter or of the connection, while the query is built (a value only looked at, or a projection called only to learn what it says, writes nothing) | what an adapter knows of the whole query, for the query runner |
 | the query | `resultColumns`, `getResultColumn(name)` | `__setQueryMetadata`, from `__resultColumnsOf` / `__unnamedResultColumn` | the expected type of each result column (`name` = key in the row, `path`, the original and the requested type; `aggregatedArray` for an aggregated array): Oracle fetches decimals and bigints as text (`OracleDBQueryRunner.fetchTypeHandlerFor`). `[]` when the query returns no columns, `undefined` for a query the library didn't build |
 | the query | `connectionConfiguration` | `__setQueryMetadata` | the connection's settings (`ConnectionConfiguration`, `QueryRunner.ts`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, `databaseTimeZone`, SQLite date formats, …), read live from the connection |
 | each execution | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata` | `__setQueryMetadata` | logging and errors |

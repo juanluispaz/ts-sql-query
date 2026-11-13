@@ -1288,7 +1288,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 // Over the compound, whose arms compare the values: a converted leaf is a text, a string for FOR JSON
                 const column = columns[property]!
                 const leaf = 'a_' + aggregateId + '_.' + this._escape(property, true)
-                result += isValueSource(column) ? this._appendAggregatedArrayValueProjection(column, leaf) : leaf
+                result += isValueSource(column) ? this._appendAggregatedArrayValueProjection(column, leaf, context) : leaf
                 if (property) {
                     result += ' as ' + this._appendColumnAlias(property, context)
                 }
@@ -1329,7 +1329,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         if (this._useJsonAggregatesWhenPossible() && !aggregatedArrayDistinct) {
             if (isValueSource(aggregatedArrayColumns)) {
-                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)) + ' null on null)'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false), context) + ' null on null)'
             }
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1338,7 +1338,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (jsonObject) {
                     jsonObject += ', '
                 }
-                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, context, false))
+                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, context, false), context)
             }
             return 'json_arrayagg(json_object(' + jsonObject + '))'
         }
@@ -1371,10 +1371,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _appendJsonValueForAggregate(valueSource: AnyValueSource, context: SqlBuildContext): string {
-        return this._appendJsonValue(valueSource, this._appendSql(valueSource, context, false))
+        return this._appendJsonValue(valueSource, this._appendSql(valueSource, context, false), context)
     }
     /** A leaf of the JSON written by the library, as JSON text: `sql` is the value */
-    _appendJsonValue(valueSource: AnyValueSource, sql: string): string {
+    _appendJsonValue(valueSource: AnyValueSource, sql: string, context: SqlBuildContext): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const type = valueSourcePrivate.__valueType
 
@@ -1382,7 +1382,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         if (this._isConvertedAggregatedArrayValue(valueSource)) {
             // The text of the type adapter (or of the connection), as a JSON string
-            result = 'convert(nvarchar(max), ' + this._appendAggregatedArrayValueProjection(valueSource, sql) + ')'
+            result = 'convert(nvarchar(max), ' + this._appendAggregatedArrayValueProjection(valueSource, sql, context) + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
         } else switch(type) {
@@ -1451,7 +1451,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (this._useJsonAggregatesWhenPossible()) {
             if (isValueSource(aggregatedArrayColumns)) {
-                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.' + this._escape('result', true)) + ' null on null)'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.' + this._escape('result', true), context) + ' null on null)'
             }
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1460,7 +1460,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (jsonObject) {
                     jsonObject += ', '
                 }
-                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, 'a_' + aggregateId + '_.' + this._escape(prop, true))
+                jsonObject += "'" + prop + "':" + this._appendAggregatedArrayValueProjection(columns[prop]!, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)
             }
             return 'json_arrayagg(json_object(' + jsonObject + '))'
         }
@@ -1482,8 +1482,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return `concat('[', string_agg(concat('{', ` + result + `, '}'), ','), ']')`
         }
     }
-    _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
-        return this._appendJsonValue(valueSource, 'a_' + aggregateId + '_.' + this._escape(prop, true))
+    _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
+        return this._appendJsonValue(valueSource, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)
     }
     override _appendFragmentParam(value: AnyValueSource, context: SqlBuildContext): string {
         if (__getValueSourcePrivate(value).__uuidString) {

@@ -38,6 +38,8 @@ export interface QueryContext {
     readonly connectionConfiguration: ConnectionConfiguration | undefined
     /** What the library knows of the parameter at that index of the params, or undefined */
     getParam(index: number): QueryParamContext | undefined
+    /** What a type adapter kept of the query under that key, or undefined */
+    getMetadata(key: symbol): unknown
 }
 
 /**

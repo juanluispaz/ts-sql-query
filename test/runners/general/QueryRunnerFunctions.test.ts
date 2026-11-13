@@ -1,14 +1,13 @@
-// The context of a query (getQueryContext of src/QueryContext.ts and the method of the query runners): what the query
-// builders recorded of a query, hidden on its params, and what a type adapter kept of a parameter under a symbol of its
-// own. Also the readers of version 1, kept on its paths, which read the same context.
+// The context of a query (getQueryContext of src/QueryContext.ts): what the query builders recorded of a query, hidden on
+// its params, and what a type adapter kept of the query and of a parameter under a symbol of its own. Also the readers of
+// version 1, kept on its paths, which read the same context.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { queryContextOf, queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
-import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import {
     getFunctionExecutingQuery, getQueryExecutionMetadata, getQueryExecutionName, getQueryExecutionStack, isSelectPageCountQuery,
-} from '../../../src/queryRunners/QueryRunner.js'
+} from '../../../src/exports/v1/queryRunners/QueryRunner.js'
 
 function paramsBuiltAt(stack: string): any[] {
     const source = new Error('source')
@@ -32,6 +31,7 @@ describe('QueryRunner functions', () => {
         expect(context.getResultColumn('id')).toBeUndefined()
         expect(context.connectionConfiguration).toBeUndefined()
         expect(context.getParam(0)).toBeUndefined()
+        expect(context.getMetadata(Symbol('mark'))).toBeUndefined()
         // Reading it doesn't hang a context on the params
         expect(Object.getOwnPropertySymbols(params)).toEqual([])
     })
@@ -43,14 +43,6 @@ describe('QueryRunner functions', () => {
         expect(getQueryContext('q', params).executionName).toBe('load users')
         expect(getQueryContext('q', params).executionMetadata).toEqual({ tag: 1 })
         expect(Object.keys(params)).toEqual([])
-    })
-
-    test('the-method-of-the-query-runner-reads-the-same-context', () => {
-        const params: any[] = []
-        queryContextOf(params).executionName = 'load users'
-        const runner = new MockQueryRunner(() => undefined)
-        expect(runner.getQueryContext('q', params)).toBe(getQueryContext('q', params))
-        expect(runner.getQueryContext('q', params).executionName).toBe('load users')
     })
 
     test('param-types', () => {
@@ -87,6 +79,16 @@ describe('QueryRunner functions', () => {
         expect(Object.keys(params)).toEqual(['0', '1'])
         expect(JSON.stringify(params)).toBe('[1,2]')
         expect([...params]).toEqual([1, 2])
+    })
+
+    test('query-metadata-of-its-own-symbol', () => {
+        const params: any[] = [1]
+        const mark = Symbol('mark')
+        queryContextOf(params).setMetadata(mark, 'kept')
+        expect(getQueryContext('q', params).getMetadata(mark)).toBe('kept')
+        expect(getQueryContext('q', params).getMetadata(Symbol('other'))).toBeUndefined()
+        expect(getQueryContext('q', []).getMetadata(mark)).toBeUndefined()
+        expect(Object.keys(params)).toEqual(['0'])
     })
 
     test('page-count-query', () => {

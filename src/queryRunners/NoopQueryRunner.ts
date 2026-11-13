@@ -1,7 +1,7 @@
 import { databaseParamBinding } from '../utils/queryRunnerParams.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, type TsSqlErrorReason } from '../TsSqlError.js';
-import { getQueryContext, type QueryContext } from '../QueryContext.js'
+import { getQueryContext } from '../QueryContext.js'
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType
@@ -10,10 +10,6 @@ export interface NoopQueryRunnerConfig {
 }
 
 export class NoopQueryRunner implements QueryRunner {
-    /** The context of the query with these params: what the library knows of it (see getQueryContext) */
-    getQueryContext(query: string, params: any[]): QueryContext {
-        return getQueryContext(query, params)
-    }
     readonly database: DatabaseType
     readonly promise: PromiseProvider
     private transactionLevel = 0
@@ -53,7 +49,7 @@ export class NoopQueryRunner implements QueryRunner {
     }
     executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         // The count of a page of no rows: the query can't find out by other means
-        return this.promise.resolve(this.getQueryContext(query, params).isSelectPageCount ? 0 : undefined)
+        return this.promise.resolve(getQueryContext(query, params).isSelectPageCount ? 0 : undefined)
     }
     executeSelectOneColumnManyRows(_query: string, _params: any[] = []): Promise<any[]> {
         return this.promise.resolve([])

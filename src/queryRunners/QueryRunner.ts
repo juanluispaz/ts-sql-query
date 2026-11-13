@@ -1,6 +1,5 @@
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import type { CustomType } from '../TypeAdapter.js'
-import { getQueryContext } from '../QueryContext.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -209,26 +208,9 @@ export interface QueryResultColumn {
     readonly requestedCustomType: CustomType | undefined
 }
 
-// The readers of version 1, exported only by its paths: version 2 reads the context of the query (getQueryContext)
-
-export function getQueryExecutionName(query: string, params: any[]): string | undefined {
-    return getQueryContext(query, params).executionName
-}
-export function getQueryExecutionMetadata(query: string, params: any[]): unknown {
-    return getQueryContext(query, params).executionMetadata
-}
-export function getQueryExecutionStack(query: string, params: any[]): string | undefined {
-    return getQueryContext(query, params).executionStack
-}
 export interface FunctionExecutingQueryInformation {
     functionName?: string | undefined,
     fileName?: string | undefined,
     lineNumber?: string | undefined,
     positionNumber?: string | undefined
-}
-export function getFunctionExecutingQuery(query: string, params: any[]): FunctionExecutingQueryInformation | undefined {
-    return getQueryContext(query, params).functionExecutingQuery
-}
-export function isSelectPageCountQuery(query: string, params: any[]): boolean {
-    return getQueryContext(query, params).isSelectPageCount
 }

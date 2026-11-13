@@ -149,9 +149,9 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
-                return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'bin_to_uuid(' + this._appendSql(aggregatedArrayColumns, context, false) + ')') + ')'
+                return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'bin_to_uuid(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
             }
-            return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)) + ')'
+            return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false), context) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -164,21 +164,21 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 result += "'" + prop + "', "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'binary') {
-                    result += this._appendAggregatedArrayValueProjection(column, 'bin_to_uuid(' + this._appendSql(column, context, false) + ')')
+                    result += this._appendAggregatedArrayValueProjection(column, 'bin_to_uuid(' + this._appendSql(column, context, false) + ')', context)
                 } else {
-                    result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false))
+                    result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false), context)
                 }
             }
 
             return 'json_arrayagg(' +  distict + 'json_object(' + result + '))'
         }
     }
-    override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
+    override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
-                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'bin_to_uuid(a_' + aggregateId + '_.result)') + ')'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'bin_to_uuid(a_' + aggregateId + '_.result)', context) + ')'
             }
-            return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result') + ')'
+            return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result', context) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -191,9 +191,9 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 result += "'" + prop + "', "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'binary') {
-                    result += this._appendAggregatedArrayValueProjection(column, 'bin_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')')
+                    result += this._appendAggregatedArrayValueProjection(column, 'bin_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')', context)
                 } else {
-                    result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true))
+                    result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)
                 }
             }
 

@@ -11,6 +11,7 @@ import { __isDecimalCategory, __typeCategory, type TypeCategory } from '../utils
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
+import { getQueryContext } from '../QueryContext.js'
 
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
@@ -98,7 +99,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * - every other column as oracledb gives its type.
      */
     protected fetchTypeHandlerFor(query: string, params: any[]): (metadata: Metadata<any>, rowsetMetaData: ReadonlyArray<Metadata<any>>) => FetchTypeResponse {
-        const columns = this.getQueryContext(query, params).resultColumns
+        const columns = getQueryContext(query, params).resultColumns
         let unnamed = false
         let names: Set<string> | undefined
         if (columns) {

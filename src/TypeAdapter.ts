@@ -83,6 +83,14 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setMetadata(key: symbol, value: unknown): void
     /** What was kept for the parameter under that key, or undefined */
     getMetadata(key: symbol): unknown
+    /**
+     * Keeps a value for the query, under a symbol of the adapter's own, so it can't collide; the query runner reads it
+     * in the context of the query (`getMetadata(key)`). Discarded when the library calls the transform only to look at
+     * the value or at what it says
+     */
+    setQueryMetadata(key: symbol, value: unknown): void
+    /** What was kept for the query under that key, or undefined */
+    getQueryMetadata(key: symbol): unknown
 }
 
 /** The context of `transformPlaceholder`: the parameter already added, whose placeholder the adapter receives */
@@ -97,6 +105,14 @@ export interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
     setMetadata(key: symbol, value: unknown): void
     /** What was kept for the parameter under that key, or undefined */
     getMetadata(key: symbol): unknown
+    /**
+     * Keeps a value for the query, under a symbol of the adapter's own, so it can't collide; the query runner reads it
+     * in the context of the query (`getMetadata(key)`). Discarded when the library calls the transform only to look at
+     * the value or at what it says
+     */
+    setQueryMetadata(key: symbol, value: unknown): void
+    /** What was kept for the query under that key, or undefined */
+    getQueryMetadata(key: symbol): unknown
 }
 
 /**
@@ -122,6 +138,14 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
      * connection says otherwise; it is read only when the SQL is converted
      */
     comparison: ProjectionComparison
+    /**
+     * Keeps a value for the query, under a symbol of the adapter's own, so it can't collide; the query runner reads it
+     * in the context of the query (`getMetadata(key)`). Discarded when the library calls the transform only to look at
+     * the value or at what it says
+     */
+    setQueryMetadata(key: symbol, value: unknown): void
+    /** What was kept for the query under that key, or undefined */
+    getQueryMetadata(key: symbol): unknown
 }
 
 /**

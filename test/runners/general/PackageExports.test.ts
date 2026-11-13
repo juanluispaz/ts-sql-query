@@ -1,7 +1,7 @@
 // The paths a user imports from are the files of src/exports, which only re-export: src/exports/v2 has the paths of
 // version 2, by what they offer (the root for every database, one path per database and one per driver of each
 // database), and src/exports/v1 the paths of version 1, kept so its code keeps compiling, each name marked deprecated
-// with the path of version 2. The exports map of package.json lists exactly those files, a name is exported by only one
+// with the path of version 2; a path of version 1 also defines, deprecated, the functions version 2 dropped. The exports map of package.json lists exactly those files, a name is exported by only one
 // path of version 2 (a driver that serves MySQL and MariaDB is under both), and every import of the documentation is
 // of a path and a name the package exports.
 
@@ -29,16 +29,31 @@ function filesOf(dir: string): string[] {
     })
 }
 
-/** The re-exports of an entry file: blocks `export { ... } from '...'`, the only statements an entry has */
+/**
+ * The re-exports of an entry file: blocks `export { ... } from '...'`, the only statements an entry has; a path of
+ * version 1 can also define the functions version 2 dropped, each one deprecated, with the imports they need
+ */
 function specifiersOf(file: string): Specifier[] {
     const text = readFileSync(file, 'utf8')
     const code = text.replace(/^\/\/.*$/gm, '').trim()
     const result: Specifier[] = []
     const block = /export \{\n([\s\S]*?)\n\} from '([^']+)'\n?/g
     let match: RegExpExecArray | null
-    let consumed = ''
+    let rest = code
+    if (file.startsWith(join(exportsDir, 'v1') + '/')) {
+        const self = relative(join(root, 'src'), file).replace(/\.ts$/, '')
+        const imports = /import \{[^}\n]*\} from '[^']+'\n?/g
+        while ((match = imports.exec(code)) !== null) {
+            rest = rest.replace(match[0], '')
+        }
+        const definition = /\/\*\* @deprecated [^\n]+ \*\/\nexport function (\w+)\([^\n]*\{\n[\s\S]*?\n\}\n?/g
+        while ((match = definition.exec(code)) !== null) {
+            rest = rest.replace(match[0], '')
+            result.push({ name: match[1]!, exported: match[1]!, from: self, deprecated: true })
+        }
+    }
     while ((match = block.exec(code)) !== null) {
-        consumed += match[0]
+        rest = rest.replace(match[0], '')
         const from = relative(join(root, 'src'), resolve(dirname(file), match[2]!)).replace(/\.js$/, '')
         let deprecated = false
         for (const line of match[1]!.split('\n').map(l => l.trim()).filter(l => l)) {
@@ -54,7 +69,8 @@ function specifiersOf(file: string): Specifier[] {
             deprecated = false
         }
     }
-    expect(code.replace(/\s/g, '')).toBe(consumed.replace(/\s/g, ''))
+    // Nothing else
+    expect(rest.trim()).toBe('')
     return result
 }
 

@@ -96,6 +96,13 @@ class AdapterContext implements TypeAdapterValueFromDBContext, TypeAdapterValueT
     getMetadata(key: symbol) {
         return this.metadata.get(key)
     }
+    private readonly queryMetadata = new Map<symbol, Parameters<TypeAdapterValueToDBContext['setQueryMetadata']>[1]>()
+    setQueryMetadata(key: symbol, value: unknown): void {
+        this.queryMetadata.set(key, value)
+    }
+    getQueryMetadata(key: symbol) {
+        return this.queryMetadata.get(key)
+    }
 }
 
 class VSource extends Values<DBConnection, 'vSource'> {

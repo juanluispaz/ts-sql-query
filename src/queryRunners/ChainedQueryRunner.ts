@@ -1,12 +1,7 @@
 import type { TsSqlErrorReason } from '../TsSqlError.js'
 import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
-import { getQueryContext, type QueryContext } from '../QueryContext.js'
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
-    /** The context of the query with these params: what the library knows of it (see getQueryContext) */
-    getQueryContext(query: string, params: any[]): QueryContext {
-        return getQueryContext(query, params)
-    }
     readonly queryRunner: T
     get database(): DatabaseType {
         return this.queryRunner.database

@@ -1,7 +1,7 @@
 import type { CustomType, ProjectionComparison, ProjectionOutput, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import type { AnyValueSource } from '../expressions/values.js'
-import { QueryParamContextImpl } from './QueryContextImpl.js'
+import { QueryParamContextImpl, type QueryContextImpl } from './QueryContextImpl.js'
 
 /** Who gives the type a `transformProjection` requests for a value (the SQL builder) */
 export interface RequestedTypeOfProjection {
@@ -31,13 +31,19 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     private pendingProjection: AnyValueSource | undefined = undefined
     private pendingOutput: ProjectionOutput = 'resultColumn'
     private projector: RequestedTypeOfProjection | undefined = undefined
+    /** The context of the query this object serves the construction of, if it serves one */
+    private readonly builtQueryContext: QueryContextImpl | undefined
+    /** The context of the query of what is processed, where the metadata of the query goes; none to discard it */
+    private queryContext: QueryContextImpl | undefined
 
     valueSentToDB: unknown = undefined
     output: ProjectionOutput = 'resultColumn'
     comparison: ProjectionComparison = 'value'
 
-    constructor(connectionConfiguration: ConnectionConfiguration) {
+    constructor(connectionConfiguration: ConnectionConfiguration, builtQueryContext?: QueryContextImpl | undefined) {
         this.connectionConfiguration = connectionConfiguration
+        this.builtQueryContext = builtQueryContext
+        this.queryContext = builtQueryContext
     }
 
     /**
@@ -52,6 +58,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.paramIndex = index
         this.pendingProjection = undefined
         this.valueSentToDB = undefined
+        this.queryContext = this.builtQueryContext
         state.setOriginalType(originalType, originalCustomType)
         state.forceTypeCast = forceTypeCast
     }
@@ -62,10 +69,14 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.paramIndex = undefined
         this.valueSentToDB = undefined
     }
-    /** Prepares the context for the transformProjection of a value of that original type, for output */
-    prepareProjection(originalType: string, originalCustomType: CustomType | undefined, output: ProjectionOutput): void {
+    /**
+     * Prepares the context for the transformProjection of a value of that original type, for output, in the query with
+     * that context (none when the projection is only looked at)
+     */
+    prepareProjection(originalType: string, originalCustomType: CustomType | undefined, output: ProjectionOutput, queryContext: QueryContextImpl | undefined): void {
         this.clearParam()
         this.pendingProjection = undefined
+        this.queryContext = queryContext
         this.own.setOriginalType(originalType, originalCustomType)
         this.output = output
         this.comparison = 'value'
@@ -76,6 +87,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
      */
     prepareRead(originalType: string, originalCustomType: CustomType | undefined, projector: RequestedTypeOfProjection | undefined, value: AnyValueSource | undefined, output: ProjectionOutput): void {
         this.clearParam()
+        this.queryContext = undefined
         this.own.setOriginalType(originalType, originalCustomType)
         this.projector = projector
         this.pendingProjection = projector ? value : undefined
@@ -144,5 +156,11 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     }
     getMetadata(key: symbol): unknown {
         return this.param?.getMetadata(key)
+    }
+    setQueryMetadata(key: symbol, value: unknown): void {
+        this.queryContext?.setMetadata(key, value)
+    }
+    getQueryMetadata(key: symbol): unknown {
+        return this.queryContext?.getMetadata(key)
     }
 }

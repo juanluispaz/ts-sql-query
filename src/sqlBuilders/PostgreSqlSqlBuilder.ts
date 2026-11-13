@@ -313,7 +313,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(this._typedOperand(columns[prop]!, []), context, false))
+                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(this._typedOperand(columns[prop]!, []), context, false), context)
             }
             return 'json_agg(distinct jsonb_build_object(' + result + '))'
         }

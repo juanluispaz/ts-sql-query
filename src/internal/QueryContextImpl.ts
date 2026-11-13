@@ -65,6 +65,20 @@ export class QueryContextImpl implements QueryContext {
     /** The number of affected rows the query runner gives, whatever the database says */
     forcedAffectedRowCount: number | undefined = undefined
 
+    /** What the type adapters kept of the query, under a symbol of their own */
+    private metadata: Map<symbol, unknown> | undefined = undefined
+
+    getMetadata(key: symbol): unknown {
+        return this.metadata?.get(key)
+    }
+    setMetadata(key: symbol, value: unknown): void {
+        let metadata = this.metadata
+        if (!metadata) {
+            metadata = new Map()
+            this.metadata = metadata
+        }
+        metadata.set(key, value)
+    }
     get executionStack(): string | undefined {
         return this.executionSource?.stack
     }
@@ -85,6 +99,7 @@ export class QueryContextImpl implements QueryContext {
         context.containsInsertReturningClause = this.containsInsertReturningClause
         context.containsMutationReturningClause = this.containsMutationReturningClause
         context.forcedAffectedRowCount = this.forcedAffectedRowCount
+        context.metadata = this.metadata
         for (let i = 0, length = this.params.length; i < length; i++) {
             context.params[i] = this.params[i]
         }

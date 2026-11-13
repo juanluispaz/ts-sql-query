@@ -1285,14 +1285,14 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
-                return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(' + this._appendSql(aggregatedArrayColumns, context, false) + ')') + ')'
+                return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
             }
             if (this._isCustomDecimal(aggregatedArrayColumns) && (aggregatedArrayDistinct || this._isCanonicalDecimalText())) {
                 // The distinct values of a customDecimal are the distinct numbers, each in its normal form; in a
                 // canonical text variant every value goes in its canonical text
-                return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._decimalComparableText(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false))) + ')'
+                return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._decimalComparableText(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)), context) + ')'
             }
-            return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)) + ')'
+            return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false), context) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1305,23 +1305,23 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 result += "'" + prop + "', "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'uuid-extension') {
-                    result += this._appendAggregatedArrayValueProjection(column, 'uuid_str(' + this._appendSql(column, context, false) + ')')
+                    result += this._appendAggregatedArrayValueProjection(column, 'uuid_str(' + this._appendSql(column, context, false) + ')', context)
                 } else if (this._isCustomDecimal(column) && (aggregatedArrayDistinct || this._isCanonicalDecimalText())) {
-                    result += this._appendAggregatedArrayValueProjection(column, this._decimalComparableText(column, this._appendSql(column, context, false)))
+                    result += this._appendAggregatedArrayValueProjection(column, this._decimalComparableText(column, this._appendSql(column, context, false)), context)
                 } else {
-                    result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false))
+                    result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false), context)
                 }
             }
 
             return 'json_group_array(' + distict + 'json_object(' + result + '))'
         }
     }
-    override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _context: SqlBuildContext, aggregateId: number): string {
+    override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
-                return 'json_group_array(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(a_' + aggregateId + '_.result)') + ')'
+                return 'json_group_array(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(a_' + aggregateId + '_.result)', context) + ')'
             }
-            return 'json_group_array(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result') + ')'
+            return 'json_group_array(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result', context) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -1334,9 +1334,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 result += "'" + prop + "', "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'uuid-extension') {
-                    result += this._appendAggregatedArrayValueProjection(column, 'uuid_str(a_' + aggregateId + '_.' + this._escape(prop, true) + ')')
+                    result += this._appendAggregatedArrayValueProjection(column, 'uuid_str(a_' + aggregateId + '_.' + this._escape(prop, true) + ')', context)
                 } else {
-                    result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true))
+                    result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)
                 }
             }
 

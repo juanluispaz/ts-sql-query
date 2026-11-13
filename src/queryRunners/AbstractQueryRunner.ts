@@ -2,13 +2,8 @@ import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, Rollb
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
 import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
-import { getQueryContext, type QueryContext } from '../QueryContext.js'
 
 export abstract class AbstractQueryRunner implements QueryRunner {
-    /** The context of the query with these params: what the library knows of it (see getQueryContext) */
-    getQueryContext(query: string, params: any[]): QueryContext {
-        return getQueryContext(query, params)
-    }
     abstract readonly database: DatabaseType
     abstract useDatabase(database: DatabaseType): void
     abstract getNativeRunner(): unknown

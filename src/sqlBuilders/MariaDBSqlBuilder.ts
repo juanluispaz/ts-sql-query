@@ -146,7 +146,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         let result = ''
         if (isValueSource(aggregatedArrayColumns)) {
-            result += 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false))
+            result += 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false), context)
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -155,7 +155,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, context, false))
+                result += "'" + prop + "', " + this._appendAggregatedArrayValueProjection(columns[prop]!, this._appendSql(columns[prop]!, context, false), context)
             }
 
             result = 'json_arrayagg(' +  distict + 'json_object(' + result + ')'

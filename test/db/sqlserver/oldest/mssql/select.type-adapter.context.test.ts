@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { getQueryContext } from '../../../../../src/exports/v2/index.js'
-import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import type { TypeAdapter, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
 import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -48,6 +48,32 @@ const readingThePlaceholderContext: TypeAdapter = {
     transformPlaceholder(placeholder, context, next) {
         seenByThePlaceholder.push([context.index, context.forceTypeCast, String(context.getMetadata(sentAt))])
         return next.transformPlaceholder(placeholder, context)
+    },
+}
+
+// The key under which the adapter of this file keeps what it saw of the query
+const seenInTheQuery = Symbol('seenInTheQuery')
+
+// Keeps, in the query, what each transform sees, in the order the library calls them
+function keepInTheQuery(context: Pick<TypeAdapterValueToDBContext, 'getQueryMetadata' | 'setQueryMetadata'>, seen: string): void {
+    const before = context.getQueryMetadata(seenInTheQuery)
+    context.setQueryMetadata(seenInTheQuery, (typeof before === 'string' ? before + ' | ' : '') + seen)
+}
+const keepingTheQuery: TypeAdapter = {
+    transformValueFromDB(value, context, next) {
+        return next.transformValueFromDB(value, context)
+    },
+    transformValueToDB(value, context, next) {
+        keepInTheQuery(context, 'sent ' + String(value))
+        return next.transformValueToDB(value, context)
+    },
+    transformPlaceholder(placeholder, context, next) {
+        keepInTheQuery(context, 'placeholder ' + String(context.index))
+        return next.transformPlaceholder(placeholder, context)
+    },
+    transformProjection(sql, context, next) {
+        keepInTheQuery(context, 'projection ' + context.output)
+        return next.transformProjection(sql, context)
     },
 }
 
@@ -110,5 +136,24 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows.map(row => row.id)).toEqual([1, 2])
         expect(seenByThePlaceholder).toEqual([[0, false, 'value 1'], [1, false, 'value 2']])
+    })
+
+    test('the-metadata-a-type-adapter-keeps-of-the-query', async () => {
+        ctx.mockNext([{ id: 1, two: 2 }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(ctx.conn.const(1, 'int', keepingTheQuery)))
+            .select({ id: tProject.id, two: ctx.conn.const(2, 'int', keepingTheQuery) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, @0 as two from project where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number, two: number }>>>()
+        expect(rows).toEqual([{ id: 1, two: 2 }])
+        // What the transforms only looked at isn't kept
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getMetadata(seenInTheQuery)).toMatchInlineSnapshot(`"sent 2 | placeholder 0 | projection resultColumn | sent 1 | placeholder 1"`)
     })
 })

@@ -94,15 +94,15 @@ describe('The databaseTimeZone of the connection', () => {
             ]
         }
         expect(sqlOf(new OracleOfZone('Europe/Madrid'))).toEqual([
-            'insert into moment (id, ts, dx, t) values (:0, :1, :2, :3)',
+            'insert into moment (id, ts, dx, t) values (:0, :1, :2, timestamp \'1970-01-01 00:00:00\' + (cast(:3 as timestamp) - trunc(cast(:3 as timestamp))))',
             'update moment set ts = :0 where id = :1',
             'select cast(ts as timestamp with time zone) as "ts", cast(timestamp \'1970-01-01 00:00:00\' + (t - trunc(t)) as timestamp with time zone) as "t", '
                 + 'extract(hour from sys_extract_utc(cast(ts as timestamp with time zone))) as "hours", '
                 + "(trunc(sys_extract_utc(cast(ts as timestamp with time zone))) - date '1970-01-01') * 86400000 + to_number(to_char(sys_extract_utc(cast(ts as timestamp with time zone)), 'SSSSSFF3')) as \"time\", "
                 + 'extract(hour from sys_extract_utc(cast(dx as timestamp with time zone))) as "dxHours", '
                 + 'json_arrayagg(cast(ts as timestamp with time zone)) as "arr" '
-                + 'from moment where ts = cast(:0 as timestamp) and dx = cast(:1 as date) and dx < cast(:2 as timestamp) and t = cast(:3 as timestamp)',
-            'insert into moment (id, ts, t) values (:0, :1, :2) returning cast(ts as timestamp with time zone), cast(timestamp \'1970-01-01 00:00:00\' + (t - trunc(t)) as timestamp with time zone) into :3, :4',
+                + 'from moment where ts = cast(:0 as timestamp) and dx = cast(:1 as date) and dx < cast(:2 as timestamp) and t = timestamp \'1970-01-01 00:00:00\' + (cast(:3 as timestamp) - trunc(cast(:3 as timestamp)))',
+            'insert into moment (id, ts, t) values (:0, :1, timestamp \'1970-01-01 00:00:00\' + (cast(:2 as timestamp) - trunc(cast(:2 as timestamp)))) returning cast(ts as timestamp with time zone), cast(timestamp \'1970-01-01 00:00:00\' + (t - trunc(t)) as timestamp with time zone) into :3, :4',
         ])
         expect(sqlOf(new OracleOfZone('UTC'))).toEqual([
             'insert into moment (id, ts, dx, t) values (:0, :1, :2, :3)',

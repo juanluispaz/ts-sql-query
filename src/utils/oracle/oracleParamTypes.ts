@@ -72,12 +72,24 @@ export function isOracleZonedParam(params: any[], index: number): boolean {
  * update) Oracle converts it with its session into the wall clock it stores, and the placeholder is the bare one;
  * anywhere else it is cast to the type of the column, the wall clock of the session, so the column compares with it as
  * it is and its index can be used: `cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a DATE
- * column (oracleDateParam). A null, or any other parameter, keeps the bare placeholder.
+ * column (oracleDateParam). A localTime, in every position, is the time of the day of that wall clock on 1970-01-01,
+ * the day every localTime is kept on: `timestamp '1970-01-01 00:00:00' + (cast(:0 as timestamp) - trunc(cast(:0 as
+ * timestamp)))`. A null, or any other parameter, keeps the bare placeholder.
  */
 export function oraclePlaceholder(placeholder: string, params: any[], index: number, value: unknown): string {
-    if (!(value instanceof Date) || !isOracleZonedParam(params, index) || (existingParamContextOf(params, index)?.isValueForColumn === true)) {
+    if (!(value instanceof Date) || !isOracleZonedParam(params, index)) {
         return placeholder
     }
-    const ofDate = existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true && value.getUTCMilliseconds() === 0
-    return 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
+    const param = existingParamContextOf(params, index)
+    const ofDate = param?.getMetadata(oracleDateParam) === true && value.getUTCMilliseconds() === 0
+    const cast = 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
+    if (__isLocalTime(param?.requestedType, param?.requestedCustomType)) {
+        // A localTime is kept on 1970-01-01, as in UTC: the time of the day of the wall clock, also as the value of a
+        // column, so a time after midnight in the zone of the database isn't kept on another day
+        return (ofDate ? "date '1970-01-01'" : "timestamp '1970-01-01 00:00:00'") + ' + (' + cast + ' - trunc(' + cast + '))'
+    }
+    if (param?.isValueForColumn === true) {
+        return placeholder
+    }
+    return cast
 }

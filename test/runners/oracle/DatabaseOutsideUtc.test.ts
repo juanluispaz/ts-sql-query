@@ -77,6 +77,10 @@ describe.skipIf(!enabled)('Oracle: a database in Europe/Madrid, declared in the 
             // changes to summer time can't be read (a limit of Oracle)
             expect(out.repeated).toBe('2024-10-27T01:30:00.000Z')
             expect(out.skipped).toMatch(/^rejected: .*ORA-01878/)
+            // A localTime is written and read with the offset of its own day: a day of summer, the reference date
+            expect(out.summerTime).toEqual({ stored: ['1970-01-01 18:00:00'], read: '2024-07-14T16:00:00.000Z' })
+            // A localTime is kept on 1970-01-01 also after midnight in Madrid, and compares with one another program wrote
+            expect(out.timeAfterMidnight).toEqual({ stored: ['9 1970-01-01 00:30:00', '10 1970-01-01 00:30:00', '11 1970-01-01 18:00:00'], where: [9, 10] })
         }, TIMEOUT)
     }
 

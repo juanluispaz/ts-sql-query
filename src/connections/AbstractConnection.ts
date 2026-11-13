@@ -1489,6 +1489,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
         if (__isLocalTime(type, customType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
+                if (this.isDatabaseOutsideUtc()) {
+                    // With a databaseTimeZone other than UTC a localTime is the instant of a time on its own day, as it
+                    // is read (on the localTimeReferenceDate): that day gives the offset the database converts it with
+                    return new Date(value.getTime())
+                }
                 // The time of a localTime is the one of its UTC getters, whatever the zone of the process, on
                 // 1970-01-01 UTC: the day the value is read back on. Each query runner sends it in the form its
                 // driver needs (a text, a TIME, a TIMESTAMP).

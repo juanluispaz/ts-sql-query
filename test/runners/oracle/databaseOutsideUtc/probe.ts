@@ -24,6 +24,11 @@ const { default: oracledb } = await import('oracledb')
 class MadridConnection extends OracleConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
 }
+// The same database, with a reference date of summer
+class MadridSummerConnection extends OracleConnection<'MadridConnection'> {
+    protected override databaseTimeZone = 'Europe/Madrid'
+    protected override localTimeReferenceDate = '2024-07-14'
+}
 class MadridTodayConnection extends OracleConnection<'MadridTodayConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override localTimeReferenceDate = 'today'
@@ -85,6 +90,8 @@ export interface ScenarioResult {
     constTimeToday?: unknown
     repeated?: unknown
     skipped?: string
+    summerTime?: { stored: unknown[], read: unknown }
+    timeAfterMidnight?: { stored: unknown[], where: number[] }
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -142,6 +149,23 @@ async function scenario(): Promise<ScenarioResult> {
         out.constTime = iso(await conn.selectFromNoTable().selectOneColumn(conn.const(time17, 'localTime')).executeSelectOne())
         const today = new MadridTodayConnection(conn.queryRunner as QueryRunner)
         out.constTimeToday = iso(await today.selectFromNoTable().selectOneColumn(today.const(time17, 'localTime')).executeSelectOne())
+        // A localTime on a day of summer, the reference date: written and read with the offset of that day (18:00 in
+        // Madrid is 16:00Z in summer)
+        const summerConn = new MadridSummerConnection(conn.queryRunner as QueryRunner)
+        await summerConn.insertInto(tMoment).set({ id: 8, t: new Date('2024-07-14T16:00:00.000Z') }).executeInsert()
+        out.summerTime = {
+            stored: (await raw(`select to_char(t, 'YYYY-MM-DD HH24:MI:SS') as t from ${tableName} where id = 8`)).map(row => row.T),
+            read: iso(await summerConn.selectFrom(tMoment).where(tMoment.id.equals(8)).selectOneColumn(tMoment.t).executeSelectOne()),
+        }
+        // A localTime after midnight in Madrid (00:30, 23:30Z of the day before) is kept on 1970-01-01, the day of every
+        // localTime, as another program writes it
+        // (also in a multi-row insert, a PL/SQL block)
+        await conn.insertInto(tMoment).values([{ id: 9, t: new Date('1969-12-31T23:30:00.000Z') }, { id: 11, t: time17 }]).executeInsert()
+        await raw(`insert into ${tableName} (id, t) values (10, timestamp '1970-01-01 00:30:00')`)
+        out.timeAfterMidnight = {
+            stored: (await raw(`select id, to_char(t, 'YYYY-MM-DD HH24:MI:SS') as t from ${tableName} where id in (9, 10, 11) order by id`)).map(row => row.ID + ' ' + row.T),
+            where: (await conn.selectFrom(tMoment).where(tMoment.t.equals(new Date('1969-12-31T23:30:00.000Z'))).select({ id: tMoment.id }).orderBy('id').executeSelectMany()).map(row => row.id),
+        }
         // A wall clock that is repeated when Madrid leaves summer time is taken in winter time
         await raw(`insert into ${tableName} (id, ts) values (7, timestamp '2024-10-27 02:30:00')`)
         out.repeated = iso(await conn.selectFrom(tMoment).where(tMoment.id.equals(7)).selectOneColumn(tMoment.ts).executeSelectOne())

@@ -21,6 +21,11 @@ class MadridTodayConnection extends PostgreSqlConnection<'MadridTodayConnection'
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override localTimeReferenceDate = 'today'
 }
+// The same database, with a reference date of summer
+class MadridSummerConnection extends PostgreSqlConnection<'MadridConnection'> {
+    protected override databaseTimeZone = 'Europe/Madrid'
+    protected override localTimeReferenceDate = '2024-07-14'
+}
 class UtcConnection extends PostgreSqlConnection<'UtcConnection'> { }
 
 class TMoment extends Table<MadridConnection, 'TMoment'> {
@@ -74,6 +79,13 @@ async function scenario(runner: QueryRunner, raw: (sql: string) => Promise<any[]
         const today = await new MadridTodayConnection(runner).selectFromNoTable().selectOneColumn(new MadridTodayConnection(runner).const(new Date('1970-01-01T17:00:00.000Z'), 'localTime')).executeSelectOne()
         expect([16, 17]).toContain(today.getUTCHours())
         expect(today.getUTCFullYear()).toBeGreaterThan(2000)
+        // A localTime is written and read with the offset of its own day: a day of summer, the reference date (18:00 in
+        // Madrid is 16:00Z in summer)
+        const summerConn = new MadridSummerConnection(runner)
+        const summerTime = new Date('2024-07-14T16:00:00.000Z')
+        await summerConn.insertInto(tMoment).set({ id: 4, t: summerTime }).executeInsert()
+        expect(await raw('select t::text as t from rt_madrid_moment where id = 4')).toEqual([{ t: '18:00:00' }])
+        expect(await summerConn.selectFrom(tMoment).where(tMoment.id.equals(4)).selectOneColumn(tMoment.t).executeSelectOne()).toEqual(summerTime)
     } finally {
         await raw('drop table rt_madrid_moment')
     }

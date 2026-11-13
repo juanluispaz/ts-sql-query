@@ -461,7 +461,7 @@ The executed query is:
     ```mariadb
     select 
         signed_off_at as `value`, 
-        round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch 
+        floor(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch 
     from project_release 
     where id = ?
     ```
@@ -469,7 +469,7 @@ The executed query is:
     ```mysql
     select 
         signed_off_at as value, 
-        round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch 
+        floor(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as epoch 
     from project_release 
     where id = ?
     ```
@@ -485,7 +485,7 @@ The executed query is:
     ```postgresql
     select 
         signed_off_at as value, 
-        round(extract(epoch from signed_off_at) * 1000) as epoch 
+        floor(extract(epoch from signed_off_at) * 1000) as epoch 
     from project_release 
     where id = $1
     ```

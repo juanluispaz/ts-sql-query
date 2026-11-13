@@ -216,6 +216,10 @@ When a value is returned from the database that is different from the defined st
     - By default, this unexpected UNIX time is understood as the number of seconds from the beginning of the UNIX time (*1970-01-01*).
     - If you set this property to *true*, you force to treat this UNIX time as the number of milliseconds from the beginning of the UNIX time (*1970-01-01*).
 
+## Digits below a millisecond
+
+SQLite keeps a date and time to the millisecond, and rounds the fractional seconds of a text when it reads it. For the text `'2024-01-14 10:30:15.123789'`, `getTime()` and `getMilliseconds()` count `.124`, while the `Date` the library reads has `.123`, as on the other databases, which drop those digits. A value the library writes from a `Date` has three digits of fractional seconds at most, so it isn't affected; a text with more digits, written by another application, is.
+
 ## Collations & case sensitivity
 
 SQLite's default collation is case- and accent-**sensitive** for `=` (`BINARY`), but its `LIKE` folds **ASCII** case regardless of the column collation. The built-in collations are only `BINARY`, `NOCASE` (ASCII-only case folding) and `RTRIM` — the npm SQLite builds are non-ICU, so there are no language collations. Force a collation per value with `.collate('BINARY' | 'NOCASE')`, or connection-wide with `insensitiveCollation` — but `.collate()` does not reach `LIKE` (use `PRAGMA case_sensitive_like` for that). `REPLACE` ignores collation, so `replaceAll` is byte-wise case-sensitive; for a case-insensitive replace, register a UDF and set [`replaceAllInsensitiveFunction`](../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback). See the dedicated [Collations & case sensitivity](../collations.md) page and the [SQLite tab](../collations.md#per-database). The ASCII-only limitation below is the sharp edge to know about.

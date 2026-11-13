@@ -389,7 +389,7 @@ In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7,
 
 `isValueForColumn` is `true` for both parameters of `insert into customer (first_name, company_id) values ($1, $2)`, and `false` in a `where`, or anywhere else. The query runners of MariaDB, MySQL and SQL Server use it to leave a `stringDecimal` or a `customDecimal` without the cast they write elsewhere.
 
-`getMetadata(key)` reads what a type adapter kept for the parameter with `setQueryParamMetadata`, in its `addQueryParamMetadata` (see [Type adapters API](../api/type-adapters.md)), under the `symbol` the adapter defines. The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
+`getMetadata(key)` reads what a type adapter kept for the parameter with `context.setMetadata(key, value)`, in its `transformValueToDB` (see [Type adapters API](../api/type-adapters.md)), under the `symbol` the adapter defines. The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
 
 The library keeps all of this before it asks the query runner to add the parameter, so a query runner of your own has it without doing anything: its `addParam(params, value, type, typeCategory, forceTypeCast)` adds the value to `params` and returns the placeholder as it is written in the SQL, with the cast if it writes one, and `addOutParam(params, name, type, typeCategory, forceTypeCast)` does the same for an out parameter. A query runner that wraps another passes them on to it.
 

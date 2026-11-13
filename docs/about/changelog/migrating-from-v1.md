@@ -193,7 +193,7 @@ this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 
 ### Type adapters and the transforms of the connection
 
-`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive the category of the type, the first argument of the column like `'customInt'`, after the name of the type. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: add the parameter and pass it on. When your rule changes the type, pass the category of the new one:
+`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive the category of the type, the first argument of the column like `'customInt'`, after the name of the type, and a context: in a type adapter before `next`, in the connection at the end. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: add the parameters and pass them on to `next` or `super`. When your rule changes the type, pass the category of the new one:
 
 In v1:
 
@@ -211,16 +211,16 @@ In v2:
 ```ts
 import type { TypeCategory } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
         if (type === 'MyIntTypeName') {
-            return super.transformValueToDB(value, 'int', 'int');
+            return super.transformValueToDB(value, 'int', 'int', context);
         }
-        return super.transformValueToDB(value, type, typeCategory);
+        return super.transformValueToDB(value, type, typeCategory, context);
     }
 }
 ```
 
-`transformPlaceholder` no longer receives `forceTypeCast`: it is `transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)` in the connection, with `next` at the end in a type adapter, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, implement `forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast)`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
+`transformPlaceholder` no longer receives `forceTypeCast`: it is `transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)` in the connection, with the context and `next` at the end in a type adapter, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
 
 A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as the type of its category (see [Custom types are converted as their category](#custom-types-are-converted-as-their-category)). `TypeCategory` is exported from `ts-sql-query`.
 

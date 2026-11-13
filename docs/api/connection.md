@@ -386,29 +386,25 @@ interface Connection {
     compatibilityVersion: number
 
     /** Protected method that transforms the values received from the database */
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    /** Protected method that transforms the values sent to the database */
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    /** Protected method that customizes the value placeholder in the query */
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown
     /**
-     * Protected method that decides whether the database must receive the type of the parameter. It receives true where
-     * the position in the SQL gives the parameter no type; the query runner then writes a cast or sends the parameter
-     * with its type (PostgreSQL only). By default, it returns what it receives
+     * Protected method that transforms the values sent to the database. In the context, forceTypeCast says whether the
+     * database must receive the type of the parameter (true where the position in the SQL gives it no type; the query
+     * runner then writes a cast or sends the parameter with its type, PostgreSQL only), and setMetadata keeps what the
+     * query runner reads of the parameter
      */
-    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown
+    /** Protected method that customizes the value placeholder in the query */
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext): string
     /**
      * Protected method that writes the SQL of a value as it leaves the database, in a column of the result. By default,
-     * the conversion of the library: SQL Server writes a decimal as its text; every other value keeps its SQL
+     * the conversion of the library: SQL Server writes a decimal as its text (saying 'columnEquality' in the context),
+     * PostgreSQL and Oracle with a database outside UTC write a localDateTime or a localTime with its zone; every other
+     * value keeps its SQL. In the context, comparison says how the SQL returned compares with the value: 'value' (the
+     * default, it compares and orders like the value), 'equality' (it compares like the value but orders otherwise),
+     * 'columnEquality' (as 'equality', only among the values of one column) or 'none'
      */
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
-    /**
-     * Protected method that says how the SQL of transformProjection compares with the value: 'value' (it compares and
-     * orders like the value), 'equality' (it compares like the value but orders otherwise), 'columnEquality' (as
-     * 'equality', only among the values of one column) or 'none'. By default, 'value', and 'columnEquality' for a
-     * decimal of a column of the result on SQL Server
-     */
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string
 
     /** Protected method that returns true if the provided string is a reserved keyword */
     isReservedKeyword(word: string): boolean

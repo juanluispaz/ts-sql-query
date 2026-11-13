@@ -134,17 +134,17 @@ For example, a `customDouble` kept as text, so that no digit is lost: it's read 
 ```ts
 import type { TypeCategory } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext) {
         if (type === 'ExactDecimal' && value !== null && value !== undefined) {
             return String(value);
         }
-        return super.transformValueFromDB(value, type, typeCategory);
+        return super.transformValueFromDB(value, type, typeCategory, context);
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext) {
         if (type === 'ExactDecimal') {
             return value;
         }
-        return super.transformValueToDB(value, type, typeCategory);
+        return super.transformValueToDB(value, type, typeCategory, context);
     }
 }
 ```
@@ -367,33 +367,33 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class RgbColorTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return {r: value[0], g: value[1], b: value[2]};
             }
             throw new Error(`Cannot decode database value ${value} (type ${typeof value}) as RgbColor`);
         }
-        return next.transformValueFromDB(value, type, typeCategory);
+        return next.transformValueFromDB(value, type, typeCategory, context);
     }
 
-    transformValueToDB(value: RgbColor, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueToDB(value: RgbColor, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         if (type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
             throw new Error(`Cannot encode value ${value} for database`);
         }
-        return next.transformValueToDB(value, type, typeCategory)
+        return next.transformValueToDB(value, type, typeCategory, context)
     }
 
     // Optional
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
         // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
     }
 }
 ```
@@ -426,36 +426,29 @@ It receives the SQL of the value as the library writes it, the name of the type,
 For example, on PostgreSQL, an adapter that has the database give a day as the text `DD/MM/YYYY` and reads that text as the day:
 
 ```ts
-import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from "ts-sql-query"
+import { type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeCategory } from "ts-sql-query"
 
 class DayAsTextTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
             // The text DD/MM/YYYY, read as the day YYYY-MM-DD
-            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory, context)
         }
-        return next.transformValueFromDB(value, type, typeCategory)
+        return next.transformValueFromDB(value, type, typeCategory, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     }
 
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         // In a column of the result and inside the JSON of an aggregated array
         if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+            context.comparison = 'equality'
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    }
-
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
-        // Two equal days give the same text and two different days different texts, but the texts don't order as the days
-        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
-            return 'equality'
-        }
-        return next.projectionComparison(type, typeCategory, output)
+        return next.transformProjection(sql, type, typeCategory, output, context)
     }
 }
 
@@ -510,16 +503,16 @@ The text `DD/MM/YYYY` doesn't order as the day does (`01/03/2024` comes before `
 
 ### How the converted SQL compares
 
-Where the query compares or orders the value, the converted SQL can give another result than the value: two days written as `MM/YYYY` are the same text when they are in the same month, and `DD/MM/YYYY` orders otherwise than the day. `projectionComparison` says, for each type and each `output`, how the SQL that `transformProjection` returns compares with the value, and the query uses the value only where it has to:
+Where the query compares or orders the value, the converted SQL can give another result than the value: two days written as `MM/YYYY` are the same text when they are in the same month, and `DD/MM/YYYY` orders otherwise than the day. `transformProjection` says, in its context, with `comparison`, how the SQL it returns compares with the value, for each type and each `output`, and the query uses the value only where it has to:
 
-| `projectionComparison` | The converted SQL | Example | The query |
+| `comparison` | The converted SQL | Example | The query |
 |---|---|---|---|
 | `'value'` (the default) | Compares and orders like the value | A day as `YYYY-MM-DD` | Has the converted SQL in place, and nothing else changes: the order by is the alias, a union and a distinct compare the texts |
 | `'equality'` | Equal values give equal SQL and different values different SQL, but it orders otherwise | A day as `DD/MM/YYYY` | Orders by the value: the order by writes the column, a distinct select ordered by it is wrapped, and so is a compound select ordered by it |
 | `'columnEquality'` | As `'equality'`, but only among the values of one column: equal values of two columns or expressions can give different SQL | The text of a decimal, whose scale is the one of its column: `1.5` in a `decimal(10, 1)` and `1.50` in a `decimal(10, 2)` | Orders by the value as with `'equality'`, and a compound select is wrapped, because its arms compare values of different selects. A distinct select compares the values of one column, so it converts in place |
 | `'none'` | Neither compares nor orders like the value | A day as `MM/YYYY`; a date and time as text with its offset, where the same instant has several texts | Also compares the value: a compound select and a distinct select are wrapped, and the distinct of an aggregated array is applied to the values |
 
-When the type adapter doesn't implement it, `next.projectionComparison(...)` answers for the conversion of the library: `'value'`, except for a decimal in a column of the result on SQL Server, whose text answers `'columnEquality'` (it orders as a text, and two equal decimals of columns of different scales give different texts). So an adapter that converts a value without saying how it compares gets the converted SQL in place: return `'equality'` or `'none'` when the converted SQL doesn't keep the order or the equality of the value. It isn't asked when `transformProjection` doesn't convert the value.
+When neither the type adapter nor the connection says it, `comparison` is `'value'`. The conversion of the library, `next.transformProjection(...)`, says `'columnEquality'` for a decimal in a column of the result on SQL Server, whose text it writes (it orders as a text, and two equal decimals of columns of different scales give different texts). So an adapter that converts a value without saying how it compares gets the converted SQL in place: say `'equality'` or `'none'` when the converted SQL doesn't keep the order or the equality of the value. `comparison` is read only when `transformProjection` converts the value. The library may call `transformProjection` with an empty `sql` to know whether it converts the value, so it must say the same whatever the `sql` it receives.
 
 ### Inside the JSON of an aggregated array
 
@@ -592,30 +585,30 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext) {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return { r: value[0], g: value[1], b: value[2] };
             }
             throw new Error(`Cannot decode database value ${value} (type ${typeof value}) as RgbColor`);
         }
-        return super.transformValueFromDB(value, type, typeCategory);
+        return super.transformValueFromDB(value, type, typeCategory, context);
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext) {
         if (type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
             throw new Error(`Cannot encode value ${value} for database`);
         }
-        return super.transformValueToDB(value, type, typeCategory);
+        return super.transformValueToDB(value, type, typeCategory, context);
     }   
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext): string {
         // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }
-        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
     }
 }
 ```
@@ -626,23 +619,18 @@ And you can define the column as:
 this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 ```
 
-The connection's `transformProjection` and `projectionComparison` are overridden the same way. They're the `next` of the type adapters, so they convert every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` and `super.projectionComparison(...)` for the values it doesn't convert:
+The connection's `transformProjection` is overridden the same way, and says how its SQL compares in the same context. It's the `next` of the type adapters, so it converts every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` for the values it doesn't convert:
 
 ```ts
-import type { ProjectionComparison, ProjectionOutput, TypeCategory } from "ts-sql-query"
+import type { ProjectionOutput, TypeAdapterProjectionContext, TypeCategory } from "ts-sql-query"
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string {
         if (type === 'Birthday' && output === 'resultColumn') {
+            context.comparison = 'equality'
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
-        return super.transformProjection(sql, type, typeCategory, output)
-    }
-    protected override projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison {
-        if (type === 'Birthday' && output === 'resultColumn') {
-            return 'equality'
-        }
-        return super.projectionComparison(type, typeCategory, output)
+        return super.transformProjection(sql, type, typeCategory, output, context)
     }
 }
 ```

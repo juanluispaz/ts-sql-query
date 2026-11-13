@@ -1078,4 +1078,4 @@ The two queries are separate, and they aren't sent inside a transaction of their
 
 What you set with [`customizeQuery`](sql-fragments.md#customizing-a-select) belongs to the statement, so it's also applied to the count query. The exceptions are `beforeOrderByItems` and `afterOrderByItems`, which the count query doesn't include, because it has no `order by`.
 
-`queryExecutionName` and `queryExecutionMetadata` reach both queries as well. To tell them apart in a query runner, for example to log them separately, use [`isSelectPageCountQuery`](../advanced/query-execution-metadata.md#detect-if-the-query-is-for-select-page-count).
+`queryExecutionName` and `queryExecutionMetadata` reach both queries as well. To tell them apart in a query runner, for example to log them separately, read [`isSelectPageCount`](../advanced/query-execution-metadata.md#detect-if-the-query-is-for-select-page-count) in the context of the query.

@@ -1880,7 +1880,7 @@ const customizedDelete: Promise<number>
 ```
 ### A name and metadata for the execution
 
-`queryExecutionName` and `queryExecutionMetadata` don't change the SQL. They reach your [query runner](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which reads them with [`getQueryExecutionName`](../advanced/query-execution-metadata.md#retrieve-the-execution-name-of-a-query) and [`getQueryExecutionMetadata`](../advanced/query-execution-metadata.md#retrieve-additional-execution-metadata), for example to measure each query with a name you recognize. The other statements have them too.
+`queryExecutionName` and `queryExecutionMetadata` don't change the SQL. They reach your [query runner](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which reads them in the context of the query, as [`executionName`](../advanced/query-execution-metadata.md#retrieve-the-execution-name-of-a-query) and [`executionMetadata`](../advanced/query-execution-metadata.md#retrieve-additional-execution-metadata), for example to measure each query with a name you recognize. The other statements have them too.
 
 ```ts
 const customersOfTheList = connection.selectFrom(tCustomer)

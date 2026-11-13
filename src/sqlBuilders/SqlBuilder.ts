@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ITable, IWithView, HasIsValue, AnyTableOrView } from '../utils/ITableOrView.js'
 import type { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, ValueType } from '../expressions/values.js'
 import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
-import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import type { OrderByMode, SelectCustomization } from '../expressions/select.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
@@ -13,6 +13,7 @@ import type { InsertCustomization } from '../expressions/insert.js'
 import { isSelectQueryObject, isTableOrViewObject, isValueSourceObject } from '../utils/symbols.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
 import type { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
@@ -291,8 +292,16 @@ export interface SqlBuilder extends SqlOperation {
     _defaultTypeAdapter: DefaultTypeAdapter
     /** The context the type adapters receive: the one of the construction, or the one of the SQL builder */
     _typeAdapterContextOf(context?: SqlBuildContext | undefined): TypeAdapterContextImpl
-    /** The type of the value the converted SQL of a column of the result gives (setProjectedType), or the one of the value */
-    _projectedTypeOf(value: AnyValueSource, output: ProjectionOutput): { type: string, typeCategory: TypeCategory }
+    /**
+     * Writes in `into` the type of the value the converted SQL of the value gives for output (the one its
+     * transformProjection requests), or the original one when it isn't converted
+     */
+    _resolveRequestedTypeOfProjection(value: AnyValueSource, output: ProjectionOutput, into: QueryParamContextImpl): void
+    /**
+     * Prepares the context for the transformValueFromDB of the value, read where it leaves the database in output, or
+     * as it is without output
+     */
+    _prepareTypeAdapterReadContext(value: AnyValueSource, output: ProjectionOutput | undefined): TypeAdapterContextImpl
     _queryRunner: QueryRunner
     _connectionConfiguration: ConnectionConfiguration
     _checkConnectionConfiguration(): void

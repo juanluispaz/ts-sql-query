@@ -16,7 +16,7 @@ import { sync } from '../../../../../src/extras/sync.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../../../../../src/connections/SqliteConfiguration.js'
 import { Table } from '../../../../../src/Table.js'
 import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason, type TsSqlInternalErrorReason } from '../../../../../src/TsSqlError.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, type DefaultTypeAdapter, type TypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeCategory, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type CustomType, type DefaultTypeAdapter, type TypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 import { getQueryContext } from '../../../../../src/QueryContext.js'
 import type { ConnectionConfiguration } from '../../../../../src/queryRunners/QueryRunner.js'
 import { Values, type OpaqueValues } from '../../../../../src/Values.js'
@@ -40,20 +40,20 @@ interface Model {
 // type adapter's delegation.
 class RecordingAdapter implements DefaultTypeAdapter {
     calls: string[] = []
-    transformValueFromDB(value: unknown, type: string, _typeCategory: TypeCategory, _context: TypeAdapterValueFromDBContext): unknown {
-        this.calls.push(JSON.stringify(['from', value, type]))
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        this.calls.push(JSON.stringify(['from', value, context.requestedType]))
         return 'from-result'
     }
-    transformValueToDB(value: unknown, type: string, _typeCategory: TypeCategory, _context: TypeAdapterValueToDBContext): unknown {
-        this.calls.push(JSON.stringify(['to', value, type]))
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        this.calls.push(JSON.stringify(['to', value, context.requestedType]))
         return 'to-result'
     }
-    transformPlaceholder(placeholder: string, type: string, _typeCategory: TypeCategory, valueSentToDB: unknown, _context: TypeAdapterPlaceholderContext): string {
-        this.calls.push(JSON.stringify(['placeholder', placeholder, type, valueSentToDB]))
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string {
+        this.calls.push(JSON.stringify(['placeholder', placeholder, context.requestedType, context.valueSentToDB]))
         return 'placeholder-result'
     }
-    transformProjection(sql: string, type: string, _typeCategory: TypeCategory, output: ProjectionOutput, _context: TypeAdapterProjectionContext): string {
-        this.calls.push(JSON.stringify(['projection', sql, type, output]))
+    transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
+        this.calls.push(JSON.stringify(['projection', sql, context.requestedType, context.output]))
         return sql
     }
 }
@@ -61,10 +61,34 @@ class RecordingAdapter implements DefaultTypeAdapter {
 // The configuration of a connection, for the context a type adapter receives
 const configuration: ConnectionConfiguration = { allowEmptyString: false, compatibilityVersion: 0, escape: (identifier: string) => identifier }
 
-// The context a type adapter receives in transformValueFromDB and transformValueToDB, as the library gives it
+// The custom types, the first argument of a custom column
+function isCustomType(type: string): type is CustomType {
+    return ['customInt', 'customBigint', 'customDouble', 'customDecimal', 'customUuid', 'customLocalDate', 'customLocalTime', 'customLocalDateTime', 'enum', 'custom', 'customComparable'].includes(type)
+}
+
+// The context a type adapter receives in transformValueFromDB and transformValueToDB, as the library gives it, for a
+// value of a built-in type
 class AdapterContext implements TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext {
     readonly connectionConfiguration = configuration
+    readonly originalType: string
+    readonly originalCustomType = undefined
+    requestedType: string
+    requestedCustomType: CustomType | undefined = undefined
     forceTypeCast = false
+    constructor(type: string) {
+        this.originalType = type
+        this.requestedType = type
+    }
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
+    setRequestedType(customType: CustomType, type: string): void
+    setRequestedType(typeOrCustomType: string, type?: string): void {
+        this.requestedType = type ?? typeOrCustomType
+        this.requestedCustomType = type !== undefined && isCustomType(typeOrCustomType) ? typeOrCustomType : undefined
+    }
+    resetRequestedType(): void {
+        this.requestedType = this.originalType
+        this.requestedCustomType = this.originalCustomType
+    }
     private readonly metadata = new Map<symbol, Parameters<TypeAdapterValueToDBContext['setMetadata']>[1]>()
     setMetadata(key: symbol, value: unknown): void {
         this.metadata.set(key, value)
@@ -301,9 +325,9 @@ describe(ctx.label, () => {
         assertType<Exact<typeof byNumber.falseValue, number | string>>()
 
         const next = new RecordingAdapter()
-        const context = new AdapterContext()
-        expect(byString.transformValueFromDB('yes', 'boolean', 'boolean', context, next)).toBe('from-result')
-        expect(byString.transformValueToDB(true, 'boolean', 'boolean', context, next)).toBe('to-result')
+        const context = new AdapterContext('boolean')
+        expect(byString.transformValueFromDB('yes', context, next)).toBe('from-result')
+        expect(byString.transformValueToDB(true, context, next)).toBe('to-result')
         expect(next.calls).toEqual([['from', 'yes', 'boolean'], ['to', true, 'boolean']].map((call) => JSON.stringify(call)))
         const asTypeAdapter: TypeAdapter = byString
         expect(asTypeAdapter.transformPlaceholder).toBeUndefined()
@@ -313,10 +337,10 @@ describe(ctx.label, () => {
     test('force-type-cast-delegates-and-forces-the-cast', () => {
         const adapter = new ForceTypeCast()
         const next = new RecordingAdapter()
-        const context = new AdapterContext()
-        expect(adapter.transformValueFromDB(1, 'int', 'int', context, next)).toBe('from-result')
+        const context = new AdapterContext('int')
+        expect(adapter.transformValueFromDB(1, context, next)).toBe('from-result')
         expect(context.forceTypeCast).toBe(false)
-        expect(adapter.transformValueToDB(2, 'int', 'int', context, next)).toBe('to-result')
+        expect(adapter.transformValueToDB(2, context, next)).toBe('to-result')
         // The parameter of the value goes with its type
         expect(context.forceTypeCast).toBe(true)
         const asTypeAdapter: TypeAdapter = adapter

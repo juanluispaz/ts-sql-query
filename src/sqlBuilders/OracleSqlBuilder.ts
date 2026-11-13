@@ -15,7 +15,7 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
+import { __conversionType, __customTypeOf } from '../utils/typeCategory.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
@@ -1145,8 +1145,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (idColumn) {
             this._setContainsInsertReturningClause(context, true)
             const idColumnSql = this._appendSql(idColumn, context, false)
-            const idColumnPrivate = __getValueSourcePrivate(idColumn)
-            const placeholder = this._addOutParam(context, '', idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), false) // Empty name for the out params, no special name is requiered
+            const placeholder = this._addOutParam(context, '', idColumn, undefined) // Empty name for the out params, no special name is requiered
             return ' returning ' + idColumnSql + ' into ' + placeholder
         }
 
@@ -1181,10 +1180,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += ', '
             }
             const column = columns[property]!
-            // The OUT bind receives the value the converted SQL gives: of the type its transformProjection says, or of the
-            // type of the column
-            const projected = this._projectedTypeOf(column, 'resultColumn')
-            const placeholder = this._addOutParam(context, property, projected.type, projected.typeCategory, false)
+            // The OUT bind receives the value the converted SQL gives: of the type its transformProjection requests, or of
+            // the type of the column
+            const placeholder = this._addOutParam(context, property, column, 'resultColumn')
             result += placeholder
             requireComma = true
         }
@@ -1320,7 +1318,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return undefined
         }
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __conversionType(valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType)), this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __conversionType(valueSourcePrivate.__valueTypeName, __customTypeOf(valueSourcePrivate.__valueType)), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? 'sys_extract_utc(' + zoned + ')' : undefined
     }
     // Oracle counts a negative start from the end like JS, but answers '' once the start runs

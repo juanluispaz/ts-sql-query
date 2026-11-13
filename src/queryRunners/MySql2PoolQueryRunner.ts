@@ -3,7 +3,6 @@ import type { Pool, PoolConnection } from 'mysql2'
 import { MySql2QueryRunner } from './MySql2QueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
@@ -30,9 +29,9 @@ export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): PoolConnection | undefined {
         return super.getCurrentNativeConnection() as PoolConnection | undefined
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MySql2PoolQueryRunner(params, value, type, typeCategory, forceTypeCast)
+        return queryRunnerParamBindings.MySql2PoolQueryRunner(params, value)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

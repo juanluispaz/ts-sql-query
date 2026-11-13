@@ -10,7 +10,7 @@ import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } fro
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import type { ProjectionOutput, TypeAdapterProjectionContext, TypeAdapterValueToDBContext, TypeCategory } from '../TypeAdapter.js'
+import type { TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 
@@ -174,8 +174,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * localDateTime or a localTime parameter goes as a TIMESTAMP WITH LOCAL TIME ZONE of its instant, which the database
      * converts with its session (the zone of the database) into the wall clock it stores or compares with
      */
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
-        const conversionType = __conversionType(type, typeCategory)
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        const conversionType = __conversionType(context.requestedType, context.requestedCustomType)
         if ((conversionType === 'localDateTime' || conversionType === 'localTime') && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
         }
@@ -183,7 +183,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);
         }
-        return super.transformValueToDB(value, type, typeCategory, context)
+        return super.transformValueToDB(value, context)
     }
 
     /**
@@ -191,13 +191,13 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * database completes with its session, `cast(<sql> as timestamp with time zone)` (see oracleZonedValueSql), also
      * inside the JSON of an aggregated array, where Oracle writes it as a text with its zone
      */
-    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string {
+    protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = oracleZonedValueSql(sql, __conversionType(type, typeCategory), this.localTimeReferenceDate)
+            const zoned = oracleZonedValueSql(sql, __conversionType(context.requestedType, context.requestedCustomType), this.localTimeReferenceDate)
             if (zoned) {
                 return zoned
             }
         }
-        return super.transformProjection(sql, type, typeCategory, output, context)
+        return super.transformProjection(sql, context)
     }
 }

@@ -1,4 +1,4 @@
-import type { TypeCategory } from '../../TypeAdapter.js'
+import type { TypeCategory } from '../typeCategory.js'
 import { __conversionType } from '../typeCategory.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { postgreSqlZonedParam } from '../metadataSymbols.js'
@@ -145,14 +145,14 @@ export function postgreSqlDriverParams(params: any[]): any[] {
     let result: any[] | undefined = undefined
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
-        const type = existingParamContextOf(params, i)?.type
+        const type = existingParamContextOf(params, i)?.sentType
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = postgreSqlParamValue(value, type, existingParamContextOf(params, i)?.typeCategory, isPostgreSqlZonedParam(params, i))
+        result[i] = postgreSqlParamValue(value, type, existingParamContextOf(params, i)?.sentTypeCategory, isPostgreSqlZonedParam(params, i))
     }
     return result ?? params
 }

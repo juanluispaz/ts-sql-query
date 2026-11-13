@@ -1,4 +1,4 @@
-import type { TypeCategory } from '../../TypeAdapter.js'
+import type { TypeCategory } from '../typeCategory.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
 import { __conversionType, __isDecimalCategory } from '../typeCategory.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'

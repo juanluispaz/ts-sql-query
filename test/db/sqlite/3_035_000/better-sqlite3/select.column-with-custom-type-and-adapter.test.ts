@@ -14,7 +14,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import type { TypeAdapter, DefaultTypeAdapter, TypeCategory, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
+import type { TypeAdapter, DefaultTypeAdapter, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -22,13 +22,13 @@ const fromDBCalls: Array<{ type: string }> = []
 const toDBCalls:   Array<{ type: string }> = []
 
 const loggingAdapter: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        fromDBCalls.push({ type })
-        return next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        fromDBCalls.push({ type: context.requestedType })
+        return next.transformValueFromDB(value, context)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        toDBCalls.push({ type })
-        return next.transformValueToDB(value, type, typeCategory, context)
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        toDBCalls.push({ type: context.requestedType })
+        return next.transformValueToDB(value, context)
     },
 }
 

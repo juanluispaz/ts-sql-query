@@ -75,11 +75,13 @@ temporal values and UTC applies to the other databases.
      `_transformParamToDB`);
    - marks the parameter as the value of a column (`isValueForColumn`) inside the values of an insert or the set of an
      update;
-   - calls `queryRunner.addParam(params, value, typeName, typeCategory, forceTypeCast)`;
+   - calls `queryRunner.addParam(params, value)`;
    - passes the placeholder through `transformPlaceholder`, with the context still pointed at the parameter (`index`,
-     `forceTypeCast` read-only); then points it at none.
-3. Before it calls `addParam`, the SQL builder keeps the type name, category and forceTypeCast of the param in the
-   context of the query (`AbstractSqlBuilder._appendParam`, `_addOutParam`; §4). `addParam` of every runner that talks
+     `valueSentToDB`, `forceTypeCast` read-only); then points it at none.
+3. Before it calls `addParam`, the SQL builder keeps in the context of the query the types of the param (its original
+   type, declared in the library, and the type requested for it, which the type adapter can change with
+   `setRequestedType` in `transformValueToDB`) and its forceTypeCast (`AbstractSqlBuilder._appendParam`,
+   `_addOutParam`; §4). `addParam` of every runner that talks
    to a database delegates to one binding of `utils/queryRunnerParams.ts` (the same function `MockQueryRunner` calls to
    imitate it), which pushes the value and returns the placeholder.
 4. At execution the runner reads that context (§4) and builds what its driver receives (a copy of the params with
@@ -102,10 +104,10 @@ temporal values and UTC applies to the other databases.
    one column) a compound select is always wrapped (`_needsResultConversionWrap`), and with `'none'` a distinct select
    too (`_needsDistinctConversionWrap`).
    On Oracle, the OUT bind of a returning column is of the type of the value its converted SQL gives: the one its
-   `transformProjection` says (`setProjectedType`, like `'string'` for the text of a date), otherwise the one of the
-   column (`_projectedTypeOf`). Every column of the result carries that type in the context of the query
-   (`projectedType`, `projectedTypeCategory` of `QueryResultColumn`), and `OracleDBQueryRunner.fetchTypeHandlerFor` reads
-   it. The id the library reads by itself in an insert without a returning of
+   `transformProjection` requests (`setRequestedType`, like `'string'` for the text of a date), otherwise the one of the
+   column (`_resolveRequestedTypeOfProjection`). Every column of the result carries that type in the context of the
+   query (`requestedType`, `requestedCustomType` of `QueryResultColumn`, beside its `originalType` and
+   `originalCustomType`), and `OracleDBQueryRunner.fetchTypeHandlerFor` reads it. The id the library reads by itself in an insert without a returning of
    the query (`returning id`, `output inserted.id`, Oracle's `returning id into`) keeps its SQL.
    Each value inside the JSON of an aggregated array is written the same way with `'aggregatedArrayValue'`
    (`_appendAggregatedArrayValueProjection`): a converted value is the SQL of a value of any type the JSON function of
@@ -131,15 +133,18 @@ temporal values and UTC applies to the other databases.
    its source text (`queryBuilders/AbstractQueryBuilder.ts:158-215,592`); a value that is already an array (a driver
    that decoded the JSON) is used as it is. Each leaf then goes through `transformValueFromDB` of its type (of its type
    adapter, which receives the text of a converted leaf).
-4. `__transformValueFromDB` (`queryBuilders/AbstractQueryBuilder.ts:74-95`) calls the adapter (with the connection as
+4. `__transformValueFromDB` (`queryBuilders/AbstractQueryBuilder.ts`) calls the adapter (with the connection as
    `next`) or the connection's `transformValueFromDB`; an error that isn't of the library becomes
-   `INVALID_VALUE_RECEIVED_FROM_DATABASE`.
+   `INVALID_VALUE_RECEIVED_FROM_DATABASE`. Its context has the requested type of the value as it leaves the database
+   (the one its `transformProjection` requests, resolved when read and kept per value and output), which an adapter
+   that converts the value to another type changes before calling `next`.
 
-`__conversionType` (`utils/typeCategory.ts:39-44`) decides which arm of the transforms converts a value: the type name
-when it is a built-in one (`boolean`, `int`, …, `aggregatedArray`), otherwise the type of its category
+The transforms of the connection convert a value as its requested type. `__conversionType` (`utils/typeCategory.ts`)
+decides which arm converts it: the type name when it is a built-in one (`boolean`, `int`, …, `aggregatedArray`),
+otherwise the type of its custom type
 (`customInt` → `int`, `customBigint` → `bigint`, `customDouble` → `double`, `customDecimal` → `customDecimal`,
-`customUuid` → `uuid`, `customLocalDate/Time/DateTime` → `localDate/Time/DateTime`, `utils/typeCategory.ts:22-31`).
-`enum`, `custom`, `customComparable` and a value without category keep their name and pass unconverted.
+`customUuid` → `uuid`, `customLocalDate/Time/DateTime` → `localDate/Time/DateTime`).
+`enum`, `custom`, `customComparable` and a value without custom type keep their name and pass unconverted.
 
 ## 2. Sending
 
@@ -424,10 +429,10 @@ of it is optional information, so a runner must still work with params built by 
 
 | Of | Field | Written by | What it is for |
 |---|---|---|---|
-| each parameter | `type`, `typeCategory`, `forceTypeCast` | the SQL builder before `addParam` / `addOutParam` (`_appendParam`, `_addOutParam`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
+| each parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType`, `forceTypeCast` | the SQL builder before `addParam` / `addOutParam` (`_appendParam`, `_addOutParam`); the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
 | each parameter | `isValueForColumn` | the SQL builder before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server (`mySqlMariaDBParamTypes.ts`, `sqlServerParamTypes.ts`); the bare placeholder of a zoned Oracle value (`oracleParamTypes.ts`) |
 | each parameter | `getMetadata(key)`: a symbol of a type adapter or of the connection (`oracleDateParam`, `postgreSqlZonedParam`, `oracleZonedParam` of `utils/metadataSymbols.ts`) | `transformValueToDB` of the type adapter and of the connection (`context.setMetadata`), which the SQL builder calls before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters (`oracleDateParam`): the Oracle runners bind one of whole seconds as a `DATE`, and a `null` as a `DATE` (§2.4); a database outside UTC (§7.3) |
-| the query | `resultColumns`, `getResultColumn(name)` | `__setQueryMetadata`, from `__resultColumnsOf` / `__unnamedResultColumn` | the expected type of each result column (`name` = key in the row, `path`, `type`, `typeCategory`; `''` for an aggregated array): Oracle fetches decimals and bigints as text (`OracleDBQueryRunner.fetchTypeHandlerFor`). `[]` when the query returns no columns, `undefined` for a query the library didn't build |
+| the query | `resultColumns`, `getResultColumn(name)` | `__setQueryMetadata`, from `__resultColumnsOf` / `__unnamedResultColumn` | the expected type of each result column (`name` = key in the row, `path`, the original and the requested type; `aggregatedArray` for an aggregated array): Oracle fetches decimals and bigints as text (`OracleDBQueryRunner.fetchTypeHandlerFor`). `[]` when the query returns no columns, `undefined` for a query the library didn't build |
 | the query | `connectionConfiguration` | `__setQueryMetadata` | the connection's settings (`ConnectionConfiguration`, `QueryRunner.ts`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, `databaseTimeZone`, SQLite date formats, …), read live from the connection |
 | each execution | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata` | `__setQueryMetadata` | logging and errors |
 | each execution | `isSelectPageCount` | `executeSelectPage` | tells the count query apart |

@@ -43,7 +43,7 @@ describe(ctx.label, () => {
           ]
         `)
         const params = ctx.lastParams
-        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.typeCategory])).toEqual([
+        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType, getQueryContext(ctx.lastSql, params).getParam(index)?.originalCustomType])).toEqual([
             ['Downloads', 'customBigint'],
             ['Downloads', 'customBigint'],
         ])

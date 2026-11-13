@@ -1,5 +1,4 @@
 import { databaseParamBinding } from '../utils/queryRunnerParams.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, type TsSqlErrorReason } from '../TsSqlError.js';
 import { getQueryContext, type QueryContext } from '../QueryContext.js'
@@ -141,11 +140,11 @@ export class NoopQueryRunner implements QueryRunner {
     executeConnectionConfiguration(_query: string, _params: any[] = []): Promise<void> {
         return this.promise.resolve()
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The placeholders of the database, as MockQueryRunner writes them
-        return databaseParamBinding(this.database)(params, value, type, typeCategory, forceTypeCast)
+        return databaseParamBinding(this.database)(params, value)
     }
-    addOutParam(params: any[], name: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean): string {
+    addOutParam(params: any[], name: string): string {
         const index = params.length
         params.push({ out_param_with_name: name })
         return ':' + index

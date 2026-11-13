@@ -4,7 +4,6 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
@@ -64,10 +63,10 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         const typesByName = this.config?.typesByName
         let paramTypes: number[] | undefined = undefined
         for (let i = 0, length = params.length; i < length; i++) {
-            const type = existingParamContextOf(params, i)?.type
+            const type = existingParamContextOf(params, i)?.sentType
             let oid = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             if (oid === undefined && (existingParamContextOf(params, i)?.forceTypeCast || isPostgreSqlZonedParam(params, i))) {
-                oid = postgreSqlParamType(type, existingParamContextOf(params, i)?.typeCategory, params[i], isPostgreSqlZonedParam(params, i))?.oid
+                oid = postgreSqlParamType(type, existingParamContextOf(params, i)?.sentTypeCategory, params[i], isPostgreSqlZonedParam(params, i))?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {
@@ -104,9 +103,9 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PgLiteQueryRunner(params, value, type, typeCategory, forceTypeCast)
+        return queryRunnerParamBindings.PgLiteQueryRunner(params, value)
     }
     override nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions

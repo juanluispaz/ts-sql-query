@@ -6,7 +6,6 @@ import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.j
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
@@ -261,9 +260,9 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     isTransactionActive(): boolean {
         return !!this.transaction
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MssqlPoolQueryRunner(params, value, type, typeCategory, forceTypeCast)
+        return queryRunnerParamBindings.MssqlPoolQueryRunner(params, value)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return MssqlPoolQueryRunner.getErrorReason(error)
@@ -316,7 +315,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     // The type the parameter is bound with: the one declared in typesByName for its type name, or the one getType gives
     private getInputType(params: any[], index: number): ISqlType {
         const typesByName = this.config?.typesByName
-        const type = existingParamContextOf(params, index)?.type
+        const type = existingParamContextOf(params, index)?.sentType
         const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
         if (declared) {
             if (typeof declared === 'function') {
@@ -332,8 +331,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     protected getType(params: any[], index: number): ISqlTypeFactory {
         // The category of the type decides the type of the parameter, then its name; a parameter added without them,
         // like one of a query written by hand, gets a type inferred from its value
-        const typeCategory = existingParamContextOf(params, index)?.typeCategory
-        const type = existingParamContextOf(params, index)?.type
+        const typeCategory = existingParamContextOf(params, index)?.sentTypeCategory
+        const type = existingParamContextOf(params, index)?.sentType
         if (typeCategory || type) {
             const byCategory = typeCategory && Object.hasOwn(this.predefinedTypes, typeCategory) ? this.predefinedTypes[typeCategory] : undefined
             if (byCategory) {

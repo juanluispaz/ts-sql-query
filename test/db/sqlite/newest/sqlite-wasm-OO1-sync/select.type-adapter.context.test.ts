@@ -16,39 +16,39 @@ const sentAt = Symbol('sentAt')
 
 // Keeps the value it sends, under its own key
 const keepingTheValue: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        return next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        return next.transformValueFromDB(value, context)
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
+    transformValueToDB(value, context, next) {
         context.setMetadata(sentAt, 'value ' + String(value))
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     },
 }
 
 // Asks for the type of its parameter wherever it is written
 const typingItsParameter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        return next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        return next.transformValueFromDB(value, context)
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
+    transformValueToDB(value, context, next) {
         context.forceTypeCast = true
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     },
 }
 
 // What transformPlaceholder sees of the parameter
 const seenByThePlaceholder: Array<[number | undefined, boolean, string]> = []
 const readingThePlaceholderContext: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        return next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        return next.transformValueFromDB(value, context)
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
+    transformValueToDB(value, context, next) {
         context.setMetadata(sentAt, 'value ' + String(value))
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     },
-    transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context, next) {
+    transformPlaceholder(placeholder, context, next) {
         seenByThePlaceholder.push([context.index, context.forceTypeCast, String(context.getMetadata(sentAt))])
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        return next.transformPlaceholder(placeholder, context)
     },
 }
 
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual([{ id: 1 }])
         const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
-        expect([param?.getMetadata(sentAt), param?.type, param?.typeCategory]).toEqual(['value 1', 'int', 'int'])
+        expect([param?.getMetadata(sentAt), param?.originalType, param?.originalCustomType, param?.requestedType]).toEqual(['value 1', 'int', undefined, 'int'])
     })
 
     test('force-type-cast-of-a-type-adapter-goes-with-its-parameter', async () => {

@@ -1,4 +1,4 @@
-// Each parameter of a query goes with the name of its type and its category, read from the context of the query
+// Each parameter of a query goes with its original type, the name of its type and which custom type it is, read from the context of the query
 // (getQueryContext) at its index: the type of the column it's compared with, or the type of the argument when
 // a function takes another one, like the positions of a substring.
 
@@ -10,7 +10,7 @@ import { ctx } from './setup.js'
 
 function paramTypes(): Array<[string | undefined, string | undefined]> {
     const params = ctx.lastParams
-    return params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.typeCategory])
+    return params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType, getQueryContext(ctx.lastSql, params).getParam(index)?.originalCustomType])
 }
 
 describe(ctx.label, () => {
@@ -34,17 +34,17 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where id = @0 and version = @1 and channel = @2 and signing_key = @3 and released_on = @4 and cutoff_time = @5 and signed_off_at = @6 and upper(channel) = @7 and substring(upper(channel), @8, @9) = @10"`)
         expect(paramTypes()).toEqual([
-            ['int', 'int'],
+            ['int', undefined],
             ['Semver', 'customComparable'],
             ['ReleaseChannel', 'custom'],
             ['SigningKey', 'customUuid'],
             ['ReleaseDay', 'customLocalDate'],
             ['CutoffClock', 'customLocalTime'],
             ['SignOffStamp', 'customLocalDateTime'],
-            ['string', 'string'],
-            ['int', 'int'],
-            ['int', 'int'],
-            ['string', 'string'],
+            ['string', undefined],
+            ['int', undefined],
+            ['int', undefined],
+            ['string', undefined],
         ])
         assertType<Exact<typeof rows, { id: number }[]>>()
         expect(rows).toEqual([{ id: 1 }])
@@ -60,9 +60,9 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from release_overview where is_signed = @0 and download_count = @1 and avg_rating = @2"`)
         expect(paramTypes()).toEqual([
-            ['boolean', 'boolean'],
-            ['bigint', 'bigint'],
-            ['double', 'double'],
+            ['boolean', undefined],
+            ['bigint', undefined],
+            ['double', undefined],
         ])
         assertType<Exact<typeof rows, { id: number }[]>>()
         expect(rows).toEqual([{ id: 1 }])

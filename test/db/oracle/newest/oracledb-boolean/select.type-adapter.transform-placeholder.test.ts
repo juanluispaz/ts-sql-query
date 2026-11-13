@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory, type TypeAdapterPlaceholderContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeAdapterPlaceholderContext } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -25,13 +25,13 @@ function castPlaceholder(placeholder: string, sqlType: string): string {
 // A user adapter that casts the placeholder of a string and delegates to `next`
 // for every other type.
 const castString: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) { return next.transformValueFromDB(value, type, typeCategory, context) },
-    transformValueToDB(value, type, typeCategory, context, next) { return next.transformValueToDB(value, type, typeCategory, context) },
-    transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context, next) {
-        if (type === 'string') {
+    transformValueFromDB(value, context, next) { return next.transformValueFromDB(value, context) },
+    transformValueToDB(value, context, next) { return next.transformValueToDB(value, context) },
+    transformPlaceholder(placeholder, context, next) {
+        if (context.requestedType === 'string') {
             return castPlaceholder(placeholder, STRING_CAST_TYPE)
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        return next.transformPlaceholder(placeholder, context)
     },
 }
 
@@ -46,11 +46,11 @@ const tProjectCastName = new class TProjectCastName extends Table<DBConnection, 
 // of a boolean.
 class CastingBooleanAdapter extends CustomBooleanTypeAdapter {
     constructor() { super('Y', 'N') }
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        if (type === 'boolean') {
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
+        if (context.requestedType === 'boolean') {
             return castPlaceholder(placeholder, BOOLEAN_CAST_TYPE)
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        return next.transformPlaceholder(placeholder, context)
     }
 }
 

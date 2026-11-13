@@ -1,6 +1,5 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { databaseParamBinding, queryRunnerDatabases, queryRunnerParamBindings, type ParamBinding } from '../utils/queryRunnerParams.js'
 import { getQueryContext, type QueryContext } from '../QueryContext.js'
 
@@ -531,10 +530,10 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        return this.paramBinding(params, value, type, typeCategory, forceTypeCast, this.typesByName)
+    addParam(params: any[], value: any): string {
+        return this.paramBinding(params, value, this.typesByName)
     }
-    addOutParam(params: any[], name: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean): string {
+    addOutParam(params: any[], name: string): string {
         if (this.database !== 'oracle') {
             throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
         }

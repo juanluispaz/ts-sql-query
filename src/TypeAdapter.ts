@@ -3,21 +3,15 @@ import type { ConnectionConfiguration } from './queryRunners/QueryRunner.js'
 import { __conversionType } from './utils/typeCategory.js'
 
 /**
- * The category of the type of a value: the first argument of a column, like `'customInt'` in
- * `column('id', 'customInt', 'MyIntTypeName')`, or `''` when it isn't known. The transforms receive it with the name
- * of the type, and a custom type is converted as the type of its category (`customInt` as an `int`) unless its
- * conversion is registered.
+ * Which custom type a value is, the first argument of its column when it is a custom one, like `'customInt'` in
+ * `column('id', 'customInt', 'MyIntTypeName')`: a custom type is converted as the built-in type it is based on
+ * (`customInt` as an `int`) unless its conversion is registered; an `enum`, a `custom` or a `customComparable` is sent
+ * and received as it comes.
  */
-export type TypeCategory = 'boolean'
-    | 'int' | 'bigint' | 'customInt' | 'customBigint'
-    | 'double' | 'customDouble' | 'stringDecimal' | 'customDecimal'
-    | 'string'
-    | 'uuid' | 'customUuid'
-    | 'localDate' | 'customLocalDate'
-    | 'localTime' | 'customLocalTime'
-    | 'localDateTime' | 'customLocalDateTime'
+export type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal'
+    | 'customUuid'
+    | 'customLocalDate' | 'customLocalTime' | 'customLocalDateTime'
     | 'enum' | 'custom' | 'customComparable'
-    | ''
 
 /**
  * Where a value leaves the database, given to `transformProjection`: `'resultColumn'` is a column of the result of the
@@ -40,17 +34,42 @@ export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
  */
 export type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
-/** What a method of a type adapter receives of the query it works for */
+/**
+ * What a method of a type adapter receives of the value it works on and of the query. A value has two types:
+ * - the original type, the one declared in the library (`column('day', 'customLocalDate', 'ReleaseDay')`,
+ *   `const(1, 'int')`), which never changes;
+ * - the requested type, the one the value is communicated to the query runner and the database with: by default the
+ *   original one. A type adapter can request another (`setRequestedType`), and the next one in the chain, and the
+ *   conversion of the library, decide by the type requested.
+ */
 export interface TypeAdapterContext {
     /** The configuration of the connection of the query */
     readonly connectionConfiguration: ConnectionConfiguration
+    /** The name of the original type of the value, like `'int'` or `'ReleaseDay'`; it never changes */
+    readonly originalType: string
+    /** Which custom type the original type is, as declared in its column; undefined for a built-in type */
+    readonly originalCustomType: CustomType | undefined
+    /** The name of the type requested for the value; by default the original one */
+    readonly requestedType: string
+    /** Which custom type the requested type is; undefined for a built-in type */
+    readonly requestedCustomType: CustomType | undefined
 }
 
 /**
  * The context of `transformValueToDB`: the parameter the value will be sent in. What the adapter writes in it applies
  * to that parameter; when the library transforms a value only to look at it (and adds no parameter), it is discarded.
+ * The requested type is the type the value is sent with: the query runner receives it.
  */
 export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
+    /**
+     * Requests a built-in type, like `setRequestedType('string')`: the next type adapter and the conversion of the
+     * library decide by it. It can be called again
+     */
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
+    /** Requests a custom type, as a column declares it: `setRequestedType('customLocalDate', 'ReleaseDay')` */
+    setRequestedType(customType: CustomType, type: string): void
+    /** Requests the original type again */
+    resetRequestedType(): void
     /**
      * Whether the database must receive the type of the parameter (the query runner writes a cast in the placeholder,
      * or sends the parameter with its type): it comes with what the library decided for the position where the
@@ -70,6 +89,8 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
 export interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
     /** The index of the parameter in the params; undefined when the placeholder is the literal `null`, not a parameter */
     readonly index: number | undefined
+    /** The value sent in the parameter, as `transformValueToDB` gave it; null for the literal `null` */
+    readonly valueSentToDB: unknown
     /** Whether the database receives the type of the parameter (decided before the placeholder was written) */
     readonly forceTypeCast: boolean
     /** Keeps a value for the parameter, as in `transformValueToDB`; nothing when there is no parameter */
@@ -80,60 +101,83 @@ export interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 
 /**
  * The context of `transformProjection`: what the adapter says of the SQL it returns. `transformProjection` may be
- * called with an empty `sql` to learn whether it converts the value; it must write the same whatever the `sql`.
+ * called with an empty `sql` to learn whether it converts the value; it must write the same whatever the `sql`. The
+ * requested type is the type of the value the SQL returned gives, which the query runner receives; it is read only
+ * when the SQL is converted.
  */
 export interface TypeAdapterProjectionContext extends TypeAdapterContext {
+    /**
+     * Requests a built-in type, like `setRequestedType('string')`: the next type adapter and the conversion of the
+     * library decide by it. It can be called again
+     */
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
+    /** Requests a custom type, as a column declares it: `setRequestedType('customLocalDate', 'ReleaseDay')` */
+    setRequestedType(customType: CustomType, type: string): void
+    /** Requests the original type again */
+    resetRequestedType(): void
+    /** Where the value leaves the database (see `ProjectionOutput`) */
+    readonly output: ProjectionOutput
     /**
      * How the SQL returned compares with the value (see `ProjectionComparison`), `'value'` unless the adapter or the
      * connection says otherwise; it is read only when the SQL is converted
      */
     comparison: ProjectionComparison
-    /** The type of the value the SQL returned gives, which the query runner receives; by default the one of the value */
-    readonly projectedType: string | undefined
-    /** The type category of the value the SQL returned gives; by default the one of the value */
-    readonly projectedTypeCategory: TypeCategory | undefined
-    /** Says the SQL returned gives a value of another type, like the text of a date */
-    setProjectedType(type: string, typeCategory: TypeCategory): void
 }
 
-/** The context of `transformValueFromDB` */
+/**
+ * The context of `transformValueFromDB`: the requested type is the type of the value received, the one
+ * `transformProjection` requested (by default the original one). An adapter that converts the value to another type
+ * requests that one before calling the next, which converts the value by it.
+ */
 export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
+    /**
+     * Requests a built-in type, like `setRequestedType('string')`: the next type adapter and the conversion of the
+     * library decide by it. It can be called again
+     */
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
+    /** Requests a custom type, as a column declares it: `setRequestedType('customLocalDate', 'ReleaseDay')` */
+    setRequestedType(customType: CustomType, type: string): void
+    /** Requests the original type again */
+    resetRequestedType(): void
 }
 
 export interface DefaultTypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext): string
+    /** Converts the value received as the requested type */
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown
+    /** Converts the value to send as the requested type */
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string
     /**
-     * The SQL of a value as it leaves the database, with the conversion of the library: SQL Server writes a decimal of
-     * a column of the result as its text (`convert(nvarchar(41), <sql>)`, comparing as `'columnEquality'`); PostgreSQL
-     * and Oracle with a database outside UTC write a localDateTime or a localTime with its zone; every other value
-     * keeps the SQL it receives
+     * The SQL of a value as it leaves the database, with the conversion of the library for the requested type: SQL
+     * Server writes a decimal of a column of the result as its text (`convert(nvarchar(41), <sql>)`, comparing as
+     * `'columnEquality'`); PostgreSQL and Oracle with a database outside UTC write a localDateTime or a localTime with
+     * its zone; every other value keeps the SQL it receives
      */
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string
+    transformProjection(sql: string, context: TypeAdapterProjectionContext): string
 }
 
 export interface TypeAdapter {
     /** Converts a value read from the database; `next.transformValueFromDB(...)` applies the conversion of the library */
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
     /**
      * Converts a value before it is sent to the database; `next.transformValueToDB(...)` applies the conversion of the
-     * library. In `context` the adapter can decide whether the database receives the type of the parameter
-     * (`forceTypeCast`) and keep, for the query runner, what it knows of the parameter (`setMetadata`)
+     * library. In `context` the adapter can request the type the value is sent with (`setRequestedType`), decide
+     * whether the database receives the type of the parameter (`forceTypeCast`) and keep, for the query runner, what it
+     * knows of the parameter (`setMetadata`)
      */
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
     /** The placeholder of the parameter, as the query runner wrote it, with the cast when there is one */
-    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
+    transformPlaceholder?(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
     /**
      * The SQL of a value as it leaves the database, the pair of `transformValueFromDB`, which reads what it gives:
-     * `sql` is the value as the library writes it, and the SQL returned is what the database returns in `output`.
-     * `next.transformProjection(...)` applies the conversion of the library. The value keeps its SQL everywhere
-     * else in the query: the arms of a compound query compare the values, the order by of a column of the select orders
-     * by the value, the distinct, the order by and the limit of a select used as an aggregated array compare and order
-     * the values, and a subquery, a `with`, the group by and the having use the value. It only writes SQL: it adds no
-     * parameter, and when it doesn't convert the value it returns the SQL it receives (an empty `sql` gives an empty
-     * text). In `context` the adapter says how the SQL it returns compares with the value (`comparison`) and which type
-     * of value it gives (`setProjectedType`), the same whatever the `sql` it receives:
+     * `sql` is the value as the library writes it, and the SQL returned is what the database returns in
+     * `context.output`. `next.transformProjection(...)` applies the conversion of the library. The value keeps its SQL
+     * everywhere else in the query: the arms of a compound query compare the values, the order by of a column of the
+     * select orders by the value, the distinct, the order by and the limit of a select used as an aggregated array
+     * compare and order the values, and a subquery, a `with`, the group by and the having use the value. It only writes
+     * SQL: it adds no parameter, and when it doesn't convert the value it returns the SQL it receives (an empty `sql`
+     * gives an empty text). In `context` the adapter says which type of value the SQL gives (`setRequestedType`) and
+     * how it compares with the value (`comparison`), the same whatever the `sql` it receives:
      * - `'value'` (the default): it compares and orders like the value; the converted SQL is written in place and
      *   nothing else changes in the query.
      * - `'equality'`: equal values give equal SQL and different values different SQL, but it orders otherwise (a
@@ -148,7 +192,7 @@ export interface TypeAdapter {
      *   with its offset); besides the above, a distinct select is wrapped and converted over the wrapper, and the
      *   distinct of an aggregated array is applied to the values before converting them, where the database allows it.
      */
-    transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
+    transformProjection?(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -162,12 +206,12 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
         this.falseValue = falseValue
     }
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory, context)
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, context)
     }
 }
 
@@ -182,14 +226,17 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
  */
 export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
     }
 
-    /** Marks a localDateTime or a localTime parameter of the column as one of a DATE: the query runner binds it as one */
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        const result = next.transformValueToDB(value, type, typeCategory, context)
-        const conversionType = __conversionType(type, typeCategory)
+    /**
+     * Marks a parameter of the column sent as a localDateTime or a localTime as one of a DATE: the query runner binds it
+     * as one
+     */
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        const result = next.transformValueToDB(value, context)
+        const conversionType = __conversionType(context.requestedType, context.requestedCustomType)
         if (conversionType === 'localDateTime' || conversionType === 'localTime') {
             context.setMetadata(oracleDateParam, true)
         }
@@ -205,12 +252,12 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
  */
 export class ForceTypeCast implements TypeAdapter {
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         context.forceTypeCast = true
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     }
 }

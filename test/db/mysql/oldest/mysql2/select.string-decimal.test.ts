@@ -70,10 +70,10 @@ describe(ctx.label, () => {
           ]
         `)
         const params = ctx.lastParams
-        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.typeCategory])).toEqual([
-            ['stringDecimal', 'stringDecimal'],
-            ['stringDecimal', 'stringDecimal'],
-            ['stringDecimal', 'stringDecimal'],
+        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType, getQueryContext(ctx.lastSql, params).getParam(index)?.originalCustomType])).toEqual([
+            ['stringDecimal', undefined],
+            ['stringDecimal', undefined],
+            ['stringDecimal', undefined],
         ])
         assertType<Exact<typeof ids, number[]>>()
         expect(ids).toEqual([2, 1, 5])

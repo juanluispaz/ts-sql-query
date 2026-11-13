@@ -19,23 +19,34 @@ import { InterceptorQueryRunner } from '../../src/queryRunners/InterceptorQueryR
 import type { BeginTransactionOpts, QueryRunner, QueryType } from '../../src/queryRunners/QueryRunner.js'
 import { getQueryContext } from '../../src/QueryContext.js'
 
-const TYPE_CATEGORIES = new Set<string>([
-    'boolean', 'int', 'bigint', 'customInt', 'customBigint', 'double', 'customDouble', 'stringDecimal', 'customDecimal', 'string', 'uuid', 'customUuid',
-    'localDate', 'customLocalDate', 'localTime', 'customLocalTime', 'localDateTime', 'customLocalDateTime',
-    'enum', 'custom', 'customComparable',
+const BUILT_IN_TYPES = new Set<string>([
+    'boolean', 'int', 'bigint', 'double', 'stringDecimal', 'string', 'uuid', 'localDate', 'localTime', 'localDateTime',
+])
+const CUSTOM_TYPES = new Set<string>([
+    'customInt', 'customBigint', 'customDouble', 'customDecimal', 'customUuid', 'customLocalDate', 'customLocalTime',
+    'customLocalDateTime', 'enum', 'custom', 'customComparable',
 ])
 
-// Every parameter the library adds goes with the name of its type, its category and its forceTypeCast, kept by the
-// library in the context of the query: a parameter without them, or with an unknown category, is a place where the library lost the type of
+// A type is its name with, for a custom one, which custom type it is; without it, the name is the one of a built-in
+// type (or of the internal ones given)
+function isKnownType(type: unknown, customType: unknown, internalTypes: readonly string[] = []): boolean {
+    if (typeof type !== 'string') {
+        return false
+    }
+    if (customType === undefined) {
+        return BUILT_IN_TYPES.has(type) || internalTypes.includes(type)
+    }
+    return typeof customType === 'string' && CUSTOM_TYPES.has(customType)
+}
+
+// Every parameter the library adds goes with its original type, the one requested for it and its forceTypeCast, kept
+// by the library in the context of the query: a parameter without them is a place where the library lost the type of
 // the value.
 function checkParamTypes(query: string, params: unknown[]): void {
     for (let index = 0; index < params.length; index++) {
         const param = getQueryContext(query, params as any[]).getParam(index)
-        const type = param?.type
-        const typeCategory = param?.typeCategory
-        const forceTypeCast = param?.forceTypeCast
-        if (typeof type !== 'string' || typeCategory === undefined || !TYPE_CATEGORIES.has(typeCategory) || typeof forceTypeCast !== 'boolean') {
-            throw new Error('The parameter ' + index + ' of the query has no type (type: ' + String(type) + ', category: ' + JSON.stringify(typeCategory) + ', forceTypeCast: ' + String(forceTypeCast) + '): ' + query)
+        if (!param || !isKnownType(param.originalType, param.originalCustomType) || !isKnownType(param.requestedType, param.requestedCustomType) || typeof param.forceTypeCast !== 'boolean') {
+            throw new Error('The parameter ' + index + ' of the query has no type (original: ' + String(param?.originalType) + ' ' + String(param?.originalCustomType) + ', requested: ' + String(param?.requestedType) + ' ' + String(param?.requestedCustomType) + ', forceTypeCast: ' + String(param?.forceTypeCast) + '): ' + query)
         }
     }
 }
@@ -70,8 +81,9 @@ function checkResultColumns(queryType: QueryType, query: string, params: unknown
         throw new Error('The query has no result columns: ' + query)
     }
     for (const column of columns) {
-        const valid = typeof column.name === 'string' && typeof column.path === 'string' && typeof column.type === 'string'
-            && (column.typeCategory === '' ? column.type === 'aggregatedArray' : TYPE_CATEGORIES.has(column.typeCategory))
+        const valid = typeof column.name === 'string' && typeof column.path === 'string'
+            && isKnownType(column.originalType, column.originalCustomType, ['aggregatedArray'])
+            && isKnownType(column.requestedType, column.requestedCustomType, ['aggregatedArray'])
         if (!valid) {
             throw new Error('A result column of the query has no type (' + JSON.stringify(column) + '): ' + query)
         }

@@ -62,7 +62,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
-import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type CustomType } from '../../../../../src/TypeAdapter.js'
 
 import { Pool } from 'pg';
 import { PgPoolQueryRunner } from '../../../../../src/queryRunners/PgPoolQueryRunner.js'
@@ -174,22 +174,22 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
 // The adapter and the table of the example of `transformProjection` in docs/configuration/column-types.md, used by the
 // examples after it on that page
 class DayAsTextTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
-            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory, context)
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], context)
         }
-        return next.transformValueFromDB(value, type, typeCategory, context)
+        return next.transformValueFromDB(value, context)
     }
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory, context)
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, context)
     }
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+    transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        if (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue') {
             context.comparison = 'equality'
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
-        return next.transformProjection(sql, type, typeCategory, output, context)
+        return next.transformProjection(sql, context)
     }
 }
 
@@ -374,7 +374,7 @@ void function(
     _tovo: TableOrViewOf<any>,
     _dta: DefaultTypeAdapter,
     _ta: TypeAdapter,
-    _tc: TypeCategory,
+    _tc: CustomType,
     _po: ProjectionOutput,
     _pc: ProjectionComparison,
     _dc: DynamicCondition<any>

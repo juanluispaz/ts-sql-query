@@ -20,6 +20,7 @@ export {
 export {
     CustomBooleanTypeAdapter,
     ForceTypeCast,
+    type CustomType,
     type DefaultTypeAdapter,
     type ProjectionComparison,
     type ProjectionOutput,
@@ -29,7 +30,6 @@ export {
     type TypeAdapterProjectionContext,
     type TypeAdapterValueFromDBContext,
     type TypeAdapterValueToDBContext,
-    type TypeCategory,
 } from '../../TypeAdapter.js'
 
 export {

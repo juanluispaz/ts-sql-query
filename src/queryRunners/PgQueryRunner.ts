@@ -4,7 +4,6 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgErrorReason, isPgError } from './connectorErrorMappers/PgErrorMapper.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { pgSessionTimeZone, requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
@@ -78,9 +77,9 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PgQueryRunner(params, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
+        return queryRunnerParamBindings.PgQueryRunner(params, value, this.config?.typesByName)
     }
     override nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions

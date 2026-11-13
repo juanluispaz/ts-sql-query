@@ -8,7 +8,7 @@ import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDat
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
-import type { TypeAdapter, DefaultTypeAdapter, TypeCategory, ProjectionOutput, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
 import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
@@ -32,7 +32,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
+import { __conversionType } from '../utils/typeCategory.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
@@ -729,10 +729,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             return this.__sqlBuilder._queryRunner.executeFunction(query, executionParams).then((value) => {
                 let result
                 try {
+                    const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(functionCall, 'resultColumn')
                     if (adapter2) {
-                        result = adapter2.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType), this.__sqlBuilder._typeAdapterContextOf(), this.__sqlBuilder._defaultTypeAdapter)
+                        result = adapter2.transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
                     } else {
-                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType), this.__sqlBuilder._typeAdapterContextOf())
+                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, adapterContext)
                     }
                 } catch(e) {
                     if (e instanceof TsSqlError) {
@@ -1179,8 +1180,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected __normalizeUuidText(value: string): string {
         return value
     }
-    protected transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, _context: TypeAdapterValueFromDBContext): unknown {
-        const conversionType = __conversionType(type, typeCategory)
+    /** Converts a value received from the database as the requested type */
+    protected transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        const type = context.requestedType
+        const conversionType = __conversionType(type, context.requestedCustomType)
         if (value === undefined) {
             return null
         }
@@ -1410,8 +1413,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
         return undefined
     }
-    protected transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, _context: TypeAdapterValueToDBContext): unknown {
-        const conversionType = __conversionType(type, typeCategory)
+    /** Converts a value to send to the database as the requested type */
+    protected transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        const type = context.requestedType
+        const conversionType = __conversionType(type, context.requestedCustomType)
         if (value === undefined) {
             return null
         }
@@ -1492,7 +1497,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    protected transformPlaceholder(placeholder: string, _type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown, _context: TypeAdapterPlaceholderContext): string {
+    protected transformPlaceholder(placeholder: string, _context: TypeAdapterPlaceholderContext): string {
         return placeholder
     }
 
@@ -1500,7 +1505,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      * The SQL of a value as it leaves the database, with the conversion of the library: the SQL it receives, unless the
      * connection of a database changes it (SQL Server writes a decimal of a column of the result as its text)
      */
-    protected transformProjection(sql: string, _type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _context: TypeAdapterProjectionContext): string {
+    protected transformProjection(sql: string, _context: TypeAdapterProjectionContext): string {
         return sql
     }
 

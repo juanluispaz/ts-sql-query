@@ -1,7 +1,7 @@
 // NoopQueryRunner: every query answers "nothing", transactions are counted.
 
 import { SynchronousPromise } from 'synchronous-promise'
-import type { TypeCategory } from '../../../src/TypeAdapter.js'
+import type { ValueType } from '../../../src/expressions/values.js'
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { SqliteConnection } from '../../../src/connections/SqliteConnection.js'
 import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
@@ -94,12 +94,12 @@ describe('NoopQueryRunner', () => {
     }
     test('forced-type-on-postgreSql-by-the-value', () => {
         const runner = new NoopQueryRunner('postgreSql')
-        const cases: [unknown, string, TypeCategory, string][] = [
+        const cases: [unknown, string, ValueType, string][] = [
             [1, 'Status', 'enum', '$1::int4'], [5000000000, 'Big', 'custom', '$1::int8'], [1.5, 'Ratio', 'customComparable', '$1::float8'],
             [5n, 'Count', '', '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
         ]
-        for (const [value, type, typeCategory, placeholder] of cases) {
-            expect([type, value, addParam(runner, [], value, type, typeCategory, true)]).toEqual([type, value, placeholder])
+        for (const [value, type, columnType, placeholder] of cases) {
+            expect([type, value, addParam(runner, [], value, type, columnType, true)]).toEqual([type, value, placeholder])
         }
     })
 
@@ -113,7 +113,7 @@ describe('NoopQueryRunner', () => {
 
     test('out-params', () => {
         const params: any[] = []
-        expect(new NoopQueryRunner().addOutParam(params, 'id', 'int', 'int', false)).toBe(':0')
+        expect(new NoopQueryRunner().addOutParam(params, 'id')).toBe(':0')
         expect(params).toEqual([{ out_param_with_name: 'id' }])
     })
 

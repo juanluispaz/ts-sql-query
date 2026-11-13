@@ -7,7 +7,7 @@
 import oracledb from 'oracledb'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
-import type { TypeCategory } from '../../../src/TypeAdapter.js'
+import type { ValueType } from '../../../src/expressions/values.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
 import { queryContextOf } from '../../../src/internal/QueryContextImpl.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
@@ -33,7 +33,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         await db?.release()
     }, 300_000)
 
-    function insertReturningMoments(types: [TypeCategory, TypeCategory]): { sql: string, params: any[] } {
+    function insertReturningMoments(types: [ValueType, ValueType]): { sql: string, params: any[] } {
         const params: any[] = []
         const d = addParam(r(), params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', 'localDateTime', false)
         const ts = addParam(r(), params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', 'localDateTime', false)

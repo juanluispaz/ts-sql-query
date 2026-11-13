@@ -4,7 +4,6 @@ import oracledb from 'oracledb'
 import { OracleDBQueryRunner, type OracleDBQueryRunnerConfig } from './OracleDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface OracleDBPoolQueryRunnerConfig {
@@ -38,11 +37,11 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): Connection | undefined {
         return super.getCurrentNativeConnection() as Connection | undefined
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.OracleDBPoolQueryRunner(params, value, type, typeCategory, forceTypeCast)
+        return queryRunnerParamBindings.OracleDBPoolQueryRunner(params, value)
     }
-    override addOutParam(params: any[], name: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean): string {
+    override addOutParam(params: any[], name: string): string {
         const index = params.length
         if (name) {
             params.push({dir: oracledb.BIND_OUT, as: name})

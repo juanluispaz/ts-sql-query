@@ -38,18 +38,18 @@ import { sync } from '../../../../../src/extras/sync.js'
 // untouched. Because the transform is conditional on the type name, the value
 // the adapter produces records which type name the expression carried.
 const scaledByTypeName: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory, context)
-        if ((type === 'Cents' || type === 'Money') && typeof v === 'number') {
+    transformValueFromDB(value, context, next) {
+        const v = next.transformValueFromDB(value, context)
+        if ((context.originalType === 'Cents' || context.originalType === 'Money') && typeof v === 'number') {
             return v / 100
         }
         return v
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
-        if ((type === 'Cents' || type === 'Money') && typeof value === 'number') {
-            return next.transformValueToDB(value * 100, type, typeCategory, context)
+    transformValueToDB(value, context, next) {
+        if ((context.originalType === 'Cents' || context.originalType === 'Money') && typeof value === 'number') {
+            return next.transformValueToDB(value * 100, context)
         }
-        return next.transformValueToDB(value, type, typeCategory, context)
+        return next.transformValueToDB(value, context)
     },
 }
 

@@ -23,7 +23,6 @@
 
 import type { TsSqlErrorReason } from '../../src/TsSqlError.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from '../../src/queryRunners/QueryRunner.js'
-import type { TypeCategory } from '../../src/TypeAdapter.js'
 
 export class SwitchableQueryRunner implements QueryRunner {
     /** The runner every call currently delegates to. */
@@ -163,11 +162,11 @@ export class SwitchableQueryRunner implements QueryRunner {
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         return this.target.executeConnectionConfiguration(query, params)
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        return this.target.addParam(params, value, type, typeCategory, forceTypeCast)
+    addParam(params: any[], value: any): string {
+        return this.target.addParam(params, value)
     }
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
-        return this.target.addOutParam(params, name, type, typeCategory, forceTypeCast)
+    addOutParam(params: any[], name: string): string {
+        return this.target.addOutParam(params, name)
     }
     createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.target.createResolvedPromise(result)

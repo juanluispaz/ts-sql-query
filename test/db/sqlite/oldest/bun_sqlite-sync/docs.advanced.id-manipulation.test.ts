@@ -14,34 +14,36 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import type { TypeCategory, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
+import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
 
 class EncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
-        if (type === 'encryptedID') {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint', context)
+    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        if (context.originalType === 'encryptedID') {
+            context.setRequestedType('bigint')
+            const id = super.transformValueFromDB(value, context)
             if (typeof id === 'bigint') {
                 return this.encrypter.encrypt(id)
             } else {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory, context)
+        return super.transformValueFromDB(value, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
-        if (type === 'encryptedID') {
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        if (context.originalType === 'encryptedID') {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
                 const id = this.encrypter.decrypt(value)
-                return super.transformValueToDB(id, 'bigint', 'bigint', context)
+                context.setRequestedType('bigint')
+                return super.transformValueToDB(id, context)
             } else {
                 throw new Error('Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type, typeCategory, context)
+        return super.transformValueToDB(value, context)
     }
 }
 
@@ -61,31 +63,33 @@ const tEncryptedIssue = new class TEncryptedIssue extends Table<DBConnection, 'T
 class GloballyEncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
-        if (type.startsWith('ID_')) {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint', context)
+    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        if (context.originalType.startsWith('ID_')) {
+            context.setRequestedType('bigint')
+            const id = super.transformValueFromDB(value, context)
             if (typeof id === 'bigint') {
-                const prefix = type.substring(3)
+                const prefix = context.originalType.substring(3)
                 return this.encrypter.encrypt(id, prefix)
             } else {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory, context)
+        return super.transformValueFromDB(value, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
-        if (type.startsWith('ID_')) {
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        if (context.originalType.startsWith('ID_')) {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
-                const prefix = type.substring(3)
+                const prefix = context.originalType.substring(3)
                 const id = this.encrypter.decrypt(value, prefix)
-                return super.transformValueToDB(id, 'bigint', 'bigint', context)
+                context.setRequestedType('bigint')
+                return super.transformValueToDB(id, context)
             } else {
                 throw new Error('Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type, typeCategory, context)
+        return super.transformValueToDB(value, context)
     }
 }
 

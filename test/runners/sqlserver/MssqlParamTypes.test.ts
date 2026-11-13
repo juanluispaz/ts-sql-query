@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
-import type { TypeCategory } from '../../../src/TypeAdapter.js'
+import type { ValueType } from '../../../src/expressions/values.js'
 import { TsSqlError } from '../../../src/TsSqlError.js'
 import { MssqlPoolQueryRunner } from '../../../src/queryRunners/MssqlPoolQueryRunner.js'
 import { MssqlPoolPromiseQueryRunner } from '../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js'
@@ -30,9 +30,9 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     }, 300_000)
 
     // The base type SQL Server bound the parameter with.
-    async function boundAs(value: unknown, type: string = '', typeCategory: TypeCategory = ''): Promise<string> {
+    async function boundAs(value: unknown, type: string = '', columnType: ValueType = ''): Promise<string> {
         const params: any[] = []
-        const placeholder = addParam(runner!, params, value, type, typeCategory, false)
+        const placeholder = addParam(runner!, params, value, type, columnType, false)
         return await runner!.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
     }
 
@@ -63,7 +63,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     })
 
     test('the-category-of-the-type-wins', async () => {
-        const cases: [unknown, string, TypeCategory, string][] = [
+        const cases: [unknown, string, ValueType, string][] = [
             [1, 'boolean', 'boolean', 'bit'], [1, 'int', 'int', 'int'], [1, 'bigint', 'bigint', 'bigint'],
             [1, 'double', 'double', 'float'], ['12', 'string', 'string', 'nvarchar'],
             ['3f2504e0-4f89-41d3-9a0c-0305e82c3301', 'uuid', 'uuid', 'uniqueidentifier'], [new Date(), 'localDate', 'localDate', 'date'],
@@ -73,8 +73,8 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
             [new Date(), 'ReleaseDay', 'customLocalDate', 'date'], [new Date(), 'CutoffClock', 'customLocalTime', 'time'],
             [new Date(), 'SignOffStamp', 'customLocalDateTime', 'datetime2'],
         ]
-        for (const [value, type, typeCategory, expected] of cases) {
-            expect([type, await boundAs(value, type, typeCategory)]).toEqual([type, expected])
+        for (const [value, type, columnType, expected] of cases) {
+            expect([type, await boundAs(value, type, columnType)]).toEqual([type, expected])
         }
     })
 
@@ -89,12 +89,12 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     })
 
     test('a-custom-type-sends-a-text-as-text', async () => {
-        const cases: [unknown, string, TypeCategory, string][] = [
+        const cases: [unknown, string, ValueType, string][] = [
             ['1.2', 'Semver', 'customComparable', 'nvarchar'], ['12', 'ReleaseChannel', 'custom', 'nvarchar'],
             ['2026-01-02', 'Stage', 'enum', 'nvarchar'], [7, 'aCustomTypeName', '', 'int'], ['constructor', 'constructor', '', 'nvarchar'],
         ]
-        for (const [value, type, typeCategory, expected] of cases) {
-            expect([type, await boundAs(value, type, typeCategory)]).toEqual([type, expected])
+        for (const [value, type, columnType, expected] of cases) {
+            expect([type, await boundAs(value, type, columnType)]).toEqual([type, expected])
         }
     })
 
@@ -150,9 +150,9 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     test('typesByName/the-declared-type-wins-over-the-category-and-applies-to-that-name-only', async () => {
         const { TYPES } = db!.mssql
         const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { int: TYPES.BigInt, Code: TYPES.Decimal(10, 2) } })
-        const boundBy = async (value: unknown, type: string, typeCategory: TypeCategory) => {
+        const boundBy = async (value: unknown, type: string, columnType: ValueType) => {
             const params: any[] = []
-            const placeholder = addParam(declared, params, value, type, typeCategory, false)
+            const placeholder = addParam(declared, params, value, type, columnType, false)
             return await declared.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
         }
         expect(await boundBy(1, 'int', 'int')).toBe('bigint')

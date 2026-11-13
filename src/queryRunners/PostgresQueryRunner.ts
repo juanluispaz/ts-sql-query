@@ -5,7 +5,6 @@ import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransact
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
@@ -81,7 +80,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         let result: any[] | undefined = values === params ? undefined : values
         for (let i = 0, length = params.length; i < length; i++) {
             const value = values[i]
-            const type = existingParamContextOf(params, i)?.type
+            const type = existingParamContextOf(params, i)?.sentType
             const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             let typed: Parameter<any> | undefined
             if (typeof declared === 'function') {
@@ -89,7 +88,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
             } else if (declared !== undefined) {
                 typed = sql.typed(value, declared)
             } else if (existingParamContextOf(params, i)?.forceTypeCast || isPostgreSqlZonedParam(params, i)) {
-                const paramType = postgreSqlParamType(type, existingParamContextOf(params, i)?.typeCategory, value, isPostgreSqlZonedParam(params, i))
+                const paramType = postgreSqlParamType(type, existingParamContextOf(params, i)?.sentTypeCategory, value, isPostgreSqlZonedParam(params, i))
                 if (paramType) {
                     typed = sql.typed(value, paramType.oid)
                 }
@@ -215,9 +214,9 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PostgresQueryRunner(params, value, type, typeCategory, forceTypeCast)
+        return queryRunnerParamBindings.PostgresQueryRunner(params, value)
     }
     // The driver begins and commits a transaction by itself, in the function it receives. On a reserved connection it
     // can't, and the transaction goes through executeBeginTransaction and executeCommit.

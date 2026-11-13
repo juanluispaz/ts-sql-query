@@ -13,11 +13,11 @@ import { type DBConnection, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const jsonAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        return typeof value === 'string' ? JSON.parse(value) : next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        return typeof value === 'string' ? JSON.parse(value) : next.transformValueFromDB(value, context)
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
-        return value === null || value === undefined ? next.transformValueToDB(value, type, typeCategory, context) : JSON.stringify(value)
+    transformValueToDB(value, context, next) {
+        return value === null || value === undefined ? next.transformValueToDB(value, context) : JSON.stringify(value)
     },
 }
 

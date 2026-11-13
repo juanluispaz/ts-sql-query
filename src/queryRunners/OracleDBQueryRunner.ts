@@ -4,11 +4,10 @@ import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { __isDecimalCategory } from '../utils/typeCategory.js'
+import { __isDecimalCategory, __typeCategory, type TypeCategory } from '../utils/typeCategory.js'
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
@@ -104,7 +103,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         let names: Set<string> | undefined
         if (columns) {
             for (const column of columns) {
-                if (!__isDecimalCategory(column.projectedTypeCategory) && column.projectedTypeCategory !== 'bigint' && column.projectedTypeCategory !== 'customBigint') {
+                const category = __typeCategory(column.requestedType, column.requestedCustomType)
+                if (!__isDecimalCategory(category) && category !== 'bigint' && category !== 'customBigint') {
                     continue
                 }
                 if (column.name) {
@@ -177,12 +177,12 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         const processInUtc = isProcessInUtc()
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
-            const typeName = existingParamContextOf(params, i)?.type
+            const typeName = existingParamContextOf(params, i)?.sentType
             const declaredBind = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
             const declared = isOracleDBBindType(declaredBind) ? declaredBind.type : declaredBind
             if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
                 // Each RETURNING OUT bind keeps the category of the type of its column (addOutParam)
-                const category = existingParamContextOf(params, i)?.typeCategory
+                const category = existingParamContextOf(params, i)?.sentTypeCategory
                 // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
                 // timestamp column with the zone of the session (the zone of the database, see oracleSessionTimeZone), and oracledb
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
@@ -203,7 +203,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 result[i] = { val: value, type: declared }
                 continue
             }
-            if ((procedure || nativeBoolean) && existingParamContextOf(params, i)?.typeCategory === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
+            if ((procedure || nativeBoolean) && existingParamContextOf(params, i)?.sentTypeCategory === 'boolean' && (value === 1 || value === 0 || value === null || value === undefined || typeof value === 'boolean')) {
                 result[i] = { val: value === null || value === undefined ? null : !!value, type: oracleDb.DB_TYPE_BOOLEAN }
                 continue
             }
@@ -215,7 +215,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 continue
             }
             // A localDate is bound as a date, a localTime or a localDateTime as a timestamp, with their UTC digits
-            const temporal = oracleTemporalBind(value, typeName, existingParamContextOf(params, i)?.typeCategory, processInUtc, existingParamContextOf(params, i)?.getMetadata(oracleDateParam) === true)
+            const temporal = oracleTemporalBind(value, typeName, existingParamContextOf(params, i)?.sentTypeCategory, processInUtc, existingParamContextOf(params, i)?.getMetadata(oracleDateParam) === true)
             if (temporal) {
                 result[i] = { val: temporal.val, type: temporal.type === 'date' ? oracleDb.DB_TYPE_DATE : oracleDb.DB_TYPE_TIMESTAMP }
                 continue
@@ -224,7 +224,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // oracledb binds a null without a type Oracle can use where nothing else gives it one: a row of a
                 // union (ORA-01790) or a `case :0 when 1` (ORA-00932). A null of a number, a date or a time is bound
                 // with its type: a DATE for a parameter of a DATE column (oracleDateParam).
-                const type = existingParamContextOf(params, i)?.getMetadata(oracleDateParam) === true ? oracleDb.DB_TYPE_DATE : this.oracleDbType(existingParamContextOf(params, i)?.typeCategory, nativeBoolean)
+                const type = existingParamContextOf(params, i)?.getMetadata(oracleDateParam) === true ? oracleDb.DB_TYPE_DATE : this.oracleDbType(existingParamContextOf(params, i)?.sentTypeCategory, nativeBoolean)
                 if (type !== undefined) {
                     result[i] = { val: null, type: type }
                     continue
@@ -296,11 +296,11 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         // the transaction of the connection is not this query runner's to commit or roll back
         return !!this.config?.forUseInTransaction
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.OracleDBQueryRunner(params, value, type, typeCategory, forceTypeCast)
+        return queryRunnerParamBindings.OracleDBQueryRunner(params, value)
     }
-    override addOutParam(params: any[], name: string, _type: string, _typeCategory: TypeCategory, _forceTypeCast: boolean): string {
+    override addOutParam(params: any[], name: string): string {
         const index = params.length
         if (name) {
             params.push({dir: oracleDb.BIND_OUT, as: name})

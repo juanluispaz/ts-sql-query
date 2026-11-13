@@ -27,12 +27,12 @@ const UUID_V = '0a8f9c1e-1111-4222-8333-444455556666'
 // wraps the read value in `[...]`, so its effect is observable in the result;
 // it defines no `transformPlaceholder`, so the emitted placeholder is unchanged.
 const bracketAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        const v = next.transformValueFromDB(value, context)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
-        return next.transformValueToDB(value, type, typeCategory, context)
+    transformValueToDB(value, context, next) {
+        return next.transformValueToDB(value, context)
     },
 }
 

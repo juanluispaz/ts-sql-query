@@ -3,7 +3,6 @@ import type { Pool, PoolConnection } from 'mariadb'
 import { MariaDBQueryRunner } from './MariaDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
@@ -30,9 +29,9 @@ export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): PoolConnection | undefined {
         return super.getCurrentNativeConnection() as PoolConnection | undefined
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MariaDBPoolQueryRunner(params, value, type, typeCategory, forceTypeCast)
+        return queryRunnerParamBindings.MariaDBPoolQueryRunner(params, value)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.getConnection().then(mariaDBConnection => new MariaDBQueryRunner(mariaDBConnection, this.database as any))

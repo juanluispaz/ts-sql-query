@@ -8,9 +8,10 @@ import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 import type { QueryExecutionSource } from '../TsSqlError.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
-import { paramsForExecution, queryContextOf } from '../internal/QueryContextImpl.js'
+import { paramsForExecution, QueryParamContextImpl, queryContextOf } from '../internal/QueryContextImpl.js'
 import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
-import { __typeCategoryOf } from '../utils/typeCategory.js'
+import { __customTypeOf } from '../utils/typeCategory.js'
+import type { ProjectionOutput } from '../TypeAdapter.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -68,7 +69,12 @@ export class AbstractQueryBuilder {
         return this.__sqlBuilder._isValue(value)
     }
 
-    __transformValueFromDB(valueSource: AnyValueSource, value: any, column?: string, index?: number, count?: boolean) {
+    /**
+     * The value read from the database, converted by the transformValueFromDB of its type adapter or of the connection:
+     * read where it leaves the database in output (its requested type is the one its transformProjection requests), or
+     * without output, as it is
+     */
+    __transformValueFromDB(valueSource: AnyValueSource, value: any, output: ProjectionOutput | undefined, column?: string, index?: number, count?: boolean) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
         if (valueSourcePrivate.__uuidString && typeof value === 'string' && this.__sqlBuilder._lowerCaseUuidTextReceived()) {
@@ -77,10 +83,11 @@ export class AbstractQueryBuilder {
         }
         let result
         try {
+            const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(valueSource, output)
             if (typeAdapter) {
-                result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType), this.__sqlBuilder._typeAdapterContextOf(), this.__sqlBuilder._defaultTypeAdapter)
+                result = typeAdapter.transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
             } else {
-                result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType), this.__sqlBuilder._typeAdapterContextOf())
+                result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, adapterContext)
             }
         } catch(e) {
             if (e instanceof TsSqlError) {
@@ -115,7 +122,7 @@ export class AbstractQueryBuilder {
 
     __transformRow(row: any, index?: number): any {
         const columns = this.__columns!
-        return this.__transformRootObject(!!this.__projectOptionalValuesAsNullable, '', columns, row, index)
+        return this.__transformRootObject(!!this.__projectOptionalValuesAsNullable, '', columns, row, 'resultColumn', index)
     }
 
     /**
@@ -127,9 +134,10 @@ export class AbstractQueryBuilder {
         if (valueSourcePrivate.__aggregatedArrayColumns) {
             return this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, '', valueSource, value, index)
         }
-        return this.__transformValueFromDB(valueSource, value, undefined, index)
+        return this.__transformValueFromDB(valueSource, value, 'resultColumn', undefined, index)
     }
-    __transformRootObject(projectOptionalValuesAsNullable: boolean, errorPrefix: string, columns: QueryColumns, row: any, index?: number): any {
+    /** The object of a row, or of an element of an aggregated array (output aggregatedArrayValue) */
+    __transformRootObject(projectOptionalValuesAsNullable: boolean, errorPrefix: string, columns: QueryColumns, row: any, output: ProjectionOutput, index?: number): any {
         const result: any = {}
         for (let prop in columns) {
             const valueSource = columns[prop]!
@@ -143,10 +151,10 @@ export class AbstractQueryBuilder {
                 if (valueSourcePrivate.__aggregatedArrayColumns) {
                     transformed = this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + prop, valueSource, value, index)
                 } else {
-                    transformed = this.__transformValueFromDB(valueSource, value, errorPrefix + prop, index)
+                    transformed = this.__transformValueFromDB(valueSource, value, output, errorPrefix + prop, index)
                 }
             } else {
-                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix, prop + '.', valueSource, row, index)
+                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix, prop + '.', valueSource, row, output, index)
             }
             if (transformed !== undefined && transformed !== null) {
                 result[prop] = transformed
@@ -212,7 +220,7 @@ export class AbstractQueryBuilder {
                 }
             } else {
                 for (let i = 0, lenght = json.length; i < lenght; i++) {
-                    const resultValue = this.__transformValueFromDB(columns, json[i], errorPrefix + '[' + i + ']', index)
+                    const resultValue = this.__transformValueFromDB(columns, json[i], 'aggregatedArrayValue', errorPrefix + '[' + i + ']', index)
                     if (resultValue === null || resultValue === undefined) {
                         continue
                     }
@@ -222,7 +230,7 @@ export class AbstractQueryBuilder {
         } else if (valueSourcePrivate.__aggregatedArrayMode === 'ResultObject') {
             for (let i = 0, lenght = json.length; i < lenght; i++) {
                 let row = json[i]
-                const resultObject = this.__transformRootObject(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + '].', columns, row, index)
+                const resultObject = this.__transformRootObject(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + '].', columns, row, 'aggregatedArrayValue', index)
                 if (resultObject === null || resultObject === undefined) {
                     continue
                 }
@@ -231,7 +239,7 @@ export class AbstractQueryBuilder {
         } else {
             for (let i = 0, lenght = json.length; i < lenght; i++) {
                 const row = json[i]
-                const resultObject = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix + '[' + i + '].', '', columns, row, index)
+                const resultObject = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix + '[' + i + '].', '', columns, row, 'aggregatedArrayValue', index)
                 if (resultObject === null || resultObject === undefined) {
                     continue
                 }
@@ -250,7 +258,7 @@ export class AbstractQueryBuilder {
         return result
     }
 
-    __transformProjectedObject(projectOptionalValuesAsNullable: boolean, errorPrefix: string, pathPrefix: string, columns: QueryColumns, row: any, index?: number): any {
+    __transformProjectedObject(projectOptionalValuesAsNullable: boolean, errorPrefix: string, pathPrefix: string, columns: QueryColumns, row: any, output: ProjectionOutput, index?: number): any {
         const result: any = {}
         let keepObject = false
         // Rule 1
@@ -288,7 +296,7 @@ export class AbstractQueryBuilder {
                 if (valueSourcePrivate.__aggregatedArrayColumns) {
                     transformed = this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, propName, valueSource, value, index)
                 } else {
-                    transformed = this.__transformValueFromDB(valueSource, value, errorPrefix + propName, index)
+                    transformed = this.__transformValueFromDB(valueSource, value, output, errorPrefix + propName, index)
                 }
 
                 if (valueSourcePrivate.__optionalType === 'requiredInOptionalObject') {
@@ -349,7 +357,7 @@ export class AbstractQueryBuilder {
                     }
                 }
             } else {
-                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix, propName + '.', valueSource, row, index)
+                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix, propName + '.', valueSource, row, output, index)
             }
             if (transformed !== undefined && transformed !== null) {
                 keepObject = true
@@ -538,11 +546,10 @@ export function __resultColumnsOf(columns: QueryColumns | undefined, sqlBuilder:
     }
     const flat: FlatQueryColumns = {}
     flattenQueryColumns(columns, flat, '')
+    const types = new QueryParamContextImpl()
     for (const path in flat) {
         const valueSource = flat[path]!
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const projected = sqlBuilder._projectedTypeOf(valueSource, 'resultColumn')
-        result.push({ name: sqlBuilder._resultColumnKey(path), path, type: valueSourcePrivate.__valueTypeName, typeCategory: __typeCategoryOf(valueSourcePrivate.__valueType), projectedType: projected.type, projectedTypeCategory: projected.typeCategory })
+        result.push(resultColumnOf(sqlBuilder._resultColumnKey(path), path, valueSource, sqlBuilder, types))
     }
     return result
 }
@@ -553,11 +560,20 @@ export function __resultColumnsOf(columns: QueryColumns | undefined, sqlBuilder:
  * of a function, not the id of an inserted row.
  */
 export function __unnamedResultColumn(valueSource: AnyValueSource, projectedBy?: SqlBuilder): QueryResultColumn[] {
+    return [resultColumnOf('', '', valueSource, projectedBy, new QueryParamContextImpl())]
+}
+
+/**
+ * A column of the result of the query: its original type, and the one the transformProjection of the value requests,
+ * when the SQL builder that writes it is given (resolved in `types`)
+ */
+function resultColumnOf(name: string, path: string, valueSource: AnyValueSource, projectedBy: SqlBuilder | undefined, types: QueryParamContextImpl): QueryResultColumn {
     const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-    const type = valueSourcePrivate.__valueTypeName
-    const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
-    const projected = projectedBy ? projectedBy._projectedTypeOf(valueSource, 'resultColumn') : { type, typeCategory }
-    return [{ name: '', path: '', type, typeCategory, projectedType: projected.type, projectedTypeCategory: projected.typeCategory }]
+    types.setOriginalType(valueSourcePrivate.__valueTypeName, __customTypeOf(valueSourcePrivate.__valueType))
+    if (projectedBy) {
+        projectedBy._resolveRequestedTypeOfProjection(valueSource, 'resultColumn', types)
+    }
+    return { name, path, originalType: types.originalType!, originalCustomType: types.originalCustomType, requestedType: types.requestedType!, requestedCustomType: types.requestedCustomType }
 }
 
 /**

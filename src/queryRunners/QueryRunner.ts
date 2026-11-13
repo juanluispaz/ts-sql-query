@@ -1,5 +1,5 @@
 import type { TsSqlErrorReason } from "../TsSqlError.js"
-import type { TypeCategory } from '../TypeAdapter.js'
+import type { CustomType } from '../TypeAdapter.js'
 import { getQueryContext } from '../QueryContext.js'
 
 export interface QueryRunner {
@@ -52,13 +52,15 @@ export interface QueryRunner {
     executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
     /**
      * Adds the value to the params and returns its placeholder, the final one as it is written in the SQL. The library
-     * keeps the type of the parameter in the context of the query (`getQueryContext`) before it calls this method; a
-     * query runner that delegates to another passes the type on. forceTypeCast tells the database must receive the type of the parameter, because the
-     * position where it is written in the SQL gives it none: the query runner writes a cast in the placeholder, or
-     * sends the parameter with its type when the driver can.
+     * keeps what it knows of the parameter in the context of the query (`getQueryContext(query, params).getParam(index)`,
+     * the index being the length of the params before the value is added) before it calls this method: the type
+     * requested for the parameter, the one it is sent with, and forceTypeCast, which tells the database must receive
+     * the type of the parameter, because the position where it is written in the SQL gives it none: the query runner
+     * writes a cast in the placeholder, or sends the parameter with its type when the driver can.
      */
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string
-    addOutParam(params: any[], name: string, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string
+    addParam(params: any[], value: any): string
+    /** Adds an out parameter, with what the library knows of it in the context of the query, as addParam */
+    addOutParam(params: any[], name: string): string
     // Resolves a value that may or may not already be a promise into a promise
     // on this runner's configured provider — like `Promise.resolve`, it adopts a
     // thenable and wraps a plain value, both yielding `Promise<RESULT>`. Keeping
@@ -188,24 +190,23 @@ export interface ConnectionConfiguration {
 
 /**
  * A column of the result of the query, as the query builder will read it: the key of the column in a row the database
- * returns, the property path in the result object, and the type name and type category its value is converted with.
+ * returns, the property path in the result object, and its two types: the original one, declared in the library, and
+ * the one requested for the value the database returns (by default the original one; a type adapter can request another
+ * in its `transformProjection`, like the text of a date).
  */
 export interface QueryResultColumn {
     /** The key of the column in a row returned by the database; '' when the SQL gives the column no alias */
     readonly name: string
     /** The property path in the result object (`customer.name`), `result` for a single value, '' without one */
     readonly path: string
-    /** The type name (`int`, `Money`, `aggregatedArray`, …) */
-    readonly type: string
-    /** The type category; '' for an aggregated array (a JSON text whose values the library converts) */
-    readonly typeCategory: TypeCategory
-    /**
-     * The type name of the value the database returns for the column: the one its `transformProjection` says
-     * (`setProjectedType`), like the text of a date; otherwise `type`
-     */
-    readonly projectedType: string
-    /** The type category of the value the database returns for the column; otherwise `typeCategory` */
-    readonly projectedTypeCategory: TypeCategory
+    /** The name of the original type (`int`, `Money`, `aggregatedArray`, …) */
+    readonly originalType: string
+    /** Which custom type the original type is, like `'customInt'`; undefined for a built-in type and an aggregated array */
+    readonly originalCustomType: CustomType | undefined
+    /** The name of the type of the value the database returns for the column */
+    readonly requestedType: string
+    /** Which custom type the requested type is; undefined for a built-in type */
+    readonly requestedCustomType: CustomType | undefined
 }
 
 // The readers of version 1, exported only by its paths: version 2 reads the context of the query (getQueryContext)

@@ -4,7 +4,6 @@ import { PgQueryRunner } from './PgQueryRunner.js'
 import { requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import type { TypeCategory } from '../TypeAdapter.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
 export interface PgPoolQueryRunnerConfig {
@@ -40,9 +39,9 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     override getCurrentNativeConnection(): PoolClient | undefined {
         return super.getCurrentNativeConnection() as PoolClient | undefined
     }
-    addParam(params: any[], value: any, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): string {
+    addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PgPoolQueryRunner(params, value, type, typeCategory, forceTypeCast, this.config?.typesByName)
+        return queryRunnerParamBindings.PgPoolQueryRunner(params, value, this.config?.typesByName)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.connect().then(connection => {

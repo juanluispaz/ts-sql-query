@@ -1,4 +1,4 @@
-import type { TypeCategory } from '../../TypeAdapter.js'
+import type { TypeCategory } from '../typeCategory.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
 import { __isDecimalCategory } from '../typeCategory.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'

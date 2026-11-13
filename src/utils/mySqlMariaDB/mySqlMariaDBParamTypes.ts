@@ -1,4 +1,4 @@
-import type { TypeCategory } from '../../TypeAdapter.js'
+import type { TypeCategory } from '../typeCategory.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
 import { __conversionType, __isDecimalCategory } from '../typeCategory.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
@@ -62,14 +62,14 @@ export function mySqlMariaDBDriverParams(params: any[]): any[] {
     let result: any[] | undefined = undefined
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
-        const type = existingParamContextOf(params, i)?.type
+        const type = existingParamContextOf(params, i)?.sentType
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = mySqlMariaDBParamValue(value, type, existingParamContextOf(params, i)?.typeCategory)
+        result[i] = mySqlMariaDBParamValue(value, type, existingParamContextOf(params, i)?.sentTypeCategory)
     }
     return result ?? params
 }

@@ -11,7 +11,7 @@ import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../exp
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __conversionType, __typeCategoryOf } from '../utils/typeCategory.js'
+import { __conversionType, __customTypeOf, __typeCategory } from '../utils/typeCategory.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 
@@ -409,7 +409,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // A null of a type PostgreSQL knows is a parameter that carries its type, written as a cast or sent with it by
         // the query runner: a bare null has none where the position gives it none (a row of a union, a Values row, a
         // case). A null of any other type stays a literal null, that PostgreSQL resolves as text where it can't infer it.
-        if (postgreSqlParamType(columnTypeName, __typeCategoryOf(columnType), null)) {
+        if (postgreSqlParamType(columnTypeName, __typeCategory(columnTypeName, __customTypeOf(columnType)), null)) {
             const sent = this._transformParamToDB(null, columnType, columnTypeName, typeAdapter, context, true)
             return this._appendParam(sent, context, columnType, columnTypeName, typeAdapter, true)
         }
@@ -649,7 +649,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (!this._isDatabaseOutsideUtc() || !isValueSource(valueSource)) {
             return sql
         }
-        const zoned = postgreSqlZonedValueSql(sql, __conversionType(__getValueSourcePrivate(valueSource).__valueTypeName, __typeCategoryOf(__getValueSourcePrivate(valueSource).__valueType)), this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = postgreSqlZonedValueSql(sql, __conversionType(__getValueSourcePrivate(valueSource).__valueTypeName, __customTypeOf(__getValueSourcePrivate(valueSource).__valueType)), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? '(' + zoned + " at time zone 'UTC')" : sql
     }
 }

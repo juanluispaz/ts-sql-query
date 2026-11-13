@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Values } from '../../../../../src/Values.js'
-import { CustomBooleanTypeAdapter, type TypeAdapter, type TypeCategory, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type TypeAdapter, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection, type ReleaseChannel, type ReleaseTag, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -25,12 +25,12 @@ class VKindSampler extends Values<DBConnection, 'kindSampler'> {
 // `column(type, adapter)` (adapter-object) arm below. Declared inline: it
 // needs no domain fixture.
 const scaledTenthAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        const v = next.transformValueFromDB(value, context)
         return typeof v === 'number' ? v / 10 : v
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
-        return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type, typeCategory, context)
+    transformValueToDB(value, context, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, context)
     },
 }
 
@@ -50,12 +50,12 @@ class VBoolAdapterSampler extends Values<DBConnection, 'boolAdapterSampler'> {
 // `column(type, typeName, adapter)` arm below. Declared inline: it needs no
 // domain fixture, and the domain's own equivalent adapter is not exported.
 const plusOffsetAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        const v = next.transformValueFromDB(value, context)
         return typeof v === 'number' ? v + 1000 : v
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
-        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type, typeCategory, context)
+    transformValueToDB(value, context, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, context)
     },
 }
 
@@ -63,12 +63,12 @@ const plusOffsetAdapter: TypeAdapter = {
 // passthrough) for the virtualColumnFromFragment trailing-adapter arm below.
 // Declared inline; the domain's own equivalent adapter is not exported.
 const bracketAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, context, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory, context)
+    transformValueFromDB(value, context, next) {
+        const v = next.transformValueFromDB(value, context)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, typeCategory, context, next) {
-        return next.transformValueToDB(value, type, typeCategory, context)
+    transformValueToDB(value, context, next) {
+        return next.transformValueToDB(value, context)
     },
 }
 
@@ -85,18 +85,23 @@ class VBrandedSampler extends Values<DBConnection, 'brandedSampler'> {
 // application and a bigint in the database: the text is sent as a JS bigint and the
 // number read is handed back as text.
 class NumericIdConnection extends DBConnection {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
-        if (type === 'NumericId') {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint', context)
+    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        if (context.originalType === 'NumericId') {
+            context.setRequestedType('bigint')
+            const id = super.transformValueFromDB(value, context)
             return typeof id === 'bigint' ? id.toString() : id
         }
-        return super.transformValueFromDB(value, type, typeCategory, context)
+        return super.transformValueFromDB(value, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
-        if (type === 'NumericId') {
-            return typeof value === 'string' ? super.transformValueToDB(BigInt(value), 'bigint', 'bigint', context) : null
+    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        if (context.originalType === 'NumericId') {
+            if (typeof value !== 'string') {
+                return null
+            }
+            context.setRequestedType('bigint')
+            return super.transformValueToDB(BigInt(value), context)
         }
-        return super.transformValueToDB(value, type, typeCategory, context)
+        return super.transformValueToDB(value, context)
     }
 }
 
@@ -471,11 +476,11 @@ describe(ctx.label, () => {
     // pinned above (scaledTenth / customBoolean / plusOffset / bracket), so these
     // fan-out cells isolate the per-kind overload + adapter dispatch path alone.
     const passthroughAdapter: TypeAdapter = {
-        transformValueFromDB(value, type, typeCategory, context, next) {
-            return next.transformValueFromDB(value, type, typeCategory, context)
+        transformValueFromDB(value, context, next) {
+            return next.transformValueFromDB(value, context)
         },
-        transformValueToDB(value, type, typeCategory, context, next) {
-            return next.transformValueToDB(value, type, typeCategory, context)
+        transformValueToDB(value, context, next) {
+            return next.transformValueToDB(value, context)
         },
     }
 

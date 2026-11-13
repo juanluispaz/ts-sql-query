@@ -221,7 +221,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             query = this.__buildSelectCount(countAll, new SqlBuildContext(params))
             const executionParams = __setQueryMetadata(source, params, this.__sqlBuilder, __resultColumnsOf({ '': countAll }, this.__sqlBuilder), this.__customization, true)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, executionParams).then((value) => {
-                return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
+                return this.__transformValueFromDB(countAll, value, 'resultColumn', undefined, undefined, true)
             }).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })

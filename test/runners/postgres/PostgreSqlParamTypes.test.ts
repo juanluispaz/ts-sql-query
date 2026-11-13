@@ -12,7 +12,7 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import type { TypeCategory } from '../../../src/TypeAdapter.js'
+import type { ValueType } from '../../../src/expressions/values.js'
 import { PgQueryRunner } from '../../../src/queryRunners/PgQueryRunner.js'
 import { PgPoolQueryRunner } from '../../../src/queryRunners/PgPoolQueryRunner.js'
 import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunner.js'
@@ -40,15 +40,15 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
         beforeAll(async () => { runners = await create() }, 300_000)
         afterAll(async () => { await runners?.close() }, 300_000)
 
-        async function resolvedType(r: QueryRunner, value: unknown, type: string, typeCategory: TypeCategory, forceTypeCast: boolean): Promise<{ placeholder: string, type: string }> {
+        async function resolvedType(r: QueryRunner, value: unknown, type: string, columnType: ValueType, forceTypeCast: boolean): Promise<{ placeholder: string, type: string }> {
             const params: any[] = []
-            const placeholder = addParam(r, params, value, type, typeCategory, forceTypeCast)
+            const placeholder = addParam(r, params, value, type, columnType, forceTypeCast)
             expect(getQueryContext('', params).getParam(0)?.forceTypeCast).toBe(forceTypeCast)
             return { placeholder, type: await r.executeSelectOneColumnOneRow(`select pg_typeof(${placeholder})::text`, params) }
         }
 
         test('a-param-the-library-asks-the-type-of', async () => {
-            const cases: [unknown, string, TypeCategory, string, string][] = [
+            const cases: [unknown, string, ValueType, string, string][] = [
                 [7, 'int', 'int', 'int4', 'integer'],
                 [9007199254740993n, 'bigint', 'bigint', 'int8', 'bigint'],
                 [1.5, 'double', 'double', 'float8', 'double precision'],
@@ -65,8 +65,8 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
                 [5000000000, 'Big', 'custom', 'int8', 'bigint'],
                 [2.5, 'Ratio', 'customComparable', 'float8', 'double precision'],
             ]
-            for (const [value, type, typeCategory, cast, expected] of cases) {
-                const resolved = await resolvedType(runners!.plain, value, type, typeCategory, true)
+            for (const [value, type, columnType, cast, expected] of cases) {
+                const resolved = await resolvedType(runners!.plain, value, type, columnType, true)
                 expect([type, value, resolved]).toEqual([type, value, { placeholder: typesTheParam ? '$1' : '$1::' + cast, type: expected }])
             }
         })

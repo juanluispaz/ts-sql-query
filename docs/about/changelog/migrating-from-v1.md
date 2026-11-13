@@ -4,13 +4,15 @@ search:
 ---
 # Migrating from v1
 
-This page lists what to change in an application that runs on `ts-sql-query` v1. Work through it in this order:
+This page lists what you have to change in an application that runs on `ts-sql-query` v1: what stops compiling, and what keeps compiling but needs you to do something. What v2 changes by itself, with nothing to do unless your code relied on the old result (wrong results of v1 that are now right, the SQL text), is in [Behavior changes from v1](behavior-changes-from-v1.md).
+
+Work through it in this order:
 
 1. Update to v1.69.0, the last version of v1, and fix its deprecation warnings. Much of what stops compiling in v2 is deprecated there, some of it for years: since v1.24.0 (21 Dec 2021) the comparisons with a value that can be `null` or `undefined`, since v1.60.0 (25 Feb 2024) the connections with the types of `ts-extended-types`, since v1.61.0 (2 Mar 2024) composing and splitting results. Each section below says since which version of v1 a thing is deprecated; what doesn't say it was never deprecated, and is new in v2.
 2. [Update the packaging and the imports](#packaging-and-imports).
 3. [Fix what stops compiling](#what-stops-compiling): the compiler points at each place.
-4. [Review what changes silently at runtime](#what-changes-silently-at-runtime): this is the dangerous part, nothing warns you about it. Start by setting [the version of your database](#set-the-version-of-your-database).
-5. [Update your snapshots and log searches](#what-only-changes-the-sql-text): the SQL text changes in many places.
+4. [Do what is needed although it compiles](#what-to-change-although-it-compiles): nothing warns you about these. Start by setting [the version of your database](#set-the-version-of-your-database).
+5. Read [Behavior changes from v1](behavior-changes-from-v1.md), to know which results change by themselves, and update your test snapshots and log searches: the SQL text changes in many places.
 
 ## Packaging and imports
 
@@ -235,20 +237,20 @@ A rule like this one, that only sends a `customInt` to `int`, is no longer neede
 - `addParam(params, value)` and `addOutParam(params, name)` keep their parameters and return the placeholder as it is written in the SQL. Before it calls them, the library keeps in the context of the query what it knows of the parameter: the type it is sent with, the one requested for it, and whether the database must receive that type, so a query runner of your own reads it there (see [Get the type of each parameter](../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)).
 - `getQueryExecutionName`, `getQueryExecutionMetadata`, `getQueryExecutionStack`, `getFunctionExecutingQuery` and `isSelectPageCountQuery` keep working from `ts-sql-query/queryRunners/QueryRunner`, marked deprecated. Read them from the context of the query instead, with `getQueryContext(query, params)` from `ts-sql-query`: `executionName`, `executionMetadata`, `executionStack`, `functionExecutingQuery` and `isSelectPageCount` (see [The context of a query](../../advanced/query-execution-metadata.md)).
 
-## What changes silently at runtime
+## What to change although it compiles
 
-Everything in this section compiles. These are the changes that alter a result, most dangerous first; the rest of the section explains each one:
+Everything in this section compiles, and nothing warns you about it. Each item says when it applies to you and what to do, most dangerous first:
 
-1. **`connection.transaction(() => [query1, query2])` commits after a failure**, and resolves. [Transactions](#transactions).
+1. **`connection.transaction(() => [query1, query2])` commits after a failure**, and resolves. Rewrite it with `await`. [Transactions](#transactions).
 2. **On an older database server, queries fail**, unless you declare its version. [The version of your database](#set-the-version-of-your-database).
-3. **What is committed changes.** Oracle commits statements outside a transaction. On PostgreSQL, Oracle and others, a transaction that went wrong or is nested now rejects. [Transactions](#transactions).
-4. **Other rows are read or written.** Conditions, inserts and updates that v1 emitted wrong are now right, so a query can touch rows it didn't. A comparison with an invalid `int` no longer throws. [Queries that read or write other rows](#queries-that-read-or-write-other-rows).
-5. **Your `catch` stops matching.** An error of your own crosses a transaction unwrapped, and the classes and messages are others. [Errors](#errors).
-6. **`NULL` is handled differently**, in `minValue`, `maxValue` and, on Oracle, in `concat` and `contains`; `replaceAll` and `length` also change. [Values, with a way back](#values-with-a-way-back).
-7. **Corrected functions give another value.** [Values, corrected](#values-corrected).
+3. **Oracle commits statements outside a transaction**, and on PostgreSQL and Oracle a nested transaction rejects. Remove your manual commits; don't nest, or allow it. [Transactions](#transactions).
+4. **Your `catch` stops matching.** An error of your own crosses a transaction unwrapped, and the classes and messages are others. [Errors](#errors).
+5. **A custom type without its conversion arrives converted.** Register its conversion if your code expects the value as the driver gives it. [Custom types are converted as their built-in type](#custom-types-are-converted-as-their-built-in-type).
+6. **Outside UTC, the dates and times move**, and the rows already written must be converted. [Dates and times in a process outside UTC](#dates-and-times-in-a-process-outside-utc).
+7. **SQLite: a date or time stored as text stops matching** a value of another precision. Normalize the stored values. [SQLite: the precision of the dates and times as text](#sqlite-the-precision-of-the-dates-and-times-as-text).
 8. **An old property in your connection class is ignored.** [Properties](#properties-of-the-connection-that-no-longer-exist).
-9. **A custom type without its conversion arrives converted.** [Custom types are converted as their built-in type](#custom-types-are-converted-as-their-built-in-type).
-10. **Outside UTC, the dates and times move.** With the process in another zone, a date and time without zone is read and written in UTC, and a query runner can reject the connection. [Dates and times in a process outside UTC](#dates-and-times-in-a-process-outside-utc).
+9. **A query runner rejects a configuration, or ignores a setting of the driver.** [Query runners](#query-runners).
+10. **`MockQueryRunner` throws outside a transaction.** [Tests with MockQueryRunner](#tests-with-mockqueryrunner).
 
 ### Set the version of your database
 
@@ -278,7 +280,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 | SQL Server 2022 | `15_000_000` | `greatest`, `least` |
 | [Oracle](../../configuration/supported-databases/oracle.md#compatibility-version) 23ai | `19_000_000` | `Values` written with the `values` table constructor |
 
-This only chooses the syntax. The changes in values and transactions below apply whatever the version.
+This only chooses the syntax. The changes in values and transactions apply whatever the version.
 
 ### Transactions
 
@@ -308,40 +310,7 @@ const [updated, deleted] = await connection.transaction(async () => {
 
 **Oracle: statements outside a transaction are committed.** v2 runs them with `autoCommit: true`. v1 passed no such option and the driver doesn't commit by default, so nothing committed them. If your code commits by hand after those statements, remove that. If you run a transaction of your own over that connection, use [`forUseInTransaction`](../../configuration/query-runners/recommended/oracledb.md#inside-a-transaction-something-else-manages).
 
-**PostgreSQL: catching the error of a statement doesn't save the transaction.** PostgreSQL answers the commit of a failed transaction with a rollback. v1 didn't look at that answer, so `connection.transaction(...)` resolved, and nothing was saved. v2 reads it and rejects with `TRANSACTION_ERROR`, `transactionErrorType: 'transaction rolled back'`, running the after-rollback functions ([docs](../../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction)).
-
-**MariaDB, MySQL, SQL Server, SQLite: a transaction the database rolled back by itself is over.** A deadlock, for example, can do this. v1 had no check for it and went on sending statements, which the database runs on their own, committed one by one. When the query runner can tell from the error, v2 rejects those statements with the same `TRANSACTION_ERROR`, without sending them. `Sqlite3WasmOO1QueryRunner` can't tell ([docs](../../queries/transaction.md#when-the-database-rolls-back-the-transaction)).
-
 **PostgreSQL, Oracle: a nested transaction rejects** with `NESTED_TRANSACTION_NOT_SUPPORTED`. v1 sent a second begin on PostgreSQL, and on Oracle it only counted them; the inner commit committed everything. On PostgreSQL, you can keep them by creating the query runner with `allowNestedTransactions: true` ([docs](../../configuration/query-runners/recommended/pg.md)).
-
-### Queries that read or write other rows
-
-v1 emitted these wrong, or did what wasn't asked. Check any code that relied on the old result.
-
-**Conditions:**
-
-- **A comparison of an `int` with a value that isn't an integer no longer throws.** `.equals(1.5)`, `.in([1.5])`, `.greaterThan(NaN)` and the same in a dynamic condition threw `Invalid int value to send to the db` in v1. Now the value is sent, and `.equals(1.5)` finds no row, as the same SQL does, where your code used to get an error. Writing such a value (`set`, and `const`) still throws.
-- `.on(a).or(b)` in the join of a multi-table update or delete emitted `and` (seen on MySQL, MariaDB, PostgreSQL and SQL Server). It now emits `or`, so **it affects more rows**.
-- `.notEndsWith(...)` on MySQL and MariaDB was emitted as `like`, selecting the rows it should exclude.
-- `contains`, `startsWith`, `endsWith` and their variants escaped special characters of the search text wrongly: `\` on MySQL and MariaDB, `_` on SQL Server, and `\`, `%`, `_` and `[` on Oracle.
-- `subSelectDistinctUsing(...)` emitted no `distinct`.
-- MySQL, MariaDB: a column of a table in `having` is written with the name of the table. These databases took it as the column of the select with the same name, and filtered by that value. **If that column isn't in the group by, the database rejects the query** ([docs](../../queries/aggregate-and-group-by.md#a-column-that-isnt-in-the-group-by-in-the-having)).
-- MySQL, MariaDB: `groupBy('alias')` of an expression with parameters is written with its position, `group by 1`. Don't add columns through `afterSelectKeyword` or `beforeColumns` in [`customizeQuery`](../../queries/sql-fragments.md#customizing-a-select) in those queries.
-
-**Writes:**
-
-- `ignoreIfHasNoValueWhen(true, 'column')` did the opposite in v1: it wrote the column without a value (as `NULL`), and left out the one with a value.
-- `.onConflictOn(column).doUpdateSet({})`, with nothing to set, was a plain insert that failed on the conflict. It is now `on conflict do nothing`; `insert ignore` on MySQL and MariaDB.
-- `executeInsert(min, max)` counts the real rows. v1 counted any plain insert as one row, so `executeInsert(5)` failed after inserting 7, and `executeInsert(0, 2)` passed.
-- `returningLastInsertedId()` after an `onConflictDoNothing()` that skips the row is `null`. It was `0` on MySQL and MariaDB, and an older id on `BetterSqlite3QueryRunner` when `compatibilityVersion` is below SQLite 3.35.
-- Oracle: a multi-row insert was emitted as a malformed `insert allinto ...`. It is now a `begin ... end;` block.
-
-**Ordering and limits:**
-
-- `orderBy`, `limit` and `offset` of a recursive select applied to its first part, before the recursion. They now apply to the whole result.
-- `orderBy('alias', mode)`, with a mode that wraps the column like `'insensitive'`, could order by another column: `lower("n")` means the column `n` of the table, if there is one, on PostgreSQL. It is now `lower(first_name)`, the expression of the select. On Oracle, it doesn't change.
-- MySQL, MariaDB: `'asc nulls last insensitive'` and `'desc nulls first insensitive'` lost the case insensitivity.
-- Oracle: an `orderBy` in a subquery gets `offset 0 rows`, which makes Oracle honour it.
 
 ### Errors
 
@@ -410,65 +379,6 @@ The errors the library raises itself have a reason instead of a message to compa
 | `Invalid int value received from the db: ...`, and the same for the other types | `INVALID_VALUE_RECEIVED_FROM_DATABASE` |
 
 **A number too big now fails.** Reading an integer above `Number.MAX_SAFE_INTEGER` that the driver already rounded to a `number` rejects with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. v1 returned the rounded value. Declare the column `'bigint'`. On SQLite, enable the big integers of your driver too; the query runners of `mysql2`, `mariadb` and `oracledb` already receive them exact.
-
-### Values, with a way back
-
-These give other results on purpose. A property of the connection brings back the old SQL.
-
-| Database | What changes | To go back |
-|---|---|---|
-| PostgreSQL | `.minValue(...)` and `.maxValue(...)` are `NULL` when an operand is `NULL`; v1 ignored the `NULL` | [`ignoreNullInMinAndMaxValue = true`](../../configuration/supported-databases/postgresql.md#minvalue-maxvalue-and-null) |
-| SQL Server | `.minValue(...)` and `.maxValue(...)` are `NULL` when an operand is `NULL`. v1's `iif(a > b, a, b)` gave `b` when `a` was `NULL`, and `NULL` when `b` was | [`ignoreNullInMinAndMaxValue = true`](../../configuration/supported-databases/sqlserver.md#minvalue-maxvalue-and-null). This isn't quite v1: it emits `greatest(a, b)`, which ignores a `NULL` on either side. v1's `iif` only comes back with a `compatibilityVersion` below 2022 |
-| Oracle | `.concat(...)` is `NULL` when an operand is `NULL`. `startsWith`, `endsWith`, `contains` and their `Insensitive` variants with a `NULL` search term match no row; v1 matched them all | [`ignoreNullInConcat = true`](../../configuration/supported-databases/oracle.md#concatenation-and-null), or [`.concatIgnoringNull(...)`](../../configuration/supported-databases/oracle.md#concatenation-and-null) for one concatenation |
-| SQL Server, Oracle | `.replaceAll(...)` is case-sensitive even in a case-insensitive database | [`replaceCollation = ''`](../../configuration/collations.md#replacecollation-sql-server-and-oracle) |
-| SQL Server | `.length()` counts trailing blanks | [`excludeTrailingBlanksInLength = true`](../../configuration/supported-databases/sqlserver.md#length-and-trailing-blanks) |
-| PostgreSQL, MySQL, MariaDB | `.round()` over a floating-point value breaks ties away from zero | `usePlatformDependentRound = true` ([PostgreSQL](../../configuration/supported-databases/postgresql.md#rounding-behavior), [MySQL](../../configuration/supported-databases/mysql.md#rounding-behavior), [MariaDB](../../configuration/supported-databases/mariadb.md#rounding-behavior)) |
-
-<!-- doc-code-snippet-template: sqlserver -->
-```ts
-class DBConnection extends SqlServerConnection<'DBConnection'> {
-    protected override ignoreNullInMinAndMaxValue = true
-    protected override excludeTrailingBlanksInLength = true
-    protected override replaceCollation = ''
-}
-```
-
-### Values, corrected
-
-These returned a wrong value in v1, or depended on something they shouldn't. If your code compensates for one, remove the compensation; there is no way back.
-
-**Logarithms and roots:**
-
-- `.logn(n)` on PostgreSQL, Oracle and SQLite had its arguments reversed: `log(value, n)`, now `log(n, value)`.
-- `.log10()` on Oracle was the logarithm of 10 in base `x`. `.ln()` on SQLite was emitted as `log(x)`, base 10.
-- `cbrt()` computes the cube root; except on PostgreSQL, it computed the cube.
-
-**Numbers:**
-
-- `average(...)` is computed in floating point. On SQL Server, the average of an `int` column was truncated to an integer; on MySQL and MariaDB, it was cut to 4 decimals.
-- `asInt()` and `asBigint()` over a double produce an integer type in SQL, so what follows is integer arithmetic.
-- MySQL, MariaDB: `.divide(...)` always divides in floating point, `1 / 3` was cut to 4 decimals, and `.asDouble()` really is a double.
-- PostgreSQL: `const(7, 'int').lessThan(10)` was `false`, compared as text; the constant now has its type.
-- SQL Server: `.power(...)` over an integer keeps the fraction: `intColumn.power(0.5)` was `1`. `double` values are sent as `float`, not the less precise `real`.
-- SQLite: `connection.random()` returns a `double` in `[0, 1)`, not a 64-bit integer.
-
-**Strings:**
-
-- `substr`, `substring`, `substrToEnd` and `substringToEnd` follow JavaScript when the index is a number: a negative index counts from the end in `substr` and is 0 in `substring`, and `substring` swaps its arguments when `start > end`. An index that is a value source is not affected.
-- MySQL, MariaDB: `.length()` counts characters, not bytes: `'café'` is 4, not 5.
-- SQL Server: `.valueWhenNull(...)` doesn't cut the fallback to the type of the column.
-
-**Dates:**
-
-- `getTime()` on MySQL and MariaDB is right outside 1970 to 2038, where `unix_timestamp` doesn't work. Its SQL also changes on Oracle and SQLite.
-- `getMilliseconds()` truncates on MySQL, MariaDB and PostgreSQL, where rounding could reach 1000 or wrap to 0. On SQLite, it rounds the fraction before taking the remainder.
-- PostgreSQL: `getSeconds()` doesn't reach 60.
-- SQL Server: `getDay()` doesn't depend on `SET DATEFIRST`: 0 is always Sunday.
-
-**Other:**
-
-- SQL Server, Oracle: a projected `between` whose upper bound is optional is `NULL` when that bound is `NULL`. It was `false`.
-- [`dynamicPickPaths`](../../dynamic/helper-types/picks.md) with a path of 3 or more levels dropped it.
 
 ### Custom types are converted as their built-in type
 
@@ -559,7 +469,7 @@ A property left in your connection class still compiles and does nothing, unless
 ### Query runners
 
 - **`MssqlPoolQueryRunner` no longer has `predefinedTypes`.** A subclass that assigned it to bind a type with another type of mssql now has no effect, and one that read it doesn't compile: declare the type in [`typesByName`](../../configuration/query-runners/recommended/mssql.md), or override `getType(params, index)`.
-- `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them.
+- `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them: swap the value you pass.
 - **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../configuration/query-runners/recommended/better-sqlite3.md)).
 - **Some configurations of the driver are rejected** when the query runner is created, with `INVALID_CONFIGURATION`: `pg` with `binary: true`; postgres.js with a `transform` of the results, or with `infer: true` outside UTC; `mssql` with `camelCaseColumns` or `columnNameReplacer`, with a `textsize` below the default of tedious, or with `useUTC: false` outside UTC; `oracledb` without `ORA_SDTZ` set to the zone of the database (UTC, or the `databaseTimeZone` you declare) when the process or the database isn't in UTC. See the *Connection requirements* of each query runner, like [oracledb](../../configuration/query-runners/recommended/oracledb.md#connection-requirements).
 - **The settings of the driver that change a value no longer apply to the queries of the library**: the parsers of `date` and `timestamp` of `pg`; `dateStrings`, `supportBigNumbers`, `typeCast`, `rowsAsArray`, `decimalNumbers` and `timezone` of `mysql2`; `typeCast`, `rowsAsArray`, `metaAsArray`, `nestTables`, `dateStrings`, `decimalAsNumber`, `bigIntAsNumber` and `insertIdAsNumber` of `mariadb`; `arrayRowMode` of `mssql`; the global `fetchTypeHandler`, `fetchAsString`, `fetchAsBuffer` and `maxRows` of `oracledb`. They still apply to your own queries through the driver. If you used one to shape what the library returned, use a [custom type](../../configuration/data-types.md#custom-types) with its conversion instead. The `supportBigNumbers` of `mysql2` and the global `fetchTypeHandler` of `oracledb` that the docs recommended for large integers are no longer needed.
@@ -570,31 +480,3 @@ A property left in your connection class still compiles and does nothing, unless
 ### Tests with MockQueryRunner
 
 `MockQueryRunner` now follows the transactions like a real driver: `commit`, `rollback`, `getTransactionMetadata()` and the deferred functions outside a transaction throw `NOT_IN_TRANSACTION`. Wrap those calls in a transaction ([docs](../../configuration/query-runners/general-purpose/MockQueryRunner.md#transactions)). A nested transaction still works there, so a mock doesn't show the rejection a real query runner gives.
-
-## What only changes the SQL text
-
-These affect logs, test snapshots, mocks and interceptors that read the SQL. They mean the same; where a change of SQL also changes the result, it is in the section above. The parameters can change too, in number and in order.
-
-| Database | v1 | v2 |
-|---|---|---|
-| SQLite | `where id = ?` | `where id = ?1`, also with `MockQueryRunner` and `NoopQueryRunner` |
-| SQLite | `insert into ...` | `insert into ... returning id`, to read the last inserted id |
-| SQLite | `order by ln is null, ln asc` | `order by ln asc nulls last` |
-| SQLite | `where id in ()` | `where 0` |
-| MariaDB | `insert into ...` | `insert into ... returning id`, to read the last inserted id |
-| MariaDB | `on duplicate key update x = values(x)` | `on duplicate key update x = value(x)` |
-| MySQL | `values (?) on duplicate key update x = values(x)` | `values (?) as _new_ on duplicate key update customer.x = _new_.x` |
-| MySQL, MariaDB | `order by ln is null, ln asc` | `order by last_name is null, ln asc`, with the column |
-| MySQL, MariaDB | `json_arrayagg(...)` | `cast(json_arrayagg(...) as char)` |
-| PostgreSQL | `json_agg(...)` | `(json_agg(...))::text` |
-| PostgreSQL | `update customer as _new_ ... from (select _old_.* ...)` for `oldValues()` | `update customer ... returning old.x` |
-| SQL Server | `getdate()` for `currentDate()` | `current_date`, or `cast(getdate() as date)` below 2025 |
-| SQL Server | `isnull(x, @0)` | `coalesce(x, @0)` |
-| SQL Server | `substring(x, @0, len(x) - @1)` for `substrToEnd` and `substringToEnd` | `substring(x, @0)` |
-| SQL Server | `string_agg(...)` for the aggregated arrays | `json_arrayagg(...)` |
-| SQL Server | `iif([ln] is null, 1, 0)` in `order by` | `iif(customer.last_name is null, 1, 0)`, with the column |
-| All but SQLite | The parameter of a `localTime`, the string `'05:06:07'` | A `Date` on 1970-01-01 whose UTC getters are the time |
-| All but MySQL and MariaDB | `group by first_name + @1`, with the parameter twice | `group by first_name + @0`, with the parameter once |
-| All | `with w as (...)` not used in the query | Left out |
-| All | A column in `beforeOrderByItems` and `afterOrderByItems`, bare | With the name of the table |
-| All | `avg(x)` | `avg(cast(x as float))`, with the floating-point type of each database |

@@ -44,7 +44,7 @@ The files below are at `https://ts-sql-query.readthedocs.io/en/latest/<file>`:
 | `llms-errors.txt` | The errors the library raises and their reasons |
 | `llms-keywords.txt` | A quick index: each SQL keyword, and what writes it in the library |
 | `llms-changelog-v2.txt`, `llms-changelog-v1.txt` | What changed in each version |
-| `llms-migrating-from-v1.txt` | What to change in an application on v1 |
+| `llms-migrating-from-v1.txt` | What to change in an application on v1, and what changes by itself |
 
 `<database>` is `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver`: a query is shown only for that database, which makes the file about a third smaller. With `all` instead of a database, like `llms-queries-all.txt`, the file shows all of them: for an agent that compares databases, or moves code from one to another.
 

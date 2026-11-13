@@ -74,7 +74,7 @@ AREAS = [
     ('keywords', 'Keywords', 'a quick index: each SQL keyword, and what writes it in the library', ['keywords/*.md'], False),
     ('changelog-v2', 'Change log of v2', 'what changed in each version of v2', ['about/changelog/v2.md'], False),
     ('changelog-v1', 'Change log of v1', 'what changed in each version of v1', ['about/changelog/v1.md'], False),
-    ('migrating-from-v1', 'Migrating from v1', 'what to change in an application on ts-sql-query v1', ['about/changelog/migrating-from-v1.md'], False),
+    ('migrating-from-v1', 'Migrating from v1', 'what to change in an application on ts-sql-query v1, and what changes by itself', ['about/changelog/migrating-from-v1.md', 'about/changelog/behavior-changes-from-v1.md'], False),
 ]
 
 # What the first line of each file says about the others

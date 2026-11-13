@@ -4,7 +4,7 @@ search:
 ---
 # Behavior changes from v1
 
-An application that moves from v1 to v2 gets other results in some places without changing a line: v2 corrects what v1 emitted wrong, rejects what v1 lost without telling, and changes the SQL text it writes. There is nothing to do about these unless your code relied on the old result: if it compensated for a wrong value, remove the compensation; if it needs the old value back, some have a property of the connection for it. What you do have to change is in [Migrating from v1](migrating-from-v1.md).
+An application that moves from v1 to v2 gets other results in some places without changing a line: v2 corrects what v1 emitted wrong, rejects what v1 lost without telling, refuses to compile queries that never worked, and changes the SQL text it writes. There is nothing to do about these unless your code relied on the old result: if it compensated for a wrong value, remove the compensation; if it needs the old value back, some have a property of the connection for it. What you do have to change is in [Migrating from v1](migrating-from-v1.md).
 
 The sections go from what changes the rows to what only changes the text:
 
@@ -12,7 +12,8 @@ The sections go from what changes the rows to what only changes the text:
 2. [Transactions the database had already lost](#transactions-the-database-had-already-lost): they now reject, where v1 resolved and nothing was saved.
 3. [Values, with a way back](#values-with-a-way-back): `NULL` in `minValue`, `maxValue` and Oracle's `concat`, `replaceAll`, `length` and `round`.
 4. [Values, corrected](#values-corrected): functions that gave a wrong value.
-5. [What only changes the SQL text](#what-only-changes-the-sql-text): logs, test snapshots, mocks and interceptors.
+5. [Queries that never worked no longer compile](#queries-that-never-worked-no-longer-compile): the database rejected them; now the compiler does.
+6. [What only changes the SQL text](#what-only-changes-the-sql-text): logs, test snapshots, mocks and interceptors.
 
 ## Queries that read or write other rows
 
@@ -107,6 +108,41 @@ These returned a wrong value in v1, or depended on something they shouldn't. If 
 
 - SQL Server, Oracle: a projected `between` whose upper bound is optional is `NULL` when that bound is `NULL`. It was `false`.
 - [`dynamicPickPaths`](../../dynamic/helper-types/picks.md) with a path of 3 or more levels dropped it.
+
+## Queries that never worked no longer compile
+
+v2 refuses, when your code compiles, queries that the database rejects or that always failed. v1 compiled them and they failed when they ran, so your application never ran them successfully: if the compiler points at one of them, that query was failing. Write it as each item says.
+
+**Aggregates, where SQL doesn't allow them:**
+
+- An aggregate function in `where`, `and`, `or`, `groupBy` or the `on` of a join. It stays allowed in `select`, `having` and `orderBy`. A custom fragment that is an aggregate has its [own builders](../../queries/sql-fragments.md#aggregate-fragments), to get the same check.
+- An aggregate of an aggregate (`connection.max(connection.count(tCustomer.id))`), except on Oracle. Aggregate over a subquery that aggregates.
+- `groupBy('name')` with a column of the select that is an aggregate.
+
+**Insert and on conflict:**
+
+- `.onConflictOnConstraint(...)` only takes a raw fragment ([docs](../../queries/insert-on-conflict.md#a-conflict-on-a-named-constraint)). The name as a string or an expression didn't work, and it has been deprecated since v1.68.0 (14 Jun 2026):
+
+    ```ts
+    const inserted = await connection.insertInto(tCustomer)
+        .set({ firstName: 'John', lastName: 'Smith', companyId: 1 })
+        .onConflictOnConstraint(connection.rawFragment`customer_name_key`)
+        .doNothing()
+        .executeInsert()
+    ```
+
+- PostgreSQL: `.onConflictDoUpdateSet(...)`, `.onConflictDoUpdateSetIfValue(...)` and `.onConflictDoUpdateDynamicSet()` without a target are gone (deprecated in v1.69.0; PostgreSQL requires a target for `do update`). Use [`.onConflictOn(column).doUpdateSet(...)`](../../queries/insert-on-conflict.md#update-the-existing-row-upsert).
+- `insertInto(table).from(select)` with a column the table doesn't have.
+
+**Per database.** v1.69.0 deprecates them on those databases:
+
+| Database | No longer available | Use |
+|---|---|---|
+| Oracle, SQL Server | `recursiveUnion`, `recursiveUnionOn` | `recursiveUnionAll`, `recursiveUnionAllOn` |
+| MySQL, Oracle, SQL Server | `aggregateAsArrayDistinct`, `aggregateAsArrayOfOneColumnDistinct` | |
+| SQL Server | `stringConcatDistinct` | |
+| SQLite | `stringConcatDistinct(value, separator)`; `connection.default()` | `stringConcatDistinct(value)`; omit the column |
+| Oracle | `.orderingSiblingsOnly()` after the `.orderBy(...)` of a compound query | |
 
 ## What only changes the SQL text
 

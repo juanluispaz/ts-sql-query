@@ -115,7 +115,7 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 
 ### Types that now reject what compiled
 
-Of this section, v1 deprecated the comparisons with a value that can be `null` or `undefined` (since v1.24.0, 21 Dec 2021), the name of a constraint as a string (since v1.68.0), and, in v1.69.0, the custom type with one generic argument, the on conflict without a target on PostgreSQL and the queries each database rejects; the rest is new in v2.
+These compiled in v1 and ran. Of them, v1 deprecated the comparisons with a value that can be `null` or `undefined` (since v1.24.0, 21 Dec 2021) and, in v1.69.0, the custom type with one generic argument; the rest is new in v2. Queries the database rejected, which never worked, also stop compiling now: they need nothing from you, and are listed in [Behavior changes from v1](behavior-changes-from-v1.md#queries-that-never-worked-no-longer-compile).
 
 **A JavaScript value that can be `null` or `undefined`.** The overloads of the column operations that accepted one are gone, because a comparison with `null` silently matches nothing. They have been deprecated since v1.24.0 (21 Dec 2021). Use the `IfValue` variant, or see [how to compare against a null value](../limitations.md#how-to-compare-against-a-null-or-undefined-value).
 
@@ -143,55 +143,26 @@ this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
 this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 ```
 
-**Aggregates, where SQL doesn't allow them:**
+**A select with an aggregate and a column of a table, without a group by.** SQLite and MariaDB ran it, with the value of any row of the group; the other databases rejected it. Group by the column, or take any value of the group with [`anyValue`](../../queries/aggregate-and-group-by.md#any-value-of-the-group) if it is the same in the whole group:
 
-- An aggregate function in `where`, `and`, `or`, `groupBy` or the `on` of a join. It stays allowed in `select`, `having` and `orderBy`. A custom fragment that is an aggregate has its [own builders](../../queries/sql-fragments.md#aggregate-fragments), to get the same check.
-- A select with an aggregate and a column of a table, without a group by. Group by the column, or take any value of the group with [`anyValue`](../../queries/aggregate-and-group-by.md#any-value-of-the-group) if it is the same in the whole group:
+```ts
+const customersPerCompany = await connection.selectFrom(tCustomer)
+    .select({
+        companyId: tCustomer.companyId,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .groupByNonAggregatedColumns()
+    .executeSelectMany()
+```
 
-    ```ts
-    const customersPerCompany = await connection.selectFrom(tCustomer)
-        .select({
-            companyId: tCustomer.companyId,
-            customerCount: connection.count(tCustomer.id)
-        })
-        .groupByNonAggregatedColumns()
-        .executeSelectMany()
-    ```
+See [grouping by every non-aggregated column](../../queries/aggregate-and-group-by.md#grouping-by-every-non-aggregated-column).
 
-    See [grouping by every non-aggregated column](../../queries/aggregate-and-group-by.md#grouping-by-every-non-aggregated-column).
-- An aggregate of an aggregate (`connection.max(connection.count(tCustomer.id))`), except on Oracle. Aggregate over a subquery that aggregates.
-- `groupBy('name')` with a column of the select that is an aggregate.
-
-**Insert and on conflict:**
-
-- `.onConflictOnConstraint(...)` only takes a raw fragment ([docs](../../queries/insert-on-conflict.md#a-conflict-on-a-named-constraint)). The name as a string or an expression didn't work, and it has been deprecated since v1.68.0 (14 Jun 2026):
-
-    ```ts
-    const inserted = await connection.insertInto(tCustomer)
-        .set({ firstName: 'John', lastName: 'Smith', companyId: 1 })
-        .onConflictOnConstraint(connection.rawFragment`customer_name_key`)
-        .doNothing()
-        .executeInsert()
-    ```
-
-- PostgreSQL: `.onConflictDoUpdateSet(...)`, `.onConflictDoUpdateSetIfValue(...)` and `.onConflictDoUpdateDynamicSet()` without a target are gone (deprecated in v1.69.0; PostgreSQL requires a target for `do update`). Use [`.onConflictOn(column).doUpdateSet(...)`](../../queries/insert-on-conflict.md#update-the-existing-row-upsert).
-- `executeInsertOne()` is not offered on a multi-row insert with `onConflictDoNothing()`, since the conflict can skip every row.
-- `insertInto(table).from(select)` with a column the table doesn't have.
+**`executeInsertOne()` on a multi-row insert with `onConflictDoNothing()`.** It is not offered, since the conflict can skip every row: use `executeInsert()`.
 
 **Result types:**
 
 - `connection.average(...)` and `connection.averageDistinct(...)` always return `number`. Drop an annotation that says `bigint` or a custom type.
 - Nested projections go up to [5 levels](../../queries/complex-projections.md), counting the object passed to `select`.
-
-**Queries the database rejects, per database.** v1 compiled them and the database rejected them when they ran; v1.69.0 deprecates them on those databases:
-
-| Database | No longer available | Use |
-|---|---|---|
-| Oracle, SQL Server | `recursiveUnion`, `recursiveUnionOn` | `recursiveUnionAll`, `recursiveUnionAllOn` |
-| MySQL, Oracle, SQL Server | `aggregateAsArrayDistinct`, `aggregateAsArrayOfOneColumnDistinct` | |
-| SQL Server | `stringConcatDistinct` | |
-| SQLite | `stringConcatDistinct(value, separator)`; `connection.default()` | `stringConcatDistinct(value)`; omit the column |
-| Oracle | `.orderingSiblingsOnly()` after the `.orderBy(...)` of a compound query | |
 
 ### Type adapters and the transforms of the connection
 

@@ -1168,10 +1168,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += ', '
             }
             const column = columns[property]!
-            // A localDateTime of a database outside UTC goes as it is: its TIMESTAMP WITH TIME ZONE OUT bind already
-            // receives the instant Oracle completes with its session
             const sql = this._appendSql(column, context, false)
-            result += this._isZonedReturningColumn(column) && __isLocalDateTimeValueSource(__getValueSourcePrivate(column)) ? sql : this._appendResultColumnProjection(column, sql, context)
+            result += this._appendResultColumnProjection(column, sql, context)
             requireComma = true
         }
         if (result) {
@@ -1183,15 +1181,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += ', '
             }
             const column = columns[property]!
-            let placeholder
-            if (!this._isZonedReturningColumn(column) && this._isConvertedResultColumn(column, context)) {
-                // The value is returned as the SQL its transformProjection writes, which is not of the type of the
-                // column: it is received as a text
-                placeholder = this._addOutParam(context, property, 'string', 'string', false)
-            } else {
-                const columnPrivate = __getValueSourcePrivate(column)
-                placeholder = this._addOutParam(context, property, columnPrivate.__valueTypeName, __typeCategoryOf(columnPrivate.__valueType), false)
-            }
+            // The OUT bind receives the value the converted SQL gives: of the type its transformProjection says, or of the
+            // type of the column
+            const projected = this._projectedTypeOf(column, 'resultColumn')
+            const placeholder = this._addOutParam(context, property, projected.type, projected.typeCategory, false)
             result += placeholder
             requireComma = true
         }
@@ -1199,20 +1192,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
         return ' returning ' + result
-    }
-    /**
-     * A localDateTime or a localTime of a database outside UTC whose only conversion is the one of the connection: it is
-     * returned in an OUT bind of its type, a TIMESTAMP WITH TIME ZONE, not as a text
-     */
-    _isZonedReturningColumn(column: AnyValueSource): boolean {
-        if (!this._isDatabaseOutsideUtc() || !isValueSource(column)) {
-            return false
-        }
-        const columnPrivate = __getValueSourcePrivate(column)
-        if (columnPrivate.__typeAdapter?.transformProjection) {
-            return false
-        }
-        return __isLocalDateTimeValueSource(columnPrivate) || __isLocalTimeValueSource(columnPrivate)
     }
     override _isNull(context: SqlBuildContext, valueSource: ToSql): string {
         if (isColumn(valueSource)) {

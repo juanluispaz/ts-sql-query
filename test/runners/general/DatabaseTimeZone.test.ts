@@ -102,7 +102,7 @@ describe('The databaseTimeZone of the connection', () => {
                 + 'extract(hour from sys_extract_utc(cast(dx as timestamp with time zone))) as "dxHours", '
                 + 'json_arrayagg(cast(ts as timestamp with time zone)) as "arr" '
                 + 'from moment where ts = cast(:0 as timestamp) and dx = cast(:1 as date) and dx < cast(:2 as timestamp) and t = cast(:3 as timestamp)',
-            'insert into moment (id, ts, t) values (:0, :1, :2) returning ts, cast(timestamp \'1970-01-01 00:00:00\' + (t - trunc(t)) as timestamp with time zone) into :3, :4',
+            'insert into moment (id, ts, t) values (:0, :1, :2) returning cast(ts as timestamp with time zone), cast(timestamp \'1970-01-01 00:00:00\' + (t - trunc(t)) as timestamp with time zone) into :3, :4',
         ])
         expect(sqlOf(new OracleOfZone('UTC'))).toEqual([
             'insert into moment (id, ts, dx, t) values (:0, :1, :2, :3)',

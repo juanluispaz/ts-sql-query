@@ -199,6 +199,13 @@ export interface QueryResultColumn {
     readonly type: string
     /** The type category; '' for an aggregated array (a JSON text whose values the library converts) */
     readonly typeCategory: TypeCategory
+    /**
+     * The type name of the value the database returns for the column: the one its `transformProjection` says
+     * (`setProjectedType`), like the text of a date; otherwise `type`
+     */
+    readonly projectedType: string
+    /** The type category of the value the database returns for the column; otherwise `typeCategory` */
+    readonly projectedTypeCategory: TypeCategory
 }
 
 // The readers of version 1, exported only by its paths: version 2 reads the context of the query (getQueryContext)

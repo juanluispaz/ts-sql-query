@@ -43,7 +43,7 @@ function _typeNegatives() {
     void root.SqlServerConnection
 
     // Rule: what a query runner reads of the result columns is read-only.
-    const resultColumn: QueryResultColumn = { name: 'id', path: 'id', type: 'int', typeCategory: 'int' }
+    const resultColumn: QueryResultColumn = { name: 'id', path: 'id', type: 'int', typeCategory: 'int', projectedType: 'int', projectedTypeCategory: 'int' }
     // @ts-expect-error a result column is read-only
     resultColumn.type = 'bigint'
     // @ts-expect-error the category of a result column is one of the list

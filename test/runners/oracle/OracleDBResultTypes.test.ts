@@ -28,8 +28,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     }, 300_000)
 
     const sql = 'select cast(12345678901234567890.1234567891 as number(38, 10)) as "amount", cast(-0.25 as number(10, 2)) as "price", 1.5 as "plain" from dual'
-    const decimal = (name: string): QueryResultColumn => ({ name, path: name, type: 'Amount', typeCategory: 'customDecimal' })
-    const double = (name: string): QueryResultColumn => ({ name, path: name, type: 'double', typeCategory: 'double' })
+    const decimal = (name: string): QueryResultColumn => ({ name, path: name, type: 'Amount', typeCategory: 'customDecimal', projectedType: 'Amount', projectedTypeCategory: 'customDecimal' })
+    const double = (name: string): QueryResultColumn => ({ name, path: name, type: 'double', typeCategory: 'double', projectedType: 'double', projectedTypeCategory: 'double' })
 
     function paramsExpecting(columns: QueryResultColumn[]): any[] {
         const params: any[] = []
@@ -48,12 +48,12 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     })
 
     test('the-only-column-without-a-name', async () => {
-        const params = paramsExpecting([{ name: '', path: '', type: 'Amount', typeCategory: 'customDecimal' }])
+        const params = paramsExpecting([{ name: '', path: '', type: 'Amount', typeCategory: 'customDecimal', projectedType: 'Amount', projectedTypeCategory: 'customDecimal' }])
         expect(await runner!.executeSelectOneColumnOneRow('select cast(12345678901234567890.1234567891 as number(38, 10)) from dual', params)).toBe('12345678901234567890.1234567891')
     })
 
     test('a-bigint-column-is-fetched-as-text', async () => {
-        const params = paramsExpecting([{ name: 'big', path: 'big', type: 'bigint', typeCategory: 'bigint' }, double('plain')])
+        const params = paramsExpecting([{ name: 'big', path: 'big', type: 'bigint', typeCategory: 'bigint', projectedType: 'bigint', projectedTypeCategory: 'bigint' }, double('plain')])
         const row = await runner!.executeSelectOneRow('select cast(123456789012345678901 as number(21)) as "big", 1.5 as "plain" from dual', params)
         expect(row).toEqual({ big: '123456789012345678901', plain: 1.5 })
     })

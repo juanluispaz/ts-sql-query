@@ -1,6 +1,7 @@
 // Each query the library builds goes with the columns of its result, read from the context of the query (getQueryContext): the key of the
 // column in a row returned by the database, its path in the result, and the type name and type category its value
-// is converted with, in the order of the select list. A query that returns no columns has none. They travel hidden in
+// is converted with, and of the value the database returns (the projected type, which a transformProjection can
+// change), in the order of the select list. A query that returns no columns has none. They travel hidden in
 // the params: they are not listed, nor sent to the database.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -37,120 +38,158 @@ describe(ctx.label, () => {
             {
               "name": "id",
               "path": "id",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "mInt",
               "path": "mInt",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "mBigint",
               "path": "mBigint",
+              "projectedType": "bigint",
+              "projectedTypeCategory": "bigint",
               "type": "bigint",
               "typeCategory": "bigint",
             },
             {
               "name": "mDouble",
               "path": "mDouble",
+              "projectedType": "double",
+              "projectedTypeCategory": "double",
               "type": "double",
               "typeCategory": "double",
             },
             {
               "name": "mBool",
               "path": "mBool",
+              "projectedType": "boolean",
+              "projectedTypeCategory": "boolean",
               "type": "boolean",
               "typeCategory": "boolean",
             },
             {
               "name": "mUuid",
               "path": "mUuid",
+              "projectedType": "uuid",
+              "projectedTypeCategory": "uuid",
               "type": "uuid",
               "typeCategory": "uuid",
             },
             {
               "name": "mDate",
               "path": "mDate",
+              "projectedType": "localDate",
+              "projectedTypeCategory": "localDate",
               "type": "localDate",
               "typeCategory": "localDate",
             },
             {
               "name": "mTime",
               "path": "mTime",
+              "projectedType": "localTime",
+              "projectedTypeCategory": "localTime",
               "type": "localTime",
               "typeCategory": "localTime",
             },
             {
               "name": "mDatetime",
               "path": "mDatetime",
+              "projectedType": "localDateTime",
+              "projectedTypeCategory": "localDateTime",
               "type": "localDateTime",
               "typeCategory": "localDateTime",
             },
             {
               "name": "mStr",
               "path": "mStr",
+              "projectedType": "string",
+              "projectedTypeCategory": "string",
               "type": "string",
               "typeCategory": "string",
             },
             {
               "name": "cents",
               "path": "cents",
+              "projectedType": "Cents",
+              "projectedTypeCategory": "customInt",
               "type": "Cents",
               "typeCategory": "customInt",
             },
             {
               "name": "money",
               "path": "money",
+              "projectedType": "Money",
+              "projectedTypeCategory": "customDouble",
               "type": "Money",
               "typeCategory": "customDouble",
             },
             {
               "name": "signingKey",
               "path": "signingKey",
+              "projectedType": "SigningKey",
+              "projectedTypeCategory": "customUuid",
               "type": "SigningKey",
               "typeCategory": "customUuid",
             },
             {
               "name": "semver",
               "path": "semver",
+              "projectedType": "Semver",
+              "projectedTypeCategory": "customComparable",
               "type": "Semver",
               "typeCategory": "customComparable",
             },
             {
               "name": "channel",
               "path": "channel",
+              "projectedType": "ReleaseChannel",
+              "projectedTypeCategory": "custom",
               "type": "ReleaseChannel",
               "typeCategory": "custom",
             },
             {
               "name": "releaseDay",
               "path": "releaseDay",
+              "projectedType": "ReleaseDay",
+              "projectedTypeCategory": "customLocalDate",
               "type": "ReleaseDay",
               "typeCategory": "customLocalDate",
             },
             {
               "name": "cutoffClock",
               "path": "cutoffClock",
+              "projectedType": "CutoffClock",
+              "projectedTypeCategory": "customLocalTime",
               "type": "CutoffClock",
               "typeCategory": "customLocalTime",
             },
             {
               "name": "signOff",
               "path": "signOff",
+              "projectedType": "SignOffStamp",
+              "projectedTypeCategory": "customLocalDateTime",
               "type": "SignOffStamp",
               "typeCategory": "customLocalDateTime",
             },
             {
               "name": "activity",
               "path": "activity",
+              "projectedType": "WorklogActivity",
+              "projectedTypeCategory": "enum",
               "type": "WorklogActivity",
               "typeCategory": "enum",
             },
           ]
         `)
-        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('money')).toEqual({ name: 'money', path: 'money', type: 'Money', typeCategory: 'customDouble' })
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('money')).toEqual({ name: 'money', path: 'money', type: 'Money', typeCategory: 'customDouble', projectedType: 'Money', projectedTypeCategory: 'customDouble' })
         expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('unknown')).toBeUndefined()
         // Hidden: the params list only the values sent to the database
         expect(Object.keys(ctx.lastParams)).toEqual(['0'])
@@ -177,24 +216,32 @@ describe(ctx.label, () => {
             {
               "name": "id",
               "path": "id",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "detail.title",
               "path": "detail.title",
+              "projectedType": "string",
+              "projectedTypeCategory": "string",
               "type": "string",
               "typeCategory": "string",
             },
             {
               "name": "parent.id",
               "path": "parent.id",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "parent.title",
               "path": "parent.title",
+              "projectedType": "string",
+              "projectedTypeCategory": "string",
               "type": "string",
               "typeCategory": "string",
             },
@@ -215,12 +262,16 @@ describe(ctx.label, () => {
             {
               "name": "id",
               "path": "id",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBy_69a5f1ac",
               "path": "aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier",
+              "projectedType": "string",
+              "projectedTypeCategory": "string",
               "type": "string",
               "typeCategory": "string",
             },
@@ -240,6 +291,8 @@ describe(ctx.label, () => {
             {
               "name": "result",
               "path": "result",
+              "projectedType": "string",
+              "projectedTypeCategory": "string",
               "type": "string",
               "typeCategory": "string",
             },
@@ -257,6 +310,8 @@ describe(ctx.label, () => {
             {
               "name": "result",
               "path": "result",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
@@ -285,12 +340,16 @@ describe(ctx.label, () => {
               {
                 "name": "id",
                 "path": "id",
+                "projectedType": "int",
+                "projectedTypeCategory": "int",
                 "type": "int",
                 "typeCategory": "int",
               },
               {
                 "name": "name",
                 "path": "name",
+                "projectedType": "string",
+                "projectedTypeCategory": "string",
                 "type": "string",
                 "typeCategory": "string",
               },
@@ -299,6 +358,8 @@ describe(ctx.label, () => {
               {
                 "name": "",
                 "path": "",
+                "projectedType": "int",
+                "projectedTypeCategory": "int",
                 "type": "int",
                 "typeCategory": "int",
               },
@@ -326,12 +387,16 @@ describe(ctx.label, () => {
             {
               "name": "id",
               "path": "id",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "label",
               "path": "label",
+              "projectedType": "string",
+              "projectedTypeCategory": "string",
               "type": "string",
               "typeCategory": "string",
             },
@@ -353,12 +418,16 @@ describe(ctx.label, () => {
             {
               "name": "id",
               "path": "id",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "issueIds",
               "path": "issueIds",
+              "projectedType": "aggregatedArray",
+              "projectedTypeCategory": "",
               "type": "aggregatedArray",
               "typeCategory": "",
             },
@@ -379,12 +448,16 @@ describe(ctx.label, () => {
             {
               "name": "id",
               "path": "id",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },
             {
               "name": "shout",
               "path": "shout",
+              "projectedType": "string",
+              "projectedTypeCategory": "string",
               "type": "string",
               "typeCategory": "string",
             },
@@ -405,6 +478,8 @@ describe(ctx.label, () => {
                 {
                   "name": "",
                   "path": "",
+                  "projectedType": "int",
+                  "projectedTypeCategory": "int",
                   "type": "int",
                   "typeCategory": "int",
                 },
@@ -426,6 +501,8 @@ describe(ctx.label, () => {
                 {
                   "name": "",
                   "path": "",
+                  "projectedType": "int",
+                  "projectedTypeCategory": "int",
                   "type": "int",
                   "typeCategory": "int",
                 },
@@ -473,12 +550,16 @@ describe(ctx.label, () => {
                 {
                   "name": "id",
                   "path": "id",
+                  "projectedType": "int",
+                  "projectedTypeCategory": "int",
                   "type": "int",
                   "typeCategory": "int",
                 },
                 {
                   "name": "name",
                   "path": "name",
+                  "projectedType": "string",
+                  "projectedTypeCategory": "string",
                   "type": "string",
                   "typeCategory": "string",
                 },
@@ -506,6 +587,8 @@ describe(ctx.label, () => {
                 {
                   "name": "name",
                   "path": "name",
+                  "projectedType": "string",
+                  "projectedTypeCategory": "string",
                   "type": "string",
                   "typeCategory": "string",
                 },
@@ -527,12 +610,16 @@ describe(ctx.label, () => {
                 {
                   "name": "id",
                   "path": "id",
+                  "projectedType": "int",
+                  "projectedTypeCategory": "int",
                   "type": "int",
                   "typeCategory": "int",
                 },
                 {
                   "name": "name",
                   "path": "name",
+                  "projectedType": "string",
+                  "projectedTypeCategory": "string",
                   "type": "string",
                   "typeCategory": "string",
                 },
@@ -550,6 +637,8 @@ describe(ctx.label, () => {
             {
               "name": "",
               "path": "",
+              "projectedType": "int",
+              "projectedTypeCategory": "int",
               "type": "int",
               "typeCategory": "int",
             },

@@ -539,19 +539,25 @@ export function __resultColumnsOf(columns: QueryColumns | undefined, sqlBuilder:
     const flat: FlatQueryColumns = {}
     flattenQueryColumns(columns, flat, '')
     for (const path in flat) {
-        const valueSourcePrivate = __getValueSourcePrivate(flat[path]!)
-        result.push({ name: sqlBuilder._resultColumnKey(path), path, type: valueSourcePrivate.__valueTypeName, typeCategory: __typeCategoryOf(valueSourcePrivate.__valueType) })
+        const valueSource = flat[path]!
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const projected = sqlBuilder._projectedTypeOf(valueSource, 'resultColumn')
+        result.push({ name: sqlBuilder._resultColumnKey(path), path, type: valueSourcePrivate.__valueTypeName, typeCategory: __typeCategoryOf(valueSourcePrivate.__valueType), projectedType: projected.type, projectedTypeCategory: projected.typeCategory })
     }
     return result
 }
 
 /**
  * The only column of the result of a query that returns a single value without an alias (a function, the id of an
- * inserted row).
+ * inserted row). Its value is converted (transformProjection) when the SQL builder that writes it is given: the value
+ * of a function, not the id of an inserted row.
  */
-export function __unnamedResultColumn(valueSource: AnyValueSource): QueryResultColumn[] {
+export function __unnamedResultColumn(valueSource: AnyValueSource, projectedBy?: SqlBuilder): QueryResultColumn[] {
     const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-    return [{ name: '', path: '', type: valueSourcePrivate.__valueTypeName, typeCategory: __typeCategoryOf(valueSourcePrivate.__valueType) }]
+    const type = valueSourcePrivate.__valueTypeName
+    const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
+    const projected = projectedBy ? projectedBy._projectedTypeOf(valueSource, 'resultColumn') : { type, typeCategory }
+    return [{ name: '', path: '', type, typeCategory, projectedType: projected.type, projectedTypeCategory: projected.typeCategory }]
 }
 
 /**

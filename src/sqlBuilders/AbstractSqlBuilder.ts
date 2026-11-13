@@ -577,8 +577,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * A value inside the JSON of an aggregated array, as the JSON function of the database receives it: the
-     * `transformProjection` of the type adapter of the value, or the conversion of the library (the identity). A
-     * converted value is the SQL of a text, written in the JSON as a string. The leaf of an aggregated array is written
+     * `transformProjection` of the type adapter of the value, or the conversion of the library. A converted value is
+     * the SQL of a value of any type the JSON function takes, whose text transformValueFromDB receives (as a string in
+     * the JSON SQL Server's library writes). The leaf of an aggregated array is written
      * outside the select whose distinct, order by and limit compare and order the value: in the aggregate over the
      * wrapped select (`a_N_.<prop>`), or in an aggregate without them (MariaDB orders inside the aggregate by the
      * expression of the column, not by the leaf).
@@ -614,6 +615,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         this._appendValueProjection(value, '', output)
         return this._typeAdapterContextOf(undefined).comparison
+    }
+    /**
+     * The type of the value the SQL of `_appendValueProjection` gives for `output`: the one its `transformProjection`
+     * says (`setProjectedType`) when it converts the value, otherwise the one of the value
+     */
+    _projectedTypeOf(value: AnyValueSource, output: ProjectionOutput): { type: string, typeCategory: TypeCategory } {
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        const type = valueSourcePrivate.__valueTypeName
+        const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
+        if (this._appendValueProjection(value, '', output) === '') {
+            return { type, typeCategory }
+        }
+        const adapterContext = this._typeAdapterContextOf(undefined)
+        if (adapterContext.projectedType === undefined) {
+            return { type, typeCategory }
+        }
+        return { type: adapterContext.projectedType, typeCategory: adapterContext.projectedTypeCategory ?? '' }
     }
     /**
      * The `transformProjection` of the type adapter of the value, or of the connection, for `output`; its context then

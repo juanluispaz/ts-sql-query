@@ -7,6 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
+import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -31,6 +32,7 @@ const dayMonthYear: TypeAdapter = {
     },
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         if (output === 'resultColumn') {
+            context.setProjectedType('string', 'string')
             return "date_format(" + sql + ", '%d/%m/%Y')"
         }
         return next.transformProjection(sql, type, typeCategory, output, context)
@@ -49,6 +51,7 @@ const idAsText: TypeAdapter = {
     },
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         if (output === 'resultColumn') {
+            context.setProjectedType('string', 'string')
             return 'cast(' + sql + ' as char)'
         }
         return next.transformProjection(sql, type, typeCategory, output, context)
@@ -112,6 +115,7 @@ const tPriceDelegating = new class TPriceDelegating extends Table<DBConnection, 
 class DayAsTextConnection extends DBConnection {
     protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string {
         if (type === 'ReleaseDay' && output === 'resultColumn') {
+            context.setProjectedType('string', 'string')
             return "date_format(" + sql + ", '%d/%m/%Y')"
         }
         return super.transformProjection(sql, type, typeCategory, output, context)
@@ -156,6 +160,9 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot()
             assertType<Exact<typeof row, { version: string; day: ReleaseDay }>>()
             expect(row).toEqual({ version: '2.0.0', day: dayOf(2024, 6, 1) })
+            // The query runner receives the type of the value the conversion gives: a text
+            const day = getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('day')
+            expect([day?.typeCategory, day?.projectedType, day?.projectedTypeCategory]).toEqual(['customLocalDate', 'string', 'string'])
         })
     })
     */
@@ -392,3 +399,5 @@ describe(ctx.label, () => {
     })
     */
 })
+
+void getQueryContext

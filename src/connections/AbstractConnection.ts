@@ -725,7 +725,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             const functionCall = new FunctionCallValueSource(functionName, params as AnyValueSource[], valueType as ValueType, returnType, required === 'optional' ? 'optional' : 'required', adapter2)
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallFunction(new SqlBuildContext(queryParams), functionCall)
-            const executionParams = __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall))
+            const executionParams = __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall, this.__sqlBuilder))
             return this.__sqlBuilder._queryRunner.executeFunction(query, executionParams).then((value) => {
                 let result
                 try {

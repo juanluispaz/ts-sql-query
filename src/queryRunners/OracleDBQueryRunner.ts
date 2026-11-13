@@ -104,7 +104,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         let names: Set<string> | undefined
         if (columns) {
             for (const column of columns) {
-                if (!__isDecimalCategory(column.typeCategory) && column.typeCategory !== 'bigint' && column.typeCategory !== 'customBigint') {
+                if (!__isDecimalCategory(column.projectedTypeCategory) && column.projectedTypeCategory !== 'bigint' && column.projectedTypeCategory !== 'customBigint') {
                     continue
                 }
                 if (column.name) {

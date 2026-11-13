@@ -101,13 +101,18 @@ temporal values and UTC applies to the other databases.
    (`_needsSelectOrderByWrap`, `_needsResultConversionWrap`); with `'columnEquality'` (equal only among the values of
    one column) a compound select is always wrapped (`_needsResultConversionWrap`), and with `'none'` a distinct select
    too (`_needsDistinctConversionWrap`).
-   On Oracle, the OUT bind of a converted returning column is a text (`addOutParam` with the `string` type and
-   category), whatever the type of the column. The id the library reads by itself in an insert without a returning of
+   On Oracle, the OUT bind of a returning column is of the type of the value its converted SQL gives: the one its
+   `transformProjection` says (`setProjectedType`, like `'string'` for the text of a date), otherwise the one of the
+   column (`_projectedTypeOf`). Every column of the result carries that type in the context of the query
+   (`projectedType`, `projectedTypeCategory` of `QueryResultColumn`), and `OracleDBQueryRunner.fetchTypeHandlerFor` reads
+   it. The id the library reads by itself in an insert without a returning of
    the query (`returning id`, `output inserted.id`, Oracle's `returning id into`) keeps its SQL.
    Each value inside the JSON of an aggregated array is written the same way with `'aggregatedArrayValue'`
-   (`_appendAggregatedArrayValueProjection`): a converted value is the SQL of a text, which the JSON function of the
-   database writes as a string (SQL Server's JSON written by the library: `'"' + string_escape(convert(nvarchar(max),
-   …), 'json') + '"'`); by default it is the identity, and the value keeps the encoding the library gives it in the JSON
+   (`_appendAggregatedArrayValueProjection`): a converted value is the SQL of a value of any type the JSON function of
+   the database takes, and `transformValueFromDB` receives its text, a number too (measured on every database, 2026-11-13);
+   SQL Server's JSON written by the library (before 2025) writes it as a string: `'"' + string_escape(convert(nvarchar(max),
+   …), 'json') + '"'`; by default it is the identity (with a database outside UTC, PostgreSQL and Oracle write a
+   localDateTime or a localTime with its zone), and the value keeps the encoding the library gives it in the JSON
    (§3.2). The leaf is written outside the select whose distinct, order by and limit use the value (over the wrapped
    select `a_N_`, or in an aggregate without them); on SQL Server a select of objects is written with `for json path`,
    its leaves converted in place (`_isSelectOfAggregatedArrayValues`), unless a leaf is `'none'` or another converted leaf
@@ -723,8 +728,8 @@ writes no zone arithmetic. With UTC the SQL doesn't change.
   instant); a `localTime` replaces the day it is stored with by the `localTimeReferenceDate`,
   `cast(timestamp 'D 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or
   `cast(trunc(localtimestamp) as timestamp)` for `'today'`. The date functions take
-  `sys_extract_utc(<that>)` (`_appendZonedUtcTimestamp`). A `returning` of a `localDateTime` writes the column as it is
-  into its `TIMESTAMP WITH TIME ZONE` OUT bind, which Oracle completes with the session (`_isZonedReturningColumn`).
+  `sys_extract_utc(<that>)` (`_appendZonedUtcTimestamp`). A `returning` writes the same conversion into its
+  `TIMESTAMP WITH TIME ZONE` OUT bind (measured on Oracle 21 and 23).
   The session must be `ORA_SDTZ` with the same name: unset, oracledb gives it the offset of the process, which doesn't
   follow summer time, and an offset, `LOCAL` or `DBTIMEZONE` are rejected. Limits, with an error, never a wrong value:
   `DBTIMEZONE` as a region (oracledb NJS-201 for a `TIMESTAMP WITH LOCAL TIME ZONE` bind; it reads `DBTIMEZONE` itself

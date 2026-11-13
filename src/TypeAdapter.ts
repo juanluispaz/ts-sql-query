@@ -24,8 +24,9 @@ export type TypeCategory = 'boolean'
  * query (a column of the outermost select, of the returning of an insert, an update or a delete, or the value of a
  * function called with `executeFunction`).
  * `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array (`aggregateAsArray`,
- * `aggregateAsArrayOfOneColumn`, a select used as an aggregated array): a converted value there is the SQL of a text,
- * which the library writes in the JSON as a string.
+ * `aggregateAsArrayOfOneColumn`, a select used as an aggregated array): the SQL there is of a value the JSON function
+ * of the database takes, of any type, and `transformValueFromDB` receives its text (a number too, with all its
+ * digits); on SQL Server before 2025, whose JSON the library writes, a converted value goes in it as a string.
  */
 export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
 

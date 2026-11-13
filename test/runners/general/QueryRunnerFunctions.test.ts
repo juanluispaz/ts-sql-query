@@ -92,8 +92,8 @@ describe('QueryRunner functions', () => {
 
     test('result-columns', () => {
         const params: any[] = []
-        queryContextOf(params).resultColumns = [{ name: 'id', path: 'id', type: 'int', typeCategory: 'int' }]
-        expect(getQueryContext('q', params).getResultColumn('id')).toEqual({ name: 'id', path: 'id', type: 'int', typeCategory: 'int' })
+        queryContextOf(params).resultColumns = [{ name: 'id', path: 'id', type: 'int', typeCategory: 'int', projectedType: 'int', projectedTypeCategory: 'int' }]
+        expect(getQueryContext('q', params).getResultColumn('id')).toEqual({ name: 'id', path: 'id', type: 'int', typeCategory: 'int', projectedType: 'int', projectedTypeCategory: 'int' })
         expect(getQueryContext('q', params).getResultColumn('name')).toBeUndefined()
     })
 

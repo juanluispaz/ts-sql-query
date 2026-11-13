@@ -13,7 +13,7 @@ import { source, valueType } from '../utils/symbols.js'
 import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
-import type { TypeCategory } from '../TypeAdapter.js'
+import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
@@ -155,10 +155,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected treatUnexpectedStringDateTimeAsUTC: boolean = false
     protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
         const conversionType = __conversionType(type, typeCategory)
         if (value === undefined || value == null) {
-            return super.transformValueFromDB(value, type, typeCategory)
+            return super.transformValueFromDB(value, type, typeCategory, context)
         }
         switch (conversionType) {
             case 'localDate': {
@@ -425,12 +425,12 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 return result
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory)
+        return super.transformValueFromDB(value, type, typeCategory, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
         const conversionType = __conversionType(type, typeCategory)
         if (value === undefined || value == null) {
-            return super.transformValueToDB(value, type, typeCategory)
+            return super.transformValueToDB(value, type, typeCategory, context)
         }
         switch (conversionType) {
             case 'localDate':
@@ -546,7 +546,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, `Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
         }
-        return super.transformValueToDB(value, type, typeCategory)
+        return super.transformValueToDB(value, type, typeCategory, context)
     }
 }
 

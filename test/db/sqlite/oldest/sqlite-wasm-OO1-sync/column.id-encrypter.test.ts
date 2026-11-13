@@ -17,7 +17,7 @@ import { IDEncrypter } from '../../../../../src/extras/IDEncrypter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import type { TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { TypeCategory, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
 const encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
@@ -25,9 +25,9 @@ const enc = (id: bigint) => encrypter.encrypt(id)
 const dec = (id: string) => encrypter.decrypt(id)
 
 class EncryptedIdConnection extends DBConnection {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
         if (type === 'encryptedID') {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint')
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint', context)
             if (typeof id === 'bigint') {
                 return encrypter.encrypt(id)
             } else {
@@ -35,19 +35,19 @@ class EncryptedIdConnection extends DBConnection {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory)
+        return super.transformValueFromDB(value, type, typeCategory, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
         if (type === 'encryptedID') {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
-                return super.transformValueToDB(encrypter.decrypt(value), 'bigint', 'bigint')
+                return super.transformValueToDB(encrypter.decrypt(value), 'bigint', 'bigint', context)
             } else {
                 throw new Error('Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type, typeCategory)
+        return super.transformValueToDB(value, type, typeCategory, context)
     }
 }
 

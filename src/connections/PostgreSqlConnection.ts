@@ -1,7 +1,7 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
-import type { ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
+import type { ProjectionOutput, TypeAdapterProjectionContext, TypeAdapterValueToDBContext, TypeCategory } from '../TypeAdapter.js'
 import { __conversionType } from '../utils/typeCategory.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
@@ -16,7 +16,6 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { postgreSqlZonedParam } from '../utils/metadataSymbols.js'
-import { queryParamContextOf } from '../internal/QueryContextImpl.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
 
@@ -41,28 +40,28 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * instant, which the database converts with its session (the zone of the database) into the wall clock it stores
      * or compares with
      */
-    protected override addQueryParamMetadata(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): void {
-        super.addQueryParamMetadata(params, index, type, typeCategory, valueSentToDB)
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
         if (this.isDatabaseOutsideUtc()) {
             const conversionType = __conversionType(type, typeCategory)
             if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-                queryParamContextOf(params, index).setMetadata(postgreSqlZonedParam, true)
+                context.setMetadata(postgreSqlZonedParam, true)
             }
         }
+        return super.transformValueToDB(value, type, typeCategory, context)
     }
     /**
      * With a databaseTimeZone other than UTC, a localDateTime or a localTime leaves the database as the instant the
      * database completes with its session, `(<sql>)::timestamptz` (see postgreSqlZonedValueSql), and as its text inside
      * the JSON of an aggregated array
      */
-    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
             const zoned = postgreSqlZonedValueSql(sql, __conversionType(type, typeCategory), this.localTimeReferenceDate)
             if (zoned) {
                 return output === 'aggregatedArrayValue' ? zoned + '::text' : zoned
             }
         }
-        return super.transformProjection(sql, type, typeCategory, output)
+        return super.transformProjection(sql, type, typeCategory, output, context)
     }
 
     /**

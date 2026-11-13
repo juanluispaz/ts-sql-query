@@ -1,6 +1,9 @@
 import { describe, test } from '../../../../lib/testRunner.js'
 import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from "../../../../../src/dynamic/condition.js"
 import type { OrderByForModel, OrderByMode } from "../../../../../src/dynamic/orderBy.js"
+import type { ConnectionConfiguration } from '../../../../../src/queryRunners/QueryRunner.js'
+// The configuration of a connection, which the API of the type adapters names
+void function(_configuration: ConnectionConfiguration) {}
 
 /******************** 
  * Generated code

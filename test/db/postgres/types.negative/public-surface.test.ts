@@ -9,7 +9,7 @@ import * as compat from '../../../../src/exports/v1/dynamicCondition.js'
 import { deepOmit, deepPick, type DeepPick, type DeepOmit } from '../../../../src/extras/deepUtilities.js'
 import { sync } from '../../../../src/extras/sync.js'
 import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extras/utils.js'
-import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory } from '../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeCategory, type TypeAdapterValueFromDBContext } from '../../../../src/TypeAdapter.js'
 import { type ConnectionConfiguration, type QueryResultColumn } from '../../../../src/queryRunners/QueryRunner.js'
 import { getQueryContext } from '../../../../src/QueryContext.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
@@ -71,20 +71,65 @@ function _typeNegatives() {
 
     // Rule: the transforms receive the category of the type after its name, and pass it on to next.
     void ({
-        transformValueFromDB(value, type, typeCategory, next) { return next.transformValueFromDB(value, type, typeCategory) },
-        transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
+        transformValueFromDB(value, type, typeCategory, context, next) { return next.transformValueFromDB(value, type, typeCategory, context) },
+        transformValueToDB(value, type, typeCategory, context, next) { return next.transformValueToDB(value, type, typeCategory, context) },
     } satisfies TypeAdapter)
     void ({
-        // @ts-expect-error the third parameter is the category of the type, not next
-        transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter) { return next.transformValueFromDB(value, type, '') },
-        transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
+        // @ts-expect-error the third parameter is the category of the type, not the context
+        transformValueFromDB(value: unknown, type: string, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter) { return next.transformValueFromDB(value, type, '', context) },
+        transformValueToDB(value, type, typeCategory, context, next) { return next.transformValueToDB(value, type, typeCategory, context) },
     } satisfies TypeAdapter)
     void ({
-        transformValueFromDB(value, type, _typeCategory, next) {
+        transformValueFromDB(value, type, _typeCategory, _context, next) {
             // @ts-expect-error next needs the category of the type
             return next.transformValueFromDB(value, type)
         },
-        transformValueToDB(value, type, typeCategory, next) { return next.transformValueToDB(value, type, typeCategory) },
+        transformValueToDB(value, type, typeCategory, context, next) { return next.transformValueToDB(value, type, typeCategory, context) },
+    } satisfies TypeAdapter)
+    // Rule: the context of a transform goes before next, and next receives it.
+    void ({
+        transformValueFromDB(value, type, typeCategory, _context, next) {
+            // @ts-expect-error next needs the context
+            return next.transformValueFromDB(value, type, typeCategory)
+        },
+        transformValueToDB(value, type, typeCategory, context, next) { return next.transformValueToDB(value, type, typeCategory, context) },
+    } satisfies TypeAdapter)
+    // Rule: whether the database receives the type of a parameter is said in transformValueToDB; transformPlaceholder
+    // only reads it, the placeholder is already written.
+    void ({
+        transformValueFromDB(value, type, typeCategory, context, next) { return next.transformValueFromDB(value, type, typeCategory, context) },
+        transformValueToDB(value, type, typeCategory, context, next) {
+            context.forceTypeCast = true
+            return next.transformValueToDB(value, type, typeCategory, context)
+        },
+        transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context, next) {
+            // @ts-expect-error forceTypeCast is read-only in transformPlaceholder
+            context.forceTypeCast = true
+            return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
+        },
+    } satisfies TypeAdapter)
+    // Rule: transformValueToDB doesn't know the index of the parameter: the value may be only looked at.
+    void ({
+        transformValueFromDB(value, type, typeCategory, context, next) { return next.transformValueFromDB(value, type, typeCategory, context) },
+        transformValueToDB(value, type, typeCategory, context, next) {
+            // @ts-expect-error there is no index in transformValueToDB
+            void context.index
+            return next.transformValueToDB(value, type, typeCategory, context)
+        },
+    } satisfies TypeAdapter)
+    // Rule: a type adapter has four transforms; whether the database receives the type of a parameter, what is kept of
+    // it and how a projection compares are said in their context, not in methods of their own.
+    void ({
+        transformValueFromDB(value, type, typeCategory, context, next) { return next.transformValueFromDB(value, type, typeCategory, context) },
+        transformValueToDB(value, type, typeCategory, context, next) { return next.transformValueToDB(value, type, typeCategory, context) },
+        // @ts-expect-error forceTypeCast is not a method of a type adapter
+        forceTypeCast() { return true },
+    } satisfies TypeAdapter)
+    void ({
+        transformValueFromDB(value, type, typeCategory, context, next) { return next.transformValueFromDB(value, type, typeCategory, context) },
+        transformValueToDB(value, type, typeCategory, context, next) { return next.transformValueToDB(value, type, typeCategory, context) },
+        // @ts-expect-error projectionComparison is not a method of a type adapter
+        projectionComparison() { return 'value' },
     } satisfies TypeAdapter)
     // @ts-expect-error a category is one of the list, not the name of a type
     void ('Money' satisfies TypeCategory)

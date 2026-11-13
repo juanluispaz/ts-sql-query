@@ -681,7 +681,7 @@ from issue where id = 1
 fails with error 1054 (`Unknown column 'issue.id' in 'WHERE'`, `… in 'where
 clause'` on 10.5), while the same query without the correlation runs, and
 PostgreSQL 18 and SQLite 3.51 run both. So for a value whose
-`projectionComparison` is `'none'`, the library doesn't write the distinct of
+projection compares as `'none'` (`comparison` of `transformProjection`), the library doesn't write the distinct of
 `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` over a
 select of the distinct values on MariaDB (it does on PostgreSQL and SQLite):
 the distinct stays inside `json_arrayagg` and compares the converted texts.

@@ -13,6 +13,7 @@ import type { InsertCustomization } from '../expressions/insert.js'
 import { isSelectQueryObject, isTableOrViewObject, isValueSourceObject } from '../utils/symbols.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
@@ -288,6 +289,8 @@ export interface DeleteData extends WithQueryData {
  */
 export interface SqlBuilder extends SqlOperation {
     _defaultTypeAdapter: DefaultTypeAdapter
+    /** The context the type adapters receive: the one of the construction, or the one of the SQL builder */
+    _typeAdapterContextOf(context?: SqlBuildContext | undefined): TypeAdapterContextImpl
     _queryRunner: QueryRunner
     _connectionConfiguration: ConnectionConfiguration
     _checkConnectionConfiguration(): void

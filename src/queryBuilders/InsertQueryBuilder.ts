@@ -90,9 +90,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     let result
                     try {
                         if (typeAdapter) {
-                            result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), this.__sqlBuilder._defaultTypeAdapter)
+                            result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), this.__sqlBuilder._typeAdapterContextOf(), this.__sqlBuilder._defaultTypeAdapter)
                         } else {
-                            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType))
+                            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, __typeCategoryOf(idColumnPrivate.__valueType), this.__sqlBuilder._typeAdapterContextOf())
                         }
                     } catch(e) {
                         if (e instanceof TsSqlError) {
@@ -132,7 +132,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             const row = rows[index]
                             let result
                             try {
-                                result = typeAdapter.transformValueFromDB(row, columnTypeName, columnTypeCategory, defaultTypeAdapter)
+                                result = typeAdapter.transformValueFromDB(row, columnTypeName, columnTypeCategory, this.__sqlBuilder._typeAdapterContextOf(), defaultTypeAdapter)
                             } catch(e) {
                                 if (e instanceof TsSqlError) {
                                     if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
@@ -156,7 +156,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             const row = rows[index]
                             let result
                             try {
-                                result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName, columnTypeCategory)
+                                result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName, columnTypeCategory, this.__sqlBuilder._typeAdapterContextOf())
                             } catch(e) {
                                 if (e instanceof TsSqlError) {
                                     if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {

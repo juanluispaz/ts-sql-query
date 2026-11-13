@@ -1,5 +1,5 @@
 import { oracleDateParam } from './utils/metadataSymbols.js'
-import { queryParamContextOf } from './internal/QueryContextImpl.js'
+import type { ConnectionConfiguration } from './queryRunners/QueryRunner.js'
 import { __conversionType } from './utils/typeCategory.js'
 
 /**
@@ -30,7 +30,7 @@ export type TypeCategory = 'boolean'
 export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
 
 /**
- * How the SQL that `transformProjection` returns for a value compares with the value, given by `projectionComparison`:
+ * How the SQL that `transformProjection` returns for a value compares with the value, said in its context (`comparison`):
  * `'value'` compares and orders like the value (equal values give equal SQL, different values give different SQL, and
  * the SQL orders as the values do); `'equality'` compares like the value but orders otherwise; `'columnEquality'`
  * compares like the value only among the values of the same column (two equal values of two columns or expressions can
@@ -39,62 +39,102 @@ export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
  */
 export type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
+/** What a method of a type adapter receives of the query it works for */
+export interface TypeAdapterContext {
+    /** The configuration of the connection of the query */
+    readonly connectionConfiguration: ConnectionConfiguration
+}
+
+/**
+ * The context of `transformValueToDB`: the parameter the value will be sent in. What the adapter writes in it applies
+ * to that parameter; when the library transforms a value only to look at it (and adds no parameter), it is discarded.
+ */
+export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
+    /**
+     * Whether the database must receive the type of the parameter (the query runner writes a cast in the placeholder,
+     * or sends the parameter with its type): it comes with what the library decided for the position where the
+     * parameter is written, and the adapter can change it
+     */
+    forceTypeCast: boolean
+    /**
+     * Keeps a value for the parameter, under a symbol of the adapter's own, so it can't collide; the query runner reads
+     * it in the context of the query (`getParam(index)?.getMetadata(key)`). It isn't a parameter and isn't sent
+     */
+    setMetadata(key: symbol, value: unknown): void
+    /** What was kept for the parameter under that key, or undefined */
+    getMetadata(key: symbol): unknown
+}
+
+/** The context of `transformPlaceholder`: the parameter already added, whose placeholder the adapter receives */
+export interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
+    /** The index of the parameter in the params; undefined when the placeholder is the literal `null`, not a parameter */
+    readonly index: number | undefined
+    /** Whether the database receives the type of the parameter (decided before the placeholder was written) */
+    readonly forceTypeCast: boolean
+    /** Keeps a value for the parameter, as in `transformValueToDB`; nothing when there is no parameter */
+    setMetadata(key: symbol, value: unknown): void
+    /** What was kept for the parameter under that key, or undefined */
+    getMetadata(key: symbol): unknown
+}
+
+/**
+ * The context of `transformProjection`: what the adapter says of the SQL it returns. `transformProjection` may be
+ * called with an empty `sql` to learn whether it converts the value; it must write the same whatever the `sql`.
+ */
+export interface TypeAdapterProjectionContext extends TypeAdapterContext {
+    /**
+     * How the SQL returned compares with the value (see `ProjectionComparison`), `'value'` unless the adapter or the
+     * connection says otherwise; it is read only when the SQL is converted
+     */
+    comparison: ProjectionComparison
+    /** The type of the value the SQL returned gives, which the query runner receives; by default the one of the value */
+    readonly projectedType: string | undefined
+    /** The type category of the value the SQL returned gives; by default the one of the value */
+    readonly projectedTypeCategory: TypeCategory | undefined
+    /** Says the SQL returned gives a value of another type, like the text of a date */
+    setProjectedType(type: string, typeCategory: TypeCategory): void
+}
+
+/** The context of `transformValueFromDB` */
+export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
+}
+
 export interface DefaultTypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string
-    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean): boolean
-    /** Keeps the metadata of the connection for the parameter at that index (none by default) */
-    addQueryParamMetadata(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): void
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext): string
     /**
      * The SQL of a value as it leaves the database, with the conversion of the library: SQL Server writes a decimal of
-     * a column of the result as its text (`convert(nvarchar(41), <sql>)`); every other value, every value inside the
-     * JSON of an aggregated array, and every value on the other databases, keeps the SQL it receives
+     * a column of the result as its text (`convert(nvarchar(41), <sql>)`, comparing as `'columnEquality'`); PostgreSQL
+     * and Oracle with a database outside UTC write a localDateTime or a localTime with its zone; every other value
+     * keeps the SQL it receives
      */
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string
-    /**
-     * How the SQL of the conversion of the library (`transformProjection`) compares with the value: `'value'` for every
-     * value, except a decimal of a column of the result on SQL Server, `'columnEquality'` (its text orders otherwise,
-     * and two equal decimals of different scales give different texts)
-     */
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string
 }
 
 export interface TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown
-    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    /** Converts a value read from the database; `next.transformValueFromDB(...)` applies the conversion of the library */
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
     /**
-     * Whether the database must receive the type of the parameter (the query runner writes a cast in the placeholder,
-     * or sends the parameter with its type): it receives the one the library decided for the position where the
-     * parameter is written, and returns the one to use
+     * Converts a value before it is sent to the database; `next.transformValueToDB(...)` applies the conversion of the
+     * library. In `context` the adapter can decide whether the database receives the type of the parameter
+     * (`forceTypeCast`) and keep, for the query runner, what it knows of the parameter (`setMetadata`)
      */
-    forceTypeCast?(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean
-    /**
-     * Keeps, for the query runner, what the adapter knows of the parameter at `index` of the params, which is about to
-     * be added (also a `null`): `setQueryParamMetadata(params, index, key, value)` (`ts-sql-query`), under a symbol of its own, which the query
-     * runner reads in the context of the query (`getParam(index)?.getMetadata(key)`). Called
-     * after `transformValueToDB`, with the value sent; `next.addQueryParamMetadata(...)` keeps the one of the connection
-     */
-    addQueryParamMetadata?(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): void
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
+    /** The placeholder of the parameter, as the query runner wrote it, with the cast when there is one */
+    transformPlaceholder?(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
     /**
      * The SQL of a value as it leaves the database, the pair of `transformValueFromDB`, which reads what it gives:
      * `sql` is the value as the library writes it, and the SQL returned is what the database returns in `output`.
-     * In `'aggregatedArrayValue'` it is the SQL of a text, which the library writes in the JSON as a string, and
-     * `transformValueFromDB` receives that text. `next.transformProjection(...)` applies the conversion of the library
-     * (on SQL Server, a decimal of a column of the result is written as its text). The value keeps its SQL everywhere
+     * `next.transformProjection(...)` applies the conversion of the library. The value keeps its SQL everywhere
      * else in the query: the arms of a compound query compare the values, the order by of a column of the select orders
      * by the value, the distinct, the order by and the limit of a select used as an aggregated array compare and order
      * the values, and a subquery, a `with`, the group by and the having use the value. It only writes SQL: it adds no
      * parameter, and when it doesn't convert the value it returns the SQL it receives (an empty `sql` gives an empty
-     * text)
-     */
-    transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string
-    /**
-     * How the SQL that `transformProjection` returns for the value in `output` compares with the value, which decides
-     * what the library does where the query compares (equality, distinct, union, intersect, except) or orders it:
-     * - `'value'`: it compares and orders like the value; the converted SQL is written in place and nothing else changes
-     *   in the query.
+     * text). In `context` the adapter says how the SQL it returns compares with the value (`comparison`) and which type
+     * of value it gives (`setProjectedType`), the same whatever the `sql` it receives:
+     * - `'value'` (the default): it compares and orders like the value; the converted SQL is written in place and
+     *   nothing else changes in the query.
      * - `'equality'`: equal values give equal SQL and different values different SQL, but it orders otherwise (a
      *   DD/MM/YYYY text of a date); the order by of the column orders by the value, a distinct or a compound select
      *   ordered by it is wrapped and converted over the wrapper, and the select of an aggregated array ordered by it
@@ -106,12 +146,8 @@ export interface TypeAdapter {
      * - `'none'`: it neither compares nor orders like the value (a MM/YYYY text of a date, the text of a date and time
      *   with its offset); besides the above, a distinct select is wrapped and converted over the wrapper, and the
      *   distinct of an aggregated array is applied to the values before converting them, where the database allows it.
-     *
-     * Without this method the connection answers, as for its own conversion (`next.projectionComparison(...)`):
-     * `'value'`, except for a decimal of a column of the result on SQL Server (`'columnEquality'`). It isn't asked when
-     * `transformProjection` doesn't convert the value
      */
-    projectionComparison?(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison
+    transformProjection?(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -125,12 +161,12 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
         this.falseValue = falseValue
     }
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     }
 }
 
@@ -145,21 +181,18 @@ export class CustomBooleanTypeAdapter implements TypeAdapter {
  */
 export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory)
-    }
-
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory, context)
     }
 
     /** Marks a localDateTime or a localTime parameter of the column as one of a DATE: the query runner binds it as one */
-    addQueryParamMetadata(params: any[], index: number, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): void {
-        next.addQueryParamMetadata(params, index, type, typeCategory, valueSentToDB)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        const result = next.transformValueToDB(value, type, typeCategory, context)
         const conversionType = __conversionType(type, typeCategory)
         if (conversionType === 'localDateTime' || conversionType === 'localTime') {
-            queryParamContextOf(params, index).setMetadata(oracleDateParam, true)
+            context.setMetadata(oracleDateParam, true)
         }
+        return result
     }
 }
 
@@ -171,19 +204,12 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
  */
 export class ForceTypeCast implements TypeAdapter {
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory, context)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
-    }
-
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
-    }
-
-    forceTypeCast(_type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown, _forceTypeCast: boolean, _next: DefaultTypeAdapter): boolean {
-        return true
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        context.forceTypeCast = true
+        return next.transformValueToDB(value, type, typeCategory, context)
     }
 }

@@ -24,11 +24,11 @@ export function getMetadata<T = unknown>(target: object | null | undefined, key:
 export const oracleDateParam: unique symbol = Symbol('oracleDateParam')
 /**
  * A localDateTime or a localTime of PostgreSQL with a databaseTimeZone other than UTC: sent as a timestamptz, which the
- * database converts with its session (PostgreSqlConnection.addQueryParamMetadata)
+ * database converts with its session (PostgreSqlConnection.transformValueToDB)
  */
 export const postgreSqlZonedParam: unique symbol = Symbol('postgreSqlZonedParam')
 /**
  * A localDateTime or a localTime of Oracle with a databaseTimeZone other than UTC: sent as a TIMESTAMP WITH LOCAL TIME
- * ZONE, which the database converts with its session (OracleConnection.addQueryParamMetadata)
+ * ZONE, which the database converts with its session (OracleConnection.transformValueToDB)
  */
 export const oracleZonedParam: unique symbol = Symbol('oracleZonedParam')

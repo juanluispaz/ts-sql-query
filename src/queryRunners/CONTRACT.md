@@ -61,18 +61,23 @@ temporal values and UTC applies to the other databases.
 
 ### Sending
 
-1. `AbstractSqlBuilder._transformParamToDB` (`sqlBuilders/AbstractSqlBuilder.ts:653-667`) calls the type adapter of
-   the value, if any, with the connection as `next`; otherwise the connection's `transformValueToDB`. An
-   `INVALID_VALUE_TO_SEND_TO_DATABASE` gets the index of the parameter (`paramIndex`).
-2. `AbstractSqlBuilder._appendParam` (`sqlBuilders/AbstractSqlBuilder.ts:668-687`):
-   - asks the adapter / connection `forceTypeCast(type, category, valueSentToDB, forceTypeCast)`
-     (`connections/AbstractConnection.ts:1476-1478`: unchanged by default). `forceTypeCast` is true where the position
-     of the parameter gives the database no type;
-   - marks the parameter as the value of a column (`queryParamValueForColumn`) inside the values of an insert or the
-     set of an update;
-   - calls `addQueryParamMetadata` of the type adapter, or of the connection, for what it keeps of the parameter;
+1. `AbstractSqlBuilder._transformParamToDB` calls the type adapter of the value, if any, with the connection as `next`;
+   otherwise the connection's `transformValueToDB`. Both receive the context of the type adapters
+   (`internal/TypeAdapterContextImpl.ts`, one per construction of a query, `_typeAdapterContextOf`), pointed at the
+   parameter being prepared (the context of the parameter at the next index of the params) with the forceTypeCast of
+   the position, true where the position gives the database no type. What the adapter or the connection writes there
+   applies to that parameter: `forceTypeCast`, and `setMetadata` (the marks `oracleDateParam` of
+   `OracleDateAsTimestampTypeAdapter`, `postgreSqlZonedParam` and `oracleZonedParam` of the connections). A value
+   transformed only to look at it (`roundn`, `_isIntegerOperand`) gets the context of the SQL builder, pointed at no
+   parameter. An `INVALID_VALUE_TO_SEND_TO_DATABASE` gets the index of the parameter (`paramIndex`).
+2. `AbstractSqlBuilder._appendParam`:
+   - takes the forceTypeCast the context holds (or the one of the position, for a value added without
+     `_transformParamToDB`);
+   - marks the parameter as the value of a column (`isValueForColumn`) inside the values of an insert or the set of an
+     update;
    - calls `queryRunner.addParam(params, value, typeName, typeCategory, forceTypeCast)`;
-   - passes the placeholder through `transformPlaceholder` (`connections/AbstractConnection.ts:1467-1469`: identity).
+   - passes the placeholder through `transformPlaceholder`, with the context still pointed at the parameter (`index`,
+     `forceTypeCast` read-only); then points it at none.
 3. Before it calls `addParam`, the SQL builder keeps the type name, category and forceTypeCast of the param in the
    context of the query (`AbstractSqlBuilder._appendParam`, `_addOutParam`; §4). `addParam` of every runner that talks
    to a database delegates to one binding of `utils/queryRunnerParams.ts` (the same function `MockQueryRunner` calls to
@@ -89,8 +94,8 @@ temporal values and UTC applies to the other databases.
    (`_appendResultColumnProjection`, `sqlBuilders/AbstractSqlBuilder.ts`). By default it is the conversion of the
    library (the `transformProjection` of the connection): the identity, and on SQL Server `convert(nvarchar(41), …)` of a decimal (`SqlServerConnection.transformProjection`). The
    group by, the having and the subqueries keep the SQL of the value. Where the query compares or orders the column,
-   the `projectionComparison` of the same adapter (or of the connection, which answers `'value'`, and `'columnEquality'` for a
-   SQL Server decimal) decides (`_projectionComparison`): with `'value'` the converted SQL stays in place; when it isn't
+   what that `transformProjection` says in its context, `comparison` (`'value'` by default; the connection says
+   `'columnEquality'` for a SQL Server decimal), decides (`_projectionComparison`, which calls it with an empty SQL): with `'value'` the converted SQL stays in place; when it isn't
    `'value'` the order by of the column writes the value (`_isOrderByAliasNeedingTheValue`, `_appendOrderByColumnAlias`),
    and a distinct or a compound select ordered by it is wrapped in a select that converts the columns
    (`_needsSelectOrderByWrap`, `_needsResultConversionWrap`); with `'columnEquality'` (equal only among the values of
@@ -416,7 +421,7 @@ of it is optional information, so a runner must still work with params built by 
 |---|---|---|---|
 | each parameter | `type`, `typeCategory`, `forceTypeCast` | the SQL builder before `addParam` / `addOutParam` (`_appendParam`, `_addOutParam`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
 | each parameter | `isValueForColumn` | the SQL builder before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server (`mySqlMariaDBParamTypes.ts`, `sqlServerParamTypes.ts`); the bare placeholder of a zoned Oracle value (`oracleParamTypes.ts`) |
-| each parameter | `getMetadata(key)`: a symbol of a type adapter or of the connection (`oracleDateParam`, `postgreSqlZonedParam`, `oracleZonedParam` of `utils/metadataSymbols.ts`) | `addQueryParamMetadata` of the type adapter and of the connection (`setQueryParamMetadata`, `QueryMetadata.ts`), which the SQL builder calls before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters (`oracleDateParam`): the Oracle runners bind one of whole seconds as a `DATE`, and a `null` as a `DATE` (§2.4); a database outside UTC (§7.3) |
+| each parameter | `getMetadata(key)`: a symbol of a type adapter or of the connection (`oracleDateParam`, `postgreSqlZonedParam`, `oracleZonedParam` of `utils/metadataSymbols.ts`) | `transformValueToDB` of the type adapter and of the connection (`context.setMetadata`), which the SQL builder calls before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters (`oracleDateParam`): the Oracle runners bind one of whole seconds as a `DATE`, and a `null` as a `DATE` (§2.4); a database outside UTC (§7.3) |
 | the query | `resultColumns`, `getResultColumn(name)` | `__setQueryMetadata`, from `__resultColumnsOf` / `__unnamedResultColumn` | the expected type of each result column (`name` = key in the row, `path`, `type`, `typeCategory`; `''` for an aggregated array): Oracle fetches decimals and bigints as text (`OracleDBQueryRunner.fetchTypeHandlerFor`). `[]` when the query returns no columns, `undefined` for a query the library didn't build |
 | the query | `connectionConfiguration` | `__setQueryMetadata` | the connection's settings (`ConnectionConfiguration`, `QueryRunner.ts`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, `databaseTimeZone`, SQLite date formats, …), read live from the connection |
 | each execution | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata` | `__setQueryMetadata` | logging and errors |
@@ -595,7 +600,7 @@ the text sent (`to_timestamp_tz(:0, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR')`, `cast(@0
 text. A `customComparable` (or a `custom`) text is sent as text; a `customLocalDateTime` is bound by its category, on SQL
 Server as a `datetime2`, which tedious makes from a `Date`: the offset and the digits below the millisecond are lost
 (measured on SQL Server 2019). Outside those outputs (the where, the order by) the column keeps its SQL, so they
-compare instants; its `projectionComparison` is `'none'`, so a union and a distinct compare
+compare instants; its `transformProjection` says `comparison` `'none'`, so a union and a distinct compare
 instants too (Oracle and SQL Server compare these values by instant). `test/db/oracle/*/*/column.oracle-zoned-date-time-as-text.test.ts`,
 `test/db/sqlserver/*/mssql/column.sqlserver-zoned-date-time-as-text.test.ts` (real on Oracle 21 and 23, SQL Server 2019,
 2022 and 2025).
@@ -697,7 +702,7 @@ the user declares it, and the library trusts it: it is never checked against the
 writes no zone arithmetic. With UTC the SQL doesn't change.
 
 - **PostgreSQL** (supported; `_supportDatabaseOutsideUtc`): the connection marks each `localDateTime` and `localTime`
-  parameter (`addQueryParamMetadata`, `postgreSqlZonedParam`), which the bindings send as a `timestamptz` of its instant
+  parameter (in `transformValueToDB`, `postgreSqlZonedParam`), which the bindings send as a `timestamptz` of its instant
   (`$1::timestamptz` on pg and Bun SQL, OID 1184 on postgres.js and PGlite; a `localTime` with its own day and `::time`);
   `transformProjection` reads it as `<sql>::timestamptz` (a no-op on a `timestamptz`), and as its text in the JSON of an
   aggregated array; the date functions take `(<sql>::timestamptz at time zone 'UTC')` (`_appendSqlForDatePartArgument`),
@@ -706,7 +711,7 @@ writes no zone arithmetic. With UTC the SQL doesn't change.
   clock the zone skips is moved forward by PostgreSQL, one it repeats is taken in winter time.
   `test/runners/postgres/DatabaseOutsideUtc.test.ts` (PGlite created in Madrid; pg with the session in Madrid).
 - **Oracle** (supported; `_supportDatabaseOutsideUtc`): the connection marks each `localDateTime` and `localTime`
-  parameter (`addQueryParamMetadata`, `oracleZonedParam`), which oracledb sends as a `TIMESTAMP WITH LOCAL TIME ZONE`
+  parameter (in `transformValueToDB`, `oracleZonedParam`), which oracledb sends as a `TIMESTAMP WITH LOCAL TIME ZONE`
   of its instant, written from the UTC of the `Date` and the offset of `DBTIMEZONE`, whatever the zone of the process
   (no copy of the `Date`). As the value of a column (`isParamValueForColumnAt`: an insert, the set of an update) the
   placeholder is the bare one, and Oracle converts it with its session into the wall clock it stores; anywhere else the

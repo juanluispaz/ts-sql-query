@@ -1,4 +1,4 @@
-import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeCategory } from '../TypeAdapter.js'
 
 export class ProxyTypeAdapter implements TypeAdapter {
     typeAdapter: TypeAdapter
@@ -7,40 +7,26 @@ export class ProxyTypeAdapter implements TypeAdapter {
         this.typeAdapter = typeAdapter
     }
 
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return this.typeAdapter.transformValueFromDB(value, type, typeCategory, next)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return this.typeAdapter.transformValueFromDB(value, type, typeCategory, context, next)
     }
 
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return this.typeAdapter.transformValueToDB(value, type, typeCategory, next)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return this.typeAdapter.transformValueToDB(value, type, typeCategory, context, next)
     }
 
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
         if (this.typeAdapter.transformPlaceholder) {
-            return this.typeAdapter.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, next)
+            return this.typeAdapter.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context, next)
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
     }
 
-    forceTypeCast(type: string, typeCategory: TypeCategory, valueSentToDB: unknown, forceTypeCast: boolean, next: DefaultTypeAdapter): boolean {
-        if (this.typeAdapter.forceTypeCast) {
-            return this.typeAdapter.forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast, next)
-        }
-        return next.forceTypeCast(type, typeCategory, valueSentToDB, forceTypeCast)
-    }
-
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         if (this.typeAdapter.transformProjection) {
-            return this.typeAdapter.transformProjection(sql, type, typeCategory, output, next)
+            return this.typeAdapter.transformProjection(sql, type, typeCategory, output, context, next)
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    }
-
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
-        if (this.typeAdapter.projectionComparison) {
-            return this.typeAdapter.projectionComparison(type, typeCategory, output, next)
-        }
-        return next.projectionComparison(type, typeCategory, output)
+        return next.transformProjection(sql, type, typeCategory, output, context)
     }
 }
 

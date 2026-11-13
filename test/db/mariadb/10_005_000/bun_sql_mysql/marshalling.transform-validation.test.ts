@@ -617,8 +617,8 @@ describe(ctx.label, () => {
         // reroutes DECODE to 'aggregatedArray' (encode stays 'string' so building
         // the const param doesn't throw first).
         const aggAdapter: TypeAdapter = {
-            transformValueFromDB(value, _type, typeCategory, next) { return next.transformValueFromDB(value, 'aggregatedArray', typeCategory) },
-            transformValueToDB(value, _type, _typeCategory, next) { return next.transformValueToDB(value, 'string', 'string') },
+            transformValueFromDB(value, _type, typeCategory, context, next) { return next.transformValueFromDB(value, 'aggregatedArray', typeCategory, context) },
+            transformValueToDB(value, _type, _typeCategory, context, next) { return next.transformValueToDB(value, 'string', 'string', context) },
         }
         expect(await fromDbReason(ctx.conn.const('x', 'string', aggAdapter), 1)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })

@@ -9,34 +9,34 @@ import { IDEncrypter, isValidEncryptedID } from '../../../../../src/extras/IDEnc
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import type { TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { TypeCategory, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
 
 class EncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
         if (type === 'encryptedID') {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint')
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint', context)
             if (typeof id === 'bigint') {
                 return this.encrypter.encrypt(id)
             } else {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory)
+        return super.transformValueFromDB(value, type, typeCategory, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
         if (type === 'encryptedID') {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
                 const id = this.encrypter.decrypt(value)
-                return super.transformValueToDB(id, 'bigint', 'bigint')
+                return super.transformValueToDB(id, 'bigint', 'bigint', context)
             } else {
                 throw new Error('Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type, typeCategory)
+        return super.transformValueToDB(value, type, typeCategory, context)
     }
 }
 
@@ -56,9 +56,9 @@ const tEncryptedIssue = new class TEncryptedIssue extends Table<DBConnection, 'T
 class GloballyEncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
 
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
         if (type.startsWith('ID_')) {
-            const id = super.transformValueFromDB(value, 'bigint', 'bigint')
+            const id = super.transformValueFromDB(value, 'bigint', 'bigint', context)
             if (typeof id === 'bigint') {
                 const prefix = type.substring(3)
                 return this.encrypter.encrypt(id, prefix)
@@ -66,21 +66,21 @@ class GloballyEncryptedIdConnection extends DBConnection {
                 return id
             }
         }
-        return super.transformValueFromDB(value, type, typeCategory)
+        return super.transformValueFromDB(value, type, typeCategory, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext): unknown {
         if (type.startsWith('ID_')) {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {
                 const prefix = type.substring(3)
                 const id = this.encrypter.decrypt(value, prefix)
-                return super.transformValueToDB(id, 'bigint', 'bigint')
+                return super.transformValueToDB(id, 'bigint', 'bigint', context)
             } else {
                 throw new Error('Invalid id: ' + value)
             }
         }
-        return super.transformValueToDB(value, type, typeCategory)
+        return super.transformValueToDB(value, type, typeCategory, context)
     }
 }
 

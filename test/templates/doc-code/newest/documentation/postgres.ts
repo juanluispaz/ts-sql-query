@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { PostgreSqlConnection } from '../../../../../src/connections/PostgreSqlConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterProjectionContext, type TypeAdapterPlaceholderContext } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
@@ -174,27 +174,22 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
 // The adapter and the table of the example of `transformProjection` in docs/configuration/column-types.md, used by the
 // examples after it on that page
 class DayAsTextTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
-            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory, context)
         }
-        return next.transformValueFromDB(value, type, typeCategory)
+        return next.transformValueFromDB(value, type, typeCategory, context)
     }
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     }
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+            context.comparison = 'equality'
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    }
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
-        if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
-            return 'equality'
-        }
-        return next.projectionComparison(type, typeCategory, output)
+        return next.transformProjection(sql, type, typeCategory, output, context)
     }
 }
 
@@ -354,6 +349,7 @@ void extractProvidedIdColumnNamesFrom
 void InterceptorQueryRunner
 
 void getQueryContext
+void function(_tapc: TypeAdapterPlaceholderContext) {}
 void function(_qc: QueryContext, _qpc: QueryParamContext) {}
 void dynamicPick, 
 void dynamicPickPaths, 

@@ -24,12 +24,13 @@ export {
     type ProjectionComparison,
     type ProjectionOutput,
     type TypeAdapter,
+    type TypeAdapterContext,
+    type TypeAdapterPlaceholderContext,
+    type TypeAdapterProjectionContext,
+    type TypeAdapterValueFromDBContext,
+    type TypeAdapterValueToDBContext,
     type TypeCategory,
 } from '../../TypeAdapter.js'
-
-export {
-    setQueryParamMetadata,
-} from '../../QueryMetadata.js'
 
 export {
     getQueryContext,

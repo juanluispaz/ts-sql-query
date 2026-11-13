@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { SqlServerConnection } from '../../../../../src/connections/SqlServerConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type TypeCategory } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type ProjectionOutput, type TypeAdapter, type TypeCategory, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 export type { TypeCategory }
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
@@ -162,35 +162,32 @@ void tExactAmount
 // A date and time with its zone, read and written as text (docs/configuration/supported-databases/sqlserver.md)
 type ZonedDateTime = string
 class ZonedDateTimeTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         if (type === 'ZonedDateTime') {
             return value
         }
-        return next.transformValueFromDB(value, type, typeCategory)
+        return next.transformValueFromDB(value, type, typeCategory, context)
     }
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         if (type === 'ZonedDateTime') {
             return value
         }
-        return next.transformValueToDB(value, type, typeCategory)
+        return next.transformValueToDB(value, type, typeCategory, context)
     }
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
         if (type === 'ZonedDateTime') {
             return 'cast(' + placeholder + ' as datetimeoffset)'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
     }
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime') {
+            context.comparison = 'none'
+        }
         if (type === 'ZonedDateTime' && (output === 'resultColumn' || output === 'aggregatedArrayValue')) {
             return 'convert(nvarchar(40), ' + sql + ', 126)'
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    }
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
-        if (type === 'ZonedDateTime') {
-            return 'none'
-        }
-        return next.projectionComparison(type, typeCategory, output)
+        return next.transformProjection(sql, type, typeCategory, output, context)
     }
 }
 const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {

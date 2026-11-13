@@ -12,7 +12,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -27,107 +27,102 @@ function dayOf(year: number, month: number, day: number): ReleaseDay {
 }
 
 const dayMonthYear: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
-            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory, context)
         }
-        return next.transformValueFromDB(value, type, typeCategory)
+        return next.transformValueFromDB(value, type, typeCategory, context)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        context.comparison = 'equality'
         if (output === 'resultColumn') {
             return "strftime('%d/%m/%Y', " + sql + ")"
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    },
-    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
-        return 'equality'
+        return next.transformProjection(sql, type, typeCategory, output, context)
     },
 }
 
 const monthYear: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         const parts = typeof value === 'string' ? /^(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
-            return next.transformValueFromDB(parts[2] + '-' + parts[1] + '-01', type, typeCategory)
+            return next.transformValueFromDB(parts[2] + '-' + parts[1] + '-01', type, typeCategory, context)
         }
-        return next.transformValueFromDB(value, type, typeCategory)
+        return next.transformValueFromDB(value, type, typeCategory, context)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        context.comparison = 'none'
         if (output === 'resultColumn') {
             return "strftime('%m/%Y', " + sql + ")"
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    },
-    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
-        return 'none'
+        return next.transformProjection(sql, type, typeCategory, output, context)
     },
 }
 
 // The day as YYYY-MM-DD, which compares and orders as the day
 const isoDay: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory, context)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         if (output === 'resultColumn') {
             return "strftime('%Y-%m-%d', " + sql + ")"
         }
-        return next.transformProjection(sql, type, typeCategory, output)
+        return next.transformProjection(sql, type, typeCategory, output, context)
     },
 }
 
 // The day as DD/MM/YYYY, declared as comparing only among the values of one column
 const dayMonthYearOfColumn: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return dayMonthYear.transformValueFromDB(value, type, typeCategory, next)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return dayMonthYear.transformValueFromDB(value, type, typeCategory, context, next)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
-        return dayMonthYear.transformProjection!(sql, type, typeCategory, output, next)
-    },
-    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
-        return 'columnEquality'
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        const result = dayMonthYear.transformProjection!(sql, type, typeCategory, output, context, next)
+        context.comparison = 'columnEquality'
+        return result
     },
 }
 
 // Every transform delegates to the library
 const delegating: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory, context)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
-        return next.transformProjection(sql, type, typeCategory, output)
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        return next.transformProjection(sql, type, typeCategory, output, context)
     },
 }
 
 // The result of a function called, lowered
 const lowered: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, type, typeCategory, context)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         if (output === 'resultColumn') {
             return 'lower(' + sql + ')'
         }
-        return next.transformProjection(sql, type, typeCategory, output)
+        return next.transformProjection(sql, type, typeCategory, output, context)
     },
 }
 
@@ -178,24 +173,19 @@ const tPriceDelegating = new class TPriceDelegating extends Table<DBConnection, 
 
 // Every ReleaseDay of the connection, without a type adapter, given as the text DD/MM/YYYY and read back as the day
 class DayAsTextConnection extends DBConnection {
-    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string {
         if (type === 'ReleaseDay' && output === 'resultColumn') {
+            context.comparison = 'equality'
             return "strftime('%d/%m/%Y', " + sql + ")"
         }
-        return super.transformProjection(sql, type, typeCategory, output)
+        return super.transformProjection(sql, type, typeCategory, output, context)
     }
-    protected override projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison {
-        if (type === 'ReleaseDay' && output === 'resultColumn') {
-            return 'equality'
-        }
-        return super.projectionComparison(type, typeCategory, output)
-    }
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext): unknown {
         const parts = type === 'ReleaseDay' && typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
-            return super.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+            return super.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory, context)
         }
-        return super.transformValueFromDB(value, type, typeCategory)
+        return super.transformValueFromDB(value, type, typeCategory, context)
     }
 }
 

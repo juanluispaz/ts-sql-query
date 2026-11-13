@@ -8,7 +8,7 @@ import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDat
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
-import type { TypeAdapter, DefaultTypeAdapter, TypeCategory, ProjectionComparison, ProjectionOutput } from '../TypeAdapter.js'
+import type { TypeAdapter, DefaultTypeAdapter, TypeCategory, ProjectionOutput, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
 import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
@@ -730,9 +730,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 let result
                 try {
                     if (adapter2) {
-                        result = adapter2.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType), this.__sqlBuilder._defaultTypeAdapter)
+                        result = adapter2.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType), this.__sqlBuilder._typeAdapterContextOf(), this.__sqlBuilder._defaultTypeAdapter)
                     } else {
-                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType))
+                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, returnType, __typeCategoryOf(valueType as ValueType), this.__sqlBuilder._typeAdapterContextOf())
                     }
                 } catch(e) {
                     if (e instanceof TsSqlError) {
@@ -1179,7 +1179,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected __normalizeUuidText(value: string): string {
         return value
     }
-    protected transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, _context: TypeAdapterValueFromDBContext): unknown {
         const conversionType = __conversionType(type, typeCategory)
         if (value === undefined) {
             return null
@@ -1410,7 +1410,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
         return undefined
     }
-    protected transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory): unknown {
+    protected transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, _context: TypeAdapterValueToDBContext): unknown {
         const conversionType = __conversionType(type, typeCategory)
         if (value === undefined) {
             return null
@@ -1492,39 +1492,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    protected transformPlaceholder(placeholder: string, _type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown): string {
+    protected transformPlaceholder(placeholder: string, _type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown, _context: TypeAdapterPlaceholderContext): string {
         return placeholder
-    }
-
-    /** The metadata of the connection for the parameter at that index: none */
-    protected addQueryParamMetadata(_params: any[], _index: number, _type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown): void {
     }
 
     /**
      * The SQL of a value as it leaves the database, with the conversion of the library: the SQL it receives, unless the
      * connection of a database changes it (SQL Server writes a decimal of a column of the result as its text)
      */
-    protected transformProjection(sql: string, _type: string, _typeCategory: TypeCategory, _output: ProjectionOutput): string {
+    protected transformProjection(sql: string, _type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _context: TypeAdapterProjectionContext): string {
         return sql
-    }
-
-    /**
-     * How the SQL of `transformProjection` compares with the value (see `ProjectionComparison`): `'value'` for every
-     * value, the conversion of the library changes none, except where a connection of a database says otherwise (SQL
-     * Server, for the text of a decimal of a column of the result). A connection that converts a value in
-     * `transformProjection` in a way that compares or orders otherwise returns `'equality'`, `'columnEquality'` or `'none'` for it
-     */
-    protected projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput): ProjectionComparison {
-        return 'value'
-    }
-
-    /**
-     * Whether the database must receive the type of the parameter (the query runner writes a cast in the placeholder,
-     * or sends the parameter with its type): it receives the one the library decided for the position where the
-     * parameter is written, and returns the one to use
-     */
-    protected forceTypeCast(_type: string, _typeCategory: TypeCategory, _valueSentToDB: unknown, forceTypeCast: boolean): boolean {
-        return forceTypeCast
     }
 
     protected isReservedKeyword(word: string): boolean {

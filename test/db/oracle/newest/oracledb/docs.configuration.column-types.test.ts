@@ -8,7 +8,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import type { TypeCategory, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import type { TypeCategory, DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 
 interface RgbColor { r: number, g: number, b: number }
 
@@ -21,29 +21,29 @@ function toHexPair(value: number): string {
 }
 
 class RgbColorConnection extends DBConnection {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext) {
         if (type === 'RgbColor' && value) {
             if (typeof value === 'string' && value.length === 7) {
                 return { r: parseInt(value.slice(1, 3), 16), g: parseInt(value.slice(3, 5), 16), b: parseInt(value.slice(5, 7), 16) }
             }
             throw new Error(`Cannot decode database value ${String(value)} (type ${typeof value}) as RgbColor`)
         }
-        return super.transformValueFromDB(value, type, typeCategory)
+        return super.transformValueFromDB(value, type, typeCategory, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext) {
         if (type === 'RgbColor' && value) {
             if (typeof value === 'object' && isRgbColor(value)) {
                 return `#${toHexPair(value.r)}${toHexPair(value.g)}${toHexPair(value.b)}`
             }
             throw new Error(`Cannot encode value ${String(value)} for database`)
         }
-        return super.transformValueToDB(value, type, typeCategory)
+        return super.transformValueToDB(value, type, typeCategory, context)
     }
-    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext): string {
         if (type === 'RgbColor') {
             return 'cast(' + placeholder + ' as varchar2(32))'
         }
-        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+        return super.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
     }
 }
 
@@ -56,17 +56,17 @@ const tOrganizationColor = new class TOrganizationColor extends Table<DBConnecti
 type ExactDecimal = string & { readonly __brand: 'ExactDecimal' }
 
 class ExactDecimalConnection extends DBConnection {
-    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext) {
         if (type === 'ExactDecimal' && value !== null && value !== undefined) {
             return String(value)
         }
-        return super.transformValueFromDB(value, type, typeCategory)
+        return super.transformValueFromDB(value, type, typeCategory, context)
     }
-    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory) {
+    protected override transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext) {
         if (type === 'ExactDecimal') {
             return value
         }
-        return super.transformValueToDB(value, type, typeCategory)
+        return super.transformValueToDB(value, type, typeCategory, context)
     }
 }
 
@@ -82,25 +82,23 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
 }()
 
 class DayAsTextTypeAdapter implements TypeAdapter {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         const parts = typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
-            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory)
+            return next.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], type, typeCategory, context)
         }
-        return next.transformValueFromDB(value, type, typeCategory)
+        return next.transformValueFromDB(value, type, typeCategory, context)
     }
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, type, typeCategory, context)
     }
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        // Equal days give equal texts, but DD/MM/YYYY doesn't order as the day
+        context.comparison = 'equality'
         if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    }
-    projectionComparison(_type: string, _typeCategory: TypeCategory, _output: ProjectionOutput, _next: DefaultTypeAdapter): ProjectionComparison {
-        // Equal days give equal texts, but DD/MM/YYYY doesn't order as the day
-        return 'equality'
+        return next.transformProjection(sql, type, typeCategory, output, context)
     }
 }
 

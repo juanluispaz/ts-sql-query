@@ -15,12 +15,12 @@ import { ctx } from './setup.js'
 // trailing `adapter?` argument of `fragmentWithType(...)` is threaded into
 // the value transform on read.
 const bracketAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value, type, typeCategory, context, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory, context)
         return typeof v === 'string' ? '[' + v + ']' : v
     },
-    transformValueToDB(value, type, typeCategory, next) {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value, type, typeCategory, context, next) {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
 }
 
@@ -29,12 +29,12 @@ const bracketAdapter: TypeAdapter = {
 // the trailing `adapter?` argument of `aggregateFragmentWithType(...)` is
 // threaded on the temporal return arms below.
 const shiftHourAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value, type, typeCategory, context, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory, context)
         return v instanceof Date ? new Date(v.getTime() + 3600000) : v
     },
-    transformValueToDB(value, type, typeCategory, next) {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value, type, typeCategory, context, next) {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
 }
 
@@ -42,12 +42,12 @@ const shiftHourAdapter: TypeAdapter = {
 // effect is observable in the result value. Used to prove the trailing
 // `adapter?` argument of `fragmentWithType('boolean', …)` is threaded on read.
 const negateBoolAdapter: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value, type, typeCategory, context, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory, context)
         return typeof v === 'boolean' ? !v : v
     },
-    transformValueToDB(value, type, typeCategory, next) {
-        return next.transformValueToDB(value, type, typeCategory)
+    transformValueToDB(value, type, typeCategory, context, next) {
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
 }
 

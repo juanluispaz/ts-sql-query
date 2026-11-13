@@ -1,4 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
+import { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
 import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } from '../utils/operationsThatNeedParenthesis.js'
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, PlainSelectData, CompoundSelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
@@ -61,14 +62,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * The column is converted in the outermost query, and its converted SQL doesn't compare like the value
-     * (`projectionComparison` is `'none'`): where the query compares it, it must use the value, not the converted SQL
+     * (its `comparison` is `'none'`): where the query compares it, it must use the value, not the converted SQL
      */
     _needsTheValueOfResultColumnToCompare(value: AnyValueSource, context: SqlBuildContext): boolean {
         return this._isConvertedResultColumn(value, context) && this._projectionComparison(value, 'resultColumn') === 'none'
     }
     /**
      * The column is converted in the outermost query, and its converted SQL doesn't compare like the value of another
-     * column or expression (`projectionComparison` is `'columnEquality'` or `'none'`): where the query compares it with
+     * column or expression (its `comparison` is `'columnEquality'` or `'none'`): where the query compares it with
      * other values, like the arms of a compound query, it must use the value
      */
     _needsTheValueOfResultColumnToCompareAcrossColumns(value: AnyValueSource, context: SqlBuildContext): boolean {
@@ -80,7 +81,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * The column is converted in the outermost query, and its converted SQL doesn't order like the value
-     * (`projectionComparison` isn't `'value'`): where the query orders it, it must use the value, not the converted SQL
+     * (its `comparison` isn't `'value'`): where the query orders it, it must use the value, not the converted SQL
      */
     _needsTheValueOfResultColumnToOrder(value: AnyValueSource, context: SqlBuildContext): boolean {
         return this._isConvertedResultColumn(value, context) && this._projectionComparison(value, 'resultColumn') !== 'value'
@@ -392,14 +393,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             return arrayResult + ')'
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context, forceTypeCast)
         return '(' + this._appendParam(adaptedValue, context, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
     }
     _appendValue(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (hasToSql(value)) {
             return this._appendSql(value, context, forceTypeCast)
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context, forceTypeCast)
         return this._appendParam(adaptedValue, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     _appendValueParenthesis(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
@@ -433,7 +434,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (hasToSql(value)) {
             return this._appendConditionSql(value, context, forceTypeCast)
         }
-        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context)
+        const adaptedValue = this._transformParamToDB(value, columnType, columnTypeName, typeAdapter, context, forceTypeCast)
         return this._appendConditionParam(adaptedValue, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     _appendConditionValueParenthesis(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
@@ -448,12 +449,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendConditionValue(value, context, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _transformParamToDB(value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, context?: SqlBuildContext): any {
+    /**
+     * The value as it is sent to the database (the transformValueToDB of its type adapter, or of the connection). With
+     * the context of a construction, the value is the next parameter: the context of the type adapter points at it,
+     * with forceTypeCast, and what the adapter writes applies to it; without one, the value is only looked at
+     */
+    _transformParamToDB(value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, context?: SqlBuildContext, forceTypeCast: boolean = false): any {
+        const adapterContext = this._typeAdapterContextOf(context)
+        if (context) {
+            const index = context.params.length
+            adapterContext.prepareParam(context.queryContext.paramAt(index), index, forceTypeCast)
+        } else {
+            adapterContext.prepareParam(undefined, undefined, forceTypeCast)
+        }
         try {
             if (typeAdapter) {
-                return typeAdapter.transformValueToDB(value, columnTypeName, __typeCategoryOf(columnType), this._defaultTypeAdapter)
+                return typeAdapter.transformValueToDB(value, columnTypeName, __typeCategoryOf(columnType), adapterContext, this._defaultTypeAdapter)
             } else {
-                return this._defaultTypeAdapter.transformValueToDB(value, columnTypeName, __typeCategoryOf(columnType))
+                return this._defaultTypeAdapter.transformValueToDB(value, columnTypeName, __typeCategoryOf(columnType), adapterContext)
             }
         } catch (e) {
             // The value would be the next parameter: an invalid one tells which of them it is
@@ -463,35 +476,55 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw e
         }
     }
+    /**
+     * The context the type adapters receive: the one of the construction, or the one of the SQL builder for what is
+     * not part of one (a value only looked at, a projection, a value read)
+     */
+    _typeAdapterContextOf(context?: SqlBuildContext | undefined): TypeAdapterContextImpl {
+        if (context) {
+            let result = context.typeAdapterContext
+            if (!result) {
+                result = new TypeAdapterContextImpl(this._connectionConfiguration)
+                context.typeAdapterContext = result
+            }
+            return result
+        }
+        let result = this.__typeAdapterContext
+        if (!result) {
+            result = new TypeAdapterContextImpl(this._connectionConfiguration)
+            this.__typeAdapterContext = result
+        }
+        return result
+    }
+    /** The context of the type adapters for what is not part of a construction (see _typeAdapterContextOf) */
+    __typeAdapterContext: TypeAdapterContextImpl | undefined = undefined
     _appendParam(value: any, context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         const typeCategory = __typeCategoryOf(columnType)
-        // The query runner writes the type of the parameter in the placeholder, or sends it with the parameter, where
-        // the position gives it none, or where the type adapter asks for it (like ForceTypeCast)
-        if (typeAdapter && typeAdapter.forceTypeCast) {
-            forceTypeCast = typeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast, this._defaultTypeAdapter)
-        } else {
-            forceTypeCast = this._defaultTypeAdapter.forceTypeCast(columnTypeName, typeCategory, value, forceTypeCast)
+        // What the library knows of the parameter, for the query runner. Its value was transformed with the context of
+        // the type adapter pointing at it, which then holds whether the database receives its type (forceTypeCast,
+        // which the type adapter can change) and what the adapter kept of it; a value added without that is prepared
+        // here with the forceTypeCast of the position
+        const index = context.params.length
+        const paramContext = context.queryContext.paramAt(index)
+        const adapterContext = this._typeAdapterContextOf(context)
+        if (adapterContext.index !== index) {
+            adapterContext.prepareParam(paramContext, index, forceTypeCast)
         }
-        // What the library knows of the parameter, for the query runner
-        const paramContext = context.queryContext.paramAt(context.params.length)
+        forceTypeCast = !!paramContext.forceTypeCast
         paramContext.type = columnTypeName
         paramContext.typeCategory = typeCategory
-        paramContext.forceTypeCast = forceTypeCast
         if (context.assigningValueToColumn) {
             paramContext.isValueForColumn = true
         }
-        // What the type adapter or the connection keeps for the query runner, before the parameter is added
-        if (typeAdapter && typeAdapter.addQueryParamMetadata) {
-            typeAdapter.addQueryParamMetadata(context.params, context.params.length, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
-        } else {
-            this._defaultTypeAdapter.addQueryParamMetadata(context.params, context.params.length, columnTypeName, typeCategory, value)
-        }
+        // The query runner writes the type of the parameter in the placeholder, or sends it with the parameter, when
+        // forceTypeCast
         let placeholder = this._queryRunner.addParam(context.params, value, columnTypeName, typeCategory, forceTypeCast)
         if (typeAdapter && typeAdapter.transformPlaceholder) {
-            placeholder = typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value, this._defaultTypeAdapter)
+            placeholder = typeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value, adapterContext, this._defaultTypeAdapter)
         } else {
-            placeholder = this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value)
+            placeholder = this._defaultTypeAdapter.transformPlaceholder(placeholder, columnTypeName, typeCategory, value, adapterContext)
         }
+        adapterContext.prepareParam(undefined, undefined, false)
         return placeholder
     }
     /** Adds an out parameter of the query, with what the library knows of it for the query runner */
@@ -559,36 +592,36 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * The value inside the JSON of an aggregated array is converted, and its converted SQL doesn't compare like the
-     * value (`projectionComparison` is `'none'`)
+     * value (its `comparison` is `'none'`)
      */
     _needsTheValueOfAggregatedArrayValueToCompare(value: AnyValueSource): boolean {
         return this._isConvertedAggregatedArrayValue(value) && this._projectionComparison(value, 'aggregatedArrayValue') === 'none'
     }
     /**
      * The value inside the JSON of an aggregated array is converted, and its converted SQL doesn't order like the
-     * value (`projectionComparison` isn't `'value'`)
+     * value (its `comparison` isn't `'value'`)
      */
     _needsTheValueOfAggregatedArrayValueToOrder(value: AnyValueSource): boolean {
         return this._isConvertedAggregatedArrayValue(value) && this._projectionComparison(value, 'aggregatedArrayValue') !== 'value'
     }
     /**
-     * The `projectionComparison` of the type adapter of the value, or of the connection, for `output`: how the SQL of
-     * `_appendValueProjection` compares with the value
+     * How the SQL of `_appendValueProjection` compares with the value, as the `transformProjection` of the type adapter
+     * of the value, or of the connection, says in its context for `output`
      */
     _projectionComparison(value: AnyValueSource, output: ProjectionOutput): ProjectionComparison {
         if (!isValueSource(value)) {
             return 'value'
         }
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        const typeAdapter = valueSourcePrivate.__typeAdapter
-        const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
-        if (typeAdapter && typeAdapter.projectionComparison) {
-            return typeAdapter.projectionComparison(valueSourcePrivate.__valueTypeName, typeCategory, output, this._defaultTypeAdapter)
-        }
-        return this._defaultTypeAdapter.projectionComparison(valueSourcePrivate.__valueTypeName, typeCategory, output)
+        this._appendValueProjection(value, '', output)
+        return this._typeAdapterContextOf(undefined).comparison
     }
-    /** The `transformProjection` of the type adapter of the value, or of the connection, for `output` */
+    /**
+     * The `transformProjection` of the type adapter of the value, or of the connection, for `output`; its context then
+     * holds what it says of the SQL it returns (how it compares, the type of the value it gives)
+     */
     _appendValueProjection(value: AnyValueSource, sql: string, output: ProjectionOutput): string {
+        const adapterContext = this._typeAdapterContextOf(undefined)
+        adapterContext.prepareProjection()
         if (!isValueSource(value)) {
             return sql
         }
@@ -596,9 +629,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const typeAdapter = valueSourcePrivate.__typeAdapter
         const typeCategory = __typeCategoryOf(valueSourcePrivate.__valueType)
         if (typeAdapter && typeAdapter.transformProjection) {
-            return typeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, output, this._defaultTypeAdapter)
+            return typeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, output, adapterContext, this._defaultTypeAdapter)
         }
-        return this._defaultTypeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, output)
+        return this._defaultTypeAdapter.transformProjection(sql, valueSourcePrivate.__valueTypeName, typeCategory, output, adapterContext)
     }
     /**
      * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnProjection`),
@@ -3941,11 +3974,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // Transform an uuid to string
         return this._appendSqlParenthesis(valueSource, context, false)
     }
-    _asNullValue(_context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _asNullValue(context: SqlBuildContext, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // The literal null is not a parameter
+        const adapterContext = this._typeAdapterContextOf(context)
+        adapterContext.prepareParam(undefined, undefined, false)
         if (typeAdapter && typeAdapter.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), null, this._defaultTypeAdapter)
+            return typeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), null, adapterContext, this._defaultTypeAdapter)
         } else {
-            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), null)
+            return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, __typeCategoryOf(columnType), null, adapterContext)
         }
     }
     // Oracle recursive

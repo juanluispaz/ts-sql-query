@@ -4,7 +4,6 @@
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import { setQueryParamMetadata } from '../../../src/QueryMetadata.js'
 import { queryContextOf, queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import {
@@ -76,7 +75,7 @@ describe('QueryRunner functions', () => {
     test('param-metadata-of-its-own-symbol', () => {
         const params: any[] = [1, 2]
         const mark = Symbol('mark')
-        setQueryParamMetadata(params, 1, mark, 'kept')
+        queryParamContextOf(params, 1).setMetadata(mark, 'kept')
         const context = getQueryContext('q', params)
         expect([context.getParam(0)?.getMetadata(mark), context.getParam(1)?.getMetadata(mark)]).toEqual([undefined, 'kept'])
         expect(context.getParam(1)?.type).toBeUndefined()

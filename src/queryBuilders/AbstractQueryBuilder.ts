@@ -78,9 +78,9 @@ export class AbstractQueryBuilder {
         let result
         try {
             if (typeAdapter) {
-                result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType), this.__sqlBuilder._defaultTypeAdapter)
+                result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType), this.__sqlBuilder._typeAdapterContextOf(), this.__sqlBuilder._defaultTypeAdapter)
             } else {
-                result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType))
+                result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, __typeCategoryOf(valueSourcePrivate.__valueType), this.__sqlBuilder._typeAdapterContextOf())
             }
         } catch(e) {
             if (e instanceof TsSqlError) {

@@ -3,6 +3,7 @@ import type { AnyValueSource } from '../expressions/values.js'
 import type { SelectColumnSql } from '../sqlBuilders/AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { queryContextOf, type QueryContextImpl } from './QueryContextImpl.js'
+import type { TypeAdapterContextImpl } from './TypeAdapterContextImpl.js'
 
 /**
  * The state of the construction of the SQL of one query: the params the query runner receives, and what the SQL builder
@@ -79,6 +80,8 @@ export class SqlBuildContext {
     /** The name in this query of each generated name (generatedNameOf) */
     private generatedNames: Map<string, string> | undefined = undefined
 
+    /** The context the type adapters receive while the query is written, created when first used */
+    typeAdapterContext: TypeAdapterContextImpl | undefined = undefined
     /** The context of the query, hung on the params: what the query runner reads of the query (QueryContext) */
     readonly queryContext: QueryContextImpl
 

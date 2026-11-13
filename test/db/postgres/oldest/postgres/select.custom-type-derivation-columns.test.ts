@@ -42,18 +42,18 @@ import { ctx } from './setup.js'
 // The same conditional adapter the shared fixtures carry, declared here for the
 // `Values` views below (a `Values` subclass is declared where it is used).
 const scaledByTypeName: TypeAdapter = {
-    transformValueFromDB(value, type, typeCategory, next) {
-        const v = next.transformValueFromDB(value, type, typeCategory)
+    transformValueFromDB(value, type, typeCategory, context, next) {
+        const v = next.transformValueFromDB(value, type, typeCategory, context)
         if ((type === 'Cents' || type === 'Money') && typeof v === 'number') {
             return v / 100
         }
         return v
     },
-    transformValueToDB(value, type, typeCategory, next) {
+    transformValueToDB(value, type, typeCategory, context, next) {
         if ((type === 'Cents' || type === 'Money') && typeof value === 'number') {
-            return next.transformValueToDB(value * 100, type, typeCategory)
+            return next.transformValueToDB(value * 100, type, typeCategory, context)
         }
-        return next.transformValueToDB(value, type, typeCategory)
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
 }
 

@@ -410,7 +410,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // the query runner: a bare null has none where the position gives it none (a row of a union, a Values row, a
         // case). A null of any other type stays a literal null, that PostgreSQL resolves as text where it can't infer it.
         if (postgreSqlParamType(columnTypeName, __typeCategoryOf(columnType), null)) {
-            return this._appendParam(null, context, columnType, columnTypeName, typeAdapter, true)
+            const sent = this._transformParamToDB(null, columnType, columnTypeName, typeAdapter, context, true)
+            return this._appendParam(sent, context, columnType, columnTypeName, typeAdapter, true)
         }
         return super._asNullValue(context, columnType, columnTypeName, typeAdapter)
     }

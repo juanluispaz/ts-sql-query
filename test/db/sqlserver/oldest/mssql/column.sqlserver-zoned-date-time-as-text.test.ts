@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter, TypeCategory } from '../../../../../src/TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter, TypeCategory, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -20,40 +20,35 @@ import { ctx } from './setup.js'
 type ZonedDateTime = string
 
 const zonedDateTimeAsText: TypeAdapter = {
-    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         if (type === 'ZonedDateTime' && value !== null && value !== undefined) {
             if (typeof value === 'string') {
                 return value
             }
             throw new Error('Cannot read a ' + typeof value + ' as a ZonedDateTime')
         }
-        return next.transformValueFromDB(value, type, typeCategory)
+        return next.transformValueFromDB(value, type, typeCategory, context)
     },
-    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, next: DefaultTypeAdapter): unknown {
+    transformValueToDB(value: unknown, type: string, typeCategory: TypeCategory, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         if (type === 'ZonedDateTime') {
             return value
         }
-        return next.transformValueToDB(value, type, typeCategory)
+        return next.transformValueToDB(value, type, typeCategory, context)
     },
-    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+    transformPlaceholder(placeholder: string, type: string, typeCategory: TypeCategory, valueSentToDB: unknown, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
         if (type === 'ZonedDateTime') {
             return 'cast(' + placeholder + ' as datetimeoffset)'
         }
-        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB)
+        return next.transformPlaceholder(placeholder, type, typeCategory, valueSentToDB, context)
     },
-    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): string {
+    transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        if (type === 'ZonedDateTime') {
+            context.comparison = 'none'
+        }
         if (type === 'ZonedDateTime' && (output === 'resultColumn' || output === 'aggregatedArrayValue')) {
             return 'convert(nvarchar(40), ' + sql + ', 126)'
         }
-        return next.transformProjection(sql, type, typeCategory, output)
-    },
-    // The text of a date and time with its offset neither compares nor orders as the instant: the same instant written
-    // with two offsets gives two texts, and the texts order otherwise
-    projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput, next: DefaultTypeAdapter): ProjectionComparison {
-        if (type === 'ZonedDateTime') {
-            return 'none'
-        }
-        return next.projectionComparison(type, typeCategory, output)
+        return next.transformProjection(sql, type, typeCategory, output, context)
     },
 }
 

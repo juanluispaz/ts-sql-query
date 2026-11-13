@@ -4,7 +4,7 @@ import { SqlServerSqlBuilder } from '../sqlBuilders/SqlServerSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
-import type { ProjectionComparison, ProjectionOutput, TypeCategory } from '../TypeAdapter.js'
+import type { ProjectionOutput, TypeAdapterProjectionContext, TypeCategory } from '../TypeAdapter.js'
 import { __isDecimalCategory } from '../utils/typeCategory.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
@@ -14,24 +14,16 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * The driver gives a decimal as a JavaScript number, which loses digits and the scale; the text of a decimal in a
      * column of the result keeps every digit of a decimal(38): 38 digits, the sign and the point
      */
-    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput): string {
+    protected override transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext): string {
         if (output === 'resultColumn' && __isDecimalCategory(typeCategory)) {
+            // The text of a decimal orders as a text, not as the number; two equal decimals of a column give the same
+            // text, but of two columns of different scales (in the arms of a compound query) not, 1.5 and 1.50
+            context.comparison = 'columnEquality'
             return 'convert(nvarchar(41), ' + sql + ')'
         }
-        return super.transformProjection(sql, type, typeCategory, output)
+        return super.transformProjection(sql, type, typeCategory, output, context)
     }
 
-    /**
-     * The text of a decimal of a column of the result orders as a text, not as the number; two equal decimals of a
-     * column give the same text, but of two columns of different scales (in the arms of a compound query) not, 1.5 and
-     * 1.50
-     */
-    protected override projectionComparison(type: string, typeCategory: TypeCategory, output: ProjectionOutput): ProjectionComparison {
-        if (output === 'resultColumn' && __isDecimalCategory(typeCategory)) {
-            return 'columnEquality'
-        }
-        return super.projectionComparison(type, typeCategory, output)
-    }
 
     /**
      * Minimum SQL Server version the generated SQL must support, encoded as

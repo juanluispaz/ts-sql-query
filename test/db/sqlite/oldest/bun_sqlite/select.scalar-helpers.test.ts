@@ -59,6 +59,29 @@ describe(ctx.label, () => {
         expect(rows[0]!.t).toBeDefined()
     })
 
+    test('currentTime/compared-with-a-time-of-the-day', async () => {
+        // The current time is a time of the day, compared with another only by the time of the day: it is never before
+        // the start of the day nor after its end, whatever day each one is kept with
+        ctx.mockNext([{ afterStartOfDay: true, beforeEndOfDay: true }])
+        const startOfDay = new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0))
+        const endOfDay = new Date(Date.UTC(1970, 0, 1, 23, 59, 59, 999))
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                afterStartOfDay: ctx.conn.currentTime().greaterOrEqual(startOfDay),
+                beforeEndOfDay: ctx.conn.currentTime().lessOrEqual(endOfDay),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select strftime('%H:%M:%f', 'now', 'localtime') >= ?1 as afterStartOfDay, strftime('%H:%M:%f', 'now', 'localtime') <= ?2 as beforeEndOfDay"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "00:00:00.000",
+            "23:59:59.999",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ afterStartOfDay: boolean, beforeEndOfDay: boolean }>>>()
+        expect(rows).toEqual([{ afterStartOfDay: true, beforeEndOfDay: true }])
+    })
+
     test('currentTimestamp', async () => {
         ctx.mockNext([{ ts: new Date() }])
         const rows = await ctx.conn.selectFromNoTable()

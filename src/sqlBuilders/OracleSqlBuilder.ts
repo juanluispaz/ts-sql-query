@@ -1265,10 +1265,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'trunc(current_timestamp)'
     }
     override _currentTime(_context: SqlBuildContext): string {
-        // Oracle has no `CURRENT_TIME` keyword. `LOCALTIMESTAMP` is the
-        // closest portable equivalent that yields a session-local moment
-        // the oracledb driver materialises as a JS `Date`.
-        return 'localtimestamp'
+        // Oracle has no type of a time alone: a localTime is kept on the day 1970-01-01, and the current time is put on
+        // that day, so it compares with a localTime only by the time of the day (`localtimestamp` carries today)
+        return "timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp))"
     }
     override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
         if (this._isDateReadAsTimestamp(valueSource) && !this._isDateReadAsTimestamp(value)) {

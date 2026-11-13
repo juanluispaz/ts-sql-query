@@ -57,9 +57,32 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ t: ctx.conn.currentTime() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select localtimestamp as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows[0]!.t).toBeDefined()
+    })
+
+    test('currentTime/compared-with-a-time-of-the-day', async () => {
+        // The current time is a time of the day, compared with another only by the time of the day: it is never before
+        // the start of the day nor after its end, whatever day each one is kept with
+        ctx.mockNext([{ afterStartOfDay: true, beforeEndOfDay: true }])
+        const startOfDay = new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0))
+        const endOfDay = new Date(Date.UTC(1970, 0, 1, 23, 59, 59, 999))
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                afterStartOfDay: ctx.conn.currentTime().greaterOrEqual(startOfDay),
+                beforeEndOfDay: ctx.conn.currentTime().lessOrEqual(endOfDay),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) >= :0 then 1 else 0 end as "afterStartOfDay", case when timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) <= :1 then 1 else 0 end as "beforeEndOfDay" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T00:00:00.000Z,
+            1970-01-01T23:59:59.999Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ afterStartOfDay: boolean, beforeEndOfDay: boolean }>>>()
+        expect(rows).toEqual([{ afterStartOfDay: true, beforeEndOfDay: true }])
     })
 
     test('currentTimestamp', async () => {

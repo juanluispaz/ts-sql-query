@@ -241,7 +241,9 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-APPLICABLE: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the `uuid_str` / `uuid_blob` extension functions can't be registered. Kept mock-only here so the SqlBuilder shape is still asserted; the connectors that register the functions run the `'uuid-extension'` path end-to-end.
     test('uuid-strategy: uuid-extension insert stores a blob found with asString().contains', async () => {
+        ctx.mockOnlyConnection()
         // The uuid of an insert is sent through `uuid_blob(?)`, so the column
         // stores the 16 bytes (`typeof` gives 'blob'). Reading it back, the
         // column goes through `uuid_str(...)` and `asString().contains('12d3')`
@@ -285,7 +287,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    // NOT-APPLICABLE: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the `uuid_str` / `uuid_blob` extension functions can't be registered. Kept mock-only here so the SqlBuilder shape is still asserted; the connectors that register the functions run the `'uuid-extension'` path end-to-end.
     test('uuid-strategy: uuid-extension on conflict do update sets the uuid as a blob', async () => {
+        ctx.mockOnlyConnection()
         // Issue (project 1, number 1) exists, so the insert turns into the
         // update of its `external_ref`, sent through `uuid_blob(?)` in the
         // `do update set` too. Read back: issue 1 holds the new uuid as a blob.
@@ -329,7 +333,9 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    // NOT-APPLICABLE: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the `uuid_str` / `uuid_blob` extension functions can't be registered. Kept mock-only here so the SqlBuilder shape is still asserted; the connectors that register the functions run the `'uuid-extension'` path end-to-end.
     test('uuid-strategy: uuid-extension cte re-projects a stored blob uuid', async () => {
+        ctx.mockOnlyConnection()
         // Issue 1's `external_ref` is set to a blob uuid. A CTE projects it as
         // it is stored (no `uuid_str` inside the CTE); the outer query compares
         // it with `uuid_blob(?)` (blob against blob) and only its outermost
@@ -359,7 +365,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    // NOT-APPLICABLE: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the `uuid_str` / `uuid_blob` extension functions can't be registered. Kept mock-only here so the SqlBuilder shape is still asserted; the connectors that register the functions run the `'uuid-extension'` path end-to-end.
     test('uuid-strategy: uuid-extension json_group_array of stored blob uuids', async () => {
+        ctx.mockOnlyConnection()
         // Issues 1 and 2 (project 1) get blob uuids; the inline aggregated
         // array of the column reads each element with `uuid_str(...)` inside
         // `json_group_array`. The aggregate has no ORDER BY, so the elements are

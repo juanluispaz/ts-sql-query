@@ -3858,8 +3858,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _getTime(context: SqlBuildContext, valueSource: ToSql): string {
         // Mirrors `Date.getTime()`, so the result is in MILLISECONDS. `extract(epoch …)`
-        // answers in seconds, including the fractional part.
-        return 'round(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, context) + ') * 1000)'
+        // answers in seconds, including the fractional part; the digits below a millisecond
+        // are dropped, as the Date read drops them (floor, also before 1970)
+        return 'floor(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, context) + ') * 1000)'
     }
     _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'

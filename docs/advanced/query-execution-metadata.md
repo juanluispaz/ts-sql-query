@@ -403,6 +403,7 @@ The context of each query the library builds also has the columns of its result,
 | `path` | The property of the result object it fills, like `'customer.name'` for a nested object, `'result'` for a query that selects one column, `''` without one |
 | `type` | The name of the type its value is converted with, like `'int'` or the one of a custom type |
 | `typeCategory` | The category of that type, like `'customInt'`; `''` for an aggregated array, whose JSON text the library converts value by value |
+| `projectedType`, `projectedTypeCategory` | The type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection says with `setProjectedType`, like `'string'` for the text of a date (see [Type adapters API](../api/type-adapters.md)); otherwise `type` and `typeCategory` |
 
 The array is empty for a query that returns no columns: an insert, update or delete without returning, a procedure, and the statements of a transaction. `resultColumns` is `undefined` for a statement you run through the query runner yourself. `getResultColumn(name)` finds one column by its `name`.
 

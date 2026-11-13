@@ -445,7 +445,10 @@ class DayAsTextTypeAdapter implements TypeAdapter {
     transformProjection(sql: string, type: string, typeCategory: TypeCategory, output: ProjectionOutput, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         // In a column of the result and inside the JSON of an aggregated array
         if (output === 'resultColumn' || output === 'aggregatedArrayValue') {
+            // DD/MM/YYYY compares as the day, but doesn't order as it
             context.comparison = 'equality'
+            // The value the database gives is a text
+            context.setProjectedType('string', 'string')
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
         }
         return next.transformProjection(sql, type, typeCategory, output, context)
@@ -499,7 +502,7 @@ The text `DD/MM/YYYY` doesn't order as the day does (`01/03/2024` comes before `
 | An order by of the column, like `orderBy('birthday')` | The value when the converted SQL doesn't order like it (`'equality'`, `'columnEquality'` or `'none'`): the order by writes the column, not its alias, which is the text. With `'value'`, the alias |
 | A compound select (`union`, `intersect`, `except`) | The value when the converted SQL doesn't compare like it across the arms (`'columnEquality'` or `'none'`), or the order by names a column that doesn't order like it: the query is written inside a select that converts its columns, `select to_char(o_1_.birthday, 'DD/MM/YYYY') as birthday from (select ... union select ...) as o_1_ order by o_1_.birthday`. Otherwise each arm converts the column |
 | A `selectDistinct` | The value when the converted SQL doesn't compare like it (`'none'`), or the select is ordered by a column that doesn't order like it: the select is written inside a select that converts its columns, `select to_char(o_1_.birthday, 'DD/MM/YYYY') as birthday from (select distinct birthday as birthday from customer) as o_1_`. Otherwise the distinct select converts the column |
-| A value inside the JSON of an aggregated array | The SQL of `transformProjection` with `'aggregatedArrayValue'`, written as a JSON string; see [Inside the JSON of an aggregated array](#inside-the-json-of-an-aggregated-array) |
+| A value inside the JSON of an aggregated array | The SQL of `transformProjection` with `'aggregatedArrayValue'`; see [Inside the JSON of an aggregated array](#inside-the-json-of-an-aggregated-array) |
 
 ### How the converted SQL compares
 
@@ -516,7 +519,7 @@ When neither the type adapter nor the connection says it, `comparison` is `'valu
 
 ### Inside the JSON of an aggregated array
 
-An aggregated array (`aggregateAsArray`, `aggregateAsArrayOfOneColumn`, or a select used with `forUseAsInlineAggregatedArrayValue`, see [Aggregate as an object array](../queries/aggregate-as-object-array.md)) reaches the driver as a JSON text, and each value inside it is one of that JSON. For a value of the JSON, `transformProjection` receives `'aggregatedArrayValue'` and returns the SQL of a **text**: the library writes that text in the JSON as a string, and `transformValueFromDB` receives it. When it doesn't convert the value, the value goes in the JSON as the library writes it on that database, and `next.transformProjection(...)` returns the SQL it receives: the library has no conversion of its own there.
+An aggregated array (`aggregateAsArray`, `aggregateAsArrayOfOneColumn`, or a select used with `forUseAsInlineAggregatedArrayValue`, see [Aggregate as an object array](../queries/aggregate-as-object-array.md)) reaches the driver as a JSON text, and each value inside it is one of that JSON. For a value of the JSON, `transformProjection` receives `'aggregatedArrayValue'` and returns the SQL of the value that goes in the JSON, of any type the JSON function of the database takes: a text, like `DD/MM/YYYY`, or a number. `transformValueFromDB` receives each value of the JSON as its text, a number too, with all its digits. On SQL Server before 2025, where the library writes the JSON itself, a converted value goes in it as a string. When it doesn't convert the value, the value goes in the JSON as the library writes it on that database, and `next.transformProjection(...)` returns the SQL it receives, except with a [database outside UTC](time-zones.md#a-database-outside-utc) on PostgreSQL and Oracle, where a `localDateTime` or a `localTime` goes with its zone.
 
 With the adapter above, which gives the text `DD/MM/YYYY` in both places, the birthdays of the customers of each company:
 
@@ -563,9 +566,8 @@ const companies: Promise<{
 !!! important
 
     - `transformProjection` only writes SQL: it can't add parameters.
-    - Inside the JSON it must return the SQL of a text, which the library writes as a JSON string (with the quotes and backslashes it holds escaped).
     - When it doesn't convert the value, return what `next.transformProjection(...)` returns. The library calls it with an empty `sql` to know whether a column is converted, so it must return an empty text when it doesn't convert.
-    - On Oracle, the `returning` of a converted column is received in an out parameter of text, whatever the type of the column.
+    - When the converted SQL gives a value of another type than the column, like the text of a date, say it with `context.setProjectedType(type, typeCategory)`: the query runner receives it in the context of the query (`projectedType`), and on Oracle the `returning` of the column is received in an out parameter of that type, of the type of the column otherwise.
     - On MariaDB, the distinct of `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` is always inside the aggregate: MariaDB doesn't see a column of the outer query in a derived table, so a correlated select can't be written over the distinct values.
     - On MariaDB, a converted old value of an update (`oldValues()`) is inside the SQL of the conversion, and MariaDB 13.0.2 returns the new value there ([MDEV-40126](https://jira.mariadb.org/browse/MDEV-40126)); see [Update returning old values](../queries/update.md#update-returning-old-values).
 

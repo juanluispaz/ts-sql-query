@@ -59,7 +59,7 @@ class RecordingAdapter implements DefaultTypeAdapter {
 }
 
 // The configuration of a connection, for the context a type adapter receives
-const configuration: ConnectionConfiguration = { allowEmptyString: false, compatibilityVersion: 0, escape: (identifier: string) => identifier }
+const configuration: ConnectionConfiguration = { allowEmptyString: false, compatibilityVersion: 0, escape: (identifier: string) => identifier, sqlDataTypeFrom: (nativeName: string) => ({ family: 'user-defined', name: nativeName }), nativeSqlDataTypeOf: () => undefined }
 
 // The custom types, the first argument of a custom column
 function isCustomType(type: string): type is CustomType {

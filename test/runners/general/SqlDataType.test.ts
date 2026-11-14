@@ -203,3 +203,21 @@ describe('the native name, built once for each class of connection', () => {
         expect(Object.keys({ ...type })).toEqual(['family', 'precision', 'scale'])
     })
 })
+
+describe('the conversion of the types in the configuration of the connection', () => {
+    test('a-query-runner-reads-the-native-name-of-a-parameter', async () => {
+        let natives: (string | undefined)[] = []
+        const conn = new DBConnection(new MockQueryRunner((_type, query, params) => {
+            const context = getQueryContext(query, params)
+            const configuration = context.connectionConfiguration!
+            natives = params.map((_, index) => {
+                const sqlDataType = context.getParam(index)?.requestedSqlDataType
+                return sqlDataType === undefined ? undefined : configuration.nativeSqlDataTypeOf(sqlDataType)
+            })
+            expect(configuration.sqlDataTypeFrom('int4')).toEqual({ family: 'exact numeric', scale: 0, bytes: 4, native: { postgreSql: 'int4' } })
+            return []
+        }))
+        await conn.selectFrom(tProduct).where(tProduct.price.equals('2.25')).and(tProduct.code.equals('A')).and(tProduct.name.equals('x')).select({ id: tProduct.id }).executeSelectMany()
+        expect(natives).toEqual(['numeric(18, 4)', 'character varying(20)', undefined])
+    })
+})

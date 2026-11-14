@@ -853,7 +853,7 @@ runner still works with params built by hand.
 | The SQL data type of the column | `originalSqlDataType`, `requestedSqlDataType` of the parameter and of each result column (the runners use the requested one) | the bind type, the buffer | §2.6 |
 | What a type adapter or the library marks | `getMetadata(key)` of the parameter and of the query | `OracleDateAsTimestampTypeAdapter`, a database outside UTC | §4, §7.3 |
 | The columns of the result | `resultColumns`, `getResultColumn(name)` | the fetch types, the shape of the rows | §4 |
-| The configuration of the connection | `connectionConfiguration` | `compatibilityVersion`, the strategies, `booleanStorage`, `databaseTimeZone`, the date formats of SQLite | §4, §7.3 |
+| The configuration of the connection | `connectionConfiguration` | `compatibilityVersion`, the strategies, `booleanStorage`, `databaseTimeZone`, the date formats of SQLite; `sqlDataTypeFrom` and `nativeSqlDataTypeOf` of the connection (the native name of a SQL data type, built once) | §4, §7.3 |
 | Where and why the query runs | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata`, `isSelectPageCount` | logs, errors | §4 |
 | The types declared by the user | `typesByName` of the runner, which wins over the SQL data type | a type of the driver per type name | §2.4 |
 | The runner a mock imitates | the `queryRunner` option of `MockQueryRunner` (the name of a runner) | the same placeholders and params | §2.3 |

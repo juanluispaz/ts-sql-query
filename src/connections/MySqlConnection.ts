@@ -18,7 +18,7 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
      * The SQL data type of a type of MySQL, written as the `COLUMN_TYPE` of `information_schema.columns` (`decimal(18,4) unsigned`, `varchar(20)`, `enum('a','b')`), aliases
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
-    sqlDataTypeFrom(nativeName: string): SqlDataType {
+    override sqlDataTypeFrom(nativeName: string): SqlDataType {
         return mySqlMariaDBSqlDataTypeFrom(nativeName, 'mySql')
     }
     /**

@@ -14,7 +14,7 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * The SQL data type of a type of SQL Server, written as in a declaration (`decimal(18,4)`, `nvarchar(max)`, `datetime2(3)`), aliases
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
-    sqlDataTypeFrom(nativeName: string): SqlDataType {
+    override sqlDataTypeFrom(nativeName: string): SqlDataType {
         return withNative(sqlServerFamilyOf(nativeName), 'sqlServer', nativeName)
     }
     /**

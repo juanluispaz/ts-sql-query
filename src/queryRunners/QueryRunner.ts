@@ -129,6 +129,13 @@ export interface ConnectionConfiguration {
      * (the name of a function or a procedure)
      */
     escape(identifier: string, strict: boolean, allowReservedKeyword?: boolean): string
+    /** The SQL data type of a type of the database of the connection, as its catalogue writes it (`sqlDataTypeFrom` of the connection) */
+    sqlDataTypeFrom(nativeName: string): SqlDataType
+    /**
+     * The type of the database of the connection for a SQL data type, for its version and strategies; undefined when it
+     * can't hold it (`nativeSqlDataTypeOf` of the connection, built once for each SQL data type)
+     */
+    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined
     /** The collation the insensitive operations use (`insensitiveCollation`) */
     readonly insensitiveCollation?: string
     /** SQLite: the format a value of the type `'date'`, `'time'` or `'dateTime'` is stored with */

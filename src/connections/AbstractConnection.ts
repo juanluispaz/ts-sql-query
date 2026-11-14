@@ -68,6 +68,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      * undefined when the database can't hold it (never another type). Built once for each class of connection and kept
      * in the SQL data type: override `buildNativeSqlDataTypeOf` to change it
      */
+    /**
+     * The SQL data type of a type of the database of this connection, as its catalogue writes it, aliases accepted, with
+     * that name as its native one: for `withSqlDataType`, or a program that reads the catalogue. A name the connection
+     * doesn't know gives a user-defined type
+     */
+    sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return { family: 'user-defined', name: nativeName.trim() }
+    }
     nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
         const connectionClassId = connectionClassIdOf(this)
         const kept = keptNativeSqlDataType(sqlDataType, connectionClassId)

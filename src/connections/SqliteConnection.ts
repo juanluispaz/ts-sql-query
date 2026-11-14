@@ -26,7 +26,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * `BOOLEAN`, `UUID`, …), the intent of who wrote them; any other name, a user-defined type (override this method
      * to read a name of your own); no name, a value of any type
      */
-    sqlDataTypeFrom(nativeName: string): SqlDataType {
+    override sqlDataTypeFrom(nativeName: string): SqlDataType {
         return withNative(sqliteFamilyOf(nativeName), 'sqlite', nativeName)
     }
     /**

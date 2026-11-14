@@ -236,4 +236,4 @@ interface TypeAdapterRequestedSqlDataType {
 
 ## In the context of a query
 
-A query runner of yours reads it with [`getQueryContext`](../advanced/query-execution-metadata.md): `originalSqlDataType` and `requestedSqlDataType` of each parameter (`QueryParamContext`) and of each column of the result (`QueryResultColumn`), when its type adapter says one. The query runners of the library use the requested one.
+A query runner of yours reads it with [`getQueryContext`](../advanced/query-execution-metadata.md): `originalSqlDataType` and `requestedSqlDataType` of each parameter (`QueryParamContext`) and of each column of the result (`QueryResultColumn`), when its type adapter says one. The query runners of the library use the requested one. The configuration of the connection in that context, `connectionConfiguration`, has `sqlDataTypeFrom` and `nativeSqlDataTypeOf` of the connection, so a query runner or a type adapter (`context.connectionConfiguration`) can turn a SQL data type into the name of the type in the database of the query, built once.

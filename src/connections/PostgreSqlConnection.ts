@@ -23,7 +23,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * The SQL data type of a type of PostgreSQL, written as `format_type` (`numeric(18,4)`, `character varying(20)`, `timestamp(3) with time zone`, `integer[]`), aliases
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
-    sqlDataTypeFrom(nativeName: string): SqlDataType {
+    override sqlDataTypeFrom(nativeName: string): SqlDataType {
         return withNative(postgreSqlFamilyOf(nativeName), 'postgreSql', nativeName)
     }
     /**

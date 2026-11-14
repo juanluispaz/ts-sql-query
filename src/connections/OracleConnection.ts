@@ -20,7 +20,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * The SQL data type of a type of Oracle, written as in a declaration (`NUMBER(18,4)`, `VARCHAR2(50 CHAR)`, `TIMESTAMP(6) WITH TIME ZONE`), aliases
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
-    sqlDataTypeFrom(nativeName: string): SqlDataType {
+    override sqlDataTypeFrom(nativeName: string): SqlDataType {
         return withNative(oracleFamilyOf(nativeName), 'oracle', nativeName)
     }
     /**

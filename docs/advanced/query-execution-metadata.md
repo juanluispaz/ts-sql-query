@@ -448,6 +448,7 @@ The context of each query the library builds also has the connection that execut
 | `uuidStrategy` | The `uuidStrategy` of the connection, or `undefined` on the databases without one (PostgreSQL and SQL Server) |
 | `getDateTimeFormat(type)` | On SQLite, the format a `'date'`, `'time'` or `'dateTime'` is stored with |
 | `sqliteRunsInApplicationTimeZone`, `treatUnexpectedIntegerDateTimeAsJulian`, `treatUnexpectedStringDateTimeAsUTC`, `unexpectedUnixDateTimeAreMilliseconds` | On SQLite, how dates are stored and read |
+| `sqlDataTypeFrom(nativeName)`, `nativeSqlDataTypeOf(sqlDataType)` | The conversion of the [SQL data types](sql-data-types.md#the-types-of-a-database) of the connection: the native name of the `requestedSqlDataType` of a parameter in the database of the query, built once for each SQL data type |
 
 The values are read from the connection when you read them, so a connection whose class sets `compatibilityVersion` in a field gives that value. All the queries of a connection give the same object: the connection.
 

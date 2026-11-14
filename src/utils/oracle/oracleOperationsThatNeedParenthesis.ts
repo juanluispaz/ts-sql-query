@@ -1,7 +1,7 @@
 import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } from '../operationsThatNeedParenthesis.js'
 
 /** The operations of Oracle whose SQL is wrapped in parenthesis when it is an operand of another operation */
-export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = Object.freeze({
+export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     ...operationsThatNeedParenthesis,
     _getTime: true,
     // `_getMilliseconds` is written as a self-contained call, so it never needs the wrapping the base's trailing
@@ -23,4 +23,4 @@ export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     // noise).
     _replaceAll: true,
     _replaceAllInsensitive: true,
-})
+}

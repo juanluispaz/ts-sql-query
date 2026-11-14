@@ -114,7 +114,7 @@ export class QueryContextImpl implements QueryContext {
 }
 
 /** The context of a query the library didn't build */
-export const emptyQueryContext: QueryContext = Object.freeze(new QueryContextImpl())
+export const emptyQueryContext: QueryContext = new QueryContextImpl()
 
 /** The context of the query with these params, or undefined when it has none */
 export function existingQueryContextOf(params: any[] | null | undefined): QueryContextImpl | undefined {

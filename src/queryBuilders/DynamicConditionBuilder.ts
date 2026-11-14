@@ -252,7 +252,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
  * applied, so a filter written for version 1, like one sent by another system, keeps working. The types don't declare
  * them: a filter written in code uses the names of version 2
  */
-const renamedOperations: { readonly [operation: string]: string | undefined } = Object.freeze({
+const renamedOperations: { readonly [operation: string]: string | undefined } = {
     smaller: 'lessThan',
     smallerIfValue: 'lessThanIfValue',
     larger: 'greaterThan',
@@ -265,7 +265,7 @@ const renamedOperations: { readonly [operation: string]: string | undefined } = 
     lessOrEqualsIfValue: 'lessOrEqualIfValue',
     greaterOrEquals: 'greaterOrEqual',
     greaterOrEqualsIfValue: 'greaterOrEqualIfValue',
-})
+}
 
 const allowedOperations: { [operation: string]: true | undefined } = {
     isNull: true,

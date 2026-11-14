@@ -1,7 +1,7 @@
 import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } from '../operationsThatNeedParenthesis.js'
 
 /** The operations of MariaDB and MySQL whose SQL is wrapped in parenthesis when it is an operand of another operation */
-export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = Object.freeze({
+export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     ...operationsThatNeedParenthesis,
     // `concat(...)`, a self-contained call
     _concat: false,
@@ -13,4 +13,4 @@ export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParent
     // `_getMilliseconds` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
     _getMilliseconds: false,
-})
+}

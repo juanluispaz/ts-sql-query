@@ -7,7 +7,7 @@ import type { SqlOperation } from '../sqlBuilders/SqlBuilder.js'
 /** Whether the SQL of each operation is wrapped in parenthesis when it is an operand of another operation */
 export type OperationsThatNeedParenthesis = { readonly [operation in keyof SqlOperation]?: boolean | undefined }
 
-export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = Object.freeze({
+export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     _equals: true,
     _notEquals: true,
     _is: true,
@@ -39,4 +39,4 @@ export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = Obje
     // operand (`(x collate name) = …`). The receiver's own parenthesis is handled by `_appendSqlParenthesis` inside
     // `_collate`.
     _collate: true,
-})
+}

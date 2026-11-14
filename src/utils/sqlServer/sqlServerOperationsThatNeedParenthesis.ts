@@ -1,7 +1,7 @@
 import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } from '../operationsThatNeedParenthesis.js'
 
 /** The operations of SQL Server whose SQL is wrapped in parenthesis when it is an operand of another operation */
-export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = Object.freeze({
+export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     ...operationsThatNeedParenthesis,
     _getDay: true,
     // `_getMilliseconds` is written as a self-contained call, so it never needs the wrapping the base's trailing
@@ -23,4 +23,4 @@ export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthes
     // `_concatIgnoringNull` is a `concat(...)` call here, never the `+` operator `_concat` uses, so it is
     // self-delimiting and needs no wrapping as an operand.
     _concatIgnoringNull: false,
-})
+}

@@ -1,4 +1,6 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
+import type { SqlDataType } from '../TypeAdapter.js'
+import { mySqlMariaDBSqlDataTypeFrom, mySqlMariaDBNativeSqlDataTypeOf } from '../utils/mySqlMariaDB/mySqlMariaDBSqlDataTypes.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { MariaDBSqlBuilder } from '../sqlBuilders/MariaDBSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
@@ -15,6 +17,20 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'mariaDB', NAME>> {
+    /**
+     * The SQL data type of a type of MariaDB, written as the `COLUMN_TYPE` of `information_schema.columns` (`decimal(18,4) unsigned`, `varchar(20)`, `uuid`, `inet6`), aliases
+     * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
+     */
+    static sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return mySqlMariaDBSqlDataTypeFrom(nativeName, 'mariaDB')
+    }
+    /**
+     * The type of MariaDB for a SQL data type: its native name of MariaDB when it has one, otherwise from its family and
+     * its properties; undefined when MariaDB can't hold it (never another type)
+     */
+    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return mySqlMariaDBNativeSqlDataTypeOf(sqlDataType, 'mariaDB')
+    }
 
     /**
      * How UUID values are stored: in MariaDB's native `UUID` column type (`'uuid'`,

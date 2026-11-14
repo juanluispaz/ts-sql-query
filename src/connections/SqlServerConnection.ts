@@ -1,14 +1,29 @@
 import type { NConnection } from '../utils/sourceName.js'
+import { sqlServerSqlDataTypeFrom, sqlServerNativeSqlDataTypeOf } from '../utils/sqlServer/sqlServerSqlDataTypes.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqlServerSqlBuilder } from '../sqlBuilders/SqlServerSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
-import type { TypeAdapterProjectionContext } from '../TypeAdapter.js'
+import type { SqlDataType, TypeAdapterProjectionContext } from '../TypeAdapter.js'
 import { __isExactDecimal } from '../utils/dataTypes.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {
+    /**
+     * The SQL data type of a type of SQL Server, written as in a declaration (`decimal(18,4)`, `nvarchar(max)`, `datetime2(3)`), aliases
+     * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
+     */
+    static sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return sqlServerSqlDataTypeFrom(nativeName)
+    }
+    /**
+     * The type of SQL Server for a SQL data type: its native name of SQL Server when it has one, otherwise from its family and
+     * its properties; undefined when SQL Server can't hold it (never another type)
+     */
+    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return sqlServerNativeSqlDataTypeOf(sqlDataType)
+    }
 
     /**
      * The driver gives a decimal as a JavaScript number, which loses digits and the scale; the text of a decimal in a

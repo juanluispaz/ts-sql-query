@@ -1,4 +1,5 @@
 import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
+import { oracleSqlDataTypeFrom, oracleNativeSqlDataTypeOf } from '../utils/oracle/oracleSqlDataTypes.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder, oracleZonedValueSql } from '../sqlBuilders/OracleSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
@@ -10,11 +11,25 @@ import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } fro
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import type { TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { SqlDataType, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isBoolean, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
+    /**
+     * The SQL data type of a type of Oracle, written as in a declaration (`NUMBER(18,4)`, `VARCHAR2(50 CHAR)`, `TIMESTAMP(6) WITH TIME ZONE`), aliases
+     * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
+     */
+    static sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return oracleSqlDataTypeFrom(nativeName)
+    }
+    /**
+     * The type of Oracle for a SQL data type: its native name of Oracle when it has one, otherwise from its family and
+     * its properties; undefined when Oracle can't hold it (never another type)
+     */
+    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return oracleNativeSqlDataTypeOf(sqlDataType)
+    }
 
     protected uuidStrategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in' = 'built-in'
 

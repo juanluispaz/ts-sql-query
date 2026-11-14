@@ -1,4 +1,5 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
+import { sqliteSqlDataTypeFrom, sqliteNativeSqlDataTypeOf } from '../utils/sqlite/sqliteSqlDataTypes.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './AbstractConnection.js'
@@ -13,11 +14,25 @@ import { source, valueType } from '../utils/symbols.js'
 import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
-import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { SqlDataType, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
+    /**
+     * The SQL data type of a type of SQLite, written as in the declaration of the column: the six types of a STRICT table, or any other name, read as the type of another database, aliases
+     * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
+     */
+    static sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return sqliteSqlDataTypeFrom(nativeName)
+    }
+    /**
+     * The type of SQLite for a SQL data type: its native name of SQLite when it has one, otherwise from its family and
+     * its properties; undefined when SQLite can't hold it (never another type)
+     */
+    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return sqliteNativeSqlDataTypeOf(sqlDataType)
+    }
 
     protected uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' = 'uuid-extension'
 

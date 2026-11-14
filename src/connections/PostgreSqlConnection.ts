@@ -1,7 +1,8 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
+import { postgreSqlSqlDataTypeFrom, postgreSqlNativeSqlDataTypeOf } from '../utils/postgreSql/postgreSqlSqlDataTypes.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
-import type { TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { SqlDataType, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
@@ -18,6 +19,20 @@ import { DefaultImpl } from '../expressions/Default.js'
 import { postgreSqlZonedParam } from '../utils/metadataSymbols.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
+    /**
+     * The SQL data type of a type of PostgreSQL, written as `format_type` (`numeric(18,4)`, `character varying(20)`, `timestamp(3) with time zone`, `integer[]`), aliases
+     * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
+     */
+    static sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return postgreSqlSqlDataTypeFrom(nativeName)
+    }
+    /**
+     * The type of PostgreSQL for a SQL data type: its native name of PostgreSQL when it has one, otherwise from its family and
+     * its properties; undefined when PostgreSQL can't hold it (never another type)
+     */
+    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return postgreSqlNativeSqlDataTypeOf(sqlDataType)
+    }
 
     /**
      * Minimum PostgreSQL version the generated SQL must support, encoded as

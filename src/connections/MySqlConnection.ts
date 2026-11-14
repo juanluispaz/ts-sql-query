@@ -1,4 +1,6 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
+import type { SqlDataType } from '../TypeAdapter.js'
+import { mySqlMariaDBSqlDataTypeFrom, mySqlMariaDBNativeSqlDataTypeOf } from '../utils/mySqlMariaDB/mySqlMariaDBSqlDataTypes.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { MySqlSqlBuilder } from '../sqlBuilders/MySqlSqlBuilder.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
@@ -12,6 +14,20 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class MySqlConnection</*in|out*/ NAME extends string> extends AbstractConnection<NConnection<'mySql', NAME>> {
+    /**
+     * The SQL data type of a type of MySQL, written as the `COLUMN_TYPE` of `information_schema.columns` (`decimal(18,4) unsigned`, `varchar(20)`, `enum('a','b')`), aliases
+     * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
+     */
+    static sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return mySqlMariaDBSqlDataTypeFrom(nativeName, 'mySql')
+    }
+    /**
+     * The type of MySQL for a SQL data type: its native name of MySQL when it has one, otherwise from its family and
+     * its properties; undefined when MySQL can't hold it (never another type)
+     */
+    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return mySqlMariaDBNativeSqlDataTypeOf(sqlDataType, 'mySql')
+    }
 
     protected uuidStrategy: 'string' | 'string as sent' | 'binary' = 'binary'
 

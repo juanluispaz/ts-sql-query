@@ -1,6 +1,6 @@
 // sqlite-wasm binds a JS number that is an integer as a 64-bit integer, so one beyond that range (1e20, 2^63,
 // 1.5e300) would wrap without an error. Sqlite3WasmOO1QueryRunner sends it as a real, and the value read back is the
-// one sent.
+// one sent. An integer beyond the safe range is read as a bigint.
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import { Sqlite3WasmOO1QueryRunner } from '../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
@@ -41,5 +41,10 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'wasm', 'newest', 'sqlite-wasm-OO1'))
             const read = await runner!.executeSelectOneColumnOneRow(`select ${addParam(runner!, params, value, 'double', undefined, false)}`, params)
             expect([value, read]).toEqual([value, value])
         }
+    })
+
+    test('an-integer-beyond-the-safe-range-is-read-as-a-bigint', async () => {
+        // sqlite-wasm gives an integer beyond 2^53 as a bigint, and one within it as a number
+        expect(await runner!.executeSelectOneRow('select 9007199254740993 as big, 12 as small', [])).toEqual({ big: 9007199254740993n, small: 12 })
     })
 })

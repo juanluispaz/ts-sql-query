@@ -7,8 +7,8 @@ import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/Mssql
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../utils/dataTypes.js'
-import { existingParamContextOf } from '../internal/QueryContextImpl.js'
+import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isSqlDataTypeOf, __isString, __isUuid } from '../utils/dataTypes.js'
+import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -303,28 +303,45 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             // A type with its arguments, like TYPES.Decimal(18, 4)
             return declared as ISqlType
         }
-        return this.getTypeOfVarcharColumn(params, index) ?? { type: this.getType(params, index) }
+        return this.getTypeOfSqlDataType(params, index) ?? { type: this.getType(params, index) }
     }
 
     /**
-     * A text of a column that isn't national (a varchar or a char, said by its SQL data type, withSqlDataType) goes as a
-     * varchar: compared as a nvarchar, SQL Server converts the column, and with a SQL collation it reads its whole index.
-     * Only for an ASCII text, the same in every code page: tedious writes a varchar in the code page of the database,
-     * and a character it lacks becomes `?`, also for a column of a UTF-8 collation (measured on SQL Server 2025: '中文'
-     * stored as '??'). Its length is the one of the column, or max when the text is longer
+     * The type of the parameter from the SQL data type requested for it, when it describes the value
+     * (`__isSqlDataTypeOf`), where it gives a better query than the type of its data type; undefined otherwise:
+     * - A text of a column that isn't national (a varchar or a char) goes as a varchar: compared as a nvarchar, SQL
+     *   Server converts the column, and with a SQL collation it reads its whole index. Only for an ASCII text, the same in
+     *   every code page: tedious writes a varchar in the code page of the database, and a character it lacks becomes
+     *   `?`, also for a column of a UTF-8 collation (measured on SQL Server 2025: '中文' stored as '??'). Its length is
+     *   the one of the column, or max when the text is longer.
+     * - A date and time of a `datetime` or a `smalldatetime` column goes as one: compared with a datetime2, SQL Server
+     *   converts the column with its exact fraction of 1/300 of a second, and an equality doesn't find a value with
+     *   milliseconds (measured on SQL Server 2025: `.003` and `.123` not found as a datetime2, found as a datetime).
      */
-    private getTypeOfVarcharColumn(params: any[], index: number): ISqlType | undefined {
+    private getTypeOfSqlDataType(params: any[], index: number): ISqlType | undefined {
         const param = existingParamContextOf(params, index)
         const sqlDataType = param?.requestedSqlDataType
+        if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType, param!.requestedCustomType)) {
+            return undefined
+        }
         const value: unknown = params[index]
-        if (sqlDataType?.family !== 'character string' || sqlDataType.national !== false || typeof value !== 'string' || !__isString(param?.requestedType ?? '', param?.requestedCustomType)) {
-            return undefined
+        if (sqlDataType.family === 'character string') {
+            if (sqlDataType.national !== false || typeof value !== 'string' || !/^[\x00-\x7f]*$/.test(value)) {
+                return undefined
+            }
+            const length = sqlDataType.length
+            return TYPES.VarChar(length !== undefined && !sqlDataType.largeObject && value.length <= length ? length : mssql.MAX)
         }
-        if (!/^[\x00-\x7f]*$/.test(value)) {
-            return undefined
+        if (sqlDataType.family === 'datetime' && sqlDataType.fields === 'timestamp' && (value instanceof Date || value === null)) {
+            const native = existingQueryContextOf(params)?.connectionConfiguration?.nativeSqlDataTypeOf(sqlDataType)
+            if (native === 'datetime') {
+                return { type: TYPES.DateTime }
+            }
+            if (native === 'smalldatetime') {
+                return { type: TYPES.SmallDateTime }
+            }
         }
-        const length = sqlDataType.length
-        return TYPES.VarChar(length !== undefined && !sqlDataType.largeObject && value.length <= length ? length : mssql.MAX)
+        return undefined
     }
 
     protected getType(params: any[], index: number): ISqlTypeFactory {

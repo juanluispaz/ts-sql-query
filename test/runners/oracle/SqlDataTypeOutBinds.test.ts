@@ -1,6 +1,6 @@
-// The returning of a column whose SQL data type (withSqlDataType) says it is a large object of text is received in an
-// OUT bind of a CLOB, whole, without declaring the type in typesByName; and a text of a known length, in a buffer of
-// that length.
+// What the Oracle runner does with the SQL data type of a column (withSqlDataType): the returning of a column that is a
+// large object of text is received in an OUT bind of a CLOB, whole, without declaring the type in typesByName, and a
+// text of a known length in a buffer of that length; an object of a JSON column is bound as a JSON.
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import { OracleConnection } from '../../../src/connections/OracleConnection.js'
@@ -21,6 +21,14 @@ class TNote extends Table<DBConnection, 'TNote'> {
     }
 }
 const tNote = new TNote()
+class TDocument extends Table<DBConnection, 'TDocument'> {
+    id = this.primaryKey('id', 'int')
+    doc = this.optionalColumn<{ a: number }, 'Doc'>('doc', 'custom', 'Doc', withSqlDataType({ family: 'document', format: 'json' }))
+    constructor() {
+        super('rt_sql_type_document')
+    }
+}
+const tDocument = new TDocument()
 
 // The binds the runner gives oracledb, kept to look at them
 class InspectedRunner extends OracleDBQueryRunner {
@@ -68,5 +76,19 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
             error = e
         }
         expect(String(error)).toMatch(/ORA-|NJS-|DPI-/)
+    })
+
+    test('an-object-of-a-json-column-is-bound-as-a-json', async () => {
+        // Without a type, oracledb rejects an object (NJS-044)
+        await connection!.execute('create table rt_sql_type_document (id number primary key, doc json)')
+        try {
+            const conn = new DBConnection(new OracleDBQueryRunner(connection!))
+            await conn.insertInto(tDocument).set({ id: 1, doc: { a: 1 } }).executeInsert()
+            const stored = (await connection!.execute<[string]>('select json_serialize(doc) from rt_sql_type_document')).rows
+            expect(stored).toEqual([['{"a":1}']])
+            expect(await conn.selectFrom(tDocument).selectOneColumn(tDocument.doc).executeSelectMany()).toEqual([{ a: 1 }])
+        } finally {
+            await connection!.execute('drop table rt_sql_type_document purge')
+        }
     })
 })

@@ -8,9 +8,10 @@ import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } 
 import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import type { CustomType } from '../TypeAdapter.js'
-import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString } from '../utils/dataTypes.js'
+import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isSqlDataTypeOf, __isString } from '../utils/dataTypes.js'
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
+import type { QueryParamContext } from '../QueryContext.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 import { getQueryContext } from '../QueryContext.js'
 
@@ -226,6 +227,12 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             const temporal = oracleTemporalBind(value, typeName, customType, processInUtc, param?.getMetadata(oracleDateParam) === true)
             if (temporal) {
                 result[i] = { val: temporal.val, type: temporal.type === 'date' ? oracleDb.DB_TYPE_DATE : oracleDb.DB_TYPE_TIMESTAMP }
+                continue
+            }
+            // An object of a JSON column (its SQL data type, withSqlDataType) is bound as a JSON: without a type oracledb
+            // rejects an object (NJS-044)
+            if (value !== null && typeof value === 'object' && !(value instanceof Date) && !(value instanceof Uint8Array) && isJsonSqlDataTypeOf(param)) {
+                result[i] = { val: value, type: oracleDb.DB_TYPE_JSON }
                 continue
             }
             if (value === null || value === undefined) {
@@ -445,4 +452,10 @@ function oracleFetchTypeHandler(metadata: Metadata<any>): FetchTypeResponse {
         default:
             return { type: dbType as DbType }
     }
+}
+
+/** Whether the SQL data type requested for the parameter is a JSON document that describes its value */
+function isJsonSqlDataTypeOf(param: QueryParamContext | undefined): boolean {
+    const sqlDataType = param?.requestedSqlDataType
+    return sqlDataType !== undefined && sqlDataType.family === 'document' && sqlDataType.format === 'json' && __isSqlDataTypeOf(sqlDataType, param!.requestedType, param!.requestedCustomType)
 }

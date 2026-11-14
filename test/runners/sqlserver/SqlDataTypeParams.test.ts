@@ -8,6 +8,7 @@ import { SqlServerConnection } from '../../../src/connections/SqlServerConnectio
 import { Table } from '../../../src/Table.js'
 import { withSqlDataType } from '../../../src/TypeAdapter.js'
 import { MssqlPoolQueryRunner } from '../../../src/queryRunners/MssqlPoolQueryRunner.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/sqlserver/runners.js'
 
@@ -29,6 +30,17 @@ class TUtf8 extends Table<DBConnection, 'TUtf8'> {
     }
 }
 const tUtf8 = new TUtf8()
+// The types of the database, read from their names
+const typesConnection = new DBConnection(new NoExecutionQueryRunner())
+class TMoment extends Table<DBConnection, 'TMoment'> {
+    id = this.primaryKey('id', 'int')
+    at = this.column('at', 'localDateTime', withSqlDataType(typesConnection.sqlDataTypeFrom('datetime')))
+    plain = this.column('plain', 'localDateTime')
+    constructor() {
+        super('rt_sql_type_moment')
+    }
+}
+const tMoment = new TMoment()
 
 describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('SQL Server: a text of a column that is not national', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
@@ -100,6 +112,23 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('SQL
             expect((await pool!.request().query('select code from rt_sql_type_utf8')).recordset).toEqual([{ code: '中文ñ€' }])
         } finally {
             await pool!.request().query('drop table if exists rt_sql_type_utf8')
+        }
+    })
+    test('a-date-and-time-of-a-datetime-column-goes-as-a-datetime', async () => {
+        // As a datetime2, SQL Server compares the column with its exact fraction of 1/300 of a second, and an equality
+        // doesn't find a value with milliseconds
+        await pool!.request().query(`drop table if exists rt_sql_type_moment; create table rt_sql_type_moment (id int primary key, at datetime not null, plain datetime not null);
+            insert into rt_sql_type_moment values (1, '2024-01-01T10:00:00.003', '2024-01-01T10:00:00.003'), (2, '2024-01-01T10:00:00.123', '2024-01-01T10:00:00.123')`)
+        try {
+            const conn = new DBConnection(new MssqlPoolQueryRunner(pool!))
+            for (const [id, ms] of [[1, '003'], [2, '123']] as const) {
+                const value = new Date(`2024-01-01T10:00:00.${ms}Z`)
+                expect(await conn.selectFrom(tMoment).where(tMoment.at.equals(value)).selectOneColumn(tMoment.id).executeSelectMany()).toEqual([id])
+                // Without its SQL data type, the limit: sent as a datetime2, not found
+                expect(await conn.selectFrom(tMoment).where(tMoment.plain.equals(value)).selectOneColumn(tMoment.id).executeSelectMany()).toEqual([])
+            }
+        } finally {
+            await pool!.request().query('drop table if exists rt_sql_type_moment')
         }
     })
 })

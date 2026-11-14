@@ -156,7 +156,12 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             return rejected
         }
         return this.connection.execute(query, this.bindParams(params, true), {autoCommit: this.autoCommit()}).then((result) => {
-            return readLobsOfOutBinds(result.outBinds).then(outBinds => this.processOutBinds(params, outBinds))
+            const outBinds = result.outBinds
+            if (!hasLobs(outBinds)) {
+                // The usual case: nothing to read, no promise nor copy of the OUT binds
+                return this.processOutBinds(params, outBinds)
+            }
+            return readLobsOfOutBinds(outBinds).then(read => this.processOutBinds(params, read))
         })
     }
     /**
@@ -397,14 +402,33 @@ function isOracleDBBindType(value: DbType | OracleDBBindType | undefined): value
     return typeof value === 'object' && value !== null && 'type' in value && !('num' in value)
 }
 
+/** Whether an OUT bind, or a value of an OUT bind of several rows, is a Lob that must be read */
+function hasLobs(outBinds: any): boolean {
+    if (!outBinds || typeof outBinds !== 'object' || Array.isArray(outBinds)) {
+        return false
+    }
+    for (const key in outBinds) {
+        const value = outBinds[key]
+        if (isLob(value)) {
+            return true
+        }
+        if (Array.isArray(value)) {
+            for (let i = 0, length = value.length; i < length; i++) {
+                if (isLob(value[i])) {
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
+
 /**
- * The OUT binds with each Lob read as its value (a text or a Buffer): a RETURNING OUT bind declared a CLOB, an NCLOB or a
- * BLOB in typesByName gives a Lob, for a value of any length
+ * The OUT binds with each Lob read as its value (a text or a Buffer), in a copy: a RETURNING OUT bind declared a CLOB,
+ * an NCLOB or a BLOB (in typesByName, or by the SQL data type of its column) gives a Lob, for a value of any length.
+ * Called only when hasLobs says there is one
  */
 function readLobsOfOutBinds(outBinds: any): Promise<any> {
-    if (!outBinds || typeof outBinds !== 'object' || Array.isArray(outBinds)) {
-        return Promise.resolve(outBinds)
-    }
     const reads: Promise<void>[] = []
     const result: Record<string, any> = { ...outBinds }
     for (const key of Object.keys(result)) {
@@ -421,7 +445,7 @@ function readLobsOfOutBinds(outBinds: any): Promise<any> {
             })
         }
     }
-    return reads.length > 0 ? Promise.all(reads).then(() => result) : Promise.resolve(outBinds)
+    return Promise.all(reads).then(() => result)
 }
 
 /** Whether the value is a Lob of oracledb, read with getData */

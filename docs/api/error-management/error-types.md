@@ -122,6 +122,7 @@ try {
 | `INVALID_SQL_FRAGMENT_RETURN_TYPE` | `typeName` |
 | `INTERNAL` | `internalErrorType`, and the fields of [its type](#internal-error-subtypes) |
 | `INVALID_CONFIGURATION` | `name`, `value` |
+| `QUERY_NOT_ALLOWED` | `query` |
 | `INVALID_MOCKED_VALUE` | `value`, `queryType`, `index` |
 | `EXPRESSION_IS_NOT_CONST` | none |
 | `SYNCHRONOUS_PROMISE_EXPECTED` | none |

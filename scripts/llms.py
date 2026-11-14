@@ -49,7 +49,7 @@ AREAS = [
         'queries/transaction.md',
     ], False),
     ('extending', 'Extending the library', 'going beyond what it offers: your own SQL with fragments, the data types of the columns, and your own conversions with type adapters', [
-        'queries/sql-fragments.md', 'configuration/data-types.md', 'advanced/type-adapters.md',
+        'queries/sql-fragments.md', 'configuration/data-types.md', 'advanced/type-adapters.md', 'advanced/sql-data-types.md',
     ], True),
     ('dynamic', 'Optional parts of a query', 'the detail of dynamic queries: the order and the page from a request, optional joins, booleans and null, and conditions built with your own ifs', [
         'dynamic/optional-parts/*.md', 'dynamic/going-further/*.md',

@@ -298,6 +298,42 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 | enum, custom, customComparable | as given; forced: type of the JS value or none | as given | a string `NVarChar`, otherwise inferred from the value | as given | as given (a boolean `1`/`0`, except bun:sqlite and Bun SQL) |
 | null of a built-in type (or its custom type) | forced: the type's cast/OID | null | the type's type | typed by its type (number, timestamp), otherwise untyped | null |
 
+### 2.6 The SQL data type of a parameter
+
+A type adapter can say the type of its value in the database (`sqlDataType`, set with `withSqlDataType`): a family
+(`'exact numeric'`, `'character string'`, `'datetime'`, …) with the properties that refine it (precision, scale,
+length, `national`, fractional seconds, …) and, optionally, the name of the type in each database (`native`). The
+parameters converted with that adapter carry it in the context of the query (`sqlDataType` of each parameter): the
+value of the column in an insert or an update, and a value compared with the column (`equals`, `in`, `between`, …),
+which takes the adapter of the column; also the OUT params of a `returning` of that column. A constant gets it only from
+an adapter of its own. It describes the column: a runner uses it only when the requested type of the parameter is of
+the same family (an adapter that sends a date as a text doesn't make the text a date).
+
+The rule that keeps the meaning: **a SQL data type never narrows a value.** A cast or a bind type takes the type of
+the column only when the value fits in it; otherwise the runner does what it does without it.
+
+| Runner | What it does with it | Test |
+|---|---|---|
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | a text of a `character string` with `national: false` goes as `VarChar` of the length of the column (`VarChar(max)` when the text is longer), when it is ASCII, the same in every code page (tedious writes a `varchar` in the code page of the database: a character it lacks becomes `?`, also for a column of a UTF-8 collation, measured on 2025); otherwise `NVarChar`, as without it. As a `nvarchar`, SQL Server converts a `varchar` column, and with a SQL collation it scans its whole index (measured on 2025: Index Scan; as a `varchar`, Index Seek) | `test/runners/sqlserver/SqlDataTypeParams.test.ts` |
+| `OracleDB*QueryRunner` | a RETURNING OUT bind of a `character string` that is a `largeObject` is a `DB_TYPE_CLOB` (`DB_TYPE_NCLOB` when `national`), received whole (without it, a text longer than 4000 bytes fails with ORA-22835 unless `typesByName` declares the CLOB); of a known `length`, its `maxSize` is that length (4 bytes per character, or the octets) | `test/runners/oracle/SqlDataTypeOutBinds.test.ts` |
+| the others | nothing yet; the SQL data type reaches a runner of the user in the context | — |
+
+`typesByName` of a runner wins over the SQL data type. Not done, on purpose: an `NVARCHAR` bind on Oracle for
+`national: true` (with the database in AL32UTF8 it gains nothing measurable, and on a `VARCHAR2` column it loses the
+index), a `Decimal` bind on SQL Server (tedious converts the text to a JavaScript number, losing digits), the
+precision in the decimal casts of MySQL and MariaDB (the column adds nothing where the value fits), and the precision
+or the length in the casts of PostgreSQL (`$1::numeric(18,4)`, `$1::varchar(20)`, `$1::timestamp(3)`): measured on
+PostgreSQL 17 and 18, a value that fits gets the same plan, rows and base type (only the typmod reported to the driver
+changes, which nothing reads), and one that doesn't is rounded or cut without an error, so a `coalesce`, a `case` or a
+`union` gives other rows, and an explicit `varchar(n)` hides the "value too long" of an insert.
+
+**The conversion of the types of a database**, `sqlDataTypeFrom(nativeName)` and `nativeSqlDataTypeOf(sqlDataType)`,
+are methods of each connection: they follow its `compatibilityVersion` (a type the version doesn't have gives
+`undefined`, never another type) and where it stores what the database lacks (`uuidStrategy`, Oracle's
+`booleanStorage` and its time of the day on 1970-01-01, the date formats of SQLite). A generator uses a connection with
+`NoExecutionQueryRunner`, which rejects every query with `QUERY_NOT_ALLOWED`. Tests:
+`test/runners/<db>/SqlDataTypeCatalog.test.ts` (against the catalogue of each engine), `test/runners/general/SqlDataType.test.ts`.
+
 ## 3. Reading
 
 ### 3.1 Per runner: what it sets per query, and what it delivers
@@ -415,10 +451,11 @@ by hand (an empty context).
 | Of | Field | Written by | What it is for |
 |---|---|---|---|
 | each parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType`, `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
+| each parameter | `sqlDataType` | the type adapter the parameter is converted with (`withSqlDataType`); the one of the column for a value compared with it (§2.6) | the type of the column in the database, for the bind type or the buffer of the driver |
 | each parameter | `isValueForColumn` | the library before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server; on Oracle with a database outside UTC, a bare placeholder (§7.3) |
 | each parameter | `getMetadata(key)`: a key of a type adapter or of the library | `transformValueToDB` of the type adapter and of the connection (`setMetadata`), before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters, which the Oracle runners bind as a `DATE` when of whole seconds, and as a `DATE` when `null` (§2.4); the connection marks the temporal values of a database outside UTC (§7.3) |
 | the query | `getMetadata(key)`: a key of a type adapter | `setQueryMetadata` in the context of `transformValueToDB`, `transformPlaceholder` and `transformProjection` of a type adapter or of the connection, while the query is built (a value only looked at, or a projection called only to learn what it says, writes nothing) | what an adapter knows of the whole query, for the query runner |
-| the query | `resultColumns`, `getResultColumn(name)` | the library | the expected type of each result column (`name` = key in the row, `path`, the original and the requested type; `aggregatedArray` for an aggregated array): Oracle fetches decimals and bigints as text. `[]` when the query returns no columns, `undefined` for a query the library didn't build |
+| the query | `resultColumns`, `getResultColumn(name)` | the library | the expected type of each result column (`name` = key in the row, `path`, the original and the requested type, the `sqlDataType` of its adapter when it says one; `aggregatedArray` for an aggregated array): Oracle fetches decimals and bigints as text. `[]` when the query returns no columns, `undefined` for a query the library didn't build |
 | the query | `connectionConfiguration` | the library | the connection's settings (`ConnectionConfiguration`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, `databaseTimeZone`, `booleanStorage`, the SQLite date formats, …), read live from the connection |
 | each execution | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata` | the library | logging and errors |
 | each execution | `isSelectPageCount` | `executeSelectPage` | tells the count query apart |
@@ -796,3 +833,23 @@ run on every version of each engine mapped for the tests:
 - The checks of the configuration of pg and postgres.js in `test/runners/postgres/DriverConfiguration.test.ts`.
 
 A runner that changes how it reads or sends a temporal value states here what it supports, with the test that proves it.
+
+## 8. What a query runner may depend on
+
+Everything a runner may read besides the SQL and the params, in one place. All of it is optional information: a
+runner still works with params built by hand.
+
+| What | Where | What it is for | Section |
+|---|---|---|---|
+| The context of the query | `getQueryContext(query, params)` | everything below | §4 |
+| The types of a parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType` | the type it is sent with | §4 |
+| Whether the database must receive its type | `forceTypeCast` of the parameter | the cast or the typed bind | §2.2 |
+| Whether it is the value of a column | `isValueForColumn` of the parameter | no cast where the column gives the type | §2.2 |
+| The SQL data type of the column | `sqlDataType` of the parameter and of each result column | the bind type, the buffer | §2.6 |
+| What a type adapter or the library marks | `getMetadata(key)` of the parameter and of the query | `OracleDateAsTimestampTypeAdapter`, a database outside UTC | §4, §7.3 |
+| The columns of the result | `resultColumns`, `getResultColumn(name)` | the fetch types, the shape of the rows | §4 |
+| The configuration of the connection | `connectionConfiguration` | `compatibilityVersion`, the strategies, `booleanStorage`, `databaseTimeZone`, the date formats of SQLite | §4, §7.3 |
+| Where and why the query runs | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata`, `isSelectPageCount` | logs, errors | §4 |
+| The types declared by the user | `typesByName` of the runner, which wins over the SQL data type | a type of the driver per type name | §2.4 |
+| The runner a mock imitates | the `queryRunner` option of `MockQueryRunner` (the name of a runner) | the same placeholders and params | §2.3 |
+| The environment | `TZ` (the zone of the process), `ORA_SDTZ` | the checks of §5.2 | §5.2, §7.3 |

@@ -347,6 +347,8 @@ type TsSqlErrorReason =
      */
     | /** Invalid configuration provided */
       { reason: 'INVALID_CONFIGURATION', name: string, value: unknown }
+    | /** A query given to a query runner that executes nothing (`NoExecutionQueryRunner`) */
+      { reason: 'QUERY_NOT_ALLOWED', query: string }
 
     /* ********************************************************************************************
      * Testing errors

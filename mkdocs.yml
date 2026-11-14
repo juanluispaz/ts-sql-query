@@ -221,6 +221,7 @@ nav:
         - ConsoleLogQueryRunner: configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md
         - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
         - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
+        - NoExecutionQueryRunner: configuration/query-runners/general-purpose/NoExecutionQueryRunner.md
     - Combining with another library: configuration/query-runners/combining-with-another-library.md
   - API: 
     - API Introduction: api/introduction.md
@@ -270,6 +271,7 @@ nav:
       - Building a condition step by step: dynamic/going-further/building-conditions.md
   - Advanced:
     - Type adapters: advanced/type-adapters.md
+    - The type of a column in the database: advanced/sql-data-types.md
     - Custom booleans values: advanced/custom-booleans-values.md
     - Synchronous query runners: advanced/synchronous-query-runners.md
     - ID manipulation: advanced/id-manipulation.md

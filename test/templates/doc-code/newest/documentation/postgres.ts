@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { PostgreSqlConnection } from '../../../../../src/connections/PostgreSqlConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterProjectionContext, type TypeAdapterPlaceholderContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, withSqlDataType, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterProjectionContext, type TypeAdapterPlaceholderContext } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
@@ -71,6 +71,7 @@ import { ConsoleLogNoopQueryRunner } from '../../../../../src/queryRunners/Conso
 import { ConsoleLogQueryRunner } from '../../../../../src/queryRunners/ConsoleLogQueryRunner.js'
 import { LoggingQueryRunner } from '../../../../../src/queryRunners/LoggingQueryRunner.js'
 import { NoopQueryRunner } from '../../../../../src/queryRunners/NoopQueryRunner.js'
+import { NoExecutionQueryRunner } from '../../../../../src/queryRunners/NoExecutionQueryRunner.js'
 
 import { PGlite } from '@electric-sql/pglite'
 import { PgLiteQueryRunner } from '../../../../../src/queryRunners/PgLiteQueryRunner.js'
@@ -309,6 +310,8 @@ void connection
 void Values
 void MockQueryRunner
 void ForceTypeCast
+void withSqlDataType
+void NoExecutionQueryRunner
 
 void function(
     _ck: ColumnKeys<any>, 

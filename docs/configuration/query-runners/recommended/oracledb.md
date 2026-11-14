@@ -256,7 +256,7 @@ async function main(pool: oracledb.Pool) {
 
 A `returning` of an insert, an update or a delete is executed with `RETURNING ... INTO`, and oracledb receives each value in a buffer of a size given in advance. The query runner gives a text 32767 bytes, the longest `VARCHAR2`; `returningMaxSize` changes it for every text, and `typesByName` takes an object with the `DbType` and the `maxSize` of a type name. A longer text fails with oracledb's `NJS-016`, and, outside a transaction, the row is already written.
 
-Oracle returns a `CLOB` column as text only up to 4000 bytes (`ORA-22835` beyond). Declare its type name as `oracledb.DB_TYPE_CLOB` in `typesByName`, and the value returned is read as its text, of any length:
+Oracle returns a `CLOB` column as text only up to 4000 bytes (`ORA-22835` beyond). The recommended way is to declare the SQL data type of the column, `withSqlDataType({ family: 'character string', largeObject: true })`: its `returning` is then received as a `CLOB`, of any length, and a column of a known `length` gets a buffer of that length (see [The type of a column in the database](../../../advanced/sql-data-types.md)). Otherwise, declare its type name as `oracledb.DB_TYPE_CLOB` in `typesByName`, and the value returned is read as its text, of any length:
 
 ```ts
 import oracledb from 'oracledb';

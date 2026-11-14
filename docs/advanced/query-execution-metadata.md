@@ -357,6 +357,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 | `requestedType`, `requestedCustomType` | The type the parameter is sent with: the original one, unless the `transformValueToDB` of its type adapter or of the connection requested another with `setRequestedType`, like `'string'` for a date sent as its text (see [The original and the requested type](type-adapters.md#the-original-and-the-requested-type)) |
 | `forceTypeCast` | Whether the database must receive its type, because the position where it's written gives it none: the query runners of PostgreSQL then write a cast or send the parameter with its type |
 | `isValueForColumn` | Whether it's the value given to a column of a table, in the values of an insert or in the set of an update, where the column gives it its type |
+| `sqlDataType` | The type of the column in the database, when its type adapter says it ([`withSqlDataType`](sql-data-types.md)): of the column it's given to or compared with. `undefined` without one |
 | `getMetadata(key)` | What a type adapter kept for the parameter under that `symbol`, or `undefined` |
 
 ```ts

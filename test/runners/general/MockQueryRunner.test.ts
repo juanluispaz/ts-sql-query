@@ -4,7 +4,7 @@
 import { SynchronousPromise } from 'synchronous-promise'
 import type { CustomType } from '../../../src/TypeAdapter.js'
 import { describe, expect, test } from '../../lib/testRunner.js'
-import { MockQueryRunner, type MockQueryExecutor } from '../../../src/queryRunners/MockQueryRunner.js'
+import { MockQueryRunner, noopQueryExecutor, type MockQueryExecutor } from '../../../src/queryRunners/MockQueryRunner.js'
 import type { DatabaseType, QueryType } from '../../../src/queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from '../../../src/TsSqlError.js'
 import { QUERY_CALLS, sampleResult, type ResultShape } from '../lib/queryRunnerCalls.js'
@@ -186,6 +186,41 @@ describe('MockQueryRunner', () => {
         let error: unknown
         try { new MockQueryRunner(() => undefined).addOutParam([], 'id') } catch (e) { error = e }
         expect(reasonOf(error)).toBe('OUT_PARAMS_NOT_SUPPORTED')
+    })
+
+    test('without-a-function-it-answers-as-a-database-without-rows', async () => {
+        const runner = new MockQueryRunner({ database: 'postgreSql' })
+        expect(runner.database).toBe('postgreSql')
+        expect(runner.queryExecutor).toBe(noopQueryExecutor)
+        expect(await runner.executeQuery('selectManyRows', 'select 1', [])).toEqual([])
+        expect(await runner.executeQuery('selectOneRow', 'select 1', [])).toBeUndefined()
+        expect(await runner.executeQuery('insert', 'insert', [])).toBe(0)
+        expect(await runner.executeQuery('update', 'update', [])).toBe(0)
+    })
+
+    test('a-subclass-answers-overriding-execute-mocked-query', async () => {
+        const seen: string[] = []
+        class OrdersMock extends MockQueryRunner {
+            protected override executeMockedQuery(type: QueryType, query: string, _params: any[], index: number): any {
+                seen.push(index + ' ' + type + ' ' + query)
+                if (type === 'selectManyRows') {
+                    return [{ id: 1 }]
+                }
+                return undefined
+            }
+        }
+        const runner = new OrdersMock()
+        expect(await runner.executeQuery('selectManyRows', 'select id from orders', [])).toEqual([{ id: 1 }])
+        await runner.executeBeginTransaction([])
+        await runner.executeCommit([])
+        expect(seen).toEqual(['0 selectManyRows select id from orders', '1 beginTransaction begin transaction', '2 commit commit'])
+        // What it returns is checked as the result of a function
+        class WrongMock extends MockQueryRunner {
+            protected override executeMockedQuery(): any {
+                return 'not rows'
+            }
+        }
+        expect(reasonOf(await rejectionOf(new WrongMock().executeQuery('selectManyRows', 'q', [])))).toBe('INVALID_MOCKED_VALUE')
     })
 
     test('sql-errors', () => {

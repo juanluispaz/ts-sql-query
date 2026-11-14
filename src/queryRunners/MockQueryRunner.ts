@@ -1,6 +1,7 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, ExecutableQueryType, PromiseProvider, QueryType, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { AbstractQueryRunner } from './AbstractQueryRunner.js'
+import { getQueryContext } from '../QueryContext.js'
 import { databaseParamBinding, queryRunnerDatabases, queryRunnerParamBindings, type ParamBinding } from '../utils/queryRunnerParams.js'
 
 /**
@@ -17,6 +18,22 @@ export type QueryRunnerName =
     | 'MySql2QueryRunner' | 'MySql2PoolQueryRunner' | 'BunSqlMySqlQueryRunner' | 'MariaDBQueryRunner' | 'MariaDBPoolQueryRunner'
     | 'MssqlPoolQueryRunner' | 'MssqlPoolPromiseQueryRunner'
     | 'OracleDBQueryRunner' | 'OracleDBPoolQueryRunner' | 'OracleDBPoolPromiseQueryRunner'
+
+/**
+ * The function of a MockQueryRunner that answers every query as a database without rows: no row, no rows, no row
+ * changed, and a count of 0 for the count of a page. The one of a MockQueryRunner created without a function, and so
+ * of `NoopQueryRunner`.
+ */
+export function noopQueryExecutor(type: QueryType, query: string, params: any[]): any {
+    if (type === 'insert') {
+        return 0
+    }
+    if (type === 'selectOneColumnOneRow' && getQueryContext(query, params).isSelectPageCount) {
+        // The count of a page of no rows: the query can't find out by other means
+        return 0
+    }
+    return undefined
+}
 
 /** The options of MockQueryRunner */
 export interface MockQueryRunnerConfig {
@@ -41,7 +58,9 @@ export interface MockQueryRunnerConfig {
 
 /**
  * A query runner that takes the place of the database in tests: each query, and each statement of a transaction, goes
- * to your function (queryExecutor), which returns what the database would give. The value is checked against the
+ * to executeMockedQuery, which returns what the database would give. By default it calls the function given to the
+ * constructor (queryExecutor), or, without one, noopQueryExecutor, which answers as a database without rows; a subclass
+ * overrides executeMockedQuery to answer by itself. The value is checked against the
  * shape of its type of query, and one of another shape is rejected with `INVALID_MOCKED_VALUE`, with the type of the
  * query and its index:
  * - `selectOneRow` and the `...ReturningOneRow`: a plain object, or null or undefined without a row;
@@ -63,7 +82,7 @@ export interface MockQueryRunnerConfig {
  * `TsSqlError`; to treat another one as such, extend the class and override isSqlError.
  */
 export class MockQueryRunner extends AbstractQueryRunner {
-    /** The function that gives the result of each query */
+    /** The function that gives the result of each query by default: the one given, or noopQueryExecutor */
     readonly queryExecutor: MockQueryExecutor
     private count = 0
     private transactionDepth = 0
@@ -73,9 +92,20 @@ export class MockQueryRunner extends AbstractQueryRunner {
     private readonly typesByName: { readonly [typeName: string]: string } | undefined
     private readonly queryRunnerName: QueryRunnerName | undefined
 
-    constructor(queryExecutor: MockQueryExecutor, config: MockQueryRunnerConfig = {}) {
+    /** A mock that answers every query as a database without rows, unless a subclass overrides executeMockedQuery */
+    constructor(config?: MockQueryRunnerConfig)
+    /** A mock whose function gives the result of each query */
+    constructor(queryExecutor: MockQueryExecutor, config?: MockQueryRunnerConfig)
+    constructor(queryExecutorOrConfig?: MockQueryExecutor | MockQueryRunnerConfig, maybeConfig?: MockQueryRunnerConfig) {
         super()
-        this.queryExecutor = queryExecutor
+        let config: MockQueryRunnerConfig
+        if (typeof queryExecutorOrConfig === 'function') {
+            this.queryExecutor = queryExecutorOrConfig
+            config = maybeConfig || {}
+        } else {
+            this.queryExecutor = noopQueryExecutor
+            config = queryExecutorOrConfig || {}
+        }
         const queryRunner = config.queryRunner
         this.queryRunnerName = queryRunner
         if (queryRunner) {
@@ -130,11 +160,20 @@ export class MockQueryRunner extends AbstractQueryRunner {
         return fn(null)
     }
 
+    /**
+     * What the database would give for the query, or the statement of a transaction (with its SQL, `begin transaction`,
+     * `commit` or `rollback`, and its options as the params), with its index (0 for the first one); throwing is the
+     * database failing. By default it calls queryExecutor; override it to answer in a subclass
+     */
+    protected executeMockedQuery(type: QueryType, query: string, params: any[], index: number): any {
+        return this.queryExecutor(type, query, params, index)
+    }
+
     executeQuery(queryType: ExecutableQueryType, query: string, params: any[]): Promise<any> {
         let result
         try {
             const index = this.count++
-            result = checkedResult(queryType, this.queryExecutor(queryType, query, params, index), index)
+            result = checkedResult(queryType, this.executeMockedQuery(queryType, query, params, index), index)
         } catch (e) {
             return this.createRejectedPromise(e)
         }
@@ -143,7 +182,7 @@ export class MockQueryRunner extends AbstractQueryRunner {
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         try {
             const index = this.count++
-            checkedResult('beginTransaction', this.queryExecutor('beginTransaction', 'begin transaction', opts, index), index)
+            checkedResult('beginTransaction', this.executeMockedQuery('beginTransaction', 'begin transaction', opts, index), index)
         } catch (e) {
             return this.createRejectedPromise(e)
         }
@@ -153,7 +192,7 @@ export class MockQueryRunner extends AbstractQueryRunner {
     executeCommit(opts: CommitOpts = []): Promise<void> {
         try {
             const index = this.count++
-            checkedResult('commit', this.queryExecutor('commit', 'commit', opts, index), index)
+            checkedResult('commit', this.executeMockedQuery('commit', 'commit', opts, index), index)
         } catch (e) {
             return this.createRejectedPromise(e)
         }
@@ -165,7 +204,7 @@ export class MockQueryRunner extends AbstractQueryRunner {
     executeRollback(opts: RollbackOpts = []): Promise<void> {
         try {
             const index = this.count++
-            checkedResult('rollback', this.queryExecutor('rollback', 'rollback', opts, index), index)
+            checkedResult('rollback', this.executeMockedQuery('rollback', 'rollback', opts, index), index)
         } catch (e) {
             return this.createRejectedPromise(e)
         }

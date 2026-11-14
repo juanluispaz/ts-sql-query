@@ -212,12 +212,12 @@ export {
     type MockQueryExecutor,
     type QueryRunnerName,
     type MockQueryRunnerConfig,
+    noopQueryExecutor,
     MockQueryRunner,
 } from '../../queryRunners/MockQueryRunner.js'
 
 export {
     type NoopQueryRunnerConfig,
-    noopQueryExecutor,
     NoopQueryRunner,
 } from '../../queryRunners/NoopQueryRunner.js'
 

@@ -486,6 +486,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!result) {
                 result = new TypeAdapterContextImpl(this._connectionConfiguration, context.queryContext)
                 context.typeAdapterContext = result
+                // The configuration of the connection while the query is built, which the binding of a parameter of
+                // the query runner reads (the type of its SQL data type); each execution sets it again
+                context.queryContext.connectionConfiguration = this._connectionConfiguration
             }
             return result
         }

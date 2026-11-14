@@ -8,7 +8,7 @@ import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam, oraclePlaceholder } from './oracle/oracleParamTypes.js'
 import { mySqlMariaDBPlaceholder } from './mySqlMariaDB/mySqlMariaDBParamTypes.js'
-import { isPostgreSqlZonedParam, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSql/postgreSqlParamTypes.js'
+import { isPostgreSqlZonedParam, postgreSqlParamTypeOfSqlDataType, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSql/postgreSqlParamTypes.js'
 import { sqlServerPlaceholder } from './sqlServer/sqlServerParamTypes.js'
 
 /** The PostgreSQL type, by type name, written as the cast of a parameter (the typesByName of pg and Bun SQL) */
@@ -47,7 +47,8 @@ const postgreSqlCast: ParamBinding = (params, value, castTypesByName) => {
     const param = existingParamContextOf(params, params.length)
     const zoned = isPostgreSqlZonedParam(params, params.length)
     const index = add(params, value)
-    return postgreSqlPlaceholder(index, value, param?.requestedType ?? '', param?.requestedCustomType, !!param?.forceTypeCast, castTypesByName, zoned)
+    const forced = !!param?.forceTypeCast
+    return postgreSqlPlaceholder(index, value, param?.requestedType ?? '', param?.requestedCustomType, forced, castTypesByName, zoned, forced && !zoned ? postgreSqlParamTypeOfSqlDataType(params, index) : undefined)
 }
 /** postgres.js and PGlite send the parameter with its type: the placeholder needs no cast */
 const postgreSqlTyped: ParamBinding = (params, value) => {

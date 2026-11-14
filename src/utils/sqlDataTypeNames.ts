@@ -151,3 +151,25 @@ export function keepNativeSqlDataType(sqlDataType: SqlDataType, connectionClassI
     }
     cache[connectionClassId] = native === undefined ? null : native
 }
+
+/**
+ * What a query runner derives from the native name of a SQL data type for that class of connection, kept in the SQL
+ * data type itself, hidden, as the native name: null when there is nothing, undefined when it isn't kept yet
+ */
+export function keptDerivedOfSqlDataType<T>(sqlDataType: SqlDataType, key: symbol, connectionClassId: number): T | null | undefined {
+    const cache = Object.hasOwn(sqlDataType, key) ? (sqlDataType as unknown as { [key: symbol]: (T | null | undefined)[] })[key] : undefined
+    return cache === undefined ? undefined : cache[connectionClassId]
+}
+
+/** Keeps what a query runner derives from a SQL data type for that class of connection (see keptDerivedOfSqlDataType) */
+export function keepDerivedOfSqlDataType<T>(sqlDataType: SqlDataType, key: symbol, connectionClassId: number, derived: T | undefined): void {
+    let cache = Object.hasOwn(sqlDataType, key) ? (sqlDataType as unknown as { [key: symbol]: (T | null | undefined)[] })[key] : undefined
+    if (cache === undefined) {
+        if (!Object.isExtensible(sqlDataType)) {
+            return
+        }
+        cache = []
+        Object.defineProperty(sqlDataType, key, { value: cache })
+    }
+    cache[connectionClassId] = derived === undefined ? null : derived
+}

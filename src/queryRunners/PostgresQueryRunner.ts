@@ -5,7 +5,7 @@ import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransact
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
-import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
+import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType, postgreSqlParamTypeOfSqlDataType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { postgreSqlOptionsTimeZone } from '../utils/postgreSql/postgreSqlSessionTimeZone.js'
@@ -92,9 +92,15 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
             } else if (declared !== undefined) {
                 typed = sql.typed(value, declared)
             } else if (param?.forceTypeCast || zoned) {
-                const paramType = postgreSqlParamType(type, param?.requestedCustomType, value, zoned)
-                if (paramType) {
-                    typed = sql.typed(value, paramType.oid)
+                // The oid of its SQL data type, when it has a fixed one, or the one of its type. A text typed as a json or
+                // a jsonb would be serialized by postgres.js as a JSON string, not as the document it is
+                let ofSqlDataType = zoned ? undefined : postgreSqlParamTypeOfSqlDataType(params, i)?.oid
+                if ((ofSqlDataType === 114 || ofSqlDataType === 3802) && typeof value === 'string') {
+                    ofSqlDataType = undefined
+                }
+                const oid = ofSqlDataType ?? postgreSqlParamType(type, param?.requestedCustomType, value, zoned)?.oid
+                if (oid !== undefined) {
+                    typed = sql.typed(value, oid)
                 }
             }
             if (typed !== undefined) {

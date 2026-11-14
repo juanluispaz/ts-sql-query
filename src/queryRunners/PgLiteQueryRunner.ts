@@ -4,7 +4,7 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
-import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
+import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType, postgreSqlParamTypeOfSqlDataType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
@@ -70,7 +70,8 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
             const zoned = isPostgreSqlZonedParam(params, i)
             let oid = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             if (oid === undefined && (param?.forceTypeCast || zoned)) {
-                oid = postgreSqlParamType(type, param?.requestedCustomType, params[i], zoned)?.oid
+                // The oid of its SQL data type, when it has a fixed one, or the one of its type
+                oid = (zoned ? undefined : postgreSqlParamTypeOfSqlDataType(params, i)?.oid) ?? postgreSqlParamType(type, param?.requestedCustomType, params[i], zoned)?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {

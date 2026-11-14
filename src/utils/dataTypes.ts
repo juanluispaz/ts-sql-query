@@ -1,4 +1,4 @@
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 
 // Questions about the data type of a value, asked with its type and its custom type: a custom type decides when the
 // value has one (a `customLocalDate` named 'ReleaseDay' is a localDate, a `customInt` named 'localDate' is an int); a
@@ -84,4 +84,37 @@ export function __isLocalDateTime(type: string | undefined, customType: CustomTy
 /** Whether the value is an aggregated array */
 export function __isAggregatedArray(type: string | undefined, customType: CustomType | undefined): boolean {
     return customType === undefined && type === 'aggregatedArray'
+}
+
+/**
+ * Whether a SQL data type describes a value of that requested type, so a query runner can send the value with it: a
+ * boolean is a boolean; a number, a numeric or a money; a text, any family but a number, a boolean, a date or a time,
+ * and a binary; a uuid, a uuid; a localDate, a date; a localTime, a time; a localDateTime, a timestamp. An `enum`, a
+ * `custom`, a `customComparable` or a value without a built-in type, whose value the library doesn't know, any family.
+ * An adapter that sends a value as another type (a date as its text) requests the SQL data type of what it sends
+ */
+export function __isSqlDataTypeOf(sqlDataType: SqlDataType, type: string | undefined, customType: CustomType | undefined): boolean {
+    const family = sqlDataType.family
+    if (__isBoolean(type, customType)) {
+        return family === 'boolean'
+    }
+    if (__isInt(type, customType) || __isBigint(type, customType) || __isDouble(type, customType) || __isExactDecimal(type, customType)) {
+        return family === 'exact numeric' || family === 'approximate numeric' || family === 'money'
+    }
+    if (__isUuid(type, customType)) {
+        return family === 'uuid'
+    }
+    if (__isLocalDate(type, customType)) {
+        return family === 'datetime' && sqlDataType.fields === 'date'
+    }
+    if (__isLocalTime(type, customType)) {
+        return family === 'datetime' && sqlDataType.fields === 'time'
+    }
+    if (__isLocalDateTime(type, customType)) {
+        return family === 'datetime' && sqlDataType.fields === 'timestamp'
+    }
+    if (__isString(type, customType)) {
+        return family !== 'boolean' && family !== 'exact numeric' && family !== 'approximate numeric' && family !== 'datetime' && family !== 'binary string'
+    }
+    return !__isAggregatedArray(type, customType)
 }

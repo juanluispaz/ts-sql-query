@@ -1,8 +1,9 @@
 import type { CustomType } from '../../TypeAdapter.js'
-import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../dataTypes.js'
+import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isSqlDataTypeOf, __isString, __isUuid } from '../dataTypes.js'
+import { connectionClassIdOf, keepDerivedOfSqlDataType, keptDerivedOfSqlDataType } from '../sqlDataTypeNames.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { postgreSqlZonedParam } from '../metadataSymbols.js'
-import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
+import { existingParamContextOf, existingQueryContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
  * The PostgreSQL type a parameter is given where the position it is written in doesn't give it one (forceTypeCast):
@@ -11,7 +12,8 @@ import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
  */
 export interface PostgreSqlParamType {
     readonly cast: string
-    readonly oid: number
+    /** Undefined for a type without a fixed oid (one of the user or of an extension) */
+    readonly oid: number | undefined
 }
 
 const bool: PostgreSqlParamType = { cast: 'bool', oid: 16 }
@@ -25,6 +27,55 @@ const date: PostgreSqlParamType = { cast: 'date', oid: 1082 }
 const time: PostgreSqlParamType = { cast: 'time', oid: 1083 }
 const timestamp: PostgreSqlParamType = { cast: 'timestamp', oid: 1114 }
 const timestamptz: PostgreSqlParamType = { cast: 'timestamptz', oid: 1184 }
+
+/** The oids of the types of PostgreSQL that have a fixed one, by the name nativeSqlDataTypeOf gives without its arguments */
+const fixedOids: { readonly [cast: string]: number | undefined } = {
+    'boolean': 16, 'smallint': 21, 'integer': 23, 'bigint': 20, 'real': 700, 'double precision': 701, 'numeric': 1700,
+    'text': 25, 'character varying': 1043, 'character': 1042, 'bytea': 17, 'date': 1082, 'time': 1083,
+    'time with time zone': 1266, 'timestamp': 1114, 'timestamp with time zone': 1184, 'interval': 1186, 'uuid': 2950,
+    'json': 114, 'jsonb': 3802, 'xml': 142, 'jsonpath': 4072, 'inet': 869, 'cidr': 650, 'macaddr': 829, 'macaddr8': 774,
+    'money': 790, 'bit': 1560, 'bit varying': 1562, 'point': 600, 'line': 628, 'lseg': 601, 'box': 603, 'path': 602,
+    'polygon': 604, 'circle': 718, 'tsvector': 3614, 'tsquery': 3615, 'oid': 26, 'tid': 27, 'xid': 28, 'cid': 29,
+    'xid8': 5069, 'pg_lsn': 3220,
+}
+
+/** Where a SQL data type keeps, hidden, the PostgreSQL type of a parameter derived from it, for each class of connection */
+const paramTypeOfSqlDataTypeKey: unique symbol = Symbol('postgreSqlParamTypeOfSqlDataType')
+
+/**
+ * The PostgreSQL type of the parameter at that index from the SQL data type requested for it, when it describes the
+ * value (`__isSqlDataTypeOf`): its native name without the arguments (`numeric(18, 4)` is a `numeric`,
+ * `character varying(20)` a `character varying`), because a cast with them would round or cut a value that doesn't fit,
+ * silently; and its oid, when the type has a fixed one. Derived once for each SQL data type and class of connection
+ */
+export function postgreSqlParamTypeOfSqlDataType(params: any[], index: number): PostgreSqlParamType | undefined {
+    const param = existingParamContextOf(params, index)
+    const sqlDataType = param?.requestedSqlDataType
+    if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType, param!.requestedCustomType)) {
+        return undefined
+    }
+    // A localTime has no zone: a cast to a time with time zone would complete it with the zone of the session
+    if (__isLocalTime(param!.requestedType, param!.requestedCustomType) && sqlDataType.family === 'datetime' && sqlDataType.timeZone !== undefined && sqlDataType.timeZone !== 'none') {
+        return undefined
+    }
+    const configuration = existingQueryContextOf(params)?.connectionConfiguration
+    if (configuration === undefined) {
+        return undefined
+    }
+    const connectionClassId = connectionClassIdOf(configuration)
+    const kept = keptDerivedOfSqlDataType<PostgreSqlParamType>(sqlDataType, paramTypeOfSqlDataTypeKey, connectionClassId)
+    if (kept !== undefined) {
+        return kept === null ? undefined : kept
+    }
+    const native = configuration.nativeSqlDataTypeOf(sqlDataType)
+    let result: PostgreSqlParamType | undefined
+    if (native !== undefined) {
+        const cast = native.indexOf('(') < 0 ? native : native.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()
+        result = { cast, oid: cast.startsWith('interval') ? 1186 : fixedOids[cast] }
+    }
+    keepDerivedOfSqlDataType(sqlDataType, paramTypeOfSqlDataTypeKey, connectionClassId, result)
+    return result
+}
 
 /**
  * Whether the parameter at that index is a localDateTime or a localTime of a database outside UTC (marked by the
@@ -89,11 +140,12 @@ export function postgreSqlParamType(type: string | undefined, customType: Custom
 
 /**
  * The placeholder `$<index + 1>` of the parameter at that index of the params, with its cast when forceTypeCast and the
- * parameter has a PostgreSQL type: the one declared for its type name in typesByName, or the one of postgreSqlParamType.
+ * parameter has a PostgreSQL type: the one declared for its type name in typesByName, the one of its SQL data type
+ * (postgreSqlParamTypeOfSqlDataType), or the one of postgreSqlParamType.
  * A value of a database outside UTC (zoned) is always cast to a timestamptz, which the database converts with its
  * session, whatever type is declared for it.
  */
-export function postgreSqlPlaceholder(index: number, value: unknown, type: string, customType: CustomType | undefined, forceTypeCast: boolean, typesByName?: { readonly [typeName: string]: string } | undefined, zoned: boolean = false): string {
+export function postgreSqlPlaceholder(index: number, value: unknown, type: string, customType: CustomType | undefined, forceTypeCast: boolean, typesByName?: { readonly [typeName: string]: string } | undefined, zoned: boolean = false, ofSqlDataType?: PostgreSqlParamType | undefined): string {
     const placeholder = '$' + (index + 1)
     if (!forceTypeCast && !zoned) {
         return placeholder
@@ -104,6 +156,9 @@ export function postgreSqlPlaceholder(index: number, value: unknown, type: strin
     const declared = typesByName && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
     if (declared !== undefined) {
         return placeholder + '::' + declared
+    }
+    if (ofSqlDataType !== undefined) {
+        return placeholder + '::' + ofSqlDataType.cast
     }
     const cast = postgreSqlParamType(type, customType, value, zoned)?.cast
     if (cast) {

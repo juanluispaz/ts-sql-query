@@ -5,7 +5,7 @@ import type { TypedValueSource } from '../typeSystem/valueSource.js'
 import type { ValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSystem/booleans.js'
 import type { CustomIntType, DoubleType, IntType } from '../typeSystem/numbers.js'
-import { customInt } from '../typeSystem/numbers.js'
+import { CustomIntType as CustomIntTypeClass } from '../typeSystem/numbers.js'
 import type { StringType } from '../typeSystem/strings.js'
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
@@ -76,6 +76,6 @@ assertType<ConditionIsNotAValueSource>()
 type BooleanIsAValueSource = typeof aBoolean extends TypedValueSource<any, any, any> ? true : false
 assertType<BooleanIsAValueSource>()
 
-// A custom data type made by its function
-const MoneyType = customInt<Money, 'Money'>('Money')
+// A custom data type made by the static function of its family
+const MoneyType = CustomIntTypeClass.withTypeName<Money, 'Money'>('Money')
 assertType<Equal<typeof MoneyType.prototype, CustomIntType<Money, 'Money'>>>()

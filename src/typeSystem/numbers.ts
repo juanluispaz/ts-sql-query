@@ -26,12 +26,12 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     static override readonly __customType = 'customInt'
     declare [typeName]: `type:${TYPE_NAME}:customInt:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
-}
 
-/** The data type of an integer number of a type of the user, with its type name */
-export function customInt<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>> {
-    abstract class CustomInt extends CustomIntType<VALUE_TYPE, TYPE_NAME> {
-        static override readonly __type = typeName
+    /** The data type of an integer number of a type of the user, with its type name */
+    static withTypeName<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>> {
+        abstract class CustomInt extends CustomIntType<VALUE_TYPE, TYPE_NAME> {
+            static override readonly __type = typeName
+        }
+        return CustomInt
     }
-    return CustomInt
 }

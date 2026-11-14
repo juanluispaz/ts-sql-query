@@ -77,5 +77,5 @@ type BooleanIsAValueSource = typeof aBoolean extends TypedValueSource<any, any, 
 assertType<BooleanIsAValueSource>()
 
 // A custom data type made by the static function of its family
-const MoneyType = CustomIntTypeClass.withTypeName<Money, 'Money'>('Money')
+const MoneyType = CustomIntTypeClass.of<Money, 'Money'>('Money')
 assertType<Equal<typeof MoneyType.prototype, CustomIntType<Money, 'Money'>>>()

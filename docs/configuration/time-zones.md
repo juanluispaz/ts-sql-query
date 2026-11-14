@@ -192,6 +192,8 @@ The library then lets the database complete the zone of a `localDateTime` or a `
     | A `localTime` sent | `$1::timestamptz::time` (pg, Bun SQL), or the parameter sent as a `timestamptz` and `$1::time` (postgres.js, PGlite): its wall clock | `1970-01-01T17:00:00.000Z` is stored as `18:00` |
     | A `localTime` read | completed with a day, the `localTimeReferenceDate` | `18:00` is read as `1970-01-01T17:00:00.000Z` |
 
+On PostgreSQL a `localDateTime` and a `localTime` are sent as a `timestamptz` also when the query runner's `typesByName` declares another type for them: the declared type would store the instant as UTC digits.
+
 A `localDate` doesn't change: a date has no instant. A column with zone (`timestamptz`, `TIMESTAMP WITH TIME ZONE`) reads the same as before, its instant.
 
 A `localTime` has no day, and its offset depends on the day: 18:00 in Madrid is 17:00 UTC in winter and 16:00 UTC in summer. `localTimeReferenceDate` says which day completes it: `'1970-01-01'` by default, the day of a `localTime`, a date of yours as `'YYYY-MM-DD'`, or `'today'`, the current date of the database, which gives the offset of today. The `Date` read keeps that day, and a `Date` sent is converted with the offset of its own day: send a `localTime` on that same day, like the `Date` you read, so it is stored as the time it is read as (with `'2024-07-14'`, 18:00 in Madrid is `2024-07-14T16:00:00.000Z`). For anything finer, like the day of another column, use a [type adapter](../advanced/type-adapters.md).

@@ -181,7 +181,7 @@ temporal type, and `addParam` checks a decimal only when it is plain decimal tex
 |---|---|---|
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner`, `NodeSqliteQueryRunner`, `BunSqlSqliteQueryRunner`; a mock on SQLite | `?N` (1-based) | — |
 | `Sqlite3WasmOO1QueryRunner` | `?N`; an integer `number` ≥ 2^63 or < −2^63 as `cast(?N as real)`, the param holding `String(value)` (the driver would wrap it) | — |
-| `PgQueryRunner`, `PgPoolQueryRunner`, `BunSqlPostgresQueryRunner`; a mock on PostgreSQL | `$N`, plus `::<cast>` when `forceTypeCast` and a type is known (the one of `typesByName` for the type name first, then the one of the data type, below); with a database outside UTC, `::timestamptz` on a `localDateTime` and `::timestamptz::time` on a `localTime`, forced or not (§7.3) | — |
+| `PgQueryRunner`, `PgPoolQueryRunner`, `BunSqlPostgresQueryRunner`; a mock on PostgreSQL | `$N`, plus `::<cast>` when `forceTypeCast` and a type is known (the one of `typesByName` for the type name first, then the one of the data type, below); with a database outside UTC, `::timestamptz` on a `localDateTime` and `::timestamptz::time` on a `localTime`, forced or not, whatever `typesByName` declares (§7.3) | — |
 | `PostgresQueryRunner`, `PgLiteQueryRunner` | `$N`, no cast (the type goes with the param, §2.4); with a database outside UTC, `$N::time` on a `localTime` (§7.3) | — |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner`, `MariaDBQueryRunner`, `MariaDBPoolQueryRunner`, `BunSqlMySqlQueryRunner`; a mock on MySQL or MariaDB | `?`, or `cast(? as decimal(p, s))` for a decimal outside the value of a column | a decimal with precision > 65 or scale > 30 |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner`; a mock on SQL Server | `@N` (0-based), or `cast(@N as decimal(p, s))` for a decimal outside the value of a column | a decimal with precision > 38 |
@@ -703,10 +703,10 @@ arithmetic. With UTC the SQL doesn't change.
 
 - **PostgreSQL** (supported): each `localDateTime` and `localTime` parameter is sent as a `timestamptz` of its instant,
   forced or not (`$1::timestamptz` on pg and Bun SQL, OID 1184 on postgres.js and PGlite; a `localTime` with its own
-  day, and `::timestamptz::time` on pg and Bun SQL, `$1::time` on postgres.js and PGlite). A `typesByName` entry for
-  the type name wins: pg and Bun SQL write its cast instead, postgres.js and PGlite send its OID, and the value, the
-  `…+00` text, is then not converted to the zone of the database (measured on pg with a `timestamp` cast: stored as
-  `09:15:30.123` instead of `10:15:30.123` in Madrid, without an error; open, see the handoff); a column is read as `<sql>::timestamptz` (a no-op on a `timestamptz`), and as its text in the JSON of an
+  day, and `::timestamptz::time` on pg and Bun SQL, `$1::time` on postgres.js and PGlite). A `typesByName` entry
+  for the type name doesn't apply to them, on every runner: the declared type would store the `…+00` text as UTC digits
+  instead of converting it to the zone of the database (`…-a-type-declared-in-types-by-name-keeps-the-zone-of-the-database`).
+  A parameter read back as it is (a constant selected) needs no conversion: `$1::timestamptz`; a column is read as `<sql>::timestamptz` (a no-op on a `timestamptz`), and as its text in the JSON of an
   aggregated array; the date functions take `(<sql>::timestamptz at time zone 'UTC')`, so they keep giving the parts
   in UTC. A `localTime` is completed with the `localTimeReferenceDate` (`'1970-01-01'` by default, a date, or
   `'today'`, `current_date`), and the connection keeps that day in the `Date` it reads. A wall clock the zone skips is

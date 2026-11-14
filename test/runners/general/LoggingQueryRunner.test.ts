@@ -7,7 +7,7 @@ import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
 import { ConsoleLogQueryRunner, type ConsoleLogQueryRunnerOpts } from '../../../src/queryRunners/ConsoleLogQueryRunner.js'
 import { LoggingQueryRunner, type QueryLogger } from '../../../src/queryRunners/LoggingQueryRunner.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
-import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
+import type { QueryRunner, QueryType } from '../../../src/queryRunners/QueryRunner.js'
 import { QUERY_CALLS, sampleResult, type RunnerCall } from '../lib/queryRunnerCalls.js'
 import { rejectionOf } from '../lib/runnerContract.js'
 
@@ -133,6 +133,23 @@ describe('LoggingQueryRunner', () => {
         expect(await runner.executeInTransaction(async () => 'r', runner)).toBe('r')
         const bodyFailure = new Error('body')
         expect(await rejectionOf(runner.executeInTransaction(async () => { throw bodyFailure }, runner))).toBe(bodyFailure)
+    })
+
+    test('a-subclass-without-a-logger-logs-overriding-the-log-methods', async () => {
+        const spans: string[] = []
+        class TracingQueryRunner<T extends QueryRunner> extends LoggingQueryRunner<T> {
+            protected override logQueryResult(queryType: QueryType, query: string, _params: any[], _result: any, timestamps: { startedAt: bigint, endedAt: bigint }): void {
+                spans.push(queryType + ' ' + query + ' ' + (timestamps.endedAt >= timestamps.startedAt))
+            }
+            protected override logQueryError(queryType: QueryType, _query: string, _params: any[], error: any): void {
+                spans.push(queryType + ' failed: ' + error.message)
+            }
+        }
+        const runner = new TracingQueryRunner(mock())
+        expect(runner.logger).toEqual({})
+        await runner.executeQuery('selectManyRows', 'select 1', [])
+        await rejectionOf(new TracingQueryRunner(mock(true)).executeQuery('update', 'update t set a = 1', []))
+        expect(spans).toEqual(['selectManyRows select 1 true', 'update failed: database failure'])
     })
 
     test('a-failing-logger-does-not-change-how-the-transaction-ends', async () => {

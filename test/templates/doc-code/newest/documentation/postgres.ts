@@ -51,6 +51,7 @@ import {
     type QueryResultColumn,
     type ConnectionConfiguration,
     type FunctionExecutingQueryInformation, 
+    type QueryRunner,
     type QueryType 
 } from '../../../../../src/queryRunners/QueryRunner.js'
 import { type DynamicCondition, type DynamicConditionForModel, type DynamicDefinitionForModel, type StringFilter } from '../../../../../src/dynamic/condition.js'
@@ -368,6 +369,7 @@ void function(_dp: DeepPick<any, string>, _do: DeepOmit<any, string>, _dpp: Deep
 void function(_dcfm: DynamicConditionForModel<any>, _ddfm: DynamicDefinitionForModel<any>, _obfm: OrderByForModel<any>, _obm: OrderByMode) {}
 
 void function(
+    _qr: QueryRunner,
     _qt: QueryType,
     _feqi: FunctionExecutingQueryInformation,
     _qrc: QueryResultColumn,

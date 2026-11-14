@@ -12,7 +12,7 @@ import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
 
 // A connection made only to convert the types: it executes nothing
 class IntrospectionConnection extends OracleConnection<'IntrospectionConnection'> { }
-const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('oracle'))
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner())
 
 const cases: CatalogCase[] = [
     { ddl: 'number(18, 4)', family: { family: 'exact numeric', precision: 18, scale: 4 }, canonical: 'NUMBER(18, 4)' },

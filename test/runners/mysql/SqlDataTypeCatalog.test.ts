@@ -12,7 +12,7 @@ import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
 
 // A connection made only to convert the types: it executes nothing
 class IntrospectionConnection extends MySqlConnection<'IntrospectionConnection'> { }
-const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('mySql'))
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner())
 
 const integer = (bytes: 1 | 2 | 3 | 4 | 8, unsigned?: boolean) => unsigned ? { family: 'exact numeric' as const, scale: 0, bytes, unsigned } : { family: 'exact numeric' as const, scale: 0, bytes }
 const cases: CatalogCase[] = [

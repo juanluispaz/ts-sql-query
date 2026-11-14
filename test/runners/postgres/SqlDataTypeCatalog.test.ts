@@ -12,7 +12,7 @@ import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
 
 // A connection made only to convert the types: it executes nothing
 class IntrospectionConnection extends PostgreSqlConnection<'IntrospectionConnection'> { }
-const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('postgreSql'))
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner())
 
 const cases: CatalogCase[] = [
     { ddl: 'smallint', family: { family: 'exact numeric', scale: 0, bytes: 2 }, canonical: 'smallint' },

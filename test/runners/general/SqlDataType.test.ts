@@ -10,7 +10,7 @@ import { Table } from '../../../src/Table.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import { CustomBooleanTypeAdapter, withSqlDataType, type SqlDataType } from '../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, withSqlDataType, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../src/TypeAdapter.js'
 import { reasonOf } from '../lib/runnerContract.js'
 
 const price: SqlDataType = { family: 'exact numeric', precision: 18, scale: 4 }
@@ -62,9 +62,9 @@ describe('the native names of several databases', () => {
         const timestamp: SqlDataType = { family: 'datetime', fields: 'timestamp', precision: 3, timeZone: 'none', native: { sqlServer: 'datetime', postgreSql: 'timestamp(3) without time zone' } }
         class SqlServer extends SqlServerConnection<'SqlServer'> { }
         class Oracle extends OracleConnection<'Oracle'> { }
-        expect(new SqlServer(new NoExecutionQueryRunner('sqlServer')).nativeSqlDataTypeOf(timestamp)).toBe('datetime')
-        expect(new DBConnection(new NoExecutionQueryRunner('postgreSql')).nativeSqlDataTypeOf(timestamp)).toBe('timestamp(3) without time zone')
-        expect(new Oracle(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(timestamp)).toBe('TIMESTAMP(3)')
+        expect(new SqlServer(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(timestamp)).toBe('datetime')
+        expect(new DBConnection(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(timestamp)).toBe('timestamp(3) without time zone')
+        expect(new Oracle(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(timestamp)).toBe('TIMESTAMP(3)')
     })
 })
 
@@ -76,20 +76,20 @@ describe('the version and the strategies of the connection', () => {
         class Oracle19 extends OracleConnection<'Oracle19'> { protected override compatibilityVersion = 19_000_000 }
         class SqlServer2022 extends SqlServerConnection<'SqlServer2022'> { protected override compatibilityVersion = 16_000_000 }
         class SqlServer2025 extends SqlServerConnection<'SqlServer2025'> { protected override compatibilityVersion = 17_000_000 }
-        expect(new Oracle21(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(json)).toBe('JSON')
-        expect(new Oracle19(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(json)).toBeUndefined()
-        expect(new SqlServer2025(new NoExecutionQueryRunner('sqlServer')).nativeSqlDataTypeOf(json)).toBe('json')
-        expect(new SqlServer2022(new NoExecutionQueryRunner('sqlServer')).nativeSqlDataTypeOf(json)).toBeUndefined()
+        expect(new Oracle21(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(json)).toBe('JSON')
+        expect(new Oracle19(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(json)).toBeUndefined()
+        expect(new SqlServer2025(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(json)).toBe('json')
+        expect(new SqlServer2022(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(json)).toBeUndefined()
     })
     test('a-type-the-library-stores-in-another-follows-the-strategy', () => {
         class OracleRaw extends OracleConnection<'OracleRaw'> { }
         class OracleText extends OracleConnection<'OracleText'> { protected override uuidStrategy = 'string' as const }
         class OracleBoolean extends OracleConnection<'OracleBoolean'> { protected override booleanStorage = 'boolean' as const }
-        const oracle = new OracleRaw(new NoExecutionQueryRunner('oracle'))
+        const oracle = new OracleRaw(new NoExecutionQueryRunner())
         expect(oracle.nativeSqlDataTypeOf(uuid)).toBe('RAW(16)')
-        expect(new OracleText(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(uuid)).toBe('VARCHAR2(36)')
+        expect(new OracleText(new NoExecutionQueryRunner()).nativeSqlDataTypeOf(uuid)).toBe('VARCHAR2(36)')
         expect(oracle.nativeSqlDataTypeOf({ family: 'boolean' })).toBe('NUMBER(1)')
-        expect(new OracleBoolean(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf({ family: 'boolean' })).toBe('BOOLEAN')
+        expect(new OracleBoolean(new NoExecutionQueryRunner()).nativeSqlDataTypeOf({ family: 'boolean' })).toBe('BOOLEAN')
         // A time of the day is kept on 1970-01-01
         expect(oracle.nativeSqlDataTypeOf({ family: 'datetime', fields: 'time', precision: 3 })).toBe('TIMESTAMP(3)')
     })
@@ -125,5 +125,54 @@ describe('the SQL data type in the context of the query', () => {
     test('a-constant-without-an-adapter-says-none', async () => {
         const context = await contextOf(conn => conn.selectFromNoTable().select({ v: conn.const('1.5', 'customDecimal', 'Price') }).executeSelectMany())
         expect(context.params).toEqual([undefined])
+    })
+})
+
+// An adapter that sends a date as its text: it says so, so the SQL data type of the parameter and of the column of the
+// result is the one of the text, and it sees the SQL data type of the column in each transformation
+const asText: SqlDataType = { family: 'character string', length: 10 }
+class DateAsTextAdapter implements TypeAdapter {
+    readonly seen: (SqlDataType | undefined)[] = []
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        this.seen.push(context.sqlDataType)
+        context.setSqlDataType(asText)
+        return next.transformValueToDB(value, context)
+    }
+    transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        this.seen.push(context.sqlDataType)
+        context.setSqlDataType(asText)
+        return next.transformProjection(sql, context)
+    }
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        this.seen.push(context.sqlDataType)
+        return next.transformValueFromDB(value, context)
+    }
+}
+const day: SqlDataType = { family: 'datetime', fields: 'date' }
+const dayAdapter = withSqlDataType(day, new DateAsTextAdapter())
+class TEvent extends Table<DBConnection, 'TEvent'> {
+    id = this.primaryKey('id', 'int')
+    day = this.column('day', 'localDate', dayAdapter)
+    constructor() {
+        super('event')
+    }
+}
+const tEvent = new TEvent()
+
+describe('the SQL data type in the context of a type adapter', () => {
+    test('it-is-read-and-set-in-each-transformation', async () => {
+        let captured: { params: (SqlDataType | undefined)[], columns: (SqlDataType | undefined)[] } | undefined
+        const conn = new DBConnection(new MockQueryRunner((_type, query, params) => {
+            const context = getQueryContext(query, params)
+            captured = { params: params.map((_, index) => context.getParam(index)?.sqlDataType), columns: (context.resultColumns ?? []).map(column => column.sqlDataType) }
+            return [{ day: '2024-01-15' }]
+        }))
+        const rows = await conn.selectFrom(tEvent).where(tEvent.day.equals(new Date('2024-01-15T00:00:00Z'))).select({ day: tEvent.day }).executeSelectMany()
+        expect(rows).toEqual([{ day: new Date('2024-01-15T10:00:00.000Z') }])
+        // The parameter and the column of the result say the type the adapter set
+        expect(captured).toEqual({ params: [asText], columns: [asText] })
+        // Each transformation saw the SQL data type of the column first; reading, the one its projection set
+        expect(dayAdapter.seen.slice(0, 2)).toEqual([day, day])
+        expect(dayAdapter.seen[dayAdapter.seen.length - 1]).toEqual(asText)
     })
 })

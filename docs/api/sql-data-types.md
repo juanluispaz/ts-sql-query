@@ -47,9 +47,9 @@ interface ConnectionOfADatabase {
 A connection only to use them takes a `NoExecutionQueryRunner`, which rejects every query with `QUERY_NOT_ALLOWED`:
 
 ```typescript
-/** A NoopQueryRunner whose queries are rejected; it takes the same configuration */
+/** A NoopQueryRunner whose queries are rejected; the connection tells it its database */
 class NoExecutionQueryRunner {
-    constructor(databaseOrConfig?: DatabaseType | { database?: DatabaseType })
+    constructor()
     // NoExecutionQueryRunner's constructor implementation ...
 }
 ```

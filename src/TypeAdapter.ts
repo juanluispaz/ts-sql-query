@@ -54,6 +54,11 @@ export interface TypeAdapterContext {
     readonly requestedType: string
     /** Which custom type the requested type is; undefined for a built-in type */
     readonly requestedCustomType: CustomType | undefined
+    /**
+     * The type of the value in the database (see `SqlDataType`): the one the type adapter says (`withSqlDataType`), unless
+     * a transformation set another (`setSqlDataType`); undefined when none says it
+     */
+    readonly sqlDataType: SqlDataType | undefined
 }
 
 /**
@@ -71,6 +76,12 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the original type again */
     resetRequestedType(): void
+    /**
+     * Says the type of the value in the database, like the one of the type the value is converted to: the query runner
+     * receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
+     * `transformProjection`); undefined says none
+     */
+    setSqlDataType(sqlDataType: SqlDataType | undefined): void
     /**
      * Whether the database must receive the type of the parameter (the query runner writes a cast in the placeholder,
      * or sends the parameter with its type): it comes with what the library decided for the position where the
@@ -132,6 +143,12 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the original type again */
     resetRequestedType(): void
+    /**
+     * Says the type of the value in the database, like the one of the type the value is converted to: the query runner
+     * receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
+     * `transformProjection`); undefined says none
+     */
+    setSqlDataType(sqlDataType: SqlDataType | undefined): void
     /** Where the value leaves the database (see `ProjectionOutput`) */
     readonly output: ProjectionOutput
     /**
@@ -164,6 +181,12 @@ export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the original type again */
     resetRequestedType(): void
+    /**
+     * Says the type of the value in the database, like the one of the type the value is converted to: the query runner
+     * receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
+     * `transformProjection`); undefined says none
+     */
+    setSqlDataType(sqlDataType: SqlDataType | undefined): void
 }
 
 export interface DefaultTypeAdapter {

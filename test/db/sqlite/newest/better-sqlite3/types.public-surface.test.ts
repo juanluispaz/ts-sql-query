@@ -16,7 +16,7 @@ import { sync } from '../../../../../src/extras/sync.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../../../../../src/connections/SqliteConfiguration.js'
 import { Table } from '../../../../../src/Table.js'
 import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason, type TsSqlInternalErrorReason } from '../../../../../src/TsSqlError.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, type CustomType, type DefaultTypeAdapter, type TypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type CustomType, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 import { getQueryContext } from '../../../../../src/QueryContext.js'
 import type { ConnectionConfiguration } from '../../../../../src/queryRunners/QueryRunner.js'
 import { Values, type OpaqueValues } from '../../../../../src/Values.js'
@@ -88,6 +88,10 @@ class AdapterContext implements TypeAdapterValueFromDBContext, TypeAdapterValueT
     resetRequestedType(): void {
         this.requestedType = this.originalType
         this.requestedCustomType = this.originalCustomType
+    }
+    sqlDataType: SqlDataType | undefined = undefined
+    setSqlDataType(sqlDataType: SqlDataType | undefined): void {
+        this.sqlDataType = sqlDataType
     }
     private readonly metadata = new Map<symbol, Parameters<TypeAdapterValueToDBContext['setMetadata']>[1]>()
     setMetadata(key: symbol, value: unknown): void {

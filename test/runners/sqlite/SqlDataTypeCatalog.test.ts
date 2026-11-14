@@ -12,7 +12,7 @@ import { checkCatalog, type CatalogCase, type CatalogEngine } from '../lib/sqlDa
 
 // A connection made only to convert the types: it executes nothing
 class IntrospectionConnection extends SqliteConnection<'IntrospectionConnection'> { }
-const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('sqlite'))
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner())
 
 const strictCases: CatalogCase[] = [
     { ddl: 'INT', family: { family: 'exact numeric', scale: 0, bytes: 8 }, canonical: 'INTEGER' },

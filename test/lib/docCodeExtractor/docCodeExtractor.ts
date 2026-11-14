@@ -310,7 +310,7 @@ const SUBSTITUTIONS: { from: string; to: string }[] = [
     { from: `// CustomBooleanTypeAdapter's transformValueToDB implementation ...`, to: `{ return next.transformValueToDB(value, context); /* dummy implementation*/ }` },
     { from: `// ForceTypeCast's transformValueFromDB implementation ...`, to: `{ return next.transformValueFromDB(value, context); /* dummy implementation*/ }` },
     { from: `// withSqlDataType's implementation ...`, to: `function withSqlDataType(sqlDataType: any, adapter?: any): any { void sqlDataType; return adapter; /* dummy implementation*/ }` },
-    { from: `// NoExecutionQueryRunner's constructor implementation ...`, to: `constructor(databaseOrConfig?: any) { void databaseOrConfig; /* dummy implementation*/ }` },
+    { from: `// NoExecutionQueryRunner's constructor implementation ...`, to: `constructor() { /* dummy implementation*/ }` },
     { from: `// ForceTypeCast's transformValueToDB implementation ...`, to: `{ context.forceTypeCast = true; return next.transformValueToDB(value, context); /* dummy implementation*/ }` },
     { from: `new NodeSqliteQueryRunner(db`, to: `new NodeSqliteQueryRunner(db as any` },
     { from: `new BetterSqlite3QueryRunner(db`, to: `new BetterSqlite3QueryRunner(db as any` },

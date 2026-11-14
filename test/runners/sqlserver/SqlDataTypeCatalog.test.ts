@@ -12,7 +12,7 @@ import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
 
 // A connection made only to convert the types: it executes nothing
 class IntrospectionConnection extends SqlServerConnection<'IntrospectionConnection'> { }
-const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('sqlServer'))
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner())
 
 const cases: CatalogCase[] = [
     { ddl: 'tinyint', family: { family: 'exact numeric', scale: 0, bytes: 1, unsigned: true }, canonical: 'tinyint' },

@@ -27,7 +27,7 @@ async function reasonOfRejection(execute: () => Promise<unknown>): Promise<strin
 }
 
 describe('NoExecutionQueryRunner', () => {
-    const conn = new DBConnection(new NoExecutionQueryRunner('postgreSql'))
+    const conn = new DBConnection(new NoExecutionQueryRunner())
 
     test('it-writes-the-sql-of-its-database', () => {
         expect(conn.selectFrom(tItem).where(tItem.id.equals(1)).select({ name: tItem.name }).query()).toBe('select name as name from item where id = $1')

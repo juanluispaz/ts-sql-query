@@ -17,12 +17,12 @@ A query runner that executes nothing: every query, and every statement of a tran
 
 ## Creating it
 
-It takes the database whose SQL it writes, as `NoopQueryRunner` does:
+It needs nothing: the connection tells it its database, and it writes the SQL of that database.
 
 ```ts
 import { NoExecutionQueryRunner } from "ts-sql-query";
 
-const connection = new DBConnection(new NoExecutionQueryRunner('postgreSql'));
+const connection = new DBConnection(new NoExecutionQueryRunner());
 const sqlDataType = connection.sqlDataTypeFrom('numeric(18,4)');
 // { family: 'exact numeric', precision: 18, scale: 4, native: { postgreSql: 'numeric(18,4)' } }
 ```
@@ -33,7 +33,7 @@ An `execute…` method of a query, or a transaction, on that connection is rejec
 import { NoExecutionQueryRunner } from "ts-sql-query";
 
 async function main() {
-    const connection = new DBConnection(new NoExecutionQueryRunner('postgreSql'));
+    const connection = new DBConnection(new NoExecutionQueryRunner());
     // Rejected with QUERY_NOT_ALLOWED
     await connection.selectFrom(tCompany).select({ id: tCompany.id }).executeSelectMany();
 }

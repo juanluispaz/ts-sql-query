@@ -8,6 +8,8 @@ The [data type](../configuration/data-types.md) of a column says what the value 
 
 The library and the query runners use it where it gives a better query, and it saves declaring a type per driver (`typesByName` of a query runner) for what the SQL data type already says. Everything else works the same without it: it's optional, column by column.
 
+Every type, function and property is listed in the [SQL data types API](../api/sql-data-types.md).
+
 ## Declaring it
 
 A SQL data type goes in the [type adapter](type-adapters.md) of the column, with `withSqlDataType`: without an adapter it creates one that only says the type; with one, it sets the type on that adapter and returns it. There are two ways to write the type: from its name, as the database writes it, or as the object.
@@ -22,7 +24,7 @@ The tables are defined before any connection to the database exists, so this nee
 import { NoExecutionQueryRunner } from "ts-sql-query"
 
 // In a module of its own, like db/types.ts, exported: a connection that only reads the types of the database
-const typesConnection = new DBConnection(new NoExecutionQueryRunner('postgreSql'))
+const typesConnection = new DBConnection(new NoExecutionQueryRunner())
 ```
 
 Then each column gives the name of its type:
@@ -123,7 +125,7 @@ class PostgreSql13Types extends PostgreSqlConnection<'PostgreSql13Types'> {
     protected override compatibilityVersion = 13_000_000
 }
 
-const types = new PostgreSql13Types(new NoExecutionQueryRunner('postgreSql'))
+const types = new PostgreSql13Types(new NoExecutionQueryRunner())
 const price = types.sqlDataTypeFrom('numeric(18,4)')
 // { family: 'exact numeric', precision: 18, scale: 4, native: { postgreSql: 'numeric(18,4)' } }
 const priceAdapter = withSqlDataType(price)

@@ -4,7 +4,8 @@
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
 import type { ValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSystem/booleans.js'
-import type { CustomIntType, DoubleType, IntType } from '../typeSystem/numbers.js'
+import type { BigintType, CustomDecimalType, CustomDoubleType, CustomIntType, DoubleType, IntType, NumberType, StringDecimalType } from '../typeSystem/numbers.js'
+import { CustomDecimalType as CustomDecimalTypeClass } from '../typeSystem/numbers.js'
 import { CustomIntType as CustomIntTypeClass } from '../typeSystem/numbers.js'
 import type { StringType } from '../typeSystem/strings.js'
 
@@ -79,3 +80,75 @@ assertType<BooleanIsAValueSource>()
 // A custom data type made by the static function of its family
 const MoneyType = CustomIntTypeClass.of<Money, 'Money'>('Money')
 assertType<Equal<typeof MoneyType.prototype, CustomIntType<Money, 'Money'>>>()
+
+// The numbers: an operation of an int with a double gives a double; with a number given as a value, TypeScript can't
+// know which one it is, so it is the number in general
+declare const aBigint: ValueSource<'s1/', BigintType, 'required'>
+declare const aDecimal: ValueSource<'s1/', CustomDecimalType<string, 'Price'>, 'required'>
+declare const otherDecimal: ValueSource<'s2/', CustomDecimalType<string, 'Price'>, 'optional'>
+declare const aStringDecimal: ValueSource<'s1/', StringDecimalType, 'required'>
+declare const aCustomDouble: ValueSource<'s1/', CustomDoubleType<number, 'Ratio'>, 'required'>
+declare const aNumber: ValueSource<'s2/', NumberType, 'required'>
+
+const intPlusInt = anInt.add(anInt)
+assertType<Equal<typeof intPlusInt, ValueSource<'s1/', IntType, 'required'>>>()
+const intPlusDouble = anInt.add(aDouble)
+assertType<Equal<typeof intPlusDouble, ValueSource<'s1/' | 's2/', DoubleType, 'optional'>>>()
+const intPlusValue = anInt.add(1)
+assertType<Equal<typeof intPlusValue, ValueSource<'s1/', NumberType, 'required'>>>()
+const doublePlusValue = aDouble.add(1)
+assertType<Equal<typeof doublePlusValue, ValueSource<'s2/', DoubleType, 'optional'>>>()
+const intPlusNumber = anInt.add(aNumber)
+assertType<Equal<typeof intPlusNumber, ValueSource<'s1/' | 's2/', NumberType, 'required'>>>()
+const numberPlusDouble = aNumber.multiply(aDouble)
+assertType<Equal<typeof numberPlusDouble, ValueSource<'s2/', DoubleType, 'optional'>>>()
+const intCeil = aDouble.ceil()
+assertType<Equal<typeof intCeil, ValueSource<'s2/', IntType, 'optional'>>>()
+const intSqrt = anInt.sqrt()
+assertType<Equal<typeof intSqrt, ValueSource<'s1/', DoubleType, 'required'>>>()
+const intDivide = anInt.divide(anInt)
+assertType<Equal<typeof intDivide, ValueSource<'s1/', DoubleType, 'required'>>>()
+const intAsBigint = anInt.asBigint()
+assertType<Equal<typeof intAsBigint, ValueSource<'s1/', BigintType, 'required'>>>()
+const intWhenNullDouble = anInt.valueWhenNull(aDouble)
+assertType<Equal<typeof intWhenNullDouble, ValueSource<'s1/' | 's2/', DoubleType, 'optional'>>>()
+const intWhenNullValue = anInt.valueWhenNull(0)
+assertType<Equal<typeof intWhenNullValue, ValueSource<'s1/', NumberType, 'required'>>>()
+const intWhenNullInt = anInt.valueWhenNull(anInt)
+assertType<Equal<typeof intWhenNullInt, ValueSource<'s1/', IntType, 'required'>>>()
+const stringWhenNull = aString.valueWhenNull('')
+assertType<Equal<typeof stringWhenNull, ValueSource<'s1/', StringType, 'required'>>>()
+const moneyWhenNull = aMoney.valueWhenNull(otherMoney)
+assertType<Equal<typeof moneyWhenNull, ValueSource<'s1/' | 's2/', CustomIntType<Money, 'Money'>, 'optional'>>>()
+
+// The other numbers work only with themselves
+const bigintPlusBigint = aBigint.add(aBigint)
+assertType<Equal<typeof bigintPlusBigint, ValueSource<'s1/', BigintType, 'required'>>>()
+// @ts-expect-error a bigint is not an int
+aBigint.add(anInt)
+// @ts-expect-error a bigint has no multiply
+aBigint.multiply(aBigint)
+const bigintSign = aBigint.sign()
+assertType<Equal<typeof bigintSign, ValueSource<'s1/', IntType, 'required'>>>()
+const moneyTimesMoney = aMoney.multiply(otherMoney)
+assertType<Equal<typeof moneyTimesMoney, ValueSource<'s1/' | 's2/', CustomIntType<Money, 'Money'>, 'optional'>>>()
+// @ts-expect-error a custom int has no sqrt
+aMoney.sqrt()
+const decimalExp = aDecimal.exp()
+assertType<Equal<typeof decimalExp, ValueSource<'s1/', DoubleType, 'required'>>>()
+const decimalRoundn = aDecimal.roundn(anInt)
+assertType<Equal<typeof decimalRoundn, ValueSource<'s1/', CustomDecimalType<string, 'Price'>, 'required'>>>()
+const decimalPower = aStringDecimal.power(aDouble)
+assertType<Equal<typeof decimalPower, ValueSource<'s1/' | 's2/', DoubleType, 'optional'>>>()
+const decimalPlusDecimal = aDecimal.add(otherDecimal)
+assertType<Equal<typeof decimalPlusDecimal, ValueSource<'s1/' | 's2/', CustomDecimalType<string, 'Price'>, 'optional'>>>()
+// @ts-expect-error a decimal of the user is not a string decimal
+aDecimal.add(aStringDecimal)
+// @ts-expect-error a decimal is not an int
+aStringDecimal.add(anInt)
+const ratioRoundn = aCustomDouble.roundn(anInt)
+assertType<Equal<typeof ratioRoundn, ValueSource<'s1/', CustomDoubleType<number, 'Ratio'>, 'required'>>>()
+const ratioSqrt = aCustomDouble.sqrt()
+assertType<Equal<typeof ratioSqrt, ValueSource<'s1/', CustomDoubleType<number, 'Ratio'>, 'required'>>>()
+const PriceType = CustomDecimalTypeClass.of<string, 'Price'>('Price')
+assertType<Equal<typeof PriceType.prototype, CustomDecimalType<string, 'Price'>>>()

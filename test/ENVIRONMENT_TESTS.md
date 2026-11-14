@@ -12,7 +12,7 @@ many processes and engines of several versions: neither `bun run tests` nor
 | Test | What it checks |
 |---|---|
 | `<db>/LocalTemporalValuesInAnyZone.test.ts` | A `localDate`, `localTime` and `localDateTime` sent, read and sent back through every runner of the database, with the process in UTC, Madrid, New York and Tokyo; and what each driver must be configured with in each zone (`describeRunnerRequirements`) |
-| `postgres/DatabaseOutsideUtc.test.ts`, `oracle/DatabaseOutsideUtc.test.ts` | A database in Europe/Madrid declared with `databaseTimeZone`: what is stored, read and compared, and the sessions refused |
+| `postgres/DatabaseOutsideUtc.test.ts`, `oracle/DatabaseOutsideUtc.test.ts` | A database in Europe/Madrid declared with `databaseTimeZone`, through every runner of the database, with the process in Madrid, UTC and Tokyo: what is stored, read and compared, and the sessions refused; on PostgreSQL also a `timetz`, with the database in Madrid and in UTC |
 | `sqlite/ApplicationTimeZone.test.ts` | The date functions of SQLite against JavaScript with the process in other zones |
 | `sqlite/ValuesGeneratedByTheDatabase.test.ts` | The expressions the SQLite page gives for a value SQLite writes on its own, in each zone |
 

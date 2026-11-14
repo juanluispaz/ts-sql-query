@@ -25,7 +25,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { __isAggregatedArray, __isBigint, __isDouble, __isExactDecimal, __isInt } from '../utils/dataTypes.js'
+import { __isAggregatedArray, __isBigint, __isDouble, __isExactDecimal, __isInt } from '../typeSystem/dataTypes.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed

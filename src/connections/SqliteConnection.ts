@@ -15,7 +15,7 @@ import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggr
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isLocalDate, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
+import { __isLocalDate, __isLocalDateTime, __isLocalTime } from '../typeSystem/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {

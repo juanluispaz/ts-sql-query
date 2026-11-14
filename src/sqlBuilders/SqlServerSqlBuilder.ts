@@ -16,7 +16,7 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { isSqlServerReservedWord } from '../utils/sqlServer/sqlServerReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
-import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../utils/dataTypes.js'
+import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true

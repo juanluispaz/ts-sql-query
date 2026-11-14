@@ -12,7 +12,7 @@ import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrat
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment } from '../typeSystem/valueSourceFactory.js'
-import { __isExactDecimal, __isUuid } from '../utils/dataTypes.js'
+import { __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
 

@@ -12,7 +12,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
 import { isMySqlReservedWord } from '../utils/mySqlMariaDB/mySqlReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
-import { __isUuid } from '../utils/dataTypes.js'
+import { __isUuid } from '../typeSystem/dataTypes.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true

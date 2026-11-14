@@ -1,7 +1,7 @@
 import { oracleDateParam } from './utils/metadataSymbols.js'
 import type { ConnectionConfiguration, DatabaseType } from './queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
-import { __isLocalDateTime, __isLocalTime } from './utils/dataTypes.js'
+import { __isLocalDateTime, __isLocalTime } from './typeSystem/dataTypes.js'
 
 /**
  * Which custom type a value is, the first argument of its column when it is a custom one, like `'customInt'` in

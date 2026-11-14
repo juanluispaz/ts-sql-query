@@ -6,7 +6,7 @@ import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext } from '../TypeAdapter.js'
-import { __isExactDecimal } from '../utils/dataTypes.js'
+import { __isExactDecimal } from '../typeSystem/dataTypes.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {

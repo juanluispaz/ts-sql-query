@@ -15,7 +15,7 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isBoolean, __isLocalDateTime, __isLocalTime, __isUuid } from '../utils/dataTypes.js'
+import { __isBoolean, __isLocalDateTime, __isLocalTime, __isUuid } from '../typeSystem/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {

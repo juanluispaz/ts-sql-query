@@ -1,6 +1,6 @@
 import type { CustomType } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
-import { __isExactDecimal } from '../dataTypes.js'
+import { __isExactDecimal } from '../../typeSystem/dataTypes.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**

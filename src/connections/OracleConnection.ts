@@ -12,7 +12,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBoolean, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
+import { __isBoolean, __isLocalDateTime, __isLocalTime } from '../typeSystem/dataTypes.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {

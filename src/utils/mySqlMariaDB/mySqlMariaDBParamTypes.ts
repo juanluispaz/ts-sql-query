@@ -1,6 +1,6 @@
 import type { CustomType } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
-import { __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime } from '../dataTypes.js'
+import { __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime } from '../../typeSystem/dataTypes.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 

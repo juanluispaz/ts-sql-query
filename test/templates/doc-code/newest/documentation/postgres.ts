@@ -67,7 +67,6 @@ import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutp
 import { Pool } from 'pg';
 import { PgPoolQueryRunner } from '../../../../../src/queryRunners/PgPoolQueryRunner.js'
 import { PgQueryRunner } from '../../../../../src/queryRunners/PgQueryRunner.js'
-import { ConsoleLogNoopQueryRunner } from '../../../../../src/queryRunners/ConsoleLogNoopQueryRunner.js'
 import { ConsoleLogQueryRunner } from '../../../../../src/queryRunners/ConsoleLogQueryRunner.js'
 import { LoggingQueryRunner } from '../../../../../src/queryRunners/LoggingQueryRunner.js'
 import { NoopQueryRunner } from '../../../../../src/queryRunners/NoopQueryRunner.js'
@@ -390,7 +389,6 @@ void function(
 void Pool
 void PgPoolQueryRunner
 void PgQueryRunner
-void ConsoleLogNoopQueryRunner
 void ConsoleLogQueryRunner
 void LoggingQueryRunner
 void NoopQueryRunner

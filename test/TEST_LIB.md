@@ -95,12 +95,12 @@ test('mutating uses withRollback (default)', async () => {
 
 test('DDL on engines without transactional DDL needs withCommit', async () => {
     await ctx.withCommit(async () => {
-        await ctx.conn.queryRunner.executeDatabaseSchemaModification(
-            'CREATE TABLE leftover (id int)',
+        await ctx.conn.queryRunner.executeQuery('executeDatabaseSchemaModification',
+            'CREATE TABLE leftover (id int)', [],
         )
         // … assertions about server-side state …
-        await ctx.conn.queryRunner.executeDatabaseSchemaModification(
-            'DROP TABLE leftover',
+        await ctx.conn.queryRunner.executeQuery('executeDatabaseSchemaModification',
+            'DROP TABLE leftover', [],
         )
     })
     // ctx.reseed() has already run — the seeded tables are back at

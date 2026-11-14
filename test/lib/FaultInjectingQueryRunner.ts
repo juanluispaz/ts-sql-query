@@ -94,7 +94,7 @@ interface ArmedFault {
 
 export interface FaultInjectingQueryRunnerOptions {
     /**
-     * Override `nestedTransactionsSupported()`. Omit to delegate to the
+     * Override `nestedTransactionsSupported`. Omit to delegate to the
      * wrapped runner (the mock reports `true`). Set `false` to drive the
      * `NESTED_TRANSACTION_NOT_SUPPORTED` guards.
      */
@@ -159,10 +159,10 @@ export class FaultInjectingQueryRunner<T extends QueryRunner = QueryRunner> exte
     override executeRollback(opts: RollbackOpts = []): Promise<void> {
         return this.maybeFail('rollback', () => this.queryRunner.executeRollback(opts))
     }
-    override nestedTransactionsSupported(): boolean {
+    override get nestedTransactionsSupported(): boolean {
         if (this.nestedSupportedOverride !== undefined) {
             return this.nestedSupportedOverride
         }
-        return super.nestedTransactionsSupported()
+        return super.nestedTransactionsSupported
     }
 }

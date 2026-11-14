@@ -6,5 +6,6 @@ export {
 } from '../../../queryRunners/MariaDBQueryRunner.js'
 
 export {
+    type MariaDBPoolQueryRunnerConfig,
     MariaDBPoolQueryRunner,
 } from '../../../queryRunners/MariaDBPoolQueryRunner.js'

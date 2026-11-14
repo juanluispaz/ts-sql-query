@@ -160,7 +160,7 @@ describe(ctx.label, () => {
     test('a-runner-throwing-when-it-executes-a-select-is-wrapped', () => {
         const runnerError = new ApplicationError('driver failure')
         class ThrowingRunner extends MockQueryRunner {
-            override executeSelectManyRows(): ReturnType<MockQueryRunner['executeSelectManyRows']> { throw runnerError }
+            override executeQuery(...args: Parameters<MockQueryRunner['executeQuery']>): ReturnType<MockQueryRunner['executeQuery']> { if (args[0] === 'selectManyRows') { throw runnerError } return super.executeQuery(...args) }
         }
         const connection = new DBConnection(new ThrowingRunner(() => [], { promise: SynchronousPromise }), Number.POSITIVE_INFINITY)
         const caught = rejectionOf(() => connection.selectFrom(tProject).select({ id: tProject.id }).executeSelectMany())
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
     test('a-runner-throwing-when-it-executes-the-count-is-wrapped', () => {
         const runnerError = new ApplicationError('driver failure')
         class ThrowingRunner extends MockQueryRunner {
-            override executeSelectOneColumnOneRow(): ReturnType<MockQueryRunner['executeSelectOneColumnOneRow']> { throw runnerError }
+            override executeQuery(...args: Parameters<MockQueryRunner['executeQuery']>): ReturnType<MockQueryRunner['executeQuery']> { if (args[0] === 'selectOneColumnOneRow') { throw runnerError } return super.executeQuery(...args) }
         }
         const connection = new DBConnection(new ThrowingRunner(() => [], { promise: SynchronousPromise }), Number.POSITIVE_INFINITY)
         const caught = rejectionOf(() => connection.selectFrom(tProject).select({ id: tProject.id }).executeSelectPage({ data: [] }))

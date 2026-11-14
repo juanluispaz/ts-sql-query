@@ -20,8 +20,8 @@ class SimultaneousAssignmentConnection extends DBConnection {
 
 async function withSimultaneousAssignment(body: () => Promise<void>): Promise<void> {
     ctx.mockNext('STRICT_TRANS_TABLES')
-    const sqlMode = await ctx.conn.queryRunner.executeSelectOneColumnOneRow('select @@session.sql_mode', [])
-    await ctx.conn.queryRunner.executeConnectionConfiguration("set session sql_mode = concat(@@session.sql_mode, ',SIMULTANEOUS_ASSIGNMENT')", [])
+    const sqlMode = await ctx.conn.queryRunner.executeQuery('selectOneColumnOneRow', 'select @@session.sql_mode', [])
+    await ctx.conn.queryRunner.executeQuery('executeConnectionConfiguration', "set session sql_mode = concat(@@session.sql_mode, ',SIMULTANEOUS_ASSIGNMENT')", [])
     try {
         await body()
     } finally {
@@ -29,7 +29,7 @@ async function withSimultaneousAssignment(body: () => Promise<void>): Promise<vo
         if (typeof sqlMode !== 'string' || !/^[A-Z0-9_,]*$/.test(sqlMode)) {
             throw new Error('Unexpected sql_mode: ' + String(sqlMode))
         }
-        await ctx.conn.queryRunner.executeConnectionConfiguration("set session sql_mode = '" + sqlMode + "'", [])
+        await ctx.conn.queryRunner.executeQuery('executeConnectionConfiguration', "set session sql_mode = '" + sqlMode + "'", [])
     }
 }
 

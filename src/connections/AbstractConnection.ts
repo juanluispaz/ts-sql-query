@@ -259,7 +259,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     transaction<T>(fn: () => T | Promise<T>, isolationLevel?: TransactionIsolationLevel<DB>): Promise<T> {
         const source = new QueryExecutionSource('Transaction executed at')
-        if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
+        if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported) {
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported'))
         }
         const opts: any = isolationLevel || []
@@ -340,10 +340,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     beginTransaction(isolationLevel?: TransactionIsolationLevel<DB>): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
-        if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
+        if (!this.queryRunner.lowLevelTransactionManagementSupported) {
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'This query runner only supports a transaction with connection.transaction(fn)'))
         }
-        if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
+        if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported) {
             return this.queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported'))
         }
         const opts: any = isolationLevel || []
@@ -691,7 +691,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallProcedure(new SqlBuildContext(queryParams), procedureName, params)
             const executionParams = __setQueryMetadata(source, queryParams, this.__sqlBuilder, [])
-            return this.__sqlBuilder._queryRunner.executeProcedure(query, executionParams).catch((e) => {
+            return this.__sqlBuilder._queryRunner.executeQuery('executeProcedure', query, executionParams).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
         } catch (e) {
@@ -758,7 +758,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallFunction(new SqlBuildContext(queryParams), functionCall)
             const executionParams = __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall, this.__sqlBuilder))
-            return this.__sqlBuilder._queryRunner.executeFunction(query, executionParams).then((value) => {
+            return this.__sqlBuilder._queryRunner.executeQuery('executeFunction', query, executionParams).then((value) => {
                 let result
                 try {
                     const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(functionCall, 'resultColumn')

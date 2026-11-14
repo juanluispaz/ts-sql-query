@@ -65,8 +65,8 @@ describe('NoopQueryRunner', () => {
     })
 
     test('nested-transactions', () => {
-        expect(new NoopQueryRunner().nestedTransactionsSupported()).toBe(false)
-        expect(new NoopQueryRunner({ allowNestedTransactions: true }).nestedTransactionsSupported()).toBe(true)
+        expect(new NoopQueryRunner().nestedTransactionsSupported).toBe(false)
+        expect(new NoopQueryRunner({ allowNestedTransactions: true }).nestedTransactionsSupported).toBe(true)
     })
 
     const PLACEHOLDERS: [DatabaseType, string, string][] = [
@@ -75,7 +75,7 @@ describe('NoopQueryRunner', () => {
     ]
     for (const [database, first, second] of PLACEHOLDERS) {
         test(`params-on-${database}`, () => {
-            const runner = new NoopQueryRunner(database)
+            const runner = new NoopQueryRunner({ database })
             const params: any[] = []
             expect([addParam(runner, params, 'a', 'string', undefined, false), addParam(runner, params, 'b', 'string', undefined, false)]).toEqual([first, second])
             expect(runner.database).toBe(database)
@@ -88,12 +88,12 @@ describe('NoopQueryRunner', () => {
     ]
     for (const [database, placeholder] of FORCED) {
         test(`forced-type-on-${database}`, () => {
-            const runner = new NoopQueryRunner(database)
+            const runner = new NoopQueryRunner({ database })
             expect(addParam(runner, [], 1, 'int', undefined, true)).toBe(placeholder)
         })
     }
     test('forced-type-on-postgreSql-by-the-value', () => {
-        const runner = new NoopQueryRunner('postgreSql')
+        const runner = new NoopQueryRunner({ database: 'postgreSql' })
         const cases: [unknown, string, CustomType | undefined, string][] = [
             [1, 'Status', 'enum', '$1::int4'], [5000000000, 'Big', 'custom', '$1::int8'], [1.5, 'Ratio', 'customComparable', '$1::float8'],
             [5n, 'Count', undefined, '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
@@ -112,15 +112,19 @@ describe('NoopQueryRunner', () => {
     })
 
     test('out-params', () => {
+        // Only Oracle has them, as oracledb receives them
         const params: any[] = []
-        expect(new NoopQueryRunner().addOutParam(params, 'id')).toBe(':0')
-        expect(params).toEqual([{ out_param_with_name: 'id' }])
+        expect(new NoopQueryRunner({ database: 'oracle' }).addOutParam(params, 'id')).toBe(':0')
+        expect(params).toEqual([{ dir: 3003, as: 'id' }])
+        let error: unknown
+        try { new NoopQueryRunner().addOutParam([], 'id') } catch (e) { error = e }
+        expect(reasonOf(error)).toBe('OUT_PARAMS_NOT_SUPPORTED')
     })
 
     test('the-rest-of-the-interface', async () => {
         const runner = new NoopQueryRunner({ database: 'postgreSql', promise: SynchronousPromise })
         expect(runner.database).toBe('postgreSql')
-        expect(runner.executeSelectOneRow('q')).toBeInstanceOf(SynchronousPromise)
+        expect(runner.executeQuery('selectOneRow', 'q', [])).toBeInstanceOf(SynchronousPromise)
         expect(runner.getNativeRunner()).toBeNull()
         expect(runner.getCurrentNativeConnection()).toBeUndefined()
         expect(await runner.execute(async (connection) => connection)).toBeNull()
@@ -128,11 +132,13 @@ describe('NoopQueryRunner', () => {
         expect(await runner.createResolvedPromise(3)).toBe(3)
         const failure = new Error('x')
         expect(await rejectionOf(runner.createRejectedPromise(failure))).toBe(failure)
-        expect([runner.isMocked(), runner.lowLevelTransactionManagementSupported()]).toEqual([false, true])
+        expect([runner.isMocked, runner.lowLevelTransactionManagementSupported]).toEqual([true, true])
         const library = new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'probe')
         expect(runner.getErrorReason(library)).toEqual({ reason: 'NOT_IN_TRANSACTION' })
         expect(runner.getErrorReason(new Error('x'))).toEqual({ reason: 'UNKNOWN' })
-        expect(runner.isSqlError(new Error('x'))).toBe(true)
+        // As on a real database, an error of the application isn't an error of the database
+        expect(runner.isSqlError(library)).toBe(true)
+        expect(runner.isSqlError(new Error('x'))).toBe(false)
     })
 
     test('a-page-of-no-rows', async () => {
@@ -151,7 +157,7 @@ describe('NoopQueryRunner', () => {
     test('begin-transaction-on-a-query-runner-without-low-level-transactions', async () => {
         class DBConnection extends SqliteConnection<'DBConnection'> {}
         class OnlyFunctionsRunner extends NoopQueryRunner {
-            override lowLevelTransactionManagementSupported(): boolean { return false }
+            override get lowLevelTransactionManagementSupported(): boolean { return false }
         }
         const connection = new DBConnection(new OnlyFunctionsRunner())
 

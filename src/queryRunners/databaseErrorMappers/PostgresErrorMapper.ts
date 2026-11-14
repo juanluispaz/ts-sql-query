@@ -1,31 +1,55 @@
 import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 import { POSTGRES_SQLSTATE_NAMES } from './PostgresSqlStateCodes.js'
 
+/** An error raised by PostgreSQL, as the mapper of a driver hands it to `getPostgresEngineErrorReason`. */
 export interface PostgresEngineError {
+    /** The SQLSTATE code of the error; it decides the reason. Without it, the reason is `SQL_UNKNOWN`. */
     sqlState?: string | undefined
+    /** The database error code to report in the reason; when absent, the condition name of the SQLSTATE is used. */
     databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    /** The database error number to report in the reason; when absent, the SQLSTATE is used. */
     databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    /**
+     * The message of the error; some reasons read details from it (a quoted name, a limit, the count of parameters).
+     */
     message?: string | undefined
+    /** The schema the server names in the error. */
     schemaName?: string | undefined
+    /** The table the server names in the error. */
     tableName?: string | undefined
+    /** The column the server names in the error. */
     columnName?: string | undefined
+    /** The data type the server names in the error. */
     typeName?: string | undefined
+    /** The constraint the server names in the error. */
     constraintName?: string | undefined
 }
 
+/** The types of constraint a `SQL_CONSTRAINT_VIOLATED` reason of PostgreSQL can carry. */
 type ConstraintType = 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'restrict'
+/** The types of error a `SQL_INVALID_VALUE` reason of PostgreSQL can carry. */
 type InvalidValueErrorType = 'out of range' | 'too long' | 'invalid value' | 'invalid format' | 'invalid encoding' |
     'invalid json' | 'invalid xml' | 'invalid regular expression' | 'null not allowed' | 'sequence limit'
+/** The types of identifier a `SQL_AMBIGUOUS_IDENTIFIER` reason of PostgreSQL can carry. */
 type IdentifierType = 'column' | 'routine' | 'parameter' | 'alias' | 'object'
+/** Whether an identifier of a `SQL_AMBIGUOUS_IDENTIFIER` reason is ambiguous or duplicate. */
 type IdentifierErrorType = 'ambiguous' | 'duplicate'
+/** The types of object a reason about an object of PostgreSQL can carry. */
 type ObjectType = 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation' |
     'index' | 'trigger' | 'cursor' | 'prepared statement' | 'role'
+/** The types of statement error a `SQL_INVALID_SQL_STATEMENT` reason of PostgreSQL can carry. */
 type StatementErrorType = 'incomplete statement' | 'invalid definition' | 'type mismatch' | 'invalid statement context' |
     'invalid identifier' | 'invalid reference' | 'invalid grouping' | 'invalid windowing' | 'invalid recursion' |
     'invalid locator' | 'case not found' | 'invalid argument'
+/** The types of parameter error a `SQL_INVALID_PARAMETER` reason of PostgreSQL can carry. */
 type ParameterErrorType = 'missing' | 'too many' | 'wrong count' | 'invalid name' | 'invalid index' |
     'invalid type' | 'invalid value' | 'invalid binding' | 'not bindable' | 'already bound'
 
+/**
+ * Gives the reason of an error raised by PostgreSQL, from its SQLSTATE code: the codes handled one by one first, then
+ * the class of the code (its first two characters). Every reason carries the database error code, number and message;
+ * an error without SQLSTATE gives `SQL_UNKNOWN`.
+ */
 export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlErrorReason {
     const code = error.sqlState || ''
     const databaseErrorCode = getPostgresDatabaseErrorCode(error.databaseErrorCode, code)
@@ -49,10 +73,15 @@ export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlE
     )
 }
 
+/** Whether the value has the shape of a SQLSTATE code: five digits or upper-case letters. */
 export function isPostgresSqlState(code: unknown): code is string {
     return typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)
 }
 
+/**
+ * Gives the condition name of the SQLSTATE code (`unique_violation` for `23505`), or `undefined` when there is no code
+ * or it isn't known.
+ */
 export function getPostgresSqlStateName(sqlState: string | undefined): string | undefined {
     if (!sqlState) {
         return undefined
@@ -60,10 +89,14 @@ export function getPostgresSqlStateName(sqlState: string | undefined): string | 
     return POSTGRES_SQLSTATE_NAMES.get(sqlState)
 }
 
+/** Gives the database error code given or, when there is none, the condition name of the SQLSTATE. */
 function getPostgresDatabaseErrorCode(databaseErrorCode: TsSqlDatabaseErrorCode | undefined, sqlState: string): TsSqlDatabaseErrorCode | undefined {
     return databaseErrorCode ?? getPostgresSqlStateName(sqlState)
 }
 
+/**
+ * Gives the reason with the database error code, number and message filled in where the reason doesn't have its own.
+ */
 function withPostgresDatabaseErrorMetadata(
     reason: TsSqlErrorReason,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -83,6 +116,10 @@ function withPostgresDatabaseErrorMetadata(
     } as TsSqlErrorReason
 }
 
+/**
+ * Gives the reason of the SQLSTATE codes handled one by one, or `undefined` for the others, which
+ * `getPostgresErrorReasonFromClass` maps by their class.
+ */
 function getPostgresSpecificErrorReason(
     error: PostgresEngineError,
     code: string,
@@ -348,6 +385,9 @@ function getPostgresSpecificErrorReason(
     return undefined
 }
 
+/**
+ * Gives the reason of a SQLSTATE code from its class, its first two characters; `SQL_UNKNOWN` for a class not handled.
+ */
 function getPostgresErrorReasonFromClass(
     error: PostgresEngineError,
     code: string,
@@ -427,6 +467,10 @@ function getPostgresErrorReasonFromClass(
     return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
 }
 
+/**
+ * Gives the `SQL_INVALID_VALUE` reason of a code of the class 22 (data exception), with the type of error of the code;
+ * `invalid value` for the codes not listed.
+ */
 function getPostgresDataExceptionReason(error: PostgresEngineError, code: string): TsSqlErrorReason {
     switch (code) {
         case '22001':
@@ -502,6 +546,10 @@ function getPostgresDataExceptionReason(error: PostgresEngineError, code: string
     }
 }
 
+/**
+ * Gives the reason of a code of the class 39 (external routine invocation): a null value where it isn't allowed for
+ * `39004`, `SQL_ROUTINE_ERROR` for the others.
+ */
 function getPostgresExternalRoutineInvocationReason(
     error: PostgresEngineError,
     code: string,
@@ -520,6 +568,10 @@ function getPostgresExternalRoutineInvocationReason(
     }
 }
 
+/**
+ * Gives the reason of a code of the class HV (foreign data wrapper); `SQL_EXTERNAL_DATA_SOURCE_ERROR` for the codes not
+ * mapped to a more precise one.
+ */
 function getPostgresForeignDataWrapperReason(
     error: PostgresEngineError,
     code: string,
@@ -563,6 +615,10 @@ function getPostgresForeignDataWrapperReason(
     }
 }
 
+/**
+ * Gives the reason of a code of the class P0 (PL/pgSQL): `SQL_USER_DEFINED_ERROR` for `RAISE EXCEPTION` (`P0001`),
+ * `SQL_CARDINALITY_VIOLATION` for too many rows (`P0003`), `SQL_ROUTINE_ERROR` for the others.
+ */
 function getPostgresPlPgSqlReason(
     code: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -583,6 +639,7 @@ function getPostgresPlPgSqlReason(
     }
 }
 
+/** Builds a `SQL_CONSTRAINT_VIOLATED` reason with the type of constraint given and the names the error carries. */
 function getConstraintViolation(error: PostgresEngineError, constraintType?: ConstraintType): TsSqlErrorReason {
     return {
         reason: 'SQL_CONSTRAINT_VIOLATED',
@@ -595,6 +652,10 @@ function getConstraintViolation(error: PostgresEngineError, constraintType?: Con
     }
 }
 
+/**
+ * Builds a `SQL_INVALID_VALUE` reason with the type of error given and the table, column and data type the error
+ * carries.
+ */
 function getInvalidValue(error: PostgresEngineError, errorType?: InvalidValueErrorType): TsSqlErrorReason {
     return {
         reason: 'SQL_INVALID_VALUE',
@@ -607,6 +668,7 @@ function getInvalidValue(error: PostgresEngineError, errorType?: InvalidValueErr
     }
 }
 
+/** Builds a `SQL_INVALID_SQL_STATEMENT` reason with the type of statement error given. */
 function getInvalidSqlStatement(error: PostgresEngineError, statementErrorType?: StatementErrorType): TsSqlErrorReason {
     return {
         reason: 'SQL_INVALID_SQL_STATEMENT',
@@ -616,6 +678,7 @@ function getInvalidSqlStatement(error: PostgresEngineError, statementErrorType?:
     }
 }
 
+/** Builds a `SQL_INVALID_PARAMETER` reason with the details of the parameter given. */
 function getInvalidParameter(
     error: PostgresEngineError,
     parameterDetails?: {
@@ -634,6 +697,10 @@ function getInvalidParameter(
     }
 }
 
+/**
+ * Builds a `SQL_AMBIGUOUS_IDENTIFIER` reason; the identifier is the column the error carries or, without it, the first
+ * quoted name of the message.
+ */
 function getAmbiguousIdentifier(
     error: PostgresEngineError,
     identifierType: IdentifierType,
@@ -651,6 +718,7 @@ function getAmbiguousIdentifier(
     }
 }
 
+/** Builds a `SQL_OBJECT_NOT_FOUND` reason with the type of object given and the names the error carries. */
 function getObjectNotFound(error: PostgresEngineError, objectType?: ObjectType): TsSqlErrorReason {
     return {
         reason: 'SQL_OBJECT_NOT_FOUND',
@@ -664,6 +732,7 @@ function getObjectNotFound(error: PostgresEngineError, objectType?: ObjectType):
     }
 }
 
+/** Builds a `SQL_OBJECT_ALREADY_EXISTS` reason with the type of object given and the names the error carries. */
 function getObjectAlreadyExists(error: PostgresEngineError, objectType?: Exclude<ObjectType, 'collation' | 'role'>): TsSqlErrorReason {
     return {
         reason: 'SQL_OBJECT_ALREADY_EXISTS',
@@ -677,6 +746,9 @@ function getObjectAlreadyExists(error: PostgresEngineError, objectType?: Exclude
     }
 }
 
+/**
+ * Builds a `SQL_OBJECT_STATE_ERROR` reason with the type of error and of object given and the names the error carries.
+ */
 function getObjectStateError(
     error: PostgresEngineError,
     objectStateErrorType?: 'dependent objects still exist' | 'object in use' | 'invalid state' | 'wrong object type',
@@ -695,6 +767,11 @@ function getObjectStateError(
     }
 }
 
+/**
+ * Gives the name of the object of the error for the type of object: the schema, table or column the error carries, or
+ * the first quoted name of the message when it doesn't carry it or for the other types; without a type, the first of
+ * the table, column, constraint or quoted name.
+ */
 function getObjectName(error: PostgresEngineError, objectType?: ObjectType): string | undefined {
     switch (objectType) {
         case 'schema':
@@ -722,6 +799,10 @@ function getObjectName(error: PostgresEngineError, objectType?: ObjectType): str
     }
 }
 
+/**
+ * Gives the type of timeout of the code `57014` (query canceled): `statement` when the message says it was a statement
+ * timeout, `cancelled` otherwise.
+ */
 function get57014TimeoutType(message: string): 'statement' | 'cancelled' {
     const lower = message.toLowerCase()
     if (lower.includes('statement timeout') || lower.includes('canceling statement due to statement timeout')) {
@@ -743,18 +824,26 @@ export function isPostgresParameterCountWrappedMessage(message: string): boolean
     return !!wrongCount && Number(wrongCount[2]) > POSTGRES_MAX_PARAMETERS
 }
 
-// "target lists can have at most 1664 entries", "cannot pass more than 100 arguments to a function"
+/**
+ * Gives the limit the message of a resource error names, or `undefined` when it names none. The forms read: "target
+ * lists can have at most 1664 entries", "cannot pass more than 100 arguments to a function".
+ */
 function extractPostgresLimit(message: string): number | undefined {
     const limit = /(?:at most|more than) (\d+)/i.exec(message)
     return limit ? Number(limit[1]) : undefined
 }
 
+/** Whether the message is about the parameters sent: a wrong number of them, or a parameter that doesn't exist. */
 function isPostgresInvalidParameterMessage(message: string): boolean {
     const lower = message.toLowerCase()
     return lower.includes('bind message supplies')
         || lower.includes('there is no parameter $')
 }
 
+/**
+ * Gives the details of a message about the parameters: a missing parameter with its index, or a wrong count with the
+ * number of parameters sent and the number required; otherwise, the type of parameter error given as fallback.
+ */
 function getPostgresInvalidParameterDetails(
     message: string,
     fallbackParameterErrorType: ParameterErrorType
@@ -785,6 +874,10 @@ function getPostgresInvalidParameterDetails(
     return { parameterErrorType: fallbackParameterErrorType }
 }
 
+/**
+ * Gives `index` or `trigger` when the message starts with that word followed by a quoted name, or `undefined`
+ * otherwise.
+ */
 function getPostgresObjectTypeFromMessage(message: string): 'index' | 'trigger' | undefined {
     if (/^\s*index\s+"/i.test(message)) {
         return 'index'
@@ -795,6 +888,10 @@ function getPostgresObjectTypeFromMessage(message: string): 'index' | 'trigger' 
     return undefined
 }
 
+/**
+ * Gives the first name of the message between double quotes or, without one, between single quotes; `undefined` when
+ * there is none.
+ */
 function extractQuotedName(message: string): string | undefined {
     const quoted = /"([^"]+)"/.exec(message)
     if (quoted) {
@@ -809,10 +906,12 @@ function extractQuotedName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the value when it is a text, or `undefined` otherwise. */
 function stringValue(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined
 }
 
+/** Gives the number written in the text, or `undefined` when there is no text or it isn't a finite number. */
 function numberValue(value: string | undefined): number | undefined {
     if (value === undefined) {
         return undefined

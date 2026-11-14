@@ -35,7 +35,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('mysql2
     test('the-options-of-the-connection-dont-apply-to-the-queries-of-the-runner', async () => {
         const connection = mysql2.createConnection({ ...connectionOptions(), ...USER_OPTIONS })
         try {
-            expect(await new MySql2QueryRunner(connection).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+            expect(await new MySql2QueryRunner(connection).executeQuery('selectOneRow', SQL, [])).toEqual(EXPECTED)
             // The connection keeps them for its own queries
             const own = await new Promise<any>((resolve, reject) => connection.query(SQL, (error: unknown, rows: unknown) => error ? reject(error) : resolve(rows)))
             expect(own[0]).toEqual([1.5, 12345678901234568, expect.any(Date), expect.any(Date), 'USER'])
@@ -47,7 +47,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('mysql2
     test('a-decimal-is-text-with-decimal-numbers-and-no-type-cast-on-the-connection', async () => {
         const connection = mysql2.createConnection({ ...connectionOptions(), decimalNumbers: true })
         try {
-            expect(await new MySql2QueryRunner(connection).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+            expect(await new MySql2QueryRunner(connection).executeQuery('selectOneRow', SQL, [])).toEqual(EXPECTED)
         } finally {
             await new Promise<void>(resolve => connection.end(() => resolve()))
         }
@@ -58,8 +58,8 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('mysql2
         const connection = mysql2.createConnection({ ...connectionOptions(), typeCast: false })
         const pool = mysql2.createPool({ ...connectionOptions(), connectionLimit: 1, typeCast: false })
         try {
-            expect(await new MySql2QueryRunner(connection).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
-            expect(await new MySql2PoolQueryRunner(pool).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+            expect(await new MySql2QueryRunner(connection).executeQuery('selectOneRow', SQL, [])).toEqual(EXPECTED)
+            expect(await new MySql2PoolQueryRunner(pool).executeQuery('selectOneRow', SQL, [])).toEqual(EXPECTED)
         } finally {
             await new Promise<void>(resolve => connection.end(() => resolve()))
             await new Promise<void>(resolve => pool.end(() => resolve()))
@@ -69,7 +69,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('mysql2
     test('the-options-of-the-pool-dont-apply-to-the-queries-of-the-runner', async () => {
         const pool = mysql2.createPool({ ...connectionOptions(), connectionLimit: 1, ...USER_OPTIONS })
         try {
-            expect(await new MySql2PoolQueryRunner(pool).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+            expect(await new MySql2PoolQueryRunner(pool).executeQuery('selectOneRow', SQL, [])).toEqual(EXPECTED)
         } finally {
             await new Promise<void>(resolve => pool.end(() => resolve()))
         }

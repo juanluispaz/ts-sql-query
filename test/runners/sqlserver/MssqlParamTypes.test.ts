@@ -33,7 +33,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     async function boundAs(value: unknown, type: string = '', customType: CustomType | undefined = undefined): Promise<string> {
         const params: any[] = []
         const placeholder = addParam(runner!, params, value, type, customType, false)
-        return await runner!.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
+        return await runner!.executeQuery('selectOneColumnOneRow', `select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
     }
 
     test('inferred-from-the-value', async () => {
@@ -58,7 +58,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         for (const value of [null, undefined]) {
             const params: any[] = []
             const placeholder = addParam(runner!, params, value, '', undefined, false)
-            expect(await runner!.executeSelectOneColumnOneRow(`select case when ${placeholder} is null then 1 else 0 end`, params)).toBe(1)
+            expect(await runner!.executeQuery('selectOneColumnOneRow', `select case when ${placeholder} is null then 1 else 0 end`, params)).toBe(1)
         }
     })
 
@@ -94,22 +94,22 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     test('typesByName/an-exact-decimal-bound-as-text-keeps-every-digit', async () => {
         const { TYPES } = db!.mssql
         const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { ExactDecimal: TYPES.NVarChar } })
-        await runner!.executeDatabaseSchemaModification('create table rt_exact_decimal (v decimal(38,10) not null)')
+        await runner!.executeQuery('executeDatabaseSchemaModification', 'create table rt_exact_decimal (v decimal(38,10) not null)', [])
         try {
             const insertParams: any[] = []
-            const inserted = await declared.executeInsert(`insert into rt_exact_decimal (v) values (${addParam(declared, insertParams, exactDecimal, 'ExactDecimal', 'customDouble', false)})`, insertParams)
+            const inserted = await declared.executeQuery('insert', `insert into rt_exact_decimal (v) values (${addParam(declared, insertParams, exactDecimal, 'ExactDecimal', 'customDouble', false)})`, insertParams)
             expect(inserted).toBe(1)
             const selectParams: any[] = []
             const placeholder = addParam(declared, selectParams, exactDecimal, 'ExactDecimal', 'customDouble', false)
-            const read = await declared.executeSelectManyRows(`select cast(v as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs from rt_exact_decimal where v = ${placeholder}`, selectParams)
+            const read = await declared.executeQuery('selectManyRows', `select cast(v as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs from rt_exact_decimal where v = ${placeholder}`, selectParams)
             expect(read).toEqual([{ v: exactDecimal, boundAs: 'nvarchar' }])
 
             // Without the declaration, a customDouble is bound as a float, which loses digits
             const floatParams: any[] = []
-            const asFloat = await runner!.executeSelectOneColumnOneRow(`select cast(cast(${addParam(runner!, floatParams, exactDecimal, 'ExactDecimal', 'customDouble', false)} as decimal(38,10)) as nvarchar(50))`, floatParams)
+            const asFloat = await runner!.executeQuery('selectOneColumnOneRow', `select cast(cast(${addParam(runner!, floatParams, exactDecimal, 'ExactDecimal', 'customDouble', false)} as decimal(38,10)) as nvarchar(50))`, floatParams)
             expect(asFloat).not.toBe(exactDecimal)
         } finally {
-            await runner!.executeDatabaseSchemaModification('drop table rt_exact_decimal')
+            await runner!.executeQuery('executeDatabaseSchemaModification', 'drop table rt_exact_decimal', [])
         }
     })
 
@@ -121,7 +121,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         const sent = async (value: unknown, type: string) => {
             const params: any[] = []
             const placeholder = addParam(declared, params, value, type, 'customDouble', false)
-            return await declared.executeSelectOneColumnOneRow(`select cast(${placeholder} as nvarchar(50))`, params)
+            return await declared.executeQuery('selectOneColumnOneRow', `select cast(${placeholder} as nvarchar(50))`, params)
         }
         expect(await sent(exactDecimal, 'Wide')).not.toBe(exactDecimal)
         expect(await sent('12.56789', 'Bare')).toBe('13')
@@ -133,7 +133,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { Price: TYPES.Decimal(18, 4) } })
         const params: any[] = []
         const placeholder = addParam(declared, params, 1.23456, 'Price', 'customDouble', false)
-        const row = await declared.executeSelectOneRow(`select cast(${placeholder} as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs, cast(sql_variant_property(${placeholder}, 'Scale') as int) as scale`, params)
+        const row = await declared.executeQuery('selectOneRow', `select cast(${placeholder} as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs, cast(sql_variant_property(${placeholder}, 'Scale') as int) as scale`, params)
         expect(row).toEqual({ v: '1.2346', boundAs: 'decimal', scale: 4 })
     })
 
@@ -143,7 +143,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         const boundBy = async (value: unknown, type: string, customType: CustomType | undefined) => {
             const params: any[] = []
             const placeholder = addParam(declared, params, value, type, customType, false)
-            return await declared.executeSelectOneColumnOneRow(`select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
+            return await declared.executeQuery('selectOneColumnOneRow', `select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
         }
         expect(await boundBy(1, 'int', undefined)).toBe('bigint')
         expect(await boundBy(12, 'Code', 'customInt')).toBe('decimal')
@@ -155,7 +155,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         const declared = new MssqlPoolPromiseQueryRunner(Promise.resolve(pool!), { typesByName: { ExactDecimal: TYPES.NVarChar } })
         const params: any[] = []
         const placeholder = addParam(declared, params, exactDecimal, 'ExactDecimal', 'customDouble', false)
-        expect(await declared.executeSelectOneRow(`select ${placeholder} as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs`, params)).toEqual({ v: exactDecimal, boundAs: 'nvarchar' })
+        expect(await declared.executeQuery('selectOneRow', `select ${placeholder} as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs`, params)).toEqual({ v: exactDecimal, boundAs: 'nvarchar' })
     })
 
     test('customDecimal/hand-written-sql-adds-two-parameters-as-numbers', async () => {
@@ -164,7 +164,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         const first = addParam(runner!, params, exactDecimal, 'Amount', 'customDecimal', false)
         const second = addParam(runner!, params, '0.0000000001', 'Amount', 'customDecimal', false)
         expect([first, second]).toEqual(['cast(@0 as decimal(30, 10))', 'cast(@1 as decimal(11, 10))'])
-        expect(await runner!.executeSelectOneColumnOneRow(`select cast(${first} + ${second} as nvarchar(50))`, params)).toBe('12345678901234567890.1234567892')
+        expect(await runner!.executeQuery('selectOneColumnOneRow', `select cast(${first} + ${second} as nvarchar(50))`, params)).toBe('12345678901234567890.1234567892')
     })
 
     test('customDecimal/hand-written-sql-rejects-a-value-beyond-38-digits', () => {
@@ -179,6 +179,6 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     })
 
     test('a-statement-without-a-result-set', async () => {
-        expect(await runner!.executeSelectManyRows('declare @x int')).toEqual([])
+        expect(await runner!.executeQuery('selectManyRows', 'declare @x int', [])).toEqual([])
     })
 })

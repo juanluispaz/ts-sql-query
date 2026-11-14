@@ -11,6 +11,7 @@ import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } 
 import { postgreSqlOptionsTimeZone } from '../utils/postgreSql/postgreSqlSessionTimeZone.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 
+/** The options of PostgresQueryRunner */
 export interface PostgresQueryRunnerConfig {
     /**
      * The type each parameter of a type name (the name given to a custom type, or a built-in one) is sent with, in every
@@ -20,10 +21,17 @@ export interface PostgresQueryRunnerConfig {
     typesByName?: { readonly [typeName: string]: number | ((value: any) => Parameter<any>) } | undefined
 }
 
+/**
+ * The query runner of PostgreSQL through postgres.js, over a `Sql`, a reserved connection or a transaction of
+ * postgres.js.
+ */
 export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     database: DatabaseType
+    /** The `Sql` of postgres.js the query runner was created with: a pool, a reserved connection or a transaction */
     readonly connection: Sql
+    /** The transaction of postgres.js that executeInTransaction runs in, while it runs */
     transaction?: TransactionSql | undefined
+    /** The connection reserved from the pool for a transaction begun with executeBeginTransaction, until it ends */
     lowLevelTransaction?: ReservedSql | undefined
     private readonly givenConnection: GivenSqlConnection
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
@@ -230,7 +238,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     }
     // The driver begins and commits a transaction by itself, in the function it receives. On a reserved connection it
     // can't, and the transaction goes through executeBeginTransaction and executeCommit.
-    override executeInTransactionCallsBeginAndCommit(): boolean {
+    override get executeInTransactionCallsBeginAndCommit(): boolean {
         return this.givenConnection === 'reserved'
     }
     override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {

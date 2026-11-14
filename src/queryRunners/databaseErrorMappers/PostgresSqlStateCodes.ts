@@ -1,3 +1,7 @@
+/**
+ * The condition names of the PostgreSQL SQLSTATE codes, by their code (`23505` is `unique_violation`). The name is what
+ * `getPostgresSqlStateName` gives, and the reason reports it as the database error code when the driver gives none.
+ */
 export const POSTGRES_SQLSTATE_NAMES = new Map<string, string>([
     ['00000', 'successful_completion'],
     ['01000', 'warning'],

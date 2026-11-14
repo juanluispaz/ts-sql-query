@@ -6,6 +6,9 @@ import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlSqliteErrorReason, isBunSqlSqliteError } from './connectorErrorMappers/BunSqlSqliteErrorMapper.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
+/**
+ * The query runner of SQLite through Bun SQL, over a `SQL` created with the `sqlite` adapter.
+ */
 export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
     constructor(connection: SQL) {
         super(connection, 'sqlite')
@@ -34,7 +37,7 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
     override executeRollbackQuery(query: string, params: any[]): Promise<number> {
         return this.connection.unsafe(query, params).then((result) => result.count)
     }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected override executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }

@@ -100,7 +100,7 @@ describe('PostgreSQL runners: the configuration of the driver', () => {
         // Rejected at the first query, which carries the databaseTimeZone of the connection (UTC without one), before
         // anything reaches pg
         for (const config of rejectedPg) {
-            expect(reasonOf(await rejectionOf(new PgQueryRunner(new pg.Client(config)).executeSelectManyRows('select 1', [])))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(await rejectionOf(new PgQueryRunner(new pg.Client(config)).executeQuery('selectManyRows', 'select 1', [])))).toBe('INVALID_CONFIGURATION')
         }
         for (const config of acceptedPg) {
             expect(new PgQueryRunner(new pg.Client(config)).database).toBe('postgreSql')
@@ -109,7 +109,7 @@ describe('PostgreSQL runners: the configuration of the driver', () => {
         const previous = process.env['PGOPTIONS']
         process.env['PGOPTIONS'] = madrid
         try {
-            expect(reasonOf(await rejectionOf(new PgQueryRunner(new pg.Client({ connectionString: uri })).executeSelectManyRows('select 1', [])))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(await rejectionOf(new PgQueryRunner(new pg.Client({ connectionString: uri })).executeQuery('selectManyRows', 'select 1', [])))).toBe('INVALID_CONFIGURATION')
         } finally {
             if (previous === undefined) {
                 delete process.env['PGOPTIONS']
@@ -130,7 +130,7 @@ describe('PostgreSQL runners: the configuration of the driver', () => {
             postgres(uri + '?TimeZone=UTC'),
         ]
         for (const sql of rejected) {
-            expect(reasonOf(await rejectionOf(new PostgresQueryRunner(sql).executeSelectManyRows('select 1', [])))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(await rejectionOf(new PostgresQueryRunner(sql).executeQuery('selectManyRows', 'select 1', [])))).toBe('INVALID_CONFIGURATION')
         }
         for (const sql of accepted) {
             expect(new PostgresQueryRunner(sql).database).toBe('postgreSql')
@@ -161,7 +161,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: the
             const runner = new PgPoolQueryRunner(pool)
             let error: unknown
             try {
-                await runner.executeSelectOneRow('select localtimestamp as ts', [])
+                await runner.executeQuery('selectOneRow', 'select localtimestamp as ts', [])
             } catch (e) {
                 error = e
             }
@@ -194,7 +194,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: a c
             defaults.binary = true
             let error: unknown
             try {
-                await runner.executeSelectOneRow('select 1 as one', [])
+                await runner.executeQuery('selectOneRow', 'select 1 as one', [])
             } catch (e) {
                 error = e
             }
@@ -225,7 +225,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: the
             client.setTypeParser(1082, () => 'USER DATE')
             client.setTypeParser(1114, () => 'USER TIMESTAMP')
             client.setTypeParser(20, (value: string) => BigInt(value))
-            const row = await new PgQueryRunner(client).executeSelectOneRow(SQL, [])
+            const row = await new PgQueryRunner(client).executeQuery('selectOneRow', SQL, [])
             expect(row).toEqual({ ...EXPECTED_DATES, i8: 42n })
             // The client keeps its parsers for its own queries
             expect((await client.query(SQL)).rows[0].ts).toBe('USER TIMESTAMP')
@@ -240,7 +240,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: the
         }
         const pool = new pg.Pool({ connectionString: db!.uri, max: 1, types })
         try {
-            const row = await new PgPoolQueryRunner(pool).executeSelectOneRow(SQL, [])
+            const row = await new PgPoolQueryRunner(pool).executeQuery('selectOneRow', SQL, [])
             expect(row).toEqual({ ...EXPECTED_DATES, i8: 42n })
         } finally {
             await pool.end()
@@ -256,9 +256,9 @@ describe.skipIf(!isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'))('PGlit
         })
         try {
             const expected = { ...EXPECTED_DATES, i8: 'USER INT8 42' }
-            expect(await new PgLiteQueryRunner(db).executeSelectOneRow(SQL, [])).toEqual(expected)
+            expect(await new PgLiteQueryRunner(db).executeQuery('selectOneRow', SQL, [])).toEqual(expected)
             // Also on the transaction PGlite gives, which takes the same options
-            expect(await db.transaction(tx => new PgLiteQueryRunner(tx).executeSelectOneRow(SQL, []))).toEqual(expected)
+            expect(await db.transaction(tx => new PgLiteQueryRunner(tx).executeQuery('selectOneRow', SQL, []))).toEqual(expected)
             // The database keeps its parsers for its own queries
             expect((await db.query<{ ts: unknown }>(SQL)).rows[0]!.ts).toBe('USER TIMESTAMP')
         } finally {

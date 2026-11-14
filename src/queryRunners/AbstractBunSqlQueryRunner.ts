@@ -6,11 +6,22 @@ import { getGivenSqlConnection, type GivenSqlConnection } from '../utils/givenSq
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { SQL, TransactionSQL, ReservedSQL } from 'bun'
 
+/**
+ * The base of the query runners of Bun SQL (`SQL` of `bun`), over a pool, a reserved connection or a transaction of
+ * Bun SQL. Bun SQL begins and ends a transaction by itself in the function it receives (`begin`): executeInTransaction
+ * runs the transaction there; a transaction begun with connection.beginTransaction() runs on a connection reserved
+ * from the pool.
+ */
 export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunner {
-    database: DatabaseType
+    /** The database the SQL is written for */
+    protected currentDatabase: DatabaseType
+    /** The `SQL` of Bun the query runner was created with: a pool, a reserved connection or a transaction */
     readonly connection: SQL
+    /** The transaction of Bun SQL that executeInTransaction runs in, while it runs */
     transaction?: TransactionSQL | undefined
+    /** The connection reserved from the pool for a transaction begun with executeBeginTransaction, until it ends */
     lowLevelTransaction?: ReservedSQL | undefined
+    /** What the `SQL` given to the constructor is: a pool, a reserved connection or a transaction */
     protected readonly givenConnection: GivenSqlConnection
 
     constructor(connection: SQL, database: DatabaseType) {
@@ -26,7 +37,10 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         }
         this.connection = connection
         this.givenConnection = getGivenSqlConnection(connection)
-        this.database = database
+        this.currentDatabase = database
+    }
+    get database(): DatabaseType {
+        return this.currentDatabase
     }
     useDatabase(database: DatabaseType): void {
         if (database !== this.database) {
@@ -168,7 +182,7 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         return '$' + params.length
     }
     // The driver begins and commits a transaction by itself, in the function it receives
-    override executeInTransactionCallsBeginAndCommit(): boolean {
+    override get executeInTransactionCallsBeginAndCommit(): boolean {
         return false
     }
     override executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
@@ -204,6 +218,10 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         }
         return this.beginNativeTransaction(opts, options, callback)
     }
+    /**
+     * Runs callback in a transaction of Bun SQL (`begin`), with the options of the transaction when there are some; a
+     * subclass writes them in its own way
+     */
     protected beginNativeTransaction<T>(_opts: BeginTransactionOpts, options: string | undefined, callback: (transaction: TransactionSQL) => Promise<T>): Promise<T> {
         if (options) {
             return this.connection.begin(options, callback) as Promise<T>

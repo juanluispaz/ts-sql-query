@@ -45,8 +45,8 @@ export function describeOverADriverTransaction(config: OverADriverTransactionCon
             const undo = new Error('undo')
             const error = await rejectionOf(d().begin(async transaction => {
                 const runner = await config.createRunner(transaction)
-                await runner.executeInsert('insert into rt_given (id) values (1)')
-                expect(Number(await runner.executeSelectOneColumnOneRow('select count(*) from rt_given'))).toBe(1)
+                await runner.executeQuery('insert', 'insert into rt_given (id) values (1)', [])
+                expect(Number(await runner.executeQuery('selectOneColumnOneRow', 'select count(*) from rt_given', []))).toBe(1)
                 expect(runner.isTransactionActive()).toBe(false)
                 let given: unknown
                 await runner.execute(async connection => { given = connection })
@@ -60,7 +60,7 @@ export function describeOverADriverTransaction(config: OverADriverTransactionCon
         test('the-driver-commits-the-transaction', async () => {
             await d().begin(async transaction => {
                 const runner = await config.createRunner(transaction)
-                await runner.executeInsert('insert into rt_given (id) values (2)')
+                await runner.executeQuery('insert', 'insert into rt_given (id) values (2)', [])
             })
             expect(await d().count()).toBe(1)
             await d().run('delete from rt_given')
@@ -72,7 +72,7 @@ export function describeOverADriverTransaction(config: OverADriverTransactionCon
                 const runner = await config.createRunner(transaction)
                 expect(reasonOf(await rejectionOf(runner.executeBeginTransaction()))).toBe('NESTED_TRANSACTION_NOT_SUPPORTED')
                 expect(reasonOf(await rejectionOf(runner.executeInTransaction(async () => undefined, runner)))).toBe('NESTED_TRANSACTION_NOT_SUPPORTED')
-                await runner.executeInsert('insert into rt_given (id) values (3)')
+                await runner.executeQuery('insert', 'insert into rt_given (id) values (3)', [])
                 expect(reasonOf(await rejectionOf(runner.executeCommit()))).toBe('NOT_IN_TRANSACTION')
                 expect(reasonOf(await rejectionOf(runner.executeRollback()))).toBe('NOT_IN_TRANSACTION')
                 expect(runner.isTransactionActive()).toBe(false)
@@ -88,7 +88,7 @@ export function describeOverADriverTransaction(config: OverADriverTransactionCon
                 const undo = new Error('undo')
                 await rejectionOf(d().begin(async transaction => {
                     const runner = createRunnerWhoseBeginCommits(transaction)
-                    await runner.executeInsert('insert into rt_given (id) values (4)')
+                    await runner.executeQuery('insert', 'insert into rt_given (id) values (4)', [])
                     await runner.executeBeginTransaction()
                     await runner.executeRollback()
                     throw undo

@@ -32,7 +32,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('MySQL 
         const params: any[] = []
         const placeholder = addParam(runner!, params, exact, 'Amount', 'customDecimal', false)
         expect(placeholder).toBe('cast(? as decimal(30, 10))')
-        expect(await runner!.executeSelectOneColumnOneRow(`select cast(${placeholder} + 0 as char)`, params)).toBe(exact)
+        expect(await runner!.executeQuery('selectOneColumnOneRow', `select cast(${placeholder} + 0 as char)`, params)).toBe(exact)
     })
 
     test('a-value-beyond-the-widest-decimal-is-rejected', () => {

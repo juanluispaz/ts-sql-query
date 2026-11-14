@@ -1,3 +1,8 @@
+/**
+ * The names of the SQLite result codes, primary and extended, by their number (`19` is `SQLITE_CONSTRAINT`, `2067` is
+ * `SQLITE_CONSTRAINT_UNIQUE`). The mappers of the drivers that give only the number of the code read its name here, and
+ * `getSqliteEngineErrorReason` decides the reason from the name.
+ */
 export const SQLITE_ERROR_CODE_NAMES = new Map<number, string>([
     [0, 'SQLITE_OK'],
     [1, 'SQLITE_ERROR'],
@@ -106,6 +111,7 @@ export const SQLITE_ERROR_CODE_NAMES = new Map<number, string>([
     [8458, 'SQLITE_IOERR_CORRUPTFS'],
 ])
 
+/** The numbers of the SQLite result codes by their name; the reverse of `SQLITE_ERROR_CODE_NAMES`. */
 export const SQLITE_ERROR_CODE_NUMBERS = new Map<string, number>(
     Array.from(SQLITE_ERROR_CODE_NAMES, ([number, name]) => [name, number])
 )

@@ -28,7 +28,7 @@ describeDeadlockRollback('BunSqlMySqlQueryRunner (MariaDB)', typeof globalThis.B
     const sql = new SQL({ adapter: 'mysql', hostname: db.host, port: db.port, username: db.user, password: db.password, database: db.database, foundRows: true, max: 2 })
     const other = await mariadb.createConnection({ host: db.host, port: db.port, user: db.user, password: db.password, database: db.database })
     return {
-        runner: new BunSqlMySqlQueryRunner(sql, 'mariaDB'),
+        runner: new BunSqlMySqlQueryRunner(sql, { database: 'mariaDB' }),
         other: (statement) => other.query(statement),
         close: async () => { await other.end(); await sql.close(); await db.release() },
     }

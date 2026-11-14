@@ -27,13 +27,13 @@ function describeBoolean(label: string, enabled: boolean, table: string, express
 
         test('sent-as-1-and-0-and-read-as-numbers', async () => {
             const runner = created!.runner
-            await runner.executeDatabaseSchemaModification(`create table ${table} (id int primary key, b tinyint(1))`, [])
+            await runner.executeQuery('executeDatabaseSchemaModification', `create table ${table} (id int primary key, b tinyint(1))`, [])
             try {
-                await runner.executeInsert(`insert into ${table} values (1, ?), (2, ?)`, [true, false])
-                expect(await runner.executeSelectManyRows(`select id, b, cast(b as char) as txt from ${table} order by id`, [])).toEqual([{ id: 1, b: 1, txt: '1' }, { id: 2, b: 0, txt: '0' }])
-                expect(await runner.executeSelectOneRow('select true as t, false as f, ? as p', [true])).toEqual(expression)
+                await runner.executeQuery('insert', `insert into ${table} values (1, ?), (2, ?)`, [true, false])
+                expect(await runner.executeQuery('selectManyRows', `select id, b, cast(b as char) as txt from ${table} order by id`, [])).toEqual([{ id: 1, b: 1, txt: '1' }, { id: 2, b: 0, txt: '0' }])
+                expect(await runner.executeQuery('selectOneRow', 'select true as t, false as f, ? as p', [true])).toEqual(expression)
             } finally {
-                await runner.executeDatabaseSchemaModification(`drop table ${table}`, [])
+                await runner.executeQuery('executeDatabaseSchemaModification', `drop table ${table}`, [])
             }
         })
     })

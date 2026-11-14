@@ -197,7 +197,7 @@ describe(ctx.label, () => {
         // transaction's after-commit hook fires first, and the outer hook —
         // saved on the stack across the nested transaction — fires after the
         // outer commit. In mock mode this is `ctx.conn` (the mock already
-        // reports nestedTransactionsSupported()).
+        // reports nestedTransactionsSupported).
         const connection = ctx.nestedTransactionConn()
         const events: string[] = []
         await connection.transaction(async () => {
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
         // and its after-commit hook runs while the outer transaction is still
         // open — reaching the NESTED_DEFERRING guard on the real engine too. In
         // mock mode this is `ctx.conn` (the mock already reports
-        // nestedTransactionsSupported()).
+        // nestedTransactionsSupported).
         const connection = ctx.nestedTransactionConn()
         const events: string[] = []
         let caught: unknown

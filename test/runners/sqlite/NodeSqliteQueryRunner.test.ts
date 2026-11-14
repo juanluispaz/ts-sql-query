@@ -58,8 +58,8 @@ describe.skipIf(!(await returnArraysAvailable()))('NodeSqliteQueryRunner: the co
         const db = new DatabaseSync(':memory:', { returnArrays: true })
         try {
             const runner = new NodeSqliteQueryRunner(db)
-            expect(await runner.executeSelectOneRow("select 1 as one, 'text' as some_name", [])).toEqual({ one: 1, some_name: 'text' })
-            expect(await runner.executeSelectOneColumnOneRow('select 2 as two', [])).toBe(2)
+            expect(await runner.executeQuery('selectOneRow', "select 1 as one, 'text' as some_name", [])).toEqual({ one: 1, some_name: 'text' })
+            expect(await runner.executeQuery('selectOneColumnOneRow', 'select 2 as two', [])).toBe(2)
             // The database keeps it for its own statements
             expect(db.prepare('select 1 as one').all()).toEqual([[1]])
         } finally {

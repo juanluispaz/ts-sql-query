@@ -32,10 +32,10 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('mss
         const pool = await new db!.mssql.ConnectionPool({ ...db!.config, arrayRowMode: true, pool: { max: 1, min: 0 } }).connect()
         try {
             const runner = new MssqlPoolQueryRunner(pool)
-            expect(await runner.executeSelectOneRow('select 1 as one, \'text\' as some_name', [])).toEqual({ one: 1, some_name: 'text' })
+            expect(await runner.executeQuery('selectOneRow', 'select 1 as one, \'text\' as some_name', [])).toEqual({ one: 1, some_name: 'text' })
             await runner.executeBeginTransaction()
             try {
-                expect(await runner.executeSelectOneRow('select 2 as two', [])).toEqual({ two: 2 })
+                expect(await runner.executeQuery('selectOneRow', 'select 2 as two', [])).toEqual({ two: 2 })
             } finally {
                 await runner.executeRollback()
             }
@@ -57,7 +57,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('mss
             expect(new MssqlPoolQueryRunner(plain).database).toBe('sqlServer')
             // A promise of the pool shows its configuration only when it resolves: the first query is rejected
             const promised = new MssqlPoolPromiseQueryRunner(camelCase.connect())
-            expect(reasonOf(await rejectionOf(promised.executeSelectOneRow('select 1 as one', [])))).toBe('INVALID_CONFIGURATION')
+            expect(reasonOf(await rejectionOf(promised.executeQuery('selectOneRow', 'select 1 as one', [])))).toBe('INVALID_CONFIGURATION')
         } finally {
             await Promise.all([camelCase.close(), replacer.close(), plain.close()])
         }

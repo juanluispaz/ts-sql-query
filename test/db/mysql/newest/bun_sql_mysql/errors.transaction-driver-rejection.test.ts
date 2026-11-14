@@ -11,7 +11,7 @@
 // returning). A healthy driver never rejects a COMMIT, so these arms are only
 // reachable by forcing the rejection — `ctx.withFaultInjection()` arms the
 // begin/commit/rollback calls to fail on demand. It also overrides
-// `nestedTransactionsSupported()` to drive the `NESTED_TRANSACTION_NOT_SUPPORTED`
+// `nestedTransactionsSupported` to drive the `NESTED_TRANSACTION_NOT_SUPPORTED`
 // guards a nested transaction raises.
 //
 // The injected error's CLASS selects the ladder arm:

@@ -44,7 +44,7 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             const params: any[] = []
             const placeholder = addParam(r, params, value, type, customType, forceTypeCast)
             expect(getQueryContext('', params).getParam(0)?.forceTypeCast).toBe(forceTypeCast)
-            return { placeholder, type: await r.executeSelectOneColumnOneRow(`select pg_typeof(${placeholder})::text`, params) }
+            return { placeholder, type: await r.executeQuery('selectOneColumnOneRow', `select pg_typeof(${placeholder})::text`, params) }
         }
 
         test('a-param-the-library-asks-the-type-of', async () => {
@@ -76,21 +76,21 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             const params: any[] = []
             const placeholder = addParam(runners!.plain, params, 'Acme Corp', 'Status', 'enum', true)
             expect(placeholder).toBe('$1')
-            expect(await runners!.plain.executeSelectOneColumnOneRow(`select id from organization where name = ${placeholder}`, params)).toBe(1)
+            expect(await runners!.plain.executeQuery('selectOneColumnOneRow', `select id from organization where name = ${placeholder}`, params)).toBe(1)
         })
 
         test('a-param-compared-with-a-column-goes-untyped', async () => {
             const params: any[] = []
             const placeholder = addParam(runners!.plain, params, 1, 'int', undefined, false)
             expect(placeholder).toBe('$1')
-            expect(await runners!.plain.executeSelectOneColumnOneRow(`select name from organization where id = ${placeholder}`, params)).toBe('Acme Corp')
+            expect(await runners!.plain.executeQuery('selectOneColumnOneRow', `select name from organization where id = ${placeholder}`, params)).toBe('Acme Corp')
         })
 
         test('the-params-of-the-query-are-not-changed', async () => {
             const params: any[] = []
             const placeholder = addParam(runners!.declared, params, 7, 'int', undefined, true)
             const decimal = addParam(runners!.declared, params, exactDecimal, 'ExactDecimal', 'customDouble', false)
-            await runners!.declared.executeSelectOneRow(`select ${placeholder} as a, ${decimal}::text as b`, params)
+            await runners!.declared.executeQuery('selectOneRow', `select ${placeholder} as a, ${decimal}::text as b`, params)
             expect(params).toEqual([7, exactDecimal])
         })
 
@@ -98,7 +98,7 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             const r = runners!.plain
             const type = await r.executeInTransaction(() => {
                 const params: any[] = []
-                return r.executeSelectOneColumnOneRow(`select pg_typeof(${addParam(r, params, 7, 'int', undefined, true)})::text`, params)
+                return r.executeQuery('selectOneColumnOneRow', `select pg_typeof(${addParam(r, params, 7, 'int', undefined, true)})::text`, params)
             }, r)
             expect(type).toBe('integer')
         })
@@ -108,25 +108,25 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             const params: any[] = []
             const placeholder = addParam(r, params, exactDecimal, 'ExactDecimal', 'customDouble', true)
             expect(placeholder).toBe(typesTheParam ? '$1' : '$1::numeric')
-            expect(await r.executeSelectOneRow(`select (${placeholder})::text as v, pg_typeof(${placeholder})::text as t`, params)).toEqual({ v: exactDecimal, t: 'numeric' })
+            expect(await r.executeQuery('selectOneRow', `select (${placeholder})::text as v, pg_typeof(${placeholder})::text as t`, params)).toEqual({ v: exactDecimal, t: 'numeric' })
 
             // Without the declaration, a customDouble gets the type of a double, which loses digits
             const plainParams: any[] = []
-            const asDouble = await runners!.plain.executeSelectOneColumnOneRow(`select (${addParam(runners!.plain, plainParams, exactDecimal, 'ExactDecimal', 'customDouble', true)})::text`, plainParams)
+            const asDouble = await runners!.plain.executeQuery('selectOneColumnOneRow', `select (${addParam(runners!.plain, plainParams, exactDecimal, 'ExactDecimal', 'customDouble', true)})::text`, plainParams)
             expect(asDouble).not.toBe(exactDecimal)
         })
 
         test('typesByName/inserted-into-and-compared-with-a-numeric-column', async () => {
             const r = runners!.declared
-            await r.executeDatabaseSchemaModification('create table rt_exact_decimal (v numeric(38,10) not null)')
+            await r.executeQuery('executeDatabaseSchemaModification', 'create table rt_exact_decimal (v numeric(38,10) not null)', [])
             try {
                 const insertParams: any[] = []
-                expect(await r.executeInsert(`insert into rt_exact_decimal (v) values (${addParam(r, insertParams, exactDecimal, 'ExactDecimal', 'customDouble', false)})`, insertParams)).toBe(1)
+                expect(await r.executeQuery('insert', `insert into rt_exact_decimal (v) values (${addParam(r, insertParams, exactDecimal, 'ExactDecimal', 'customDouble', false)})`, insertParams)).toBe(1)
                 const params: any[] = []
                 const placeholder = addParam(r, params, exactDecimal, 'ExactDecimal', 'customDouble', true)
-                expect(await r.executeSelectManyRows(`select v::text as v from rt_exact_decimal where v = ${placeholder}`, params)).toEqual([{ v: exactDecimal }])
+                expect(await r.executeQuery('selectManyRows', `select v::text as v from rt_exact_decimal where v = ${placeholder}`, params)).toEqual([{ v: exactDecimal }])
             } finally {
-                await r.executeDatabaseSchemaModification('drop table rt_exact_decimal')
+                await r.executeQuery('executeDatabaseSchemaModification', 'drop table rt_exact_decimal', [])
             }
         })
 
@@ -136,7 +136,7 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             const placeholder = addParam(runners!.declared, params, exactDecimal, 'ExactDecimal', 'customDouble', false)
             expect(placeholder).toBe('$1')
             if (typesTheParam) {
-                expect(await runners!.declared.executeSelectOneColumnOneRow(`select pg_typeof(${placeholder})::text`, params)).toBe('numeric')
+                expect(await runners!.declared.executeQuery('selectOneColumnOneRow', `select pg_typeof(${placeholder})::text`, params)).toBe('numeric')
             }
         })
     })

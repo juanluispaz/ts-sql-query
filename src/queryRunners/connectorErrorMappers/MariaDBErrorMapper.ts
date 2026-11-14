@@ -2,6 +2,10 @@ import type { TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlErro
 import type { DatabaseType } from '../QueryRunner.js'
 import { getMySqlMariaDbEngineErrorReason, getMySqlMariaDbErrorCodeName, getMySqlMariaDbErrorNumberFromCode, isMySqlMariaDbEngineError } from '../databaseErrorMappers/MySqlMariaDbErrorMapper.js'
 
+/**
+ * An error raised through the mariadb driver: an `Error` that may carry the error number, a code (the name of the error
+ * or a Node error code), the SQLSTATE and the message of the server.
+ */
 type SqlError = Error & {
     errno?: number | undefined
     code?: string | undefined
@@ -99,6 +103,10 @@ const MARIADB_TLS_CONFIGURATION_ERROR_CODES = new Set([
     'CERT_HAS_EXPIRED',
 ])
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through the mariadb driver (`database` picks the names and numbers of
+ * the error codes of MySQL or MariaDB); `UNKNOWN` when it isn't an error of that driver.
+ */
 export function getMariaDbErrorReason(error: unknown, database?: DatabaseType): TsSqlErrorReason {
     if (!isMariaDbError(error)) {
         return { reason: 'UNKNOWN' }
@@ -106,6 +114,10 @@ export function getMariaDbErrorReason(error: unknown, database?: DatabaseType): 
     return getMariaDbDriverOrEngineErrorReason(error, database)
 }
 
+/**
+ * Tells whether the error comes from the mariadb driver: an `Error` from the server, with a code or number of the
+ * driver, with a Node error code of the network, a timeout or TLS, or with a message the driver raises.
+ */
 export function isMariaDbError(error: unknown): error is SqlError {
     return !!error && error instanceof Error && (
         isMySqlMariaDbEngineError(error)
@@ -115,6 +127,12 @@ export function isMariaDbError(error: unknown): error is SqlError {
     )
 }
 
+/**
+ * Gives the reason of an error of the mariadb driver: the driver's when its code or message is known, otherwise the
+ * engine's, mapped with `getMySqlMariaDbEngineErrorReason`; with the number of the error added. A timeout getting a
+ * connection of the pool whose cause is an error of the driver gives the reason of that cause, the reason the
+ * connection couldn't be opened.
+ */
 function getMariaDbDriverOrEngineErrorReason(error: SqlError, database?: DatabaseType): TsSqlErrorReason {
     // The pool reports a connection it could not open as a timeout getting one;
     // the reason the connection failed (a wrong password, a refused port) is its cause
@@ -138,6 +156,11 @@ function getMariaDbDriverOrEngineErrorReason(error: SqlError, database?: Databas
     return withDatabaseErrorNumber(reason, getMariaDbDatabaseErrorNumber(error, database))
 }
 
+/**
+ * Gives the reason of an error the mariadb driver raises itself, recognised by its code of the driver (pool,
+ * connection, TLS, authentication, parameters, identifiers, files, session configuration, features, protocol), or else
+ * by a Node error code or its message; `undefined` when they aren't one of them.
+ */
 function getKnownMariaDbDriverErrorReason(error: SqlError, message = error.sqlMessage || error.message || '', database?: DatabaseType): TsSqlErrorReason | undefined {
     const code = getMariaDbStringCode(error)
     const driverCode = getMariaDbDriverErrorCode(error)
@@ -259,11 +282,13 @@ function getKnownMariaDbDriverErrorReason(error: SqlError, message = error.sqlMe
     return undefined
 }
 
+/** Tells whether the error has a code or a number of the mariadb driver. */
 function isMariaDbKnownDriverError(error: SqlError): boolean {
     const driverCode = getMariaDbDriverErrorCode(error)
     return !!driverCode
 }
 
+/** Tells whether the code of the error is a Node error code of the network, of a timeout or of a TLS certificate. */
 function isMariaDbNodeError(error: SqlError): boolean {
     const code = getMariaDbStringCode(error)
     return isMariaDbNetworkErrorCode(code)
@@ -271,6 +296,10 @@ function isMariaDbNodeError(error: SqlError): boolean {
         || isMariaDbTlsConfigurationErrorCode(code)
 }
 
+/**
+ * Tells whether the message is one the mariadb driver raises without a code: a closed pool, an invalid configuration or
+ * a command the server doesn't permit.
+ */
 function isMariaDbDriverMessage(message: string): boolean {
     return message === 'pool is closed'
         || message === 'pool is already closed'
@@ -280,6 +309,10 @@ function isMariaDbDriverMessage(message: string): boolean {
         || isMariaDbPlainDriverFeatureNotSupportedMessage(message)
 }
 
+/**
+ * Gives the code reported as `databaseErrorCode`: the name the database gives to the number of the code, or the code
+ * itself; without a code, the name of the error number on the database.
+ */
 function getMariaDbDatabaseErrorCode(error: SqlError, database?: DatabaseType): string | undefined {
     const code = getMariaDbStringCode(error)
     if (code) {
@@ -289,6 +322,10 @@ function getMariaDbDatabaseErrorCode(error: SqlError, database?: DatabaseType): 
     return getMySqlMariaDbErrorCodeName(errorNumber, database)
 }
 
+/**
+ * Gives the number reported as `databaseErrorNumber`: the error number, otherwise the number of the code of the driver
+ * or of the database, otherwise the SQLSTATE.
+ */
 function getMariaDbDatabaseErrorNumber(error: SqlError, database?: DatabaseType): TsSqlDatabaseErrorNumber | undefined {
     const code = getMariaDbStringCode(error)
     return getMariaDbPositiveErrorNumber(error)
@@ -297,14 +334,20 @@ function getMariaDbDatabaseErrorNumber(error: SqlError, database?: DatabaseType)
         ?? error.sqlState
 }
 
+/** Gives the `errno` of the error when it is a positive number, otherwise `undefined`. */
 function getMariaDbPositiveErrorNumber(error: SqlError): number | undefined {
     return typeof error.errno === 'number' && error.errno > 0 ? error.errno : undefined
 }
 
+/** Gives the `code` of the error when it is a text, otherwise `undefined`. */
 function getMariaDbStringCode(error: SqlError): string | undefined {
     return typeof error.code === 'string' ? error.code : undefined
 }
 
+/**
+ * Gives the code of the driver of the error: its `code` when it is one of the driver, otherwise the code of its error
+ * number when that number is one of the driver; `undefined` otherwise.
+ */
 function getMariaDbDriverErrorCode(error: SqlError): string | undefined {
     const code = getMariaDbStringCode(error)
     if (code && MARIADB_DRIVER_ERROR_CODE_NUMBERS.has(code)) {
@@ -319,6 +362,10 @@ function getMariaDbDriverErrorCode(error: SqlError): string | undefined {
     return undefined
 }
 
+/**
+ * Gives the reason with `databaseErrorNumber` set, or the reason as it is when there is no number or the reason is
+ * `UNKNOWN`.
+ */
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
     if (databaseErrorNumber === undefined || reason.reason === 'UNKNOWN') {
         return reason
@@ -326,18 +373,30 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
+/**
+ * Tells whether the code is a code of Node for a connection refused, reset, aborted or a host that can't be reached.
+ */
 function isMariaDbNetworkErrorCode(code: string | undefined): boolean {
     return !!code && MARIADB_NETWORK_ERROR_CODES.has(code)
 }
 
+/** Tells whether the code is a code of Node for a timeout of the connection. */
 function isMariaDbTimeoutErrorCode(code: string | undefined): boolean {
     return !!code && MARIADB_TIMEOUT_ERROR_CODES.has(code)
 }
 
+/**
+ * Tells whether the code is one Node gives for a TLS certificate that can't be verified (expired, self-signed, wrong
+ * name).
+ */
 function isMariaDbTlsConfigurationErrorCode(code: string | undefined): boolean {
     return !!code && MARIADB_TLS_CONFIGURATION_ERROR_CODES.has(code)
 }
 
+/**
+ * Gives the details of an invalid parameter from the code of the driver and the message: `invalid value`, or `missing`
+ * with the name of the parameter when the code or the message gives it.
+ */
 function getMariaDbInvalidParameterDetails(code: string, message: string): {
     parameterErrorType?: 'missing' | 'invalid value' | undefined
     parameterName?: string | undefined
@@ -365,6 +424,10 @@ function getMariaDbInvalidParameterDetails(code: string, message: string): {
     return { parameterErrorType: 'missing' }
 }
 
+/**
+ * Gives the first name of the message between backticks, else between single quotes, else between double quotes;
+ * `undefined` when there is none.
+ */
 function extractMariaDbQuotedName(message: string): string | undefined {
     const backtick = /`([^`]+)`/.exec(message)
     if (backtick) {
@@ -381,6 +444,10 @@ function extractMariaDbQuotedName(message: string): string | undefined {
     return undefined
 }
 
+/**
+ * Tells whether the message is one the mariadb driver raises for an invalid option of the connection: charset,
+ * collation, `maxAllowedPacket` or `connectAttributes`.
+ */
 function isMariaDbInvalidConnectionConfigurationMessage(message: string): boolean {
     return /^Unknown charset '[^']+'$/.test(message)
         || /^Unknown collation '[^']+'/.test(message)
@@ -388,6 +455,7 @@ function isMariaDbInvalidConnectionConfigurationMessage(message: string): boolea
         || message.startsWith('Failed to parse connectAttributes as JSON: ')
 }
 
+/** Tells whether the message says that the server doesn't permit the reset command. */
 function isMariaDbPlainDriverFeatureNotSupportedMessage(message: string): boolean {
     return message.startsWith('Reset command not permitted for server ')
 }

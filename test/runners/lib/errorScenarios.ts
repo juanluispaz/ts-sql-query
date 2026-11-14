@@ -48,22 +48,22 @@ export interface ErrorScenario {
 }
 
 function ddl(sql: string) {
-    return ({ runner }: ErrorScenarioContext) => runner.executeDatabaseSchemaModification(sql)
+    return ({ runner }: ErrorScenarioContext) => runner.executeQuery('executeDatabaseSchemaModification', sql, [])
 }
 
 function query(sql: string) {
-    return ({ runner }: ErrorScenarioContext) => runner.executeSelectManyRows(sql)
+    return ({ runner }: ErrorScenarioContext) => runner.executeQuery('selectManyRows', sql, [])
 }
 
 function mutation(sql: string) {
-    return ({ runner }: ErrorScenarioContext) => runner.executeUpdate(sql)
+    return ({ runner }: ErrorScenarioContext) => runner.executeQuery('update', sql, [])
 }
 
 /** A select with `count` parameters in an `in` list, written with `placeholder(index)` (index from 0) */
 function queryWithParameters(count: number, placeholder: (index: number) => string) {
     const placeholders = Array.from({ length: count }, (_, index) => placeholder(index)).join(', ')
     const params = Array.from({ length: count }, (_, index) => index)
-    return ({ runner }: ErrorScenarioContext) => runner.executeSelectManyRows(`select 1 as one where 1 in (${placeholders})`, params)
+    return ({ runner }: ErrorScenarioContext) => runner.executeQuery('selectManyRows', `select 1 as one where 1 in (${placeholders})`, params)
 }
 
 /**
@@ -113,15 +113,15 @@ async function deadlock(ctx: ErrorScenarioContext, lockRow: (id: number) => stri
     await b.executeBeginTransaction()
     // The failed session rolls back at once: Oracle only undoes the failed
     // statement, so the other session would wait for its lock otherwise.
-    const failureOf = (runner: QueryRunner, sql: string) => runner.executeUpdate(sql).then(
+    const failureOf = (runner: QueryRunner, sql: string) => runner.executeQuery('update', sql, []).then(
         () => undefined,
         async (error: unknown) => {
             await runner.executeRollback().catch(() => undefined)
             return { error }
         })
     try {
-        await a.executeUpdate(lockRow(1))
-        await b.executeUpdate(lockRow(2))
+        await a.executeQuery('update', lockRow(1), [])
+        await b.executeQuery('update', lockRow(2), [])
         const failures = await Promise.all([failureOf(a, lockRow(2)), failureOf(b, lockRow(1))])
         const failure = failures.find(f => f !== undefined)
         if (!failure) throw new Error('Expected a deadlock')
@@ -148,7 +148,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
         name: 'commit-after-a-failed-statement',
         run: async ({ runner }) => {
             await runner.executeBeginTransaction()
-            await runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`).catch(() => undefined)
+            await runner.executeQuery('insert', `insert into rt_probe (id, name) values (1, 'dup')`, []).catch(() => undefined)
             try {
                 await runner.executeCommit()
             } catch (error) {
@@ -162,7 +162,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
         name: 'transaction-whose-failed-statement-was-caught',
         onlyRunners: ['PgQueryRunner', 'PgPoolQueryRunner', 'PgLiteQueryRunner', 'BunSqlPostgresQueryRunner', 'PostgresQueryRunner'],
         run: ({ runner }) => runner.executeInTransaction(async () => {
-            await runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`).catch(() => undefined)
+            await runner.executeQuery('insert', `insert into rt_probe (id, name) values (1, 'dup')`, []).catch(() => undefined)
         }, runner),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back' },
     },
@@ -173,7 +173,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
         onlyRunners: ['PostgresQueryRunner'],
         run: ({ runner }) => runner.executeInTransaction(async () => {
             await runner.execute(transaction => (transaction as { rollback(): Promise<void> }).rollback())
-            await runner.executeSelectManyRows('select 1')
+            await runner.executeQuery('selectManyRows', 'select 1', [])
         }, runner),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back', databaseErrorCode: 'TRANSACTION_ROLLED_BACK' },
     },
@@ -213,8 +213,8 @@ const postgresScenarios: readonly ErrorScenario[] = [
         setup: ['create table rt_err_booking (during int4range, constraint rt_err_no_overlap exclude using gist (during with &&))'],
         cleanup: ['drop table if exists rt_err_booking'],
         run: async ({ runner }) => {
-            await runner.executeInsert(`insert into rt_err_booking (during) values ('[1,5)')`)
-            return runner.executeInsert(`insert into rt_err_booking (during) values ('[3,8)')`)
+            await runner.executeQuery('insert', `insert into rt_err_booking (during) values ('[1,5)')`, [])
+            return runner.executeQuery('insert', `insert into rt_err_booking (during) values ('[3,8)')`, [])
         },
         expected: { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'exclusion', constraintName: 'rt_err_no_overlap', tableName: 'rt_err_booking' },
     },
@@ -272,7 +272,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'missing-cursor',
-        run: ({ runner }) => inTransaction(runner, () => runner.executeUpdate('close rt_err_missing_cursor')),
+        run: ({ runner }) => inTransaction(runner, () => runner.executeQuery('update', 'close rt_err_missing_cursor', [])),
         expected: { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'cursor' },
     },
     {
@@ -369,7 +369,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
         name: 'sequence-past-its-maximum',
         setup: ['create sequence rt_err_seq minvalue 0 maxvalue 1 start 1'],
         cleanup: ['drop sequence if exists rt_err_seq'],
-        run: ({ runner }) => runner.executeSelectManyRows(`select nextval('rt_err_seq'), nextval('rt_err_seq')`),
+        run: ({ runner }) => runner.executeQuery('selectManyRows', `select nextval('rt_err_seq'), nextval('rt_err_seq')`, []),
         expected: { reason: 'SQL_INVALID_VALUE', errorType: 'sequence limit' },
     },
     {
@@ -392,7 +392,7 @@ const postgresScenarios: readonly ErrorScenario[] = [
         run: async ({ runner }) => {
             await runner.executeBeginTransaction([undefined, 'read only'])
             try {
-                return await runner.executeUpdate(`update rt_probe set name = 'x'`)
+                return await runner.executeQuery('update', `update rt_probe set name = 'x'`, [])
             } finally {
                 await runner.executeRollback().catch(() => undefined)
             }
@@ -402,16 +402,16 @@ const postgresScenarios: readonly ErrorScenario[] = [
     {
         name: 'statement-in-an-aborted-transaction',
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeSelectManyRows('select 1 / 0').catch(() => undefined)
-            return runner.executeSelectManyRows('select 1')
+            await runner.executeQuery('selectManyRows', 'select 1 / 0', []).catch(() => undefined)
+            return runner.executeQuery('selectManyRows', 'select 1', [])
         }),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'aborted' },
     },
     {
         name: 'isolation-level-set-after-a-query',
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeSelectManyRows('select 1')
-            return runner.executeUpdate('set transaction isolation level serializable')
+            await runner.executeQuery('selectManyRows', 'select 1', [])
+            return runner.executeQuery('update', 'set transaction isolation level serializable', [])
         }),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'active transaction' },
     },
@@ -422,12 +422,12 @@ const postgresScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'rollback-to-a-missing-savepoint',
-        run: ({ runner }) => inTransaction(runner, () => runner.executeUpdate('rollback to savepoint rt_err_missing')),
+        run: ({ runner }) => inTransaction(runner, () => runner.executeQuery('update', 'rollback to savepoint rt_err_missing', [])),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid savepoint' },
     },
     {
         name: 'commit-inside-a-function-call',
-        run: ({ runner }) => inTransaction(runner, () => runner.executeUpdate('do $$ begin commit; end $$')),
+        run: ({ runner }) => inTransaction(runner, () => runner.executeQuery('update', 'do $$ begin commit; end $$', [])),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid state' },
     },
     {
@@ -446,14 +446,14 @@ const postgresScenarios: readonly ErrorScenario[] = [
     {
         name: 'parameter-the-statement-does-not-use',
         onlyRunners: ['PgQueryRunner', 'PgPoolQueryRunner'],
-        run: ({ runner }) => runner.executeSelectManyRows('select 1', [1]),
+        run: ({ runner }) => runner.executeQuery('selectManyRows', 'select 1', [1]),
         expected: { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'wrong count' },
     },
     {
         name: 'parameter-of-unknown-type',
         run: ({ runner }) => {
             const params: any[] = []
-            return runner.executeSelectManyRows(`select ${addParam(runner, params, null, '', undefined, false)} is null`, params)
+            return runner.executeQuery('selectManyRows', `select ${addParam(runner, params, null, '', undefined, false)} is null`, params)
         },
         expected: { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'type mismatch' },
     },
@@ -461,8 +461,8 @@ const postgresScenarios: readonly ErrorScenario[] = [
         name: 'statement-timeout',
         serverOnly: true,
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeUpdate(`set local statement_timeout = 100`)
-            return runner.executeSelectManyRows('select pg_sleep(2)')
+            await runner.executeQuery('update', `set local statement_timeout = 100`, [])
+            return runner.executeQuery('selectManyRows', 'select pg_sleep(2)', [])
         }),
         expected: { reason: 'SQL_TIMEOUT', timeoutType: 'statement' },
     },
@@ -473,10 +473,10 @@ const postgresScenarios: readonly ErrorScenario[] = [
             const other = await ctx.otherSession()
             await other.executeBeginTransaction()
             try {
-                await other.executeUpdate(`update rt_probe set name = 'locked' where id = 1`)
+                await other.executeQuery('update', `update rt_probe set name = 'locked' where id = 1`, [])
                 return await inTransaction(ctx.runner, async () => {
-                    await ctx.runner.executeUpdate(`set local lock_timeout = 100`)
-                    return ctx.runner.executeUpdate(`update rt_probe set name = 'waiting' where id = 1`)
+                    await ctx.runner.executeQuery('update', `set local lock_timeout = 100`, [])
+                    return ctx.runner.executeQuery('update', `update rt_probe set name = 'waiting' where id = 1`, [])
                 })
             } finally {
                 await other.executeRollback().catch(() => undefined)
@@ -498,9 +498,9 @@ const postgresScenarios: readonly ErrorScenario[] = [
             const b = await ctx.otherSession()
             await a.executeBeginTransaction(['snapshot'])
             try {
-                await a.executeSelectManyRows('select name from rt_probe where id = 1')
-                await b.executeUpdate(`update rt_probe set name = 'changed' where id = 1`)
-                return await a.executeUpdate(`update rt_probe set name = 'stale' where id = 1`)
+                await a.executeQuery('selectManyRows', 'select name from rt_probe where id = 1', [])
+                await b.executeQuery('update', `update rt_probe set name = 'changed' where id = 1`, [])
+                return await a.executeQuery('update', `update rt_probe set name = 'stale' where id = 1`, [])
             } finally {
                 await a.executeRollback().catch(() => undefined)
             }
@@ -513,11 +513,10 @@ const postgresScenarios: readonly ErrorScenario[] = [
         run: async (ctx) => {
             const other = await ctx.otherSession()
             return inTransaction(ctx.runner, async () => {
-                const pid = await ctx.runner.executeSelectOneColumnOneRow('select pg_backend_pid()')
-                const sleeping = failureOf(ctx.runner.executeSelectManyRows('select pg_sleep(5)'))
-                await waitForTheEngine('pg_sleep running', async () => Number(await other.executeSelectOneColumnOneRow(
-                    `select count(*) from pg_stat_activity where pid = ${Number(pid)} and state = 'active' and query = 'select pg_sleep(5)'`)) === 1)
-                await other.executeSelectManyRows(`select pg_cancel_backend(${Number(pid)})`)
+                const pid = await ctx.runner.executeQuery('selectOneColumnOneRow', 'select pg_backend_pid()', [])
+                const sleeping = failureOf(ctx.runner.executeQuery('selectManyRows', 'select pg_sleep(5)', []))
+                await waitForTheEngine('pg_sleep running', async () => Number(await other.executeQuery('selectOneColumnOneRow', `select count(*) from pg_stat_activity where pid = ${Number(pid)} and state = 'active' and query = 'select pg_sleep(5)'`, [])) === 1)
+                await other.executeQuery('selectManyRows', `select pg_cancel_backend(${Number(pid)})`, [])
                 throw await sleeping
             })
         },
@@ -530,8 +529,8 @@ const postgresScenarios: readonly ErrorScenario[] = [
             `do $$ begin create role rt_err_limited; exception when duplicate_object or unique_violation then null; end $$`,
         ],
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeUpdate('set local role rt_err_limited')
-            return runner.executeSelectManyRows('select * from rt_probe')
+            await runner.executeQuery('update', 'set local role rt_err_limited', [])
+            return runner.executeQuery('selectManyRows', 'select * from rt_probe', [])
         }),
         expected: { reason: 'SQL_PERMISSION_DENIED' },
     },
@@ -553,11 +552,11 @@ const postgresScenarios: readonly ErrorScenario[] = [
     {
         name: 'prepared-statement-already-exists',
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeUpdate('prepare rt_err_statement as select 1')
+            await runner.executeQuery('update', 'prepare rt_err_statement as select 1', [])
             try {
-                return await runner.executeUpdate('prepare rt_err_statement as select 1')
+                return await runner.executeQuery('update', 'prepare rt_err_statement as select 1', [])
             } finally {
-                await runner.executeUpdate('deallocate rt_err_statement').catch(() => undefined)
+                await runner.executeQuery('update', 'deallocate rt_err_statement', []).catch(() => undefined)
             }
         }),
         expected: { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectType: 'prepared statement' },
@@ -565,8 +564,8 @@ const postgresScenarios: readonly ErrorScenario[] = [
     {
         name: 'cursor-already-exists',
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeUpdate('declare rt_err_cursor cursor for select 1')
-            return runner.executeUpdate('declare rt_err_cursor cursor for select 1')
+            await runner.executeQuery('update', 'declare rt_err_cursor cursor for select 1', [])
+            return runner.executeQuery('update', 'declare rt_err_cursor cursor for select 1', [])
         }),
         expected: { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectType: 'cursor' },
     },
@@ -784,7 +783,7 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
         run: async ({ runner }) => {
             await runner.executeBeginTransaction([undefined, 'read only'])
             try {
-                return await runner.executeUpdate(`update rt_probe set name = 'x'`)
+                return await runner.executeQuery('update', `update rt_probe set name = 'x'`, [])
             } finally {
                 await runner.executeRollback().catch(() => undefined)
             }
@@ -793,7 +792,7 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'rollback-to-a-missing-savepoint',
-        run: ({ runner }) => inTransaction(runner, () => runner.executeUpdate('rollback to savepoint rt_err_missing')),
+        run: ({ runner }) => inTransaction(runner, () => runner.executeQuery('update', 'rollback to savepoint rt_err_missing', [])),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid savepoint' },
     },
     {
@@ -829,11 +828,10 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
             // treats the interruption as fatal and closes that connection.
             const victim = await ctx.otherSession()
             return inTransaction(victim, async () => {
-                const id = await victim.executeSelectOneColumnOneRow('select connection_id()')
-                const sleeping = failureOf(victim.executeSelectManyRows('select count(*) from rt_probe where sleep(5) = 0'))
-                await waitForTheEngine('the sleep running', async () => Number(await ctx.runner.executeSelectOneColumnOneRow(
-                    `select count(*) from information_schema.processlist where id = ${Number(id)} and info like 'select count(*) from rt_probe where sleep(5) = 0%'`)) === 1)
-                await ctx.runner.executeUpdate(`kill query ${Number(id)}`)
+                const id = await victim.executeQuery('selectOneColumnOneRow', 'select connection_id()', [])
+                const sleeping = failureOf(victim.executeQuery('selectManyRows', 'select count(*) from rt_probe where sleep(5) = 0', []))
+                await waitForTheEngine('the sleep running', async () => Number(await ctx.runner.executeQuery('selectOneColumnOneRow', `select count(*) from information_schema.processlist where id = ${Number(id)} and info like 'select count(*) from rt_probe where sleep(5) = 0%'`, [])) === 1)
+                await ctx.runner.executeQuery('update', `kill query ${Number(id)}`, [])
                 throw await sleeping
             })
         },
@@ -846,10 +844,10 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
             const other = await ctx.otherSession()
             await other.executeBeginTransaction()
             try {
-                await other.executeUpdate(`update rt_probe set name = 'locked' where id = 1`)
+                await other.executeQuery('update', `update rt_probe set name = 'locked' where id = 1`, [])
                 return await inTransaction(ctx.runner, async () => {
-                    await ctx.runner.executeUpdate('set innodb_lock_wait_timeout = 1')
-                    return ctx.runner.executeUpdate(`update rt_probe set name = 'waiting' where id = 1`)
+                    await ctx.runner.executeQuery('update', 'set innodb_lock_wait_timeout = 1', [])
+                    return ctx.runner.executeQuery('update', `update rt_probe set name = 'waiting' where id = 1`, [])
                 })
             } finally {
                 await other.executeRollback().catch(() => undefined)
@@ -880,7 +878,7 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'database-already-exists',
-        run: async ({ runner }) => runner.executeDatabaseSchemaModification('create database ' + await runner.executeSelectOneColumnOneRow('select database()')),
+        run: async ({ runner }) => runner.executeQuery('executeDatabaseSchemaModification', 'create database ' + await runner.executeQuery('selectOneColumnOneRow', 'select database()', []), []),
         expected: { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectType: 'database' },
     },
     {
@@ -911,8 +909,8 @@ const mysqlLikeScenarios: readonly ErrorScenario[] = [
     {
         name: 'isolation-level-changed-inside-a-transaction',
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeSelectManyRows('select 1')
-            return runner.executeUpdate('set transaction isolation level serializable')
+            await runner.executeQuery('selectManyRows', 'select 1', [])
+            return runner.executeQuery('update', 'set transaction isolation level serializable', [])
         }),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'active transaction' },
     },
@@ -977,9 +975,9 @@ const mariadbScenarios: readonly ErrorScenario[] = [
             const b = await ctx.otherSession()
             await a.executeBeginTransaction(['snapshot'])
             try {
-                await a.executeSelectManyRows('select name from rt_probe where id = 1')
-                await b.executeUpdate(`update rt_probe set name = 'changed' where id = 1`)
-                return await a.executeUpdate(`update rt_probe set name = 'stale' where id = 1`)
+                await a.executeQuery('selectManyRows', 'select name from rt_probe where id = 1', [])
+                await b.executeQuery('update', `update rt_probe set name = 'changed' where id = 1`, [])
+                return await a.executeQuery('update', `update rt_probe set name = 'stale' where id = 1`, [])
             } finally {
                 await a.executeRollback().catch(() => undefined)
             }
@@ -1178,7 +1176,7 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'rollback-to-a-missing-savepoint',
-        run: ({ runner }) => inTransaction(runner, () => runner.executeUpdate('rollback transaction rt_err_missing')),
+        run: ({ runner }) => inTransaction(runner, () => runner.executeQuery('update', 'rollback transaction rt_err_missing', [])),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid savepoint' },
     },
     {
@@ -1187,7 +1185,7 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
         run: async (ctx) => {
             // On its own session: the batch leaves XACT_ABORT on and the transaction open
             const other = await ctx.otherSession()
-            return other.executeUpdate(`set xact_abort on; begin transaction; begin try insert into rt_probe (id, name) values (1, 'dup') end try begin catch insert into rt_probe (id, name) values (11, 'x') end catch`)
+            return other.executeQuery('update', `set xact_abort on; begin transaction; begin try insert into rt_probe (id, name) values (1, 'dup') end try begin catch insert into rt_probe (id, name) values (11, 'x') end catch`, [])
         },
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'aborted' },
     },
@@ -1208,7 +1206,7 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
         run: async (ctx) => {
             // On its own session, in one batch: the impersonation never outlives it
             const other = await ctx.otherSession()
-            return other.executeSelectManyRows(`execute as user = 'rt_err_limited'; select * from rt_probe`)
+            return other.executeQuery('selectManyRows', `execute as user = 'rt_err_limited'; select * from rt_probe`, [])
         },
         expected: { reason: 'SQL_PERMISSION_DENIED' },
     },
@@ -1219,10 +1217,10 @@ const sqlServerScenarios: readonly ErrorScenario[] = [
             const other = await ctx.otherSession()
             await other.executeBeginTransaction()
             try {
-                await other.executeUpdate(`update rt_probe set name = 'locked' where id = 1`)
+                await other.executeQuery('update', `update rt_probe set name = 'locked' where id = 1`, [])
                 // In the same batch: the runner runs each statement through
                 // sp_executesql, where a SET lasts only that call
-                return await ctx.runner.executeUpdate(`set lock_timeout 100; update rt_probe set name = 'waiting' where id = 1`)
+                return await ctx.runner.executeQuery('update', `set lock_timeout 100; update rt_probe set name = 'waiting' where id = 1`, [])
             } finally {
                 await other.executeRollback().catch(() => undefined)
             }
@@ -1483,8 +1481,8 @@ const oracleScenarios: readonly ErrorScenario[] = [
         setup: [oracleDrop('sequence', 'rt_err_seq'), 'create sequence rt_err_seq minvalue 0 maxvalue 1 start with 1 nocycle'],
         cleanup: [oracleDrop('sequence', 'rt_err_seq')],
         run: async ({ runner }) => {
-            await runner.executeSelectManyRows('select rt_err_seq.nextval from dual')
-            return runner.executeSelectManyRows('select rt_err_seq.nextval from dual')
+            await runner.executeQuery('selectManyRows', 'select rt_err_seq.nextval from dual', [])
+            return runner.executeQuery('selectManyRows', 'select rt_err_seq.nextval from dual', [])
         },
         expected: { reason: 'SQL_INVALID_VALUE', errorType: 'sequence limit' },
     },
@@ -1498,7 +1496,7 @@ const oracleScenarios: readonly ErrorScenario[] = [
         run: async ({ runner }) => {
             await runner.executeBeginTransaction([undefined, 'read only'])
             try {
-                return await runner.executeUpdate(`update rt_probe set name = 'x'`)
+                return await runner.executeQuery('update', `update rt_probe set name = 'x'`, [])
             } finally {
                 await runner.executeRollback().catch(() => undefined)
             }
@@ -1508,8 +1506,8 @@ const oracleScenarios: readonly ErrorScenario[] = [
     {
         name: 'rollback-to-a-missing-savepoint',
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeUpdate(`update rt_probe set name = 'x' where id = 1`)
-            return runner.executeUpdate('rollback to savepoint rt_err_missing')
+            await runner.executeQuery('update', `update rt_probe set name = 'x' where id = 1`, [])
+            return runner.executeQuery('update', 'rollback to savepoint rt_err_missing', [])
         }),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid savepoint' },
     },
@@ -1520,8 +1518,8 @@ const oracleScenarios: readonly ErrorScenario[] = [
             const other = await ctx.otherSession()
             await other.executeBeginTransaction()
             try {
-                await other.executeUpdate(`update rt_probe set name = 'locked' where id = 1`)
-                return await inTransaction(ctx.runner, () => ctx.runner.executeSelectManyRows('select id from rt_probe where id = 1 for update nowait'))
+                await other.executeQuery('update', `update rt_probe set name = 'locked' where id = 1`, [])
+                return await inTransaction(ctx.runner, () => ctx.runner.executeQuery('selectManyRows', 'select id from rt_probe where id = 1 for update nowait', []))
             } finally {
                 await other.executeRollback().catch(() => undefined)
             }
@@ -1542,11 +1540,11 @@ const oracleScenarios: readonly ErrorScenario[] = [
             const b = await ctx.otherSession()
             await a.executeBeginTransaction(['snapshot'])
             try {
-                await a.executeSelectManyRows('select name from rt_probe where id = 1')
+                await a.executeQuery('selectManyRows', 'select name from rt_probe where id = 1', [])
                 await b.executeBeginTransaction()
-                await b.executeUpdate(`update rt_probe set name = 'changed' where id = 1`)
+                await b.executeQuery('update', `update rt_probe set name = 'changed' where id = 1`, [])
                 await b.executeCommit()
-                return await a.executeUpdate(`update rt_probe set name = 'stale' where id = 1`)
+                return await a.executeQuery('update', `update rt_probe set name = 'stale' where id = 1`, [])
             } finally {
                 await a.executeRollback().catch(() => undefined)
             }
@@ -1622,8 +1620,8 @@ const oracleScenarios: readonly ErrorScenario[] = [
     {
         name: 'set-transaction-after-a-statement',
         run: ({ runner }) => inTransaction(runner, async () => {
-            await runner.executeUpdate(`update rt_probe set name = 'x' where id = 1`)
-            return runner.executeUpdate('set transaction read only')
+            await runner.executeQuery('update', `update rt_probe set name = 'x' where id = 1`, [])
+            return runner.executeQuery('update', 'set transaction read only', [])
         }),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid state' },
     },
@@ -1662,11 +1660,10 @@ const oracleScenarios: readonly ErrorScenario[] = [
         run: async (ctx) => {
             const other = await ctx.otherSession()
             const connection = ctx.runner.getNativeRunner() as { break(): Promise<void> }
-            const sid = await ctx.runner.executeSelectOneColumnOneRow(`select sys_context('USERENV', 'SID') from dual`)
-            const sleeping = failureOf(ctx.runner.executeUpdate('begin dbms_session.sleep(5); end;'))
+            const sid = await ctx.runner.executeQuery('selectOneColumnOneRow', `select sys_context('USERENV', 'SID') from dual`, [])
+            const sleeping = failureOf(ctx.runner.executeQuery('update', 'begin dbms_session.sleep(5); end;', []))
             // The user of the tests reads v$session through SELECT_CATALOG_ROLE
-            await waitForTheEngine('dbms_session.sleep running', async () => Number(await other.executeSelectOneColumnOneRow(
-                `select count(*) from v$session where sid = ${Number(sid)} and status = 'ACTIVE' and event = 'PL/SQL lock timer'`)) === 1)
+            await waitForTheEngine('dbms_session.sleep running', async () => Number(await other.executeQuery('selectOneColumnOneRow', `select count(*) from v$session where sid = ${Number(sid)} and status = 'ACTIVE' and event = 'PL/SQL lock timer'`, [])) === 1)
             await connection.break()
             throw await sleeping
         },
@@ -1681,7 +1678,7 @@ const sqliteScenarios: readonly ErrorScenario[] = [
         // A parameter numbered past the limit: the limit itself depends on how SQLite was built (32766 by default, more
         // in Bun), so its number is beyond any of them
         name: 'more-parameters-than-allowed',
-        run: ({ runner }) => runner.executeSelectManyRows('select ?999999999 as one', [1]),
+        run: ({ runner }) => runner.executeQuery('selectManyRows', 'select ?999999999 as one', [1]),
         expected: { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'parameters' },
     },
     {
@@ -1820,7 +1817,7 @@ const sqliteScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'begin-inside-a-transaction',
-        run: ({ runner }) => inTransaction(runner, () => runner.executeUpdate('begin')),
+        run: ({ runner }) => inTransaction(runner, () => runner.executeQuery('update', 'begin', [])),
         expected: { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' },
     },
     {
@@ -1890,7 +1887,7 @@ const sqliteScenarios: readonly ErrorScenario[] = [
     },
     {
         name: 'vacuum-inside-a-transaction',
-        run: ({ runner }) => inTransaction(runner, () => runner.executeUpdate('vacuum')),
+        run: ({ runner }) => inTransaction(runner, () => runner.executeQuery('update', 'vacuum', [])),
         expected: { reason: 'TRANSACTION_ERROR', transactionErrorType: 'active transaction' },
     },
     {
@@ -1930,14 +1927,14 @@ const sqliteScenarios: readonly ErrorScenario[] = [
         // bun:sqlite, Bun SQL and sqlite-wasm ignore the extra value, and so does better-sqlite3 binding the values
         // from an object (only the parameters the statement has are read from it)
         onlyRunners: ['NodeSqliteQueryRunner'],
-        run: ({ runner }) => runner.executeSelectManyRows('select 1', [1]),
+        run: ({ runner }) => runner.executeQuery('selectManyRows', 'select 1', [1]),
         expected: { reason: 'SQL_INVALID_PARAMETER' },
     },
     {
         name: 'parameter-the-statement-is-missing',
         // node:sqlite and sqlite-wasm bind NULL for it
         onlyRunners: ['BetterSqlite3QueryRunner', 'BunSqliteQueryRunner', 'BunSqlSqliteQueryRunner'],
-        run: ({ runner }) => runner.executeSelectManyRows('select ?1, ?2', [1]),
+        run: ({ runner }) => runner.executeQuery('selectManyRows', 'select ?1, ?2', [1]),
         // better-sqlite3 names the missing parameter (missing), Bun says how many it expected (wrong count)
         expected: { reason: 'SQL_INVALID_PARAMETER' },
     },

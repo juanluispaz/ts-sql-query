@@ -132,7 +132,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'))('P
     test('rollback-after-the-commit-sends-nothing', async () => {
         const r = runner()
         await r.executeBeginTransaction()
-        await r.executeInsert('insert into rt_rolled_back (id) values (1)').catch(() => undefined)
+        await r.executeQuery('insert', 'insert into rt_rolled_back (id) values (1)', []).catch(() => undefined)
         expect(reasonOf(await rejectionOf(r.executeCommit()))).toBe('TRANSACTION_ERROR')
         await r.executeRollback()
         expect(r.isTransactionActive()).toBe(false)
@@ -144,13 +144,13 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'))('P
         // The transaction fails as rolled back by the database, caused by the statement that failed, and postgres.js
         // rolls it back
         const error = await rejectionOf(r.executeInTransaction(async () => {
-            await r.executeInsert('insert into rt_rolled_back (id) values (1)').catch(() => undefined)
+            await r.executeQuery('insert', 'insert into rt_rolled_back (id) values (1)', []).catch(() => undefined)
         }, r))
         expect(r.getErrorReason(error)).toEqual({ reason: 'TRANSACTION_ERROR', transactionErrorType: 'transaction rolled back' })
         expect(r.getErrorReason((error as Error).cause).reason).toBe('SQL_CONSTRAINT_VIOLATED')
         expect(r.isTransactionActive()).toBe(false)
         expect(notices).toEqual([])
         // The connection went back to the pool: the query runner works on
-        expect(Number(await r.executeSelectOneColumnOneRow('select count(*) from rt_rolled_back'))).toBe(1)
+        expect(Number(await r.executeQuery('selectOneColumnOneRow', 'select count(*) from rt_rolled_back', []))).toBe(1)
     })
 })

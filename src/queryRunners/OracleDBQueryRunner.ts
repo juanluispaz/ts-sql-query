@@ -15,6 +15,7 @@ import type { QueryParamContext } from '../QueryContext.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 import { getQueryContext } from '../QueryContext.js'
 
+/** The options of OracleDBQueryRunner */
 export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
     forUseInTransaction?: boolean | undefined
@@ -33,15 +34,22 @@ export interface OracleDBQueryRunnerConfig {
 
 /** The DbType a parameter of a type name is bound with, and the maxSize, in bytes, of a RETURNING OUT bind of it */
 export interface OracleDBBindType {
+    /** The DbType of oracledb, like `oracledb.DB_TYPE_CLOB` */
     readonly type: DbType
+    /** The maxSize, in bytes, of a RETURNING OUT bind of the type name */
     readonly maxSize?: number | undefined
 }
 
 /** The longest VARCHAR2, in bytes, the maxSize of a RETURNING OUT bind of a text by default */
 const defaultReturningMaxSize = 32767
 
+/**
+ * The query runner of Oracle through `oracledb`, over a `Connection`. Oracle runs every statement in a transaction:
+ * outside one begun through the library (and without forUseInTransaction), each statement is committed when it ends.
+ */
 export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
+    /** The `Connection` of oracledb the query runner was created with */
     readonly connection: Connection
     private config?: OracleDBQueryRunnerConfig | undefined
     /** The zone oracledb gives the session (ORA_SDTZ, or the offset of the process), checked for each query */
@@ -142,7 +150,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             return result.rowsAffected || 0
         })
     }
-    protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
+    protected override executeMutationReturning(query: string, params: any[]): Promise<any[]> {
         const rejected = rejectSessionNotInDatabaseZone(this.sessionTimeZone, params)
         if (rejected) {
             return rejected
@@ -156,7 +164,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * that OracleConnection hands as 1 or 0, is bound as a BOOLEAN (a NUMBER is refused for a BOOLEAN
      * parameter with PLS-00306).
      */
-    override executeProcedure(query: string, params: any[] = []): Promise<void> {
+    protected override executeProcedure(query: string, params: any[]): Promise<void> {
         const rejected = rejectSessionNotInDatabaseZone(this.sessionTimeZone, params)
         if (rejected) {
             return rejected
@@ -280,21 +288,21 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    override doSetTransaction(sql: string, _opts: BeginTransactionOpts): Promise<void> {
+    protected override doSetTransaction(sql: string, _opts: BeginTransactionOpts): Promise<void> {
         // SET TRANSACTION opens the transaction it configures, so it must not be committed
         return this.connection.execute(sql, [], {autoCommit: false}).then(() => undefined)
     }
-    doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+    protected beginTransactionInTheDriver(_opts: BeginTransactionOpts): Promise<void> {
         // Oracle automatically begins the transaction, but the level must set in a query
         return  Promise.resolve()
     }
-    doCommit(_opts: CommitOpts): Promise<void> {
+    protected doCommit(_opts: CommitOpts): Promise<void> {
         return this.connection.commit()
     }
-    doRollback(_opts: RollbackOpts): Promise<void> {
+    protected doRollback(_opts: RollbackOpts): Promise<void> {
         return this.connection.rollback()
     }
-    override validateIntransaction(): boolean {
+    protected override validateInTransaction(): boolean {
         // Do not validate if in transaction due automatic in transaction oracle's hehaviour, but with forUseInTransaction
         // the transaction of the connection is not this query runner's to commit or roll back
         return !!this.config?.forUseInTransaction
@@ -312,6 +320,10 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         return ':' + index
     }
+    /**
+     * The rows of a returning from the OUT binds oracledb gives, keyed by the index of each param; no rows without OUT
+     * binds
+     */
     processOutBinds(params: any[], outBinds: any): any[] {
         if (!outBinds) {
             return []
@@ -380,6 +392,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 }
 
+/** Whether an entry of typesByName is a DbType with a maxSize, and not a DbType alone */
 function isOracleDBBindType(value: DbType | OracleDBBindType | undefined): value is OracleDBBindType {
     return typeof value === 'object' && value !== null && 'type' in value && !('num' in value)
 }
@@ -411,6 +424,7 @@ function readLobsOfOutBinds(outBinds: any): Promise<any> {
     return reads.length > 0 ? Promise.all(reads).then(() => result) : Promise.resolve(outBinds)
 }
 
+/** Whether the value is a Lob of oracledb, read with getData */
 function isLob(value: unknown): value is { getData(): Promise<unknown> } {
     // A Lob of oracledb (its class isn't in its types)
     return typeof value === 'object' && value !== null && typeof (value as { getData?: unknown }).getData === 'function'

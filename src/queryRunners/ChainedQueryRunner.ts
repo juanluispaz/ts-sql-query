@@ -1,100 +1,35 @@
 import type { TsSqlErrorReason } from '../TsSqlError.js'
-import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
+import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts, ExecutableQueryType } from './QueryRunner.js'
 
+/**
+ * A query runner that passes everything to another one, queryRunner: the base of a query runner that wraps another to
+ * add something of its own (log the queries, intercept them), overriding only what it changes.
+ */
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
+    /** The query runner this one wraps */
     readonly queryRunner: T
-    get database(): DatabaseType {
-        return this.queryRunner.database
-    }
 
     constructor(queryRunner: T) {
         this.queryRunner = queryRunner
     }
 
+    get database(): DatabaseType {
+        return this.queryRunner.database
+    }
     useDatabase(database: DatabaseType): void {
         return this.queryRunner.useDatabase(database)
     }
-
     getNativeRunner(): unknown {
         return this.queryRunner.getNativeRunner()
     }
-
     getCurrentNativeConnection(): unknown {
         return this.queryRunner.getCurrentNativeConnection()
     }
-
     execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.queryRunner.execute(fn)
     }
-
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeSelectOneRow(query, params)
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeSelectManyRows(query, params)
-    }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeSelectOneColumnOneRow(query, params)
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeSelectOneColumnManyRows(query, params)
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.queryRunner.executeInsert(query, params)
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeInsertReturningLastInsertedId(query, params)
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
-    }
-    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeInsertReturningOneRow(query, params)
-    }
-    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeInsertReturningManyRows(query, params)
-    }
-    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeInsertReturningOneColumnOneRow(query, params)
-    }
-    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeInsertReturningOneColumnManyRows(query, params)
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.queryRunner.executeUpdate(query, params)
-    }
-    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeUpdateReturningOneRow(query, params)
-    }
-    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeUpdateReturningManyRows(query, params)
-    }
-    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeUpdateReturningOneColumnOneRow(query, params)
-    }
-    executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeUpdateReturningOneColumnManyRows(query, params)
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.queryRunner.executeDelete(query, params)
-    }
-    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeDeleteReturningOneRow(query, params)
-    }
-    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeDeleteReturningManyRows(query, params)
-    }
-    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeDeleteReturningOneColumnOneRow(query, params)
-    }
-    executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRunner.executeDeleteReturningOneColumnManyRows(query, params)
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return this.queryRunner.executeProcedure(query, params)
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.queryRunner.executeFunction(query, params)
+    executeQuery(queryType: ExecutableQueryType, query: string, params: any[]): Promise<any> {
+        return this.queryRunner.executeQuery(queryType, query, params)
     }
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         return this.queryRunner.executeBeginTransaction(opts)
@@ -105,17 +40,11 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeRollback(opts: RollbackOpts = []): Promise<void> {
         return this.queryRunner.executeRollback(opts)
     }
-    isTransactionActive(): boolean {
-        return this.queryRunner.isTransactionActive()
-    }
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return this.queryRunner.executeDatabaseSchemaModification(query, params)
-    }
-    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
-        return this.queryRunner.executeConnectionConfiguration(query, params)
+    isTransactionActive(): boolean {
+        return this.queryRunner.isTransactionActive()
     }
     addParam(params: any[], value: any): string {
         return this.queryRunner.addParam(params, value)
@@ -132,17 +61,17 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
         return this.queryRunner.executeCombined(fn1, fn2)
     }
-    isMocked(): boolean {
-        return this.queryRunner.isMocked()
+    get isMocked(): boolean {
+        return this.queryRunner.isMocked
     }
-    lowLevelTransactionManagementSupported(): boolean {
-        return this.queryRunner.lowLevelTransactionManagementSupported()
+    get lowLevelTransactionManagementSupported(): boolean {
+        return this.queryRunner.lowLevelTransactionManagementSupported
     }
-    executeInTransactionCallsBeginAndCommit(): boolean {
-        return this.queryRunner.executeInTransactionCallsBeginAndCommit()
+    get executeInTransactionCallsBeginAndCommit(): boolean {
+        return this.queryRunner.executeInTransactionCallsBeginAndCommit
     }
-    nestedTransactionsSupported(): boolean {
-        return this.queryRunner.nestedTransactionsSupported()
+    get nestedTransactionsSupported(): boolean {
+        return this.queryRunner.nestedTransactionsSupported
     }
     getErrorReason(error: unknown): TsSqlErrorReason {
         return this.queryRunner.getErrorReason(error)

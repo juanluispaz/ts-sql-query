@@ -1,35 +1,65 @@
 import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 import * as ErrorCodes from './SqlServerErrorCodes.js'
 
+/** An error raised by SQL Server, as the mapper of a driver hands it to `getSqlServerEngineErrorReason`. */
 export interface SqlServerEngineError {
+    /** The SQL Server error number; it decides the reason. */
     number?: number | undefined
+    /** The code the driver gives the error; used as the database error code when `databaseErrorCode` is absent. */
     code?: string | undefined
+    /** The database error code to report in the reason; when absent, `code` is used. */
     databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    /** The database error number to report in the reason; when absent, `number` is used. */
     databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    /** The message of the error; the names of tables, columns, constraints and parameters are read from it. */
     message?: string | undefined
 }
 
+/** The error with its fields resolved, as the functions of this module read it. */
 interface SqlServerErrorContext {
+    /** The SQL Server error number. */
     number?: number | undefined
+    /** The database error code reported in the reason. */
     databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    /** The database error number reported in the reason. */
     databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    /** The message reported in the reason as the database error message. */
     databaseErrorMessage?: string | undefined
+    /** The message of the error, an empty text when the error has none; the names are read from it. */
     message: string
 }
 
+/** The fields that every reason built here carries about the original error. */
 type SqlServerMetadata = Pick<SqlServerErrorContext, 'databaseErrorCode' | 'databaseErrorNumber' | 'databaseErrorMessage'>
+/** The `SQL_INVALID_VALUE` member of `TsSqlErrorReason`. */
 type InvalidValueReason = Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_VALUE' }>
+/** The `SQL_INVALID_SQL_STATEMENT` member of `TsSqlErrorReason`. */
 type InvalidSqlStatementReason = Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_SQL_STATEMENT' }>
+/** The `SQL_INVALID_PARAMETER` member of `TsSqlErrorReason`. */
 type InvalidParameterReason = Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_PARAMETER' }>
+/** The `SQL_OBJECT_NOT_FOUND` member of `TsSqlErrorReason`. */
 type ObjectNotFoundReason = Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_NOT_FOUND' }>
+/** The `SQL_OBJECT_ALREADY_EXISTS` member of `TsSqlErrorReason`. */
 type ObjectAlreadyExistsReason = Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_ALREADY_EXISTS' }>
+/** The `SQL_OBJECT_STATE_ERROR` member of `TsSqlErrorReason`. */
 type ObjectStateReason = Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_STATE_ERROR' }>
+/** The `SQL_RESOURCE_LIMIT_REACHED` member of `TsSqlErrorReason`. */
 type ResourceLimitReason = Extract<TsSqlErrorReason, { reason: 'SQL_RESOURCE_LIMIT_REACHED' }>
+/** The `SQL_CONNECTION_ERROR` member of `TsSqlErrorReason`. */
 type ConnectionReason = Extract<TsSqlErrorReason, { reason: 'SQL_CONNECTION_ERROR' }>
+/** The `SQL_DATABASE_CORRUPTED` member of `TsSqlErrorReason`. */
 type DatabaseCorruptedReason = Extract<TsSqlErrorReason, { reason: 'SQL_DATABASE_CORRUPTED' }>
+/** The `SQL_IO_ERROR` member of `TsSqlErrorReason`. */
 type IoReason = Extract<TsSqlErrorReason, { reason: 'SQL_IO_ERROR' }>
+/** The `SQL_INTERNAL_ERROR` member of `TsSqlErrorReason`. */
 type InternalErrorReason = Extract<TsSqlErrorReason, { reason: 'SQL_INTERNAL_ERROR' }>
 
+/**
+ * Gives the reason of an error raised by SQL Server, from its error number and, for the details, its message. The
+ * numbers handled one by one come first; a number of 50000 or more is an error the user raised (`THROW`, `RAISERROR`),
+ * giving `SQL_USER_DEFINED_ERROR`; any other number is looked up in the groups of
+ * `getSqlServerErrorReasonFromKnownGroup`, and `SQL_UNKNOWN` when it is in none.
+ */
 export function getSqlServerEngineErrorReason(error: SqlServerEngineError): TsSqlErrorReason {
     const context = getSqlServerErrorContext(error)
 
@@ -272,6 +302,10 @@ export function getSqlServerEngineErrorReason(error: SqlServerEngineError): TsSq
     }
 }
 
+/**
+ * Resolves the fields of the error: the database error code falls back to `code`, the database error number to
+ * `number`, and the message to an empty text.
+ */
 function getSqlServerErrorContext(error: SqlServerEngineError): SqlServerErrorContext {
     const number = error.number
     const databaseErrorCode = error.databaseErrorCode ?? (error.code || undefined)
@@ -287,6 +321,7 @@ function getSqlServerErrorContext(error: SqlServerEngineError): SqlServerErrorCo
     }
 }
 
+/** Gives the database error code, number and message to spread into a reason. */
 function getMetadata(context: SqlServerErrorContext): SqlServerMetadata {
     return {
         databaseErrorCode: context.databaseErrorCode,
@@ -295,6 +330,11 @@ function getMetadata(context: SqlServerErrorContext): SqlServerMetadata {
     }
 }
 
+/**
+ * Gives the reason of an error number that belongs to one of the groups of error numbers of SQL Server (the sets of
+ * `SqlServerErrorCodes`, checked in order, and the range of the XML parsing errors), or `undefined` when the number is
+ * in none or there is no number.
+ */
 function getSqlServerErrorReasonFromKnownGroup(context: SqlServerErrorContext): TsSqlErrorReason | undefined {
     const number = context.number
     if (typeof number !== 'number') {
@@ -450,40 +490,54 @@ function getSqlServerErrorReasonFromKnownGroup(context: SqlServerErrorContext): 
     return undefined
 }
 
+/** Whether the error number is one of the XML parsing errors: 9400 to 9467, and 9480. */
 function isSqlServerXmlParsingErrorNumber(number: number): boolean {
     return number >= 9400 && number <= 9467 || number === 9480
 }
 
+/** Builds a `SQL_INVALID_VALUE` reason with the type of error and the details given. */
 function getInvalidValue(context: SqlServerErrorContext, errorType?: InvalidValueReason['errorType'], details: Pick<InvalidValueReason, 'tableName' | 'columnName' | 'typeName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_INVALID_VALUE', ...getMetadata(context), errorType, ...details }
 }
 
+/** Builds a `SQL_INVALID_SQL_STATEMENT` reason with the type of statement error given. */
 function getInvalidSqlStatement(context: SqlServerErrorContext, statementErrorType?: InvalidSqlStatementReason['statementErrorType']): TsSqlErrorReason {
     return { reason: 'SQL_INVALID_SQL_STATEMENT', ...getMetadata(context), statementErrorType }
 }
 
+/** Builds a `SQL_INVALID_PARAMETER` reason with the details of the parameter given. */
 function getInvalidParameter(context: SqlServerErrorContext, details: Partial<Pick<InvalidParameterReason, 'parameterErrorType' | 'parameterName' | 'parameterIndex' | 'expectedParameterCount' | 'actualParameterCount'>> = {}): TsSqlErrorReason {
     return { reason: 'SQL_INVALID_PARAMETER', ...getMetadata(context), ...details }
 }
 
+/** Builds a `SQL_OBJECT_NOT_FOUND` reason with the type of object and the names given. */
 function getObjectNotFound(context: SqlServerErrorContext, objectType?: ObjectNotFoundReason['objectType'], details: Pick<ObjectNotFoundReason, 'schemaName' | 'tableName' | 'columnName' | 'objectName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_OBJECT_NOT_FOUND', ...getMetadata(context), objectType, ...details }
 }
 
+/** Builds a `SQL_OBJECT_ALREADY_EXISTS` reason with the type of object and the names given. */
 function getObjectAlreadyExists(context: SqlServerErrorContext, objectType?: ObjectAlreadyExistsReason['objectType'], details: Pick<ObjectAlreadyExistsReason, 'schemaName' | 'tableName' | 'columnName' | 'objectName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_OBJECT_ALREADY_EXISTS', ...getMetadata(context), objectType, ...details }
 }
 
+/**
+ * Builds a `SQL_OBJECT_STATE_ERROR` reason with the type of error and of object given; the name of the object is the
+ * first quoted name of the message.
+ */
 function getObjectStateError(context: SqlServerErrorContext, objectStateErrorType?: ObjectStateReason['objectStateErrorType'], objectType?: ObjectStateReason['objectType']): TsSqlErrorReason {
     return { reason: 'SQL_OBJECT_STATE_ERROR', ...getMetadata(context), objectStateErrorType, objectType, objectName: extractQuotedName(context.message) }
 }
 
+/** Builds a `SQL_RESOURCE_LIMIT_REACHED` reason with the type of resource and the limit given. */
 function getResourceLimit(context: SqlServerErrorContext, resourceType?: ResourceLimitReason['resourceType'], limit?: number): TsSqlErrorReason {
     return { reason: 'SQL_RESOURCE_LIMIT_REACHED', ...getMetadata(context), resourceType, limit }
 }
 
-// "The server supports a maximum of 2100 parameters", "The maximum number is 2100", "exceeds the maximum allowed number
-// of 1000 row values", "The maximum allowable is 256", "the limit of 260 tables", "(260) was exceeded", "nested to level 10"
+/**
+ * Gives the limit the message of a resource error names, or `undefined` when it names none. The forms read: "The server
+ * supports a maximum of 2100 parameters", "The maximum number is 2100", "exceeds the maximum allowed number of 1000 row
+ * values", "The maximum allowable is 256", "the limit of 260 tables", "(260) was exceeded", "nested to level 10".
+ */
 function extractLimit(message: string | undefined): number | undefined {
     if (!message) {
         return undefined
@@ -495,22 +549,31 @@ function extractLimit(message: string | undefined): number | undefined {
     return limit ? Number(limit[1]) : undefined
 }
 
+/** Builds a `SQL_CONNECTION_ERROR` reason with the type of error given. */
 function getConnectionError(context: SqlServerErrorContext, errorType?: ConnectionReason['errorType']): TsSqlErrorReason {
     return { reason: 'SQL_CONNECTION_ERROR', ...getMetadata(context), errorType }
 }
 
+/** Builds a `SQL_DATABASE_CORRUPTED` reason with the type of corruption given. */
 function getDatabaseCorrupted(context: SqlServerErrorContext, corruptionType?: DatabaseCorruptedReason['corruptionType']): TsSqlErrorReason {
     return { reason: 'SQL_DATABASE_CORRUPTED', ...getMetadata(context), corruptionType }
 }
 
+/** Builds a `SQL_IO_ERROR` reason with the type of I/O error given. */
 function getIoError(context: SqlServerErrorContext, ioErrorType?: IoReason['ioErrorType']): TsSqlErrorReason {
     return { reason: 'SQL_IO_ERROR', ...getMetadata(context), ioErrorType }
 }
 
+/** Builds a `SQL_INTERNAL_ERROR` reason with the type of error given. */
 function getInternalError(context: SqlServerErrorContext, errorType?: InternalErrorReason['errorType']): TsSqlErrorReason {
     return { reason: 'SQL_INTERNAL_ERROR', ...getMetadata(context), errorType }
 }
 
+/**
+ * Gives the reason of the error 547, a statement that conflicts with a constraint: a foreign key when the message names
+ * a foreign key or reference constraint, a check when it names a check constraint, and a constraint of no type
+ * otherwise.
+ */
 function getConstraintViolationFrom547(context: SqlServerErrorContext): TsSqlErrorReason {
     const upper = context.message.toUpperCase()
     // A parent row deleted or updated while referenced conflicts with the (SAME TABLE) REFERENCE constraint
@@ -540,6 +603,10 @@ function getConstraintViolationFrom547(context: SqlServerErrorContext): TsSqlErr
     }
 }
 
+/**
+ * Gives the first name of the message between single quotes, double quotes or brackets, tried in that order, or
+ * `undefined` when there is none.
+ */
 function extractQuotedName(message: string): string | undefined {
     const singleQuoted = /'([^']+)'/.exec(message)
     if (singleQuoted) {
@@ -556,6 +623,7 @@ function extractQuotedName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the quoted name after `constraint` in the message; otherwise, the first quoted name. */
 function extractConstraintName(message: string): string | undefined {
     const match = /constraint ['"]([^'"]+)['"]/i.exec(message)
     if (match) {
@@ -564,6 +632,10 @@ function extractConstraintName(message: string): string | undefined {
     return extractQuotedName(message)
 }
 
+/**
+ * Gives the name of the unique constraint or index in the message: the quoted name after `constraint`, `unique index`
+ * or `index name`, or `undefined` when there is none.
+ */
 function extractUniqueConstraintName(message: string): string | undefined {
     const constraintMatch = /constraint ['"]([^'"]+)['"]/i.exec(message)
     if (constraintMatch) {
@@ -580,6 +652,7 @@ function extractUniqueConstraintName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the quoted name after `column` in the message; otherwise, the first quoted name. */
 function extractColumnName(message: string): string | undefined {
     const match = /column ['"]([^'"]+)['"]/i.exec(message)
     if (match) {
@@ -588,6 +661,10 @@ function extractColumnName(message: string): string | undefined {
     return extractQuotedName(message)
 }
 
+/**
+ * Gives the name of the parameter in the message: after `expects parameter`, after `has no parameter named`, between
+ * parentheses after `parameter <number>`, or quoted after `parameter`; `undefined` when there is none.
+ */
 function extractParameterName(message: string): string | undefined {
     const expectsParameterMatch = /expects parameter ['"]([^'"]+)['"]/i.exec(message)
     if (expectsParameterMatch) {
@@ -608,6 +685,7 @@ function extractParameterName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the number after `parameter` in the message, or `undefined` when there is none. */
 function extractParameterIndex(message: string): number | undefined {
     const match = /parameter\s+(\d+)/i.exec(message)
     if (!match) {
@@ -616,6 +694,10 @@ function extractParameterIndex(message: string): number | undefined {
     return Number(match[1])
 }
 
+/**
+ * Gives the name of the data type in the message, after `data type` or before `cannot be NULL`, or `undefined` when
+ * there is none.
+ */
 function extractDataTypeName(message: string): string | undefined {
     const suppliedDataTypeMatch = /data type ['"]?([A-Za-z0-9_]+)['"]?/i.exec(message)
     if (suppliedDataTypeMatch) {
@@ -628,6 +710,7 @@ function extractDataTypeName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the quoted name after `table` in the message, or `undefined` when there is none. */
 function extractTableName(message: string): string | undefined {
     const match = /table ['"]([^'"]+)['"]/i.exec(message)
     if (match) {
@@ -636,6 +719,10 @@ function extractTableName(message: string): string | undefined {
     return undefined
 }
 
+/**
+ * Gives the name of the table of a duplicate key error: the quoted name after `object` or `object name` in the message;
+ * otherwise, the one after `table`.
+ */
 function extractObjectTableName(message: string): string | undefined {
     const match = /object ['"]([^'"]+)['"]/i.exec(message)
     if (match) {

@@ -2,12 +2,20 @@ import { DatabaseError } from 'pg'
 import type { TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 import { getPostgresEngineErrorReason, isPostgresParameterCountWrappedMessage, isPostgresSqlState, POSTGRES_MAX_PARAMETERS } from '../databaseErrorMappers/PostgresErrorMapper.js'
 
+/**
+ * An error raised through pg: an `Error` that may carry a `code` (a SQLSTATE or a Node error code), an `errno` and a
+ * `sqlState`.
+ */
 type PgDriverError = Error & {
     code?: string | undefined
     errno?: string | number | undefined
     sqlState?: string | undefined
 }
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through pg: the engine's when it has a SQLSTATE or is a
+ * `DatabaseError`, otherwise the one of the driver's code and message; `UNKNOWN` when it isn't an error of that driver.
+ */
 export function getPgErrorReason(error: unknown): TsSqlErrorReason {
     if (!isPgError(error)) {
         return { reason: 'UNKNOWN' }
@@ -19,6 +27,7 @@ export function getPgErrorReason(error: unknown): TsSqlErrorReason {
     return getPgDriverErrorReason(error) || { reason: 'UNKNOWN' }
 }
 
+/** Tells whether the error comes from pg: an `Error` that maps to a reason of the engine or of the driver. */
 export function isPgError(error: unknown): error is DatabaseError | PgDriverError {
     if (!(error instanceof Error)) {
         return false
@@ -26,6 +35,12 @@ export function isPgError(error: unknown): error is DatabaseError | PgDriverErro
     return !!getPgEngineErrorReason(error) || !!getPgDriverErrorReason(error)
 }
 
+/**
+ * Gives the reason of an error of the engine, mapped with `getPostgresEngineErrorReason`, or `undefined` when the error
+ * has no SQLSTATE and isn't a `DatabaseError`. Each field is read under the name `pg` gives it (`schema`, `table`,
+ * `column`, `dataType`, `constraint`) or under a second name (`schemaName`, `tableName`, `columnName`, `dataTypeName`,
+ * `constraintName`). Without a SQLSTATE, the `code` or `sqlState` goes in `databaseErrorCode`.
+ */
 function getPgEngineErrorReason(error: PgDriverError): TsSqlErrorReason | undefined {
     const sqlState = getPgSqlState(error)
     if (!sqlState && !(error instanceof DatabaseError)) {
@@ -44,11 +59,20 @@ function getPgEngineErrorReason(error: PgDriverError): TsSqlErrorReason | undefi
     })
 }
 
+/**
+ * Gives the reason of an error pg raises itself, with the number of the error added, or `undefined` when it isn't
+ * known.
+ */
 function getPgDriverErrorReason(error: PgDriverError): TsSqlErrorReason | undefined {
     const reason = getPgDriverErrorReasonWithoutNumber(error)
     return reason && withDatabaseErrorNumber(reason, getPgDriverDatabaseErrorNumber(error))
 }
 
+/**
+ * Gives the reason of an error pg raises itself, recognised by its Node error code and its message (network, timeouts,
+ * TLS, authentication, parameters, closed connection or pool, protocol and internal errors); `undefined` when they
+ * aren't one of them. A message that starts with `ERROR:`, `FATAL:` or `PANIC:` gives `SQL_UNKNOWN`.
+ */
 function getPgDriverErrorReasonWithoutNumber(error: PgDriverError): TsSqlErrorReason | undefined {
     const code = getStringProperty(error, 'code')
     const message = getPgErrorMessage(error)
@@ -153,6 +177,9 @@ function getPgDriverErrorReasonWithoutNumber(error: PgDriverError): TsSqlErrorRe
     return undefined
 }
 
+/**
+ * Gives the SQLSTATE of the error, read from `code` or else from `sqlState`, or `undefined` when neither is a SQLSTATE.
+ */
 function getPgSqlState(error: PgDriverError): string | undefined {
     const code = getStringProperty(error, 'code')
     if (isPostgresSqlState(code)) {
@@ -162,6 +189,10 @@ function getPgSqlState(error: PgDriverError): string | undefined {
     return isPostgresSqlState(sqlState) ? sqlState : undefined
 }
 
+/**
+ * Gives the number reported as `databaseErrorNumber`: the SQLSTATE, otherwise the `errno` when it differs from the
+ * `code`.
+ */
 function getPgDriverDatabaseErrorNumber(error: PgDriverError): TsSqlDatabaseErrorNumber | undefined {
     const sqlState = getPgSqlState(error)
     if (sqlState) {
@@ -173,10 +204,15 @@ function getPgDriverDatabaseErrorNumber(error: PgDriverError): TsSqlDatabaseErro
     return errno !== code ? errno : undefined
 }
 
+/** Gives the message of the error, from `message` or else from `messagePrimary`, or an empty text. */
 function getPgErrorMessage(error: PgDriverError): string {
     return error.message || getStringProperty(error, 'messagePrimary') || ''
 }
 
+/**
+ * Tells whether the code is one Node gives for a TLS certificate that can't be verified (expired, self-signed, wrong
+ * name).
+ */
 function isPgInvalidConnectionConfigurationCode(code: string | undefined): boolean {
     return code === 'CERT_HAS_EXPIRED'
         || code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
@@ -185,6 +221,7 @@ function isPgInvalidConnectionConfigurationCode(code: string | undefined): boole
         || code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
 }
 
+/** Tells whether the message, in lower case, says that the connection to the server couldn't be made or was closed. */
 function isPgNativeConnectionMessage(lower: string): boolean {
     return lower.startsWith('connection to server')
         || lower.includes('could not connect')
@@ -193,6 +230,7 @@ function isPgNativeConnectionMessage(lower: string): boolean {
         || lower.includes('connection not open')
 }
 
+/** Tells whether the message is one of the checks of the buffers of the SASL authentication of pg. */
 function isPgSaslInternalError(message: string): boolean {
     return message === 'first argument must be a Buffer'
         || message === 'second argument must be a Buffer'
@@ -200,16 +238,25 @@ function isPgSaslInternalError(message: string): boolean {
         || message === 'Buffers cannot be empty'
 }
 
+/**
+ * Tells whether the message says that the bind supplies a wrong number of parameters or names a parameter that doesn't
+ * exist.
+ */
 function isPgInvalidParameterError(message: string): boolean {
     const lower = message.toLowerCase()
     return lower.includes('bind message supplies')
         || lower.includes('there is no parameter $')
 }
 
+/** Tells whether the message says how many arguments must be supplied (`Must supply N arguments`). */
 function isPgWrongArgumentCountError(message: string): boolean {
     return /^Must supply \d+ arguments?$/i.test(message)
 }
 
+/**
+ * Gives the details of a wrong number of arguments: the `wrong count` parameter error and the expected count read from
+ * the message.
+ */
 function getPgWrongArgumentCountDetails(message: string): {
     parameterErrorType: 'wrong count'
     expectedParameterCount?: number | undefined
@@ -221,6 +268,10 @@ function getPgWrongArgumentCountDetails(message: string): {
     }
 }
 
+/**
+ * Gives the details of an invalid parameter read from the message: the index of a missing parameter, or the actual and
+ * expected counts of a wrong count; `invalid binding` otherwise.
+ */
 function getPgInvalidParameterDetails(message: string): {
     parameterErrorType: 'missing' | 'wrong count' | 'invalid binding'
     parameterIndex?: number | undefined
@@ -248,16 +299,19 @@ function getPgInvalidParameterDetails(message: string): {
     return { parameterErrorType: 'invalid binding' }
 }
 
+/** Gives the property of the error with that name when it is a text, otherwise `undefined`. */
 function getStringProperty(error: PgDriverError, property: string): string | undefined {
     const value = (error as unknown as Record<string, unknown>)[property]
     return typeof value === 'string' ? value : undefined
 }
 
+/** Gives the property of the error with that name when it is a text or a number, otherwise `undefined`. */
 function getStringOrNumberProperty(error: PgDriverError, property: string): string | number | undefined {
     const value = (error as unknown as Record<string, unknown>)[property]
     return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
+/** Gives the reason with `databaseErrorNumber` set, or the reason as it is when there is no number. */
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
     if (databaseErrorNumber === undefined) {
         return reason

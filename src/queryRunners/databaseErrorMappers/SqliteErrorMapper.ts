@@ -4,18 +4,36 @@ import {
     SQLITE_ERROR_CODE_NUMBERS,
 } from './SqliteErrorCodes.js'
 
+/** An error raised by SQLite, as the mapper of a driver hands it to `getSqliteEngineErrorReason`. */
 export interface SqliteEngineError {
+    /** The name of the SQLite result code (`SQLITE_CONSTRAINT_UNIQUE`); it decides the reason, with the message. */
     code?: string | undefined
+    /** The database error code to report in the reason; when absent, `code` is used. */
     databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    /** The database error number to report in the reason; when absent, the number of `code` is used. */
     databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    /**
+     * The message of the error; without a code that decides, the reason is read from it, and so are the names it
+     * carries.
+     */
     message?: string | undefined
 }
 
+/**
+ * Gives the reason of an error raised by SQLite, from its result code and its message, with the database error number
+ * given or, when there is none, the number of the code.
+ */
 export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlErrorReason {
     const databaseErrorNumber = error.databaseErrorNumber ?? getSqliteErrorCodeNumber(error.code)
     return withDatabaseErrorNumber(getSqliteEngineErrorReasonInternal(error), databaseErrorNumber)
 }
 
+/**
+ * Gives the reason of the error without the database error number. The families of codes come first (constraint, I/O,
+ * can't open, read only, abort, busy, locked, corrupt, notice, warning), then single codes; when the code doesn't
+ * decide, the message is read with `getSqliteEngineMessageReason`; a plain `SQLITE_ERROR` left gives
+ * `SQL_INVALID_SQL_STATEMENT`, and anything else `SQL_UNKNOWN`.
+ */
 function getSqliteEngineErrorReasonInternal(error: SqliteEngineError): TsSqlErrorReason {
     const code = error.code || ''
     const databaseErrorCode = error.databaseErrorCode ?? (code || undefined)
@@ -129,17 +147,24 @@ function getSqliteEngineErrorReasonInternal(error: SqliteEngineError): TsSqlErro
     return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
 }
 
-// "variable number must be between ?1 and ?32766", "at most 64 tables in a join", "too many FROM clause terms, max: 200",
-// "too many references to "x": max 65535", "Expression tree is too large (maximum depth 1000)"
+/**
+ * Gives the limit the message of a resource error names, or `undefined` when it names none. The forms read: "variable
+ * number must be between ?1 and ?32766", "at most 64 tables in a join", "too many FROM clause terms, max: 200", "too
+ * many references to "x": max 65535", "Expression tree is too large (maximum depth 1000)".
+ */
 function extractSqliteLimit(message: string): number | undefined {
     const limit = /\?1 and \?(\d+)|at most (\d+)|max:? (\d+)|maximum depth (\d+)/i.exec(message)
     return limit ? Number(limit[1] ?? limit[2] ?? limit[3] ?? limit[4]) : undefined
 }
 
+/** Gives the name of the SQLite result code with that number, or `undefined` when it isn't known. */
 export function getSqliteErrorCodeName(errorCode: number): string | undefined {
     return SQLITE_ERROR_CODE_NAMES.get(errorCode)
 }
 
+/**
+ * Gives the number of the SQLite result code with that name, or `undefined` when there is no name or it isn't known.
+ */
 export function getSqliteErrorCodeNumber(errorCode: string | undefined): number | undefined {
     if (!errorCode) {
         return undefined
@@ -147,6 +172,10 @@ export function getSqliteErrorCodeNumber(errorCode: string | undefined): number 
     return SQLITE_ERROR_CODE_NUMBERS.get(errorCode)
 }
 
+/**
+ * Gives the database error code, the name of the result code, for a numeric SQLite result code; `undefined` when there
+ * is no number or it isn't known.
+ */
 export function getSqliteDatabaseErrorCodeFromNumeric(errorCode: number | undefined): TsSqlDatabaseErrorCode | undefined {
     if (typeof errorCode !== 'number') {
         return undefined
@@ -154,10 +183,15 @@ export function getSqliteDatabaseErrorCodeFromNumeric(errorCode: number | undefi
     return getSqliteErrorCodeName(errorCode)
 }
 
+/**
+ * Gives the database error number for a numeric SQLite result code: the number itself, or `undefined` when there is
+ * none.
+ */
 export function getSqliteDatabaseErrorNumberFromNumeric(errorCode: number | undefined): TsSqlDatabaseErrorNumber | undefined {
     return typeof errorCode === 'number' ? errorCode : undefined
 }
 
+/** Gives the reason with the database error number added, or the same reason when there is no number. */
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
     if (databaseErrorNumber === undefined) {
         return reason
@@ -165,6 +199,10 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
+/**
+ * Gives the reason of an `SQLITE_IOERR` code: a lack of memory or disk, a corruption, an authorization error, or an
+ * `SQL_IO_ERROR` with the type of I/O error of `getSqliteIoErrorType`.
+ */
 function getSqliteIoErrorReason(code: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason {
     switch (code) {
         case 'SQLITE_IOERR_NOMEM':
@@ -182,6 +220,7 @@ function getSqliteIoErrorReason(code: string, databaseErrorCode: TsSqlDatabaseEr
     }
 }
 
+/** Gives the type of I/O error of an extended `SQLITE_IOERR` code, `unknown` for the ones not listed. */
 function getSqliteIoErrorType(code: string): 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'close' | 'reserved extension' | 'unknown' {
     switch (code) {
         case 'SQLITE_IOERR_READ':
@@ -233,6 +272,10 @@ function getSqliteIoErrorType(code: string): 'read' | 'write' | 'fsync' | 'trunc
     }
 }
 
+/**
+ * Gives the `SQL_DATABASE_CORRUPTED` reason of an `SQLITE_CORRUPT` code, with what is corrupted: an index, a sequence,
+ * a virtual table, or the database file for any other.
+ */
 function getSqliteCorruptionReason(code: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason {
     switch (code) {
         case 'SQLITE_CORRUPT_INDEX':
@@ -246,6 +289,10 @@ function getSqliteCorruptionReason(code: string, databaseErrorCode: TsSqlDatabas
     }
 }
 
+/**
+ * Gives the reason the message of the error says, for when the code doesn't decide it, or `undefined` when no known
+ * text is in the message. It receives the message both upper-cased, to search in it, and as it is, to read the names.
+ */
 function getSqliteEngineMessageReason(upper: string, message: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason | undefined {
     if (upper.includes('CANNOT START A TRANSACTION WITHIN A TRANSACTION') || upper.includes('BEGIN INSIDE A TRANSACTION')) {
         return { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage }
@@ -400,6 +447,11 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     return undefined
 }
 
+/**
+ * Gives the `SQL_CONSTRAINT_VIOLATED` reason of an `SQLITE_CONSTRAINT` code, with the type of constraint and the names
+ * the message carries, read from the extended code or from the message; a constraint raised by a trigger gives
+ * `SQL_USER_DEFINED_ERROR`.
+ */
 function getSqliteConstraintReason(code: string, message: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason {
     const upper = message.toUpperCase()
     if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || upper.includes('FOREIGN KEY CONSTRAINT FAILED')) {
@@ -453,6 +505,7 @@ function getSqliteConstraintReason(code: string, message: string, databaseErrorC
     return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
 }
 
+/** Gives the text after the first colon of the message, trimmed, or `undefined` when there is none. */
 function extractAfterColon(message: string): string | undefined {
     const match = /:\s*(.+)$/.exec(message)
     if (match) {
@@ -461,6 +514,11 @@ function extractAfterColon(message: string): string | undefined {
     return undefined
 }
 
+/**
+ * Gives the `SQL_INVALID_PARAMETER` reason the message says, about the parameters of the statement or the values bound
+ * to them, or `undefined` when the message isn't one of them. It receives the message both upper-cased and as it is.
+ * Besides the messages of SQLite, it knows the ones the drivers give when they bind the values.
+ */
 function getSqliteInvalidParameterMessageReason(
     upper: string,
     message: string,
@@ -524,26 +582,31 @@ function getSqliteInvalidParameterMessageReason(
     return undefined
 }
 
+/** Gives the first name of the message between double quotes, or `undefined` when there is none. */
 function extractQuotedName(message: string): string | undefined {
     const match = /"([^"]+)"/.exec(message)
     return match?.[1]
 }
 
+/** Gives the number after `bind index` in the message, or `undefined` when there is none. */
 function extractBindIndex(message: string): number | undefined {
     const match = /bind index\s+(\d+)/i.exec(message)
     return numberValue(match?.[1])
 }
 
+/** Gives the number of values expected, from a message like "SQLite query expected 2 values, received 1". */
 function extractExpectedParameterCount(message: string): number | undefined {
     const match = /sqlite query expected\s+(\d+)\s+values,\s+received\s+(\d+)/i.exec(message)
     return numberValue(match?.[1])
 }
 
+/** Gives the number of values received, from a message like "SQLite query expected 2 values, received 1". */
 function extractActualParameterCount(message: string): number | undefined {
     const match = /sqlite query expected\s+(\d+)\s+values,\s+received\s+(\d+)/i.exec(message)
     return numberValue(match?.[2])
 }
 
+/** Gives the number written in the text, or `undefined` when there is no text or it isn't a finite number. */
 function numberValue(value: string | undefined): number | undefined {
     if (value === undefined) {
         return undefined
@@ -552,10 +615,15 @@ function numberValue(value: string | undefined): number | undefined {
     return Number.isFinite(number) ? number : undefined
 }
 
+/** Gives the name of the missing collation, the text after the colon of the message. */
 function extractSqliteMissingCollationName(message: string): string | undefined {
     return extractAfterColon(message)
 }
 
+/**
+ * Gives the name of the column of a message that ends with `table.column` after a colon: the part after the last dot of
+ * the first column listed, or all of it when it has no dot.
+ */
 function extractColumnPathLastSegment(message: string): string | undefined {
     const value = extractAfterColon(message)
     if (!value) {
@@ -572,6 +640,10 @@ function extractColumnPathLastSegment(message: string): string | undefined {
     return first
 }
 
+/**
+ * Gives the name of the table of a message that ends with `table.column` after a colon: the part before the last dot of
+ * the first column listed, or `undefined` when it has no dot.
+ */
 function extractColumnPathTableName(message: string): string | undefined {
     const value = extractAfterColon(message)
     if (!value) {
@@ -588,6 +660,7 @@ function extractColumnPathTableName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the name of the table, view, index or trigger that already exists, without the quotes around it. */
 function extractObjectAlreadyExistsName(message: string): string | undefined {
     const match = /(?:table|view|index|trigger)\s+(.+?)\s+already exists/i.exec(message)
     if (match) {
@@ -596,12 +669,14 @@ function extractObjectAlreadyExistsName(message: string): string | undefined {
     return undefined
 }
 
+/** Whether the message, upper-cased, is about an aggregate function where it isn't allowed. */
 function isSqliteGroupingStatementError(upper: string): boolean {
     return upper.includes('MISUSE OF AGGREGATE FUNCTION')
         || upper.includes('AGGREGATE FUNCTIONS ARE NOT ALLOWED')
         || upper.includes('AGGREGATES PROHIBITED')
 }
 
+/** Whether the message, upper-cased, is about a window function or a window definition that isn't valid. */
 function isSqliteWindowingStatementError(upper: string): boolean {
     return upper.includes('MISUSE OF WINDOW FUNCTION')
         || upper.includes('WINDOW FUNCTIONS ARE NOT ALLOWED')
@@ -612,6 +687,7 @@ function isSqliteWindowingStatementError(upper: string): boolean {
         || upper.includes('UNSUPPORTED FRAME SPECIFICATION')
 }
 
+/** Whether the message, upper-cased, is about a recursive query that isn't valid or a circular reference. */
 function isSqliteRecursiveStatementError(upper: string): boolean {
     return upper.includes('MULTIPLE REFERENCES TO RECURSIVE TABLE')
         || upper.includes('RECURSIVE REFERENCE IN A SUBQUERY')
@@ -619,6 +695,7 @@ function isSqliteRecursiveStatementError(upper: string): boolean {
         || upper.includes('CIRCULAR REFERENCE:')
 }
 
+/** Gives the name after `unknown database` in the message, without the quotes around it. */
 function extractUnknownDatabaseName(message: string): string | undefined {
     const match = /unknown database\s+(.+)$/i.exec(message)
     if (match) {
@@ -627,6 +704,7 @@ function extractUnknownDatabaseName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the name of the view in a message "cannot modify ... because it is a view", without the quotes around it. */
 function extractCannotModifyObjectName(message: string): string | undefined {
     const match = /cannot modify\s+(.+?)\s+because it is a view/i.exec(message)
     if (match) {
@@ -635,6 +713,10 @@ function extractCannotModifyObjectName(message: string): string | undefined {
     return undefined
 }
 
+/**
+ * Gives the text after the keyword in the message, without the quotes around it, or `undefined` when the keyword isn't
+ * there.
+ */
 function extractAfterKeyword(message: string, keyword: string): string | undefined {
     const match = new RegExp(`${keyword}\\s+(.+)$`, 'i').exec(message)
     if (match) {
@@ -643,6 +725,7 @@ function extractAfterKeyword(message: string, keyword: string): string | undefin
     return undefined
 }
 
+/** Trims the name and removes the quote, backtick or bracket at its start and at its end. */
 function trimSqliteIdentifier(value: string | undefined): string | undefined {
     return value?.trim().replace(/^["'`[]|["'`\]]$/g, '')
 }

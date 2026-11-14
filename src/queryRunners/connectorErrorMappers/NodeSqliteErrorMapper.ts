@@ -1,16 +1,28 @@
 import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 import { getSqliteEngineErrorReason, getSqliteErrorCodeName } from '../databaseErrorMappers/SqliteErrorMapper.js'
 
+/**
+ * An error raised through `node:sqlite`: an `Error` that may carry the Node error `code`, and the SQLite result code
+ * (`errcode`) and its text (`errstr`).
+ */
 type NodeSqliteError = Error & {
     code?: string | undefined
     errcode?: number | undefined
     errstr?: string | undefined
 }
+/**
+ * An error of `node:sqlite` that carries the SQLite result code of the engine: an `ERR_SQLITE_` code with a numeric
+ * `errcode`.
+ */
 type NodeSqliteEngineError = NodeSqliteError & {
     code: string
     errcode: number
 }
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through `node:sqlite`; `UNKNOWN` when it isn't an error of that
+ * driver.
+ */
 export function getNodeSqliteErrorReason(error: unknown): TsSqlErrorReason {
     if (!isNodeSqliteError(error)) {
         return { reason: 'UNKNOWN' }
@@ -18,6 +30,10 @@ export function getNodeSqliteErrorReason(error: unknown): TsSqlErrorReason {
     return getNodeSqliteDriverOrEngineErrorReason(error)
 }
 
+/**
+ * Tells whether the error comes from `node:sqlite`: an `Error` with an `ERR_SQLITE_` code, or whose code and message
+ * are ones the driver raises.
+ */
 export function isNodeSqliteError(error: unknown): error is NodeSqliteError {
     if (!(error instanceof Error)) {
         return false
@@ -31,6 +47,10 @@ export function isNodeSqliteError(error: unknown): error is NodeSqliteError {
     return !!getNodeSqliteDriverErrorReason(error)
 }
 
+/**
+ * Gives the reason of an error of `node:sqlite`: the engine's when it carries a SQLite result code, otherwise the one
+ * of the driver's code and message, or `SQL_UNKNOWN` with the error code when they aren't known.
+ */
 function getNodeSqliteDriverOrEngineErrorReason(error: NodeSqliteError): TsSqlErrorReason {
     if (isNodeSqliteEngineError(error)) {
         return getNodeSqliteEngineErrorReason(error)
@@ -47,6 +67,10 @@ function getNodeSqliteDriverOrEngineErrorReason(error: NodeSqliteError): TsSqlEr
     }
 }
 
+/**
+ * Gives the reason of an error that carries the SQLite result code, mapping the name of the code, its number and the
+ * message with `getSqliteEngineErrorReason`.
+ */
 function getNodeSqliteEngineErrorReason(error: NodeSqliteEngineError): TsSqlErrorReason {
     const sqliteCode = getNodeSqliteSqliteErrorCode(error)
     return getSqliteEngineErrorReason({
@@ -57,6 +81,12 @@ function getNodeSqliteEngineErrorReason(error: NodeSqliteEngineError): TsSqlErro
     })
 }
 
+/**
+ * Gives the reason of an error `node:sqlite` raises itself, recognised by its Node error code and its message (closed
+ * database, finalized statement, parameters, values out of range, configuration, misuse of the API, extensions,
+ * memory); `undefined` when they aren't one of them. An integer too large for a JavaScript number gives
+ * `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`.
+ */
 function getNodeSqliteDriverErrorReason(error: NodeSqliteError): TsSqlErrorReason | undefined {
     const message = error.message || ''
     const normalizedMessage = normalizeMessage(message)
@@ -167,6 +197,9 @@ function getNodeSqliteDriverErrorReason(error: NodeSqliteError): TsSqlErrorReaso
     return undefined
 }
 
+/**
+ * Tells whether the error carries the SQLite result code of the engine: a numeric `errcode` and an `ERR_SQLITE_` code.
+ */
 function isNodeSqliteEngineError(error: unknown): error is NodeSqliteEngineError {
     const sqliteError = error as NodeSqliteError
     return !!sqliteError
@@ -175,36 +208,54 @@ function isNodeSqliteEngineError(error: unknown): error is NodeSqliteEngineError
         && sqliteError.code.startsWith('ERR_SQLITE_')
 }
 
+/** Tells whether the error has an `ERR_SQLITE_` code, with or without a SQLite result code. */
 function isNodeSqliteCodedError(error: NodeSqliteError): boolean {
     return typeof error.code === 'string' && error.code.startsWith('ERR_SQLITE_')
 }
 
+/**
+ * Gives the name of the SQLite result code (`SQLITE_...`) of the error's `errcode`, or `undefined` when it has none.
+ */
 function getNodeSqliteSqliteErrorCode(error: NodeSqliteError): string | undefined {
     return typeof error.errcode === 'number' ? getSqliteErrorCodeName(error.errcode) : undefined
 }
 
+/**
+ * Gives the code reported as `databaseErrorCode`: the name of the SQLite result code, otherwise the Node error code.
+ */
 function getNodeSqliteDatabaseErrorCode(error: NodeSqliteError): TsSqlDatabaseErrorCode | undefined {
     return getNodeSqliteSqliteErrorCode(error) || error.code
 }
 
+/** Gives the SQLite result code number of the error (its `errcode`), or `undefined` when it has none. */
 function getNodeSqliteDatabaseErrorNumber(error: NodeSqliteError): TsSqlDatabaseErrorNumber | undefined {
     return typeof error.errcode === 'number' ? error.errcode : undefined
 }
 
+/** Collapses each run of white space of the message into one space and trims it. */
 function normalizeMessage(message: string): string {
     return message.replace(/\s+/g, ' ').trim()
 }
 
+/**
+ * Tells whether the message is one `node:sqlite` raises for an invalid limit or an invalid option of the database or of
+ * one of its methods.
+ */
 function isNodeSqliteConfigurationMessage(message: string): boolean {
     return message === 'Limit value must be a non-negative integer or Infinity.'
         || message === 'Limit value must be non-negative.'
         || /^The "options(?:\.(?:open|readOnly|enableForeignKeyConstraints|enableDoubleQuotedStringLiterals|allowExtension|timeout|readBigInts|returnArrays|allowBareNamedParameters|allowUnknownNamedParameters|defensive|limits(?:\.[^"]+)?|useBigIntArguments|varargs|deterministic|directOnly|inverse|table|db|dbName|start|step|rate|source|target|progress|onConflict|filter))?" argument must be (?:a |an )?.+\.$/.test(message)
 }
 
+/** Tells whether the message is the one `node:sqlite` raises for an invalid path of the database. */
 function isNodeSqliteInvalidConnectionMessage(message: string): boolean {
     return message === 'The "path" argument must be a string, Uint8Array, or URL without null bytes.'
 }
 
+/**
+ * Tells whether the message is one `node:sqlite` raises for an argument of a wrong data type or a method called on the
+ * wrong object.
+ */
 function isNodeSqliteApiMisuseMessage(message: string): boolean {
     switch (message) {
         case 'The "path" argument must be a string.':
@@ -231,11 +282,13 @@ function isNodeSqliteApiMisuseMessage(message: string): boolean {
     return false
 }
 
+/** Gives the first text between single quotes in the message, or `undefined` when there is none. */
 function extractSingleQuotedName(message: string): string | undefined {
     const match = /'([^']+)'/.exec(message)
     return match?.[1]
 }
 
+/** Gives the number that follows the word `parameter` in the message, or `undefined` when there is none. */
 function extractParameterIndex(message: string): number | undefined {
     const match = /parameter\s+(\d+)/i.exec(message)
     if (!match?.[1]) {
@@ -245,6 +298,7 @@ function extractParameterIndex(message: string): number | undefined {
     return Number.isFinite(index) ? index : undefined
 }
 
+/** Gives the integer at the end of the message, after a colon, as text, or `undefined` when there is none. */
 function extractOutOfRangeValue(message: string): string | undefined {
     // "Value is too large to be represented as a JavaScript number: 9007199254740993"
     // — kept as a string so the digits beyond 2^53 survive (a JS number would round them).

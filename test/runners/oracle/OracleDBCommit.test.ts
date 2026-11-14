@@ -30,8 +30,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         pool = await oracledb.createPool({ ...config, poolMin: 0, poolMax: 2 })
         single = new OracleDBQueryRunner(connection)
         pooled = new OracleDBPoolQueryRunner(pool)
-        await single.executeDatabaseSchemaModification("begin execute immediate 'drop table rt_commit'; exception when others then if sqlcode != -942 then raise; end if; end;")
-        await single.executeDatabaseSchemaModification('create table rt_commit (id number(10) primary key)')
+        await single.executeQuery('executeDatabaseSchemaModification', "begin execute immediate 'drop table rt_commit'; exception when others then if sqlcode != -942 then raise; end if; end;", [])
+        await single.executeQuery('executeDatabaseSchemaModification', 'create table rt_commit (id number(10) primary key)', [])
     }, 300_000)
     afterAll(async () => {
         await connection?.close()
@@ -45,14 +45,14 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         const base = which === 'single' ? 100 : 200
 
         test(`${which}-runner-commits-a-statement-outside-a-transaction`, async () => {
-            await runnerOf().executeInsert(`insert into rt_commit (id) values (${base + 1})`)
+            await runnerOf().executeQuery('insert', `insert into rt_commit (id) values (${base + 1})`, [])
             expect(await visibleElsewhere(base + 1)).toBe(1)
         })
 
         test(`${which}-runner-commits-a-transaction-only-at-commit`, async () => {
             const r = runnerOf()
             await r.executeBeginTransaction()
-            await r.executeInsert(`insert into rt_commit (id) values (${base + 2})`)
+            await r.executeQuery('insert', `insert into rt_commit (id) values (${base + 2})`, [])
             expect(await visibleElsewhere(base + 2)).toBe(0)
             await r.executeCommit()
             expect(await visibleElsewhere(base + 2)).toBe(1)
@@ -61,7 +61,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         test(`${which}-runner-rolls-a-transaction-back`, async () => {
             const r = runnerOf()
             await r.executeBeginTransaction(['read committed'])
-            await r.executeInsert(`insert into rt_commit (id) values (${base + 3})`)
+            await r.executeQuery('insert', `insert into rt_commit (id) values (${base + 3})`, [])
             await r.executeRollback()
             expect(await visibleElsewhere(base + 3)).toBe(0)
         })
@@ -72,10 +72,10 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         // the transaction on the first query, where the engine refuses both together.
         const r = pooled!
         await r.executeBeginTransaction(['snapshot', 'read only'])
-        expect(r.isSqlError(await rejectionOf(r.executeSelectOneColumnOneRow('select 1 from dual')))).toBe(true)
+        expect(r.isSqlError(await rejectionOf(r.executeQuery('selectOneColumnOneRow', 'select 1 from dual', [])))).toBe(true)
         await r.executeRollback()
         expect(r.isTransactionActive()).toBe(false)
-        expect(Number(await r.executeSelectOneColumnOneRow('select 1 from dual'))).toBe(1)
+        expect(Number(await r.executeQuery('selectOneColumnOneRow', 'select 1 from dual', []))).toBe(1)
     })
 
     describe('over a connection in a transaction something else manages', () => {
@@ -85,7 +85,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
         test('without-the-option-a-statement-commits-the-transaction', async () => {
             await inserted(301)
-            await new OracleDBQueryRunner(connection!).executeSelectOneColumnOneRow('select 1 from dual')
+            await new OracleDBQueryRunner(connection!).executeQuery('selectOneColumnOneRow', 'select 1 from dual', [])
             await connection!.rollback()
             expect(await visibleElsewhere(301)).toBe(1)
         })
@@ -93,22 +93,22 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         test('no-statement-commits-the-transaction', async () => {
             const r = given()
             await inserted(311)
-            expect(Number(await r.executeSelectOneColumnOneRow('select 1 from dual'))).toBe(1)
-            await r.executeInsert('insert into rt_commit (id) values (312)')
+            expect(Number(await r.executeQuery('selectOneColumnOneRow', 'select 1 from dual', []))).toBe(1)
+            await r.executeQuery('insert', 'insert into rt_commit (id) values (312)', [])
             const params: any[] = []
             const out = addOutParam(r, params, 'id', 'int', undefined, false)
-            expect(Number(await r.executeInsertReturningLastInsertedId(`insert into rt_commit (id) values (313) returning id into ${out}`, params))).toBe(313)
-            expect(await r.executeUpdate('update rt_commit set id = 314 where id = 313')).toBe(1)
-            expect(await r.executeDelete('delete from rt_commit where id = 312')).toBe(1)
+            expect(Number(await r.executeQuery('insertReturningLastInsertedId', `insert into rt_commit (id) values (313) returning id into ${out}`, params))).toBe(313)
+            expect(await r.executeQuery('update', 'update rt_commit set id = 314 where id = 313', [])).toBe(1)
+            expect(await r.executeQuery('delete', 'delete from rt_commit where id = 312', [])).toBe(1)
             for (const id of [311, 312, 313, 314]) {
                 expect(await visibleElsewhere(id)).toBe(0)
             }
             await connection!.rollback()
-            expect(Number(await r.executeSelectOneColumnOneRow('select count(*) from rt_commit where id between 311 and 314'))).toBe(0)
+            expect(Number(await r.executeQuery('selectOneColumnOneRow', 'select count(*) from rt_commit where id between 311 and 314', []))).toBe(0)
         })
 
         test('what-manages-the-transaction-commits-it', async () => {
-            await given().executeInsert('insert into rt_commit (id) values (321)')
+            await given().executeQuery('insert', 'insert into rt_commit (id) values (321)', [])
             await connection!.commit()
             expect(await visibleElsewhere(321)).toBe(1)
         })

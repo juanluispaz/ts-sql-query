@@ -326,7 +326,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct id as "extra_id",  price as "price" from exact_amount where id in (:0, :1, :2) order by "price""`)
         assertType<Exact<typeof rows, { price?: Amount }[]>>()
-        const databaseRows = await ctx.conn.queryRunner.executeSelectManyRows(ctx.lastSql, ctx.lastParams)
+        const databaseRows = await ctx.conn.queryRunner.executeQuery('selectManyRows', ctx.lastSql, ctx.lastParams)
         const priceOf = (id: number) => ctx.conn.selectFrom(tExactAmount)
             .where(tExactAmount.id.equals(id))
             .select({ price: tExactAmount.price })
@@ -335,7 +335,7 @@ describe(ctx.label, () => {
         ctx.mockNext([{ price: '-.25', extra_id: 2 }, { price: '1.5', extra_id: 1 }])
         const compound = await priceOf(1).union(priceOf(2)).orderBy('price').executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "extra_id",  price as "price" from exact_amount where id = :0 union select id as "extra_id",  price as "price" from exact_amount where id = :1 order by "price""`)
-        const compoundDatabaseRows = await ctx.conn.queryRunner.executeSelectManyRows(ctx.lastSql, ctx.lastParams)
+        const compoundDatabaseRows = await ctx.conn.queryRunner.executeQuery('selectManyRows', ctx.lastSql, ctx.lastParams)
         // Oracle doesn't keep the scale of a number
         expect(rows).toEqual([{ price: '-0.25' }, { price: '1.5' }, { price: '1234.56' }])
         // The rows of the database have the text Oracle writes, without the zero before the point

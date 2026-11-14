@@ -1,26 +1,41 @@
 import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolConnection } from 'mysql2'
 import { MySql2QueryRunner } from './MySql2QueryRunner.js'
-import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
+import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
-export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
-    readonly database: DatabaseType
+/** The options of MySql2PoolQueryRunner */
+export interface MySql2PoolQueryRunnerConfig {
+    /** The database: 'mySql' by default */
+    database?: 'mariaDB' | 'mySql' | undefined
+}
+
+/**
+ * The query runner of MySQL and MariaDB through `mysql2`, over a `Pool`: each query takes a connection of the pool,
+ * and a transaction keeps one until it ends.
+ */
+export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
+    private currentDatabase: DatabaseType
+    /** The `Pool` of mysql2 the query runner was created with */
     readonly pool: Pool
 
-    constructor(pool: Pool, database: 'mariaDB' | 'mySql' = 'mySql') {
+    constructor(pool: Pool, config: MySql2PoolQueryRunnerConfig = {}) {
         super()
         this.pool = pool
-        this.database = database
+        this.currentDatabase = config.database || 'mySql'
+    }
+
+    /** The database the SQL is written for: MySQL or MariaDB, the one of the connection */
+    get database(): DatabaseType {
+        return this.currentDatabase
     }
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'mariaDB' && database !== 'mySql') {
             throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. MySql2PoolQueryRunner only supports mySql or mariaDB databases')
         } else {
-            // @ts-ignore
-            this.database = database
+            this.currentDatabase = database
         }
     }
     getNativeRunner(): unknown {

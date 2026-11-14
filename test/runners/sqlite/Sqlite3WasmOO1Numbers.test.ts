@@ -16,7 +16,7 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'wasm', 'newest', 'sqlite-wasm-OO1'))
         const sqlite3 = await sqlite3InitModule()
         db = new sqlite3.oo1.DB(':memory:', 'c')
         runner = new Sqlite3WasmOO1QueryRunner(db)
-        await runner.executeDatabaseSchemaModification('create table numbers (v real not null)')
+        await runner.executeQuery('executeDatabaseSchemaModification', 'create table numbers (v real not null)', [])
     })
     afterAll(() => {
         db?.close()
@@ -26,10 +26,10 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'wasm', 'newest', 'sqlite-wasm-OO1'))
 
     test('stored-and-read-back', async () => {
         for (const value of values) {
-            await runner!.executeDelete('delete from numbers')
+            await runner!.executeQuery('delete', 'delete from numbers', [])
             const params: any[] = []
-            await runner!.executeInsert(`insert into numbers (v) values (${addParam(runner!, params, value, 'double', undefined, false)})`, params)
-            const read = await runner!.executeSelectOneColumnOneRow('select v from numbers')
+            await runner!.executeQuery('insert', `insert into numbers (v) values (${addParam(runner!, params, value, 'double', undefined, false)})`, params)
+            const read = await runner!.executeQuery('selectOneColumnOneRow', 'select v from numbers', [])
             expect([value, read]).toEqual([value, value])
         }
     })
@@ -38,13 +38,13 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'wasm', 'newest', 'sqlite-wasm-OO1'))
         // An integer within the 64-bit range comes back from an expression as a bigint, as the driver reads an integer
         for (const value of [1e20, -1e20, 2 ** 63, 1.5e300, -1.5e300, 1.5]) {
             const params: any[] = []
-            const read = await runner!.executeSelectOneColumnOneRow(`select ${addParam(runner!, params, value, 'double', undefined, false)}`, params)
+            const read = await runner!.executeQuery('selectOneColumnOneRow', `select ${addParam(runner!, params, value, 'double', undefined, false)}`, params)
             expect([value, read]).toEqual([value, value])
         }
     })
 
     test('an-integer-beyond-the-safe-range-is-read-as-a-bigint', async () => {
         // sqlite-wasm gives an integer beyond 2^53 as a bigint, and one within it as a number
-        expect(await runner!.executeSelectOneRow('select 9007199254740993 as big, 12 as small', [])).toEqual({ big: 9007199254740993n, small: 12 })
+        expect(await runner!.executeQuery('selectOneRow', 'select 9007199254740993 as big, 12 as small', [])).toEqual({ big: 9007199254740993n, small: 12 })
     })
 })

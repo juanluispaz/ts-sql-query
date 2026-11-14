@@ -8,23 +8,35 @@ import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sql
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 import { sqliteDriverParams } from '../utils/sqlite/sqliteParamTypes.js'
 
+/** The options of Sqlite3WasmOO1QueryRunner */
 export interface Sqlite3WasmOO1QueryRunnerConfig {
+    /**
+     * The provider of the promises, like `SynchronousPromise`, to run the queries without deferring; the global
+     * `Promise` by default
+     */
     promise?: PromiseProvider | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
 
+/**
+ * The query runner of SQLite through the OO1 API of the official WebAssembly build (`@sqlite.org/sqlite-wasm`),
+ * over a `Database`. The driver is synchronous: with `SynchronousPromise` as the promise provider, the whole query runs
+ * without deferring (see `sync`).
+ */
 export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
+    /** The `Database` of sqlite-wasm the query runner was created with */
     readonly connection: Database
-    readonly promise: PromiseProvider
     private config?: Sqlite3WasmOO1QueryRunnerConfig | undefined
 
     constructor(connection: Database, config?: Sqlite3WasmOO1QueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'sqlite'
-        this.promise = config?.promise || Promise
+        if (config?.promise) {
+            this.promise = config.promise
+        }
         this.config = config
     }
 
@@ -62,7 +74,7 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
             return this.promise.reject(e)
         }
     }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected override executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -94,12 +106,6 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
     addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
         return queryRunnerParamBindings.Sqlite3WasmOO1QueryRunner(params, value)
-    }
-    override createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
-        return this.promise.resolve(result)
-    }
-    override createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
-        return this.promise.reject(error)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return Sqlite3WasmOO1QueryRunner.getErrorReason(error)

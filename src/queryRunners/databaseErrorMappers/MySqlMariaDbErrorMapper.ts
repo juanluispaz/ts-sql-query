@@ -22,16 +22,37 @@ const MYSQL_INVALID_REGULAR_EXPRESSION_ERROR_NUMBERS = new Set([3688, 3689, 3691
 // SIGNAL / RESIGNAL without an own MYSQL_ERRNO: an exception user code raised.
 const MYSQL_SIGNAL_ERROR_NUMBERS = new Set([1643, 1644])
 
+/** An error raised by MySQL or MariaDB, as the mapper of a driver hands it to `getMySqlMariaDbEngineErrorReason`. */
 export interface MySqlMariaDbEngineError {
+    /**
+     * The engine of the connection, MySQL or MariaDB; it decides which catalog of errors names the number. When absent,
+     * a number or a name is read only where the catalogs of both engines don't disagree.
+     */
     database?: DatabaseType | undefined
+    /** The error number; when absent or not positive, it is looked up from `code`. */
     errno?: number | undefined
+    /** The name of the error (`ER_DUP_ENTRY`), or its number as text, as the driver gives it. */
     code?: string | undefined
+    /** The SQLSTATE of the error; it decides the reason when the number doesn't. */
     sqlState?: string | undefined
+    /** The database error code to report in the reason; when absent, the name of the error is used. */
     databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    /**
+     * The database error number to report in the reason; when absent, the error number or, without one, the SQLSTATE.
+     */
     databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    /**
+     * The message of the error; the names of tables, columns and keys are read from it, and the reason too when nothing
+     * else decides it.
+     */
     message?: string | undefined
 }
 
+/**
+ * Gives the reason of an error raised by MySQL or MariaDB. It tries, in order, the error number, the SQLSTATE, the name
+ * of the error, the message, and a fallback by the range of the number or the prefix of the name; `SQL_UNKNOWN` when
+ * none decides.
+ */
 export function getMySqlMariaDbEngineErrorReason(error: MySqlMariaDbEngineError): TsSqlErrorReason {
     const code = error.code || ''
     const sqlState = error.sqlState || ''
@@ -52,6 +73,11 @@ export function getMySqlMariaDbEngineErrorReason(error: MySqlMariaDbEngineError)
     return withDatabaseErrorNumber(reason, databaseErrorNumber)
 }
 
+/**
+ * Gives the reason of the error number, or `undefined` when there is no number or it isn't one handled. A number in a
+ * group of `MySqlMariaDbErrorCodes` counts only when it means that on the engine of the connection (see
+ * `hasMySqlSemanticErrorNumber` and `hasMariaDbSemanticErrorNumber`).
+ */
 function getMySqlMariaDbErrorReasonFromNumber(
     errorNumber: number | undefined,
     code: string,
@@ -346,6 +372,7 @@ function getMySqlMariaDbErrorReasonFromNumber(
     return undefined
 }
 
+/** The meaning of a group of error numbers, used to check that the name of an error fits the group it is found in. */
 type SemanticErrorCategory =
     'ambiguous_identifier'
     | 'api_misuse'
@@ -412,6 +439,12 @@ type SemanticErrorCategory =
     | 'unique'
     | 'wrong_object_type'
 
+/**
+ * Whether the error number belongs to the group of numbers given with the meaning of the group. It does when the name
+ * of the error given fits the category; otherwise, without the engine, when the number has a single name among the
+ * catalogs of both engines; with the engine, when the number has a name on that engine and, if both engines use the
+ * number for different errors, that name fits the category.
+ */
 function hasMySqlSemanticErrorNumber(
     errorNumber: number,
     errorNumbers: Set<number>,
@@ -439,6 +472,12 @@ function hasMySqlSemanticErrorNumber(
     return isCodeCompatibleWithSemanticCategory(activeCode, category)
 }
 
+/**
+ * Whether the error number belongs to a group of numbers of MariaDB with the meaning of the group. On MariaDB it does
+ * when MariaDB names the number or the name of the error given fits the category; on MySQL, only when both engines give
+ * the number the same name; without the engine, when the name given fits the category or the number has a single name
+ * among the catalogs of both engines.
+ */
 function hasMariaDbSemanticErrorNumber(
     errorNumber: number,
     errorNumbers: Set<number>,
@@ -464,6 +503,10 @@ function hasMariaDbSemanticErrorNumber(
     return getMySqlMariaDbErrorCodeName(errorNumber) !== undefined
 }
 
+/**
+ * Whether MySQL and MariaDB give the number different names, so it may be a different error on each; the numbers in
+ * `MYSQL_MARIADB_RENAMED_ERROR_NUMBERS`, renamed but with the same meaning, don't count.
+ */
 function isCollidingErrorNumber(errorNumber: number): boolean {
     if (MYSQL_MARIADB_RENAMED_ERROR_NUMBERS.has(errorNumber)) {
         return false
@@ -473,6 +516,10 @@ function isCollidingErrorNumber(errorNumber: number): boolean {
     return !!mySqlCode && !!mariaDbCode && mySqlCode !== mariaDbCode
 }
 
+/**
+ * Whether the name of an error has a word that fits the category (`DUP` or `UNIQUE` for `unique`); `false` for an empty
+ * name.
+ */
 function isCodeCompatibleWithSemanticCategory(code: string, category: SemanticErrorCategory): boolean {
     const upperCode = code.toUpperCase()
     if (!upperCode) {
@@ -610,6 +657,10 @@ function isCodeCompatibleWithSemanticCategory(code: string, category: SemanticEr
     return false
 }
 
+/**
+ * Gives the reason of the names of errors of MariaDB handled one by one, before the groups of numbers, or `undefined`
+ * for the others.
+ */
 function getMariaDbSpecificSymbolReasonFromNumber(
     upperCode: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -638,6 +689,10 @@ function getMariaDbSpecificSymbolReasonFromNumber(
     return undefined
 }
 
+/**
+ * Gives the reason of the SQLSTATE, the codes handled one by one first and then their class (the first two characters),
+ * or `undefined` when there is none, it is the generic `HY000`, or it isn't handled.
+ */
 function getMySqlMariaDbErrorReasonFromSqlState(
     sqlState: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -778,6 +833,10 @@ function getMySqlMariaDbErrorReasonFromSqlState(
     return undefined
 }
 
+/**
+ * Gives the reason from the words of the name of an `ER_` error, or `undefined` when the name doesn't start with `ER_`
+ * or none of its words is known.
+ */
 function getMySqlMariaDbErrorReasonFromSymbol(
     code: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -842,6 +901,7 @@ function getMySqlMariaDbErrorReasonFromSymbol(
     return undefined
 }
 
+/** Gives the reason from known texts of the message, or `undefined` when there is no message or none is in it. */
 function getMySqlMariaDbErrorReasonFromMessage(
     message: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -930,6 +990,11 @@ function getMySqlMariaDbErrorReasonFromMessage(
     return undefined
 }
 
+/**
+ * Gives a reason for an error known by its range of numbers or the prefix of its name (`CR_` of the client, `EE_` of
+ * the system, `ER_` of the server), after nothing more precise decided; `undefined` for a bare number the catalog of
+ * the engine doesn't have, or for an error of no known range or prefix.
+ */
 function getMySqlMariaDbKnownErrorFallbackReason(
     errorNumber: number | undefined,
     code: string,
@@ -980,6 +1045,10 @@ function getMySqlMariaDbKnownErrorFallbackReason(
     return undefined
 }
 
+/**
+ * Whether the value is an `Error` raised by MySQL or MariaDB: it has a positive error number, a SQLSTATE, or a code
+ * with the shape of an error of these engines.
+ */
 export function isMySqlMariaDbEngineError(error: unknown): error is MySqlMariaDbEngineError & Error {
     if (!(error instanceof Error)) {
         return false
@@ -990,6 +1059,10 @@ export function isMySqlMariaDbEngineError(error: unknown): error is MySqlMariaDb
         || isMySqlMariaDbEngineErrorCode(engineError.code)
 }
 
+/**
+ * Whether the value is a code with the shape of an error of MySQL or MariaDB: a name starting with `ER_`, `CR_` or
+ * `EE_`, a `MY-` identifier, a number as text, or a name in the catalogs.
+ */
 export function isMySqlMariaDbEngineErrorCode(code: unknown): code is string {
     if (typeof code !== 'string') {
         return false
@@ -1003,6 +1076,10 @@ export function isMySqlMariaDbEngineErrorCode(code: unknown): code is string {
         || ErrorCodes.MYSQL_MARIADB_ERROR_CODE_NUMBERS.has(normalizedCode)
 }
 
+/**
+ * Gives the name of the error with that number on the engine given or, without one, its name when the number has a
+ * single name among the catalogs of both engines; `undefined` when there is no number or no such name.
+ */
 export function getMySqlMariaDbErrorCodeName(errorNumber: number | undefined, database?: DatabaseType): string | undefined {
     if (typeof errorNumber !== 'number') {
         return undefined
@@ -1010,10 +1087,18 @@ export function getMySqlMariaDbErrorCodeName(errorNumber: number | undefined, da
     return getErrorNumberCodes(database).get(errorNumber)
 }
 
+/**
+ * Gives the number of the error with that name on the engine given, from a `MY-` identifier, or from a number as text;
+ * `undefined` when it can't tell.
+ */
 export function getMySqlMariaDbErrorNumberFromCode(code: string | undefined, database?: DatabaseType): number | undefined {
     return getMySqlMariaDbErrorNumber(undefined, code || '', database)
 }
 
+/**
+ * Gives the error number: the positive number given or, without it, the number of the name in the catalog of the
+ * engine, the number of a `MY-` identifier, or the code itself when it is a number as text.
+ */
 function getMySqlMariaDbErrorNumber(errno: number | undefined, code: string, database?: DatabaseType): number | undefined {
     if (typeof errno === 'number' && errno > 0) {
         return errno
@@ -1036,6 +1121,10 @@ function getMySqlMariaDbErrorNumber(errno: number | undefined, code: string, dat
     return undefined
 }
 
+/**
+ * Gives the catalog from names to numbers of the engine or, when the engine isn't known, the one of the names with a
+ * single number among both engines.
+ */
 function getErrorCodeNumbers(database?: DatabaseType): Map<string, number> {
     switch (database) {
         case 'mySql':
@@ -1047,6 +1136,10 @@ function getErrorCodeNumbers(database?: DatabaseType): Map<string, number> {
     }
 }
 
+/**
+ * Gives the catalog from numbers to names of the engine or, when the engine isn't known, the one of the numbers with a
+ * single name among both engines.
+ */
 function getErrorNumberCodes(database?: DatabaseType): Map<number, string> {
     switch (database) {
         case 'mySql':
@@ -1058,6 +1151,7 @@ function getErrorNumberCodes(database?: DatabaseType): Map<number, string> {
     }
 }
 
+/** Gives the reason with the database error number added, or the same reason when there is no number. */
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
     if (databaseErrorNumber === undefined) {
         return reason
@@ -1065,20 +1159,29 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
-// "Too many tables; MySQL can only use 61 tables in a join"
+/**
+ * Gives the limit the message of a resource error names, or `undefined` when it names none. The form read: "Too many
+ * tables; MySQL can only use 61 tables in a join".
+ */
 function extractMySqlLimit(message: string): number | undefined {
     const limit = /can only use (\d+)/i.exec(message)
     return limit ? Number(limit[1]) : undefined
 }
 
+/** Whether the value is a number between the minimum and the maximum, both included. */
 function isInRange(value: number | undefined, min: number, max: number): boolean {
     return typeof value === 'number' && value >= min && value <= max
 }
 
+/** Whether the word is one of the words of the name of the error, separated by underscores. */
 function hasSymbolWord(code: string, word: string): boolean {
     return code === word || code.includes('_' + word + '_') || code.endsWith('_' + word) || code.startsWith(word + '_')
 }
 
+/**
+ * Whether the name of the error says an object wasn't found: it says no such, not found, does not exist or drop exists,
+ * or it says unknown together with a type of object.
+ */
 function isObjectNotFoundSymbol(code: string): boolean {
     if (code.includes('NO_SUCH') || code.includes('NOT_FOUND') || code.includes('DOES_NOT_EXIST') || code.includes('DROP_EXISTS')) {
         return true
@@ -1105,6 +1208,10 @@ function isObjectNotFoundSymbol(code: string): boolean {
         || code.includes('COLLATION')
 }
 
+/**
+ * Gives the type of connection error of the number: an invalid connection configuration, a server temporarily
+ * unavailable, or a connection lost for the others.
+ */
 function getConnectionErrorTypeFromNumber(errorNumber: number): 'connection lost' | 'temporarily unavailable' | 'invalid connection configuration' {
     switch (errorNumber) {
         case 1042:
@@ -1127,6 +1234,7 @@ function getConnectionErrorTypeFromNumber(errorNumber: number): 'connection lost
     }
 }
 
+/** Gives what is corrupted for the number: an index, the database file, or the checksum for the others. */
 function getCorruptionTypeFromNumber(errorNumber: number): 'database file' | 'index' | 'sequence' | 'virtual table' | 'filesystem' | 'checksum' {
     switch (errorNumber) {
         case 1034:
@@ -1143,6 +1251,10 @@ function getCorruptionTypeFromNumber(errorNumber: number): 'database file' | 'in
     }
 }
 
+/**
+ * Gives the type of object an error of the wrong type of object is about: a sequence for 4089 and 4090, a table or view
+ * for the others.
+ */
 function getWrongObjectTypeFromNumber(errorNumber: number): 'table or view' | 'sequence' {
     switch (errorNumber) {
         case 4089:
@@ -1153,6 +1265,10 @@ function getWrongObjectTypeFromNumber(errorNumber: number): 'table or view' | 's
     }
 }
 
+/**
+ * Gives the details of an error about the parameters from its message: the type of error and, when the message says
+ * them, the number of parameters expected and received; `invalid value` when the message says nothing known.
+ */
 function getInvalidParameterDetailsFromMessage(message: string): {
     parameterErrorType?: 'missing' | 'too many' | 'wrong count' | 'invalid name' | 'invalid index' | 'invalid type' | 'invalid value' | 'invalid binding' | 'not bindable' | 'already bound' | undefined
     expectedParameterCount?: number | undefined
@@ -1181,6 +1297,11 @@ function getInvalidParameterDetailsFromMessage(message: string): {
     return { parameterErrorType: 'invalid value' }
 }
 
+/**
+ * Gives the reason of a constraint error from its message (the SQLSTATE class 23): a foreign key, a not null, a check,
+ * an ambiguous identifier or a unique constraint, with the names the message carries; a constraint of no type
+ * otherwise.
+ */
 function getConstraintReasonFromMessage(
     message: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -1205,6 +1326,10 @@ function getConstraintReasonFromMessage(
     return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
 }
 
+/**
+ * Gives the `SQL_OBJECT_NOT_FOUND` reason with the type of object the name of the error says, and the name of the
+ * object read from the message.
+ */
 function getObjectNotFoundFromSymbol(
     code: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -1238,6 +1363,10 @@ function getObjectNotFoundFromSymbol(
     return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectName: extractQuotedName(message) }
 }
 
+/**
+ * Gives the `SQL_OBJECT_ALREADY_EXISTS` reason with the type of object the name of the error says, and the name of the
+ * object read from the message.
+ */
 function getObjectAlreadyExistsFromSymbol(
     code: string,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
@@ -1268,6 +1397,10 @@ function getObjectAlreadyExistsFromSymbol(
     return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectName: extractQuotedName(message) }
 }
 
+/**
+ * Gives the database error code: the code of the error, turned into its name when it is a number as text that has one;
+ * without a code, the name of the error number.
+ */
 function getMySqlMariaDbDatabaseErrorCode(
     error: MySqlMariaDbEngineError,
     errorNumber: number | undefined
@@ -1282,6 +1415,7 @@ function getMySqlMariaDbDatabaseErrorCode(
     return getMySqlMariaDbErrorCodeName(errorNumber, error.database)
 }
 
+/** Gives the database error number: the error number or, without one, the SQLSTATE. */
 function getMySqlMariaDbDatabaseErrorNumber(
     error: MySqlMariaDbEngineError,
     errorNumber: number | undefined
@@ -1289,6 +1423,10 @@ function getMySqlMariaDbDatabaseErrorNumber(
     return errorNumber ?? (error.sqlState || undefined)
 }
 
+/**
+ * Gives the first name of the message between backticks, single quotes or double quotes, tried in that order; a single
+ * quote inside a word doesn't count. `undefined` when there is none.
+ */
 function extractQuotedName(message: string): string | undefined {
     const backtick = /`([^`]+)`/.exec(message)
     if (backtick) {
@@ -1329,6 +1467,10 @@ function extractUniqueKeyNames(message: string): { constraintName: string | unde
     return { constraintName: extractKeyName(message), tableName: extractMessageTableName(message) }
 }
 
+/**
+ * Gives the name of the key or constraint in the message: quoted after `for key` or after `constraint`; otherwise, the
+ * first quoted name.
+ */
 function extractKeyName(message: string): string | undefined {
     const match = /for key ['`"]([^'"`]+)['`"]/.exec(message)
     if (match) {
@@ -1341,6 +1483,10 @@ function extractKeyName(message: string): string | undefined {
     return extractQuotedName(message)
 }
 
+/**
+ * Gives the name of the table in the message: the second part of a name like `db`.`table`, or the quoted name after
+ * `table`; `undefined` when there is none.
+ */
 function extractMessageTableName(message: string): string | undefined {
     const backtickQualified = /`[^`]+`\.`([^`]+)`/.exec(message)
     if (backtickQualified) {
@@ -1353,10 +1499,15 @@ function extractMessageTableName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the name of the table of a foreign key error, as `extractMessageTableName`. */
 function extractConstraintTableName(message: string): string | undefined {
     return extractMessageTableName(message)
 }
 
+/**
+ * Gives the name of the table of a check constraint error: the table of `failed for db.table`, or the one
+ * `extractMessageTableName` gives.
+ */
 function extractCheckTableName(message: string): string | undefined {
     const match = /failed for [`'"][^`'"]+[`'"]\.[`'"]([^`'"]+)[`'"]/i.exec(message)
     if (match) {
@@ -1365,6 +1516,7 @@ function extractCheckTableName(message: string): string | undefined {
     return extractMessageTableName(message)
 }
 
+/** Gives the quoted column in `FOREIGN KEY (column)` of the message, or `undefined` when there is none. */
 function extractForeignKeyColumnName(message: string): string | undefined {
     const match = /foreign key\s*\([`'"]([^`'"]+)[`'"]\)/i.exec(message)
     if (match) {

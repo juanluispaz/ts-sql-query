@@ -2,6 +2,10 @@ import type { TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlErro
 import type { DatabaseType } from '../QueryRunner.js'
 import { getMySqlMariaDbEngineErrorReason, getMySqlMariaDbErrorCodeName, getMySqlMariaDbErrorNumberFromCode, isMySqlMariaDbEngineErrorCode } from '../databaseErrorMappers/MySqlMariaDbErrorMapper.js'
 
+/**
+ * An error raised through mysql2: an `Error` that may carry the error number of the server, a code (the name of the
+ * error, a Node error code or a number), the SQLSTATE, the message of the server and the system call that failed.
+ */
 type MySql2DriverError = Error & {
     errno?: number | undefined
     code?: string | number | undefined
@@ -40,6 +44,10 @@ const MYSQL2_DRIVER_ERROR_CODES = new Set([
     'POOL_NONEONLINE',
 ])
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through mysql2 (`database` picks the names and numbers of the error
+ * codes of MySQL or MariaDB); `UNKNOWN` when it isn't an error of that driver.
+ */
 export function getMySql2ErrorReason(error: unknown, database?: DatabaseType): TsSqlErrorReason {
     if (!isMySql2Error(error)) {
         return { reason: 'UNKNOWN' }
@@ -47,6 +55,10 @@ export function getMySql2ErrorReason(error: unknown, database?: DatabaseType): T
     return getMySql2DriverOrEngineErrorReason(error, database)
 }
 
+/**
+ * Tells whether the error comes from mysql2: an `Error` from the server, with a code the driver gives, or with a
+ * message the driver raises.
+ */
 export function isMySql2Error(error: unknown): error is MySql2DriverError {
     return !!error && error instanceof Error && (
         isMySql2EngineError(error)
@@ -55,6 +67,11 @@ export function isMySql2Error(error: unknown): error is MySql2DriverError {
     )
 }
 
+/**
+ * Gives the reason of an error of mysql2: the driver's when its code or message is known, otherwise the engine's,
+ * mapped with `getMySqlMariaDbEngineErrorReason`, when it comes from the server, otherwise `UNKNOWN`; with the number
+ * of the error added.
+ */
 function getMySql2DriverOrEngineErrorReason(error: MySql2DriverError, database?: DatabaseType): TsSqlErrorReason {
     const message = getMySql2ErrorMessage(error)
 
@@ -72,6 +89,11 @@ function getMySql2DriverOrEngineErrorReason(error: MySql2DriverError, database?:
     return withDatabaseErrorNumber(reason, getMySql2DatabaseErrorNumber(error, database))
 }
 
+/**
+ * Gives the reason of an error mysql2 raises itself, or of Node, recognised by its code and its message (pool, closed
+ * connection, network, timeouts, configuration, authentication, protocol, misuse of the API, parameters); `undefined`
+ * when they aren't one of them.
+ */
 function getKnownMySql2DriverErrorReason(error: MySql2DriverError, message = getMySql2ErrorMessage(error), database?: DatabaseType): TsSqlErrorReason | undefined {
     const code = getMySql2StringCode(error)
     const databaseErrorCode = getMySql2DatabaseErrorCode(error, database)
@@ -121,17 +143,20 @@ function getKnownMySql2DriverErrorReason(error: MySql2DriverError, message = get
     return undefined
 }
 
+/** Tells whether the error comes from the server: it has an error number, a SQLSTATE or a code of the engine. */
 function isMySql2EngineError(error: MySql2DriverError): boolean {
     return getMySql2ErrorNumber(error) !== undefined
         || getMySql2SqlState(error) !== undefined
         || getMySql2EngineErrorCode(error) !== undefined
 }
 
+/** Tells whether the code of the error is one mysql2 gives itself, or a code of Node for the network or a timeout. */
 function isMySql2KnownDriverError(error: MySql2DriverError): boolean {
     const code = getMySql2StringCode(error)
     return isMySql2KnownDriverCode(code)
 }
 
+/** Tells whether the code is one mysql2 gives itself, or a code of Node for the network or a timeout. */
 function isMySql2KnownDriverCode(code: string | undefined): boolean {
     return !!code && (
         MYSQL2_DRIVER_ERROR_CODES.has(code)
@@ -140,18 +165,27 @@ function isMySql2KnownDriverCode(code: string | undefined): boolean {
     )
 }
 
+/**
+ * Tells whether the code is a code of Node for a connection refused, reset, aborted or a host that can't be reached.
+ */
 function isMySql2NetworkErrorCode(code: string | undefined): boolean {
     return !!code && MYSQL2_NETWORK_ERROR_CODES.has(code)
 }
 
+/** Tells whether the code is a code of Node for a timeout of the connection. */
 function isMySql2TimeoutErrorCode(code: string | undefined): boolean {
     return !!code && MYSQL2_TIMEOUT_ERROR_CODES.has(code)
 }
 
+/** Gives the message of the server (`sqlMessage`), otherwise the `message` of the error, or an empty text. */
 function getMySql2ErrorMessage(error: MySql2DriverError): string {
     return error.sqlMessage || error.message || ''
 }
 
+/**
+ * Tells whether the message is one mysql2 raises for bind parameters that aren't an array or contain `undefined` or a
+ * function.
+ */
 function isMySql2InvalidParameterMessage(message: string): boolean {
     return message === 'Bind parameters must be array if namedPlaceholders parameter is not enabled'
         || message === 'Bind parameters must not contain undefined'
@@ -159,6 +193,10 @@ function isMySql2InvalidParameterMessage(message: string): boolean {
         || message === 'Bind parameters must not contain function(s). To pass the body of a function as a string call .toString() first'
 }
 
+/**
+ * Gives the parameter error of the message: `invalid binding` when the parameters aren't an array, `invalid value`
+ * otherwise.
+ */
 function getMySql2InvalidParameterDetails(message: string): {
     parameterErrorType?: 'invalid value' | 'invalid binding' | undefined
 } {
@@ -168,6 +206,7 @@ function getMySql2InvalidParameterDetails(message: string): {
     return { parameterErrorType: 'invalid value' }
 }
 
+/** Tells whether the message is one mysql2 raises itself. */
 function isMySql2DriverMessage(message: string): boolean {
     return message === 'Pool is closed.'
         || message === 'No connections available.'
@@ -182,6 +221,10 @@ function isMySql2DriverMessage(message: string): boolean {
         || isMySql2PrivateObjectPropertyMessage(message)
 }
 
+/**
+ * Tells whether the message is one mysql2 raises for an invalid option of the connection: user, database, SSL, charset
+ * or authentication data.
+ */
 function isMySql2InvalidConnectionConfigurationMessage(message: string): boolean {
     return message === 'Server does not support secure connection'
         || message === '"user" connection config property must be a string'
@@ -193,6 +236,7 @@ function isMySql2InvalidConnectionConfigurationMessage(message: string): boolean
         || /^Unknown SSL profile '[^']+'$/.test(message)
 }
 
+/** Tells whether the message is one mysql2 raises during the authentication with a plugin. */
 function isMySql2AuthenticationMessage(message: string): boolean {
     return message === 'AuthPluginMoreData received but no auth plugin instance found'
         || message.startsWith('Server requested authentication using mysql_clear_password, ')
@@ -202,6 +246,7 @@ function isMySql2AuthenticationMessage(message: string): boolean {
         || /^Invalid AuthMoreData packet received by .+ plugin in STATE_TOKEN_SENT state\.$/.test(message)
 }
 
+/** Tells whether the message is one mysql2 raises for a packet of the server it didn't expect. */
 function isMySql2ProtocolMessage(message: string): boolean {
     return message === 'Unexpected packet during handshake phase'
         || message === 'Unexpected packet while no commands in the queue'
@@ -211,30 +256,41 @@ function isMySql2ProtocolMessage(message: string): boolean {
         || /^Should not reach here: .+$/.test(message)
 }
 
+/** Tells whether the message is one mysql2 raises when a callback or a promise is used with the wrong client. */
 function isMySql2PromiseOrApiMisuseMessage(message: string): boolean {
     return message === 'Callback function is not available with promise clients.'
         || message.startsWith('no Promise implementation available.')
         || message.startsWith('You have tried to call .then(), .catch(), or invoked await on the result of query that is not a promise, which is a programming error.')
 }
 
+/**
+ * Tells whether the message says that the name of a column of the result is the one of a private property of an object.
+ */
 function isMySql2PrivateObjectPropertyMessage(message: string): boolean {
     return /^The field name \(.+\) can't be the same as an object's private property\.$/.test(message)
 }
 
+/** Gives the `code` of the error when it is a text, otherwise `undefined`. */
 function getMySql2StringCode(error: MySql2DriverError): string | undefined {
     return typeof error.code === 'string' ? error.code : undefined
 }
 
+/** Gives the `code` of the error when it is the name of an error of the engine, otherwise `undefined`. */
 function getMySql2EngineErrorCode(error: MySql2DriverError): string | undefined {
     const code = getMySql2StringCode(error)
     return code && isMySqlMariaDbEngineErrorCode(code) ? code : undefined
 }
 
+/** Gives the SQLSTATE of the error when it is five letters or digits, otherwise `undefined`. */
 function getMySql2SqlState(error: MySql2DriverError): string | undefined {
     const sqlState = error.sqlState
     return typeof sqlState === 'string' && /^[0-9A-Z]{5}$/i.test(sqlState) ? sqlState : undefined
 }
 
+/**
+ * Gives the error number of the server: the `errno`, or else the `code` when it is a positive number or a text of
+ * digits; `undefined` otherwise.
+ */
 function getMySql2ErrorNumber(error: MySql2DriverError): number | undefined {
     if (typeof error.errno === 'number' && error.errno > 0) {
         return error.errno
@@ -249,6 +305,10 @@ function getMySql2ErrorNumber(error: MySql2DriverError): number | undefined {
     return undefined
 }
 
+/**
+ * Gives the code reported as `databaseErrorCode`: for a code of the engine or of the driver, the name the database
+ * gives to its number, or the code itself; otherwise the name of the error number on the database.
+ */
 function getMySql2DatabaseErrorCode(error: MySql2DriverError, database?: DatabaseType): string | undefined {
     const code = getMySql2StringCode(error)
     if (code && (isMySqlMariaDbEngineErrorCode(code) || isMySql2KnownDriverCode(code))) {
@@ -259,11 +319,19 @@ function getMySql2DatabaseErrorCode(error: MySql2DriverError, database?: Databas
     return getMySqlMariaDbErrorCodeName(errorNumber, database)
 }
 
+/**
+ * Gives the number reported as `databaseErrorNumber`: the error number, otherwise the number of the code on the
+ * database, otherwise the SQLSTATE.
+ */
 function getMySql2DatabaseErrorNumber(error: MySql2DriverError, database?: DatabaseType): TsSqlDatabaseErrorNumber | undefined {
     const code = getMySql2StringCode(error)
     return getMySql2ErrorNumber(error) ?? getMySqlMariaDbErrorNumberFromCode(code, database) ?? getMySql2SqlState(error)
 }
 
+/**
+ * Gives the reason with `databaseErrorNumber` set, or the reason as it is when there is no number or the reason is
+ * `UNKNOWN`.
+ */
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
     if (databaseErrorNumber === undefined || reason.reason === 'UNKNOWN') {
         return reason

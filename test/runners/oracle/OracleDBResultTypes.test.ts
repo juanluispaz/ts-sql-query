@@ -38,23 +38,23 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     }
 
     test('a-custom-decimal-column-is-fetched-as-text', async () => {
-        const row = await runner!.executeSelectOneRow(sql, paramsExpecting([decimal('amount'), decimal('price'), double('plain')]))
+        const row = await runner!.executeQuery('selectOneRow', sql, paramsExpecting([decimal('amount'), decimal('price'), double('plain')]))
         expect(row).toEqual({ amount: '12345678901234567890.1234567891', price: '-.25', plain: 1.5 })
     })
 
     test('without-expectations-the-driver-gives-numbers', async () => {
-        const row = await runner!.executeSelectOneRow(sql, [])
+        const row = await runner!.executeQuery('selectOneRow', sql, [])
         expect(row).toEqual({ amount: 12345678901234567000, price: -0.25, plain: 1.5 })
     })
 
     test('the-only-column-without-a-name', async () => {
         const params = paramsExpecting([{ name: '', path: '', originalType: 'Amount', originalCustomType: 'customDecimal', requestedType: 'Amount', requestedCustomType: 'customDecimal' }])
-        expect(await runner!.executeSelectOneColumnOneRow('select cast(12345678901234567890.1234567891 as number(38, 10)) from dual', params)).toBe('12345678901234567890.1234567891')
+        expect(await runner!.executeQuery('selectOneColumnOneRow', 'select cast(12345678901234567890.1234567891 as number(38, 10)) from dual', params)).toBe('12345678901234567890.1234567891')
     })
 
     test('a-bigint-column-is-fetched-as-text', async () => {
         const params = paramsExpecting([{ name: 'big', path: 'big', originalType: 'bigint', originalCustomType: undefined, requestedType: 'bigint', requestedCustomType: undefined }, double('plain')])
-        const row = await runner!.executeSelectOneRow('select cast(123456789012345678901 as number(21)) as "big", 1.5 as "plain" from dual', params)
+        const row = await runner!.executeQuery('selectOneRow', 'select cast(123456789012345678901 as number(21)) as "big", 1.5 as "plain" from dual', params)
         expect(row).toEqual({ big: '123456789012345678901', plain: 1.5 })
     })
 
@@ -68,11 +68,11 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         oracledb.fetchAsBuffer = [oracledb.BLOB]
         oracledb.maxRows = 1
         try {
-            const row = await runner!.executeSelectOneRow(sql, paramsExpecting([decimal('amount'), double('price'), double('plain')]))
+            const row = await runner!.executeQuery('selectOneRow', sql, paramsExpecting([decimal('amount'), double('price'), double('plain')]))
             expect(row).toEqual({ amount: '12345678901234567890.1234567891', price: -0.25, plain: 1.5 })
-            const dates = await runner!.executeSelectOneRow(`select date '2024-01-14' as "d", timestamp '2024-01-14 09:15:30.123' as "ts" from dual`, [])
+            const dates = await runner!.executeQuery('selectOneRow', `select date '2024-01-14' as "d", timestamp '2024-01-14 09:15:30.123' as "ts" from dual`, [])
             expect(dates).toEqual({ d: new Date(Date.UTC(2024, 0, 14)), ts: new Date(Date.UTC(2024, 0, 14, 9, 15, 30, 123)) })
-            const rows = await runner!.executeSelectManyRows('select level as "n" from dual connect by level <= 3', [])
+            const rows = await runner!.executeQuery('selectManyRows', 'select level as "n" from dual connect by level <= 3', [])
             expect(rows).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }])
         } finally {
             oracledb.fetchTypeHandler = previousHandler
@@ -83,7 +83,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     })
 
     test('a-clob-is-fetched-as-text', async () => {
-        const row = await runner!.executeSelectOneRow(`select to_clob('some text') as "c" from dual`, [])
+        const row = await runner!.executeQuery('selectOneRow', `select to_clob('some text') as "c" from dual`, [])
         expect(row).toEqual({ c: 'some text' })
     })
 })

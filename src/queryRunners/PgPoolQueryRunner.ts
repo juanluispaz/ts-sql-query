@@ -2,11 +2,13 @@ import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from './PgQueryRunner.js'
 import { requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
-import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
+import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
+/** The options of PgPoolQueryRunner */
 export interface PgPoolQueryRunnerConfig {
+    /** Accept a transaction begun inside another one; rejected with `NESTED_TRANSACTION_NOT_SUPPORTED` by default */
     allowNestedTransactions?: boolean | undefined
     /**
      * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
@@ -15,8 +17,13 @@ export interface PgPoolQueryRunnerConfig {
     typesByName?: { readonly [typeName: string]: string } | undefined
 }
 
-export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
+/**
+ * The query runner of PostgreSQL through `pg`, over a `Pool`: each query takes a client of the pool, and a
+ * transaction keeps one until it ends.
+ */
+export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
+    /** The `Pool` of pg the query runner was created with */
     readonly pool: Pool
     private config?: PgPoolQueryRunnerConfig | undefined
 
@@ -57,7 +64,7 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as PoolClient).release()
     }
-    override nestedTransactionsSupported(): boolean {
+    override get nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions
     }
 

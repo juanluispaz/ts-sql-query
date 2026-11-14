@@ -42,6 +42,6 @@ describeOverADriverTransaction({
     },
     async createRunner(transaction) {
         const { BunSqlMySqlQueryRunner } = await import('../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
-        return new BunSqlMySqlQueryRunner(transaction, 'mariaDB')
+        return new BunSqlMySqlQueryRunner(transaction, { database: 'mariaDB' })
     },
 })

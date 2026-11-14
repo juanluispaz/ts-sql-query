@@ -4,6 +4,10 @@ import { SQLiteError } from 'bun:sqlite'
 import type { TsSqlErrorReason } from '../../TsSqlError.js'
 import { getSqliteEngineErrorReason, getSqliteErrorCodeNumber } from '../databaseErrorMappers/SqliteErrorMapper.js'
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through `bun:sqlite`; `UNKNOWN` when it isn't an error of that
+ * driver.
+ */
 export function getBunSqliteErrorReason(error: unknown): TsSqlErrorReason {
     if (isBunSqliteEngineError(error)) {
         return getBunSqliteEngineErrorReason(error)
@@ -14,14 +18,26 @@ export function getBunSqliteErrorReason(error: unknown): TsSqlErrorReason {
     return { reason: 'UNKNOWN' }
 }
 
+/**
+ * Tells whether the error comes from `bun:sqlite`: a `SQLiteError`, or an `Error` whose message is one the driver
+ * raises.
+ */
 export function isBunSqliteError(error: unknown): boolean {
     return isBunSqliteEngineError(error) || isBunSqliteDriverError(error)
 }
 
+/**
+ * Gives the reason of a `SQLiteError`, mapping its SQLite result code, number and message with
+ * `getSqliteEngineErrorReason`.
+ */
 function getBunSqliteEngineErrorReason(error: SQLiteError): TsSqlErrorReason {
     return getSqliteEngineErrorReason({ code: error.code, databaseErrorNumber: getBunSqliteErrorNumber(error), message: error.message })
 }
 
+/**
+ * Gives the SQLite result code number of the error: its `errno` when it is a positive number, otherwise the number of
+ * its `code`.
+ */
 function getBunSqliteErrorNumber(error: SQLiteError): number | undefined {
     const errno = (error as { errno?: unknown }).errno
     if (typeof errno === 'number' && errno > 0) {
@@ -30,10 +46,19 @@ function getBunSqliteErrorNumber(error: SQLiteError): number | undefined {
     return getSqliteErrorCodeNumber(error.code)
 }
 
+/**
+ * Gives the reason of an error `bun:sqlite` raises itself, or `SQL_UNKNOWN` with its message when the message isn't
+ * known.
+ */
 function getBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason {
     return getKnownBunSqliteDriverErrorReason(error) || { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message || undefined }
 }
 
+/**
+ * Gives the reason of an error `bun:sqlite` raises itself, recognised by its message in upper case (configuration,
+ * closed database, locked database, misuse of the API, parameters, values out of range, memory); `undefined` when the
+ * message isn't one of them. The messages about the parameters are mapped with `getSqliteEngineErrorReason`.
+ */
 function getKnownBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason | undefined {
     const message = error.message || ''
     const databaseErrorMessage = message || undefined
@@ -98,6 +123,7 @@ function getKnownBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason | un
     return undefined
 }
 
+/** Tells whether the error is an `Error` whose message is one `bun:sqlite` raises itself. */
 function isBunSqliteDriverError(error: unknown): error is Error {
     if (!(error instanceof Error)) {
         return false
@@ -105,6 +131,7 @@ function isBunSqliteDriverError(error: unknown): error is Error {
     return !!getKnownBunSqliteDriverErrorReason(error)
 }
 
+/** Tells whether the error is a `SQLiteError` of `bun:sqlite`, which carries the SQLite result code. */
 function isBunSqliteEngineError(error: unknown): error is SQLiteError {
     return error instanceof SQLiteError
 }

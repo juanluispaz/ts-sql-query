@@ -1,6 +1,10 @@
 import type { TsSqlErrorReason } from '../../TsSqlError.js'
 import { getPostgresEngineErrorReason, isPostgresSqlState } from '../databaseErrorMappers/PostgresErrorMapper.js'
 
+/**
+ * An error PGlite raises with the fields of a PostgreSQL error: the SQLSTATE in `code`, and the schema, table, column,
+ * data type and constraint it is about.
+ */
 type PgLiteDatabaseError = Error & {
     code?: string | undefined
     severity?: string | undefined
@@ -20,6 +24,11 @@ type PgLiteDatabaseError = Error & {
     routine?: string | undefined
 }
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through PGlite: the engine's, mapped with
+ * `getPostgresEngineErrorReason`, when it has a SQLSTATE, otherwise the one of the driver's message; `UNKNOWN` when it
+ * isn't an error of that driver.
+ */
 export function getPgLiteErrorReason(error: unknown): TsSqlErrorReason {
     if (!isPgLiteError(error)) {
         return { reason: 'UNKNOWN' }
@@ -39,10 +48,15 @@ export function getPgLiteErrorReason(error: unknown): TsSqlErrorReason {
     return getPgLiteDriverErrorReason(error) || { reason: 'UNKNOWN' }
 }
 
+/**
+ * Tells whether the error comes from PGlite: an `Error` with a SQLSTATE in `code`, or an `Error` or a text whose
+ * message is one PGlite raises.
+ */
 export function isPgLiteError(error: unknown): error is PgLiteDatabaseError | Error | string {
     return isPgLiteDatabaseError(error) || !!getPgLiteDriverErrorReason(error)
 }
 
+/** Tells whether the error is an `Error` whose `code` is a PostgreSQL SQLSTATE. */
 function isPgLiteDatabaseError(error: unknown): error is PgLiteDatabaseError {
     if (!(error instanceof Error)) {
         return false
@@ -51,6 +65,11 @@ function isPgLiteDatabaseError(error: unknown): error is PgLiteDatabaseError {
     return isPostgresSqlState(code)
 }
 
+/**
+ * Gives the reason of an error PGlite raises itself, recognised by its message (closed database, invalid input, closed
+ * transaction, files, configuration, the options of a live query, internal errors); `undefined` when the message isn't
+ * one of them.
+ */
 function getPgLiteDriverErrorReason(error: unknown): TsSqlErrorReason | undefined {
     const message = getPgLiteErrorMessage(error)
     if (!message) {
@@ -124,6 +143,10 @@ function getPgLiteDriverErrorReason(error: unknown): TsSqlErrorReason | undefine
     return undefined
 }
 
+/**
+ * Gives the message of the error: the `message` of an `Error`, the text itself when the error is a string, otherwise
+ * `undefined`.
+ */
 function getPgLiteErrorMessage(error: unknown): string | undefined {
     if (error instanceof Error) {
         return error.message

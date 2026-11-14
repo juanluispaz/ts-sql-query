@@ -78,7 +78,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, executionParams).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeQuery('selectOneColumnOneRow', this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -91,7 +91,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, executionParams).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeQuery('selectOneRow', this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -113,7 +113,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, executionParams).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeQuery('selectOneColumnOneRow', this.__query, executionParams).then((value) => {
                     const valueSource = this.__columns['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -126,7 +126,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, executionParams).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeQuery('selectOneRow', this.__query, executionParams).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -147,7 +147,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             const executionParams = __setQueryMetadata(source, this.__params, this.__sqlBuilder, __resultColumnsOf(this.__columns, this.__sqlBuilder), this.__customization)
             let result
             if (this.__oneColumn) {
-                result = this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, executionParams).then((values) => {
+                result = this.__sqlBuilder._queryRunner.executeQuery('selectOneColumnManyRows', this.__query, executionParams).then((values) => {
                     const valueSource = this.__columns['result']!
                     if (!isValueSource(valueSource)) {
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
@@ -167,7 +167,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
-                result = this.__sqlBuilder._queryRunner.executeSelectManyRows(this.__query, executionParams).then((rows) => {
+                result = this.__sqlBuilder._queryRunner.executeQuery('selectManyRows', this.__query, executionParams).then((rows) => {
                     const length = rows.length
                     const output = new Array(length)
                     for (let index = 0; index < length; index++) {
@@ -220,7 +220,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             const params: any[] = []
             query = this.__buildSelectCount(countAll, new SqlBuildContext(params))
             const executionParams = __setQueryMetadata(source, params, this.__sqlBuilder, __resultColumnsOf({ '': countAll }, this.__sqlBuilder), this.__customization, true)
-            return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, executionParams).then((value) => {
+            return this.__sqlBuilder._queryRunner.executeQuery('selectOneColumnOneRow', query, executionParams).then((value) => {
                 return this.__transformValueFromDB(countAll, value, 'resultColumn', undefined, undefined, true)
             }).catch((e) => {
                 throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)

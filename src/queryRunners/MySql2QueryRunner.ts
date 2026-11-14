@@ -8,34 +8,44 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
 
 
+/** The options of MySql2QueryRunner */
 export interface MySql2QueryRunnerConfig {
+    /** The database: 'mySql' by default; the connection sets its own when it receives the query runner */
     database?: 'mariaDB' | 'mySql' | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
 
+/**
+ * The query runner of MySQL and MariaDB through `mysql2`, over a `Connection`.
+ */
 export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
-    readonly database: DatabaseType
+    private currentDatabase: DatabaseType
+    /** The `Connection` of mysql2 the query runner was created with */
     readonly connection: Connection
 
     private config: MySql2QueryRunnerConfig
     /** The options of every query of the library (see mySql2QueryOptions) */
     private readonly queryOptions: MySql2QueryOptions
 
-    constructor(connection: Connection, databaseOrConfig: 'mariaDB' | 'mySql' | MySql2QueryRunnerConfig = 'mySql') {
+    constructor(connection: Connection, config: MySql2QueryRunnerConfig = {}) {
         super()
         this.connection = connection
         this.queryOptions = mySql2QueryOptions(connection)
-        this.config = typeof databaseOrConfig === 'string' ? { database: databaseOrConfig } : databaseOrConfig
-        this.database = this.config.database || 'mySql'
+        this.config = config
+        this.currentDatabase = config.database || 'mySql'
+    }
+
+    /** The database the SQL is written for: MySQL or MariaDB, the one of the connection */
+    get database(): DatabaseType {
+        return this.currentDatabase
     }
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'mariaDB' && database !== 'mySql') {
             throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. MySql2QueryRunner only supports mySql or mariaDB databases')
         } else {
-            // @ts-ignore
-            this.database = database
+            this.currentDatabase = database
         }
     }
 
@@ -73,7 +83,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
             })
         }).catch((error) => this.statementOfTheTransactionFailed(error))
     }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected override executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -99,7 +109,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+    protected beginTransactionInTheDriver(_opts: BeginTransactionOpts): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.beginTransaction((error: QueryError | null) => {
                 if (error) {
@@ -110,7 +120,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
             })
         })
     }
-    doCommit(_opts: CommitOpts): Promise<void> {
+    protected doCommit(_opts: CommitOpts): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.commit((error: QueryError | null) => {
                 if (error) {
@@ -121,7 +131,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
             })
         })
     }
-    doRollback(_opts: RollbackOpts): Promise<void> {
+    protected doRollback(_opts: RollbackOpts): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.rollback((error: QueryError | null) => {
                 if (error) {
@@ -155,11 +165,20 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 }
 
+/** The options of mysql2 given with every query of the library (see mySql2QueryOptions) */
 interface MySql2QueryOptions {
+    /** A DATE, a DATETIME and a TIMESTAMP as their text */
     readonly dateStrings: true
+    /** A BIGINT and a DECIMAL beyond the safe integers kept exact */
     readonly supportBigNumbers: true
+    /** A BIGINT and a DECIMAL always as their text */
     readonly bigNumberStrings: true
+    /** The rows as objects: the library reads each column by its name */
     readonly rowsAsArray: false
+    /**
+     * Only when the connection has a typeCast of its own, typeCast false or decimalNumbers: a DECIMAL as its text, and
+     * every other value as mysql2 reads it with these options
+     */
     readonly typeCast?: (field: { type: string, string(encoding?: string): string | null }, next: () => unknown) => unknown
 }
 
@@ -184,6 +203,10 @@ function mySql2QueryOptions(connection: Connection): MySql2QueryOptions {
     return options
 }
 
+/**
+ * The typeCast given with the query when the connection has one that would change the values: a DECIMAL as its text,
+ * the rest as mysql2 does
+ */
 function mySql2TypeCast(field: { type: string, string(encoding?: string): string | null }, next: () => unknown): unknown {
     if (field.type === 'NEWDECIMAL' || field.type === 'DECIMAL') {
         return field.string('ascii')

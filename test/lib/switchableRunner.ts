@@ -22,7 +22,7 @@
 // mutation confined to one field.
 
 import type { TsSqlErrorReason } from '../../src/TsSqlError.js'
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from '../../src/queryRunners/QueryRunner.js'
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, ExecutableQueryType, QueryRunner, RollbackOpts } from '../../src/queryRunners/QueryRunner.js'
 
 export class SwitchableQueryRunner implements QueryRunner {
     /** The runner every call currently delegates to. */
@@ -72,74 +72,8 @@ export class SwitchableQueryRunner implements QueryRunner {
     execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.target.execute(fn)
     }
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeSelectOneRow(query, params)
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeSelectManyRows(query, params)
-    }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeSelectOneColumnOneRow(query, params)
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeSelectOneColumnManyRows(query, params)
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.target.executeInsert(query, params)
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeInsertReturningLastInsertedId(query, params)
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeInsertReturningMultipleLastInsertedId(query, params)
-    }
-    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeInsertReturningOneRow(query, params)
-    }
-    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeInsertReturningManyRows(query, params)
-    }
-    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeInsertReturningOneColumnOneRow(query, params)
-    }
-    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeInsertReturningOneColumnManyRows(query, params)
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.target.executeUpdate(query, params)
-    }
-    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeUpdateReturningOneRow(query, params)
-    }
-    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeUpdateReturningManyRows(query, params)
-    }
-    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeUpdateReturningOneColumnOneRow(query, params)
-    }
-    executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeUpdateReturningOneColumnManyRows(query, params)
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.target.executeDelete(query, params)
-    }
-    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeDeleteReturningOneRow(query, params)
-    }
-    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeDeleteReturningManyRows(query, params)
-    }
-    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeDeleteReturningOneColumnOneRow(query, params)
-    }
-    executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.target.executeDeleteReturningOneColumnManyRows(query, params)
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return this.target.executeProcedure(query, params)
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.target.executeFunction(query, params)
+    executeQuery(queryType: ExecutableQueryType, query: string, params: any[]): Promise<any> {
+        return this.target.executeQuery(queryType, query, params)
     }
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         return this.target.executeBeginTransaction(opts)
@@ -156,12 +90,6 @@ export class SwitchableQueryRunner implements QueryRunner {
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         return this.target.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return this.target.executeDatabaseSchemaModification(query, params)
-    }
-    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
-        return this.target.executeConnectionConfiguration(query, params)
-    }
     addParam(params: any[], value: any): string {
         return this.target.addParam(params, value)
     }
@@ -177,17 +105,17 @@ export class SwitchableQueryRunner implements QueryRunner {
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
         return this.target.executeCombined(fn1, fn2)
     }
-    isMocked(): boolean {
-        return this.target.isMocked()
+    get isMocked(): boolean {
+        return this.target.isMocked
     }
-    lowLevelTransactionManagementSupported(): boolean {
-        return this.target.lowLevelTransactionManagementSupported()
+    get lowLevelTransactionManagementSupported(): boolean {
+        return this.target.lowLevelTransactionManagementSupported
     }
-    executeInTransactionCallsBeginAndCommit(): boolean {
-        return this.target.executeInTransactionCallsBeginAndCommit()
+    get executeInTransactionCallsBeginAndCommit(): boolean {
+        return this.target.executeInTransactionCallsBeginAndCommit
     }
-    nestedTransactionsSupported(): boolean {
-        return this.target.nestedTransactionsSupported()
+    get nestedTransactionsSupported(): boolean {
+        return this.target.nestedTransactionsSupported
     }
     getErrorReason(error: unknown): TsSqlErrorReason {
         return this.target.getErrorReason(error)

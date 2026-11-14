@@ -82,7 +82,7 @@ export interface PostgresTestContext extends TestContext<DBConnection> {
      * A `DBConnection` whose query runner has `allowNestedTransactions`
      * enabled — for the "nested transaction works when enabled" test. In
      * mock mode this is `ctx.conn` (the `MockQueryRunner` already reports
-     * `nestedTransactionsSupported()`); in real-DB mode it is backed by a
+     * `nestedTransactionsSupported`); in real-DB mode it is backed by a
      * flag-on runner over the same backing database, available only on the
      * connectors whose runner supports the flag (`pg` via `PgPoolQueryRunner`,
      * `pglite` via `PgLiteQueryRunner`). Throws on the other connectors
@@ -147,7 +147,7 @@ function decoratePostgresContext(
             return base.withConnection(C)
         },
         nestedTransactionConn(): DBConnection {
-            // The mock reports `nestedTransactionsSupported()`, so nesting
+            // The mock reports `nestedTransactionsSupported`, so nesting
             // works on `ctx.conn` itself in mock mode.
             if (!base.realDbEnabled) return base.conn
             const conn = getNestedTxConn()

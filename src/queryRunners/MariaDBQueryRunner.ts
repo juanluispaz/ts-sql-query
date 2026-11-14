@@ -33,37 +33,48 @@ const mariaDBQueryOptions = {
     typeCast: undefined,
 } as unknown as Omit<QueryOptions, 'sql'>
 
+/** What mariadb gives for a statement without rows: the number of rows changed and the id it generated */
 type UpsertResult = {
     affectedRows: number
     insertId: number | bigint
 }
 
 
+/** The options of MariaDBQueryRunner */
 export interface MariaDBQueryRunnerConfig {
+    /** The database: 'mariaDB' by default; the connection sets its own when it receives the query runner */
     database?: 'mariaDB' | 'mySql' | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
 
+/**
+ * The query runner of MariaDB and MySQL through the driver `mariadb`, over a `Connection`.
+ */
 export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
-    readonly database: DatabaseType
+    private currentDatabase: DatabaseType
+    /** The `Connection` of mariadb the query runner was created with */
     readonly connection: Connection
 
     private config: MariaDBQueryRunnerConfig
 
-    constructor(connection: Connection, databaseOrConfig: 'mariaDB' | 'mySql' | MariaDBQueryRunnerConfig = 'mariaDB') {
+    constructor(connection: Connection, config: MariaDBQueryRunnerConfig = {}) {
         super()
         this.connection = connection
-        this.config = typeof databaseOrConfig === 'string' ? { database: databaseOrConfig } : databaseOrConfig
-        this.database = this.config.database || 'mariaDB'
+        this.config = config
+        this.currentDatabase = config.database || 'mariaDB'
+    }
+
+    /** The database the SQL is written for: MySQL or MariaDB, the one of the connection */
+    get database(): DatabaseType {
+        return this.currentDatabase
     }
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'mariaDB' && database !== 'mySql') {
             throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. MariaDBQueryRunner only supports mariaDB or mySql databases')
         } else {
-            // @ts-ignore
-            this.database = database
+            this.currentDatabase = database
         }
     }
 
@@ -85,7 +96,7 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.rejectWhenRolledBackByTheDatabase() || this.connection.query({ ...mariaDBQueryOptions, sql: query }, mySqlMariaDBDriverParams(params)).then((result: UpsertResult) => result.affectedRows, (error) => this.statementOfTheTransactionFailed(error))
     }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected override executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -103,13 +114,13 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+    protected beginTransactionInTheDriver(_opts: BeginTransactionOpts): Promise<void> {
         return this.connection.beginTransaction()
     }
-    doCommit(_opts: CommitOpts): Promise<void> {
+    protected doCommit(_opts: CommitOpts): Promise<void> {
         return this.connection.commit()
     }
-    doRollback(_opts: RollbackOpts): Promise<void> {
+    protected doRollback(_opts: RollbackOpts): Promise<void> {
         return this.connection.rollback()
     }
     addParam(params: any[], value: any): string {

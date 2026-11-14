@@ -9,7 +9,9 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 
+/** The options of PgLiteQueryRunner */
 export interface PgLiteQueryRunnerConfig {
+    /** Accept a transaction begun inside another one; rejected with `NESTED_TRANSACTION_NOT_SUPPORTED` by default */
     allowNestedTransactions?: boolean | undefined
     /**
      * The oid of the PostgreSQL type, like `1700` for numeric, each parameter of a type name (the name given to a custom
@@ -20,9 +22,14 @@ export interface PgLiteQueryRunnerConfig {
     forUseInTransaction?: boolean | undefined
 }
 
+/**
+ * The query runner of PostgreSQL through PGlite, over a `PGlite` database, or over a `Transaction` of PGlite that
+ * something else ends.
+ */
 export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
+    /** The `PGlite` database, or the `Transaction` of PGlite, the query runner was created with */
     readonly connection: PGlite
     private config?: PgLiteQueryRunnerConfig | undefined
 
@@ -85,7 +92,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, postgreSqlDriverParams(params), this.queryOptions(params)).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
-    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+    protected override executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
         // A script of several statements, without params, runs whole with exec: a query with the extended protocol
         // rejects more than one
         if (params.length > 0) {
@@ -112,7 +119,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         // The same binding MockQueryRunner uses to imitate this query runner
         return queryRunnerParamBindings.PgLiteQueryRunner(params, value)
     }
-    override nestedTransactionsSupported(): boolean {
+    override get nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {

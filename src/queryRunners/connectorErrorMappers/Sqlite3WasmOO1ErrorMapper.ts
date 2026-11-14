@@ -2,6 +2,10 @@ import type { SQLite3Error } from '@sqlite.org/sqlite-wasm'
 import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 import { getSqliteEngineErrorReason, getSqliteErrorCodeName } from '../databaseErrorMappers/SqliteErrorMapper.js'
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through the OO1 API of sqlite-wasm; `UNKNOWN` when it isn't an error
+ * of that driver.
+ */
 export function getSqlite3WasmOO1ErrorReason(error: unknown): TsSqlErrorReason {
     if (!isSqlite3WasmOO1Error(error)) {
         return { reason: 'UNKNOWN' }
@@ -9,6 +13,9 @@ export function getSqlite3WasmOO1ErrorReason(error: unknown): TsSqlErrorReason {
     return getSqlite3WasmErrorReason(error)
 }
 
+/**
+ * Tells whether the error comes from sqlite-wasm: an `Error` named `SQLite3Error`, or one with a numeric `resultCode`.
+ */
 export function isSqlite3WasmOO1Error(error: unknown): error is Sqlite3WasmDbError {
     return !!error && error instanceof Error && (
         (error as Sqlite3WasmDbError).name === 'SQLite3Error'
@@ -16,10 +23,17 @@ export function isSqlite3WasmOO1Error(error: unknown): error is Sqlite3WasmDbErr
     )
 }
 
+/** An error of sqlite-wasm, with the SQLite result code in `resultCode`. */
 type Sqlite3WasmDbError = SQLite3Error & Error & {
     resultCode: number
 }
 
+/**
+ * Gives the reason of an error of sqlite-wasm. The messages the OO1 API raises itself (a locked or closed statement, a
+ * closed database, the parameters, a bigint too big, an integer out of the JavaScript range, an empty SQL) are
+ * recognised first; any other goes to `getSqliteEngineErrorReason` with the name of its result code, keeping the
+ * original message.
+ */
 function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason {
     const databaseErrorCode = getSqlite3WasmDatabaseErrorCode(error)
     const databaseErrorNumber = getSqlite3WasmDatabaseErrorNumber(error)
@@ -72,12 +86,17 @@ function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason 
     )
 }
 
+/**
+ * Removes from the message the prefix sqlite-wasm adds with the name of the result code (and its number), leaving the
+ * text of the error.
+ */
 function normalizeSqlite3WasmErrorMessage(message: string): string {
     return message
         .replace(/^SQLITE_[A-Z0-9_]+:\s*sqlite3 result code\s+-?\d+:\s*/i, '')
         .replace(/^SQLITE_[A-Z0-9_]+:\s*/i, '')
 }
 
+/** Gives the reason with `databaseErrorMessage` set to the original message, when there is one. */
 function withOriginalSqlite3WasmErrorMessage(errorReason: TsSqlErrorReason, databaseErrorMessage: string | undefined): TsSqlErrorReason {
     if (!databaseErrorMessage) {
         return errorReason
@@ -85,18 +104,22 @@ function withOriginalSqlite3WasmErrorMessage(errorReason: TsSqlErrorReason, data
     return { ...errorReason, databaseErrorMessage } as TsSqlErrorReason
 }
 
+/** Gives the primary result code of a SQLite result code: its low 8 bits, without the extended part. */
 function getPrimaryResultCode(resultCode: number): number {
     return resultCode & 0xff
 }
 
+/** Gives the name of the error's result code, or of its primary result code when the extended one has no name. */
 function getSqlite3WasmErrorCode(error: Sqlite3WasmDbError): string | undefined {
     return getSqliteErrorCodeName(error.resultCode) || getSqliteErrorCodeName(getPrimaryResultCode(error.resultCode))
 }
 
+/** Gives the code reported as `databaseErrorCode`: the name of the error's result code. */
 function getSqlite3WasmDatabaseErrorCode(error: Sqlite3WasmDbError): TsSqlDatabaseErrorCode | undefined {
     return getSqlite3WasmErrorCode(error)
 }
 
+/** Gives the SQLite result code number of the error (its `resultCode`), or `undefined` when it has none. */
 function getSqlite3WasmDatabaseErrorNumber(error: Sqlite3WasmDbError): TsSqlDatabaseErrorNumber | undefined {
     return typeof error.resultCode === 'number' ? error.resultCode : undefined
 }

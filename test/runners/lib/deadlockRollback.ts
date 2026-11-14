@@ -39,12 +39,12 @@ export function describeDeadlockRollback(label: string, realEnabled: boolean, cr
         // The runner's transaction is the victim: the other one changed more rows
         async function deadlockTheRunner(): Promise<unknown> {
             const { runner, other } = u()
-            await runner.executeUpdate('update rt_deadlock set v = 1 where id = 1')
-            const runnerConnection = Number(await runner.executeSelectOneColumnOneRow('select connection_id()'))
+            await runner.executeQuery('update', 'update rt_deadlock set v = 1 where id = 1', [])
+            const runnerConnection = Number(await runner.executeQuery('selectOneColumnOneRow', 'select connection_id()', []))
             await other('start transaction')
             await other('insert into rt_deadlock values (100, 0), (101, 0), (102, 0), (103, 0), (104, 0)')
             await other('update rt_deadlock set v = 1 where id = 2')
-            const waiting = rejectionOf(runner.executeUpdate('update rt_deadlock set v = 2 where id = 2'))
+            const waiting = rejectionOf(runner.executeQuery('update', 'update rt_deadlock set v = 2 where id = 2', []))
             // The deadlock closes only once the runner's update waits for the lock of row 2. InnoDB refreshes what
             // innodb_trx shows only when nobody has read it for 100 ms, so it is asked every 150 ms
             await waitForTheEngine('the update of the runner waiting for a lock', async () => Number((await other(
@@ -59,10 +59,10 @@ export function describeDeadlockRollback(label: string, realEnabled: boolean, cr
         test('statements-and-commit-after-the-deadlock-are-rejected', async () => {
             const runner = u().runner
             await runner.executeBeginTransaction()
-            await runner.executeInsert('insert into rt_deadlock values (60, 0)')
+            await runner.executeQuery('insert', 'insert into rt_deadlock values (60, 0)', [])
             const failure = await deadlockTheRunner()
             expect(u().runner.getErrorReason(failure)).toMatchObject({ reason: 'TRANSACTION_ERROR', transactionErrorType: 'deadlock' })
-            const next = await rejectionOf(runner.executeInsert('insert into rt_deadlock values (61, 0)'))
+            const next = await rejectionOf(runner.executeQuery('insert', 'insert into rt_deadlock values (61, 0)', []))
             const commit = await rejectionOf(runner.executeCommit())
             await runner.executeRollback()
             expect(runner.isTransactionActive()).toBe(false)
@@ -74,9 +74,9 @@ export function describeDeadlockRollback(label: string, realEnabled: boolean, cr
         test('transaction-function-whose-deadlock-was-caught-rejects', async () => {
             const runner = u().runner
             const error = await rejectionOf(runner.executeInTransaction(async () => {
-                await runner.executeInsert('insert into rt_deadlock values (60, 0)')
+                await runner.executeQuery('insert', 'insert into rt_deadlock values (60, 0)', [])
                 await deadlockTheRunner()
-                await rejectionOf(runner.executeInsert('insert into rt_deadlock values (61, 0)'))
+                await rejectionOf(runner.executeQuery('insert', 'insert into rt_deadlock values (61, 0)', []))
             }, runner))
             expect(reasonOf(error)).toBe('TRANSACTION_ERROR')
             expect(runner.isTransactionActive()).toBe(false)
@@ -85,15 +85,15 @@ export function describeDeadlockRollback(label: string, realEnabled: boolean, cr
 
         test('lock-wait-timeout-keeps-the-transaction', async () => {
             const { runner, other } = u()
-            await runner.executeConnectionConfiguration('set innodb_lock_wait_timeout = 1').catch(() => undefined)
+            await runner.executeQuery('executeConnectionConfiguration', 'set innodb_lock_wait_timeout = 1', []).catch(() => undefined)
             await other('start transaction')
             await other('update rt_deadlock set v = 5 where id = 1')
             await runner.executeBeginTransaction()
-            await runner.executeConnectionConfiguration('set innodb_lock_wait_timeout = 1')
-            await runner.executeInsert('insert into rt_deadlock values (60, 0)')
-            await rejectionOf(runner.executeUpdate('update rt_deadlock set v = 6 where id = 1'))
+            await runner.executeQuery('executeConnectionConfiguration', 'set innodb_lock_wait_timeout = 1', [])
+            await runner.executeQuery('insert', 'insert into rt_deadlock values (60, 0)', [])
+            await rejectionOf(runner.executeQuery('update', 'update rt_deadlock set v = 6 where id = 1', []))
             await other('rollback')
-            await runner.executeInsert('insert into rt_deadlock values (61, 0)')
+            await runner.executeQuery('insert', 'insert into rt_deadlock values (61, 0)', [])
             await runner.executeCommit()
             expect(Number(await savedRows())).toBe(2)
         })

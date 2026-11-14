@@ -1,41 +1,79 @@
 import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 
+/** An error raised by Oracle, as the mapper of a driver hands it to `getOracleEngineErrorReason`. */
 export interface OracleEngineError {
+    /** The number of the ORA- error (`1` for ORA-00001); it decides the reason. */
     errorNum?: number | undefined
+    /** The code the driver gives the error; used as the database error code when `databaseErrorCode` is absent. */
     code?: string | undefined
+    /** The database error code to report in the reason; when absent, `code` is used. */
     databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    /** The database error number to report in the reason; when absent, `errorNum` is used. */
     databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    /**
+     * The message of the error; the reason is read from it when the number doesn't decide, and so are the names it
+     * carries.
+     */
     message?: string | undefined
 }
 
+/** The `SQL_CONSTRAINT_VIOLATED` member of `TsSqlErrorReason`. */
 type ConstraintReason = Extract<TsSqlErrorReason, { reason: 'SQL_CONSTRAINT_VIOLATED' }>
+/** The `SQL_INVALID_VALUE` member of `TsSqlErrorReason`. */
 type InvalidValueReason = Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_VALUE' }>
+/** The `SQL_OBJECT_NOT_FOUND` member of `TsSqlErrorReason`. */
 type ObjectNotFoundReason = Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_NOT_FOUND' }>
+/** The `SQL_OBJECT_ALREADY_EXISTS` member of `TsSqlErrorReason`. */
 type ObjectAlreadyExistsReason = Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_ALREADY_EXISTS' }>
+/** The `SQL_OBJECT_STATE_ERROR` member of `TsSqlErrorReason`. */
 type ObjectStateReason = Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_STATE_ERROR' }>
+/** The `SQL_INVALID_SQL_STATEMENT` member of `TsSqlErrorReason`. */
 type InvalidSqlStatementReason = Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_SQL_STATEMENT' }>
+/** The `SQL_INVALID_PARAMETER` member of `TsSqlErrorReason`. */
 type InvalidParameterReason = Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_PARAMETER' }>
+/** The `SQL_AMBIGUOUS_IDENTIFIER` member of `TsSqlErrorReason`. */
 type AmbiguousIdentifierReason = Extract<TsSqlErrorReason, { reason: 'SQL_AMBIGUOUS_IDENTIFIER' }>
+/** The `TRANSACTION_ERROR` member of `TsSqlErrorReason`. */
 type TransactionReason = Extract<TsSqlErrorReason, { reason: 'TRANSACTION_ERROR' }>
+/** The `SQL_TIMEOUT` member of `TsSqlErrorReason`. */
 type TimeoutReason = Extract<TsSqlErrorReason, { reason: 'SQL_TIMEOUT' }>
+/** The `SQL_CONNECTION_ERROR` member of `TsSqlErrorReason`. */
 type ConnectionReason = Extract<TsSqlErrorReason, { reason: 'SQL_CONNECTION_ERROR' }>
+/** The `SQL_RESOURCE_LIMIT_REACHED` member of `TsSqlErrorReason`. */
 type ResourceLimitReason = Extract<TsSqlErrorReason, { reason: 'SQL_RESOURCE_LIMIT_REACHED' }>
+/** The `SQL_DATABASE_CORRUPTED` member of `TsSqlErrorReason`. */
 type DatabaseCorruptedReason = Extract<TsSqlErrorReason, { reason: 'SQL_DATABASE_CORRUPTED' }>
+/** The `SQL_INTERNAL_ERROR` member of `TsSqlErrorReason`. */
 type InternalErrorReason = Extract<TsSqlErrorReason, { reason: 'SQL_INTERNAL_ERROR' }>
+/** The table and the column read from the message of an error. */
 type OracleTableColumnNames = { tableName?: string | undefined, columnName?: string | undefined }
 
+/** The error with its fields resolved, as the functions of this module read it. */
 interface OracleErrorContext {
+    /** The number of the ORA- error. */
     errorNum?: number | undefined
+    /** The code the driver gives the error, an empty text when it gives none. */
     code: string
+    /** The database error code reported in the reason. */
     databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    /** The database error number reported in the reason. */
     databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    /** The message reported in the reason, `undefined` when the error has none. */
     databaseErrorMessage?: string | undefined
+    /** The message of the error, an empty text when the error has none; the names are read from it. */
     message: string
+    /** The message in lower case, to search for texts in it. */
     lowerMessage: string
 }
 
+/** The fields that every reason built here carries about the original error. */
 type OracleMetadata = Pick<OracleErrorContext, 'databaseErrorCode' | 'databaseErrorNumber' | 'databaseErrorMessage'>
 
+/**
+ * Gives the reason of an error raised by Oracle. An error number from 20000 to 20999 is one raised with
+ * `RAISE_APPLICATION_ERROR`, giving `SQL_USER_DEFINED_ERROR`; otherwise the number decides, then the message, and
+ * `SQL_UNKNOWN` when neither does.
+ */
 export function getOracleEngineErrorReason(error: OracleEngineError): TsSqlErrorReason {
     const context = getOracleErrorContext(error)
 
@@ -57,6 +95,10 @@ export function getOracleEngineErrorReason(error: OracleEngineError): TsSqlError
     return getUnknown(context)
 }
 
+/**
+ * Resolves the fields of the error: the database error code falls back to `code`, the database error number to
+ * `errorNum`, and the message to an empty text, also kept in lower case.
+ */
 function getOracleErrorContext(error: OracleEngineError): OracleErrorContext {
     const errorNum = error.errorNum
     const code = error.code || ''
@@ -76,6 +118,7 @@ function getOracleErrorContext(error: OracleEngineError): OracleErrorContext {
     }
 }
 
+/** Gives the reason of the ORA- error numbers handled one by one, or `undefined` for the others. */
 function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlErrorReason | undefined {
     switch (context.errorNum) {
         case 1:
@@ -312,6 +355,10 @@ function getOracleErrorReasonFromNumber(context: OracleErrorContext): TsSqlError
     }
 }
 
+/**
+ * Gives the reason the message says, for when the number doesn't decide it, or `undefined` when there is no message or
+ * no known text is in it.
+ */
 function getOracleErrorReasonFromMessage(context: OracleErrorContext): TsSqlErrorReason | undefined {
     const lower = context.lowerMessage
     if (!lower) {
@@ -451,10 +498,12 @@ function getOracleErrorReasonFromMessage(context: OracleErrorContext): TsSqlErro
     return undefined
 }
 
+/** Whether the error number is in the range of `RAISE_APPLICATION_ERROR`, 20000 to 20999. */
 function isOracleApplicationError(errorNum: number | undefined): boolean {
     return typeof errorNum === 'number' && errorNum >= 20000 && errorNum <= 20999
 }
 
+/** Gives the database error code, number and message to spread into a reason. */
 function getMetadata(context: OracleMetadata): OracleMetadata {
     return {
         databaseErrorCode: context.databaseErrorCode,
@@ -463,113 +512,145 @@ function getMetadata(context: OracleMetadata): OracleMetadata {
     }
 }
 
+/** Builds a `SQL_CONSTRAINT_VIOLATED` reason with the type of constraint and the names given. */
 function getConstraintViolation(context: OracleErrorContext, constraintType?: ConstraintReason['constraintType'], details: Pick<ConstraintReason, 'constraintName' | 'tableName' | 'columnName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_CONSTRAINT_VIOLATED', ...getMetadata(context), constraintType, ...details }
 }
 
+/** Builds a `SQL_INVALID_VALUE` reason with the type of error and the details given. */
 function getInvalidValue(context: OracleErrorContext, errorType?: InvalidValueReason['errorType'], details: Pick<InvalidValueReason, 'tableName' | 'columnName' | 'typeName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_INVALID_VALUE', ...getMetadata(context), errorType, ...details }
 }
 
+/** Builds a `SQL_OBJECT_NOT_FOUND` reason with the type of object and the names given. */
 function getObjectNotFound(context: OracleErrorContext, objectType?: ObjectNotFoundReason['objectType'], details: Pick<ObjectNotFoundReason, 'schemaName' | 'tableName' | 'columnName' | 'objectName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_OBJECT_NOT_FOUND', ...getMetadata(context), objectType, ...details }
 }
 
+/** Builds a `SQL_OBJECT_ALREADY_EXISTS` reason with the type of object and the names given. */
 function getObjectAlreadyExists(context: OracleErrorContext, objectType?: ObjectAlreadyExistsReason['objectType'], details: Pick<ObjectAlreadyExistsReason, 'schemaName' | 'tableName' | 'columnName' | 'objectName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_OBJECT_ALREADY_EXISTS', ...getMetadata(context), objectType, ...details }
 }
 
+/** Builds a `SQL_OBJECT_STATE_ERROR` reason with the type of error, the type of object and the names given. */
 function getObjectStateError(context: OracleErrorContext, objectStateErrorType?: ObjectStateReason['objectStateErrorType'], objectType?: ObjectStateReason['objectType'], details: Pick<ObjectStateReason, 'schemaName' | 'tableName' | 'columnName' | 'objectName'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_OBJECT_STATE_ERROR', ...getMetadata(context), objectStateErrorType, objectType, ...details }
 }
 
+/** Builds a `SQL_INVALID_SQL_STATEMENT` reason with the type of statement error given. */
 function getInvalidSqlStatement(context: OracleErrorContext, statementErrorType?: InvalidSqlStatementReason['statementErrorType']): TsSqlErrorReason {
     return { reason: 'SQL_INVALID_SQL_STATEMENT', ...getMetadata(context), statementErrorType }
 }
 
+/** Builds a `SQL_INVALID_PARAMETER` reason with the details of the parameter given. */
 function getInvalidParameter(context: OracleErrorContext, details: Pick<InvalidParameterReason, 'parameterErrorType' | 'parameterName' | 'parameterIndex' | 'expectedParameterCount' | 'actualParameterCount'> = {}): TsSqlErrorReason {
     return { reason: 'SQL_INVALID_PARAMETER', ...getMetadata(context), ...details }
 }
 
+/** Builds a `SQL_AMBIGUOUS_IDENTIFIER` reason with the identifier and its types given. */
 function getAmbiguousIdentifier(context: OracleErrorContext, identifierType?: AmbiguousIdentifierReason['identifierType'], identifierErrorType?: AmbiguousIdentifierReason['identifierErrorType'], identifier?: string): TsSqlErrorReason {
     return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', ...getMetadata(context), identifier, identifierType, identifierErrorType }
 }
 
+/** Builds a `TRANSACTION_ERROR` reason with the type of transaction error given. */
 function getTransactionError(context: OracleErrorContext, transactionErrorType?: TransactionReason['transactionErrorType']): TsSqlErrorReason {
     return { reason: 'TRANSACTION_ERROR', ...getMetadata(context), transactionErrorType }
 }
 
+/** Builds a `SQL_TIMEOUT` reason with the type of timeout given. */
 function getTimeout(context: OracleErrorContext, timeoutType?: TimeoutReason['timeoutType']): TsSqlErrorReason {
     return { reason: 'SQL_TIMEOUT', ...getMetadata(context), timeoutType }
 }
 
+/** Builds a `SQL_CONNECTION_ERROR` reason with the type of error given. */
 function getConnectionError(context: OracleErrorContext, errorType?: ConnectionReason['errorType']): TsSqlErrorReason {
     return { reason: 'SQL_CONNECTION_ERROR', ...getMetadata(context), errorType }
 }
 
+/** Builds a `SQL_RESOURCE_LIMIT_REACHED` reason with the type of resource and the limit given. */
 function getResourceLimit(context: OracleErrorContext, resourceType?: ResourceLimitReason['resourceType'], limit?: number): TsSqlErrorReason {
     return { reason: 'SQL_RESOURCE_LIMIT_REACHED', ...getMetadata(context), resourceType, limit }
 }
 
-// "maximum number of expressions in a list is 1000", "maximum number of columns in a table or view is 1000",
-// "cannot support more than 1000 columns"
+/**
+ * Gives the limit the message of a resource error names, or `undefined` when it names none. The forms read: "maximum
+ * number of expressions in a list is 1000", "maximum number of columns in a table or view is 1000", "cannot support
+ * more than 1000 columns".
+ */
 function extractLimit(message: string): number | undefined {
     const limit = /(?:maximum number of [a-z ]+ is|more than) (\d+)/i.exec(message)
     return limit ? Number(limit[1]) : undefined
 }
 
+/** Builds a `SQL_DATABASE_CORRUPTED` reason with the type of corruption given. */
 function getDatabaseCorrupted(context: OracleErrorContext, corruptionType?: DatabaseCorruptedReason['corruptionType']): TsSqlErrorReason {
     return { reason: 'SQL_DATABASE_CORRUPTED', ...getMetadata(context), corruptionType }
 }
 
+/** Builds a `SQL_INTERNAL_ERROR` reason with the type of error given. */
 function getInternalError(context: OracleErrorContext, errorType?: InternalErrorReason['errorType']): TsSqlErrorReason {
     return { reason: 'SQL_INTERNAL_ERROR', ...getMetadata(context), errorType }
 }
 
+/** Builds a `SQL_SYNTAX_ERROR` reason. */
 function getSyntaxError(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_SYNTAX_ERROR', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_CARDINALITY_VIOLATION` reason. */
 function getCardinalityViolation(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_CARDINALITY_VIOLATION', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_DIVISION_BY_ZERO` reason. */
 function getDivisionByZero(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_DIVISION_BY_ZERO', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_READ_ONLY_VIOLATION` reason. */
 function getReadOnlyViolation(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_READ_ONLY_VIOLATION', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_AUTHENTICATION_ERROR` reason. */
 function getAuthenticationError(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_AUTHENTICATION_ERROR', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_AUTHORIZATION_ERROR` reason. */
 function getAuthorizationError(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_AUTHORIZATION_ERROR', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_PERMISSION_DENIED` reason. */
 function getPermissionDenied(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_PERMISSION_DENIED', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_ROUTINE_ERROR` reason. */
 function getRoutineError(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_ROUTINE_ERROR', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_EXTERNAL_DATA_SOURCE_ERROR` reason. */
 function getExternalDataSourceError(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_EXTERNAL_DATA_SOURCE_ERROR', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_FEATURE_NOT_SUPPORTED` reason. */
 function getFeatureNotSupported(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_FEATURE_NOT_SUPPORTED', ...getMetadata(context) }
 }
 
+/** Builds a `SQL_UNKNOWN` reason. */
 function getUnknown(context: OracleErrorContext): TsSqlErrorReason {
     return { reason: 'SQL_UNKNOWN', ...getMetadata(context) }
 }
 
+/**
+ * Gives the reason of an invalid identifier: a column not found when the message names it, or a
+ * `SQL_INVALID_SQL_STATEMENT` of type `invalid identifier` when it names nothing.
+ */
 function getInvalidIdentifierReason(context: OracleErrorContext): TsSqlErrorReason {
     const identifier = extractOracleColumnName(context.message) || extractQuotedName(context.message)
     if (identifier) {
@@ -578,6 +659,11 @@ function getInvalidIdentifierReason(context: OracleErrorContext): TsSqlErrorReas
     return getInvalidSqlStatement(context, 'invalid identifier')
 }
 
+/**
+ * Gives the type of object the message speaks of, from the first word found among schema, table or view, column,
+ * routine (procedure, function, package), sequence, index, trigger and cursor, in that order; `undefined` when there is
+ * none.
+ */
 function getOracleObjectTypeFromMessage(message: string): ObjectNotFoundReason['objectType'] | undefined {
     const lower = message.toLowerCase()
     if (lower.includes('schema')) {
@@ -607,6 +693,10 @@ function getOracleObjectTypeFromMessage(message: string): ObjectNotFoundReason['
     return undefined
 }
 
+/**
+ * Gives the type of object the message speaks of, as `getOracleObjectTypeFromMessage`, limited to the types of object a
+ * `SQL_OBJECT_ALREADY_EXISTS` reason can carry.
+ */
 function getOracleExistingObjectTypeFromMessage(message: string): ObjectAlreadyExistsReason['objectType'] | undefined {
     const objectType = getOracleObjectTypeFromMessage(message)
     if (objectType === 'collation' || objectType === 'role') {
@@ -634,6 +724,7 @@ function extractOracleUniqueTableAndColumnNames(message: string): OracleTableCol
     return { tableName: match[1], columnName: columns.length === 1 ? columns[0] : undefined }
 }
 
+/** Gives the table and the column named in the message, the last two names between double quotes. */
 function extractOracleTableAndColumnNames(message: string): OracleTableColumnNames {
     return {
         tableName: extractOracleTableName(message),
@@ -641,11 +732,16 @@ function extractOracleTableAndColumnNames(message: string): OracleTableColumnNam
     }
 }
 
+/** Gives the last name between double quotes of the message, the column of a name like "OWNER"."TABLE"."COLUMN". */
 function extractOracleColumnName(message: string): string | undefined {
     const quotedValues = extractAllQuotedNames(message)
     return quotedValues.at(-1)
 }
 
+/**
+ * Gives the next to last name between double quotes of the message, the table of a name like "OWNER"."TABLE"."COLUMN";
+ * `undefined` when there are fewer than two.
+ */
 function extractOracleTableName(message: string): string | undefined {
     const quotedValues = extractAllQuotedNames(message)
     if (quotedValues.length >= 2) {
@@ -654,6 +750,10 @@ function extractOracleTableName(message: string): string | undefined {
     return undefined
 }
 
+/**
+ * Gives the name of the object in the message: its names between double quotes joined with dots, or the first name
+ * between single quotes or backticks when there is none.
+ */
 function extractOracleObjectName(message: string): string | undefined {
     const quotedValues = extractAllQuotedNames(message)
     if (quotedValues.length > 1) {
@@ -665,15 +765,21 @@ function extractOracleObjectName(message: string): string | undefined {
     return extractQuotedName(message) || extractBacktickName(message)
 }
 
+/** Gives the name of the parameter in the message: the name after a colon, or the first quoted name. */
 function extractOracleParameterName(message: string): string | undefined {
     const colonParameter = /:([A-Za-z_][A-Za-z0-9_$#]*)/.exec(message)
     return colonParameter?.[1] || extractQuotedName(message)
 }
 
+/** Gives all the names of the message between double quotes, in order. */
 function extractAllQuotedNames(message: string): string[] {
     return [...message.matchAll(/"([^"]+)"/g)].map((match) => match[1]!)
 }
 
+/**
+ * Gives the first name of the message between double quotes or, without one, between single quotes; `undefined` when
+ * there is none.
+ */
 function extractQuotedName(message: string): string | undefined {
     const doubleQuoted = /"([^"]+)"/.exec(message)
     if (doubleQuoted) {
@@ -686,6 +792,7 @@ function extractQuotedName(message: string): string | undefined {
     return undefined
 }
 
+/** Gives the first name of the message between backticks, or `undefined` when there is none. */
 function extractBacktickName(message: string): string | undefined {
     const backtick = /`([^`]+)`/.exec(message)
     return backtick?.[1]

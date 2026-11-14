@@ -4,7 +4,6 @@ import mssql from 'mssql'
 import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
-import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isSqlDataTypeOf, __isString, __isUuid } from '../utils/dataTypes.js'
@@ -20,6 +19,7 @@ const isolationLevelWords: { [level: number]: string } = {
     [ISOLATION_LEVEL.SNAPSHOT]: 'snapshot',
 }
 
+/** The options of MssqlPoolQueryRunner */
 export interface MssqlPoolQueryRunnerConfig {
     /**
      * The type of mssql each parameter of a type name (the name given to a custom type, or a built-in one) is bound
@@ -29,9 +29,16 @@ export interface MssqlPoolQueryRunnerConfig {
     typesByName?: { readonly [typeName: string]: ISqlTypeFactory | ISqlType } | undefined
 }
 
+/**
+ * The query runner of SQL Server through `mssql`, over a `ConnectionPool`, or over a `Transaction` begun with it that
+ * something else commits or rolls back. Outside a transaction the queries run on the pool; a transaction runs on a
+ * `Transaction` of mssql, which keeps a connection of the pool until it ends.
+ */
 export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType
+    /** The `ConnectionPool` of mssql the query runner was created with, or the `Transaction` it was created with */
     readonly pool: ConnectionPool
+    /** The `Transaction` of mssql of the current transaction, until it ends */
     transaction?: Transaction | undefined
     private config?: MssqlPoolQueryRunnerConfig | undefined
 
@@ -117,23 +124,15 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         }
         throw error
     }
-    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
-        if (this.transaction) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
-        }
+    protected doBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
         if (typeof this.pool.transaction !== 'function') {
             return this.rejectBeginInsideAManagedTransaction()
         }
         const accessMode = opts[1]
         if (accessMode) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode))
+            throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
         }
-        let level
-        try {
-            level = databaseIsolationLevel(this.database, opts[0])
-        } catch (error) {
-            return Promise.reject(error)
-        }
+        const level = this.getTransactionLevel(opts)
 
         let isolationLevel: number | undefined
         if (!level) {
@@ -149,7 +148,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         } else if (level === 'serializable') {
             isolationLevel = ISOLATION_LEVEL.SERIALIZABLE
         } else {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
+            throw new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level)
         }
 
         const transaction = this.pool.transaction()
@@ -179,37 +178,24 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             throw error
         })
     }
-    executeCommit(_opts: CommitOpts = []): Promise<void> {
-        const transaction = this.transaction
-        if (!transaction) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
-        }
-        if (this.transactionOutcome.isRolledBackByTheDatabase()) {
-            return Promise.reject(this.transactionOutcome.rolledBackError())
-        }
+    protected doCommit(_opts: CommitOpts): Promise<void> {
+        const transaction = this.transaction!
         return this.restoreConnectionIsolationLevel(transaction).then(() => transaction.commit()).then(() => {
-            // Transaction count only modified when commit successful, in case of error there is still an open transaction
             this.transaction = undefined
-            this.transactionOutcome.transactionEnded()
         })
     }
-    executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        const transaction = this.transaction
-        if (!transaction) {
-            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
-        }
-        if (this.transactionOutcome.rollbackAlreadyDone()) {
-            // mssql already gave the connection back to the pool (flagged as broken when its isolation level had to be
-            // put back, see watchTransactionConnection)
-            this.transaction = undefined
-            this.restoreIsolationLevel = false
-            this.transactionConnection = undefined
-            return Promise.resolve()
-        }
+    protected doRollback(_opts: RollbackOpts): Promise<void> {
+        const transaction = this.transaction!
         return this.restoreConnectionIsolationLevel(transaction).then(() => transaction.rollback()).finally(() => {
             this.transaction = undefined
             this.transactionOutcome.transactionEnded()
         })
+    }
+    /** mssql already gave the connection back to the pool (flagged as broken when its isolation level had to be put back, see watchTransactionConnection) */
+    protected override rollbackAlreadyDoneByTheDatabase(): void {
+        this.transaction = undefined
+        this.restoreIsolationLevel = false
+        this.transactionConnection = undefined
     }
     private restoreIsolationLevel = false
     /** The tedious connection of the current transaction, when its isolation level has to be put back. */
@@ -257,7 +243,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             }
         })
     }
-    isTransactionActive(): boolean {
+    override isTransactionActive(): boolean {
         return !!this.transaction
     }
     addParam(params: any[], value: any): string {
@@ -282,6 +268,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return error instanceof TsSqlError || isMssqlError(error)
     }
 
+    /** A request of mssql for a statement: on the transaction when there is one, on the pool otherwise */
     protected request(): Request {
         const request = this.transaction ? this.transaction.request() : this.pool.request()
         // The rows as objects whatever the pool was configured with (arrayRowMode): the library reads each column by
@@ -344,6 +331,9 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return undefined
     }
 
+    /**
+     * The type of mssql the parameter at the index is bound with, from the type requested for it and its SQL data type
+     */
     protected getType(params: any[], index: number): ISqlTypeFactory {
         // The requested type of the parameter decides the type it is bound with; a parameter added without one, like
         // one of a query written by hand, gets a type inferred from its value
@@ -389,6 +379,10 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return this.inferCustomType(params[index])
     }
 
+    /**
+     * The type of mssql of a value of a custom type, whose meaning only the user knows: a text as an NVarChar,
+     * otherwise inferred from the value
+     */
     protected inferCustomType(value: any): ISqlTypeFactory {
         if (typeof value === 'string' || (value instanceof Array && typeof value[0] === 'string')) {
             return TYPES.NVarChar
@@ -396,6 +390,10 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return this.inferType(value)
     }
 
+    /**
+     * The type of mssql for a value without a requested type, like a parameter of a query written by hand, inferred
+     * from the value
+     */
     protected inferType(value: any): ISqlTypeFactory {
         // Inspired by: https://github.com/Hypermediaisobar-admin/node-any-db-mssql/blob/master/index.js
         if (value === null || value === undefined) {

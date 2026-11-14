@@ -111,11 +111,11 @@ describe('MockQueryRunner', () => {
     test('reset', async () => {
         const indexes: number[] = []
         const runner = new MockQueryRunner((_t, _q, _p, i) => { indexes.push(i); return undefined })
-        await runner.executeSelectOneRow('q')
+        await runner.executeQuery('selectOneRow', 'q', [])
         await runner.executeBeginTransaction()
         runner.reset()
         expect(runner.isTransactionActive()).toBe(false)
-        await runner.executeSelectOneRow('q')
+        await runner.executeQuery('selectOneRow', 'q', [])
         expect(indexes).toEqual([0, 1, 0])
     })
 
@@ -140,7 +140,7 @@ describe('MockQueryRunner', () => {
     ]
     for (const [database, first, second] of PLACEHOLDERS) {
         test(`params-on-${database}`, () => {
-            const runner = new MockQueryRunner(() => undefined, database)
+            const runner = new MockQueryRunner(() => undefined, { database })
             const params: any[] = []
             expect([addParam(runner, params, 'a', 'string', undefined, false), addParam(runner, params, 'b', 'string', undefined, false)]).toEqual([first, second])
             expect(params).toEqual(['a', 'b'])
@@ -154,12 +154,12 @@ describe('MockQueryRunner', () => {
     ]
     for (const [database, placeholder] of FORCED) {
         test(`forced-type-on-${database}`, () => {
-            const runner = new MockQueryRunner(() => undefined, database)
+            const runner = new MockQueryRunner(() => undefined, { database })
             expect(addParam(runner, [], 1, 'int', undefined, true)).toBe(placeholder)
         })
     }
     test('forced-type-on-postgreSql-by-the-value', () => {
-        const runner = new MockQueryRunner(() => undefined, 'postgreSql')
+        const runner = new MockQueryRunner(() => undefined, { database: 'postgreSql' })
         const cases: [unknown, string, CustomType | undefined, string][] = [
             [1, 'Status', 'enum', '$1::int4'], [5000000000, 'Big', 'custom', '$1::int8'], [1.5, 'Ratio', 'customComparable', '$1::float8'],
             [5n, 'Count', undefined, '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
@@ -195,7 +195,12 @@ describe('MockQueryRunner', () => {
         expect(plain.isSqlError(new Error('app'))).toBe(false)
         expect(plain.getErrorReason(library)).toEqual({ reason: 'NOT_IN_TRANSACTION' })
         expect(plain.getErrorReason(new Error('app'))).toEqual({ reason: 'UNKNOWN' })
-        const custom = new MockQueryRunner(() => undefined, { isSqlError: (e) => e instanceof RangeError })
+        class CustomErrorsMock extends MockQueryRunner {
+            override isSqlError(error: unknown): boolean {
+                return super.isSqlError(error) || error instanceof RangeError
+            }
+        }
+        const custom = new CustomErrorsMock(() => undefined)
         expect(custom.isSqlError(new RangeError('x'))).toBe(true)
         expect(custom.isSqlError(new Error('x'))).toBe(false)
         expect(custom.isSqlError(library)).toBe(true)
@@ -204,7 +209,7 @@ describe('MockQueryRunner', () => {
     test('a-null-in-the-rows-is-an-invalid-mocked-value', async () => {
         const runner = new MockQueryRunner(() => [null])
 
-        expect(reasonOf(await rejectionOf(runner.executeSelectManyRows('q', [])))).toBe('INVALID_MOCKED_VALUE')
+        expect(reasonOf(await rejectionOf(runner.executeQuery('selectManyRows', 'q', [])))).toBe('INVALID_MOCKED_VALUE')
     })
 
     test('the-rest-of-the-interface', async () => {
@@ -216,14 +221,14 @@ describe('MockQueryRunner', () => {
         expect(await runner.createResolvedPromise(3)).toBe(3)
         const failure = new Error('x')
         expect(await rejectionOf(runner.createRejectedPromise(failure))).toBe(failure)
-        expect([runner.isMocked(), runner.lowLevelTransactionManagementSupported(), runner.nestedTransactionsSupported()]).toEqual([true, true, true])
+        expect([runner.isMocked, runner.lowLevelTransactionManagementSupported, runner.nestedTransactionsSupported]).toEqual([true, true, true])
     })
 
     test('promise-provider', async () => {
         const executor: MockQueryExecutor = () => ({ id: 1 })
         const runner = new MockQueryRunner(executor, { database: 'sqlite', promise: SynchronousPromise })
-        expect(runner.executeSelectOneRow('q')).toBeInstanceOf(SynchronousPromise)
+        expect(runner.executeQuery('selectOneRow', 'q', [])).toBeInstanceOf(SynchronousPromise)
         expect(runner.createResolvedPromise(1)).toBeInstanceOf(SynchronousPromise)
-        expect(await runner.executeSelectOneRow('q')).toEqual({ id: 1 })
+        expect(await runner.executeQuery('selectOneRow', 'q', [])).toEqual({ id: 1 })
     })
 })

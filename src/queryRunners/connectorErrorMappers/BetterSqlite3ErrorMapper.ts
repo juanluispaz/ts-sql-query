@@ -2,10 +2,17 @@ import BetterSqlite3 from 'better-sqlite3'
 import type { TsSqlErrorReason } from '../../TsSqlError.js'
 import { getSqliteEngineErrorReason } from '../databaseErrorMappers/SqliteErrorMapper.js'
 
+/** An error better-sqlite3 raises with the SQLite result code of the engine (its `SqliteError` class). */
 type BetterSqlite3SqliteError = InstanceType<typeof BetterSqlite3.SqliteError>
+/** An error better-sqlite3 raises itself, without a SQLite result code, recognised by its message. */
 type BetterSqlite3DriverError = Error
+/** An error of better-sqlite3: one with the SQLite result code of the engine, or one of the driver. */
 type BetterSqlite3Error = BetterSqlite3SqliteError | BetterSqlite3DriverError
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through better-sqlite3; `UNKNOWN` when it isn't an error of that
+ * driver.
+ */
 export function getBetterSqlite3ErrorReason(error: unknown): TsSqlErrorReason {
     if (!isBetterSqlite3Error(error)) {
         return { reason: 'UNKNOWN' }
@@ -13,6 +20,10 @@ export function getBetterSqlite3ErrorReason(error: unknown): TsSqlErrorReason {
     return getBetterSqlite3DriverOrEngineErrorReason(error)
 }
 
+/**
+ * Tells whether the error comes from better-sqlite3: a `SqliteError`, or an `Error` whose message is one the driver
+ * raises.
+ */
 export function isBetterSqlite3Error(error: unknown): error is BetterSqlite3Error {
     if (error instanceof BetterSqlite3.SqliteError) {
         return true
@@ -23,6 +34,10 @@ export function isBetterSqlite3Error(error: unknown): error is BetterSqlite3Erro
     return !!getBetterSqlite3DriverErrorReason(error)
 }
 
+/**
+ * Gives the reason of an error of better-sqlite3: the engine's for a `SqliteError`, otherwise the one of the driver's
+ * message, or `SQL_UNKNOWN` when the message isn't known.
+ */
 function getBetterSqlite3DriverOrEngineErrorReason(error: BetterSqlite3Error): TsSqlErrorReason {
     if (error instanceof BetterSqlite3.SqliteError) {
         return getBetterSqlite3SqliteErrorReason(error)
@@ -30,10 +45,18 @@ function getBetterSqlite3DriverOrEngineErrorReason(error: BetterSqlite3Error): T
     return getBetterSqlite3DriverErrorReason(error) || { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message || undefined }
 }
 
+/**
+ * Gives the reason of a `SqliteError`, mapping its SQLite result code and message with `getSqliteEngineErrorReason`.
+ */
 function getBetterSqlite3SqliteErrorReason(error: BetterSqlite3SqliteError): TsSqlErrorReason {
     return getSqliteEngineErrorReason({ code: error.code, message: error.message })
 }
 
+/**
+ * Gives the reason of an error better-sqlite3 raises itself, recognised by its exact message (configuration, closed
+ * connection, busy connection, parameters, values out of range, memory, misuse of the API); `undefined` when the
+ * message isn't one of them. The messages about the parameters are mapped with `getSqliteEngineErrorReason`.
+ */
 function getBetterSqlite3DriverErrorReason(error: BetterSqlite3DriverError): TsSqlErrorReason | undefined {
     const message = error.message || ''
     const upper = message.toUpperCase()
@@ -83,12 +106,20 @@ function getBetterSqlite3DriverErrorReason(error: BetterSqlite3DriverError): TsS
     return undefined
 }
 
+/**
+ * Tells whether the stack of the error passes through the better-sqlite3 package, with a separator of Unix or of
+ * Windows.
+ */
 function isBetterSqlite3Stack(error: Error): boolean {
     const stack = error.stack || ''
     return stack.includes('node_modules/better-sqlite3/')
         || stack.includes('node_modules\\better-sqlite3\\')
 }
 
+/**
+ * Tells whether the message is one better-sqlite3 raises for parameters that are missing, too many, too few or of a
+ * data type it can't bind.
+ */
 function isBetterSqlite3InvalidParameterMessage(message: string): boolean {
     switch (message) {
         case 'Missing named parameters':
@@ -103,16 +134,27 @@ function isBetterSqlite3InvalidParameterMessage(message: string): boolean {
     return /^Missing named parameter ".+"$/.test(message)
 }
 
+/**
+ * Tells whether the message says that a user-defined function or a virtual table gave back a bigint too big for SQLite.
+ */
 function isBetterSqlite3TooBigReturnedValueMessage(message: string): boolean {
     return /^User-defined function .+\(\) returned a bigint that was too big$/.test(message)
         || /^Virtual table module ".+" yielded a bigint that was too big$/.test(message)
 }
 
+/**
+ * Tells whether the message says that a user-defined function or a virtual table gave back a value SQLite can't take.
+ */
 function isBetterSqlite3InvalidReturnedValueMessage(message: string): boolean {
     return /^User-defined function .+\(\) returned an invalid value$/.test(message)
         || /^Virtual table module ".+" yielded an invalid value$/.test(message)
 }
 
+/**
+ * Tells whether the message is one better-sqlite3 raises when its API is misused: a wrong option or argument, a
+ * statement used for something it doesn't do. The generic messages about arguments only count when the error comes from
+ * the stack of better-sqlite3, because other code can raise them too.
+ */
 function isBetterSqlite3ApiMisuseMessage(message: string, fromBetterSqlite3Stack: boolean): boolean {
     switch (message) {
         case 'Misspelled option "readOnly" should be "readonly"':
@@ -149,6 +191,10 @@ function isBetterSqlite3ApiMisuseMessage(message: string, fromBetterSqlite3Stack
     return fromBetterSqlite3Stack && isBetterSqlite3GenericApiMisuseMessage(message)
 }
 
+/**
+ * Tells whether the message is a misuse of the API of better-sqlite3 that names an option or a virtual table, matched
+ * by pattern.
+ */
 function isBetterSqlite3DynamicApiMisuseMessage(message: string): boolean {
     return /^Expected the ".+" option to be (?:a boolean|a function)$/.test(message)
         || /^Missing required option ".+"$/.test(message)
@@ -160,6 +206,9 @@ function isBetterSqlite3DynamicApiMisuseMessage(message: string): boolean {
         || /^Virtual table module ".+" yielded a row with an undeclared column ".+"$/.test(message)
 }
 
+/**
+ * Tells whether the message is one of the generic messages about the arguments of a call that better-sqlite3 raises.
+ */
 function isBetterSqlite3GenericApiMisuseMessage(message: string): boolean {
     switch (message) {
         case 'Expected a first argument':

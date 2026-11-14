@@ -8,23 +8,34 @@ import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sql
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 import { sqliteDriverParams } from '../utils/sqlite/sqliteParamTypes.js'
 
+/** The options of BetterSqlite3QueryRunner */
 export interface BetterSqlite3QueryRunnerConfig {
+    /**
+     * The provider of the promises, like `SynchronousPromise`, to run the queries without deferring; the global
+     * `Promise` by default
+     */
     promise?: PromiseProvider
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
 
+/**
+ * The query runner of SQLite through `better-sqlite3`, over a `Database`. The driver is synchronous: with
+ * `SynchronousPromise` as the promise provider, the whole query runs without deferring (see `sync`).
+ */
 export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
+    /** The `Database` of better-sqlite3 the query runner was created with */
     readonly connection: Database
-    readonly promise: PromiseProvider
     private config?: BetterSqlite3QueryRunnerConfig | undefined
 
     constructor(connection: Database, config?: BetterSqlite3QueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'sqlite'
-        this.promise = config?.promise || Promise
+        if (config?.promise) {
+            this.promise = config.promise
+        }
         this.config = config
     }
 
@@ -58,7 +69,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
             return this.statementOfTheTransactionFailed(e)
         }
     }
-    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+    protected override executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
         // A script of several statements, without params, runs whole with exec: a prepared statement rejects more than one
         if (params.length > 0) {
             return super.executeDatabaseSchemaModification(query, params)
@@ -85,7 +96,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
             return this.statementOfTheTransactionFailed(e)
         }
     }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected override executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -129,12 +140,6 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
             result[i + 1] = driverParams[i]
         }
         return result
-    }
-    override createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
-        return this.promise.resolve(result)
-    }
-    override createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
-        return this.promise.reject(error)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return BetterSqlite3QueryRunner.getErrorReason(error)

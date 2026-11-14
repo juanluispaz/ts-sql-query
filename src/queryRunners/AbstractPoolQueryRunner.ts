@@ -1,10 +1,14 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
-import type { TsSqlErrorReason } from "../TsSqlError.js"
-import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
-import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
+import type { BeginTransactionOpts, CommitOpts, ExecutableQueryType, QueryRunner, RollbackOpts } from './QueryRunner.js'
+import { TsSqlProcessingError } from "../TsSqlError.js"
+import { AbstractQueryRunner } from './AbstractQueryRunner.js'
 
-export abstract class AbstractPoolQueryRunner implements QueryRunner {
-    abstract readonly database: DatabaseType
+/**
+ * The base of a query runner over a pool of a driver. Outside a transaction, each query takes a connection of the pool,
+ * runs on the query runner of that connection (createQueryRunner), and gives it back (releaseQueryRunner) when it
+ * ends. A transaction keeps the connection of its first statement until it ends: the transaction begins on that
+ * connection with the statement, not before, so a transaction without statements takes no connection.
+ */
+export abstract class AbstractPoolQueryRunner extends AbstractQueryRunner {
     private currentQueryRunner?: QueryRunner | undefined
     private transactionLevel = 0
     private transactionOpts?: BeginTransactionOpts | undefined
@@ -12,84 +16,22 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.getQueryRunner().then(queryRunner => queryRunner.execute(fn)).finally(() => this.releaseIfNeeded())
     }
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectOneColumnOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectOneColumnManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsert(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningLastInsertedId(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningOneColumnOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeInsertReturningOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningOneColumnManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeUpdate(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeUpdateReturningOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeUpdateReturningManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeUpdateReturningOneColumnOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeUpdateReturningOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeUpdateReturningOneColumnManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeDelete(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningOneColumnOneRow(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeDeleteReturningOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningOneColumnManyRows(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeProcedure(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeFunction(query, params)).finally(() => this.releaseIfNeeded())
+    executeQuery(queryType: ExecutableQueryType, query: string, params: any[]): Promise<any> {
+        if (queryType === 'executeConnectionConfiguration' && !this.isTransactionActive()) {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, "You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection"))
+        }
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeQuery(queryType, query, params)).finally(() => this.releaseIfNeeded())
     }
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
-        if (!this.nestedTransactionsSupported() && this.transactionLevel >= 1) {
+        if (!this.nestedTransactionsSupported && this.transactionLevel >= 1) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
         if (this.transactionLevel <= 0) {
             // The transaction begins on the connection the first query takes from the pool; the options are
             // validated now so an unsupported one fails here, like on the other query runners
             try {
-                this.validateTransactionOpts(opts)
+                this.getTransactionLevel(opts)
+                this.getTransactionAccessMode(opts)
             } catch (error) {
                 return this.createRejectedPromise(error)
             }
@@ -106,77 +48,57 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         if (this.transactionLevel <= 0) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot commit the transaction'))
         }
-        
         if (this.currentQueryRunner) {
             return this.currentQueryRunner.executeCommit(opts).then(() => {
-                // Transaction count and release only modified when commit successful, in case of error there is still an open transaction 
-                this.transactionLevel--
-                if (this.transactionLevel <= 0) {
-                    this.transactionLevel = 0
-                    this.transactionOpts = undefined
-                }
+                // Only a commit that worked ends the transaction and gives the connection back: after an error it is still open
+                this.transactionEnded()
                 this.releaseIfNeeded()
             })
         }
-
-        this.transactionLevel--
-        if (this.transactionLevel <= 0) {
-            this.transactionLevel = 0
-            this.transactionOpts = undefined
-        }
+        this.transactionEnded()
         return this.createResolvedPromise(undefined)
     }
     executeRollback(opts: RollbackOpts = []): Promise<void> {
         if (this.transactionLevel <= 0) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot rollback the transaction'))
         }
-
         if (this.currentQueryRunner) {
             return this.currentQueryRunner.executeRollback(opts).finally(() => {
-                this.transactionLevel--
-                if (this.transactionLevel <= 0) {
-                    this.transactionLevel = 0
-                    this.transactionOpts = undefined
-                }
+                this.transactionEnded()
                 this.releaseIfNeeded()
             })
         }
-
-        this.transactionLevel--
-        if (this.transactionLevel <= 0) {
-            this.transactionLevel = 0
-            this.transactionOpts = undefined
-        }
+        this.transactionEnded()
         return this.createResolvedPromise(undefined)
     }
     isTransactionActive(): boolean {
         return this.transactionLevel > 0
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeDatabaseSchemaModification(query, params)).finally(() => this.releaseIfNeeded())
-    }
-    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
-        if (!this.isTransactionActive()) {
-            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, "You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection"))
+    private transactionEnded(): void {
+        this.transactionLevel--
+        if (this.transactionLevel <= 0) {
+            this.transactionLevel = 0
+            this.transactionOpts = undefined
         }
-        return this.getQueryRunner().then(queryRunner => queryRunner.executeConnectionConfiguration(query, params)).finally(() => this.releaseIfNeeded())
     }
 
-    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>
-
-    abstract useDatabase(database: DatabaseType): void
-    abstract getNativeRunner(): unknown
+    /** The connection of the transaction, once its first statement took one from the pool */
     getCurrentNativeConnection(): unknown {
         if (!this.currentQueryRunner) {
             return undefined
         }
         return this.currentQueryRunner.getCurrentNativeConnection()
     }
-    abstract addParam(params: any[], value: any): string
-    addOutParam(_params: any[], _name: string): string {
-        throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
-    }
 
+    /** Takes a connection of the pool and gives the query runner over it */
+    protected abstract createQueryRunner(): Promise<QueryRunner>
+    /** Gives the connection of the query runner back to the pool */
+    protected abstract releaseQueryRunner(queryRunner: QueryRunner): void
+
+    /**
+     * The query runner of the connection the query runs on: the one of the transaction, or one taken from the pool
+     * (and, inside a transaction, the transaction begun on it)
+     */
     private getQueryRunner(): Promise<QueryRunner> {
         if (!this.currentQueryRunner) {
             return this.createQueryRunner().then(queryRunner => {
@@ -203,61 +125,11 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         }
         return this.createResolvedPromise(this.currentQueryRunner)
     }
-    private releaseIfNeeded() {
+    /** Outside a transaction, gives the connection back to the pool */
+    private releaseIfNeeded(): void {
         if (this.transactionLevel <= 0 && this.currentQueryRunner) {
             this.releaseQueryRunner(this.currentQueryRunner)
             this.currentQueryRunner = undefined
         }
-    }
-
-    /**
-     * Throws when the database doesn't offer the isolation level or the access mode of a transaction about to begin.
-     */
-    protected validateTransactionOpts(opts: BeginTransactionOpts): void {
-        databaseIsolationLevel(this.database, opts[0])
-        const accessMode = opts[1]
-        if (accessMode && accessMode !== 'read write' && accessMode !== 'read only') {
-            throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
-        }
-    }
-    protected abstract createQueryRunner(): Promise<QueryRunner>
-    protected abstract releaseQueryRunner(queryRunner: QueryRunner): void
-
-    isMocked(): boolean {
-        return false
-    }
-    lowLevelTransactionManagementSupported(): boolean {
-        return true
-    }
-    executeInTransactionCallsBeginAndCommit(): boolean {
-        return true
-    }
-    nestedTransactionsSupported(): boolean {
-        return false
-    }
-
-    // Promises
-    createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
-        return Promise.reject(error)
-    }
-    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
-        return fn1().then((r1) => {
-            return fn2().then((r2) => {
-                return [r1, r2]
-            })
-        })
-    }
-
-    getErrorReason(error: unknown): TsSqlErrorReason {
-        if (error instanceof TsSqlError) {
-            return error.errorReason
-        }
-        return { reason: 'UNKNOWN'}
-    }
-    isSqlError(_error: unknown): boolean {
-        return true
     }
 }

@@ -435,19 +435,19 @@ const getterOf = (planned: PlannedCase): TemporalGetter => {
 const found = (ids: number[], id: number) => ids.map(Number).includes(id) ? 'found' : 'not found'
 
 export async function runTemporalProbe(dialect: TemporalDialect, runner: QueryRunner, ops: Partial<Record<TemporalColumnName, TemporalColumnOps>>): Promise<TemporalCaseResult[]> {
-    await runner.executeDatabaseSchemaModification(dialect.dropTable)
-    await runner.executeDatabaseSchemaModification(dialect.createTable)
+    await runner.executeQuery('executeDatabaseSchemaModification', dialect.dropTable, [])
+    await runner.executeQuery('executeDatabaseSchemaModification', dialect.createTable, [])
 
     let nextId = 1
     const rawInsert = async (id: number, column: TemporalColumn, utc?: number) => {
         if (utc === undefined) {
-            await runner.executeInsert(`insert into ${TEMPORAL_TABLE} (id) values (${id})`)
+            await runner.executeQuery('insert', `insert into ${TEMPORAL_TABLE} (id) values (${id})`, [])
         } else {
-            await runner.executeInsert(`insert into ${TEMPORAL_TABLE} (id, ${column.name}) values (${id}, ${literalOf(dialect, column, utc)})`)
+            await runner.executeQuery('insert', `insert into ${TEMPORAL_TABLE} (id, ${column.name}) values (${id}, ${literalOf(dialect, column, utc)})`, [])
         }
     }
     const textOf = async (id: number, column: TemporalColumn): Promise<string> => {
-        const text: unknown = await runner.executeSelectOneColumnOneRow(`select ${dialect.text(column)} from ${TEMPORAL_TABLE} where id = ${id}`)
+        const text: unknown = await runner.executeQuery('selectOneColumnOneRow', `select ${dialect.text(column)} from ${TEMPORAL_TABLE} where id = ${id}`, [])
         return typeof text === 'string' ? text : 'not a text: ' + JSON.stringify(text)
     }
 
@@ -566,7 +566,7 @@ export async function creationOutcome(create: () => Promise<QueryRunner>, select
         return 'rejected when created: ' + describeRejection(error)
     }
     try {
-        await runner.executeSelectOneColumnOneRow(selectOne)
+        await runner.executeQuery('selectOneColumnOneRow', selectOne, [])
     } catch (error) {
         return 'rejected at its first query: ' + describeRejection(error)
     }

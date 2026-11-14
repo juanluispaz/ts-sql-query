@@ -11,7 +11,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { SynchronousPromise } from 'synchronous-promise'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import { ConsoleLogNoopQueryRunner } from '../../../../../src/queryRunners/ConsoleLogNoopQueryRunner.js'
+import { ConsoleLogQueryRunner } from '../../../../../src/queryRunners/ConsoleLogQueryRunner.js'
 import { InterceptorQueryRunner } from '../../../../../src/queryRunners/InterceptorQueryRunner.js'
 import { LoggingQueryRunner } from '../../../../../src/queryRunners/LoggingQueryRunner.js'
 import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner.js'
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
 
         expect(select(new DBConnection(new NothingInterceptor(mock()), Number.POSITIVE_INFINITY))).toEqual([{ id: 1 }])
         expect(select(new DBConnection(new LoggingQueryRunner({}, mock()), Number.POSITIVE_INFINITY))).toEqual([{ id: 1 }])
-        expect(select(new DBConnection(new ConsoleLogNoopQueryRunner({ promise: SynchronousPromise }), Number.POSITIVE_INFINITY))).toEqual([])
+        expect(select(new DBConnection(new ConsoleLogQueryRunner(new NoopQueryRunner({ promise: SynchronousPromise })), Number.POSITIVE_INFINITY))).toEqual([])
         expect(select(new DBConnection(new NoopQueryRunner({ promise: SynchronousPromise }), Number.POSITIVE_INFINITY))).toEqual([])
     })
 })

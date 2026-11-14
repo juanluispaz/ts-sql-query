@@ -1,8 +1,19 @@
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 
+/**
+ * What a connection uses to reach the database: it executes the SQL the connection writes, through a driver, and gives
+ * back the result in the shape of each type of query. A connection receives it when it is created; a query runner of
+ * the library is made for a driver (`PgPoolQueryRunner` for the pool of `pg`), and a general-purpose one wraps another
+ * to log or intercept the queries (`InterceptorQueryRunner`), or takes the place of the database (`MockQueryRunner`).
+ */
 export interface QueryRunner {
+    /** The database the SQL is written for */
     readonly database: DatabaseType
+    /**
+     * Called by the connection when it receives the query runner, with the database of the connection; a query runner
+     * that can't work with that database throws
+     */
     useDatabase(database: DatabaseType): void
     /** The driver's object the query runner was created with: a connection, or a pool */
     getNativeRunner(): unknown
@@ -19,36 +30,36 @@ export interface QueryRunner {
      * pool
      */
     execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT>
-    executeSelectOneRow(query: string, params?: any[]): Promise<any>
-    executeSelectManyRows(query: string, params?: any[]): Promise<any[]>
-    executeSelectOneColumnOneRow(query: string, params?: any[]): Promise<any>
-    executeSelectOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
-    executeInsert(query: string, params?: any[]): Promise<number>
-    executeInsertReturningLastInsertedId(query: string, params?: any[]): Promise<any>
-    executeInsertReturningMultipleLastInsertedId(query: string, params?: any[]): Promise<any[]>
-    executeInsertReturningOneRow(query: string, params?: any[]): Promise<any>
-    executeInsertReturningManyRows(query: string, params?: any[]): Promise<any[]>
-    executeInsertReturningOneColumnOneRow(query: string, params?: any[]): Promise<any>
-    executeInsertReturningOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
-    executeUpdate(query: string, params?: any[]): Promise<number>
-    executeUpdateReturningOneRow(query: string, params?: any[]): Promise<any>
-    executeUpdateReturningManyRows(query: string, params?: any[]): Promise<any[]>
-    executeUpdateReturningOneColumnOneRow(query: string, params?: any[]): Promise<any>
-    executeUpdateReturningOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
-    executeDelete(query: string, params?: any[]): Promise<number>
-    executeDeleteReturningOneRow(query: string, params?: any[]): Promise<any>
-    executeDeleteReturningManyRows(query: string, params?: any[]): Promise<any[]>
-    executeDeleteReturningOneColumnOneRow(query: string, params?: any[]): Promise<any>
-    executeDeleteReturningOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
-    executeProcedure(query: string, params?: any[]): Promise<void>
-    executeFunction(query: string, params?: any[]): Promise<any>
+    /**
+     * Executes a query and gives its result in the shape its type asks for:
+     * - `selectOneRow` and the `...ReturningOneRow`: the row, or undefined without one;
+     * - `selectManyRows` and the `...ReturningManyRows`: the rows;
+     * - `selectOneColumnOneRow`, the `...ReturningOneColumnOneRow`, `insertReturningLastInsertedId` and
+     *   `executeFunction`: the value of the only column of the row, or undefined without a row;
+     * - `selectOneColumnManyRows`, the `...ReturningOneColumnManyRows` and `insertReturningMultipleLastInsertedId`: the
+     *   value of the only column of each row;
+     * - `insert`, `update` and `delete`: the number of rows they changed;
+     * - `executeProcedure`, `executeDatabaseSchemaModification` and `executeConnectionConfiguration`: nothing.
+     *
+     * A query that must give one row and gives more is rejected with `MORE_THAN_ONE_ROW`, and one that must give one
+     * column and gives more, with `ONLY_ONE_COLUMN_EXPECTED`. The statements of a transaction have methods of their own.
+     */
+    executeQuery<TYPE extends ExecutableQueryType>(queryType: TYPE, query: string, params: any[]): Promise<QueryResultOf<TYPE>>
+    /** Begins a transaction, with the isolation level and the access mode requested */
     executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void>
+    /** Commits the current transaction */
     executeCommit(opts?: CommitOpts): Promise<void>
+    /** Rolls the current transaction back */
     executeRollback(opts?: RollbackOpts): Promise<void>
+    /**
+     * Runs fn in a transaction: begins it, and commits it when the promise fn returns resolves or rolls it back when it
+     * rejects. The statements of the transaction go through outermostQueryRunner, the query runner the connection
+     * received, so a wrapper sees them; a driver that begins and ends the transaction by itself, in a function it
+     * receives, says so with executeInTransactionCallsBeginAndCommit
+     */
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>
+    /** Whether a transaction is open on the query runner */
     isTransactionActive(): boolean
-    executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
-    executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
     /**
      * Adds the value to the params and returns its placeholder, the final one as it is written in the SQL. The library
      * keeps what it knows of the parameter in the context of the query (`getQueryContext(query, params).getParam(index)`,
@@ -60,38 +71,62 @@ export interface QueryRunner {
     addParam(params: any[], value: any): string
     /** Adds an out parameter, with what the library knows of it in the context of the query, as addParam */
     addOutParam(params: any[], name: string): string
-    // Resolves a value that may or may not already be a promise into a promise
-    // on this runner's configured provider — like `Promise.resolve`, it adopts a
-    // thenable and wraps a plain value, both yielding `Promise<RESULT>`. Keeping
-    // the result on the runner's own provider is what lets a synchronous provider
-    // (e.g. `SynchronousPromise`) drive the whole chain without deferring.
+    /**
+     * Resolves a value that may or may not already be a promise into a promise of the query runner's provider: like
+     * `Promise.resolve`, it adopts a thenable and wraps a plain value. Keeping every result on the provider of the query
+     * runner is what lets a synchronous one (like `SynchronousPromise`) drive the whole chain without deferring.
+     */
     createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT>
+    /** A promise of the query runner's provider rejected with the error */
     createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
+    /** Runs fn1 and then fn2, and gives both results: the two queries of a page */
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
-    isMocked(): boolean
-    /** Whether connection.beginTransaction(), commit() and rollback() can be used, as separate calls. */
-    lowLevelTransactionManagementSupported(): boolean
+    /** Whether the query runner takes the place of a database (`MockQueryRunner` and the ones made from it) */
+    readonly isMocked: boolean
+    /** Whether connection.beginTransaction(), commit() and rollback() can be used, as separate calls */
+    readonly lowLevelTransactionManagementSupported: boolean
     /**
      * Whether executeInTransaction goes through executeBeginTransaction, executeCommit and executeRollback of the
      * outermost query runner. When the driver begins and ends the transaction by itself, in a function it receives, a
      * wrapper doesn't see those statements, and it must show them itself.
      */
-    executeInTransactionCallsBeginAndCommit(): boolean
-    nestedTransactionsSupported(): boolean
+    readonly executeInTransactionCallsBeginAndCommit: boolean
+    /** Whether a transaction can begin inside another one */
+    readonly nestedTransactionsSupported: boolean
+    /** The reason of an error the driver gave, as the library names it (`UNIQUE_VIOLATION`, `DEADLOCK`, …) */
     getErrorReason(error: unknown): TsSqlErrorReason
+    /** Whether an error comes from the database or the driver, and not from the code of the application */
     isSqlError(error: unknown): boolean
 }
 
+/** The databases of the library; 'noopDB' is the one of a connection that writes SQL for no database in particular */
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'
 
+/** The types of query and statement a query runner executes, the shape of their result included (see executeQuery) */
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
     'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
     'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
     'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
     'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
-    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' |
     'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 
+/** The types of query executeQuery executes: every one but the statements of a transaction */
+export type ExecutableQueryType = Exclude<QueryType, 'beginTransaction' | 'commit' | 'rollback'>
+
+/**
+ * What executeQuery gives for each type of query: the rows (`any[]`) or the value of a column of each row, the number
+ * of rows changed, nothing, or one row or one value (`any`, undefined without a row)
+ */
+export type QueryResultOf<TYPE extends ExecutableQueryType> =
+    TYPE extends 'selectManyRows' | 'insertReturningManyRows' | 'updateReturningManyRows' | 'deleteReturningManyRows'
+        | 'selectOneColumnManyRows' | 'insertReturningMultipleLastInsertedId' | 'insertReturningOneColumnManyRows'
+        | 'updateReturningOneColumnManyRows' | 'deleteReturningOneColumnManyRows' ? any[]
+    : TYPE extends 'insert' | 'update' | 'delete' ? number
+    : TYPE extends 'executeProcedure' | 'executeDatabaseSchemaModification' | 'executeConnectionConfiguration' ? void
+    : any
+
+/** The constructor of the promises a query runner gives, like `Promise` or `SynchronousPromise` */
 export type PromiseProvider = PromiseConstructorLike & {
     resolve: typeof Promise.resolve,
     reject: typeof Promise.reject,
@@ -111,8 +146,11 @@ export type PromiseProvider = PromiseConstructorLike & {
 }
 
 // `[undefined, accessMode]` when only an access mode was requested
+/** The options of the begin of a transaction: its isolation level and its access mode */
 export type BeginTransactionOpts = [transactionLevel?: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable' | undefined, accessMode?: 'read write' | 'read only' | undefined]
+/** The options of a commit: none */
 export type CommitOpts = []
+/** The options of a rollback: none */
 export type RollbackOpts = []
 
 /**
@@ -219,9 +257,14 @@ export interface QueryResultColumn {
     readonly requestedSqlDataType?: SqlDataType | undefined
 }
 
+/** Where the query was executed from, as the stack of the call says */
 export interface FunctionExecutingQueryInformation {
+    /** The name of the function that executed the query */
     functionName?: string | undefined,
+    /** The file of that function */
     fileName?: string | undefined,
+    /** The line in that file */
     lineNumber?: string | undefined,
+    /** The column in that line */
     positionNumber?: string | undefined
 }

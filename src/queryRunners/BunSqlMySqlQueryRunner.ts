@@ -9,9 +9,19 @@ import { isTransactionOpenAfterMySqlMariaDBError } from '../utils/mySqlMariaDB/m
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
 
+/** The options of BunSqlMySqlQueryRunner */
+export interface BunSqlMySqlQueryRunnerConfig {
+    /** The database: 'mySql' by default */
+    database?: 'mariaDB' | 'mySql' | undefined
+}
+
+/**
+ * The query runner of MySQL and MariaDB through Bun SQL, over a `SQL` created with the `mysql` or `mariadb` adapter
+ * and `foundRows: true`.
+ */
 export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
-    constructor(connection: SQL, database: 'mySql' | 'mariaDB' = 'mySql') {
-        super(connection, database)
+    constructor(connection: SQL, config: BunSqlMySqlQueryRunnerConfig = {}) {
+        super(connection, config.database || 'mySql')
         const adapter = connection.options.adapter
         if (!(adapter === 'mysql' || adapter === 'mariadb')) {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlMySqlQueryRunner only supports Bun.SQL connections using the mysql or mariadb adapter')
@@ -27,7 +37,7 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         if (database !== 'mySql' && database !== 'mariaDB') {
             throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. BunSqlMySqlQueryRunner only supports mySql or mariaDB databases')
         }
-        this.database = database
+        this.currentDatabase = database
     }
     protected override executeMutation(query: string, params: any[]): Promise<number> {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
@@ -35,7 +45,7 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
             return result.affectedRows
         }, (error) => this.statementOfTheTransactionFailed(error))
     }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected override executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }

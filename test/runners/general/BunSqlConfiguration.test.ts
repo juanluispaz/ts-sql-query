@@ -38,7 +38,7 @@ describe.skipIf(!isBun)('Bun SQL query runners: configuration', () => {
         const withoutFoundRows = new SQL({ adapter: 'mysql', hostname: '127.0.0.1', port: 1, username: 'u', password: 'p', database: 'd' })
         const withFoundRows = new SQL({ adapter: 'mysql', hostname: '127.0.0.1', port: 1, username: 'u', password: 'p', database: 'd', foundRows: true })
         expect(reasonOf(errorOf(() => new BunSqlMySqlQueryRunner(withoutFoundRows)))).toBe('INVALID_CONFIGURATION')
-        expect(new BunSqlMySqlQueryRunner(withFoundRows, 'mariaDB').database).toBe('mariaDB')
+        expect(new BunSqlMySqlQueryRunner(withFoundRows, { database: 'mariaDB' }).database).toBe('mariaDB')
         await withoutFoundRows.close()
         await withFoundRows.close()
     })

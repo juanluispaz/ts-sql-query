@@ -8,6 +8,7 @@ import { getBunSqlPostgresErrorReason, isBunSqlPostgresError } from './connector
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes.js'
 
+/** The options of BunSqlPostgresQueryRunner */
 export interface BunSqlPostgresQueryRunnerConfig {
     /**
      * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
@@ -16,6 +17,9 @@ export interface BunSqlPostgresQueryRunnerConfig {
     typesByName?: { readonly [typeName: string]: string } | undefined
 }
 
+/**
+ * The query runner of PostgreSQL through Bun SQL, over a `SQL` created with the `postgres` adapter.
+ */
 export class BunSqlPostgresQueryRunner extends AbstractBunSqlQueryRunner {
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
     private config?: BunSqlPostgresQueryRunnerConfig | undefined

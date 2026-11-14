@@ -20,7 +20,7 @@ describeRunnerContract({
         const sql = new SQL({ adapter: 'mysql', hostname: db.host, port: db.port, username: db.user, password: db.password, database: db.database, foundRows: true, max: 2 })
         return {
             runnerClass: BunSqlMySqlQueryRunner,
-            runner: new BunSqlMySqlQueryRunner(sql, 'mariaDB'),
+            runner: new BunSqlMySqlQueryRunner(sql, { database: 'mariaDB' }),
             close: async () => { await sql.close(); await db.release() },
         }
     },

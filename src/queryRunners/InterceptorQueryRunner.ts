@@ -1,338 +1,96 @@
-import type { BeginTransactionOpts, CommitOpts, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
+import type { BeginTransactionOpts, CommitOpts, ExecutableQueryType, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
 import { ChainedQueryRunner } from './ChainedQueryRunner.js'
 
-export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunner = QueryRunner> extends ChainedQueryRunner<T> {
-    constructor(queryRunner: T) {
-        super(queryRunner)
-    }
+/**
+ * A query runner that wraps another and calls your code around each query and each statement of a transaction:
+ * onQuery before it runs, and onQueryResult or onQueryError when it ends. What onQuery returns, the payload, reaches
+ * the other two, so data of a query (like when it began) goes from one call to the next without being kept anywhere
+ * else. A statement of a transaction has an empty query, and its options as the params.
+ *
+ * When the driver begins and ends a transaction by itself (executeInTransactionCallsBeginAndCommit is false), the
+ * begin, the commit and the rollback are shown as if they had run: onQuery and onQueryResult one after the other.
+ */
+export abstract class InterceptorQueryRunner<PAYLOAD, T extends QueryRunner = QueryRunner> extends ChainedQueryRunner<T> {
+    /** Called before the query runs; what it returns reaches onQueryResult or onQueryError */
+    abstract onQuery(queryType: QueryType, query: string, params: any[]): PAYLOAD
+    /** Called when the query ends, with its result */
+    abstract onQueryResult(queryType: QueryType, query: string, params: any[], result: any, payload: PAYLOAD): void
+    /** Called when the query fails, with its error; the error reaches the caller afterwards */
+    abstract onQueryError(queryType: QueryType, query: string, params: any[], error: any, payload: PAYLOAD): void
 
-    abstract onQuery(queryType: QueryType, query: string, params: any[]): PLAYLOAD_TYPE
-    abstract onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: PLAYLOAD_TYPE): void
-    abstract onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: PLAYLOAD_TYPE): void
-
-    override executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('selectOneRow', query, params)
-        return this.queryRunner.executeSelectOneRow(query, params).then(r => {
-            this.onQueryResult('selectOneRow', query, params, r, playload)
+    override executeQuery(queryType: ExecutableQueryType, query: string, params: any[]): Promise<any> {
+        const payload = this.onQuery(queryType, query, params)
+        return this.queryRunner.executeQuery(queryType, query, params).then(r => {
+            this.onQueryResult(queryType, query, params, r, payload)
             return r
         }, e => {
-            this.onQueryError('selectOneRow', query, params, e, playload)
+            this.onQueryError(queryType, query, params, e, payload)
             throw e
         })
-    }
-    override executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('selectManyRows', query, params)
-        return this.queryRunner.executeSelectManyRows(query, params).then(r => {
-            this.onQueryResult('selectManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('selectManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('selectOneColumnOneRow', query, params)
-        return this.queryRunner.executeSelectOneColumnOneRow(query, params).then(r => {
-            this.onQueryResult('selectOneColumnOneRow', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('selectOneColumnOneRow', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('selectOneColumnManyRows', query, params)
-        return this.queryRunner.executeSelectOneColumnManyRows(query, params).then(r => {
-            this.onQueryResult('selectOneColumnManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('selectOneColumnManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInsert(query: string, params: any[] = []): Promise<number> {
-        const playload = this.onQuery('insert', query, params)
-        return this.queryRunner.executeInsert(query, params).then(r => {
-            this.onQueryResult('insert', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('insert', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('insertReturningLastInsertedId', query, params)
-        return this.queryRunner.executeInsertReturningLastInsertedId(query, params).then(r => {
-            this.onQueryResult('insertReturningLastInsertedId', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('insertReturningLastInsertedId', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('insertReturningMultipleLastInsertedId', query, params)
-        return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params).then(r => {
-            this.onQueryResult('insertReturningMultipleLastInsertedId', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('insertReturningMultipleLastInsertedId', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('insertReturningOneRow', query, params)
-        return this.queryRunner.executeInsertReturningOneRow(query, params).then(r => {
-            this.onQueryResult('insertReturningOneRow', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('insertReturningOneRow', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('insertReturningManyRows', query, params)
-        return this.queryRunner.executeInsertReturningManyRows(query, params).then(r => {
-            this.onQueryResult('insertReturningManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('insertReturningManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('insertReturningOneColumnOneRow', query, params)
-        return this.queryRunner.executeInsertReturningOneColumnOneRow(query, params).then(r => {
-            this.onQueryResult('insertReturningOneColumnOneRow', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('insertReturningOneColumnOneRow', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('insertReturningOneColumnManyRows', query, params)
-        return this.queryRunner.executeInsertReturningOneColumnManyRows(query, params).then(r => {
-            this.onQueryResult('insertReturningOneColumnManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('insertReturningOneColumnManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeUpdate(query: string, params: any[] = []): Promise<number> {
-        const playload = this.onQuery('update', query, params)
-        return this.queryRunner.executeUpdate(query, params).then(r => {
-            this.onQueryResult('update', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('update', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('updateReturningOneRow', query, params)
-        return this.queryRunner.executeUpdateReturningOneRow(query, params).then(r => {
-            this.onQueryResult('updateReturningOneRow', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('updateReturningOneRow', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('updateReturningManyRows', query, params)
-        return this.queryRunner.executeUpdateReturningManyRows(query, params).then(r => {
-            this.onQueryResult('updateReturningManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('updateReturningManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('updateReturningOneColumnOneRow', query, params)
-        return this.queryRunner.executeUpdateReturningOneColumnOneRow(query, params).then(r => {
-            this.onQueryResult('updateReturningOneColumnOneRow', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('updateReturningOneColumnOneRow', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('updateReturningOneColumnManyRows', query, params)
-        return this.queryRunner.executeUpdateReturningOneColumnManyRows(query, params).then(r => {
-            this.onQueryResult('updateReturningOneColumnManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('updateReturningOneColumnManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeDelete(query: string, params: any[] = []): Promise<number> {
-        const playload = this.onQuery('delete', query, params)
-        return this.queryRunner.executeDelete(query, params).then(r => {
-            this.onQueryResult('delete', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('delete', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('deleteReturningOneRow', query, params)
-        return this.queryRunner.executeDeleteReturningOneRow(query, params).then(r => {
-            this.onQueryResult('deleteReturningOneRow', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('deleteReturningOneRow', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('deleteReturningManyRows', query, params)
-        return this.queryRunner.executeDeleteReturningManyRows(query, params).then(r => {
-            this.onQueryResult('deleteReturningManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('deleteReturningManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('deleteReturningOneColumnOneRow', query, params)
-        return this.queryRunner.executeDeleteReturningOneColumnOneRow(query, params).then(r => {
-            this.onQueryResult('deleteReturningOneColumnOneRow', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('deleteReturningOneColumnOneRow', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const playload = this.onQuery('deleteReturningOneColumnManyRows', query, params)
-        return this.queryRunner.executeDeleteReturningOneColumnManyRows(query, params).then(r => {
-            this.onQueryResult('deleteReturningOneColumnManyRows', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('deleteReturningOneColumnManyRows', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeProcedure(query: string, params: any[] = []): Promise<void> {
-        const playload = this.onQuery('executeProcedure', query, params)
-        return this.queryRunner.executeProcedure(query, params).then(r => {
-            this.onQueryResult('executeProcedure', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('executeProcedure', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeFunction(query: string, params: any[] = []): Promise<any> {
-        const playload = this.onQuery('executeFunction', query, params)
-        return this.queryRunner.executeFunction(query, params).then(r => {
-            this.onQueryResult('executeFunction', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('executeFunction', query, params, e, playload)
-            throw e
-        })
-    }
-    override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
-        if (!this.queryRunner.executeInTransactionCallsBeginAndCommit()) {
-            // Emulate beginTransaction, commit and rollback to see in logs
-            let begun = false
-            return this.queryRunner.executeInTransaction(() => {
-                begun = true
-                const query: string = ''
-                const params: any[] = opts || []
-                const playload = this.onQuery('beginTransaction', query, params)
-                this.onQueryResult('beginTransaction', query, params, undefined, playload)
-                return fn()
-            }, outermostQueryRunner, opts).then((r) => {
-                try {
-                    const query: string = ''
-                    const params: any[] = opts || []
-                    const playload = this.onQuery('commit', query, params)
-                    this.onQueryResult('commit', query, params, undefined, playload)
-                } catch {
-                    // Keep same behaviour of the transaction
-                }
-                return r
-            }, (e) => {
-                if (!begun) {
-                    // The transaction was refused: there is nothing to roll back
-                    throw e
-                }
-                try {
-                    const query: string = ''
-                    const params: any[] = opts || []
-                    const playload = this.onQuery('rollback', query, params)
-                    this.onQueryResult('rollback', query, params, undefined, playload)
-                } catch {
-                    // Throw the innermost error
-                }
-                throw e
-            })
-        }
-        return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
     override executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
-        const query: string = ''
-        const params: any[] = opts
-        const playload = this.onQuery('beginTransaction', query, params)
+        const payload = this.onQuery('beginTransaction', '', opts)
         return this.queryRunner.executeBeginTransaction(opts).then(r => {
-            this.onQueryResult('beginTransaction', query, params, r, playload)
+            this.onQueryResult('beginTransaction', '', opts, r, payload)
             return r
         }, e => {
-            this.onQueryError('beginTransaction', query, params, e, playload)
+            this.onQueryError('beginTransaction', '', opts, e, payload)
             throw e
         })
     }
     override executeCommit(opts: CommitOpts = []): Promise<void> {
-        const query: string = ''
-        const params: any[] = opts
-        const playload = this.onQuery('commit', query, params)
+        const payload = this.onQuery('commit', '', opts)
         return this.queryRunner.executeCommit(opts).then(r => {
-            this.onQueryResult('commit', query, params, r, playload)
+            this.onQueryResult('commit', '', opts, r, payload)
             return r
         }, e => {
-            this.onQueryError('commit', query, params, e, playload)
+            this.onQueryError('commit', '', opts, e, payload)
             throw e
         })
     }
     override executeRollback(opts: RollbackOpts = []): Promise<void> {
-        const query: string = ''
-        const params: any[] = opts
-        const playload = this.onQuery('rollback', query, params)
+        const payload = this.onQuery('rollback', '', opts)
         return this.queryRunner.executeRollback(opts).then(r => {
-            this.onQueryResult('rollback', query, params, r, playload)
+            this.onQueryResult('rollback', '', opts, r, payload)
             return r
         }, e => {
-            this.onQueryError('rollback', query, params, e, playload)
+            this.onQueryError('rollback', '', opts, e, payload)
             throw e
         })
     }
-    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        const playload = this.onQuery('executeDatabaseSchemaModification', query, params)
-        return this.queryRunner.executeDatabaseSchemaModification(query, params).then(r => {
-            this.onQueryResult('executeDatabaseSchemaModification', query, params, r, playload)
+    override executeInTransaction<R>(fn: () => Promise<R>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<R> {
+        if (this.queryRunner.executeInTransactionCallsBeginAndCommit) {
+            return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
+        }
+        // The driver begins and ends the transaction by itself: show its statements as if they had run
+        let begun = false
+        return this.queryRunner.executeInTransaction(() => {
+            begun = true
+            this.statementShown('beginTransaction', opts)
+            return fn()
+        }, outermostQueryRunner, opts).then((r) => {
+            try {
+                this.statementShown('commit', opts)
+            } catch {
+                // The transaction already ended as it did
+            }
             return r
-        }, e => {
-            this.onQueryError('executeDatabaseSchemaModification', query, params, e, playload)
+        }, (e) => {
+            if (!begun) {
+                // The transaction was refused: there is nothing to roll back
+                throw e
+            }
+            try {
+                this.statementShown('rollback', opts)
+            } catch {
+                // The error of the transaction is the one given
+            }
             throw e
         })
     }
-    override executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
-        const playload = this.onQuery('executeConnectionConfiguration', query, params)
-        return this.queryRunner.executeConnectionConfiguration(query, params).then(r => {
-            this.onQueryResult('executeConnectionConfiguration', query, params, r, playload)
-            return r
-        }, e => {
-            this.onQueryError('executeConnectionConfiguration', query, params, e, playload)
-            throw e
-        })
+    /** A statement of a transaction the driver ran by itself, shown as if it had run through this query runner */
+    private statementShown(queryType: 'beginTransaction' | 'commit' | 'rollback', params: any[]): void {
+        const payload = this.onQuery(queryType, '', params)
+        this.onQueryResult(queryType, '', params, undefined, payload)
     }
 }

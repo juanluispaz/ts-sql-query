@@ -2,13 +2,21 @@ import type { Sql } from 'postgres'
 import type { TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 import { getPostgresEngineErrorReason, isPostgresSqlState } from '../databaseErrorMappers/PostgresErrorMapper.js'
 
+/**
+ * An error postgres.js raises itself, or one of Node it passes on: an `Error` that may carry a `code` and an `errno`.
+ */
 type PostgresJsConnectionError = Error & {
     code?: string | undefined
     errno?: string | number | undefined
 }
+/** An error of the server that postgres.js raises (its `PostgresError` class), with the SQLSTATE in `code`. */
 type PostgresJsDatabaseError = InstanceType<Sql['PostgresError']>
+/** An error of postgres.js: one of the server, or one of the driver or of the connection. */
 type PostgresJsError = PostgresJsDatabaseError | PostgresJsConnectionError
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through postgres.js; `UNKNOWN` when it isn't an error of that driver.
+ */
 export function getPostgresJsErrorReason(error: unknown): TsSqlErrorReason {
     if (!isPostgresJsError(error)) {
         return { reason: 'UNKNOWN' }
@@ -16,6 +24,10 @@ export function getPostgresJsErrorReason(error: unknown): TsSqlErrorReason {
     return getPostgresErrorReason(error)
 }
 
+/**
+ * Tells whether the error comes from postgres.js: an `Error` named `PostgresError`, or one whose code or message is one
+ * the driver raises.
+ */
 export function isPostgresJsError(error: unknown): error is PostgresJsError {
     if (!(error instanceof Error)) {
         return false
@@ -28,6 +40,10 @@ export function isPostgresJsError(error: unknown): error is PostgresJsError {
     return !!getKnownPostgresJsDriverErrorReason(error as PostgresJsError)
 }
 
+/**
+ * Gives the reason of an error of postgres.js: the engine's, mapped with `getPostgresEngineErrorReason`, when its
+ * `code` is a SQLSTATE, otherwise the one of the driver's code or message, or `SQL_UNKNOWN` when they aren't known.
+ */
 function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
     const code = stringValue(error.code)
     if (!code) {
@@ -55,11 +71,20 @@ function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
     return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
 }
 
+/**
+ * Gives the reason of an error postgres.js raises itself, with the number of the error added, or `undefined` when it
+ * isn't known.
+ */
 function getKnownPostgresJsDriverErrorReason(error: PostgresJsError): TsSqlErrorReason | undefined {
     const reason = getKnownPostgresJsDriverErrorReasonWithoutNumber(error)
     return reason && withDatabaseErrorNumber(reason, getPostgresJsDatabaseErrorNumber(error))
 }
 
+/**
+ * Gives the reason of an error postgres.js raises itself, or of Node, recognised by its code, or by its message when it
+ * has no code; `undefined` when they aren't one of them. A `57014` is mapped here only when its message is the one of a
+ * query cancelled by the user.
+ */
 function getKnownPostgresJsDriverErrorReasonWithoutNumber(error: PostgresJsError): TsSqlErrorReason | undefined {
     const code = stringValue(error.code)
     const message = error.message
@@ -180,22 +205,30 @@ function getKnownPostgresJsDriverErrorReasonWithoutNumber(error: PostgresJsError
     return undefined
 }
 
+/** Gives the name of the schema of an error of the server (`schema_name`), or `undefined`. */
 function getSchemaName(error: PostgresJsError): string | undefined {
     return stringValue(asDatabaseError(error)?.schema_name)
 }
 
+/** Gives the name of the table of an error of the server (`table_name`), or `undefined`. */
 function getTableName(error: PostgresJsError): string | undefined {
     return stringValue(asDatabaseError(error)?.table_name)
 }
 
+/** Gives the name of the column of an error of the server (`column_name`), or `undefined`. */
 function getColumnName(error: PostgresJsError): string | undefined {
     return stringValue(asDatabaseError(error)?.column_name)
 }
 
+/** Gives the name of the constraint of an error of the server (`constraint_name`), or `undefined`. */
 function getConstraintName(error: PostgresJsError): string | undefined {
     return stringValue(asDatabaseError(error)?.constraint_name)
 }
 
+/**
+ * Gives the name of the data type of an error of the server, under any of the names postgres.js gives that field, or
+ * `undefined`.
+ */
 function getTypeName(error: PostgresJsError): string | undefined {
     // postgres.js 3 names the field 'data type_name' (with a space) although its types say type_name; 4 names it
     // data_type_name
@@ -203,10 +236,15 @@ function getTypeName(error: PostgresJsError): string | undefined {
     return stringValue(databaseError?.['data_type_name']) || stringValue(databaseError?.['data type_name']) || stringValue(databaseError?.['type_name'])
 }
 
+/** Gives the error as an error of the server when it is named `PostgresError`, otherwise `undefined`. */
 function asDatabaseError(error: PostgresJsError): PostgresJsDatabaseError | undefined {
     return error.name === 'PostgresError' ? error as PostgresJsDatabaseError : undefined
 }
 
+/**
+ * Gives the number reported as `databaseErrorNumber`: the SQLSTATE, otherwise the `errno` when it differs from the
+ * `code`.
+ */
 function getPostgresJsDatabaseErrorNumber(error: PostgresJsError): TsSqlDatabaseErrorNumber | undefined {
     const code = stringValue(error.code)
     if (isPostgresSqlState(code)) {
@@ -217,6 +255,7 @@ function getPostgresJsDatabaseErrorNumber(error: PostgresJsError): TsSqlDatabase
     return errno !== code ? errno : undefined
 }
 
+/** Gives the reason with `databaseErrorNumber` set, or the reason as it is when there is no number. */
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
     if (databaseErrorNumber === undefined) {
         return reason
@@ -224,11 +263,16 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
+/** Tells whether the message is the one of a statement cancelled by the user, with or without the SQLSTATE in front. */
 function isPostgresJsQueryCancelledMessage(message: string): boolean {
     return message === '57014: canceling statement due to user request'
         || message === 'canceling statement due to user request'
 }
 
+/**
+ * Tells whether the code is one Node gives for a TLS certificate that can't be verified, or any other error of TLS or
+ * SSL.
+ */
 function isPostgresJsInvalidConnectionConfigurationCode(code: string): boolean {
     return code === 'CERT_HAS_EXPIRED'
         || code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
@@ -239,10 +283,12 @@ function isPostgresJsInvalidConnectionConfigurationCode(code: string): boolean {
         || code.startsWith('ERR_SSL_')
 }
 
+/** Gives the value when it is a text, otherwise `undefined`. */
 function stringValue(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined
 }
 
+/** Gives the value when it is a text or a number, otherwise `undefined`. */
 function stringOrNumberValue(value: unknown): string | number | undefined {
     return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }

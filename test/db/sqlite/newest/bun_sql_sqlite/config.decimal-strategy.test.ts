@@ -302,14 +302,14 @@ describe(ctx.label, () => {
                 { id: 15, price: '100' as Amount },
                 { id: 16, price: '0.0' as Amount },
             ]).executeInsert()
-            const normalized = await conn.queryRunner.executeUpdate(`
+            const normalized = await conn.queryRunner.executeQuery('update', `
                 update exact_amount set price = (
                     select case when i = '' and f = '' then '0'
                                 else s || (case when i = '' then '0' else i end) || (case when f <> '' then '.' || f else '' end) end
                     from (select case when substr(price, 1, 1) = '-' then '-' else '' end as s,
                                  ltrim(substr(ltrim(price, '-'), 1, instr(ltrim(price, '-') || '.', '.') - 1), '0') as i,
                                  rtrim(substr(ltrim(price, '-'), instr(ltrim(price, '-') || '.', '.') + 1), '0') as f)
-                ) where price is not null`)
+                ) where price is not null`, [])
             const rows = await conn.selectFrom(tExactAmount).where(tExactAmount.id.greaterOrEqual(11)).select({ price: tExactAmount.price }).orderBy(tExactAmount.id).executeSelectMany()
             expect(normalized).toBe(10)
             expect(rows).toEqual([{ price: '7.5' }, { price: '0' }, { price: '0.5' }, { price: '1.5' }, { price: '100' }, { price: '0' }])

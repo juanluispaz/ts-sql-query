@@ -1,104 +1,35 @@
-import { TsSqlProcessingError } from '../TsSqlError.js'
 import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
 import type { BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
-import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 
+/**
+ * A query runner over one connection of a driver whose transactions begin and end with SQL: `begin transaction`, with
+ * its isolation level and access mode, `commit` and `rollback`, each one run as a statement. A driver that writes
+ * them in its own way overrides createBeginTransactionQuery, or the method that runs each of them.
+ */
 export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryRunner {
-    private transactionLevel = 0
-    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
-        const transactionLevel = this.transactionLevel
-        if (!this.nestedTransactionsSupported() && this.isTransactionActive()) {
-            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
-        }
-
-        let sql
-        try {
-            sql = this.createBeginTransactionQuery(opts)
-        } catch (error) {
-            return this.createRejectedPromise(error)
-        }
-        return this.executeBeginTransactionQuery(sql, []).then(() => {
-            this.transactionLevel++
-            if (this.transactionLevel !== transactionLevel + 1) {
-                throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction.')
-            }
-            return undefined
-        })
+    protected doBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+        return this.executeBeginTransactionQuery(this.createBeginTransactionQuery(opts), []).then(nothing)
     }
-    executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
-        return this.executeMutation(query, params);
+    protected doCommit(_opts: CommitOpts): Promise<void> {
+        return this.executeCommitQuery('commit', []).then(nothing)
     }
-    executeCommit(_opts: CommitOpts = []): Promise<void> {
-        if (!this.isTransactionActive()) {
-            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
-        }
-        if (this.transactionOutcome.isRolledBackByTheDatabase()) {
-            return this.createRejectedPromise(this.transactionOutcome.rolledBackError())
-        }
-
-        return this.executeCommitQuery('commit', []).then(() => {
-            // Transaction count only modified when commit successful, in case of error there is still an open transaction 
-            this.transactionOutcome.transactionEnded()
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            return undefined
-        })
+    protected doRollback(_opts: RollbackOpts): Promise<void> {
+        return this.executeRollbackQuery('rollback', []).then(nothing)
     }
-    executeCommitQuery(query: string, params: any[]): Promise<number> {
-        return this.executeMutation(query, params);
+    /** Runs the statement that begins a transaction */
+    protected executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
+        return this.executeMutation(query, params)
     }
-    executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        if (!this.isTransactionActive()) {
-            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
-        }
-        if (this.transactionOutcome.rollbackAlreadyDone()) {
-            this.rollbackAlreadyDoneByTheDatabase()
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            return this.createResolvedPromise(undefined)
-        }
-
-        return this.executeRollbackQuery('rollback', []).then(() => {
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            return undefined
-        }, (error) => {
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            throw error
-        })
+    /** Runs the commit */
+    protected executeCommitQuery(query: string, params: any[]): Promise<number> {
+        return this.executeMutation(query, params)
     }
-    executeRollbackQuery(query: string, params: any[]): Promise<number> {
-        return this.executeMutation(query, params);
+    /** Runs the rollback */
+    protected executeRollbackQuery(query: string, params: any[]): Promise<number> {
+        return this.executeMutation(query, params)
     }
-    /** The rollback of a transaction the database already rolled back: nothing is sent, the transaction ends */
-    protected rollbackAlreadyDoneByTheDatabase(): void {
-    }
-    isTransactionActive(): boolean {
-        return this.transactionLevel > 0
-    }
-    getTransactionLevel(opts: BeginTransactionOpts): string | undefined {
-        return databaseIsolationLevel(this.database, opts[0])
-    }
-    getTransactionAccessMode(opts: BeginTransactionOpts): string | undefined {
-        const accessMode = opts[1]
-        if (this.database === 'sqlite' && accessMode) {
-            throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
-        }
-        if (!accessMode || accessMode === 'read write' || accessMode === 'read only') {
-            return accessMode
-        }
-        throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
-    }
-    createBeginTransactionQuery(opts: BeginTransactionOpts): string {
+    /** The statement that begins a transaction; it throws for an isolation level or an access mode the database doesn't offer */
+    protected createBeginTransactionQuery(opts: BeginTransactionOpts): string {
         let sql = 'begin transaction'
         const level = this.getTransactionLevel(opts)
         if (level) {
@@ -111,7 +42,11 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
         }
         return sql
     }
-    createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
+    /**
+     * The options of a transaction, `isolation level <level>, <access mode>`, for a driver that begins it with them;
+     * undefined without any. It throws for one the database doesn't offer
+     */
+    protected createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
         const level = this.getTransactionLevel(opts)
         const accessMode = this.getTransactionAccessMode(opts)
         if (!level && !accessMode) {
@@ -124,4 +59,12 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
         }
         return sql
     }
+}
+
+/**
+ * Gives undefined: the result of a statement that gives nothing, passed to `then` without creating a function on each
+ * call
+ */
+function nothing(): undefined {
+    return undefined
 }

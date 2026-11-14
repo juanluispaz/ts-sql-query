@@ -5,9 +5,19 @@ import type { TsSqlErrorReason } from '../../TsSqlError.js'
 import type { DatabaseType } from '../QueryRunner.js'
 import { getMySqlMariaDbEngineErrorReason, getMySqlMariaDbErrorCodeName, isMySqlMariaDbEngineErrorCode } from '../databaseErrorMappers/MySqlMariaDbErrorMapper.js'
 
+/**
+ * An error Bun SQL raises for MySQL or MariaDB (its `SQL.MySQLError` class), with a code and, from the server, an error
+ * number and a SQLSTATE.
+ */
 type BunSqlMySqlError = InstanceType<typeof SQL.MySQLError>
+/** A generic error of Bun SQL (its `SQL.SQLError` class). */
 type BunSqlError = InstanceType<typeof SQL.SQLError>
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through Bun SQL on MySQL or MariaDB (`database` picks the names of
+ * the error codes): the connector's or the engine's for a `MySQLError`, `SQL_UNKNOWN` for another `SQLError`, the
+ * driver's for a known message, and `UNKNOWN` when it isn't an error of that driver.
+ */
 export function getBunSqlMySqlErrorReason(error: unknown, database?: DatabaseType): TsSqlErrorReason {
     if (isBunSqlMySqlError(error)) {
         return getBunSqlMySqlEngineOrConnectorErrorReason(error, database)
@@ -21,10 +31,18 @@ export function getBunSqlMySqlErrorReason(error: unknown, database?: DatabaseTyp
     return { reason: 'UNKNOWN' }
 }
 
+/**
+ * Tells whether the error comes from Bun SQL on MySQL or MariaDB: a `MySQLError`, a `SQLError`, or an `Error` whose
+ * message is one the driver raises.
+ */
 export function isBunSqlMySqlAnyError(error: unknown): boolean {
     return isBunSqlMySqlError(error) || isBunSqlError(error) || isBunSqlMySqlDriverError(error)
 }
 
+/**
+ * Gives the reason of a `MySQLError`: the one of the `ERR_MYSQL_` code Bun gives it when known; the engine's, mapped
+ * with `getMySqlMariaDbEngineErrorReason`, when it comes from the server; `SQL_UNKNOWN` otherwise.
+ */
 function getBunSqlMySqlEngineOrConnectorErrorReason(error: BunSqlMySqlError, database?: DatabaseType): TsSqlErrorReason {
     const connectorReason = getKnownBunSqlMySqlConnectorErrorReason(error)
     if (connectorReason) {
@@ -44,6 +62,10 @@ function getBunSqlMySqlEngineOrConnectorErrorReason(error: BunSqlMySqlError, dat
     })
 }
 
+/**
+ * Gives the reason of the `ERR_MYSQL_` code Bun gives a `MySQLError` (connection, timeouts, parameters, authentication,
+ * transactions, protocol), with the code, number and message of the error; `undefined` for any other code.
+ */
 function getKnownBunSqlMySqlConnectorErrorReason(error: BunSqlMySqlError): TsSqlErrorReason | undefined {
     switch (error.code) {
         case 'ERR_MYSQL_CONNECTION_CLOSED':
@@ -101,6 +123,10 @@ function getKnownBunSqlMySqlConnectorErrorReason(error: BunSqlMySqlError): TsSql
     return undefined
 }
 
+/**
+ * Gives the code of an error of the server: for the generic codes of Bun (`ERR_MYSQL_SERVER_ERROR`,
+ * `ERR_MYSQL_SYNTAX_ERROR`) with an error number, the name of that number on the database; otherwise the code as it is.
+ */
 function getBunSqlMySqlEngineErrorCode(error: BunSqlMySqlError, database?: DatabaseType): string | undefined {
     const code = error.code || undefined
     const errorNumber = getBunSqlMySqlErrorNumber(error)
@@ -111,10 +137,15 @@ function getBunSqlMySqlEngineErrorCode(error: BunSqlMySqlError, database?: Datab
     return code
 }
 
+/** Gives the error number of the server (`errno`) when it is a positive number, otherwise `undefined`. */
 function getBunSqlMySqlErrorNumber(error: BunSqlMySqlError): number | undefined {
     return typeof error.errno === 'number' && error.errno > 0 ? error.errno : undefined
 }
 
+/**
+ * Tells whether the `MySQLError` comes from the server: it has an error number, a SQLSTATE, a code of the engine or one
+ * of the generic codes of Bun for an error of the server.
+ */
 function isBunSqlMySqlEngineError(error: BunSqlMySqlError): boolean {
     return getBunSqlMySqlErrorNumber(error) !== undefined
         || !!error.sqlState
@@ -122,18 +153,32 @@ function isBunSqlMySqlEngineError(error: BunSqlMySqlError): boolean {
         || isBunSqlMySqlGenericServerErrorCode(error.code)
 }
 
+/**
+ * Tells whether the code is one Bun gives to an error of the server without its name: `ERR_MYSQL_SERVER_ERROR` or
+ * `ERR_MYSQL_SYNTAX_ERROR`.
+ */
 function isBunSqlMySqlGenericServerErrorCode(code: string | undefined): boolean {
     return code === 'ERR_MYSQL_SERVER_ERROR' || code === 'ERR_MYSQL_SYNTAX_ERROR'
 }
 
+/** Gives the reason with the code, number and message of the `MySQLError` added. */
 function withBunSqlMySqlErrorMetadata(reason: TsSqlErrorReason, error: BunSqlMySqlError): TsSqlErrorReason {
     return withErrorMetadata(reason, error)
 }
 
+/**
+ * Gives the reason of an error Bun SQL raises itself on MySQL or MariaDB, or `SQL_UNKNOWN` with its message when the
+ * message isn't known.
+ */
 function getBunSqlMySqlDriverErrorReason(error: Error): TsSqlErrorReason {
     return getKnownBunSqlMySqlDriverErrorReason(error) || { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message || undefined }
 }
 
+/**
+ * Gives the reason of an error Bun SQL raises itself on MySQL or MariaDB, recognised by its message (misuse of the API,
+ * features not offered, TLS, parameters, a query too long, a failed connection); `undefined` when the message isn't one
+ * of them.
+ */
 function getKnownBunSqlMySqlDriverErrorReason(error: Error): TsSqlErrorReason | undefined {
     const message = error.message || ''
     const databaseErrorMessage = message || undefined
@@ -170,6 +215,7 @@ function getKnownBunSqlMySqlDriverErrorReason(error: Error): TsSqlErrorReason | 
     return undefined
 }
 
+/** Gives the reason with the code, the number and the message of the error added, each only when the error has it. */
 function withErrorMetadata(reason: TsSqlErrorReason, error: Error): TsSqlErrorReason {
     const databaseErrorCode = getErrorStringCode(error)
     const databaseErrorNumber = getErrorNumber(error)
@@ -183,24 +229,29 @@ function withErrorMetadata(reason: TsSqlErrorReason, error: Error): TsSqlErrorRe
     } as TsSqlErrorReason
 }
 
+/** Gives the `code` of the error when it is a non-empty text, otherwise `undefined`. */
 function getErrorStringCode(error: Error): string | undefined {
     const code = (error as { code?: unknown }).code
     return typeof code === 'string' && code ? code : undefined
 }
 
+/** Gives the `errno` of the error when it is a positive number, otherwise `undefined`. */
 function getErrorNumber(error: Error): number | undefined {
     const errno = (error as { errno?: unknown }).errno
     return typeof errno === 'number' && errno > 0 ? errno : undefined
 }
 
+/** Tells whether the error is an `Error` whose message is one Bun SQL raises itself on MySQL or MariaDB. */
 function isBunSqlMySqlDriverError(error: unknown): error is Error {
     return error instanceof Error && !!getKnownBunSqlMySqlDriverErrorReason(error)
 }
 
+/** Tells whether the error is a `MySQLError` of Bun SQL. */
 function isBunSqlMySqlError(error: unknown): error is BunSqlMySqlError {
     return error instanceof SQL.MySQLError
 }
 
+/** Tells whether the error is a `SQLError` of Bun SQL. */
 function isBunSqlError(error: unknown): error is BunSqlError {
     return error instanceof SQL.SQLError
 }

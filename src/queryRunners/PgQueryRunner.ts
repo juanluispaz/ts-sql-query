@@ -10,7 +10,9 @@ import { pgSessionTimeZone, requirePgTextMode } from '../utils/postgreSql/pgConf
 import { rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes.js'
 
+/** The options of PgQueryRunner */
 export interface PgQueryRunnerConfig {
+    /** Accept a transaction begun inside another one; rejected with `NESTED_TRANSACTION_NOT_SUPPORTED` by default */
     allowNestedTransactions?: boolean | undefined
     /**
      * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
@@ -21,9 +23,13 @@ export interface PgQueryRunnerConfig {
     forUseInTransaction?: boolean | undefined
 }
 
+/**
+ * The query runner of PostgreSQL through `pg`, over a client (a `Client`, or a `PoolClient` taken from a pool).
+ */
 export class PgQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
+    /** The client of pg the query runner was created with */
     readonly connection: ClientBase
     private config?: PgQueryRunnerConfig | undefined
     /** The parsers of the values received, given to every query of the library (see pgQueryTypes) */
@@ -81,7 +87,7 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         // The same binding MockQueryRunner uses to imitate this query runner
         return queryRunnerParamBindings.PgQueryRunner(params, value, this.config?.typesByName)
     }
-    override nestedTransactionsSupported(): boolean {
+    override get nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {

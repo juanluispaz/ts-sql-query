@@ -60,7 +60,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'))('P
         const reserved = await sql.reserve()
         try {
             const runner = new PostgresQueryRunner(sql)
-            const error = await errorOf(runner.executeSelectManyRows('select 1'))
+            const error = await errorOf(runner.executeQuery('selectManyRows', 'select 1', []))
             expect(runner.isSqlError(error)).toBe(true)
             expect(runner.getErrorReason(error)).toMatchObject({ reason: 'SQL_TIMEOUT', timeoutType: 'connection', databaseErrorCode: 'QUEUE_TIMEOUT' })
         } finally {
@@ -75,7 +75,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'))('P
         const sql = postgres(db.uri, { max: 1, connection: { application_name: 'rt\0err' }, onnotice: () => {} })
         try {
             const runner = new PostgresQueryRunner(sql)
-            const error = await errorOf(runner.executeSelectManyRows('select 1'))
+            const error = await errorOf(runner.executeQuery('selectManyRows', 'select 1', []))
             expect(runner.isSqlError(error)).toBe(true)
             expect(runner.getErrorReason(error)).toMatchObject({ reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorCode: 'NUL_CHARACTER' })
         } finally {
@@ -89,7 +89,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'))('P
         const sql = postgres(db.uri, { max: 1, query_timeout: 0.3, onnotice: () => {} })
         try {
             const runner = new PostgresQueryRunner(sql)
-            const error = await errorOf(runner.executeSelectManyRows('select pg_sleep(2)'))
+            const error = await errorOf(runner.executeQuery('selectManyRows', 'select pg_sleep(2)', []))
             expect(runner.getErrorReason(error)).toMatchObject({ reason: 'SQL_TIMEOUT', timeoutType: 'statement', databaseErrorCode: 'QUERY_TIMEOUT' })
             // The cancel of the query, answered by the server
             expect((error as { cause?: { code?: unknown } }).cause?.code).toBe('57014')

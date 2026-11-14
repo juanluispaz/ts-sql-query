@@ -1,326 +1,116 @@
-import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
+import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts, ExecutableQueryType, PromiseProvider } from './QueryRunner.js'
 import type { TsSqlErrorReason } from "../TsSqlError.js"
-import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
-import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
+import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from "../TsSqlError.js"
+import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
 
+/**
+ * The base of every query runner of the library: what all of them do the same way. The promises of the provider
+ * (`promise`, the global `Promise` unless a subclass sets another), a transaction run with the begin, commit and
+ * rollback of the outermost query runner, the capabilities a query runner has by default, and the reason of an error
+ * that is already a `TsSqlError`.
+ *
+ * A query runner of a driver extends one of its subclasses: `ManagedTransactionQueryRunner` (one connection of the
+ * driver; `SqlTransactionQueryRunner` when the transaction begins with SQL, `DelegatedSetTransactionQueryRunner` when the
+ * driver begins it) or `AbstractPoolQueryRunner` (a pool, a connection taken for each query or for each transaction).
+ */
 export abstract class AbstractQueryRunner implements QueryRunner {
+    /** The provider of the promises the query runner gives; a subclass with a synchronous provider sets its own */
+    protected promise: PromiseProvider = Promise
+
     abstract readonly database: DatabaseType
     abstract useDatabase(database: DatabaseType): void
     abstract getNativeRunner(): unknown
     abstract getCurrentNativeConnection(): unknown
     abstract execute<RESULT>(fn: (connection: unknown) => Promise<RESULT>): Promise<RESULT>
-
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeQueryReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            return rows[0]
-        })
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeQueryReturning(query, params)
-    }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeQueryReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeQueryReturning(query, params).then((rows) => {
-            const length = rows.length
-            const output = new Array(length)
-            for (let i = 0; i < length; i++) {
-                const row = rows[i]
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return output
-        })
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.executeMutation(query, params)
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            const length = rows.length
-            const output = new Array(length)
-            for (let i = 0; i < length; i++) {
-                const row = rows[i]
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return output
-        })
-    }
-    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            return rows[0]
-        })
-    }
-    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params)
-    }
-    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            const length = rows.length
-            const output = new Array(length)
-            for (let i = 0; i < length; i++) {
-                const row = rows[i]
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return output
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.executeMutation(query, params)
-    }
-    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            return rows[0]
-        })
-    }
-    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params)
-    }
-    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            const length = rows.length
-            const output = new Array(length)
-            for (let i = 0; i < length; i++) {
-                const row = rows[i]
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return output
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.executeMutation(query, params)
-    }
-    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            return rows[0]
-        })
-    }
-    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params)
-    }
-    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params).then((rows) => {
-            const length = rows.length
-            const output = new Array(length)
-            for (let i = 0; i < length; i++) {
-                const row = rows[i]
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return output
-        })
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return this.executeMutation(query, params).then(() => undefined)
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.executeQueryReturning(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'MORE_THAN_ONE_ROW', count: rows.length }, 'Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return this.executeMutation(query, params).then(() => undefined)
-    }
-    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
-        return this.executeMutation(query, params).then(() => undefined)
-    }
-
-    protected abstract executeQueryReturning(query: string, params: any[]): Promise<any[]>
-    protected abstract executeMutation(query: string, params: any[]): Promise<number>
-    protected containsInsertReturningClause(query: string, params: any[]) {
-        const containsInsertReturningClause = existingQueryContextOf(params)?.containsInsertReturningClause
-        if (containsInsertReturningClause === true) {
-            return true
-        } else if (containsInsertReturningClause === false) {
-            return false
-        } else {
-            return /\sreturning\s/.test(query)
-        }
-    }
-    // The affected-row count the SqlBuilder recorded for a statement whose
-    // driver can't report it at execution time (set via
-    // AbstractSqlBuilder._setForcedAffectedRowCount — Oracle's multi-row INSERT
-    // PL/SQL block). `undefined` when the driver's own count should be used.
-    protected getForcedAffectedRowCount(params: any[]): number | undefined {
-        return existingQueryContextOf(params)?.forcedAffectedRowCount
-    }
-    protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
-        if (existingQueryContextOf(params)?.containsMutationReturningClause === false) {
-            // The outermost mutation's returning projection collapsed to nothing
-            // (an empty `returning({})`), so the emitted SQL carries no returning
-            // clause and there is no data to read back. Run it as a plain mutation:
-            // routing a no-data statement through the data-returning path errors on
-            // strict drivers (better-sqlite3) and yields a driver result header
-            // instead of rows on others (mysql2, mariadb). Report no returned rows.
-            return this.executeMutation(query, params).then(() => [])
-        }
-        return this.executeQueryReturning(query, params)
-    }
-
+    abstract executeQuery(queryType: ExecutableQueryType, query: string, params: any[]): Promise<any>
     abstract executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void>
     abstract executeCommit(opts?: CommitOpts): Promise<void>
     abstract executeRollback(opts?: RollbackOpts): Promise<void>
     abstract isTransactionActive(): boolean
     abstract addParam(params: any[], value: any): string
+
+    /** Out parameters only exist on Oracle: a query runner of another database rejects them */
     addOutParam(_params: any[], _name: string): string {
         throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
     }
-    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>
 
-    isMocked(): boolean {
-        return false
-    }
-    lowLevelTransactionManagementSupported(): boolean {
-        return true
-    }
-    executeInTransactionCallsBeginAndCommit(): boolean {
-        return true
-    }
-    nestedTransactionsSupported(): boolean {
-        return false
-    }
-
-    // Promises
-    createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
-        return Promise.reject(error)
-    }
-    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
-        return fn1().then((r1) => {
-            return fn2().then((r2) => {
-                return [r1, r2]
+    /**
+     * Begins the transaction through the outermost query runner, runs fn, and commits when its promise resolves or
+     * rolls back when it rejects, or when the commit fails (the transaction is still open then). When the rollback
+     * fails too, the first error is the one given, with the error of the rollback attached when it is a
+     * `TsSqlQueryExecutionError`.
+     */
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
+        return outermostQueryRunner.executeBeginTransaction(opts).then(() => {
+            return fn().then((r) => {
+                // The commit and the rollback receive the options of the begin: the context of the query rides on them
+                return outermostQueryRunner.executeCommit(opts as any).then(() => r)
+            }).catch((e) => {
+                return outermostQueryRunner.executeRollback(opts as any).then(() => {
+                    throw e
+                }, (rollbackError) => {
+                    // SynchronousPromise also calls this function when the one above throws e
+                    if (e instanceof TsSqlQueryExecutionError && rollbackError !== e) {
+                        e.attachRollbackError(rollbackError)
+                    }
+                    throw e
+                })
             })
         })
     }
 
+    get isMocked(): boolean {
+        return false
+    }
+    get lowLevelTransactionManagementSupported(): boolean {
+        return true
+    }
+    get executeInTransactionCallsBeginAndCommit(): boolean {
+        return true
+    }
+    get nestedTransactionsSupported(): boolean {
+        return false
+    }
+
+    createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
+        return this.promise.resolve(result)
+    }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return this.promise.reject(error)
+    }
+    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
+        return fn1().then((r1) => {
+            return fn2().then((r2) => [r1, r2])
+        })
+    }
+
+    /** The reason of a `TsSqlError`; a query runner of a driver reads the reason of the errors of its driver */
     getErrorReason(error: unknown): TsSqlErrorReason {
         if (error instanceof TsSqlError) {
             return error.errorReason
         }
-        return { reason: 'UNKNOWN'}
+        return { reason: 'UNKNOWN' }
     }
     isSqlError(_error: unknown): boolean {
         return true
+    }
+
+    /**
+     * The isolation level of a transaction as the database writes it, undefined for the one of the database; throws
+     * when the database doesn't offer it
+     */
+    protected getTransactionLevel(opts: BeginTransactionOpts): string | undefined {
+        return databaseIsolationLevel(this.database, opts[0])
+    }
+    /** The access mode of a transaction, undefined for the one of the database; throws when the database doesn't offer it */
+    protected getTransactionAccessMode(opts: BeginTransactionOpts): string | undefined {
+        const accessMode = opts[1]
+        if (!accessMode) {
+            return undefined
+        }
+        if (this.database !== 'sqlite' && (accessMode === 'read write' || accessMode === 'read only')) {
+            return accessMode
+        }
+        throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
     }
 }

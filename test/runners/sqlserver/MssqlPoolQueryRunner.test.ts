@@ -52,19 +52,19 @@ for (const promisePool of [false, true]) {
 
         test('does-not-outlive-a-committed-transaction', async () => {
             const r = runner!
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(2)
             await r.executeBeginTransaction(['serializable'])
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(4)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(4)
             await r.executeCommit()
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(2)
         })
 
         test('does-not-outlive-a-rolled-back-transaction', async () => {
             const r = runner!
             await r.executeBeginTransaction(['repeatable read'])
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(3)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(3)
             await r.executeRollback()
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(2)
         })
 
         test('does-not-outlive-a-doomed-transaction', async () => {
@@ -73,10 +73,10 @@ for (const promisePool of [false, true]) {
             const r = runner!
             await r.executeBeginTransaction(['serializable'])
             const doom = 'set xact_abort on; begin try select 1/0 end try begin catch end catch'
-            expect(r.isSqlError(await rejectionOf(r.executeSelectManyRows(doom)))).toBe(true)
+            expect(r.isSqlError(await rejectionOf(r.executeQuery('selectManyRows', doom, [])))).toBe(true)
             await r.executeRollback().catch(() => undefined)
             expect(r.isTransactionActive()).toBe(false)
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(2)
         })
 
         test('a-level-that-cannot-be-put-back-discards-the-connection', async () => {
@@ -87,14 +87,14 @@ for (const promisePool of [false, true]) {
             const r = runner!
             const connectionId = 'select cast(connection_id as nvarchar(36)) as id from sys.dm_exec_connections where session_id = @@spid'
             await r.executeBeginTransaction(['serializable'])
-            const id = await r.executeSelectOneColumnOneRow(connectionId)
+            const id = await r.executeQuery('selectOneColumnOneRow', connectionId, [])
             const transaction = r.getCurrentNativeConnection() as any
             expect(transaction).toBeDefined()
             transaction.request = () => ({ batch: () => Promise.reject(new Error('injected SET failure')) })
             await r.executeCommit()
             expect(r.isTransactionActive()).toBe(false)
-            expect(await r.executeSelectOneColumnOneRow(connectionId)).not.toBe(id)
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+            expect(await r.executeQuery('selectOneColumnOneRow', connectionId, [])).not.toBe(id)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(2)
         })
 
         test('the-mssql-internals-the-aborted-transaction-fix-relies-on', async () => {
@@ -122,10 +122,10 @@ for (const promisePool of [false, true]) {
             // dooms a snapshot transaction, and the server rolls it back itself.
             const r = runner!
             await r.executeBeginTransaction(['snapshot'])
-            expect(r.isSqlError(await rejectionOf(r.executeSelectOneColumnOneRow('select count(*) from organization')))).toBe(true)
+            expect(r.isSqlError(await rejectionOf(r.executeQuery('selectOneColumnOneRow', 'select count(*) from organization', [])))).toBe(true)
             await r.executeRollback().catch(() => undefined)
             expect(r.isTransactionActive()).toBe(false)
-            expect(await r.executeSelectOneColumnOneRow(sessionLevel)).toBe(2)
+            expect(await r.executeQuery('selectOneColumnOneRow', sessionLevel, [])).toBe(2)
         })
     })
 }

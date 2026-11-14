@@ -1,5 +1,10 @@
+/** A map from the name of an error (`ER_DUP_ENTRY`) to its number. */
 type ErrorCodeNumberMap = Map<string, number>
 
+/**
+ * Gives the map from the name of an error to its number joining the maps given, keeping only the names that have a
+ * single number among all of them.
+ */
 function createUnambiguousErrorCodeNumbers(...maps: ErrorCodeNumberMap[]): Map<string, number> {
     const numbersByCode = new Map<string, Set<number>>()
     for (let i = 0, length = maps.length; i < length; i++) {
@@ -16,6 +21,10 @@ function createUnambiguousErrorCodeNumbers(...maps: ErrorCodeNumberMap[]): Map<s
     )
 }
 
+/**
+ * Gives the map from the number of an error to its name, reversing the maps given, keeping only the numbers that have a
+ * single name among all of them.
+ */
 function createUnambiguousErrorNumberCodes(...maps: ErrorCodeNumberMap[]): Map<number, string> {
     const codesByNumber = new Map<number, Set<string>>()
     for (let i = 0, length = maps.length; i < length; i++) {
@@ -32,9 +41,12 @@ function createUnambiguousErrorNumberCodes(...maps: ErrorCodeNumberMap[]): Map<n
     )
 }
 
-// MySQL numeric error code registry generated from the official MySQL 8.4 Error Reference
-// server, client, and global message pages. MY-xxxxx log message identifiers are
-// intentionally omitted because this registry maps symbols to numeric error numbers.
+/**
+ * The numbers of the MySQL errors by their name (`ER_DUP_ENTRY` is 1062), generated from the server, client and global
+ * message pages of the official MySQL 8.4 Error Reference. The MY-xxxxx log message identifiers are left out on
+ * purpose, because this registry maps names to error numbers. It gives the number of an error the driver reports only
+ * by its name on a MySQL connection, and the names by number are built from it.
+ */
 export const MYSQL_ERROR_CODE_NUMBERS = new Map<string, number>([
     ['EE_CANTCREATEFILE', 1],
     ['EE_READ', 2],
@@ -1983,11 +1995,14 @@ export const MYSQL_ERROR_CODE_NUMBERS = new Map<string, number>([
     ['ER_TP_CANNOT_DISABLE_MTL_WITH_DL', 6140],
 ])
 
-// MariaDB numeric error code registry, from the server's own error list (sql/share/errmsg-utf8.txt,
-// MariaDB 12.0, as the mariadb connector publishes it in lib/const/error-code.js). The MariaDB Error
-// Code Reference pages are not a safe source: they lag behind the server and some numbers moved.
-// Left out: the placeholders MariaDB keeps for numbers it doesn't use (ER_UNUSED_n, and ER_MYSQL_n for
-// MySQL's numbers it never took): MariaDB never reports them.
+/**
+ * The numbers of the MariaDB errors by their name, from the server's own error list (sql/share/errmsg-utf8.txt, MariaDB
+ * 12.0, as the mariadb connector publishes it in lib/const/error-code.js). The MariaDB Error Code Reference pages are
+ * not a safe source: they lag behind the server and some numbers moved. Left out: the placeholders MariaDB keeps for
+ * numbers it doesn't use (ER_UNUSED_n, and ER_MYSQL_n for MySQL's numbers it never took): MariaDB never reports them.
+ * It gives the number of an error the driver reports only by its name on a MariaDB connection, and the names by number
+ * are built from it.
+ */
 export const MARIADB_ERROR_CODE_NUMBERS = new Map<string, number>([
     ['HA_ERR_KEY_NOT_FOUND', 120],
     ['HA_ERR_FOUND_DUPP_KEY', 121],
@@ -3298,90 +3313,217 @@ export const MARIADB_ERROR_CODE_NUMBERS = new Map<string, number>([
     ['ER_ACTIVE_CONNECTIONS_FOR_USER_TO_DROP', 4227],
 ])
 
+/**
+ * The names of the errors of MySQL and MariaDB with their numbers, both catalogs joined; where both have the same name,
+ * MariaDB's number is kept.
+ */
 export const MYSQL_MARIADB_ERROR_CODE_NUMBERS = new Map<string, number>([
     ...MYSQL_ERROR_CODE_NUMBERS,
     ...MARIADB_ERROR_CODE_NUMBERS,
 ])
 
+/**
+ * The names of the MySQL errors by their number, only the numbers with a single name; used to name an error of MySQL.
+ */
 export const MYSQL_ERROR_NUMBER_CODES = createUnambiguousErrorNumberCodes(MYSQL_ERROR_CODE_NUMBERS)
+/**
+ * The names of the MariaDB errors by their number, only the numbers with a single name; used to name an error of
+ * MariaDB.
+ */
 export const MARIADB_ERROR_NUMBER_CODES = createUnambiguousErrorNumberCodes(MARIADB_ERROR_CODE_NUMBERS)
+/**
+ * The numbers of the errors by their name for when the engine isn't known: only the names that have a single number
+ * among MySQL and MariaDB (the same number in both, or a name in only one of them).
+ */
 export const MYSQL_MARIADB_UNAMBIGUOUS_ERROR_CODE_NUMBERS = createUnambiguousErrorCodeNumbers(MYSQL_ERROR_CODE_NUMBERS, MARIADB_ERROR_CODE_NUMBERS)
+/**
+ * The names of the errors by their number for when the engine isn't known: only the numbers that have a single name
+ * among MySQL and MariaDB (the same name in both, or a number in only one of them).
+ */
 export const MYSQL_MARIADB_ERROR_NUMBER_CODES = createUnambiguousErrorNumberCodes(MYSQL_ERROR_CODE_NUMBERS, MARIADB_ERROR_CODE_NUMBERS)
 
+/**
+ * The error numbers of a duplicate key, mapped to `SQL_CONSTRAINT_VIOLATED` of type `unique`. Each `MYSQL_` set of this
+ * module holds error numbers of MySQL that `getMySqlMariaDbEngineErrorReason` checks on both engines, counting a number
+ * only when it means the same on the engine of the connection; each `MARIADB_` set holds error numbers that count only
+ * on MariaDB.
+ */
 export const MYSQL_DUPLICATE_CONSTRAINT_ERROR_NUMBERS = new Set([1022, 1062, 1169, 1557, 1586, 1761, 1762, 1859])
+/**
+ * The error numbers of a null in a column that doesn't accept it, mapped to `SQL_CONSTRAINT_VIOLATED` of type
+ * `not null`.
+ */
 export const MYSQL_NOT_NULL_CONSTRAINT_ERROR_NUMBERS = new Set([1048, 3673])
+/** The error numbers of a foreign key violated, mapped to `SQL_CONSTRAINT_VIOLATED` of type `foreign key`. */
 export const MYSQL_FOREIGN_KEY_CONSTRAINT_ERROR_NUMBERS = new Set([1216, 1217, 1451, 1452, 3008])
+/** The error numbers of a check constraint violated, mapped to `SQL_CONSTRAINT_VIOLATED` of type `check`. */
 export const MYSQL_CHECK_CONSTRAINT_ERROR_NUMBERS = new Set([3819])
+/** The error numbers of a value too long, mapped to `SQL_INVALID_VALUE` of type `too long`. */
 export const MYSQL_INVALID_VALUE_TOO_LONG_ERROR_NUMBERS = new Set([1162, 1406, 1917, 3046, 3056, 3150, 3151, 3718, 3907, 4159, 4160, 4202])
+/** The error numbers of a value out of range, mapped to `SQL_INVALID_VALUE` of type `out of range`. */
 export const MYSQL_INVALID_VALUE_OUT_OF_RANGE_ERROR_NUMBERS = new Set([1264, 1690, 1916, 3020, 3048, 3049, 3050, 3051, 3155, 3669, 3706, 3737, 3738, 3739, 3740, 4103, 4105, 4106, 4124, 4125, 4126, 4127])
+/** The error numbers of an invalid JSON value, mapped to `SQL_INVALID_VALUE` of type `invalid json`. */
 export const MYSQL_INVALID_JSON_ERROR_NUMBERS = new Set([3140, 3141, 3144, 3145, 3146, 3147, 3156, 3157, 3158, 3853, 3903, 3966, 3967, 4035, 4036, 4037, 4038, 4039, 4041, 4042, 4044, 4045, 4046, 4048, 4049, 4050, 4051, 4076, 4176, 4178, 4179, 4186, 4193])
+/** The error numbers of a database not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MYSQL_DATABASE_NOT_FOUND_ERROR_NUMBERS = new Set([1008, 1046, 1049, 3503])
+/** The error numbers of a table or view not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MYSQL_TABLE_NOT_FOUND_ERROR_NUMBERS = new Set([1051, 1109, 1146, 1932, 4092])
+/** The error numbers of a column not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MYSQL_COLUMN_NOT_FOUND_ERROR_NUMBERS = new Set([1054, 1072, 4082])
+/** The error numbers of a routine not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MYSQL_ROUTINE_NOT_FOUND_ERROR_NUMBERS = new Set([1106, 1122, 1128, 1305, 1630, 4095, 4096])
+/** The error numbers of an index not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MYSQL_INDEX_NOT_FOUND_ERROR_NUMBERS = new Set([1091, 1176, 1191, 4206, 4222])
+/** The error numbers of a database that already exists, mapped to `SQL_OBJECT_ALREADY_EXISTS`. */
 export const MYSQL_DATABASE_ALREADY_EXISTS_ERROR_NUMBERS = new Set([1007])
+/** The error numbers of a table or view that already exists, mapped to `SQL_OBJECT_ALREADY_EXISTS`. */
 export const MYSQL_TABLE_ALREADY_EXISTS_ERROR_NUMBERS = new Set([1050])
+/** The error numbers of a column that already exists, mapped to `SQL_OBJECT_ALREADY_EXISTS`. */
 export const MYSQL_COLUMN_ALREADY_EXISTS_ERROR_NUMBERS = new Set([1060, 1110])
+/** The error numbers of a routine that already exists, mapped to `SQL_OBJECT_ALREADY_EXISTS`. */
 export const MYSQL_ROUTINE_ALREADY_EXISTS_ERROR_NUMBERS = new Set([1125, 1304])
+/** The error numbers of an index that already exists, mapped to `SQL_OBJECT_ALREADY_EXISTS`. */
 export const MYSQL_INDEX_ALREADY_EXISTS_ERROR_NUMBERS = new Set([1061])
+/** The error numbers of an ambiguous column or a duplicate alias, mapped to `SQL_AMBIGUOUS_IDENTIFIER`. */
 export const MYSQL_AMBIGUOUS_IDENTIFIER_ERROR_NUMBERS = new Set([1052, 1066])
+/** The error numbers of a syntax error, mapped to `SQL_SYNTAX_ERROR`. */
 export const MYSQL_SYNTAX_ERROR_NUMBERS = new Set([1064, 1149])
+/**
+ * The error numbers of an invalid parameter or argument, mapped to `SQL_INVALID_PARAMETER` with the details read from
+ * the message.
+ */
 export const MYSQL_INVALID_PARAMETER_ERROR_NUMBERS = new Set([1107, 1108, 1210, 1230, 1231, 1232, 1277, 1318, 1330, 1331, 1332, 1333, 1414, 1582, 1583, 1584, 1758, 1912, 2031, 2033, 2034, 2035, 2036, 2060, 2072, 4080, 4187, 45016, 45017])
+/** The error numbers of a permission denied, mapped to `SQL_PERMISSION_DENIED`. */
 export const MYSQL_PERMISSION_DENIED_ERROR_NUMBERS = new Set([1095, 1142, 1143, 1144, 1211, 1227, 1269, 1370, 1403, 1410, 1961, 1962, 1979, 2068, 3059, 4151, 4166, 3552])
+/** The error numbers of an authentication refused, mapped to `SQL_AUTHENTICATION_ERROR`. */
 export const MYSQL_AUTHENTICATION_ERROR_NUMBERS = new Set([1045, 1698, 1873, 2049, 2059, 2061, 2067, 4150])
+/** The error numbers of an access refused to a database or from a host, mapped to `SQL_AUTHORIZATION_ERROR`. */
 export const MYSQL_AUTHORIZATION_ERROR_NUMBERS = new Set([1044, 1130])
+/** The error numbers of a connection error, mapped to `SQL_CONNECTION_ERROR` with the type of error of the number. */
 export const MYSQL_CONNECTION_ERROR_NUMBERS = new Set([1042, 1043, 1047, 1053, 1080, 1081, 1129, 1152, 1154, 1155, 1156, 1157, 1158, 1160, 1184, 1189, 1190, 1218, 1927, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2012, 2013, 2016, 2017, 2018, 2024, 2025, 2026, 2027, 2038, 2039, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 2047, 2055, 2064, 2066, 2070, 2075, 3032])
+/** The error numbers of a timeout of the connection, mapped to `SQL_TIMEOUT` of type `connection`. */
 export const MYSQL_CONNECTION_TIMEOUT_ERROR_NUMBERS = new Set([1159, 1161])
+/** The error numbers of a lack of memory, mapped to `SQL_RESOURCE_LIMIT_REACHED` of resource `memory`. */
 export const MYSQL_RESOURCE_MEMORY_ERROR_NUMBERS = new Set([5, 34, 1037, 1038, 1041, 1119, 1135, 1206, 1257, 2008, 3015, 3044])
+/** The error numbers of a lack of disk, mapped to `SQL_RESOURCE_LIMIT_REACHED` of resource `disk`. */
 export const MYSQL_RESOURCE_DISK_ERROR_NUMBERS = new Set([20, 35, 1114, 1197, 3019, 4139])
+/** The error numbers of too many connections, mapped to `SQL_RESOURCE_LIMIT_REACHED` of resource `connections`. */
 export const MYSQL_RESOURCE_CONNECTION_ERROR_NUMBERS = new Set([1040, 1203])
+/** The error numbers of another limit reached, mapped to `SQL_RESOURCE_LIMIT_REACHED` without a resource type. */
 export const MYSQL_RESOURCE_LIMIT_ERROR_NUMBERS = new Set([23, 1104, 1118, 1197, 1206, 1226, 1258, 1461, 1920, 2020, 3636, 4040, 4043, 4075, 4210])
+/** The error numbers of too many parameters, mapped to `SQL_RESOURCE_LIMIT_REACHED` of resource `parameters`. */
 export const MYSQL_RESOURCE_PARAMETERS_ERROR_NUMBERS = new Set([1390])
+/**
+ * The error numbers of too many elements in a statement, mapped to `SQL_RESOURCE_LIMIT_REACHED` of resource
+ * `statement elements`.
+ */
 export const MYSQL_RESOURCE_STATEMENT_ELEMENTS_ERROR_NUMBERS = new Set([1116, 1117, 4003])
+/**
+ * The error numbers of a statement or packet too long, mapped to `SQL_RESOURCE_LIMIT_REACHED` of resource
+ * `statement length`.
+ */
 export const MYSQL_RESOURCE_STATEMENT_LENGTH_ERROR_NUMBERS = new Set([1153, 1437, 4026])
+/**
+ * The error numbers of a statement too complex or nested too deep, mapped to `SQL_RESOURCE_LIMIT_REACHED` of resource
+ * `statement complexity`.
+ */
 export const MYSQL_RESOURCE_STATEMENT_COMPLEXITY_ERROR_NUMBERS = new Set([1436, 1473])
+/** The error numbers of a read error, mapped to `SQL_IO_ERROR` of type `read`. */
 export const MYSQL_IO_READ_ERROR_NUMBERS = new Set([2, 9, 12, 24, 1024, 1018])
+/** The error numbers of a write error, mapped to `SQL_IO_ERROR` of type `write`. */
 export const MYSQL_IO_WRITE_ERROR_NUMBERS = new Set([1, 3, 21, 25, 1004, 1006, 1026])
+/** The error numbers of an error closing a file, mapped to `SQL_IO_ERROR` of type `close`. */
 export const MYSQL_IO_CLOSE_ERROR_NUMBERS = new Set([4])
+/** The error numbers of an error deleting a file, mapped to `SQL_IO_ERROR` of type `delete`. */
 export const MYSQL_IO_DELETE_ERROR_NUMBERS = new Set([6])
+/** The error numbers of an error locking a file, mapped to `SQL_IO_ERROR` of type `lock`. */
 export const MYSQL_IO_LOCK_ERROR_NUMBERS = new Set([10, 1015])
+/** The error numbers of an error unlocking a file, mapped to `SQL_IO_ERROR` of type `unlock`. */
 export const MYSQL_IO_UNLOCK_ERROR_NUMBERS = new Set([11])
+/** The error numbers of an error reading the status of a file, mapped to `SQL_IO_ERROR` of type `file stat`. */
 export const MYSQL_IO_FILE_STAT_ERROR_NUMBERS = new Set([13, 1013])
+/** The error numbers of a file not found, mapped to `SQL_IO_ERROR` of type `file not found`. */
 export const MYSQL_IO_FILE_NOT_FOUND_ERROR_NUMBERS = new Set([29, 1017])
+/** The error numbers of an access to a file refused, mapped to `SQL_IO_ERROR` of type `access`. */
 export const MYSQL_IO_ACCESS_ERROR_NUMBERS = new Set([31, 32])
+/** The error numbers of an error syncing a file, mapped to `SQL_IO_ERROR` of type `fsync`. */
 export const MYSQL_IO_FSYNC_ERROR_NUMBERS = new Set([27])
+/** The error numbers of an error seeking in a file, mapped to `SQL_IO_ERROR` of type `seek`. */
 export const MYSQL_IO_SEEK_ERROR_NUMBERS = new Set([33])
+/** The error numbers of an error with a path or a directory, mapped to `SQL_IO_ERROR` of type `path`. */
 export const MYSQL_IO_PATH_ERROR_NUMBERS = new Set([7, 14, 15, 16, 17, 26, 1010, 1025, 1085, 1086, 2063, 2069])
+/** The error numbers of an error of configuration, mapped to `SQL_CONFIGURATION_ERROR` of type `runtime parameter`. */
 export const MYSQL_CONFIGURATION_ERROR_NUMBERS = new Set([22, 47, 48, 49, 51, 52, 53, 54, 59, 60, 63, 64, 65, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 84, 1193, 1238, 1284, 1286, 1911, 2019, 2028, 2074, 3003, 3009, 3027, 4065, 4133, 4167, 4182, 4185, 4200])
+/** The error numbers of a corruption, mapped to `SQL_DATABASE_CORRUPTED` with what is corrupted by the number. */
 export const MYSQL_DATABASE_CORRUPTED_ERROR_NUMBERS = new Set([1033, 1034, 1035, 1194, 1195, 1244, 1256, 1259, 1712, 3000, 4064])
+/** The error numbers of a write where only reads are allowed, mapped to `SQL_READ_ONLY_VIOLATION`. */
 export const MYSQL_READ_ONLY_ERROR_NUMBERS = new Set([1036, 1099, 1207, 1223, 1792])
+/** The error numbers of a feature not supported, mapped to `SQL_FEATURE_NOT_SUPPORTED`. */
 export const MYSQL_FEATURE_NOT_SUPPORTED_ERROR_NUMBERS = new Set([1112, 1115, 1118, 1148, 1163, 1164, 1178, 1235, 1312, 1314, 1335, 1336, 1415, 1460, 1845, 1846, 1907, 1910, 1925, 1970, 1971, 2054, 2065, 3005, 3012, 3031, 3060, 4022, 4032, 4033, 4047, 4053, 4057, 4061, 4062, 4063, 4069, 4077, 4111, 4120, 4132, 4137, 4138, 4165, 4184, 4194, 4195, 4223, 4225])
+/** The error numbers of an invalid definition, mapped to `SQL_INVALID_SQL_STATEMENT` of type `invalid definition`. */
 export const MYSQL_INVALID_DEFINITION_ERROR_NUMBERS = new Set([1005, 1063, 1067, 1068, 1069, 1070, 1071, 1073, 1074, 1075, 1089, 1101, 1113, 1120, 1121, 1167, 1170, 1171, 1173, 1239, 1252, 1280, 1281, 1320, 1322, 1323, 1327, 1337, 1338, 1407, 1425, 1426, 1427, 1439, 1453, 1458, 1901, 1903, 1904, 1905, 1967, 3007, 3014, 3018, 4005, 4006, 4008, 4009, 4011, 4012, 4013, 4014, 4015, 4016, 4017, 4018, 4019, 4020, 4021, 4023, 4024, 4030, 4058, 4097, 4108, 4110, 4113, 4116, 4119, 4121, 4122, 4123, 4126, 4128, 4130, 4131, 4152, 4154, 4155, 4157, 4169, 4170, 4171, 4174, 4180, 4191, 4197, 4198, 4199])
+/** The error numbers of an invalid reference, mapped to `SQL_INVALID_SQL_STATEMENT` of type `invalid reference`. */
 export const MYSQL_INVALID_REFERENCE_ERROR_NUMBERS = new Set([1093, 1240, 1247, 1250, 1980, 4007, 4029, 4100, 4129, 4156, 4221])
+/**
+ * The error numbers of an invalid grouping or aggregate, mapped to `SQL_INVALID_SQL_STATEMENT` of type
+ * `invalid grouping`.
+ */
 export const MYSQL_INVALID_GROUPING_ERROR_NUMBERS = new Set([1055, 1056, 1057, 1111, 1140, 1463, 1981, 3028, 3029, 4074])
+/** The error numbers of an invalid identifier, mapped to `SQL_INVALID_SQL_STATEMENT` of type `invalid identifier`. */
 export const MYSQL_INVALID_IDENTIFIER_ERROR_NUMBERS = new Set([1059, 1102, 1103, 1166, 1280, 1281, 1308, 1309, 1310, 1458, 3057, 4081, 4083])
+/**
+ * The error numbers of a statement or clause where it isn't allowed, mapped to `SQL_INVALID_SQL_STATEMENT` of type
+ * `invalid statement context`.
+ */
 export const MYSQL_INVALID_STATEMENT_CONTEXT_ERROR_NUMBERS = new Set([1090, 1096, 1175, 1192, 1204, 1221, 1225, 1228, 1229, 1233, 1234, 1243, 1313, 1324, 1923, 1930, 1933, 1954, 3004, 3016, 4105, 4106, 4116, 4119, 4121, 4122, 4140, 4141, 4142, 4143, 4144, 4158, 4172, 4177, 4180, 4205, 4224])
+/**
+ * The error numbers of what can't be done inside a transaction, mapped to `TRANSACTION_ERROR` of type
+ * `active transaction`.
+ */
 export const MYSQL_TRANSACTION_ACTIVE_ERROR_NUMBERS = new Set([1179, 1192, 1568, 1929, 1953, 4059])
+/** The error numbers of a transaction rolled back, mapped to `TRANSACTION_ERROR` of type `transaction rolled back`. */
 export const MYSQL_TRANSACTION_ROLLBACK_ERROR_NUMBERS = new Set([1180, 1181, 1196, 1402, 1964, 3101, 4060])
+/** The error numbers of a deadlock, mapped to `TRANSACTION_ERROR` of type `deadlock`. */
 export const MYSQL_TRANSACTION_DEADLOCK_ERROR_NUMBERS = new Set([1213, 1614])
+/** The error numbers of a lock wait that timed out, mapped to `SQL_TIMEOUT` of type `lock`. */
 export const MYSQL_TRANSACTION_TIMEOUT_ERROR_NUMBERS = new Set([1205, 1613, 3058])
+/** The error numbers of a cursor in an invalid state, mapped to `SQL_OBJECT_STATE_ERROR`. */
 export const MYSQL_CURSOR_INVALID_STATE_ERROR_NUMBERS = new Set([1325, 1326])
+/** The error numbers of a misuse of the client API, mapped to `SQL_INTERNAL_ERROR` of type `api misuse`. */
 export const MYSQL_API_MISUSE_ERROR_NUMBERS = new Set([2014, 2029, 2030, 2048, 2050, 2051, 2052, 2053, 2056, 2057, 2058, 2062, 2071, 2073])
+/** The error numbers of an invalid value, mapped to `SQL_INVALID_VALUE` of type `invalid value`. */
 export const MARIADB_INVALID_VALUE_ERROR_NUMBERS = new Set([1918, 3033, 3034, 3035, 3036, 3037, 3038, 3039, 3040, 3041, 3042, 3043, 3045, 3047, 4054, 4055, 4066, 4070, 4078, 4079, 4101, 4102, 4104, 4127, 4153, 4164, 4193])
+/** The error numbers of a value in an invalid format, mapped to `SQL_INVALID_VALUE` of type `invalid format`. */
 export const MARIADB_INVALID_FORMAT_ERROR_NUMBERS = new Set([1919, 1921, 1958, 3020, 3055, 4098, 4203, 4204])
+/** The error numbers of a value in an invalid encoding, mapped to `SQL_INVALID_VALUE` of type `invalid encoding`. */
 export const MARIADB_INVALID_ENCODING_ERROR_NUMBERS = new Set([1922, 1977])
+/** The error numbers of a sequence that ran out of values, mapped to `SQL_INVALID_VALUE` of type `sequence limit`. */
 export const MARIADB_SEQUENCE_LIMIT_ERROR_NUMBERS = new Set([4084])
+/** The error numbers of a role not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MARIADB_ROLE_NOT_FOUND_ERROR_NUMBERS = new Set([1976])
+/** The error numbers of a sequence not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MARIADB_SEQUENCE_NOT_FOUND_ERROR_NUMBERS = new Set([4091])
+/** The error numbers of a trigger not found, mapped to `SQL_OBJECT_NOT_FOUND`. */
 export const MARIADB_TRIGGER_NOT_FOUND_ERROR_NUMBERS = new Set([3011, 4031])
+/** The error numbers of an object that already exists, mapped to `SQL_OBJECT_ALREADY_EXISTS`. */
 export const MARIADB_OBJECT_ALREADY_EXISTS_ERROR_NUMBERS = new Set([1934, 1968, 1973, 1975])
+/** The error numbers of a duplicate identifier, mapped to `SQL_AMBIGUOUS_IDENTIFIER`. */
 export const MARIADB_DUPLICATE_IDENTIFIER_ERROR_NUMBERS = new Set([4004, 4010, 4134, 4163])
+/** The error numbers of a wrong number of rows or values, mapped to `SQL_CARDINALITY_VIOLATION`. */
 export const MARIADB_CARDINALITY_ERROR_NUMBERS = new Set([4002, 4099, 4196, 4201])
+/** The error numbers of a statement that took too long, mapped to `SQL_TIMEOUT` of type `statement`. */
 export const MARIADB_STATEMENT_TIMEOUT_ERROR_NUMBERS = new Set([1931, 1969, 4192])
+/** The error numbers of an error of replication or of another server, mapped to `SQL_EXTERNAL_DATA_SOURCE_ERROR`. */
 export const MARIADB_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS = new Set([1935, 1936, 1937, 1938, 1939, 1940, 1941, 1942, 1943, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1955, 1956, 1963, 1966, 3001, 3002, 3006, 3017, 3021, 3022, 3023, 3030, 4052, 4056, 4067, 4068, 4072, 4073, 4088, 4168, 4175, 4188, 4189, 4226])
+/** The error numbers of an error raised inside a routine, mapped to `SQL_ROUTINE_ERROR`. */
 export const MARIADB_ROUTINE_ERROR_NUMBERS = new Set([3052, 3053, 4027, 4028, 4183])
+/** The error numbers of a corrupted sequence, mapped to `SQL_DATABASE_CORRUPTED` of type `sequence`. */
 export const MARIADB_SEQUENCE_CORRUPTED_ERROR_NUMBERS = new Set([4085, 4086])
+/** The error numbers of an object of the wrong type, mapped to `SQL_OBJECT_STATE_ERROR` of type `wrong object type`. */
 export const MARIADB_WRONG_OBJECT_TYPE_ERROR_NUMBERS = new Set([1965, 4089, 4090, 4124])
+/** The error numbers of an object in an invalid state, mapped to `SQL_OBJECT_STATE_ERROR` of type `invalid state`. */
 export const MARIADB_OBJECT_INVALID_STATE_ERROR_NUMBERS = new Set([1924, 4087, 4135, 4145, 4146, 4147, 4148, 4149])
+/**
+ * The error numbers of a transaction whose outcome is unknown, mapped to `TRANSACTION_ERROR` of type `outcome unknown`.
+ */
 export const MARIADB_TRANSACTION_OUTCOME_UNKNOWN_ERROR_NUMBERS = new Set([4173])

@@ -9,23 +9,34 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 
+/** The options of BunSqliteQueryRunner */
 export interface BunSqliteQueryRunnerConfig {
+    /**
+     * The provider of the promises, like `SynchronousPromise`, to run the queries without deferring; the global
+     * `Promise` by default
+     */
     promise?: PromiseProvider | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
 
+/**
+ * The query runner of SQLite through `bun:sqlite`, over a `Database`. The driver is synchronous: with
+ * `SynchronousPromise` as the promise provider, the whole query runs without deferring (see `sync`).
+ */
 export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
+    /** The `Database` of bun:sqlite the query runner was created with */
     readonly connection: Database
-    readonly promise: PromiseProvider
     private config?: BunSqliteQueryRunnerConfig | undefined
 
     constructor(connection: Database, config?: BunSqliteQueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'sqlite'
-        this.promise = config?.promise || Promise
+        if (config?.promise) {
+            this.promise = config.promise
+        }
         this.config = config
     }
 
@@ -59,7 +70,7 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
             return this.statementOfTheTransactionFailed(e)
         }
     }
-    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+    protected override executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
         // A script of several statements, without params, runs whole with exec: a prepared statement runs only the first one and ignores the rest without an error
         if (params.length > 0) {
             return super.executeDatabaseSchemaModification(query, params)
@@ -86,7 +97,7 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
             return this.statementOfTheTransactionFailed(e)
         }
     }
-    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected override executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -118,12 +129,6 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
     addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner
         return queryRunnerParamBindings.BunSqliteQueryRunner(params, value)
-    }
-    override createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
-        return this.promise.resolve(result)
-    }
-    override createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
-        return this.promise.reject(error)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqliteQueryRunner.getErrorReason(error)

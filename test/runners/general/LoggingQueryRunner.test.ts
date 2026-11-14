@@ -1,9 +1,9 @@
 // LoggingQueryRunner reports every call to the logger callbacks it was given
-// (any of them may be missing); ConsoleLogQueryRunner and
-// ConsoleLogNoopQueryRunner write those reports with console.log.
+// (any of them may be missing); ConsoleLogQueryRunner writes those reports with console.log, also over a
+// NoopQueryRunner.
 
 import { afterEach, beforeEach, describe, expect, test } from '../../lib/testRunner.js'
-import { ConsoleLogNoopQueryRunner } from '../../../src/queryRunners/ConsoleLogNoopQueryRunner.js'
+import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
 import { ConsoleLogQueryRunner, type ConsoleLogQueryRunnerOpts } from '../../../src/queryRunners/ConsoleLogQueryRunner.js'
 import { LoggingQueryRunner, type QueryLogger } from '../../../src/queryRunners/LoggingQueryRunner.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
@@ -19,11 +19,11 @@ function mock(fail = false): MockQueryRunner {
         if (fail) throw failure
         const shape = shapes.get(type)
         return shape ? sampleResult(shape) : undefined
-    }, 'postgreSql')
+    }, { database: 'postgreSql' })
 }
 
 class ManagedMock extends MockQueryRunner {
-    override executeInTransactionCallsBeginAndCommit(): boolean { return false }
+    override get executeInTransactionCallsBeginAndCommit(): boolean { return false }
     override executeInTransaction<T>(fn: () => Promise<T>): Promise<T> { return fn() }
 }
 
@@ -90,7 +90,7 @@ describe('LoggingQueryRunner', () => {
         await runner.executeRollback(undefined)
         expect(events.filter(e => e.startsWith('query'))).toHaveLength(QUERY_CALLS.length + 4)
         expect(await runner.executeInTransaction(async () => 'r', runner, undefined)).toBe('r')
-        const managed = new LoggingQueryRunner(logger, new ManagedMock(() => undefined, 'postgreSql'))
+        const managed = new LoggingQueryRunner(logger, new ManagedMock(() => undefined, { database: 'postgreSql' }))
         expect(await managed.executeInTransaction(async () => 'r', managed, undefined)).toBe('r')
     })
 
@@ -103,7 +103,7 @@ describe('LoggingQueryRunner', () => {
 
     test('execute-in-transaction-without-low-level-transactions', async () => {
         const { logger, events } = recordingLogger(['onQuery', 'onQueryResult'])
-        const runner = new LoggingQueryRunner(logger, new ManagedMock(() => undefined, 'postgreSql'))
+        const runner = new LoggingQueryRunner(logger, new ManagedMock(() => undefined, { database: 'postgreSql' }))
         expect(await runner.executeInTransaction(async () => 'r', runner, ['serializable'])).toBe('r')
         const bodyFailure = new Error('body')
         expect(await rejectionOf(runner.executeInTransaction(async () => { throw bodyFailure }, runner))).toBe(bodyFailure)
@@ -117,11 +117,11 @@ describe('LoggingQueryRunner', () => {
 
     test('a-transaction-refused-before-it-begins-shows-no-rollback', async () => {
         class RefusingMock extends MockQueryRunner {
-            override executeInTransactionCallsBeginAndCommit(): boolean { return false }
+            override get executeInTransactionCallsBeginAndCommit(): boolean { return false }
             override executeInTransaction<T>(): Promise<T> { return Promise.reject(new Error('refused')) }
         }
         const { logger, events } = recordingLogger(['onQuery', 'onQueryResult'])
-        const runner = new LoggingQueryRunner(logger, new RefusingMock(() => undefined, 'postgreSql'))
+        const runner = new LoggingQueryRunner(logger, new RefusingMock(() => undefined, { database: 'postgreSql' }))
 
         await rejectionOf(runner.executeInTransaction(async () => 'r', runner))
 
@@ -129,7 +129,7 @@ describe('LoggingQueryRunner', () => {
     })
 
     test('execute-in-transaction-without-low-level-transactions-and-no-callbacks', async () => {
-        const runner = new LoggingQueryRunner({}, new ManagedMock(() => undefined, 'postgreSql'))
+        const runner = new LoggingQueryRunner({}, new ManagedMock(() => undefined, { database: 'postgreSql' }))
         expect(await runner.executeInTransaction(async () => 'r', runner)).toBe('r')
         const bodyFailure = new Error('body')
         expect(await rejectionOf(runner.executeInTransaction(async () => { throw bodyFailure }, runner))).toBe(bodyFailure)
@@ -137,7 +137,7 @@ describe('LoggingQueryRunner', () => {
 
     test('a-failing-logger-does-not-change-how-the-transaction-ends', async () => {
         const throwing: QueryLogger = { onQuery: (type) => { if (type !== 'beginTransaction') throw new Error('logger') } }
-        const runner = new LoggingQueryRunner(throwing, new ManagedMock(() => undefined, 'postgreSql'))
+        const runner = new LoggingQueryRunner(throwing, new ManagedMock(() => undefined, { database: 'postgreSql' }))
         expect(await runner.executeInTransaction(async () => 'r', runner)).toBe('r')
         const bodyFailure = new Error('body')
         expect(await rejectionOf(runner.executeInTransaction(async () => { throw bodyFailure }, runner))).toBe(bodyFailure)
@@ -159,9 +159,9 @@ describe('ConsoleLogQueryRunner', () => {
     async function run(opts: ConsoleLogQueryRunnerOpts | undefined, fail = false): Promise<unknown[][]> {
         const runner: QueryRunner = new ConsoleLogQueryRunner(mock(fail), opts)
         if (fail) {
-            await rejectionOf(runner.executeSelectOneRow('select 1', [7]))
+            await rejectionOf(runner.executeQuery('selectOneRow', 'select 1', [7]))
         } else {
-            await runner.executeSelectOneRow('select 1', [7])
+            await runner.executeQuery('selectOneRow', 'select 1', [7])
         }
         return logged
     }
@@ -207,11 +207,11 @@ describe('ConsoleLogQueryRunner', () => {
         expect(lines[1]).toEqual(['selectOneRow', { query: 'select 1', params: [7], error: failure }])
     })
 
-    test('console-log-noop-query-runner', async () => {
-        const runner = new ConsoleLogNoopQueryRunner()
+    test('console-log-over-a-noop-query-runner', async () => {
+        const runner = new ConsoleLogQueryRunner(new NoopQueryRunner())
         expect(runner.database).toBe('noopDB')
-        expect(await runner.executeSelectManyRows('select 1')).toEqual([])
-        expect(new ConsoleLogNoopQueryRunner('sqlite').database).toBe('sqlite')
+        expect(await runner.executeQuery('selectManyRows', 'select 1', [])).toEqual([])
+        expect(new ConsoleLogQueryRunner(new NoopQueryRunner({ database: 'sqlite' })).database).toBe('sqlite')
         expect(logged).toEqual([['selectManyRows', 'select 1', []]])
     })
 })

@@ -2,10 +2,11 @@ import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, Connection } from 'oracledb'
 import oracledb from 'oracledb'
 import { OracleDBQueryRunner, type OracleDBQueryRunnerConfig } from './OracleDBQueryRunner.js'
-import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
+import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 
+/** The options of OracleDBPoolPromiseQueryRunner, the ones of OracleDBQueryRunner that apply to a pool */
 export interface OracleDBPoolPromiseQueryRunnerConfig {
     /** See OracleDBQueryRunnerConfig */
     typesByName?: OracleDBQueryRunnerConfig['typesByName']
@@ -13,8 +14,13 @@ export interface OracleDBPoolPromiseQueryRunnerConfig {
     returningMaxSize?: OracleDBQueryRunnerConfig['returningMaxSize']
 }
 
-export class OracleDBPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunner {
+/**
+ * The query runner of Oracle through `oracledb`, over the promise of a `Pool` (what `createPool()` returns): each
+ * query takes a connection of the pool, and a transaction keeps one until it ends.
+ */
+export class OracleDBPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
+    /** The promise of the `Pool` of oracledb the query runner was created with */
     readonly promisePool: Promise<Pool>
 
     private config?: OracleDBPoolPromiseQueryRunnerConfig | undefined

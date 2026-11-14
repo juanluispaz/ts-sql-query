@@ -39,10 +39,10 @@ describe.skipIf(!isRealDbEnabled('mariadb', 'docker', 'newest', 'mariadb'))('mar
         const connection = await mariadb.createConnection({ ...connectionOptions(), ...USER_OPTIONS } as ConnectionConfig)
         try {
             const runner = new MariaDBQueryRunner(connection)
-            expect(await runner.executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+            expect(await runner.executeQuery('selectOneRow', SQL, [])).toEqual(EXPECTED)
             // The id of an inserted row is a bigint, exact, not a rounded number
-            await runner.executeDatabaseSchemaModification('create temporary table rt_conf_ids (id bigint auto_increment primary key, v int) auto_increment = 9007199254740993')
-            expect(await runner.executeInsertReturningLastInsertedId('insert into rt_conf_ids (v) values (1)', [])).toBe(9007199254740993n)
+            await runner.executeQuery('executeDatabaseSchemaModification', 'create temporary table rt_conf_ids (id bigint auto_increment primary key, v int) auto_increment = 9007199254740993', [])
+            expect(await runner.executeQuery('insertReturningLastInsertedId', 'insert into rt_conf_ids (v) values (1)', [])).toBe(9007199254740993n)
             // The connection keeps its options for its own queries
             const own = await connection.query(SQL)
             expect(Array.isArray(own[0])).toBe(true)
@@ -54,7 +54,7 @@ describe.skipIf(!isRealDbEnabled('mariadb', 'docker', 'newest', 'mariadb'))('mar
     test('the-options-of-the-pool-dont-apply-to-the-queries-of-the-runner', async () => {
         const pool = mariadb.createPool({ ...connectionOptions(), connectionLimit: 1, ...USER_OPTIONS } as PoolConfig)
         try {
-            expect(await new MariaDBPoolQueryRunner(pool).executeSelectOneRow(SQL, [])).toEqual(EXPECTED)
+            expect(await new MariaDBPoolQueryRunner(pool).executeQuery('selectOneRow', SQL, [])).toEqual(EXPECTED)
         } finally {
             await pool.end()
         }

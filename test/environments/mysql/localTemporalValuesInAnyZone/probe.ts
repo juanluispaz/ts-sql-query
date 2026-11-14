@@ -24,31 +24,31 @@ async function createRunner(): Promise<{ runner: QueryRunner, close: () => Promi
             const { default: mysql2 } = await import('mysql2')
             const { MySql2QueryRunner } = await import('../../../../src/queryRunners/MySql2QueryRunner.js')
             const connection = mysql2.createConnection(db)
-            return { runner: new MySql2QueryRunner(connection, 'mySql'), close: () => new Promise<void>(resolve => connection.end(() => resolve())) }
+            return { runner: new MySql2QueryRunner(connection, { database: 'mySql' }), close: () => new Promise<void>(resolve => connection.end(() => resolve())) }
         }
         case 'MySql2PoolQueryRunner': {
             const { default: mysql2 } = await import('mysql2')
             const { MySql2PoolQueryRunner } = await import('../../../../src/queryRunners/MySql2PoolQueryRunner.js')
             const pool = mysql2.createPool({ ...db, connectionLimit: 2 })
-            return { runner: new MySql2PoolQueryRunner(pool, 'mySql'), close: () => new Promise<void>(resolve => pool.end(() => resolve())) }
+            return { runner: new MySql2PoolQueryRunner(pool, { database: 'mySql' }), close: () => new Promise<void>(resolve => pool.end(() => resolve())) }
         }
         case 'MariaDBQueryRunner': {
             const { default: mariadb } = await import('mariadb')
             const { MariaDBQueryRunner } = await import('../../../../src/queryRunners/MariaDBQueryRunner.js')
             const connection = await mariadb.createConnection({ ...db, allowPublicKeyRetrieval: true })
-            return { runner: new MariaDBQueryRunner(connection, 'mySql'), close: () => connection.end() }
+            return { runner: new MariaDBQueryRunner(connection, { database: 'mySql' }), close: () => connection.end() }
         }
         case 'MariaDBPoolQueryRunner': {
             const { default: mariadb } = await import('mariadb')
             const { MariaDBPoolQueryRunner } = await import('../../../../src/queryRunners/MariaDBPoolQueryRunner.js')
             const pool = mariadb.createPool({ ...db, allowPublicKeyRetrieval: true, connectionLimit: 2, minimumIdle: 0 })
-            return { runner: new MariaDBPoolQueryRunner(pool, 'mySql'), close: () => pool.end() }
+            return { runner: new MariaDBPoolQueryRunner(pool, { database: 'mySql' }), close: () => pool.end() }
         }
         case 'BunSqlMySqlQueryRunner': {
             const { SQL } = await import('bun')
             const { BunSqlMySqlQueryRunner } = await import('../../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
             const sql = new SQL({ adapter: 'mysql', hostname: db.host, port: db.port, username: db.user, password: db.password, database: db.database, foundRows: true, allowPublicKeyRetrieval: true, max: 2 })
-            return { runner: new BunSqlMySqlQueryRunner(sql, 'mySql'), close: () => sql.close() }
+            return { runner: new BunSqlMySqlQueryRunner(sql, { database: 'mySql' }), close: () => sql.close() }
         }
         default:
             throw new Error('Unknown runner ' + config.runner)

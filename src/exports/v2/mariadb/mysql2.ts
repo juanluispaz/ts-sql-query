@@ -6,5 +6,6 @@ export {
 } from '../../../queryRunners/MySql2QueryRunner.js'
 
 export {
+    type MySql2PoolQueryRunnerConfig,
     MySql2PoolQueryRunner,
 } from '../../../queryRunners/MySql2PoolQueryRunner.js'

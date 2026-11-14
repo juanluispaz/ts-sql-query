@@ -2,6 +2,9 @@ import type { DBError } from 'oracledb'
 import type { TsSqlErrorReason } from '../../TsSqlError.js'
 import { getOracleEngineErrorReason } from '../databaseErrorMappers/OracleErrorMapper.js'
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through oracledb; `UNKNOWN` when it isn't an error of that driver.
+ */
 export function getOracleDBErrorReason(error: unknown): TsSqlErrorReason {
     if (!isOracleDbError(error)) {
         return { reason: 'UNKNOWN' }
@@ -9,10 +12,19 @@ export function getOracleDBErrorReason(error: unknown): TsSqlErrorReason {
     return getOracleDbErrorReason(error)
 }
 
+/**
+ * Tells whether the error comes from oracledb: an `Error` with a code, an error number, or a message that starts with
+ * an Oracle error code.
+ */
 export function isOracleDBError(error: unknown): error is DBError {
     return isOracleDbError(error)
 }
 
+/**
+ * Gives the reason of an error of oracledb: the driver's for a code of the driver (`NJS-`, `DPI-`, `OCI-`) or a Node
+ * error code of the network; the engine's, mapped with `getOracleEngineErrorReason`, when it has an error number; an
+ * invalid configuration of the connection for `ENOENT`; `SQL_UNKNOWN` otherwise.
+ */
 function getOracleDbErrorReason(error: DBError): TsSqlErrorReason {
     const code = getOracleErrorCode(error)
     if (code.startsWith('NJS-') || code.startsWith('DPI-') || code.startsWith('OCI-') || isNodeOracleNetworkErrorCode(code)) {
@@ -32,12 +44,21 @@ function getOracleDbErrorReason(error: DBError): TsSqlErrorReason {
     return { reason: 'SQL_UNKNOWN', databaseErrorCode: code || undefined, databaseErrorMessage: error.message || undefined }
 }
 
+/**
+ * Gives the reason of an error of the driver, with its error number added when it is a positive number, which is the
+ * ORA number of the server some of these errors keep.
+ */
 function mapOracleDriverError(error: DBError, code = getOracleErrorCode(error)): TsSqlErrorReason {
     const reason = mapOracleDriverErrorWithoutNumber(error, code)
     // NJS-500 for a connection the server dropped keeps the ORA number that dropped it
     return typeof error.errorNum === 'number' && error.errorNum > 0 ? { ...reason, databaseErrorNumber: error.errorNum } as TsSqlErrorReason : reason
 }
 
+/**
+ * Gives the reason of an error of the driver from its code, by groups of codes (parameters, concurrent use, connection,
+ * pool, timeouts, resources, features, statements, values, object states, transactions, authentication, configuration,
+ * routines, I/O, protocol, internal), and a few codes about object types; `SQL_UNKNOWN` for any other code.
+ */
 function mapOracleDriverErrorWithoutNumber(error: DBError, code: string): TsSqlErrorReason {
     const databaseErrorCode = code || undefined
     const databaseErrorMessage = error.message || undefined
@@ -129,6 +150,7 @@ function mapOracleDriverErrorWithoutNumber(error: DBError, code: string): TsSqlE
     return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
 }
 
+/** Tells whether the code is one of the codes of the driver about an invalid parameter or bind value. */
 function isOracleInvalidParameterCode(code: string): boolean {
     return code === 'NJS-005'
         || code === 'NJS-004'
@@ -209,6 +231,10 @@ function isOracleInvalidParameterCode(code: string): boolean {
         || code === 'DPI-1088'
 }
 
+/**
+ * Tells whether the error is an `Error` with a message and a code, an error number, or a message that starts with an
+ * Oracle error code.
+ */
 function isOracleDbError(error: unknown): error is DBError {
     return !!error && error instanceof Error && (
         typeof (error as DBError).message === 'string'
@@ -216,6 +242,10 @@ function isOracleDbError(error: unknown): error is DBError {
     )
 }
 
+/**
+ * Gives the `code` of the error when it is a non-empty text, otherwise the Oracle error code (`NJS-`, `DPI-`, `ORA-`,
+ * `OCI-`) at the start of the message, or an empty text.
+ */
 function getOracleErrorCode(error: DBError): string {
     const code = error.code
     if (typeof code === 'string' && code) {
@@ -226,6 +256,10 @@ function getOracleErrorCode(error: DBError): string {
     return match?.[0] || ''
 }
 
+/**
+ * Tells whether the code is a code of Node for the network: a connection reset, refused or timed out, or a host that
+ * can't be reached or found.
+ */
 function isNodeOracleNetworkErrorCode(code: string): boolean {
     return code === 'ECONNRESET'
         || code === 'EPIPE'
@@ -238,10 +272,12 @@ function isNodeOracleNetworkErrorCode(code: string): boolean {
         || code === 'EAI_AGAIN'
 }
 
+/** Tells whether the code is one of the codes of the driver for a concurrent use of a connection or an object. */
 function isOracleForbiddenConcurrentUsageCode(code: string): boolean {
     return code === 'NJS-017' || code === 'NJS-023' || code === 'NJS-081' || code === 'NJS-104'
 }
 
+/** Tells whether the code is one of the codes of the driver, or of Node, for a connection that is lost. */
 function isOracleDriverConnectionLostCode(code: string): boolean {
     return code === 'NJS-003'
         || code === 'NJS-500'
@@ -254,6 +290,9 @@ function isOracleDriverConnectionLostCode(code: string): boolean {
         || code === 'EPIPE'
 }
 
+/**
+ * Tells whether the code is one of the codes of the driver, or of Node, for a connection that can't be made for now.
+ */
 function isOracleDriverConnectionTemporarilyUnavailableCode(code: string): boolean {
     return code === 'NJS-503'
         || code === 'NJS-504'
@@ -263,6 +302,9 @@ function isOracleDriverConnectionTemporarilyUnavailableCode(code: string): boole
         || code === 'ENETUNREACH'
 }
 
+/**
+ * Tells whether the code is one of the codes of the driver, or of Node, for an invalid configuration of the connection.
+ */
 function isOracleDriverInvalidConnectionConfigurationCode(code: string): boolean {
     return code === 'NJS-045'
         || code === 'NJS-067'
@@ -318,6 +360,7 @@ function isOracleDriverInvalidConnectionConfigurationCode(code: string): boolean
         || code === 'EAI_AGAIN'
 }
 
+/** Tells whether the code is one of the codes of the driver for an error of the pool. */
 function isOracleDriverPoolErrorCode(code: string): boolean {
     return code === 'NJS-002'
         || code === 'NJS-046'
@@ -329,22 +372,27 @@ function isOracleDriverPoolErrorCode(code: string): boolean {
         || code === 'DPI-1011'
 }
 
+/** Tells whether the code is one of the codes of the driver, or of Node, for a timeout of the connection. */
 function isOracleDriverConnectionTimeoutCode(code: string): boolean {
     return code === 'NJS-040' || code === 'NJS-510' || code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT'
 }
 
+/** Tells whether the code is one of the codes of the driver for a timeout of a statement. */
 function isOracleDriverStatementTimeoutCode(code: string): boolean {
     return code === 'NJS-123' || code === 'DPI-1067'
 }
 
+/** Tells whether the code is the one of the driver for a pool that reached its limit. */
 function isOracleDriverPoolResourceLimitCode(code: string): boolean {
     return code === 'NJS-076'
 }
 
+/** Tells whether the code is one of the codes of the driver for memory that ran out. */
 function isOracleDriverMemoryResourceLimitCode(code: string): boolean {
     return code === 'NJS-024' || code === 'DPI-1001'
 }
 
+/** Tells whether the code is one of the codes of the driver for a feature it doesn't support. */
 function isOracleDriverUnsupportedFeatureCode(code: string): boolean {
     return code === 'NJS-010'
         || code === 'NJS-078'
@@ -371,6 +419,7 @@ function isOracleDriverUnsupportedFeatureCode(code: string): boolean {
         || code === 'DPI-1084'
 }
 
+/** Tells whether the code is one of the codes of the driver for a statement used where it isn't valid. */
 function isOracleDriverInvalidSqlStatementCode(code: string): boolean {
     return code === 'NJS-019'
         || code === 'NJS-095'
@@ -380,6 +429,7 @@ function isOracleDriverInvalidSqlStatementCode(code: string): boolean {
         || code === 'DPI-1087'
 }
 
+/** Tells whether the code is one of the codes of the driver for an invalid value. */
 function isOracleDriverInvalidValueCode(code: string): boolean {
     return code === 'NJS-105'
         || code === 'NJS-114'
@@ -400,6 +450,10 @@ function isOracleDriverInvalidValueCode(code: string): boolean {
         || code === 'DPI-1055'
 }
 
+/**
+ * Tells whether the code is one of the codes of the driver for an object, such as a cursor, in a wrong state or of a
+ * wrong data type.
+ */
 function isOracleDriverObjectStateErrorCode(code: string): boolean {
     return code === 'NJS-018'
         || code === 'NJS-022'
@@ -419,12 +473,14 @@ function isOracleDriverObjectStateErrorCode(code: string): boolean {
         || code === 'DPI-1068'
 }
 
+/** Tells whether the code is one of the codes of the driver for an error of a transaction. */
 function isOracleDriverTransactionErrorCode(code: string): boolean {
     return code === 'NJS-170'
         || code === 'NJS-171'
         || code === 'NJS-172'
 }
 
+/** Tells whether the code is one of the codes of the driver for an error of the authentication. */
 function isOracleDriverAuthenticationErrorCode(code: string): boolean {
     return code === 'NJS-084'
         || code === 'NJS-087'
@@ -432,16 +488,19 @@ function isOracleDriverAuthenticationErrorCode(code: string): boolean {
         || code === 'DPI-1081'
 }
 
+/** Tells whether the code is one of the codes of the driver for an error of the configuration. */
 function isOracleDriverConfigurationErrorCode(code: string): boolean {
     return code === 'NJS-069'
         || code === 'DPI-1052'
         || code === 'DPI-1065'
 }
 
+/** Tells whether the code is the one of the driver for an error of a routine. */
 function isOracleDriverRoutineErrorCode(code: string): boolean {
     return code === 'NJS-700'
 }
 
+/** Tells whether the code is the one of the driver for an error of I/O. */
 function isOracleDriverIoErrorCode(code: string): boolean {
     return code === 'DPI-1075'
 }
@@ -458,6 +517,7 @@ function isOracleDriverProtocolErrorCode(code: string): boolean {
         || code === 'NJS-509'
 }
 
+/** Tells whether the code is one of the codes of the driver for a misuse of its API or an internal error. */
 function isOracleDriverInternalErrorCode(code: string): boolean {
     return code === 'NJS-099'
         || code === 'NJS-106'
@@ -475,6 +535,11 @@ function isOracleDriverInternalErrorCode(code: string): boolean {
         || code === 'DPI-1074'
 }
 
+/**
+ * Gives the details of an invalid parameter from the code of the driver and its message: the parameter error type,
+ * with the counts, the index or the name of the parameter when the message gives them; `invalid value` for a code
+ * without a more specific detail.
+ */
 function getOracleInvalidParameterDetails(code: string, message: string): Partial<Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_PARAMETER' }>> {
     if (code === 'NJS-009') {
         const match = /(\d+) provided but expected between (\d+) and (\d+)/.exec(message)
@@ -526,6 +591,10 @@ function getOracleInvalidParameterDetails(code: string, message: string): Partia
     return { parameterErrorType: 'invalid value' }
 }
 
+/**
+ * Gives the error type of an invalid value from the code of the driver: too long, out of range, invalid JSON or XML,
+ * null not allowed, invalid encoding, or else invalid value.
+ */
 function getOracleDriverInvalidValueType(code: string): Extract<TsSqlErrorReason, { reason: 'SQL_INVALID_VALUE' }>['errorType'] {
     if (code === 'NJS-142' || code === 'NJS-143' || code === 'DPI-1045') {
         return 'too long'
@@ -548,6 +617,9 @@ function getOracleDriverInvalidValueType(code: string): Extract<TsSqlErrorReason
     return 'invalid value'
 }
 
+/**
+ * Gives the error type of an object state from the code of the driver: a wrong object type, or else an invalid state.
+ */
 function getOracleDriverObjectStateErrorType(code: string): Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_STATE_ERROR' }>['objectStateErrorType'] {
     if (code === 'NJS-146' || code === 'DPI-1023' || code === 'DPI-1056') {
         return 'wrong object type'
@@ -555,6 +627,10 @@ function getOracleDriverObjectStateErrorType(code: string): Extract<TsSqlErrorRe
     return 'invalid state'
 }
 
+/**
+ * Gives the type of the object of an object state error from the code of the driver: a cursor, or `undefined` when the
+ * code doesn't say.
+ */
 function getOracleDriverObjectType(code: string): Extract<TsSqlErrorReason, { reason: 'SQL_OBJECT_STATE_ERROR' }>['objectType'] {
     if (code === 'NJS-018' || code === 'NJS-041' || code === 'NJS-042' || code === 'NJS-043' || code === 'NJS-107' || code === 'NJS-147' || code === 'DPI-1029' || code === 'DPI-1039') {
         return 'cursor'
@@ -565,6 +641,10 @@ function getOracleDriverObjectType(code: string): Extract<TsSqlErrorReason, { re
     return undefined
 }
 
+/**
+ * Gives the error type of a transaction from the code of the driver: an active transaction, not in a transaction, or
+ * else an invalid state.
+ */
 function getOracleDriverTransactionErrorType(code: string): Extract<TsSqlErrorReason, { reason: 'TRANSACTION_ERROR' }>['transactionErrorType'] | 'not in transaction' {
     if (code === 'NJS-171') {
         return 'active transaction'
@@ -575,16 +655,19 @@ function getOracleDriverTransactionErrorType(code: string): Extract<TsSqlErrorRe
     return 'invalid state'
 }
 
+/** Gives the name of the bind the message names, between double quotes after a colon, or `undefined`. */
 function extractOracleDriverBindName(message: string): string | undefined {
     const bind = /":([^"]+)"/.exec(message)
     return bind?.[1]
 }
 
+/** Gives the name of the attribute the message says isn't part of the object type, or `undefined`. */
 function extractOracleDriverMissingAttribute(message: string): string | undefined {
     const match = /attribute (.+?) is not part of object type/.exec(message)
     return match?.[1]
 }
 
+/** Gives the name of the object the message names as `"SCHEMA"."NAME"`, joined with a dot, or `undefined`. */
 function extractOracleDriverQuotedObjectName(message: string): string | undefined {
     const match = /"([^"]+)"\."([^"]+)"/.exec(message)
     if (match) {
@@ -593,12 +676,16 @@ function extractOracleDriverQuotedObjectName(message: string): string | undefine
     return undefined
 }
 
+/**
+ * Gives the first number of the message after the Oracle error code at its start, or `undefined` when there is none.
+ */
 function extractFirstNumber(message: string): number | undefined {
     const messageWithoutCode = message.replace(/^[A-Z]{3}-\d{3,5}:\s*/, '')
     const match = /-?\d+/.exec(messageWithoutCode)
     return match ? Number(match[0]) : undefined
 }
 
+/** Gives the index the message names as `index [N]`, or `undefined`. */
 function extractOracleDriverBracketIndex(message: string): number | undefined {
     const match = /index \[(-?\d+)\]/.exec(message)
     return match ? Number(match[1]) : undefined

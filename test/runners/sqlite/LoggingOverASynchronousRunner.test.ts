@@ -54,20 +54,20 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'native', 'newest', 'better-sqlite3-s
     for (const { label, wrap } of wrappers) {
         test(`${label}: a select gives its result before the call returns`, () => {
             const runner = wrap(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }))
-            expect(settledNow(runner.executeSelectOneColumnOneRow('select 41 + 1', []))).toEqual({ done: true, value: 42 })
+            expect(settledNow(runner.executeQuery('selectOneColumnOneRow', 'select 41 + 1', []))).toEqual({ done: true, value: 42 })
             expect(loggedQueries).toEqual(['select 41 + 1'])
         })
 
         test(`${label}: an insert gives its count before the call returns`, () => {
             const runner = wrap(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }))
-            expect(settledNow(runner.executeInsert("insert into rt_log (id, name) values (1, 'one')", []))).toEqual({ done: true, value: 1 })
+            expect(settledNow(runner.executeQuery('insert', "insert into rt_log (id, name) values (1, 'one')", []))).toEqual({ done: true, value: 1 })
             expect(db.prepare('select name from rt_log where id = 1').pluck().get()).toBe('one')
             expect(loggedQueries).toEqual(["insert into rt_log (id, name) values (1, 'one')"])
         })
 
         test(`${label}: an error is given before the call returns`, () => {
             const runner = wrap(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }))
-            const settled = settledNow(runner.executeSelectOneColumnOneRow('select * from rt_missing', []))
+            const settled = settledNow(runner.executeQuery('selectOneColumnOneRow', 'select * from rt_missing', []))
             expect(settled.done).toBe(true)
             expect(settled.done && settled.error).toBeInstanceOf(Error)
             expect(loggedQueries).toEqual(['select * from rt_missing'])
@@ -75,7 +75,7 @@ describe.skipIf(!isRealDbEnabled('sqlite', 'native', 'newest', 'better-sqlite3-s
 
         test(`${label}: a transaction is committed before the call returns`, () => {
             const runner = wrap(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }))
-            const settled = settledNow(runner.executeInTransaction(() => runner.executeInsert("insert into rt_log (id, name) values (2, 'two')", []), runner, undefined))
+            const settled = settledNow(runner.executeInTransaction(() => runner.executeQuery('insert', "insert into rt_log (id, name) values (2, 'two')", []), runner, undefined))
             expect(settled).toEqual({ done: true, value: 1 })
             expect(runner.isTransactionActive()).toBe(false)
             expect(db.prepare('select name from rt_log where id = 2').pluck().get()).toBe('two')

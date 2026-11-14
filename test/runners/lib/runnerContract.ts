@@ -126,24 +126,24 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         while (runner.isTransactionActive()) {
             await runner.executeRollback()
         }
-        await runner.executeDelete('delete from rt_probe')
-        await runner.executeDelete('delete from rt_auto')
+        await runner.executeQuery('delete', 'delete from rt_probe', [])
+        await runner.executeQuery('delete', 'delete from rt_auto', [])
         for (const row of SEED) {
             const params: any[] = []
             const sql = `insert into rt_probe (id, name, amount) values (${addTypedParam(runner, params, row.id, 'int')}, ${addTypedParam(runner, params, row.name, 'string')}, ${addTypedParam(runner, params, row.amount, 'int')})`
-            await runner.executeInsert(sql, params)
+            await runner.executeQuery('insert', sql, params)
         }
     }
 
     async function count(): Promise<number> {
-        return Number(await r().executeSelectOneColumnOneRow('select count(*) from rt_probe'))
+        return Number(await r().executeQuery('selectOneColumnOneRow', 'select count(*) from rt_probe', []))
     }
 
     describe.skipIf(!opts.realEnabled)(opts.label, () => {
         beforeAll(async () => {
             under = await opts.create()
             for (const ddl of dialect.setup) {
-                await under.runner.executeDatabaseSchemaModification(ddl)
+                await under.runner.executeQuery('executeDatabaseSchemaModification', ddl, [])
             }
         }, timeout)
         afterAll(async () => {
@@ -158,63 +158,63 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('select-one-row', async () => {
             const p: any[] = []
-            const row = await r().executeSelectOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', undefined, false)}`, p)
+            const row = await r().executeQuery('selectOneRow', `select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', undefined, false)}`, p)
             expect(row).toEqual({ id: 1, name: 'one' })
         })
 
         test('select-one-row-without-rows-is-undefined', async () => {
             const p: any[] = []
-            const row = await r().executeSelectOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 99, 'int', undefined, false)}`, p)
+            const row = await r().executeQuery('selectOneRow', `select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 99, 'int', undefined, false)}`, p)
             expect(row).toBeUndefined()
         })
 
         test('select-one-row-with-two-rows-fails', async () => {
-            const error = await rejectionOf(r().executeSelectOneRow(`select ${probeColumns} from rt_probe`))
+            const error = await rejectionOf(r().executeQuery('selectOneRow', `select ${probeColumns} from rt_probe`, []))
             expect(reasonOf(error)).toBe('MORE_THAN_ONE_ROW')
         })
 
         test('select-many-rows', async () => {
-            const rows = await r().executeSelectManyRows(`select ${probeColumns} from rt_probe order by id`)
+            const rows = await r().executeQuery('selectManyRows', `select ${probeColumns} from rt_probe order by id`, [])
             // Spread: Bun SQL's row arrays carry extra properties (count, command)
             expect([...rows]).toEqual([{ id: 1, name: 'one' }, { id: 2, name: 'two' }, { id: 3, name: 'three' }])
         })
 
         test('select-one-column-one-row', async () => {
             const p: any[] = []
-            const value = await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
+            const value = await r().executeQuery('selectOneColumnOneRow', `select ${col('name')} from rt_probe where id = ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
             expect(value).toBe('two')
         })
 
         test('select-one-column-one-row-without-rows-is-undefined', async () => {
             const p: any[] = []
-            const value = await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p, 99, 'int', undefined, false)}`, p)
+            const value = await r().executeQuery('selectOneColumnOneRow', `select ${col('name')} from rt_probe where id = ${addParam(r(), p, 99, 'int', undefined, false)}`, p)
             expect(value).toBeUndefined()
         })
 
         test('select-one-column-one-row-with-two-columns-fails', async () => {
             const p: any[] = []
-            const error = await rejectionOf(r().executeSelectOneColumnOneRow(`select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', undefined, false)}`, p))
+            const error = await rejectionOf(r().executeQuery('selectOneColumnOneRow', `select ${probeColumns} from rt_probe where id = ${addParam(r(), p, 1, 'int', undefined, false)}`, p))
             expect(reasonOf(error)).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
         test('select-one-column-one-row-with-two-rows-fails', async () => {
-            const error = await rejectionOf(r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe`))
+            const error = await rejectionOf(r().executeQuery('selectOneColumnOneRow', `select ${col('name')} from rt_probe`, []))
             expect(reasonOf(error)).toBe('MORE_THAN_ONE_ROW')
         })
 
         test('select-one-column-many-rows', async () => {
-            const values = await r().executeSelectOneColumnManyRows(`select ${col('name')} from rt_probe order by id`)
+            const values = await r().executeQuery('selectOneColumnManyRows', `select ${col('name')} from rt_probe order by id`, [])
             expect(values).toEqual(['one', 'two', 'three'])
         })
 
         test('select-one-column-many-rows-with-two-columns-fails', async () => {
-            const error = await rejectionOf(r().executeSelectOneColumnManyRows(`select ${probeColumns} from rt_probe`))
+            const error = await rejectionOf(r().executeQuery('selectOneColumnManyRows', `select ${probeColumns} from rt_probe`, []))
             expect(reasonOf(error)).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
         test('select-null-value', async () => {
             const p: any[] = []
-            const value = await r().executeSelectOneColumnOneRow(`select ${col('amount')} from rt_probe where id = ${addParam(r(), p, 3, 'int', undefined, false)}`, p)
+            const value = await r().executeQuery('selectOneColumnOneRow', `select ${col('amount')} from rt_probe where id = ${addParam(r(), p, 3, 'int', undefined, false)}`, p)
             expect(value).toBeNull()
         })
 
@@ -222,36 +222,36 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('insert-reports-inserted-rows', async () => {
             const p: any[] = []
-            const inserted = await r().executeInsert(`insert into rt_probe (id, name) values (${addParam(r(), p, 10, 'int', undefined, false)}, ${addParam(r(), p, 'ten', 'string', undefined, false)})`, p)
+            const inserted = await r().executeQuery('insert', `insert into rt_probe (id, name) values (${addParam(r(), p, 10, 'int', undefined, false)}, ${addParam(r(), p, 'ten', 'string', undefined, false)})`, p)
             expect(inserted).toBe(1)
             expect(await count()).toBe(4)
         })
 
         test('insert-returning-last-inserted-id', async () => {
             const p1: any[] = []
-            const first = Number(await r().executeInsertReturningLastInsertedId(dialect.insertReturningId(r(), p1, 'auto one'), p1))
+            const first = Number(await r().executeQuery('insertReturningLastInsertedId', dialect.insertReturningId(r(), p1, 'auto one'), p1))
             const p2: any[] = []
-            const second = Number(await r().executeInsertReturningLastInsertedId(dialect.insertReturningId(r(), p2, 'auto two'), p2))
+            const second = Number(await r().executeQuery('insertReturningLastInsertedId', dialect.insertReturningId(r(), p2, 'auto two'), p2))
             expect(first).toBeGreaterThan(0)
             expect(second).toBeGreaterThan(first)
         })
 
         test.skipIf(!dialect.insertReturningIds)('insert-returning-multiple-last-inserted-ids', async () => {
             const p: any[] = []
-            const ids = (await r().executeInsertReturningMultipleLastInsertedId(dialect.insertReturningIds!(r(), p, ['many one', 'many two']), p)).map(Number)
+            const ids = (await r().executeQuery('insertReturningMultipleLastInsertedId', dialect.insertReturningIds!(r(), p, ['many one', 'many two']), p)).map(Number)
             expect(ids).toHaveLength(2)
             expect(ids[1]!).toBeGreaterThan(ids[0]!)
         })
 
         test.skipIf(!dialect.insertReturningRow)('insert-returning-one-row', async () => {
             const p: any[] = []
-            const row = await r().executeInsertReturningOneRow(dialect.insertReturningRow!(r(), p, 20, 'twenty'), p)
+            const row = await r().executeQuery('insertReturningOneRow', dialect.insertReturningRow!(r(), p, 20, 'twenty'), p)
             expect(withNumericIds([row])).toEqual([{ id: 20, name: 'twenty' }])
         })
 
         test.skipIf(!dialect.insertReturningRow)('insert-returning-many-rows', async () => {
             const p: any[] = []
-            const rows = await r().executeInsertReturningManyRows(dialect.insertReturningRow!(r(), p, 21, 'twenty-one'), p)
+            const rows = await r().executeQuery('insertReturningManyRows', dialect.insertReturningRow!(r(), p, 21, 'twenty-one'), p)
             expect(withNumericIds(rows)).toEqual([{ id: 21, name: 'twenty-one' }])
         })
 
@@ -259,43 +259,43 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('update-reports-updated-rows', async () => {
             const p: any[] = []
-            const updated = await r().executeUpdate(`update rt_probe set amount = ${addParam(r(), p, 5, 'int', undefined, false)} where id >= ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
+            const updated = await r().executeQuery('update', `update rt_probe set amount = ${addParam(r(), p, 5, 'int', undefined, false)} where id >= ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
             expect(updated).toBe(2)
         })
 
         test.skipIf(!dialect.updateReturningRow)('update-returning-one-row', async () => {
             const p: any[] = []
-            const row = await r().executeUpdateReturningOneRow(dialect.updateReturningRow!(r(), p, 'THREE', 3), p)
+            const row = await r().executeQuery('updateReturningOneRow', dialect.updateReturningRow!(r(), p, 'THREE', 3), p)
             expect(withNumericIds([row])).toEqual([{ id: 3, name: 'THREE' }])
         })
 
         test.skipIf(!dialect.updateReturningRow)('update-returning-one-row-with-two-rows-fails', async () => {
             const p: any[] = []
-            const error = await rejectionOf(r().executeUpdateReturningOneRow(dialect.updateReturningRow!(r(), p, 'X', 2), p))
+            const error = await rejectionOf(r().executeQuery('updateReturningOneRow', dialect.updateReturningRow!(r(), p, 'X', 2), p))
             expect(reasonOf(error)).toBe('MORE_THAN_ONE_ROW')
         })
 
         test.skipIf(!dialect.updateReturningRow)('update-returning-many-rows', async () => {
             const p: any[] = []
-            const rows = await r().executeUpdateReturningManyRows(dialect.updateReturningRow!(r(), p, 'X', 2), p)
+            const rows = await r().executeQuery('updateReturningManyRows', dialect.updateReturningRow!(r(), p, 'X', 2), p)
             expect(withNumericIds(rows)).toEqual([{ id: 2, name: 'X' }, { id: 3, name: 'X' }])
         })
 
         test.skipIf(!dialect.updateReturningId)('update-returning-one-column-one-row', async () => {
             const p: any[] = []
-            const id = await r().executeUpdateReturningOneColumnOneRow(dialect.updateReturningId!(r(), p, 'X', 3), p)
+            const id = await r().executeQuery('updateReturningOneColumnOneRow', dialect.updateReturningId!(r(), p, 'X', 3), p)
             expect(Number(id)).toBe(3)
         })
 
         test.skipIf(!dialect.updateReturningId)('update-returning-one-column-many-rows', async () => {
             const p: any[] = []
-            const ids = await r().executeUpdateReturningOneColumnManyRows(dialect.updateReturningId!(r(), p, 'X', 2), p)
+            const ids = await r().executeQuery('updateReturningOneColumnManyRows', dialect.updateReturningId!(r(), p, 'X', 2), p)
             expect(ids.map(Number).sort()).toEqual([2, 3])
         })
 
         test.skipIf(!dialect.updateReturningRow)('update-returning-one-column-one-row-with-two-columns-fails', async () => {
             const p: any[] = []
-            const error = await rejectionOf(r().executeUpdateReturningOneColumnOneRow(dialect.updateReturningRow!(r(), p, 'X', 3), p))
+            const error = await rejectionOf(r().executeQuery('updateReturningOneColumnOneRow', dialect.updateReturningRow!(r(), p, 'X', 3), p))
             expect(reasonOf(error)).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
@@ -306,30 +306,30 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             const p: any[] = []
             const sql = `update rt_probe set name = ${addParam(r(), p, 'plain', 'string', undefined, false)} where id = ${addParam(r(), p, 1, 'int', undefined, false)}`
             queryContextOf(p).containsMutationReturningClause = false
-            const rows = await r().executeUpdateReturningManyRows(sql, p)
+            const rows = await r().executeQuery('updateReturningManyRows', sql, p)
             expect(rows).toEqual([])
             const p2: any[] = []
-            expect(await r().executeSelectOneColumnOneRow(`select ${col('name')} from rt_probe where id = ${addParam(r(), p2, 1, 'int', undefined, false)}`, p2)).toBe('plain')
+            expect(await r().executeQuery('selectOneColumnOneRow', `select ${col('name')} from rt_probe where id = ${addParam(r(), p2, 1, 'int', undefined, false)}`, p2)).toBe('plain')
         })
 
         // ---- deletes -----------------------------------------------------
 
         test('delete-reports-deleted-rows', async () => {
             const p: any[] = []
-            const deleted = await r().executeDelete(`delete from rt_probe where id >= ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
+            const deleted = await r().executeQuery('delete', `delete from rt_probe where id >= ${addParam(r(), p, 2, 'int', undefined, false)}`, p)
             expect(deleted).toBe(2)
             expect(await count()).toBe(1)
         })
 
         test.skipIf(!dialect.deleteReturningRow)('delete-returning-one-row', async () => {
             const p: any[] = []
-            const row = await r().executeDeleteReturningOneRow(dialect.deleteReturningRow!(r(), p, 3), p)
+            const row = await r().executeQuery('deleteReturningOneRow', dialect.deleteReturningRow!(r(), p, 3), p)
             expect(withNumericIds([row])).toEqual([{ id: 3, name: 'three' }])
         })
 
         test.skipIf(!dialect.deleteReturningRow)('delete-returning-many-rows', async () => {
             const p: any[] = []
-            const rows = await r().executeDeleteReturningManyRows(dialect.deleteReturningRow!(r(), p, 2), p)
+            const rows = await r().executeQuery('deleteReturningManyRows', dialect.deleteReturningRow!(r(), p, 2), p)
             expect(withNumericIds(rows)).toEqual([{ id: 2, name: 'two' }, { id: 3, name: 'three' }])
         })
 
@@ -338,120 +338,120 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test.skipIf(!dialect.insertReturningRow)('insert-returning-one-column-one-row', async () => {
             const p: any[] = []
             const sql = (dialect.insertReturningIdWithClause ?? dialect.insertReturningId)(r(), p, 'auto')
-            expect(Number(await r().executeInsertReturningOneColumnOneRow(sql, p))).toBeGreaterThan(0)
+            expect(Number(await r().executeQuery('insertReturningOneColumnOneRow', sql, p))).toBeGreaterThan(0)
         })
 
         test.skipIf(!dialect.insertReturningIds)('insert-returning-one-column-many-rows', async () => {
             const p: any[] = []
-            expect(await r().executeInsertReturningOneColumnManyRows(dialect.insertReturningIds!(r(), p, ['a', 'b']), p)).toHaveLength(2)
+            expect(await r().executeQuery('insertReturningOneColumnManyRows', dialect.insertReturningIds!(r(), p, ['a', 'b']), p)).toHaveLength(2)
         })
 
         test.skipIf(!dialect.insertReturningIds)('insert-returning-last-inserted-id-with-two-rows-fails', async () => {
             const p: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeInsertReturningLastInsertedId(dialect.insertReturningIds!(r(), p, ['a', 'b']), p)))).toBe('MORE_THAN_ONE_ROW')
+            expect(reasonOf(await rejectionOf(r().executeQuery('insertReturningLastInsertedId', dialect.insertReturningIds!(r(), p, ['a', 'b']), p)))).toBe('MORE_THAN_ONE_ROW')
         })
 
         test.skipIf(!dialect.insertReturningRow)('insert-returning-last-inserted-id-with-two-columns-fails', async () => {
             const p: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeInsertReturningLastInsertedId(dialect.insertReturningRow!(r(), p, 30, 'thirty'), p)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('insertReturningLastInsertedId', dialect.insertReturningRow!(r(), p, 30, 'thirty'), p)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
         test.skipIf(!dialect.insertReturningRows)('insert-returning-multiple-last-inserted-ids-with-two-columns-fails', async () => {
             const p: any[] = []
             const sql = dialect.insertReturningRows!(r(), p, [{ id: 31, name: 'a' }, { id: 32, name: 'b' }])
-            expect(reasonOf(await rejectionOf(r().executeInsertReturningMultipleLastInsertedId(sql, p)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('insertReturningMultipleLastInsertedId', sql, p)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
         test.skipIf(!dialect.insertReturningRows)('insert-returning-one-row-with-two-rows-fails', async () => {
             const p: any[] = []
             const sql = dialect.insertReturningRows!(r(), p, [{ id: 33, name: 'a' }, { id: 34, name: 'b' }])
-            expect(reasonOf(await rejectionOf(r().executeInsertReturningOneRow(sql, p)))).toBe('MORE_THAN_ONE_ROW')
+            expect(reasonOf(await rejectionOf(r().executeQuery('insertReturningOneRow', sql, p)))).toBe('MORE_THAN_ONE_ROW')
         })
 
         test.skipIf(!dialect.insertReturningRows)('insert-returning-one-column-one-row-with-two-rows-fails', async () => {
             const p: any[] = []
             const sql = dialect.insertReturningRows!(r(), p, [{ id: 35, name: 'a' }, { id: 36, name: 'b' }])
-            expect(reasonOf(await rejectionOf(r().executeInsertReturningOneColumnOneRow(sql, p)))).toBe('MORE_THAN_ONE_ROW')
+            expect(reasonOf(await rejectionOf(r().executeQuery('insertReturningOneColumnOneRow', sql, p)))).toBe('MORE_THAN_ONE_ROW')
         })
 
         test.skipIf(!dialect.insertReturningRow)('insert-returning-one-column-with-two-columns-fails', async () => {
             const p1: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeInsertReturningOneColumnOneRow(dialect.insertReturningRow!(r(), p1, 37, 'a'), p1)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('insertReturningOneColumnOneRow', dialect.insertReturningRow!(r(), p1, 37, 'a'), p1)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
             const p2: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeInsertReturningOneColumnManyRows(dialect.insertReturningRow!(r(), p2, 38, 'b'), p2)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('insertReturningOneColumnManyRows', dialect.insertReturningRow!(r(), p2, 38, 'b'), p2)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
         test.skipIf(!dialect.insertReturningIdWithClause)('insert-returning-last-inserted-id-through-a-returning-clause', async () => {
             const p: any[] = []
-            expect(Number(await r().executeInsertReturningLastInsertedId(dialect.insertReturningIdWithClause!(r(), p, 'clause'), p))).toBeGreaterThan(0)
+            expect(Number(await r().executeQuery('insertReturningLastInsertedId', dialect.insertReturningIdWithClause!(r(), p, 'clause'), p))).toBeGreaterThan(0)
         })
 
         test.skipIf(!dialect.insertNothing)('insert-of-no-row-returns-no-id', async () => {
             const p1: any[] = []
-            const id = await r().executeInsertReturningLastInsertedId(dialect.insertReturningId(r(), p1, 'first'), p1)
+            const id = await r().executeQuery('insertReturningLastInsertedId', dialect.insertReturningId(r(), p1, 'first'), p1)
             const p2: any[] = []
-            expect(await r().executeInsertReturningLastInsertedId(dialect.insertNothing!(r(), p2, Number(id)), p2)).toBeNull()
+            expect(await r().executeQuery('insertReturningLastInsertedId', dialect.insertNothing!(r(), p2, Number(id)), p2)).toBeNull()
         })
 
         test.skipIf(!dialect.updateReturningRow)('update-returning-one-column-many-rows-with-two-columns-fails', async () => {
             const p: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeUpdateReturningOneColumnManyRows(dialect.updateReturningRow!(r(), p, 'X', 2), p)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('updateReturningOneColumnManyRows', dialect.updateReturningRow!(r(), p, 'X', 2), p)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
         test.skipIf(!dialect.updateReturningId)('update-returning-one-column-one-row-with-two-rows-fails', async () => {
             const p: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeUpdateReturningOneColumnOneRow(dialect.updateReturningId!(r(), p, 'X', 2), p)))).toBe('MORE_THAN_ONE_ROW')
+            expect(reasonOf(await rejectionOf(r().executeQuery('updateReturningOneColumnOneRow', dialect.updateReturningId!(r(), p, 'X', 2), p)))).toBe('MORE_THAN_ONE_ROW')
         })
 
         test.skipIf(!dialect.deleteReturningId)('delete-returning-one-column', async () => {
             const p1: any[] = []
-            expect(Number(await r().executeDeleteReturningOneColumnOneRow(dialect.deleteReturningId!(r(), p1, 3), p1))).toBe(3)
+            expect(Number(await r().executeQuery('deleteReturningOneColumnOneRow', dialect.deleteReturningId!(r(), p1, 3), p1))).toBe(3)
             const p2: any[] = []
-            expect((await r().executeDeleteReturningOneColumnManyRows(dialect.deleteReturningId!(r(), p2, 1), p2)).map(Number).sort()).toEqual([1, 2])
+            expect((await r().executeQuery('deleteReturningOneColumnManyRows', dialect.deleteReturningId!(r(), p2, 1), p2)).map(Number).sort()).toEqual([1, 2])
         })
 
         test.skipIf(!dialect.deleteReturningRow)('delete-returning-shape-errors', async () => {
             const p1: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeDeleteReturningOneRow(dialect.deleteReturningRow!(r(), p1, 2), p1)))).toBe('MORE_THAN_ONE_ROW')
+            expect(reasonOf(await rejectionOf(r().executeQuery('deleteReturningOneRow', dialect.deleteReturningRow!(r(), p1, 2), p1)))).toBe('MORE_THAN_ONE_ROW')
             await reseed()
             const p2: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeDeleteReturningOneColumnOneRow(dialect.deleteReturningRow!(r(), p2, 3), p2)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('deleteReturningOneColumnOneRow', dialect.deleteReturningRow!(r(), p2, 3), p2)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
             await reseed()
             const p3: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeDeleteReturningOneColumnOneRow(dialect.deleteReturningId!(r(), p3, 2), p3)))).toBe('MORE_THAN_ONE_ROW')
+            expect(reasonOf(await rejectionOf(r().executeQuery('deleteReturningOneColumnOneRow', dialect.deleteReturningId!(r(), p3, 2), p3)))).toBe('MORE_THAN_ONE_ROW')
             await reseed()
             const p4: any[] = []
-            expect(reasonOf(await rejectionOf(r().executeDeleteReturningOneColumnManyRows(dialect.deleteReturningRow!(r(), p4, 2), p4)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('deleteReturningOneColumnManyRows', dialect.deleteReturningRow!(r(), p4, 2), p4)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
         })
 
         test('insert-of-a-duplicate-key-fails', async () => {
             const runner = r()
             const p: any[] = []
-            const error = await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (${addParam(runner, p, 1, 'int', undefined, false)}, ${addParam(runner, p, 'dup', 'string', undefined, false)})`, p))
+            const error = await rejectionOf(runner.executeQuery('insert', `insert into rt_probe (id, name) values (${addParam(runner, p, 1, 'int', undefined, false)}, ${addParam(runner, p, 'dup', 'string', undefined, false)})`, p))
             expect(runner.isSqlError(error)).toBe(true)
             expect(typeof runner.getErrorReason(error).reason).toBe('string')
         })
 
         test.skipIf(dialect.database !== 'sqlite')('boolean-params-are-sent-as-numbers', async () => {
             const p: any[] = []
-            expect(await r().executeSelectOneColumnOneRow(`select ${addParam(r(), p, true, '', undefined, false)} + ${addParam(r(), p, false, '', undefined, false)}`, p)).toBe(1)
+            expect(await r().executeQuery('selectOneColumnOneRow', `select ${addParam(r(), p, true, '', undefined, false)} + ${addParam(r(), p, false, '', undefined, false)}`, p)).toBe(1)
         })
 
         // ---- procedures and functions ------------------------------------
 
         test.skipIf(!dialect.procedureCall)('execute-procedure', async () => {
-            expect(await r().executeProcedure(dialect.procedureCall!)).toBeUndefined()
+            expect(await r().executeQuery('executeProcedure', dialect.procedureCall!, [])).toBeUndefined()
         })
 
         test.skipIf(!dialect.functionCall)('execute-function', async () => {
-            expect(Number(await r().executeFunction(dialect.functionCall!))).toBe(42)
+            expect(Number(await r().executeQuery('executeFunction', dialect.functionCall!, []))).toBe(42)
         })
 
         test('execute-function-shape-errors', async () => {
             const alias = (name: string) => dialect.database === 'oracle' ? `"${name}"` : name
-            expect(reasonOf(await rejectionOf(r().executeFunction(`select 1 as ${alias('a')}, 2 as ${alias('b')}` + dialect.fromNoTable)))).toBe('ONLY_ONE_COLUMN_EXPECTED')
-            expect(reasonOf(await rejectionOf(r().executeFunction(`select ${col('id')} from rt_probe`)))).toBe('MORE_THAN_ONE_ROW')
-            expect(await r().executeFunction(`select ${col('id')} from rt_probe where id < 0`)).toBeUndefined()
+            expect(reasonOf(await rejectionOf(r().executeQuery('executeFunction', `select 1 as ${alias('a')}, 2 as ${alias('b')}` + dialect.fromNoTable, [])))).toBe('ONLY_ONE_COLUMN_EXPECTED')
+            expect(reasonOf(await rejectionOf(r().executeQuery('executeFunction', `select ${col('id')} from rt_probe`, [])))).toBe('MORE_THAN_ONE_ROW')
+            expect(await r().executeQuery('executeFunction', `select ${col('id')} from rt_probe where id < 0`, [])).toBeUndefined()
         })
 
         // ---- transactions ------------------------------------------------
@@ -460,7 +460,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             const runner = r()
             await runner.executeBeginTransaction()
             expect(runner.isTransactionActive()).toBe(true)
-            await runner.executeDelete('delete from rt_probe')
+            await runner.executeQuery('delete', 'delete from rt_probe', [])
             await runner.executeCommit()
             expect(runner.isTransactionActive()).toBe(false)
             expect(await count()).toBe(0)
@@ -469,7 +469,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test('begin-and-rollback-discards-the-change', async () => {
             const runner = r()
             await runner.executeBeginTransaction()
-            await runner.executeDelete('delete from rt_probe')
+            await runner.executeQuery('delete', 'delete from rt_probe', [])
             await runner.executeRollback()
             expect(runner.isTransactionActive()).toBe(false)
             expect(await count()).toBe(3)
@@ -519,7 +519,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             const runner = r()
             const result = await runner.executeInTransaction(async () => {
                 expect(runner.isTransactionActive()).toBe(true)
-                await runner.executeDelete('delete from rt_probe')
+                await runner.executeQuery('delete', 'delete from rt_probe', [])
                 return 'done'
             }, runner)
             expect(result).toBe('done')
@@ -530,7 +530,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             const runner = r()
             const failure = new Error('application failure')
             const error = await rejectionOf(runner.executeInTransaction(async () => {
-                await runner.executeDelete('delete from rt_probe')
+                await runner.executeQuery('delete', 'delete from rt_probe', [])
                 throw failure
             }, runner))
             expect(error).toBe(failure)
@@ -609,7 +609,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             if (dialect.accessModeAlone) {
                 await runner.executeBeginTransaction([undefined, 'read only'])
                 // Without a table: Oracle refuses a read-only transaction reading a table created moments before (ORA-01466)
-                expect(Number(await runner.executeSelectOneColumnOneRow('select 1' + dialect.fromNoTable))).toBe(1)
+                expect(Number(await runner.executeQuery('selectOneColumnOneRow', 'select 1' + dialect.fromNoTable, []))).toBe(1)
                 await runner.executeCommit()
             } else {
                 const error = await rejectionOf(runner.executeBeginTransaction([undefined, 'read only']))
@@ -738,7 +738,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test.skipIf(dialect.database !== 'postgreSql')('commit-rolled-back-carries-the-failed-statement', async () => {
             const runner = r()
             await runner.executeBeginTransaction()
-            const failure = await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`))
+            const failure = await rejectionOf(runner.executeQuery('insert', `insert into rt_probe (id, name) values (1, 'dup')`, []))
             const error = await rejectionOf(runner.executeCommit())
             await runner.executeRollback()
             expect(reasonOf(error)).toBe('TRANSACTION_ERROR')
@@ -746,14 +746,14 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         })
 
         const rollsBack = opts.rolledBackTransactionUndetected ? undefined : dialect.statementThatRollsBackTheTransaction
-        const rolledBackRows = async () => Number(await r().executeSelectOneColumnOneRow('select count(*) from rt_probe where id >= 60'))
+        const rolledBackRows = async () => Number(await r().executeQuery('selectOneColumnOneRow', 'select count(*) from rt_probe where id >= 60', []))
 
         test.skipIf(!rollsBack)('transaction-rolled-back-by-the-database', async () => {
             const runner = r()
             await runner.executeBeginTransaction()
-            await runner.executeInsert(`insert into rt_probe (id, name) values (60, 'before')`)
-            const failure = await rejectionOf(runner.executeInsert(rollsBack!))
-            const next = await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (61, 'after')`))
+            await runner.executeQuery('insert', `insert into rt_probe (id, name) values (60, 'before')`, [])
+            const failure = await rejectionOf(runner.executeQuery('insert', rollsBack!, []))
+            const next = await rejectionOf(runner.executeQuery('insert', `insert into rt_probe (id, name) values (61, 'after')`, []))
             const commit = await rejectionOf(runner.executeCommit())
             expect(runner.isTransactionActive()).toBe(true)
             await runner.executeRollback()
@@ -766,10 +766,10 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test.skipIf(!rollsBack)('transaction-rolled-back-by-the-database-after-a-caught-failure', async () => {
             const runner = r()
             await runner.executeBeginTransaction()
-            await runner.executeInsert(`insert into rt_probe (id, name) values (60, 'before')`)
+            await runner.executeQuery('insert', `insert into rt_probe (id, name) values (60, 'before')`, [])
             // A duplicate key only fails its own statement
-            await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (1, 'dup')`))
-            const failure = await rejectionOf(runner.executeInsert(rollsBack!))
+            await rejectionOf(runner.executeQuery('insert', `insert into rt_probe (id, name) values (1, 'dup')`, []))
+            const failure = await rejectionOf(runner.executeQuery('insert', rollsBack!, []))
             const commit = await rejectionOf(runner.executeCommit())
             await runner.executeRollback()
             expect([reasonOf(commit), (commit as { cause?: unknown }).cause === failure]).toEqual(['TRANSACTION_ERROR', true])
@@ -779,9 +779,9 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test.skipIf(!rollsBack)('transaction-function-rolled-back-by-the-database', async () => {
             const runner = r()
             const error = await rejectionOf(runner.executeInTransaction(async () => {
-                await runner.executeInsert(`insert into rt_probe (id, name) values (60, 'before')`)
-                await rejectionOf(runner.executeInsert(rollsBack!))
-                await rejectionOf(runner.executeInsert(`insert into rt_probe (id, name) values (61, 'after')`))
+                await runner.executeQuery('insert', `insert into rt_probe (id, name) values (60, 'before')`, [])
+                await rejectionOf(runner.executeQuery('insert', rollsBack!, []))
+                await rejectionOf(runner.executeQuery('insert', `insert into rt_probe (id, name) values (61, 'after')`, []))
             }, runner))
             expect(reasonOf(error)).toBe('TRANSACTION_ERROR')
             expect(runner.isTransactionActive()).toBe(false)
@@ -790,7 +790,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('execute-combined', async () => {
             const runner = r()
-            const result = await runner.executeCombined(() => count(), () => runner.executeSelectOneColumnManyRows(`select ${col('id')} from rt_probe order by id`))
+            const result = await runner.executeCombined(() => count(), () => runner.executeQuery('selectOneColumnManyRows', `select ${col('id')} from rt_probe order by id`, []))
             expect([result[0], result[1].map(Number)]).toEqual([3, [1, 2, 3]])
         })
 
@@ -798,12 +798,12 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             const runner = r()
             if (opts.pool) {
                 // Outside a transaction a pool runner has no dedicated connection to configure
-                expect(reasonOf(await rejectionOf(runner.executeConnectionConfiguration(dialect.connectionConfiguration)))).toBe('NOT_IN_TRANSACTION')
+                expect(reasonOf(await rejectionOf(runner.executeQuery('executeConnectionConfiguration', dialect.connectionConfiguration, [])))).toBe('NOT_IN_TRANSACTION')
                 await runner.executeBeginTransaction()
-                expect(await runner.executeConnectionConfiguration(dialect.connectionConfiguration)).toBeUndefined()
+                expect(await runner.executeQuery('executeConnectionConfiguration', dialect.connectionConfiguration, [])).toBeUndefined()
                 await runner.executeCommit()
             } else {
-                expect(await runner.executeConnectionConfiguration(dialect.connectionConfiguration)).toBeUndefined()
+                expect(await runner.executeQuery('executeConnectionConfiguration', dialect.connectionConfiguration, [])).toBeUndefined()
             }
         })
 
@@ -813,13 +813,13 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             const { script, cleanup } = dialect.schemaScript
             const removeIt = async () => {
                 for (const sql of cleanup) {
-                    await runner.executeDatabaseSchemaModification(sql).catch(() => undefined)
+                    await runner.executeQuery('executeDatabaseSchemaModification', sql, []).catch(() => undefined)
                 }
             }
             await removeIt()
             try {
-                const failure = await runner.executeDatabaseSchemaModification(script).then(() => undefined, (e: unknown) => e)
-                const lastTableExists = await runner.executeSelectOneColumnOneRow('select count(*) from rt_script_b').then(() => true, () => false)
+                const failure = await runner.executeQuery('executeDatabaseSchemaModification', script, []).then(() => undefined, (e: unknown) => e)
+                const lastTableExists = await runner.executeQuery('selectOneColumnOneRow', 'select count(*) from rt_script_b', []).then(() => true, () => false)
                 if (opts.schemaScriptRejected) {
                     expect(failure).toBeInstanceOf(Error)
                     expect(lastTableExists).toBe(false)
@@ -837,10 +837,10 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             expect(await runner.createResolvedPromise(7)).toBe(7)
             const failure = new Error('rejected')
             expect(await rejectionOf(runner.createRejectedPromise(failure))).toBe(failure)
-            expect(runner.isMocked()).toBe(false)
-            expect(typeof runner.lowLevelTransactionManagementSupported()).toBe('boolean')
-            expect(typeof runner.executeInTransactionCallsBeginAndCommit()).toBe('boolean')
-            expect(runner.nestedTransactionsSupported()).toBe(!!opts.nestedTransactions)
+            expect(runner.isMocked).toBe(false)
+            expect(typeof runner.lowLevelTransactionManagementSupported).toBe('boolean')
+            expect(typeof runner.executeInTransactionCallsBeginAndCommit).toBe('boolean')
+            expect(runner.nestedTransactionsSupported).toBe(!!opts.nestedTransactions)
         })
 
         test('out-params', () => {
@@ -901,7 +901,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
 
         test('sql-error-is-recognised', async () => {
             const runner = r()
-            const error = await rejectionOf(runner.executeSelectManyRows(`select missing_column from rt_probe`))
+            const error = await rejectionOf(runner.executeQuery('selectManyRows', `select missing_column from rt_probe`, []))
             expect(runner.isSqlError(error)).toBe(true)
             expect(typeof runner.getErrorReason(error).reason).toBe('string')
         })
@@ -909,7 +909,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test('static-error-classification', async () => {
             const runnerClass = under?.runnerClass ?? opts.runnerClass
             if (!runnerClass) throw new Error(opts.label + ': no runnerClass')
-            const sqlError = await rejectionOf(r().executeSelectManyRows(`select missing_column from rt_probe`))
+            const sqlError = await rejectionOf(r().executeQuery('selectManyRows', `select missing_column from rt_probe`, []))
             expect(runnerClass.isSqlError(sqlError)).toBe(true)
             expect(runnerClass.getErrorReason(sqlError, dialect.database)).toEqual(r().getErrorReason(sqlError))
             const library = new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'probe')
@@ -935,7 +935,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                 const runner = r()
                 const others: RunnerUnderTest[] = []
                 for (const sql of scenario.setup ?? []) {
-                    await runner.executeDatabaseSchemaModification(sql)
+                    await runner.executeQuery('executeDatabaseSchemaModification', sql, [])
                 }
                 try {
                     const error = await rejectionOf(scenario.run({
@@ -956,7 +956,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                         await runner.executeRollback().catch(() => undefined)
                     }
                     for (const sql of scenario.cleanup ?? []) {
-                        await runner.executeDatabaseSchemaModification(sql).catch(() => undefined)
+                        await runner.executeQuery('executeDatabaseSchemaModification', sql, []).catch(() => undefined)
                     }
                 }
             }, timeout)
@@ -974,9 +974,9 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
             test('raised.' + entry.number, async () => {
                 raiseSession ??= await opts.create()
                 const session = raiseSession
-                const error = await rejectionOf(session.runner.executeUpdate(entry.sql))
+                const error = await rejectionOf(session.runner.executeQuery('update', entry.sql, []))
                 try {
-                    await session.runner.executeSelectManyRows('select 1' + dialect.fromNoTable)
+                    await session.runner.executeQuery('selectManyRows', 'select 1' + dialect.fromNoTable, [])
                 } catch {
                     raiseSession = undefined
                     await Promise.race([session.close().catch(() => undefined), new Promise(resolve => setTimeout(resolve, 2000))])
@@ -988,7 +988,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         }
 
         test.skipIf(opts.errorScenarios === false || !opts.errorFields)('error.driver-error-shape', async () => {
-            const error = await rejectionOf(r().executeSelectManyRows('select rt_err_missing from rt_probe'))
+            const error = await rejectionOf(r().executeQuery('selectManyRows', 'select rt_err_missing from rt_probe', []))
             for (const field of opts.errorFields!) {
                 expect({ field, present: !!error && typeof error === 'object' && field in error }).toEqual({ field, present: true })
             }
@@ -997,7 +997,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test.skipIf(opts.errorScenarios === false || !opts.clientTimeout)('error.client-timeout', async () => {
             const slow = await opts.create('client timeout')
             try {
-                const error = await rejectionOf(slow.runner.executeUpdate(dialect.sleep!))
+                const error = await rejectionOf(slow.runner.executeQuery('update', dialect.sleep!, []))
                 expect(slow.runner.isSqlError(error)).toBe(true)
                 expect(slow.runner.getErrorReason(error)).toMatchObject({ reason: 'SQL_TIMEOUT', timeoutType: 'statement' })
             } finally {
@@ -1013,7 +1013,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
                 let error: unknown
                 try {
                     failing = await opts.create(failure as RunnerConnectionFailure)
-                    await failing.runner.executeSelectManyRows('select 1' + dialect.fromNoTable)
+                    await failing.runner.executeQuery('selectManyRows', 'select 1' + dialect.fromNoTable, [])
                 } catch (e) {
                     error = e
                 } finally {
@@ -1031,7 +1031,7 @@ export function describeRunnerContract(opts: RunnerContractOptions): void {
         test.skipIf(opts.errorScenarios === false)('error.query-on-a-closed-connection', async () => {
             const closed = await opts.create()
             await closed.close()
-            const error = await rejectionOf(closed.runner.executeSelectManyRows('select 1' + dialect.fromNoTable))
+            const error = await rejectionOf(closed.runner.executeQuery('selectManyRows', 'select 1' + dialect.fromNoTable, []))
             expect(closed.runner.isSqlError(error)).toBe(true)
             expect(closed.runner.getErrorReason(error)).toMatchObject({ reason: 'SQL_CONNECTION_ERROR' })
         }, timeout)

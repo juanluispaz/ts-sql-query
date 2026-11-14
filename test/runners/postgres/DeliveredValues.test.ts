@@ -21,7 +21,7 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('PgQuery
     }, 300_000)
 
     test('the-types-the-runner-doesnt-parse-come-as-the-client-parses-them', async () => {
-        const row = await new PgQueryRunner(client!).executeSelectOneRow(`select 9007199254740993::int8 as int8, 1.50::numeric as num, '10:30:15.123'::time as t,
+        const row = await new PgQueryRunner(client!).executeQuery('selectOneRow', `select 9007199254740993::int8 as int8, 1.50::numeric as num, '10:30:15.123'::time as t,
             '19:30:15.123+09'::timetz as ttz, '2024-01-14 18:15:30.123+09'::timestamptz as tstz, 7::int4 as int4, 1.5::float8 as float8, true as b,
             (select count(*) from (values (1), (2)) as v (x)) as c`, [])
         // int8, numeric, time, timetz and a count as text; timestamptz as its instant; int4 and float8 as numbers

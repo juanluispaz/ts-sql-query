@@ -31,7 +31,8 @@ function filesOf(dir: string): string[] {
 
 /**
  * The re-exports of an entry file: blocks `export { ... } from '...'`, the only statements an entry has; a path of
- * version 1 can also define the functions version 2 dropped, each one deprecated, with the imports they need
+ * version 1 can also define the functions, classes and interfaces version 2 dropped, each one deprecated, with the
+ * imports they need
  */
 function specifiersOf(file: string): Specifier[] {
     const text = readFileSync(file, 'utf8')
@@ -46,7 +47,7 @@ function specifiersOf(file: string): Specifier[] {
         while ((match = imports.exec(code)) !== null) {
             rest = rest.replace(match[0], '')
         }
-        const definition = /\/\*\* @deprecated [^\n]+ \*\/\nexport function (\w+)\([^\n]*\{\n[\s\S]*?\n\}\n?/g
+        const definition = /\/\*\* @deprecated [^\n]+ \*\/\nexport (?:function|class|interface) (\w+)[^\n]*\{\n[\s\S]*?\n\}\n?/g
         while ((match = definition.exec(code)) !== null) {
             rest = rest.replace(match[0], '')
             result.push({ name: match[1]!, exported: match[1]!, from: self, deprecated: true })

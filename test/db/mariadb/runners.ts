@@ -430,7 +430,7 @@ export function createBunSqlMariaDBTestContext(spec: MariaDBTestSpec): MariaDBTe
             connectionTimeout: 30,
         })
         return {
-            runner: new BunSqlMySqlQueryRunner(sql, 'mariaDB'),
+            runner: new BunSqlMySqlQueryRunner(sql, { database: 'mariaDB' }),
             shutdown: async () => { await sql.close() },
         }
     })

@@ -296,7 +296,7 @@ export interface TestContextOptions<CONN> {
 
 // Sentinel thrown by `withRollback` to roll a transaction back without
 // surfacing the error to the test. The MockQueryRunner is told via its
-// `isSqlError` config that this is not a SQL error, so the connection
+// `isSqlError` that this is not a SQL error, so the connection
 // re-throws it instead of wrapping it in a TsSqlQueryExecutionError.
 class RollbackSignal extends Error {
     override readonly name = 'RollbackSignal'
@@ -312,6 +312,18 @@ class RollbackSignal extends Error {
 // `*.test.ts` files (which may only import the admitted helpers) can throw it.
 export class ApplicationError extends Error {
     override readonly name = 'ApplicationError'
+}
+
+// The mock of the cells. RollbackSignal (test-side rollback sentinel) and ApplicationError (a user error thrown from a
+// transaction body) are deliberately NOT SQL errors: returning false here makes the connection propagate them raw —
+// the same instance a real driver's `isSqlError` would let through. Everything else is treated as a SQL error so the
+// wrapping tests (which throw `TsSqlQueryExecutionError`) still wrap under the mock. This mirrors a real driver, where
+// only its own error type is a SQL error, closely enough that both the rollback path and the raw-propagation path
+// behave identically in mock and real modes.
+class TestMockQueryRunner extends MockQueryRunner {
+    override isSqlError(error: unknown): boolean {
+        return !(error instanceof RollbackSignal || error instanceof ApplicationError)
+    }
 }
 
 const NON_CONSUMING_TYPES = new Set<string>([
@@ -331,7 +343,7 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
     // only "data query" calls (selects/inserts/updates/deletes/function)
     // consume from `mockQueue`, and use FIFO `shift()` so the queue index
     // stays decoupled from the runner's index.
-    const mockRunner = new MockQueryRunner((type, _query, _params) => {
+    const mockRunner = new TestMockQueryRunner((type, _query, _params) => {
         if (NON_CONSUMING_TYPES.has(type)) return undefined
         return mockQueue.shift()
     }, {
@@ -343,16 +355,6 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         // Promise). Conditional spread because `exactOptionalPropertyTypes`
         // forbids assigning `undefined` to the optional `promise` field.
         ...(opts.promiseProvider ? { promise: opts.promiseProvider } : {}),
-        // RollbackSignal (test-side rollback sentinel) and ApplicationError
-        // (a user error thrown from a transaction body) are deliberately NOT
-        // SQL errors: returning false here makes the connection propagate them
-        // raw — the same instance a real driver's `isSqlError` would let
-        // through. Everything else is treated as a SQL error so the wrapping
-        // tests (which throw `TsSqlQueryExecutionError`) still wrap under the
-        // mock. This mirrors a real driver, where only its own error type is a
-        // SQL error, closely enough that both the rollback path and the
-        // raw-propagation path behave identically in mock and real modes.
-        isSqlError: (e) => !(e instanceof RollbackSignal || e instanceof ApplicationError),
     })
 
     let shutdownReal: (() => Promise<void>) | null = null

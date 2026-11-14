@@ -18,7 +18,7 @@ function mock(fail = false): MockQueryRunner {
         if (fail) throw failure
         const shape = shapes.get(type)
         return shape ? sampleResult(shape) : undefined
-    }, 'postgreSql')
+    }, { database: 'postgreSql' })
 }
 
 class Recorder<T extends QueryRunner> extends InterceptorQueryRunner<string, T> {
@@ -73,7 +73,7 @@ describe('ChainedQueryRunner', () => {
         expect(await runner.executeCombined(async () => 1, async () => 2)).toEqual([1, 2])
         expect(await runner.createResolvedPromise(3)).toBe(3)
         expect(await rejectionOf(runner.createRejectedPromise(failure))).toBe(failure)
-        expect([runner.isMocked(), runner.lowLevelTransactionManagementSupported(), runner.nestedTransactionsSupported()]).toEqual([true, true, true])
+        expect([runner.isMocked, runner.lowLevelTransactionManagementSupported, runner.nestedTransactionsSupported]).toEqual([true, true, true])
         expect(runner.getErrorReason(failure)).toEqual({ reason: 'UNKNOWN' })
         expect(runner.isSqlError(failure)).toBe(false)
     })
@@ -145,10 +145,10 @@ describe('InterceptorQueryRunner', () => {
         // A runner managing transactions itself: the interceptor still reports
         // begin and commit / rollback around the body.
         class ManagedMock extends MockQueryRunner {
-            override executeInTransactionCallsBeginAndCommit(): boolean { return false }
+            override get executeInTransactionCallsBeginAndCommit(): boolean { return false }
             override executeInTransaction<T>(fn: () => Promise<T>): Promise<T> { return fn() }
         }
-        const inner = new ManagedMock(() => undefined, 'postgreSql')
+        const inner = new ManagedMock(() => undefined, { database: 'postgreSql' })
         const runner = new Recorder(inner)
         expect(await runner.executeInTransaction(async () => 'r', runner)).toBe('r')
         const bodyFailure = new Error('body')

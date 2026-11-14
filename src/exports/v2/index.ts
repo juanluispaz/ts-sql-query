@@ -197,6 +197,8 @@ export {
     type QueryRunner,
     type DatabaseType,
     type QueryType,
+    type ExecutableQueryType,
+    type QueryResultOf,
     type PromiseProvider,
     type BeginTransactionOpts,
     type CommitOpts,
@@ -215,6 +217,7 @@ export {
 
 export {
     type NoopQueryRunnerConfig,
+    noopQueryExecutor,
     NoopQueryRunner,
 } from '../../queryRunners/NoopQueryRunner.js'
 
@@ -227,11 +230,6 @@ export {
     type ConsoleLogQueryRunnerOpts,
     ConsoleLogQueryRunner,
 } from '../../queryRunners/ConsoleLogQueryRunner.js'
-
-export {
-    type ConsoleLogNoopQueryRunnerConfig,
-    ConsoleLogNoopQueryRunner,
-} from '../../queryRunners/ConsoleLogNoopQueryRunner.js'
 
 export {
     InterceptorQueryRunner,

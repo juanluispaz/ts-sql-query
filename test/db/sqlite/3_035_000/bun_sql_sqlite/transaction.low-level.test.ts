@@ -209,7 +209,7 @@ describe(ctx.label, () => {
         // `beginTransaction()` while a transaction is already open is the
         // low-level analogue of the nested `transaction(...)` guard. The
         // matrix runner is built without allowNestedTransactions, so the real
-        // engine reports `nestedTransactionsSupported() === false` and the
+        // engine reports `nestedTransactionsSupported === false` and the
         // second `beginTransaction()` throws NESTED_TRANSACTION_NOT_SUPPORTED.
         // In mock mode the runner reports nesting supported, so the second
         // begin is accepted and both levels are unwound.

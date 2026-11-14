@@ -210,7 +210,7 @@ Tests: `test/runners/postgres/PostgreSqlParamTypes.test.ts`, `test/runners/mysql
 ### 2.3 What the params hold
 
 The params array is what every wrapper and observer receives: `ConsoleLogQueryRunner`, `LoggingQueryRunner`,
-`InterceptorQueryRunner`, `ConsoleLogNoopQueryRunner`, the executor of a `MockQueryRunner`, and the params of an error.
+`InterceptorQueryRunner`, the executor of a `MockQueryRunner` (and so `NoopQueryRunner`), and the params of an error.
 It holds what the connection handed (§2.1), plus only what `addParam` puts in the SQL text (the placeholders and
 casts). A `Date` reads well: its `toISOString()` shows the UTC digits (`2024-01-14T10:00:00.000Z` for a `localDate`).
 
@@ -306,9 +306,9 @@ length, `national`, fractional seconds, …) and, optionally, the name of the ty
 parameters converted with that adapter carry it in the context of the query, as the types: the original one
 (`originalSqlDataType`, the one of the adapter) and the requested one (`requestedSqlDataType`, the original one unless
 the adapter requested another with `setRequestedSqlDataType`, like for a value it converts to another type), which the
-runners use: the
-value of the column in an insert or an update, and a value compared with the column (`equals`, `in`, `between`, …),
-which takes the adapter of the column; also the OUT params of a `returning` of that column. A constant gets it only from
+runners use. The parameters that carry it: the value of the column in an insert or an update, and a value compared with
+the column (`equals`, `in`, `between`, …), which takes the adapter of the column; also the OUT params of a `returning`
+of that column. A constant gets it only from
 an adapter of its own. It describes the column: a runner uses it only when the requested type of the parameter is of
 the same family (an adapter that sends a date as a text doesn't make the text a date).
 
@@ -361,7 +361,7 @@ their own queries.
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner` | nothing (`safeIntegers` not forced) | numbers, or `bigint` with the driver's big-integer mode; text; dates as stored per format | the tests of each runner in `test/runners/sqlite/` |
 | `NodeSqliteQueryRunner` | `setReturnArrays(false)` per statement, where the method exists (Node 22.16 and 24); `readBigInts` not forced | objects even on a database opened with `returnArrays: true`; numbers, or `bigint` with `readBigInts` | `test/runners/sqlite/NodeSqliteQueryRunner.test.ts` (`the-rows-are-objects-with-return-arrays-on-the-database`) |
 | `Sqlite3WasmOO1QueryRunner` | `selectObjects` | objects; numbers, and a `bigint` for an integer beyond the safe range | `test/runners/sqlite/Sqlite3WasmOO1Numbers.test.ts` |
-| `MockQueryRunner` | — | what the user's executor returns, checked for the shape of the query: for each kind of query, what isn't `null`, `undefined` or the shape it needs (a plain object, an array of plain objects, an array, a number) is rejected with `INVALID_MOCKED_VALUE`, also a `null` inside the rows; then the reading tolerance of §3.3 applies to the values | `test/runners/general/MockQueryRunner.test.ts` |
+| `MockQueryRunner` | — | what the user's executor returns, checked for the shape of the query: for each type of query, what isn't `null`, `undefined` or the shape it needs (a plain object, an array of plain objects, an array, a number) is rejected with `INVALID_MOCKED_VALUE`, also a `null` inside the rows; then the reading tolerance of §3.3 applies to the values | `test/runners/general/MockQueryRunner.test.ts` |
 
 The id of an inserted row (no `returning`): mysql2 `insertId`, mariadb `insertId` (a bigint), Bun SQL
 `lastInsertRowid`, better-sqlite3/bun:sqlite/node:sqlite `lastInsertRowid`; `null` when no row was inserted. It goes

@@ -4,9 +4,15 @@ import { SQL } from 'bun'
 import type { TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 import { getPostgresEngineErrorReason, isPostgresSqlState } from '../databaseErrorMappers/PostgresErrorMapper.js'
 
+/** An error Bun SQL raises for PostgreSQL (its `SQL.PostgresError` class), with a SQLSTATE or a code of Bun. */
 type BunSqlPostgresError = InstanceType<typeof SQL.PostgresError>
+/** A generic error of Bun SQL (its `SQL.SQLError` class). */
 type BunSqlError = InstanceType<typeof SQL.SQLError>
 
+/**
+ * Gives the `TsSqlErrorReason` of an error raised through Bun SQL on PostgreSQL; `UNKNOWN` when it isn't an error of
+ * that driver.
+ */
 export function getBunSqlPostgresErrorReason(error: unknown): TsSqlErrorReason {
     if (!isBunSqlPostgresError(error)) {
         return { reason: 'UNKNOWN' }
@@ -14,10 +20,15 @@ export function getBunSqlPostgresErrorReason(error: unknown): TsSqlErrorReason {
     return getPostgresErrorReason(error)
 }
 
+/** Tells whether the error comes from Bun SQL: a `PostgresError` or a `SQLError`. */
 export function isBunSqlPostgresError(error: unknown): error is BunSqlError {
     return error instanceof SQL.PostgresError || error instanceof SQL.SQLError
 }
 
+/**
+ * Gives the reason of an error of Bun SQL: `SQL_UNKNOWN` for a `SQLError` that isn't a `PostgresError`; the engine's,
+ * mapped with `getPostgresEngineErrorReason`, when it has a SQLSTATE; otherwise the one of the code Bun gives.
+ */
 function getPostgresErrorReason(error: BunSqlError): TsSqlErrorReason {
     const databaseErrorNumber = getBunPostgresDatabaseErrorNumber(error)
     if (!(error instanceof SQL.PostgresError)) {
@@ -44,6 +55,10 @@ function getPostgresErrorReason(error: BunSqlError): TsSqlErrorReason {
     return getBunPostgresErrorReason(error)
 }
 
+/**
+ * Gives the reason of a `PostgresError` without a SQLSTATE, from the `ERR_POSTGRES_` code Bun gives it, with the number
+ * of the error added; `SQL_UNKNOWN` for a code it doesn't know or when there is no code.
+ */
 function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason {
     const code = getBunPostgresErrorCode(error)
     const databaseErrorCode = getBunPostgresDatabaseErrorCode(error)
@@ -128,39 +143,53 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
     }
 }
 
+/** Gives the name of the schema of the error (`schema`), or `undefined`. */
 function getSchemaName(error: BunSqlPostgresError): string | undefined {
     return getStringProperty(error, 'schema')
 }
 
+/** Gives the name of the table of the error (`table`), or `undefined`. */
 function getTableName(error: BunSqlPostgresError): string | undefined {
     return getStringProperty(error, 'table')
 }
 
+/** Gives the name of the column of the error (`column`), or `undefined`. */
 function getColumnName(error: BunSqlPostgresError): string | undefined {
     return getStringProperty(error, 'column')
 }
 
+/** Gives the name of the constraint of the error (`constraint`), or `undefined`. */
 function getConstraintName(error: BunSqlPostgresError): string | undefined {
     return getStringProperty(error, 'constraint')
 }
 
+/** Gives the name of the data type of the error (`dataType`), or `undefined`. */
 function getTypeName(error: BunSqlPostgresError): string | undefined {
     return getStringProperty(error, 'dataType')
 }
 
+/**
+ * Gives the SQLSTATE of the error, read from `code` or else from `errno`, or `undefined` when neither is a SQLSTATE.
+ */
 function getPostgresSqlState(error: BunSqlPostgresError): string | undefined {
     return isPostgresSqlState(error.code) ? error.code : isPostgresSqlState(error.errno) ? error.errno : undefined
 }
 
+/** Gives the `code` of the error when it is a text, otherwise `undefined`. */
 function getBunPostgresErrorCode(error: BunSqlPostgresError): string | undefined {
     return getStringProperty(error, 'code')
 }
 
+/** Gives the code reported as `databaseErrorCode`: the `code` of the error when it isn't a SQLSTATE. */
 function getBunPostgresDatabaseErrorCode(error: BunSqlError): string | undefined {
     const code = getStringProperty(error, 'code')
     return code && !isPostgresSqlState(code) ? code : undefined
 }
 
+/**
+ * Gives the number reported as `databaseErrorNumber`: the SQLSTATE in `code`, otherwise the `errno` when it differs
+ * from the `code`.
+ */
 function getBunPostgresDatabaseErrorNumber(error: BunSqlError): TsSqlDatabaseErrorNumber | undefined {
     const code = getStringProperty(error, 'code')
     if (isPostgresSqlState(code)) {
@@ -171,6 +200,7 @@ function getBunPostgresDatabaseErrorNumber(error: BunSqlError): TsSqlDatabaseErr
     return errno !== code ? errno : undefined
 }
 
+/** Gives the reason with `databaseErrorNumber` set, or the reason as it is when there is no number. */
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
     if (databaseErrorNumber === undefined) {
         return reason
@@ -178,22 +208,28 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
     return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
-// "query has too many parameters - the PostgreSQL wire protocol supports a maximum of 65535 parameters"
+/**
+ * Gives the maximum number of parameters read from the message, like "query has too many parameters - the PostgreSQL
+ * wire protocol supports a maximum of 65535 parameters", or `undefined` when it has none.
+ */
 function getBunPostgresMaxParameters(message: string): number | undefined {
     const maximum = /maximum of (\d+) parameters?/i.exec(message)
     return numberValue(maximum?.[1])
 }
 
+/** Gives the property of the error with that name when it is a text, otherwise `undefined`. */
 function getStringProperty(error: BunSqlError, property: string): string | undefined {
     const value = (error as unknown as Record<string, unknown>)[property]
     return typeof value === 'string' ? value : undefined
 }
 
+/** Gives the property of the error with that name when it is a text or a number, otherwise `undefined`. */
 function getStringOrNumberProperty(error: BunSqlError, property: string): string | number | undefined {
     const value = (error as unknown as Record<string, unknown>)[property]
     return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
+/** Gives the number the text holds, or `undefined` when there is no text or it isn't a finite number. */
 function numberValue(value: string | undefined): number | undefined {
     if (value === undefined) {
         return undefined

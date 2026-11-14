@@ -135,6 +135,25 @@ describe('LoggingQueryRunner', () => {
         expect(await rejectionOf(runner.executeInTransaction(async () => { throw bodyFailure }, runner))).toBe(bodyFailure)
     })
 
+    test('a-logger-that-is-an-instance-of-a-class-keeps-its-this', async () => {
+        class CollectingLogger implements QueryLogger {
+            readonly entries: string[] = []
+            onQuery(queryType: QueryType): void {
+                this.entries.push('query ' + queryType)
+            }
+            onQueryResult(queryType: QueryType): void {
+                this.entries.push('result ' + queryType)
+            }
+            onQueryError(queryType: QueryType): void {
+                this.entries.push('error ' + queryType)
+            }
+        }
+        const logger = new CollectingLogger()
+        await new LoggingQueryRunner(logger, mock()).executeQuery('selectManyRows', 'select 1', [])
+        await rejectionOf(new LoggingQueryRunner(logger, mock(true)).executeQuery('update', 'update t set a = 1', []))
+        expect(logger.entries).toEqual(['query selectManyRows', 'result selectManyRows', 'query update', 'error update'])
+    })
+
     test('a-subclass-without-a-logger-logs-overriding-the-log-methods', async () => {
         const spans: string[] = []
         class TracingQueryRunner<T extends QueryRunner> extends LoggingQueryRunner<T> {

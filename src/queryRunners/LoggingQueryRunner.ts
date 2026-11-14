@@ -62,24 +62,18 @@ export class LoggingQueryRunner<T extends QueryRunner> extends InterceptorQueryR
 
     /** Logs a query before it runs; by default with onQuery of the logger */
     protected logQuery(queryType: QueryType, query: string, params: any[], timestamps: { startedAt: bigint }): void {
-        const onQuery = this.logger.onQuery
-        if (onQuery) {
-            onQuery(queryType, query, params, timestamps)
-        }
+        // Called as a method of the logger: a logger that is an instance of a class keeps its this
+        this.logger.onQuery?.(queryType, query, params, timestamps)
     }
     /** Logs a query that ended, with its result; by default with onQueryResult of the logger */
     protected logQueryResult(queryType: QueryType, query: string, params: any[], result: any, timestamps: { startedAt: bigint, endedAt: bigint }): void {
-        const onQueryResult = this.logger.onQueryResult
-        if (onQueryResult) {
-            onQueryResult(queryType, query, params, result, timestamps)
-        }
+        // Called as a method of the logger: a logger that is an instance of a class keeps its this
+        this.logger.onQueryResult?.(queryType, query, params, result, timestamps)
     }
     /** Logs a query that failed, with its error; by default with onQueryError of the logger */
     protected logQueryError(queryType: QueryType, query: string, params: any[], error: any, timestamps: { startedAt: bigint, endedAt: bigint }): void {
-        const onQueryError = this.logger.onQueryError
-        if (onQueryError) {
-            onQueryError(queryType, query, params, error, timestamps)
-        }
+        // Called as a method of the logger: a logger that is an instance of a class keeps its this
+        this.logger.onQueryError?.(queryType, query, params, error, timestamps)
     }
 }
 

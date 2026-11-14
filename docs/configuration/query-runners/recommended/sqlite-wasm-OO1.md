@@ -43,6 +43,10 @@ async function main() {
 }
 ```
 
+## Large integers
+
+Nothing to configure: sqlite-wasm gives an integer larger than JavaScript's safe integer range as a `BigInt`, and `ts-sql-query` converts it to the type the column declares. A `bigint` column gives the `BigInt`, and an `int` column rejects it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` instead of returning a wrong value. An integer `number` sent that doesn't fit in 64 bits, like `1e20`, is sent as a real, which sqlite-wasm would otherwise wrap into another integer.
+
 ## The SQL functions of the library
 
 Some settings of the connection make the library write SQL functions that SQLite doesn't have built in: the [uuid strategy](../../supported-databases/sqlite.md#uuid-strategies) `uuid-extension` (the default) writes `uuid`, `uuid_str` and `uuid_blob`; the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions, which make a [`customDecimal`](../../data-types.md#exact-decimals) exact, write the functions of SQLite's decimal extension and the library's own `tsq_` ones; and [`replaceAllInsensitiveFunction = 'ci_replace'`](../../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) writes `ci_replace`. A query that uses one that isn't registered fails with `no such function`. `registerSqliteFunctions` registers all of them on the database, written in JavaScript:

@@ -21,7 +21,6 @@ A query normally returns a `Promise`. Some drivers run the query synchronously, 
     - [MockQueryRunner](../configuration/query-runners/general-purpose/MockQueryRunner.md)
     - Others
         - [ConsoleLogQueryRunner](../configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md)
-        - [ConsoleLogNoopQueryRunner](../configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md)
         - [NoopQueryRunner](../configuration/query-runners/general-purpose/NoopQueryRunner.md)
 
 ## Unwrapping synchronous promises

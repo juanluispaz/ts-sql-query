@@ -27,7 +27,8 @@ Work through it in this order:
     | `ts-sql-query/connections/PostgreSqlConnection`, `MySqlConnection`, ... | `ts-sql-query/postgresql`, `ts-sql-query/mysql`, ...: the path of the database |
     | `ts-sql-query/connections/SqliteConfiguration` | `ts-sql-query/sqlite` |
     | `ts-sql-query/queryRunners/PgPoolQueryRunner`, `MySql2QueryRunner`, ... | `ts-sql-query/postgresql/pg`, `ts-sql-query/mysql/mysql2` (or `ts-sql-query/mariadb/mysql2` for MariaDB), ...: the path of the database and the driver |
-    | `ts-sql-query/queryRunners/MockQueryRunner`, `NoopQueryRunner`, `ConsoleLogQueryRunner`, `ConsoleLogNoopQueryRunner`, `InterceptorQueryRunner`, `LoggingQueryRunner`, `QueryRunner` | `ts-sql-query` |
+    | `ts-sql-query/queryRunners/MockQueryRunner`, `NoopQueryRunner`, `ConsoleLogQueryRunner`, `InterceptorQueryRunner`, `LoggingQueryRunner`, `QueryRunner` | `ts-sql-query` |
+    | `ts-sql-query/queryRunners/ConsoleLogNoopQueryRunner` | `new ConsoleLogQueryRunner(new NoopQueryRunner(config))`, from `ts-sql-query` |
     | `ts-sql-query/extras/IDEncrypter` | `ts-sql-query/IDEncrypter` |
 
     The paths of v1 will be removed in the next major version. See [the paths of v2](../../index.md#install) for the full list.
@@ -38,10 +39,11 @@ Work through it in this order:
     |---|---|
     | `ts-sql-query/connections/AbstractConnection`, `AbstractAdvancedConnection`, `Abstract<database>Connection` (this one deprecated since v1.69.0) | Extend the connection of your database, like `PostgreSqlConnection` |
     | `ts-sql-query/connections/NoopDBConnection` | `ts-sql-query/__UNSUPPORTED__/connections/NoopDBConnection` |
-    | `ts-sql-query/queryRunners/AbstractQueryRunner`, `AbstractPoolQueryRunner`, `ChainedQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` | `ts-sql-query/__UNSUPPORTED__/queryRunners/...` |
+    | `ts-sql-query/queryRunners/AbstractQueryRunner`, `AbstractPoolQueryRunner`, `ChainedQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionQueryRunner` | `ts-sql-query/__UNSUPPORTED__/queryRunners/...` |
+    | `ts-sql-query/queryRunners/ManagedTransactionPoolQueryRunner` | `AbstractPoolQueryRunner`, from `ts-sql-query/__UNSUPPORTED__/queryRunners/AbstractPoolQueryRunner` |
     | `ts-sql-query/expressions/*` (but `expressions/dynamicConditionUsingFilters`), `utils/*` (but `utils/PromiseProvider`), `internal/*`, `queryBuilders/*`, `sqlBuilders/*` | `ts-sql-query/__UNSUPPORTED__/expressions/*`, ... |
     | `ts-sql-query/typeMarks/*`, `ts-sql-query/databases` | Removed |
-    | `ts-sql-query/queryRunners/PromiseBasedQueryRunner`, `PromiseBasedWithSqlTransactionQueryRunner`, `PromiseBasedPoolQueryRunner`, `PromiseBasedAbstractQueryRunner`, `OracleUtils` (deprecated since v1.69.0) | Removed. Extend `ManagedTransactionQueryRunner`, `SqlTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner` or `AbstractQueryRunner`, from `__UNSUPPORTED__`; see [your own query runner](#your-own-query-runner-and-the-connection-of-the-driver) |
+    | `ts-sql-query/queryRunners/PromiseBasedQueryRunner`, `PromiseBasedWithSqlTransactionQueryRunner`, `PromiseBasedPoolQueryRunner`, `PromiseBasedAbstractQueryRunner`, `OracleUtils` (deprecated since v1.69.0) | Removed. Extend `ManagedTransactionQueryRunner`, `SqlTransactionQueryRunner` or `AbstractPoolQueryRunner`, from `__UNSUPPORTED__`; see [your own query runner](#your-own-query-runner-and-the-connection-of-the-driver) |
 
     `__UNSUPPORTED__` reaches the internals of the library, with no stability guarantee.
 
@@ -201,7 +203,12 @@ A rule like this one, that only sends a `customInt` to `int`, is no longer neede
 ### Your own query runner, and the connection of the driver
 
 - `queryRunner.execute(fn)` calls `fn` with one argument, the connection to run statements on: a function with two parameters doesn't compile. With postgres.js and mssql, `fn` received the pool or the client, and the transaction in that second argument ([docs](../../queries/transaction.md#using-the-drivers-connection-in-the-transaction)). `getCurrentNativeConnection()` returns the connection of the transaction, and `undefined` outside one.
-- A class implementing `QueryRunner` has to add `createRejectedPromise`, `nestedTransactionsSupported`, `executeInTransactionCallsBeginAndCommit`, `getErrorReason` and `isSqlError`, and its `createResolvedPromise` must adopt a promise it receives. A class extending `AbstractQueryRunner` inherits them, but has to import it from `__UNSUPPORTED__`.
+- The query runner executes every query with one method, `executeQuery(queryType, query, params)`, instead of a method for each type of query: `queryRunner.executeSelectManyRows(sql, params)` is `queryRunner.executeQuery('selectManyRows', sql, params)`, `executeInsert(sql, params)` is `executeQuery('insert', sql, params)`, and so on with the names of `QueryType`. `params` is required: `[]` without any.
+- `isMocked`, `lowLevelTransactionManagementSupported`, `executeInTransactionCallsBeginAndCommit` and `nestedTransactionsSupported` are properties: `queryRunner.isMocked()` is `queryRunner.isMocked`.
+- A class implementing `QueryRunner` implements `executeQuery`, declares those four as getters, and has to add `createRejectedPromise`, `getErrorReason` and `isSqlError`; its `createResolvedPromise` must adopt a promise it receives. A class extending `ManagedTransactionQueryRunner` or `SqlTransactionQueryRunner` (from `__UNSUPPORTED__`) gives `executeQueryReturning` and `executeMutation`, and inherits the rest. A class extending `InterceptorQueryRunner` only implements `onQuery`, `onQueryResult` and `onQueryError`.
+- `MockQueryRunner`, `NoopQueryRunner`, `MySql2QueryRunner`, `MariaDBQueryRunner`, `MySql2PoolQueryRunner` and `MariaDBPoolQueryRunner` receive their options as an object: `new MockQueryRunner(fn, 'postgreSql')` is `new MockQueryRunner(fn, { database: 'postgreSql' })`, and `new MySql2PoolQueryRunner(pool, 'mariaDB')` is `new MySql2PoolQueryRunner(pool, { database: 'mariaDB' })`.
+- `NoopQueryRunner` is a `MockQueryRunner` with a function that gives empty results (`noopQueryExecutor`): `isMocked` is `true`, an error your code throws in a transaction reaches you as it is instead of wrapped in a `TsSqlQueryExecutionError`, and out parameters are only accepted on Oracle.
+- `MockQueryRunner` no longer takes `isSqlError` in its options: extend it and override the method `isSqlError(error)` ([docs](../../configuration/query-runners/general-purpose/MockQueryRunner.md#errors-of-the-database)).
 - `executeInTransaction(fn, ...)` no longer accepts a function returning an array, and `executeBeginTransaction`, `executeCommit`, `executeRollback` and `executeInTransaction` receive an optional `opts` at the end.
 - To log or intercept queries, prefer [`InterceptorQueryRunner`](../../configuration/query-runners/general-purpose/InterceptorQueryRunner.md), which is public and needs no changes beyond the import of `QueryType`.
 - `MockQueryRunner` no longer calls your function with `'isTransactionActive'`. A branch for that value doesn't compile: remove it.

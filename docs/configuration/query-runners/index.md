@@ -58,8 +58,8 @@ The general purpose query runners don't know about any driver:
 | [`LoggingQueryRunner`](general-purpose/LoggingQueryRunner.md) | Calls your logger with each statement and its result or error | Another query runner |
 | [`ConsoleLogQueryRunner`](general-purpose/ConsoleLogQueryRunner.md) | Writes each statement on the console | Another query runner |
 | [`MockQueryRunner`](general-purpose/MockQueryRunner.md) | Takes the place of the database: your function decides the result of each statement, for a test | Your function |
-| [`NoopQueryRunner`](general-purpose/NoopQueryRunner.md) | Takes the place of the database, and always returns empty results | Nothing: the connection says which database to write the SQL for |
-| [`ConsoleLogNoopQueryRunner`](general-purpose/ConsoleLogNoopQueryRunner.md) | The same, writing each statement on the console | Nothing: the connection says which database to write the SQL for |
+| [`NoopQueryRunner`](general-purpose/NoopQueryRunner.md) | Takes the place of the database, and always returns empty results: a `MockQueryRunner` with a function that gives them | Nothing: the connection says which database to write the SQL for |
+| [`NoExecutionQueryRunner`](general-purpose/NoExecutionQueryRunner.md) | Takes the place of the database, and rejects every statement: for a connection used only for its methods | Nothing: the connection says which database to write the SQL for |
 
 The ones that receive another query runner can be chained:
 
@@ -73,6 +73,8 @@ const pool = new Pool();
 const connection = new DBConnection(new ConsoleLogQueryRunner(new PgPoolQueryRunner(pool)));
 ```
 
+To see the SQL each call writes without a database, wrap a `NoopQueryRunner`: `new ConsoleLogQueryRunner(new NoopQueryRunner())`.
+
 To read in one of these the name of a query, where it was called from, or whether it's the count of a page, see [Query execution metadata](../../advanced/query-execution-metadata.md).
 
 ## Reaching the driver
@@ -85,14 +87,14 @@ The library covers what its queries need, and your code can reach the driver for
 
     Use it to give a connection to a library that needs one, or for a feature of the driver. To write SQL of your own in a query, use a [SQL fragment](../../queries/sql-fragments.md), which keeps those protections.
 
-`connection.queryRunner` gives you the query runner, with these methods:
+`connection.queryRunner` gives you the query runner, with these members:
 
-| Method | What it gives |
+| Member | What it gives |
 |---|---|
 | `getNativeRunner()` | The object you created the query runner with: a pool, a connection or the `sql` of the driver |
 | `getCurrentNativeConnection()` | The connection the current transaction runs on. `undefined` outside a transaction, and with a pool also before the first statement of the transaction |
 | `execute(fn)` | Calls `fn` with a connection: the one of the transaction if there is one, and outside a transaction the connection you gave the query runner, or one taken from the pool for `fn` alone |
-| `isMocked()` | Whether the query runner is a `MockQueryRunner` |
+| `isMocked` | Whether the query runner takes the place of the database: a `MockQueryRunner`, or a `NoopQueryRunner` or `NoExecutionQueryRunner`, which are made from it |
 
 A wrapper answers what the query runner it wraps answers. The ones that take the place of the database have no driver: `getNativeRunner()` returns `null`, and `execute(fn)` calls `fn` with `null`.
 
@@ -118,4 +120,4 @@ await connection.transaction(async () => {
 
 The connection belongs to the query runner: don't release it, and don't commit or roll back with it. [Using the driver's connection in the transaction](../../queries/transaction.md#using-the-drivers-connection-in-the-transaction) has what each query runner gives, and [Combining with another library](combining-with-another-library.md) how to share a transaction with another library, whichever of the two manages it.
 
-`isMocked()` lets code that can't run in a test, like a call to another service, know that it's running with a `MockQueryRunner`. It's rarely the best option: [MockQueryRunner](general-purpose/MockQueryRunner.md) explains what to prefer. `NoopQueryRunner` and `ConsoleLogNoopQueryRunner` answer `false`.
+`isMocked` lets code that can't run in a test, like a call to another service, know that it's running without a database. It's rarely the best option: [MockQueryRunner](general-purpose/MockQueryRunner.md) explains what to prefer.

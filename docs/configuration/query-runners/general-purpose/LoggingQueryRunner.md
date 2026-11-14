@@ -4,7 +4,7 @@ search:
 ---
 # LoggingQueryRunner
 
-A query runner that calls your logger with each statement and its result or error, and runs the statement with the query runner it wraps. Useful for debugging, measuring and auditing the statements. To carry data of your own between the call before a statement and the call after it, use [`InterceptorQueryRunner`](InterceptorQueryRunner.md).
+A query runner that calls your logger with each statement and its result or error, and runs the statement with the query runner it wraps. Useful for debugging, measuring and auditing the statements. It is an [`InterceptorQueryRunner`](InterceptorQueryRunner.md) that carries the instant each statement began; to carry data of your own between the call before a statement and the call after it, extend `InterceptorQueryRunner`.
 
 !!! success "Supported databases"
 
@@ -77,4 +77,4 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 
 !!! info
 
-    When the driver begins and commits the transaction by itself, as `postgres` and Bun SQL do in `connection.transaction(...)`, fake `beginTransaction`, `commit`, and `rollback` operations will be emitted to allow you to see them in the log, with `startedAt` and `endedAt` at `0n`.
+    When the driver begins and commits the transaction by itself, as `postgres` and Bun SQL do in `connection.transaction(...)`, fake `beginTransaction`, `commit`, and `rollback` operations will be emitted to allow you to see them in the log: each one is given to `onQuery` and then to `onQueryResult`, one right after the other, with the timestamps of that moment.

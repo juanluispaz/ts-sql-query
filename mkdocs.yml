@@ -65,6 +65,7 @@ plugins:
   - redirects:
       redirect_maps:
         'CHANGELOG.md': 'about/changelog/v2.md'
+        'configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md': 'configuration/query-runners/general-purpose/NoopQueryRunner.md'
         'about/migrating-from-v1.md': 'about/changelog/migrating-from-v1.md'
         'about/limimitations.md': 'about/limitations.md'
         'api/type-adpaters.md': 'api/type-adapters.md'
@@ -219,7 +220,6 @@ nav:
       - MockQueryRunner: configuration/query-runners/general-purpose/MockQueryRunner.md
       - Others:
         - ConsoleLogQueryRunner: configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md
-        - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
         - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
         - NoExecutionQueryRunner: configuration/query-runners/general-purpose/NoExecutionQueryRunner.md
     - Combining with another library: configuration/query-runners/combining-with-another-library.md

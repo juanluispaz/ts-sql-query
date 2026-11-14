@@ -188,14 +188,14 @@ Inside a transaction, the registered functions run when it ends, with the mock a
     // sentWelcomeEmails is [customerId]: the e-mail would have been sent after the commit
     ```
 
-- **Ask the query runner whether it is a mock**: `connection.queryRunner.isMocked()` returns `true` with `MockQueryRunner`, so the function can skip its work. This puts knowledge of the tests in the production code, and it doesn't help a test against a real database; prefer a fake service.
+- **Ask the query runner whether it is a mock**: `connection.queryRunner.isMocked` is `true` with `MockQueryRunner`, so the function can skip its work. This puts knowledge of the tests in the production code, and it doesn't help a test against a real database; prefer a fake service.
 
 ## Resetting between test cases
 
 When you reuse one `MockQueryRunner` across many test cases, each with its own sequence of responses by `index`, call `runner.reset()` between them. It brings `index` back to `0` and closes any transaction the previous case left open:
 
 ```ts
-const runner = new MockQueryRunner(executor, 'postgreSql')
+const runner = new MockQueryRunner(executor, { database: 'postgreSql' })
 const connection = new DBConnection(runner)
 
 beforeEach(() => {
@@ -207,7 +207,7 @@ If you create a new `MockQueryRunner` for each test case, with a new connection,
 
 ## Options
 
-The second argument of the constructor is the name of a database, or an object with these options:
+The second argument of the constructor is an object with these options:
 
 <!-- doc-code-snippet-template: simplifiedDefinition -->
 ```ts
@@ -216,7 +216,7 @@ interface MockQueryRunnerConfig {
     queryRunner?: QueryRunnerName
     typesByName?: { readonly [typeName: string]: string }
     promise?: PromiseProvider
-    isSqlError?: (error: unknown) => boolean
+    allowNestedTransactions?: boolean
 }
 ```
 
@@ -224,15 +224,22 @@ interface MockQueryRunnerConfig {
 - **`queryRunner`**: the query runner of the library whose parameters the mock imitates, by the name of its class (`'PgPoolQueryRunner'`, `'BetterSqlite3QueryRunner'`, `'MssqlPoolQueryRunner'`, …). See [Imitating a query runner](#imitating-a-query-runner).
 - **`typesByName`**: with `queryRunner` set to `'PgQueryRunner'`, `'PgPoolQueryRunner'` or `'BunSqlPostgresQueryRunner'`, the `typesByName` you give that query runner: the PostgreSQL type written as the cast of a parameter, by its type name.
 - **`promise`**: another `Promise` provider, used by [synchronous query runners](../../../advanced/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
-- **`isSqlError`**: which errors count as errors of the database in `connection.transaction(...)`, `beginTransaction()`, `commit()` and `rollback()`. By default only the errors of `ts-sql-query` do, so an error your code throws in the transaction comes out as it is, as with a real query runner. An error it accepts comes out wrapped in a `TsSqlQueryExecutionError`, as the error of a real driver does. This is how to simulate one thrown in the transaction:
+- **`allowNestedTransactions`**: accepts a transaction inside another one. `true` by default.
+
+## Errors of the database
+
+Which errors count as errors of the database in `connection.transaction(...)`, `beginTransaction()`, `commit()` and `rollback()` is what the method `isSqlError(error)` of the query runner says. In `MockQueryRunner` only the errors of `ts-sql-query` do, so an error your code throws in the transaction comes out as it is, as with a real query runner. An error it accepts comes out wrapped in a `TsSqlQueryExecutionError`, as the error of a real driver does. To simulate one thrown in the transaction, extend the class and override `isSqlError`:
 
 ```ts
 class DriverError extends Error {}
 
-const runner = new MockQueryRunner(executor, {
-    database: 'postgreSql',
-    isSqlError: (e) => e instanceof DriverError,
-})
+class DriverErrorsMockQueryRunner extends MockQueryRunner {
+    override isSqlError(error: unknown): boolean {
+        return super.isSqlError(error) || error instanceof DriverError
+    }
+}
+
+const runner = new DriverErrorsMockQueryRunner(executor, { database: 'postgreSql' })
 
 // inside a test:
 try {

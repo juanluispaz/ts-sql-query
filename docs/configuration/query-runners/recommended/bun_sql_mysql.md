@@ -55,6 +55,8 @@ async function main() {
 }
 ```
 
+The second argument of `BunSqlMySqlQueryRunner`, optional, is an object of type `BunSqlMySqlQueryRunnerConfig`, exported from `ts-sql-query/mysql/bun-sql` and `ts-sql-query/mariadb/bun-sql`, with only `database`, `'mySql'` by default. A connection sets it to its own database when you create it, so you only need it to use the query runner without a connection.
+
 ## Connection requirements
 
 The query runner refuses a connection that doesn't have these: its constructor throws a `TsSqlProcessingError` with reason `INVALID_CONFIGURATION` and, in `name`, which one.

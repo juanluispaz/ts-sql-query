@@ -5,14 +5,14 @@ import { connectionClassIdOf, keepNativeSqlDataType, keptNativeSqlDataType } fro
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, RemapValueSourceTypeWithOptionalType, UuidValueSource, StringDecimalValueSource, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, RemapValueSourceTypeWithOptionalType, StringDecimalValueSource, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
 import type { SqlDataType, TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
-import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
+import type { EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
 import { InsertQueryBuilder } from '../queryBuilders/InsertQueryBuilder.js'
 import { UpdateQueryBuilder } from '../queryBuilders/UpdateQueryBuilder.js'
 import { DeleteQueryBuilder } from '../queryBuilders/DeleteQueryBuilder.js'
@@ -37,6 +37,7 @@ import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
+import type { BuiltInDataType, BuiltInDataTypeValues, BuiltInDataTypeValueSources, BuiltInDataTypeFragments } from '../typeSystem/builtInDataTypes.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -606,16 +607,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return __createStatic0('_currentTimestamp', 'localDateTime', undefined, 'required', undefined)
     }
 
-    const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: Date, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: Date, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
-    const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const<TYPE extends BuiltInDataType>(value: BuiltInDataTypeValues[TYPE], type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
     const<T, TYPE_NAME extends string>(value: T, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
     const<T, TYPE_NAME extends string>(value: T, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
     const<T, TYPE_NAME extends string>(value: T, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
@@ -634,16 +626,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return __createConst(value, type, undefined, 'required', adapter)
     }
 
-    optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: string | null | undefined, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst<TYPE extends BuiltInDataType>(value: BuiltInDataTypeValues[TYPE] | null | undefined, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
     optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
     optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
     optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
@@ -803,26 +786,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, queryRunner.getErrorReason(error), error))
     }
 
-    fragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'bigint', required: 'required', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'bigint', required: 'optional', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'localDate', required: 'required', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'localDate', required: 'optional', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'localTime', required: 'optional', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
-    fragmentWithType(type: 'localDateTime', required: 'required', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
-    fragmentWithType(type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
+    fragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
     fragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
     fragmentWithType<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomBigintFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
     fragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
@@ -852,26 +817,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new FragmentQueryBuilder(type, undefined, required as any, adapter)
     }
 
-    protected arg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'combined', boolean>
-    protected arg(type: 'boolean', required: 'optional', adapter?: TypeAdapter): Argument<'boolean', 'optional', 'combined', boolean>
-    protected arg(type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', 'combined', number>
-    protected arg(type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'combined', number>
-    protected arg(type: 'bigint', required: 'required', adapter?: TypeAdapter): Argument<'bigint', 'required', 'combined', bigint>
-    protected arg(type: 'bigint', required: 'optional', adapter?: TypeAdapter): Argument<'bigint', 'optional', 'combined', bigint>
-    protected arg(type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', 'combined', number>
-    protected arg(type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'combined', number>
-    protected arg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'combined', string>
-    protected arg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'combined', string>
-    protected arg(type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', string>
-    protected arg(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): Argument<'stringDecimal', 'required', 'combined', string>
-    protected arg(type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', string>
-    protected arg(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): Argument<'stringDecimal', 'optional', 'combined', string>
-    protected arg(type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'combined', Date>
-    protected arg(type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'combined', Date>
-    protected arg(type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', 'combined', Date>
-    protected arg(type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', 'combined', Date>
-    protected arg(type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', 'combined', Date>
-    protected arg(type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', 'combined', Date>
+    protected arg<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<TYPE, 'required', 'combined', BuiltInDataTypeValues[TYPE]>
+    protected arg<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<TYPE, 'optional', 'combined', BuiltInDataTypeValues[TYPE]>
     protected arg<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customInt', 'required', 'combined', T, TYPE_NAME>
     protected arg<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customBigint', 'required', 'combined', T, TYPE_NAME>
     protected arg<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customInt', 'optional', 'combined', T, TYPE_NAME>
@@ -901,26 +848,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new Argument(type as any, type, undefined, required as any, 'combined', adapter)
     }
 
-    protected valueArg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'value', boolean>
-    protected valueArg(type: 'boolean', required: 'optional', adapter?: TypeAdapter): Argument<'boolean', 'optional', 'value', boolean>
-    protected valueArg(type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', 'value', number>
-    protected valueArg(type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'value', number>
-    protected valueArg(type: 'bigint', required: 'required', adapter?: TypeAdapter): Argument<'bigint', 'required', 'value', bigint>
-    protected valueArg(type: 'bigint', required: 'optional', adapter?: TypeAdapter): Argument<'bigint', 'optional', 'value', bigint>
-    protected valueArg(type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', 'value', number>
-    protected valueArg(type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'value', number>
-    protected valueArg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'value', string>
-    protected valueArg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'value', string>
-    protected valueArg(type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', string>
-    protected valueArg(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): Argument<'stringDecimal', 'required', 'value', string>
-    protected valueArg(type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', string>
-    protected valueArg(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): Argument<'stringDecimal', 'optional', 'value', string>
-    protected valueArg(type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'value', Date>
-    protected valueArg(type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'value', Date>
-    protected valueArg(type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', 'value', Date>
-    protected valueArg(type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', 'value', Date>
-    protected valueArg(type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', 'value', Date>
-    protected valueArg(type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', 'value', Date>
+    protected valueArg<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<TYPE, 'required', 'value', BuiltInDataTypeValues[TYPE]>
+    protected valueArg<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<TYPE, 'optional', 'value', BuiltInDataTypeValues[TYPE]>
     protected valueArg<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customInt', 'required', 'value', T, TYPE_NAME>
     protected valueArg<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customBigint', 'required', 'value', T, TYPE_NAME>
     protected valueArg<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customInt', 'optional', 'value', T, TYPE_NAME>
@@ -985,26 +914,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // value source carries the aggregate marker (NAggregate<DB> in its source
     // + __isAggregate at runtime), so a custom aggregate written as a fragment
     // is rejected outside aggregate-legal clauses, just like a built-in aggregate.
-    aggregateFragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'bigint', required: 'required', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'bigint', required: 'optional', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'stringDecimal', required: 'required', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'stringDecimal', required: 'optional', adapter?: TypeAdapter): StringDecimalFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'localDate', required: 'required', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'localDate', required: 'optional', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'localTime', required: 'optional', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'localDateTime', required: 'required', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
-    aggregateFragmentWithType(type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>[TYPE]
+    aggregateFragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>[TYPE]
     aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
     aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomBigintFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
     aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>

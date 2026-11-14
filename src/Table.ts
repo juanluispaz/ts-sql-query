@@ -1,4 +1,4 @@
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, IStringDecimalValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomDecimalValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
+import type { EqualableValueSource, ComparableValueSource, IEqualableValueSource, IComparableValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomDecimalValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
 import type { ITable, IWithView, ITableOrView, HasIsValue, OfDB } from './utils/ITableOrView.js'
 import { __addWiths, __registerTableOrView, __registerRequiredColumn, __getTableOrViewPrivate } from './utils/ITableOrView.js'
 import type { TypeAdapter } from './TypeAdapter.js'
@@ -8,12 +8,13 @@ import { __createDBColumn, __createValueSourceFromBuilder } from './typeSystem/v
 import { connection, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'
-import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, LocalDateFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalTimeFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression } from './expressions/fragment.js'
+import type { ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, EqualableFragmentExpression } from './expressions/fragment.js'
 import { FragmentQueryBuilder } from './queryBuilders/FragmentQueryBuilder.js'
 import type { NNoTableOrViewRequiredFrom, NSourceAllowingNoTableOrViewRequired, NTable } from './utils/sourceName.js'
 import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
 import type { CustomType } from './TypeAdapter.js'
 import type { AnyValueSource } from './typeSystem/valueSource.js'
+import type { BuiltInDataType, BuiltInDataTypeValueSources, BuiltInDataTypeInputs, BuiltInDataTypeFragments } from './typeSystem/builtInDataTypes.js'
 
 class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -83,16 +84,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return result as any
     }
 
-    protected column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & Column
+    protected column<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE] & Column
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
@@ -111,16 +103,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asColumn()
     }
 
-    protected optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'> & Column
-    protected optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'> & Column
+    protected optionalColumn<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE] & Column
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'optional'> & Column
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'optional'> & Column
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'optional'> & Column
@@ -139,16 +122,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asOptionalColumn()
     }
 
-    protected columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
-    protected columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & ColumnWithDefaultValue
+    protected columnWithDefaultValue<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE] & ColumnWithDefaultValue
     protected columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'> & ColumnWithDefaultValue
@@ -167,16 +141,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asColumnWithDefaultValue()
     }
 
-    protected optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'> & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE] & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'optional'> & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'optional'> & ColumnWithDefaultValue
@@ -195,16 +160,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asOptionalColumnWithDefaultValue()
     }
 
-    protected autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE] & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
@@ -223,16 +179,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asAutogeneratedPrimaryKey()
     }
 
-    protected primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & PrimaryKeyColumn
-    protected primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & PrimaryKeyColumn
+    protected primaryKey<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE] & PrimaryKeyColumn
     protected primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyColumn
     protected primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyColumn
     protected primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyColumn
@@ -251,16 +198,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asPrimaryKey()
     }
 
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence<TYPE extends BuiltInDataType>(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE] & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(this: OfDB<'mariaDB' | 'oracle' | 'postgreSql' | 'sqlServer'>, name: string, sequenceName: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'> & PrimaryKeyAutogeneratedColumn
@@ -279,16 +217,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asAutogeneratedPrimaryKeyBySequence(sequenceName)
     }
 
-    protected computedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'>
-    protected computedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'>
+    protected computedColumn<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]
     protected computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'>
     protected computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'required'>
     protected computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'>
@@ -307,16 +236,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return __createDBColumn(this, name, type, undefined, adapter).__asComputedColumn()
     }
 
-    protected optionalComputedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'>
-    protected optionalComputedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'>
+    protected optionalComputedColumn<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE]
     protected optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'optional'>
     protected optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'optional'>
     protected optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'optional'>
@@ -335,16 +255,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return (__createDBColumn(this, name, type, undefined, adapter)).__asOptionalColumn().__asOptionalComputedColumn()
     }
 
-    protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'int', fn: (fragment: NumberFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => INumberValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'bigint', fn: (fragment: BigintFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IBigintValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => INumberValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'string', fn: (fragment: StringFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IStringValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'uuid', fn: (fragment: UuidFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IUuidValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: StringDecimalFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IStringDecimalValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'localDate', fn: (fragment: LocalDateFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => ILocalDateValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'localTime', fn: (fragment: LocalTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => ILocalTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'>
-    protected virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: LocalDateTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => ILocalDateTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'>
+    protected virtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: CustomIntFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'required'>) => ICustomIntValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'required'>, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: CustomBigintFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'required'>) => ICustomBigintValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'required'>, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: CustomDoubleFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'required'>) => ICustomDoubleValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'required'>, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'>
@@ -365,16 +276,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
         return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'required', arg2 as TypeAdapter | undefined)
     }
 
-    protected optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: NumberFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => INumberValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: BigintFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IBigintValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): BigintValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => INumberValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: StringFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IStringValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: UuidFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IUuidValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: StringDecimalFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IStringDecimalValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): StringDecimalValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: LocalDateFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => ILocalDateValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: LocalTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => ILocalTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: LocalDateTimeFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => ILocalDateTimeValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'>
+    protected optionalVirtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE]
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: CustomIntFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'optional'>) => ICustomIntValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'optional'>, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: CustomBigintFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'optional'>) => ICustomBigintValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'optional'>, adapter?: TypeAdapter): CustomBigintValueSource<SOURCE, T, TYPE_NAME, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: CustomDoubleFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, T, TYPE_NAME, 'optional'>) => ICustomDoubleValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, T, TYPE_NAME, 'optional'>, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'optional'>

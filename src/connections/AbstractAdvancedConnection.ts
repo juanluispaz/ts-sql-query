@@ -1,12 +1,13 @@
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, StringDecimalValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
+import type { EqualableValueSource, ComparableValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { Sequence } from '../expressions/sequence.js'
 import { AbstractConnection } from './AbstractConnection.js'
 import { SequenceQueryBuilder } from '../queryBuilders/SequenceQueryBuilder.js'
 import type { NDB, NNoTableOrViewRequired } from '../utils/sourceName.js'
 import type { CustomType } from '../TypeAdapter.js'
+import type { BuiltInDataType, BuiltInDataTypeValueSources } from '../typeSystem/builtInDataTypes.js'
 
 export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> extends AbstractConnection<DB> {
 
@@ -14,16 +15,7 @@ export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> exte
         super(queryRunner, sqlBuilder)
     }
 
-    protected sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<UuidValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'stringDecimal', adapter?: TypeAdapter): Sequence<StringDecimalValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<LocalDateValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>>
-    protected sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>>
+    protected sequence<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): Sequence<BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomIntValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomBigintValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomDoubleValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>

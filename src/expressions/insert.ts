@@ -1,4 +1,4 @@
-import type { IExecutableSelectQuery, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, IExecutableInsertQuery, IAnyBooleanValueSource } from './values.js'
+import type { IAnyBooleanValueSource } from './values.js'
 import type { HasSource, IRawFragment, OfDB, ResolvedShape } from '../utils/ITableOrView.js'
 import type { columnsType, from, source, using } from '../utils/symbols.js'
 import type { RawFragment } from '../utils/RawFragment.js'
@@ -9,6 +9,7 @@ import type { NNoTableOrViewRequiredFrom, NSource, NValuesForInsertFrom } from '
 import type { DataToProject } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
+import type { AnyValueSource, IExecutableInsertQuery, IExecutableSelectQuery, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from '../typeSystem/valueSource.js'
 
 export interface InsertCustomization</*in|out*/ _TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> {
     afterInsertKeyword?: IRawFragment<USING[typeof source]>

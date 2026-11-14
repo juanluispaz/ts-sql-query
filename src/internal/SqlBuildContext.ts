@@ -1,9 +1,9 @@
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import type { AnyValueSource } from '../expressions/values.js'
 import type { SelectColumnSql } from '../sqlBuilders/AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { queryContextOf, type QueryContextImpl } from './QueryContextImpl.js'
 import type { TypeAdapterContextImpl } from './TypeAdapterContextImpl.js'
+import type { AnyValueSource } from '../typeSystem/valueSource.js'
 
 /**
  * The state of the construction of the SQL of one query: the params the query runner receives, and what the SQL builder

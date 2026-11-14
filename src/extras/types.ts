@@ -3,13 +3,13 @@ import type { InsertShapeContent, MandatoryInsertSetsContent, MandatoryInsertVal
 import type { UpdateValues, UpdateShape, UpdateSetsContent } from '../expressions/update.js'
 import type { ForUseInLeftJoin, HasSource, ITable, ITableOrView } from '../utils/ITableOrView.js'
 import type { WritableDBColumn, WritableDBPrimaryKeyColumn, WritableDBPrimaryKeyColumnWithDefaultValue, WritableDBPrimaryKeyColumnWithoutDefaultValue } from '../utils/Column.js'
-import type { AnyValueSource } from '../expressions/values.js'
 import type { FromRefBySource, FromRefBySourceLeftJoin, ResolveShape } from '../utils/tableOrViewUtils.js'
 import type { source } from '../utils/symbols.js'
 import type { NAlias, NAsLeftJoin, NMaybyAliased, NNoTableOrViewRequiredFrom, NSource, NValuesForInsertFrom } from '../utils/sourceName.js'
 import type { DataToProjectOfAny } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
+import type { AnyValueSource } from '../typeSystem/valueSource.js'
 
 type Selectable = DataToProjectOfAny
 

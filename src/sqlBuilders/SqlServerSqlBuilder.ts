@@ -4,19 +4,18 @@ import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryCo
 import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../expressions/values.js'
-import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isLocalDateTimeValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
-import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { isSqlServerReservedWord } from '../utils/sqlServer/sqlServerReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
+import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true

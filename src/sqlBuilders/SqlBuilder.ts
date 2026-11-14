@@ -1,7 +1,6 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ITable, IWithView, HasIsValue, AnyTableOrView } from '../utils/ITableOrView.js'
-import type { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery } from '../expressions/values.js'
-import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
+import type { AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource } from '../expressions/values.js'
 import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import type { OrderByMode, SelectCustomization } from '../expressions/select.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -16,6 +15,8 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
 import type { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
 import type { CustomType } from '../TypeAdapter.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }

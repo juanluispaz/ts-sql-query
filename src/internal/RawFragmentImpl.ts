@@ -1,11 +1,11 @@
 import type { SqlBuildContext } from './SqlBuildContext.js'
-import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../expressions/values.js'
 import type { SqlBuilder, ToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __addWiths, __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { source, type } from '../utils/symbols.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../typeSystem/valueSource.js'
 
 export class RawFragmentImpl implements RawFragment<any>, IQueryDataDiscovery, ToSql {
     [type]!: "rawFragment"

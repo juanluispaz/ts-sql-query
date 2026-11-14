@@ -4,19 +4,18 @@ import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, Fla
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
 import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
-import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __getValueSourcePrivate } from '../expressions/values.js'
 import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isBoolean, __isLocalDateTime, __isLocalTime, __isUuid } from '../typeSystem/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
+import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     // Oracle truncates a fractional scale of round

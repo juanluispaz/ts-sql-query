@@ -2,10 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns, OrderByEntry, PlainSelectData, CompoundSelectData } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn, hasToSql } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
-import { isValueSource, __isUuidValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isLocalDateTimeValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
-import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from '../connections/SqliteConfiguration.js'
@@ -15,6 +12,8 @@ import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment }
 import { __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
+import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 
 /**
  * The canonical text of a decimal: no zeros before the integer part ('0' when it is zero), none at the end of the

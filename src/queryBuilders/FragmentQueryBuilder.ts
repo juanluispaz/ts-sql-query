@@ -1,9 +1,10 @@
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, OptionalType } from '../expressions/values.js'
-import { Argument, isValueSource, __getValueSourcePrivate, __mergeOptional } from '../expressions/values.js'
+import { Argument } from '../expressions/values.js'
 import { __createConst, __createFragment, __createIfValueAlwaysNoop } from '../typeSystem/valueSourceFactory.js'
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { CustomType } from '../TypeAdapter.js'
+import type { AnyValueSource, OptionalType } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, __mergeOptional, isValueSource } from '../typeSystem/valueSource.js'
 
 export class FragmentQueryBuilder {
     __type: string

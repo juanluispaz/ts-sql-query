@@ -5,13 +5,14 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { MySqlSqlBuilder } from '../sqlBuilders/MySqlSqlBuilder.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import { AbstractConnection } from './AbstractConnection.js'
-import type { IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
-import { __getValueSourcePrivate } from '../expressions/values.js'
+import type { IStringValueSource, IValueSource, StringValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { source } from '../utils/symbols.js'
 import { __createAggregateFunction1, __createAggregateFunction1or2 } from '../typeSystem/valueSourceFactory.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
+import type { ValueSourceOf } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 
 export abstract class MySqlConnection</*in|out*/ NAME extends string> extends AbstractConnection<NConnection<'mySql', NAME>> {
     /**

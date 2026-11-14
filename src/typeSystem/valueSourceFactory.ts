@@ -1,11 +1,11 @@
 import type { AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlOperationStatic0, SqlOperationStatic1, SqlSequenceOperation } from '../sqlBuilders/SqlBuilder.js'
-import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../expressions/values.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateSelectValueSource, AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, FragmentValueSource, FunctionCallValueSource, InlineSelectValueSource, SequenceValueSource, SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore, SqlOperationConstValueSource, SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, SqlOperationStaticBooleanValueSource, SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceFromBuilder, ValueSourceImpl, type InlineSelectData } from '../internal/ValueSourceImpl.js'
 import { DBColumnImpl, createColumnsFrom } from '../internal/DBColumnImpl.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from './valueSource.js'
 
 // How the rest of the library builds a value source, a column or a raw fragment, and asks which one it has: the only
 // module that knows the classes that implement them, so the implementation can change without touching who uses it.

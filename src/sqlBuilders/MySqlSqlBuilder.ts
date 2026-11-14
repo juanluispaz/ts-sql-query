@@ -1,6 +1,4 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
-import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
-import { isValueSource, __getValueSourcePrivate, __isUuidValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -13,6 +11,8 @@ import { __getColumnPrivate } from '../utils/Column.js'
 import { isMySqlReservedWord } from '../utils/mySqlMariaDB/mySqlReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
 import { __isUuid } from '../typeSystem/dataTypes.js'
+import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true

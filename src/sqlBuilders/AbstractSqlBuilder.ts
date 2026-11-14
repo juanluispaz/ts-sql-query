@@ -6,8 +6,7 @@ import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData,
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import type { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate } from '../expressions/values.js'
-import { isValueSource, __getValueSourceOfObject, __isStringValueSource, __isBooleanValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -21,11 +20,12 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { getWithData, hasWithData } from './SqlBuilder.js'
-import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __isAggregatedArray, __isBigint, __isDouble, __isExactDecimal, __isInt } from '../typeSystem/dataTypes.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
+import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSource, __isStringValueSource, isValueSource } from '../typeSystem/valueSource.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed

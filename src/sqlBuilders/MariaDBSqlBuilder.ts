@@ -1,6 +1,4 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
-import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../expressions/values.js'
-import { __getValueSourcePrivate, isValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData, ToSql } from './SqlBuilder.js'
@@ -10,6 +8,8 @@ import { __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { isMariaDBReservedWord } from '../utils/mySqlMariaDB/mariaDBReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // MariaDB 10.5+ reads a column of the row in its on duplicate key update with a subquery over a derived table of

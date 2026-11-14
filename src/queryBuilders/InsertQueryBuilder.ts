@@ -10,11 +10,13 @@ import { isColumn } from '../utils/Column.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { TsSqlError, TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
-import type { AlwaysIfValueSource, AnyValueSource, IExecutableSelectQuery, IAnyBooleanValueSource } from '../expressions/values.js'
-import { asAlwaysIfValueSource, isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
+import type { AlwaysIfValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
+import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf, __unnamedResultColumn } from './AbstractQueryBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
+import type { AnyValueSource, IExecutableSelectQuery } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 

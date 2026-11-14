@@ -4,10 +4,10 @@ import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin 
 import type { SelectData, SqlBuilder, WithSelectData } from '../sqlBuilders/SqlBuilder.js'
 import { createColumnsFrom } from '../typeSystem/valueSourceFactory.js'
 import { isTableOrViewObject, source, type } from '../utils/symbols.js'
-import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __setColumnsForLeftJoin } from '../utils/leftJoinUtils.js'
+import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 
 export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrViewPrivate {
     [isTableOrViewObject]: true = true;

@@ -1,4 +1,4 @@
-import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from './values.js'
+import type { IAnyBooleanValueSource } from './values.js'
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB, ResolvedShape } from '../utils/ITableOrView.js'
 import type { from, source, using } from '../utils/symbols.js'
 import type { InputOfColumn, InputOfOptionalColumn, PartialInputOfGroup, ShapeOfColumns, UpdateValuesOfGroup } from '../complexProjections/columnGroups.js'
@@ -8,6 +8,7 @@ import type { NNoTableOrViewRequiredFrom, NOldValuesFrom, NSource } from '../uti
 import type { DataToProject } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
+import type { AnyValueSource, IExecutableUpdateQuery, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from '../typeSystem/valueSource.js'
 
 export interface UpdateCustomization</*in|out*/ _TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> {
     afterUpdateKeyword?: IRawFragment<USING[typeof source]>

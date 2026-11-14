@@ -1,6 +1,6 @@
-import type { AnyValueSource, ValueSourceValueTypeForNullableObjectResult, ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin, ValueSourceValueTypeForRequiredInNullableOptionalObject } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { AllFromSameLeftJoinWithOriginallyRequired, ContainsRequired, ContainsRequiredInOptionalObject } from './projectionRules.js'
+import type { AnyValueSource, ValueSourceValueTypeForNullableObjectResult, ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin, ValueSourceValueTypeForRequiredInNullableOptionalObject } from '../typeSystem/valueSource.js'
 
 /*
  * NOTE:

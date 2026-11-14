@@ -1,6 +1,6 @@
-import { __getValueSourcePrivate, isValueSource } from '../expressions/values.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { isUsableValue } from '../sqlBuilders/SqlBuilder.js'
+import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
 export function __setColumnsForLeftJoin(columns: QueryColumns): void {
   for (const prop in columns) {

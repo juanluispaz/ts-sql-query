@@ -1,6 +1,7 @@
-import type { IValueSource, OptionalType, ValueSourceOf } from '../expressions/values.js'
+import type { IValueSource } from '../expressions/values.js'
 import type { RequiredKeys } from '../utils/objectUtils.js'
 import type { NAnyLeftJoin, NNoTableOrViewRequiredFrom } from '../utils/sourceName.js'
+import type { OptionalType, ValueSourceOf } from '../typeSystem/valueSource.js'
 
 /*
  * RUNTIME TWIN: the rules below are applied again at runtime (getInnerObjetRuleToApply and the rule switch in

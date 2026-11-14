@@ -1,7 +1,7 @@
 import type { CustomType, ProjectionComparison, ProjectionOutput, SqlDataType, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
-import type { AnyValueSource } from '../expressions/values.js'
 import { QueryParamContextImpl, type QueryContextImpl } from './QueryContextImpl.js'
+import type { AnyValueSource } from '../typeSystem/valueSource.js'
 
 /** Who gives the type a `transformProjection` requests for a value (the SQL builder) */
 export interface RequestedTypeOfProjection {

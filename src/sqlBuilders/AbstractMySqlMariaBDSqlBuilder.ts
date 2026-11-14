@@ -3,10 +3,8 @@ import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { AnyValueSource, IAnyBooleanValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
-import { isValueSource } from '../expressions/values.js'
+import type { IAnyBooleanValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
-import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnPrivate, __getColumnOfObject } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -15,6 +13,8 @@ import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITab
 import { __isOperation1, __isOperation1IfValueOrIgnore } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { CustomType } from '../TypeAdapter.js'
+import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
 /** One assignment of the set of an update: the property of the values, the column of the table and its value */
 interface UpdateAssignment {

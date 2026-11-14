@@ -1,5 +1,3 @@
-import type { AnyValueSource } from '../expressions/values.js'
-import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn, isUsableValue } from '../sqlBuilders/SqlBuilder.js'
 import type { FlatQueryColumns } from '../sqlBuilders/SqlBuilder.js'
@@ -11,6 +9,8 @@ import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../T
 import { paramsForExecution, QueryParamContextImpl, queryContextOf } from '../internal/QueryContextImpl.js'
 import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
 import type { ProjectionOutput } from '../TypeAdapter.js'
+import type { AnyValueSource } from '../typeSystem/valueSource.js'
+import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder

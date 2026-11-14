@@ -95,10 +95,6 @@ export function unquotedArgument(arg: string): string {
     return text
 }
 
-/** The SQL data type with the native name of that database, as it was written, beside the ones it already has */
-export function withNative(sqlDataType: SqlDataType, database: DatabaseType, nativeName: string): SqlDataType {
-    return { ...sqlDataType, native: { ...sqlDataType.native, [database]: nativeName.trim() } }
-}
 
 /** The native name the SQL data type keeps for that database, or undefined */
 export function nativeNameFor(sqlDataType: SqlDataType, database: DatabaseType): string | undefined {

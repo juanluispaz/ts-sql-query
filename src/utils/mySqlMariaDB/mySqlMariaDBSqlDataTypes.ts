@@ -1,5 +1,5 @@
-import type { SqlDataType } from '../../TypeAdapter.js'
-import { argumentNumber, nativeNameFor, nativeTypeParts, unquotedArgument, withNative } from '../sqlDataTypeNames.js'
+import type { SqlDataType, SqlDataTypeNative } from '../../TypeAdapter.js'
+import { argumentNumber, nativeNameFor, nativeTypeParts, unquotedArgument } from '../sqlDataTypeNames.js'
 
 type MySqlMariaDB = 'mySql' | 'mariaDB'
 
@@ -21,31 +21,30 @@ function mySqlMariaDBFamilyOf(nativeName: string, database: MySqlMariaDB): SqlDa
     const n1 = argumentNumber(args[1])
     const bytes = integers[key]
     if (bytes !== undefined) {
-        return unsigned ? { family: 'exact numeric', scale: 0, bytes, unsigned } : { family: 'exact numeric', scale: 0, bytes }
+        return { family: 'exact numeric', scale: 0, bytes, unsigned: unsigned || undefined }
     }
-    const sized = (length: number | undefined): { length?: number } => length === undefined ? {} : { length }
     switch (key) {
         case 'bool': case 'boolean': return { family: 'boolean' }
         case 'decimal': case 'dec': case 'numeric': case 'fixed':
-            return { family: 'exact numeric', precision: n0 ?? 10, scale: n1 ?? 0, ...(unsigned ? { unsigned } : {}) }
+            return { family: 'exact numeric', precision: n0 ?? 10, scale: n1 ?? 0, unsigned: unsigned || undefined }
         case 'float': case 'float4': return { family: 'approximate numeric', precision: n0 !== undefined && args.length === 1 && n0 > 24 ? 53 : 24 }
         case 'double': case 'double precision': case 'real': case 'float8': return { family: 'approximate numeric', precision: 53 }
         case 'bit': return { family: 'bit string', length: n0 ?? 1, fixed: true }
         case 'char': case 'character': return { family: 'character string', length: n0 ?? 1, fixed: true }
-        case 'varchar': case 'character varying': return { family: 'character string', ...sized(n0) }
+        case 'varchar': case 'character varying': return { family: 'character string', length: n0 }
         case 'nchar': case 'national char': case 'national character': return { family: 'character string', length: n0 ?? 1, fixed: true, national: true }
-        case 'nvarchar': case 'national varchar': case 'national character varying': case 'nchar varchar': return { family: 'character string', ...sized(n0), national: true }
+        case 'nvarchar': case 'national varchar': case 'national character varying': case 'nchar varchar': return { family: 'character string', length: n0, national: true }
         case 'binary': return { family: 'binary string', length: n0 ?? 1, fixed: true }
-        case 'varbinary': return { family: 'binary string', ...sized(n0) }
+        case 'varbinary': return { family: 'binary string', length: n0 }
         case 'date': return { family: 'datetime', fields: 'date' }
-        case 'time': return { family: 'datetime', fields: 'time', ...(n0 !== undefined ? { precision: n0 } : {}), timeZone: 'none' }
-        case 'datetime': return { family: 'datetime', fields: 'timestamp', ...(n0 !== undefined ? { precision: n0 } : {}), timeZone: 'none' }
-        case 'timestamp': return { family: 'datetime', fields: 'timestamp', ...(n0 !== undefined ? { precision: n0 } : {}), timeZone: 'session' }
+        case 'time': return { family: 'datetime', fields: 'time', precision: n0, timeZone: 'none' }
+        case 'datetime': return { family: 'datetime', fields: 'timestamp', precision: n0, timeZone: 'none' }
+        case 'timestamp': return { family: 'datetime', fields: 'timestamp', precision: n0, timeZone: 'session' }
         case 'year': return { family: 'datetime', fields: 'year' }
         case 'json': return { family: 'document', format: 'json' }
-        case 'enum': case 'set': return { family: 'enumeration', values: args.map(unquotedArgument), ...(key === 'set' ? { multiple: true } : {}) }
+        case 'enum': case 'set': return { family: 'enumeration', values: args.map(unquotedArgument), multiple: key === 'set' || undefined }
         case 'geomcollection': return { family: 'spatial', model: 'geometry', subtype: 'geometrycollection' }
-        case 'vector': return n0 === undefined ? { family: 'vector', element: 'float32' } : { family: 'vector', dimensions: n0, element: 'float32' }
+        case 'vector': return { family: 'vector', dimensions: n0, element: 'float32' }
     }
     for (const [name, length] of texts) {
         if (key === name || key === 'long varchar' && name === 'mediumtext') {
@@ -60,7 +59,7 @@ function mySqlMariaDBFamilyOf(nativeName: string, database: MySqlMariaDB): SqlDa
     const geometry = key.replace(/ srid \d+$/, '')
     if (geometries.includes(geometry)) {
         const srid = /srid (\d+)$/.exec(key)?.[1]
-        return { family: 'spatial', model: 'geometry', ...(geometry === 'geometry' ? {} : { subtype: geometry }), ...(srid ? { srid: Number(srid) } : {}) }
+        return { family: 'spatial', model: 'geometry', subtype: geometry === 'geometry' ? undefined : geometry, srid: srid ? Number(srid) : undefined }
     }
     if (database === 'mariaDB') {
         switch (key) {
@@ -69,16 +68,19 @@ function mySqlMariaDBFamilyOf(nativeName: string, database: MySqlMariaDB): SqlDa
             case 'inet6': return { family: 'network address', kind: 'inet', ipFamily: 6 }
             case 'xmltype': return { family: 'document', format: 'xml' }
             case 'clob': return { family: 'character string', length: 4294967295, largeObject: true }
-            case 'number': return n0 === undefined ? { family: 'exact numeric' } : { family: 'exact numeric', precision: n0, scale: n1 ?? 0 }
-            case 'varchar2': return { family: 'character string', ...sized(n0) }
-            case 'raw': return { family: 'binary string', ...sized(n0) }
+            case 'number': return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : n1 ?? 0 }
+            case 'varchar2': return { family: 'character string', length: n0 }
+            case 'raw': return { family: 'binary string', length: n0 }
         }
     }
     return { family: 'user-defined', name: nativeName.trim() }
 }
 
 export function mySqlMariaDBSqlDataTypeFrom(nativeName: string, database: MySqlMariaDB): SqlDataType {
-    return withNative(mySqlMariaDBFamilyOf(nativeName, database), database, nativeName)
+    // A new object from the reading of the name: its native name is set on it, not on a copy
+    const sqlDataType = mySqlMariaDBFamilyOf(nativeName, database) as { native?: SqlDataTypeNative }
+    sqlDataType.native = database === 'mySql' ? { mySql: nativeName } : { mariaDB: nativeName }
+    return sqlDataType as SqlDataType
 }
 
 function quoted(value: string): string {
@@ -95,7 +97,6 @@ export function mySqlMariaDBNativeSqlDataTypeOf(sqlDataType: SqlDataType, databa
     if (native !== undefined) {
         return native
     }
-    const precision = (value: number | undefined): string => value === undefined ? '' : '(' + value + ')'
     switch (sqlDataType.family) {
         case 'exact numeric': {
             const { bytes, unsigned, precision: digits, scale } = sqlDataType
@@ -133,7 +134,7 @@ export function mySqlMariaDBNativeSqlDataTypeOf(sqlDataType: SqlDataType, databa
         }
         case 'datetime': {
             const { fields, timeZone } = sqlDataType
-            const p = precision(sqlDataType.precision)
+            const p = precisionSuffix(sqlDataType.precision)
             if (fields === 'date') return 'date'
             if (fields === 'year') return 'year'
             if (fields === 'time') return timeZone === undefined || timeZone === 'none' ? 'time' + p : undefined
@@ -166,10 +167,15 @@ export function mySqlMariaDBNativeSqlDataTypeOf(sqlDataType: SqlDataType, databa
         case 'vector':
             // VECTOR came in MySQL 9.0 and MariaDB 11.7
             if (compatibilityVersion < (mariaDB ? 11_007_000 : 9_000_000)) return undefined
-            return sqlDataType.element === undefined || sqlDataType.element === 'float32' ? (sqlDataType.storage === 'sparse' ? undefined : 'vector' + precision(sqlDataType.dimensions)) : undefined
+            return sqlDataType.element === undefined || sqlDataType.element === 'float32' ? (sqlDataType.storage === 'sparse' ? undefined : 'vector' + precisionSuffix(sqlDataType.dimensions)) : undefined
         case 'user-defined':
             return sqlDataType.name
         default:
             return undefined
     }
+}
+
+/** `(n)`, or nothing without a number */
+function precisionSuffix(value: number | undefined): string {
+    return value === undefined ? '' : '(' + value + ')'
 }

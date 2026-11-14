@@ -1,11 +1,11 @@
 import type { NConnection } from '../utils/sourceName.js'
-import { argumentNumber, nativeNameFor, nativeTypeParts, withNative } from '../utils/sqlDataTypeNames.js'
+import { argumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqlServerSqlBuilder } from '../sqlBuilders/SqlServerSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
-import type { SqlDataType, TypeAdapterProjectionContext } from '../TypeAdapter.js'
+import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext } from '../TypeAdapter.js'
 import { __isExactDecimal } from '../utils/dataTypes.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
@@ -15,7 +15,10 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
     override sqlDataTypeFrom(nativeName: string): SqlDataType {
-        return withNative(sqlServerFamilyOf(nativeName), 'sqlServer', nativeName)
+        // A new object from the reading of the name: its native name is set on it, not on a copy
+        const sqlDataType = sqlServerFamilyOf(nativeName) as { native?: SqlDataTypeNative }
+        sqlDataType.native = { sqlServer: nativeName }
+        return sqlDataType as SqlDataType
     }
     /**
      * The type of SQL Server for a SQL data type: its native name of SQL Server when it has one, otherwise from its family and
@@ -175,10 +178,6 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
     }
 }
 
-/** The length of a type of SQL Server: a number, or undefined for `max` (and when it has none) */
-function lengthOf(arg: string | undefined): number | undefined {
-    return argumentNumber(arg)
-}
 
 /** The type of the name as SQL Server writes it (`varchar(50)`, `nvarchar(max)`, `datetime2(3)`), aliases accepted */
 function sqlServerFamilyOf(nativeName: string): SqlDataType {
@@ -186,11 +185,6 @@ function sqlServerFamilyOf(nativeName: string): SqlDataType {
     const n0 = argumentNumber(args[0])
     const n1 = argumentNumber(args[1])
     const isMax = args[0]?.trim().toLowerCase() === 'max'
-    const text = (fixed: boolean, national: boolean): SqlDataType => {
-        if (fixed) return { family: 'character string', length: n0 ?? 1, fixed: true, national }
-        if (isMax) return { family: 'character string', national, largeObject: true }
-        return { family: 'character string', length: lengthOf(args[0]) ?? 1, national }
-    }
     switch (key) {
         case 'tinyint': return { family: 'exact numeric', scale: 0, bytes: 1, unsigned: true }
         case 'smallint': return { family: 'exact numeric', scale: 0, bytes: 2 }
@@ -202,10 +196,10 @@ function sqlServerFamilyOf(nativeName: string): SqlDataType {
         case 'real': return { family: 'approximate numeric', precision: 24 }
         case 'float': case 'double precision': return { family: 'approximate numeric', precision: n0 !== undefined && n0 <= 24 ? 24 : 53 }
         case 'bit': return { family: 'boolean' }
-        case 'char': case 'character': return text(true, false)
-        case 'varchar': case 'char varying': case 'character varying': return text(false, false)
-        case 'nchar': case 'national char': case 'national character': return text(true, true)
-        case 'nvarchar': case 'national char varying': case 'national character varying': return text(false, true)
+        case 'char': case 'character': return { family: 'character string', length: n0 ?? 1, fixed: true, national: false }
+        case 'varchar': case 'char varying': case 'character varying': return isMax ? { family: 'character string', national: false, largeObject: true } : { family: 'character string', length: n0 ?? 1, national: false }
+        case 'nchar': case 'national char': case 'national character': return { family: 'character string', length: n0 ?? 1, fixed: true, national: true }
+        case 'nvarchar': case 'national char varying': case 'national character varying': return isMax ? { family: 'character string', national: true, largeObject: true } : { family: 'character string', length: n0 ?? 1, national: true }
         case 'text': return { family: 'character string', national: false, largeObject: true }
         case 'ntext': case 'national text': return { family: 'character string', national: true, largeObject: true }
         case 'binary': return { family: 'binary string', length: n0 ?? 1, fixed: true }
@@ -227,7 +221,7 @@ function sqlServerFamilyOf(nativeName: string): SqlDataType {
         case 'hierarchyid': return { family: 'hierarchy' }
         case 'vector': {
             const element = args[1]?.trim().toLowerCase() === 'float16' ? 'float16' : 'float32'
-            return n0 === undefined ? { family: 'vector', element } : { family: 'vector', dimensions: n0, element }
+            return { family: 'vector', dimensions: n0, element }
         }
     }
     return { family: 'user-defined', name: nativeName.trim() }
@@ -245,7 +239,6 @@ function sqlServerNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVer
     if (sqlDataType.domain !== undefined) {
         return sqlDataType.domain
     }
-    const fraction = (precision: number | undefined): string | undefined => precision === undefined ? '' : precision <= 7 ? '(' + precision + ')' : undefined
     switch (sqlDataType.family) {
         case 'exact numeric': {
             const { bytes, unsigned, precision, scale } = sqlDataType
@@ -281,7 +274,7 @@ function sqlServerNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVer
         }
         case 'datetime': {
             const { fields, timeZone } = sqlDataType
-            const p = fraction(sqlDataType.precision)
+            const p = fractionSuffix(sqlDataType.precision, 7)
             if (p === undefined) return undefined
             if (fields === 'date') return 'date'
             if (fields === 'year') return undefined
@@ -314,4 +307,9 @@ function sqlServerNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVer
         default:
             return undefined
     }
+}
+
+/** `(n)` of the digits of the fraction of the seconds, nothing without them, or undefined beyond the maximum */
+function fractionSuffix(precision: number | undefined, maximum: number): string | undefined {
+    return precision === undefined ? '' : precision <= maximum ? '(' + precision + ')' : undefined
 }

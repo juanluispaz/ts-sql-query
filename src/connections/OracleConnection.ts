@@ -1,5 +1,5 @@
 import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
-import { argumentNumber, integerDigits, nativeNameFor, nativeTypeParts, withNative } from '../utils/sqlDataTypeNames.js'
+import { argumentNumber, integerDigits, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder, oracleZonedValueSql } from '../sqlBuilders/OracleSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
@@ -11,7 +11,7 @@ import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } fro
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import type { SqlDataType, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isBoolean, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 
@@ -21,7 +21,10 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
     override sqlDataTypeFrom(nativeName: string): SqlDataType {
-        return withNative(oracleFamilyOf(nativeName), 'oracle', nativeName)
+        // A new object from the reading of the name: its native name is set on it, not on a copy
+        const sqlDataType = oracleFamilyOf(nativeName) as { native?: SqlDataTypeNative }
+        sqlDataType.native = { oracle: nativeName }
+        return sqlDataType as SqlDataType
     }
     /**
      * The type of Oracle for a SQL data type: its native name of Oracle when it has one, otherwise from its family and
@@ -218,12 +221,11 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     }
 }
 
-/** The length of a text of Oracle, `50`, `50 byte` or `50 char` */
-function textLength(arg: string | undefined): { length?: number, lengthUnit?: 'characters' | 'octets' } {
-    const match = arg === undefined ? null : /^(\d+)\s*(byte|char)?$/i.exec(arg.trim())
-    if (!match) return {}
-    const unit = match[2]?.toLowerCase()
-    return { length: Number(match[1]), ...(unit === 'char' ? { lengthUnit: 'characters' as const } : unit === 'byte' ? { lengthUnit: 'octets' as const } : {}) }
+/** The length of a text of Oracle, `50`, `50 byte` or `50 char`: the number, and the unit */
+const oracleTextLength = /^(\d+)\s*(byte|char)?$/i
+function oracleTextLengthUnit(match: RegExpExecArray | null): 'characters' | 'octets' | undefined {
+    const unit = match?.[2]?.toLowerCase()
+    return unit === 'char' ? 'characters' : unit === 'byte' ? 'octets' : undefined
 }
 
 /** The type of the name as Oracle writes it (`NUMBER(18,4)`, `VARCHAR2(50 CHAR)`, `TIMESTAMP(6) WITH TIME ZONE`), aliases accepted */
@@ -233,11 +235,9 @@ function oracleFamilyOf(nativeName: string): SqlDataType {
     const key = fullKey.replace(/^(sys|mdsys|public)\./, '')
     const n0 = argumentNumber(args[0])
     const n1 = argumentNumber(args[1])
-    const time = (timeZone: 'none' | 'session' | 'kept'): SqlDataType => ({ family: 'datetime', fields: 'timestamp', precision: n0 ?? 6, timeZone })
     switch (key) {
         case 'number': case 'numeric': case 'decimal': case 'dec':
-            if (n0 === undefined) return { family: 'exact numeric' }
-            return { family: 'exact numeric', precision: n0, scale: n1 ?? 0 }
+            return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : n1 ?? 0 }
         case 'integer': case 'int': case 'smallint': return { family: 'exact numeric', precision: 38, scale: 0 }
         case 'float': return { family: 'approximate numeric', precision: n0 ?? 126 }
         case 'real': return { family: 'approximate numeric', precision: 63 }
@@ -245,20 +245,29 @@ function oracleFamilyOf(nativeName: string): SqlDataType {
         case 'binary_float': return { family: 'approximate numeric', precision: 24 }
         case 'binary_double': return { family: 'approximate numeric', precision: 53 }
         case 'boolean': case 'bool': return { family: 'boolean' }
-        case 'char': case 'character': return { family: 'character string', ...textLength(args[0] ?? '1'), fixed: true }
-        case 'varchar2': case 'varchar': case 'character varying': case 'char varying': return { family: 'character string', ...textLength(args[0]) }
+        case 'char': case 'character': {
+            const length = oracleTextLength.exec((args[0] ?? '1').trim())
+            return { family: 'character string', length: length ? Number(length[1]) : undefined, lengthUnit: oracleTextLengthUnit(length), fixed: true }
+        }
+        case 'varchar2': case 'varchar': case 'character varying': case 'char varying': {
+            const length = args[0] === undefined ? null : oracleTextLength.exec(args[0].trim())
+            return { family: 'character string', length: length ? Number(length[1]) : undefined, lengthUnit: oracleTextLengthUnit(length) }
+        }
         case 'nchar': case 'national character': case 'national char': return { family: 'character string', length: n0 ?? 1, fixed: true, national: true }
         case 'nvarchar2': case 'national character varying': case 'national char varying': case 'nchar varying':
-            return { family: 'character string', ...textLength(args[0]), national: true }
+        {
+            const length = args[0] === undefined ? null : oracleTextLength.exec(args[0].trim())
+            return { family: 'character string', length: length ? Number(length[1]) : undefined, lengthUnit: oracleTextLengthUnit(length), national: true }
+        }
         case 'clob': case 'long': return { family: 'character string', largeObject: true }
         case 'nclob': return { family: 'character string', national: true, largeObject: true }
-        case 'raw': return { family: 'binary string', ...(n0 !== undefined ? { length: n0 } : {}) }
+        case 'raw': return { family: 'binary string', length: n0 }
         case 'blob': case 'long raw': return { family: 'binary string', largeObject: true }
         case 'bfile': return { family: 'binary string', largeObject: true, external: true }
         case 'date': return { family: 'datetime', fields: 'timestamp', precision: 0, timeZone: 'none' }
-        case 'timestamp': return time('none')
-        case 'timestamp with local time zone': return time('session')
-        case 'timestamp with time zone': return time('kept')
+        case 'timestamp': return { family: 'datetime', fields: 'timestamp', precision: n0 ?? 6, timeZone: 'none' }
+        case 'timestamp with local time zone': return { family: 'datetime', fields: 'timestamp', precision: n0 ?? 6, timeZone: 'session' }
+        case 'timestamp with time zone': return { family: 'datetime', fields: 'timestamp', precision: n0 ?? 6, timeZone: 'kept' }
         // The leading precision (the digits of the years or the days) isn't a property of the family: the native name keeps it
         case 'interval year to month': return { family: 'interval', fields: 'year to month' }
         case 'interval day to second': {
@@ -275,7 +284,7 @@ function oracleFamilyOf(nativeName: string): SqlDataType {
             const format = args[1]?.trim().toLowerCase()
             const element = format === 'int8' ? 'int8' : format === 'float64' ? 'float64' : format === 'binary' ? 'binary' : format === 'float32' ? 'float32' : undefined
             const storage = args[2]?.trim().toLowerCase() === 'sparse' ? 'sparse' : undefined
-            return { family: 'vector', ...(n0 !== undefined ? { dimensions: n0 } : {}), ...(element ? { element } : {}), ...(storage ? { storage } : {}) }
+            return { family: 'vector', dimensions: n0, element, storage }
         }
     }
     return { family: 'user-defined', name: nativeName.trim() }
@@ -294,7 +303,6 @@ function oracleNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVersio
     if (sqlDataType.domain !== undefined) {
         return sqlDataType.domain
     }
-    const fraction = (precision: number | undefined): string | undefined => precision === undefined ? '' : precision <= 9 ? '(' + precision + ')' : undefined
     switch (sqlDataType.family) {
         case 'exact numeric': {
             const { bytes, unsigned, precision, scale } = sqlDataType
@@ -323,7 +331,7 @@ function oracleNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVersio
         }
         case 'datetime': {
             const { fields, timeZone } = sqlDataType
-            const p = fraction(sqlDataType.precision)
+            const p = oracleFractionSuffix(sqlDataType.precision)
             if (p === undefined) return undefined
             if (fields === 'date') return 'DATE'
             // A time of the day is kept on 1970-01-01
@@ -362,4 +370,9 @@ function oracleNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVersio
         default:
             return undefined
     }
+}
+
+/** `(n)` of the digits of the fraction of the seconds, nothing without them, or undefined beyond 9 */
+function oracleFractionSuffix(precision: number | undefined): string | undefined {
+    return precision === undefined ? '' : precision <= 9 ? '(' + precision + ')' : undefined
 }

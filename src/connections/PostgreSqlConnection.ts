@@ -1,8 +1,8 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
-import { argumentNumber, nativeNameFor, nativeTypeParts, withNative } from '../utils/sqlDataTypeNames.js'
+import { argumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
-import type { IntervalSqlDataTypeFields, SqlDataType, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { IntervalSqlDataTypeFields, SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
@@ -24,7 +24,10 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
     override sqlDataTypeFrom(nativeName: string): SqlDataType {
-        return withNative(postgreSqlFamilyOf(nativeName), 'postgreSql', nativeName)
+        // A new object from the reading of the name: its native name is set on it, not on a copy
+        const sqlDataType = postgreSqlFamilyOf(nativeName) as { native?: SqlDataTypeNative }
+        sqlDataType.native = { postgreSql: nativeName }
+        return sqlDataType as SqlDataType
     }
     /**
      * The type of PostgreSQL for a SQL data type: its native name of PostgreSQL when it has one, otherwise from its family and
@@ -207,29 +210,28 @@ function postgreSqlFamilyOf(nativeName: string): SqlDataType {
     }
     const n0 = argumentNumber(args[0])
     const n1 = argumentNumber(args[1])
-    const time = (fields: 'time' | 'timestamp', timeZone: 'none' | 'instant' | 'kept'): SqlDataType => n0 === undefined ? { family: 'datetime', fields, timeZone } : { family: 'datetime', fields, precision: n0, timeZone }
     switch (key) {
         case 'smallint': case 'int2': return { family: 'exact numeric', scale: 0, bytes: 2 }
         case 'integer': case 'int': case 'int4': return { family: 'exact numeric', scale: 0, bytes: 4 }
         case 'bigint': case 'int8': return { family: 'exact numeric', scale: 0, bytes: 8 }
         case 'numeric': case 'decimal':
-            return n0 === undefined ? { family: 'exact numeric' } : { family: 'exact numeric', precision: n0, scale: n1 ?? 0 }
+            return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : n1 ?? 0 }
         case 'real': case 'float4': return { family: 'approximate numeric', precision: 24 }
         case 'double precision': case 'float8': return { family: 'approximate numeric', precision: 53 }
         case 'float': return { family: 'approximate numeric', precision: n0 !== undefined && n0 <= 24 ? 24 : 53 }
         case 'boolean': case 'bool': return { family: 'boolean' }
         case 'character varying': case 'varchar':
-            return n0 === undefined ? { family: 'character string' } : { family: 'character string', length: n0 }
+            return { family: 'character string', length: n0 }
         case 'character': case 'char': case 'bpchar': return { family: 'character string', length: n0 ?? 1, fixed: true }
         case 'text': case 'citext': return { family: 'character string' }
         case 'name': return { family: 'character string', length: 63, lengthUnit: 'octets' }
         case '"char"': return { family: 'character string', length: 1, lengthUnit: 'octets', fixed: true }
         case 'bytea': return { family: 'binary string' }
         case 'date': return { family: 'datetime', fields: 'date' }
-        case 'time': case 'time without time zone': return time('time', 'none')
-        case 'time with time zone': case 'timetz': return time('time', 'kept')
-        case 'timestamp': case 'timestamp without time zone': return time('timestamp', 'none')
-        case 'timestamp with time zone': case 'timestamptz': return time('timestamp', 'instant')
+        case 'time': case 'time without time zone': return { family: 'datetime', fields: 'time', precision: n0, timeZone: 'none' }
+        case 'time with time zone': case 'timetz': return { family: 'datetime', fields: 'time', precision: n0, timeZone: 'kept' }
+        case 'timestamp': case 'timestamp without time zone': return { family: 'datetime', fields: 'timestamp', precision: n0, timeZone: 'none' }
+        case 'timestamp with time zone': case 'timestamptz': return { family: 'datetime', fields: 'timestamp', precision: n0, timeZone: 'instant' }
         case 'uuid': return { family: 'uuid' }
         case 'json': case 'jsonb': case 'xml': case 'jsonpath': return { family: 'document', format: key }
         case 'point': case 'line': case 'lseg': case 'box': case 'path': case 'polygon': case 'circle':
@@ -237,12 +239,12 @@ function postgreSqlFamilyOf(nativeName: string): SqlDataType {
         case 'geometry': case 'geography': {
             const srid = argumentNumber(args[1])
             const subtype = args[0]?.toLowerCase()
-            return { family: 'spatial', model: key, ...(subtype ? { subtype } : {}), ...(srid !== undefined ? { srid } : {}) }
+            return { family: 'spatial', model: key, subtype: subtype || undefined, srid }
         }
         case 'raster': return { family: 'spatial', model: 'raster' }
         case 'inet': case 'cidr': case 'macaddr': case 'macaddr8': return { family: 'network address', kind: key }
         case 'bit': return { family: 'bit string', length: n0 ?? 1, fixed: true }
-        case 'bit varying': case 'varbit': return n0 === undefined ? { family: 'bit string' } : { family: 'bit string', length: n0 }
+        case 'bit varying': case 'varbit': return { family: 'bit string', length: n0 }
         case 'money': return { family: 'money' }
         case 'tsvector': return { family: 'text search', kind: 'document' }
         case 'tsquery': return { family: 'text search', kind: 'query' }
@@ -254,9 +256,9 @@ function postgreSqlFamilyOf(nativeName: string): SqlDataType {
             return { family: 'system', kind: key }
         case 'hstore': return { family: 'collection', kind: 'map', of: { family: 'character string' } }
         case 'ltree': return { family: 'hierarchy' }
-        case 'vector': return n0 === undefined ? { family: 'vector', element: 'float32' } : { family: 'vector', dimensions: n0, element: 'float32' }
-        case 'halfvec': return n0 === undefined ? { family: 'vector', element: 'float16' } : { family: 'vector', dimensions: n0, element: 'float16' }
-        case 'sparsevec': return n0 === undefined ? { family: 'vector', element: 'float32', storage: 'sparse' } : { family: 'vector', dimensions: n0, element: 'float32', storage: 'sparse' }
+        case 'vector': return { family: 'vector', dimensions: n0, element: 'float32' }
+        case 'halfvec': return { family: 'vector', dimensions: n0, element: 'float16' }
+        case 'sparsevec': return { family: 'vector', dimensions: n0, element: 'float32', storage: 'sparse' }
     }
     const range = ranges[key]
     if (range) {
@@ -270,7 +272,7 @@ function postgreSqlFamilyOf(nativeName: string): SqlDataType {
         const fields = key.slice('interval'.length).trim()
         const known = intervalFields.find(field => field === fields)
         if (fields === '' || known) {
-            return { family: 'interval', ...(known ? { fields: known } : {}), ...(n0 !== undefined ? { precision: n0 } : {}) }
+            return { family: 'interval', fields: known, precision: n0 }
         }
     }
     return { family: 'user-defined', name: nativeName.trim() }

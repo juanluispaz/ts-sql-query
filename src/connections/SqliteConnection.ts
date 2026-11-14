@@ -1,5 +1,5 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
-import { argumentNumber, nativeNameFor, nativeTypeParts, withNative } from '../utils/sqlDataTypeNames.js'
+import { argumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './AbstractConnection.js'
@@ -14,7 +14,7 @@ import { source, valueType } from '../utils/symbols.js'
 import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
-import type { SqlDataType, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
@@ -27,7 +27,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * to read a name of your own); no name, a value of any type
      */
     override sqlDataTypeFrom(nativeName: string): SqlDataType {
-        return withNative(sqliteFamilyOf(nativeName), 'sqlite', nativeName)
+        // A new object from the reading of the name: its native name is set on it, not on a copy
+        const sqlDataType = sqliteFamilyOf(nativeName) as { native?: SqlDataTypeNative }
+        sqlDataType.native = { sqlite: nativeName }
+        return sqlDataType as SqlDataType
     }
     /**
      * The type of a STRICT table of SQLite for a SQL data type: its native name of SQLite when it has one, otherwise
@@ -642,7 +645,6 @@ function sqliteFamilyOf(nativeName: string): SqlDataType {
     const { key, args } = nativeTypeParts(nativeName)
     const n0 = argumentNumber(args[0])
     const n1 = argumentNumber(args[1])
-    const sized = n0 === undefined ? {} : { length: n0 }
     switch (key) {
         case '': case 'any': return { family: 'variant' }
         case 'int': case 'integer': case 'bigint': case 'int8': return { family: 'exact numeric', scale: 0, bytes: 8 }
@@ -651,18 +653,18 @@ function sqliteFamilyOf(nativeName: string): SqlDataType {
         case 'mediumint': return { family: 'exact numeric', scale: 0, bytes: 3 }
         case 'int4': return { family: 'exact numeric', scale: 0, bytes: 4 }
         case 'decimal': case 'numeric': case 'dec':
-            return n0 === undefined ? { family: 'exact numeric' } : { family: 'exact numeric', precision: n0, scale: n1 ?? 0 }
+            return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : n1 ?? 0 }
         case 'real': case 'double': case 'double precision': case 'float': case 'float8': return { family: 'approximate numeric', precision: 53 }
         case 'float4': return { family: 'approximate numeric', precision: 24 }
         case 'boolean': case 'bool': return { family: 'boolean' }
         case 'text': case 'clob': return { family: 'character string' }
-        case 'varchar': case 'character varying': case 'varchar2': return { family: 'character string', ...sized }
+        case 'varchar': case 'character varying': case 'varchar2': return { family: 'character string', length: n0 }
         case 'char': case 'character': return { family: 'character string', length: n0 ?? 1, fixed: true }
-        case 'nvarchar': case 'nvarchar2': case 'national character varying': return { family: 'character string', ...sized, national: true }
+        case 'nvarchar': case 'nvarchar2': case 'national character varying': return { family: 'character string', length: n0, national: true }
         case 'nchar': case 'national character': return { family: 'character string', length: n0 ?? 1, fixed: true, national: true }
         case 'blob': case 'bytea': return { family: 'binary string' }
         case 'binary': return { family: 'binary string', length: n0 ?? 1, fixed: true }
-        case 'varbinary': return { family: 'binary string', ...sized }
+        case 'varbinary': return { family: 'binary string', length: n0 }
         case 'date': return { family: 'datetime', fields: 'date' }
         case 'time': return { family: 'datetime', fields: 'time', timeZone: 'none' }
         case 'datetime': case 'timestamp': return { family: 'datetime', fields: 'timestamp', timeZone: 'none' }

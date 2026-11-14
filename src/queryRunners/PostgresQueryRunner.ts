@@ -71,7 +71,8 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     /**
      * The params as they are given to postgres.js: a parameter of a type name in typesByName is sent with the type
      * declared there, and one whose type the database must receive (forceTypeCast) with the oid of its PostgreSQL
-     * type, so the SQL needs no cast; the other params go untyped. A date or time goes as the text of
+     * type, so the SQL needs no cast; the other params go untyped. A localDateTime or a localTime of a database outside
+     * UTC goes as a timestamptz, whatever type is declared for it. A date or time goes as the text of
      * postgreSqlDriverParams. The params of the query are not changed.
      */
     private driverParams(sql: Sql | TransactionSql | ReservedSql, params: any[]): any[] {
@@ -82,14 +83,16 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
             const value = values[i]
             const param = existingParamContextOf(params, i)
             const type = param?.requestedType
-            const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+            // A value of a database outside UTC goes as a timestamptz, whatever type is declared for it
+            const zoned = isPostgreSqlZonedParam(params, i)
+            const declared = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             let typed: Parameter<any> | undefined
             if (typeof declared === 'function') {
                 typed = declared(value)
             } else if (declared !== undefined) {
                 typed = sql.typed(value, declared)
-            } else if (param?.forceTypeCast || isPostgreSqlZonedParam(params, i)) {
-                const paramType = postgreSqlParamType(type, param?.requestedCustomType, value, isPostgreSqlZonedParam(params, i))
+            } else if (param?.forceTypeCast || zoned) {
+                const paramType = postgreSqlParamType(type, param?.requestedCustomType, value, zoned)
                 if (paramType) {
                     typed = sql.typed(value, paramType.oid)
                 }

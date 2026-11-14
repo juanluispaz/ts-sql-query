@@ -3,7 +3,8 @@
 // created in Madrid), runs the queries of a database in Europe/Madrid declared in the connection and prints what was
 // stored and read; mode `firstQuery` builds the runner with its session in Madrid and prints the outcome of the first
 // query of a connection that declares the zone it is told; mode `timeWithTimeZone` reads a time with time zone with the
-// database and the session in UTC.
+// database and the session in UTC; mode `declaredTypes` sends a localDateTime and a localTime with a type declared for
+// them in the typesByName of the runner.
 
 import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConnection.js'
 import { Table } from '../../../../src/Table.js'
@@ -12,9 +13,9 @@ import { printResult, probeConfig } from '../../lib/localTemporalValuesProbe.js'
 import { reasonOf } from '../../../runners/lib/runnerContract.js'
 
 interface Config {
-    mode: 'scenario' | 'firstQuery' | 'timeWithTimeZone'
+    mode: 'scenario' | 'firstQuery' | 'timeWithTimeZone' | 'declaredTypes'
     runner: string
-    options: { table?: string, compatibilityVersion?: number, declaredZone?: string, utc?: boolean }
+    options: { table?: string, compatibilityVersion?: number, declaredZone?: string, utc?: boolean, declaredTypes?: boolean }
     connection: { uri: string } | undefined
 }
 
@@ -23,6 +24,9 @@ const uri = config.connection?.uri ?? ''
 const compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
 // The zone of the session (PGlite: of its database): Madrid, or UTC with the option utc
 const zone = config.options.utc ? 'UTC' : 'Europe/Madrid'
+// The types of the runner, with declaredTypes: a timestamp and a time, as a cast (pg, Bun SQL) or an OID
+const castTypes = config.options.declaredTypes ? { typesByName: { localDateTime: 'timestamp', localTime: 'time' } } : undefined
+const oidTypes = config.options.declaredTypes ? { typesByName: { localDateTime: 1114, localTime: 1083 } } : undefined
 
 class MadridConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
@@ -84,32 +88,32 @@ async function createRunner(): Promise<{ runner: QueryRunner, raw: (sql: string)
             const { PgQueryRunner } = await import('../../../../src/queryRunners/PgQueryRunner.js')
             const client = new pg.Client({ connectionString: uri, options: '-c TimeZone=' + zone })
             await client.connect()
-            return { runner: new PgQueryRunner(client), raw: async (sql) => (await client.query(sql)).rows, close: () => client.end() }
+            return { runner: new PgQueryRunner(client, castTypes), raw: async (sql) => (await client.query(sql)).rows, close: () => client.end() }
         }
         case 'PgPoolQueryRunner': {
             const { default: pg } = await import('pg')
             const { PgPoolQueryRunner } = await import('../../../../src/queryRunners/PgPoolQueryRunner.js')
             const pool = new pg.Pool({ connectionString: uri, max: 2, options: '-c TimeZone=' + zone })
-            return { runner: new PgPoolQueryRunner(pool), raw: async (sql) => (await pool.query(sql)).rows, close: () => pool.end() }
+            return { runner: new PgPoolQueryRunner(pool, castTypes), raw: async (sql) => (await pool.query(sql)).rows, close: () => pool.end() }
         }
         case 'PostgresQueryRunner': {
             const { default: postgres } = await import('postgres')
             const { PostgresQueryRunner } = await import('../../../../src/queryRunners/PostgresQueryRunner.js')
             const sql = postgres(uri, { max: 2, onnotice: () => undefined, connection: { TimeZone: zone } })
-            return { runner: new PostgresQueryRunner(sql), raw: async (text) => [...await sql.unsafe(text)], close: () => sql.end() }
+            return { runner: new PostgresQueryRunner(sql, oidTypes), raw: async (text) => [...await sql.unsafe(text)], close: () => sql.end() }
         }
         case 'BunSqlPostgresQueryRunner': {
             const { SQL } = await import('bun')
             const { BunSqlPostgresQueryRunner } = await import('../../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
             const sql = new SQL(uri, { max: 2, connection: { TimeZone: zone } })
-            return { runner: new BunSqlPostgresQueryRunner(sql), raw: async (text) => [...await sql.unsafe(text)], close: () => sql.close() }
+            return { runner: new BunSqlPostgresQueryRunner(sql, castTypes), raw: async (text) => [...await sql.unsafe(text)], close: () => sql.close() }
         }
         case 'PgLiteQueryRunner': {
             const { PGlite } = await import('@electric-sql/pglite')
             const { PgLiteQueryRunner } = await import('../../../../src/queryRunners/PgLiteQueryRunner.js')
             // A database created in Madrid: its session is in Madrid, whatever the zone of the process
             const db = await PGlite.create('memory://', { postgresqlconf: [`timezone = '${zone}'`] })
-            return { runner: new PgLiteQueryRunner(db), raw: async (sql) => (await db.query<any>(sql)).rows, close: () => db.close() }
+            return { runner: new PgLiteQueryRunner(db, oidTypes), raw: async (sql) => (await db.query<any>(sql)).rows, close: () => db.close() }
         }
         default:
             throw new Error('Unknown runner ' + config.runner)
@@ -240,4 +244,30 @@ async function timeWithTimeZone(): Promise<ScenarioResult['timeWithTimeZone']> {
     }
 }
 
-printResult(config.mode === 'scenario' ? await scenario() : config.mode === 'firstQuery' ? await firstQuery() : await timeWithTimeZone())
+/** A localDateTime and a localTime with a type declared for them: what is stored, compared and read */
+async function declaredTypes(): Promise<{ sql: string[], stored: unknown[], where: number[], read: Record<string, unknown> }> {
+    const { runner, raw, close } = await createRunner()
+    try {
+        await raw('drop table if exists ' + tableName)
+        await raw('create table ' + tableName + ' (id int primary key, ts timestamp(3), tstz timestamptz, t time(3), ttz timetz(3))')
+        try {
+            const conn = new MadridConnection(runner)
+            const insert = conn.insertInto(tMoment).set({ id: 1, ts: winter, t: time17 })
+            await insert.executeInsert()
+            // A constant selected on its own: a position where the database must receive its type
+            const select = conn.selectFrom(tMoment).select({ ts: tMoment.ts, t: tMoment.t, constTs: conn.const(winter, 'localDateTime') })
+            return {
+                sql: [insert.query(), select.query()],
+                stored: await raw(`select ts::text as ts, t::text as t from ${tableName}`),
+                where: (await conn.selectFrom(tMoment).where(tMoment.ts.equals(winter)).and(tMoment.t.equals(time17)).select({ id: tMoment.id }).executeSelectMany()).map(row => row.id),
+                read: isoRow(await select.executeSelectOne()),
+            }
+        } finally {
+            await raw('drop table ' + tableName)
+        }
+    } finally {
+        await close()
+    }
+}
+
+printResult(config.mode === 'scenario' ? await scenario() : config.mode === 'firstQuery' ? await firstQuery() : config.mode === 'declaredTypes' ? await declaredTypes() : await timeWithTimeZone())

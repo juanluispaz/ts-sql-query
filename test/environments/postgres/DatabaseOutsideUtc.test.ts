@@ -67,6 +67,23 @@ function checkScenario(out: ScenarioResult): void {
     expect(out.skipped).toBe('2024-03-31T01:30:00.000Z')
 }
 
+// A localDateTime and a localTime with a type declared in typesByName (a timestamp and a time): the declared type
+// doesn't change the zone they are stored with, the one of the database
+// (they go as a timestamptz, the type declared isn't used)
+interface DeclaredTypesResult { sql: string[], stored: unknown[], where: number[], read: Record<string, unknown> }
+function checkDeclaredTypes(out: DeclaredTypesResult, table: string, typesTheParam: boolean): void {
+    expect(out.sql).toEqual(typesTheParam ? [
+        `insert into ${table} (id, ts, t) values ($1, $2, $3::time)`,
+        `select ts::timestamptz as ts, (date '1970-01-01' + t)::timestamptz as t, $1::timestamptz as "constTs" from ${table}`,
+    ] : [
+        `insert into ${table} (id, ts, t) values ($1, $2::timestamptz, $3::timestamptz::time)`,
+        `select ts::timestamptz as ts, (date '1970-01-01' + t)::timestamptz as t, $1::timestamptz as "constTs" from ${table}`,
+    ])
+    expect(out.stored).toEqual([{ ts: '2024-01-14 10:15:30.123', t: '18:00:00' }])
+    expect(out.where).toEqual([1])
+    expect(out.read).toEqual({ ts: winter, t: '1970-01-01T17:00:00.000Z', constTs: winter })
+}
+
 // Each version of the engine mapped for --docker-version closest runs too, with the compatibilityVersion of its cells
 for (const { version, compatibilityVersion, label } of await environmentVersions('postgres', 'pg')) {
     const runners = [
@@ -104,6 +121,13 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
             { runner: 'PostgresQueryRunner', declaredZone: 'Europe/Madrid', expected: /^executed$/ },
         ]
         for (const { runner, enabled } of runners) {
+            test.skipIf(!enabled)(`${runner}-a-type-declared-in-types-by-name-keeps-the-zone-of-the-database`, async () => {
+                const options = { table: 'rt_declared_' + runner.toLowerCase().replace('queryrunner', ''), compatibilityVersion, declaredTypes: true }
+                checkDeclaredTypes(await runProbe(probe, 'declaredTypes', { runner, options, zone: 'Asia/Tokyo' }, { uri: db!.uri }) as DeclaredTypesResult, options.table, runner === 'PostgresQueryRunner')
+            }, TIMEOUT)
+        }
+
+        for (const { runner, enabled } of runners) {
             test.skipIf(!enabled)(`${runner}-a-time-with-time-zone-with-the-database-in-utc`, async () => {
                 const options = { table: 'rt_utc_' + runner.toLowerCase().replace('queryrunner', ''), compatibilityVersion, utc: true }
                 expect(await runProbe(probe, 'timeWithTimeZone', { runner, options, zone: 'Asia/Tokyo' }, { uri: db!.uri })).toEqual(timeWithTimeZoneInUtc)
@@ -125,6 +149,9 @@ describe.skipIf(!isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite') || !isE
             checkScenario(await runProbe(probe, 'scenario', { runner: 'PgLiteQueryRunner', zone }, undefined) as ScenarioResult)
         }, TIMEOUT)
     }
+    test('a-type-declared-in-types-by-name-keeps-the-zone-of-the-database', async () => {
+        checkDeclaredTypes(await runProbe(probe, 'declaredTypes', { runner: 'PgLiteQueryRunner', options: { declaredTypes: true }, zone: 'Asia/Tokyo' }, undefined) as DeclaredTypesResult, 'rt_madrid_moment', true)
+    }, TIMEOUT)
     test('a-time-with-time-zone-with-the-database-in-utc', async () => {
         expect(await runProbe(probe, 'timeWithTimeZone', { runner: 'PgLiteQueryRunner', options: { utc: true }, zone: 'Asia/Tokyo' }, undefined)).toEqual(timeWithTimeZoneInUtc)
     }, TIMEOUT)

@@ -652,8 +652,12 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
  */
 export function postgreSqlZonedValueSql(sql: string, type: string, customType: CustomType | undefined, localTimeReferenceDate: string | undefined): string | undefined {
     if (__isLocalDateTime(type, customType)) {
-        // A column, or a qualified one, needs no parenthesis
-        return (/^[\w."]+$/.test(sql) ? sql : '(' + sql + ')') + '::timestamptz'
+        // A parameter of a database outside UTC is already a timestamptz
+        if (/^\$\d+::timestamptz$/.test(sql)) {
+            return sql
+        }
+        // A column, a qualified one, or a parameter, needs no parenthesis
+        return (/^(?:[\w."]+|\$\d+)$/.test(sql) ? sql : '(' + sql + ')') + '::timestamptz'
     }
     if (__isLocalTime(type, customType)) {
         const day = localTimeReferenceDate === 'today' ? 'current_date' : "date '" + (localTimeReferenceDate ?? '1970-01-01') + "'"

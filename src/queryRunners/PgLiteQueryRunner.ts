@@ -57,7 +57,8 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
      * The query options: the parsers of the values received (see pgLiteParsers), and the types of the params, when one
      * has a type: a parameter of a type name in typesByName is sent with the type declared there, and one whose type the
      * database must receive (forceTypeCast) with the oid of its PostgreSQL type, so the SQL needs no cast; the other
-     * params go untyped (0).
+     * params go untyped (0). A localDateTime or a localTime of a database outside UTC goes as a timestamptz, whatever
+     * type is declared for it.
      */
     private queryOptions(params: any[]): QueryOptions {
         const typesByName = this.config?.typesByName
@@ -65,9 +66,11 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         for (let i = 0, length = params.length; i < length; i++) {
             const param = existingParamContextOf(params, i)
             const type = param?.requestedType
-            let oid = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
-            if (oid === undefined && (param?.forceTypeCast || isPostgreSqlZonedParam(params, i))) {
-                oid = postgreSqlParamType(type, param?.requestedCustomType, params[i], isPostgreSqlZonedParam(params, i))?.oid
+            // A value of a database outside UTC goes as a timestamptz, whatever type is declared for it
+            const zoned = isPostgreSqlZonedParam(params, i)
+            let oid = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+            if (oid === undefined && (param?.forceTypeCast || zoned)) {
+                oid = postgreSqlParamType(type, param?.requestedCustomType, params[i], zoned)?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {

@@ -90,11 +90,16 @@ export function postgreSqlParamType(type: string | undefined, customType: Custom
 /**
  * The placeholder `$<index + 1>` of the parameter at that index of the params, with its cast when forceTypeCast and the
  * parameter has a PostgreSQL type: the one declared for its type name in typesByName, or the one of postgreSqlParamType.
+ * A value of a database outside UTC (zoned) is always cast to a timestamptz, which the database converts with its
+ * session, whatever type is declared for it.
  */
 export function postgreSqlPlaceholder(index: number, value: unknown, type: string, customType: CustomType | undefined, forceTypeCast: boolean, typesByName?: { readonly [typeName: string]: string } | undefined, zoned: boolean = false): string {
     const placeholder = '$' + (index + 1)
     if (!forceTypeCast && !zoned) {
         return placeholder
+    }
+    if (zoned) {
+        return placeholder + '::' + timestamptz.cast + postgreSqlZonedTimeCast(type, customType, zoned)
     }
     const declared = typesByName && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
     if (declared !== undefined) {

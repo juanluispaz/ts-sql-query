@@ -4,7 +4,7 @@ search:
 ---
 # LoggingQueryRunner
 
-A query runner that calls your logger with each statement and its result or error, and runs the statement with the query runner it wraps. Useful for debugging, measuring and auditing the statements. It is an [`InterceptorQueryRunner`](InterceptorQueryRunner.md) that carries the instant each statement began; to carry data of your own between the call before a statement and the call after it, extend `InterceptorQueryRunner`.
+A query runner that calls your logger with each statement and its result or error, and runs the statement with the query runner it wraps. Useful for debugging, measuring and auditing the statements. It is an [`InterceptorQueryRunner`](InterceptorQueryRunner.md) that carries the instant each statement began; to carry data of your own between the call before a statement and the call after it, extend `InterceptorQueryRunner`. To log without a logger object, extend it: see [A logger of your own, as a class](#a-logger-of-your-own-as-a-class).
 
 !!! success "Supported databases"
 
@@ -78,3 +78,27 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 !!! info
 
     When the driver begins and commits the transaction by itself, as `postgres` and Bun SQL do in `connection.transaction(...)`, fake `beginTransaction`, `commit`, and `rollback` operations will be emitted to allow you to see them in the log: each one is given to `onQuery` and then to `onQueryResult`, one right after the other, with the timestamps of that moment.
+
+## A logger of your own, as a class
+
+To send the statements to a tracer or a metrics system, extend `LoggingQueryRunner` and override its protected methods `logQuery`, `logQueryResult` and `logQueryError`. They receive the same arguments as the functions of the logger, the timestamps included, and by default they call those functions; a subclass is created with only the query runner it wraps:
+
+```ts
+import { LoggingQueryRunner, type QueryRunner, type QueryType } from "ts-sql-query";
+
+const durations: { queryType: QueryType, query: string, nanoseconds: bigint, failed: boolean }[] = []
+
+class MeasuringQueryRunner<T extends QueryRunner> extends LoggingQueryRunner<T> {
+    protected override logQueryResult(queryType: QueryType, query: string, _params: any[], _result: any, timestamps: { startedAt: bigint, endedAt: bigint }): void {
+        durations.push({ queryType, query, nanoseconds: timestamps.endedAt - timestamps.startedAt, failed: false })
+    }
+    protected override logQueryError(queryType: QueryType, query: string, _params: any[], _error: any, timestamps: { startedAt: bigint, endedAt: bigint }): void {
+        durations.push({ queryType, query, nanoseconds: timestamps.endedAt - timestamps.startedAt, failed: true })
+    }
+}
+
+const connection = new DBConnection(new MeasuringQueryRunner(otherQueryRunner));
+```
+
+`logQuery` isn't overridden here, so it calls `onQuery` of a logger the class doesn't have: nothing. [`ConsoleLogQueryRunner`](ConsoleLogQueryRunner.md) is a `LoggingQueryRunner` made this way.
+

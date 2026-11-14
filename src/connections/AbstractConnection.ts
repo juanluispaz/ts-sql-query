@@ -5,7 +5,7 @@ import { connectionClassIdOf, keepNativeSqlDataType, keptNativeSqlDataType } fro
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, StringDecimalValueSource, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, RemapValueSourceTypeWithOptionalType, UuidValueSource, StringDecimalValueSource, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
@@ -35,7 +35,7 @@ import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '..
 import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { CustomType } from '../TypeAdapter.js'
-import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
@@ -1196,7 +1196,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS & NNotNestedAggregate<SourceOfAggregatedArray<COLUMNS>, DB>): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<DB>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return __createAggregateValueAsArray(columns as QueryColumns, 'InnerResultObject', 'required', false)
     }
-    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<any, any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], DB>): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<DB>, Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumn<VALUE extends TypedValueSource<any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], DB>): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<DB>, Array<VALUE[typeof valueType]>, 'required'> {
         return __createAggregateValueAsArray(value, 'InnerResultObject', 'required', false)
     }
 

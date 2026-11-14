@@ -1,9 +1,9 @@
-import type { IValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType } from '../expressions/values.js'
+import type { RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { Default } from '../expressions/Default.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import type { WritableDBColumn, WritableDBColumnWithDefaultValue, WritableDBColumnWithoutDefaultValue } from '../utils/Column.js'
 import type { NSource } from '../utils/sourceName.js'
-import type { AnyValueSource, ValueSourceValueType } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, ValueSourceValueType, TypedValueSource } from '../typeSystem/valueSource.js'
 
 /*
  * The columns of a table, view or values grouped in objects. There are no recursive types here: each level has its own
@@ -35,20 +35,20 @@ export type ColumnsKeyOf<T> = ({ [K in keyof T]-?: T[K] extends WritableDBColumn
 
 // Has the object a column that must receive a value in an insert at any level?
 export type HasRequiredColumn<T> = HasRequiredColumnAt1<T>
-type HasRequiredColumnAt1<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends IValueSource<any, any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : HasRequiredColumnAt2<T[K]> }[ColumnsKeyOf<T>]
-type HasRequiredColumnAt2<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends IValueSource<any, any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : HasRequiredColumnAt3<T[K]> }[ColumnsKeyOf<T>]
-type HasRequiredColumnAt3<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends IValueSource<any, any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : HasRequiredColumnAt4<T[K]> }[ColumnsKeyOf<T>]
-type HasRequiredColumnAt4<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends IValueSource<any, any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : never }[ColumnsKeyOf<T>]
+type HasRequiredColumnAt1<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends TypedValueSource<any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : HasRequiredColumnAt2<T[K]> }[ColumnsKeyOf<T>]
+type HasRequiredColumnAt2<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends TypedValueSource<any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : HasRequiredColumnAt3<T[K]> }[ColumnsKeyOf<T>]
+type HasRequiredColumnAt3<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends TypedValueSource<any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : HasRequiredColumnAt4<T[K]> }[ColumnsKeyOf<T>]
+type HasRequiredColumnAt4<T> = { [K in ColumnsKeyOf<T>]-?: T[K] extends TypedValueSource<any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? true : T[K] extends AnyValueSource ? never : never }[ColumnsKeyOf<T>]
 
 export type RequiredColumnsForSetOf<T> = { [K in ColumnsKeyOf<T>]-?: 
-    T[K] extends IValueSource<any, any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? K
+    T[K] extends TypedValueSource<any, any, 'required'> & WritableDBColumnWithoutDefaultValue ? K
     : T[K] extends AnyValueSource ? never
     : [HasRequiredColumn<T[K]>] extends [never] ? never : K
 }[ColumnsKeyOf<T>]
 
 export type OptionalColumnsForSetOf<T> = { [K in ColumnsKeyOf<T>]-?: 
     T[K] extends WritableDBColumnWithDefaultValue ? K
-    : T[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> & WritableDBColumn
+    : T[K] extends TypedValueSource<any, any, infer OPTIONAL_TYPE> & WritableDBColumn
     ? (
         OPTIONAL_TYPE extends 'required'
         ? never
@@ -118,7 +118,7 @@ export type InputOfOptionalColumn<COLUMN, ALLOWING extends NSource> =
 
 // In a group, what is required in the optional object is required when the group is provided, as it is when it's read
 type RequiredInGroupOf<GROUP> = { [K in OptionalColumnsForSetOf<GROUP>]-?:
-    GROUP[K] extends IValueSource<any, any, any, 'requiredInOptionalObject'> & WritableDBColumnWithoutDefaultValue ? K : never
+    GROUP[K] extends TypedValueSource<any, any, 'requiredInOptionalObject'> & WritableDBColumnWithoutDefaultValue ? K : never
 }[OptionalColumnsForSetOf<GROUP>]
 
 // A group in an insert: what is required in it must be there
@@ -148,7 +148,7 @@ type InsertInputOfGroupAt4<GROUP, ALLOWING extends NSource> = {
 export type PartialInputOfGroup<GROUP, ALLOWING extends NSource, NO_VALUE> = PartialInputOfGroupAt1<GROUP, ALLOWING, NO_VALUE>
 // The input of one member of a group: a required column doesn't accept null, as in the rest of the sets
 type PartialInputOfColumn<COLUMN, ALLOWING extends NSource> =
-    COLUMN extends IValueSource<any, any, any, 'required'> & WritableDBColumnWithoutDefaultValue
+    COLUMN extends TypedValueSource<any, any, 'required'> & WritableDBColumnWithoutDefaultValue
     ? InputOfColumn<COLUMN, ALLOWING>
     : InputOfOptionalColumn<COLUMN, ALLOWING>
 type NoValueOfGroup<GROUP> = [HasRequiredColumn<GROUP>] extends [never] ? null | undefined : never

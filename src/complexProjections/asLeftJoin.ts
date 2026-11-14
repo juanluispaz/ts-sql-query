@@ -1,8 +1,8 @@
-import type { IValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
+import type { RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { WritableColumnBrandsOf } from '../utils/Column.js'
-import type { AnyValueSource } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource.js'
 
 /*
  * Reasign all columns to in a with view
@@ -44,7 +44,7 @@ type ColumnsForLeftJoin5<SOURCE extends NSource, COLUMNS> =
     }
 
 type OptionalTypeForLeftJoin<TYPE> = 
-    TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
+    TYPE extends TypedValueSource<any, any, infer OPTIONAL_TYPE> ? (
         'required' extends OPTIONAL_TYPE
         ? 'originallyRequired'
         : OPTIONAL_TYPE

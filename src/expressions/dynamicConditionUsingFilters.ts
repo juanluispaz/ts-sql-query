@@ -1,7 +1,7 @@
 import type { DataToProjectOf, DataToProjectOfAny, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
-import type { BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, IStringDecimalValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource, IValueSource } from './values.js'
-import type { AnyValueSource } from '../typeSystem/valueSource.js'
+import type { BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, IStringDecimalValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource } from './values.js'
+import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource.js'
 
 export interface Filter {
 }
@@ -191,7 +191,7 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION ext
 }
 
 export type MapValueSourceToFilter<TYPE> =
-    TYPE extends IValueSource<any, infer T, any, any> ? (
+    TYPE extends TypedValueSource<any, infer T, any> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanFilter :
         TYPE extends IBigintValueSource<any, any> ? BigintFilter :
         TYPE extends INumberValueSource<any, any> ? NumberFilter :

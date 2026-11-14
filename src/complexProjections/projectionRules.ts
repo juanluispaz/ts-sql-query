@@ -1,7 +1,6 @@
-import type { IValueSource } from '../expressions/values.js'
 import type { RequiredKeys } from '../utils/objectUtils.js'
 import type { NAnyLeftJoin, NNoTableOrViewRequiredFrom } from '../utils/sourceName.js'
-import type { OptionalType, ValueSourceOf } from '../typeSystem/valueSource.js'
+import type { OptionalType, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 
 /*
  * RUNTIME TWIN: the rules below are applied again at runtime (getInnerObjetRuleToApply and the rule switch in
@@ -64,14 +63,14 @@ import type { OptionalType, ValueSourceOf } from '../typeSystem/valueSource.js'
 
 export type ContainsRequiredInOptionalObject<TYPE> = FalseWhenNever<
     { [K in RequiredKeys<TYPE>]-?: 
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
+        TYPE[K] extends TypedValueSource<any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequiredInOptionalObject<OPTIONAL_TYPE>
         : never
     }[RequiredKeys<TYPE>]>
 
 export type AllFromSameLeftJoinWithOriginallyRequired<TYPE> = FalseWhenNever<
     { [K in RequiredKeys<TYPE>]-?: 
-        TYPE[K] extends IValueSource<infer SOURCE, any, any, infer OPTIONAL_TYPE> | undefined
+        TYPE[K] extends TypedValueSource<infer SOURCE, any, infer OPTIONAL_TYPE> | undefined
         ? SOURCE extends NAnyLeftJoin
             ? (
                 InnerTables<TYPE> | NNoTableOrViewRequiredFrom<SOURCE> extends SOURCE | NNoTableOrViewRequiredFrom<SOURCE>
@@ -85,7 +84,7 @@ export type AllFromSameLeftJoinWithOriginallyRequired<TYPE> = FalseWhenNever<
 
 export type ContainsRequired<TYPE> = FalseWhenNever<
     { [K in RequiredKeys<TYPE>]-?:
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
+        TYPE[K] extends TypedValueSource<any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
         // Inner object: it only makes the container required when the inner object is itself a
         // required object (rule 3). Rules 1 and 2 make the inner object optional, so they must be
@@ -99,7 +98,7 @@ export type ContainsRequired<TYPE> = FalseWhenNever<
 
 type ContainsRequired2<TYPE> = FalseWhenNever<
     { [K in RequiredKeys<TYPE>]-?:
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
+        TYPE[K] extends TypedValueSource<any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
         // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
         // is a required object; an optional inner object contributes `never`.
@@ -111,7 +110,7 @@ type ContainsRequired2<TYPE> = FalseWhenNever<
 
 type ContainsRequired3<TYPE> = FalseWhenNever<
     { [K in RequiredKeys<TYPE>]-?:
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
+        TYPE[K] extends TypedValueSource<any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
         // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
         // is a required object; an optional inner object contributes `never`.
@@ -123,7 +122,7 @@ type ContainsRequired3<TYPE> = FalseWhenNever<
 
 type ContainsRequired4<TYPE> = FalseWhenNever<
     { [K in RequiredKeys<TYPE>]-?:
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
+        TYPE[K] extends TypedValueSource<any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
         // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
         // is a required object; an optional inner object contributes `never`.
@@ -135,7 +134,7 @@ type ContainsRequired4<TYPE> = FalseWhenNever<
 
 type ContainsRequired5<TYPE> = FalseWhenNever<
     { [K in RequiredKeys<TYPE>]-?:
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
+        TYPE[K] extends TypedValueSource<any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
         // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
         // is a required object, but the nesting limit was reached, so a still-nested inner object is

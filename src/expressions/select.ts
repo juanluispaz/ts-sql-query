@@ -1,4 +1,4 @@
-import type { IBooleanValueSource, INumberValueSource, IAnyBooleanValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource, RemapIValueSourceType } from './values.js'
+import type { IBooleanValueSource, INumberValueSource, IAnyBooleanValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, RemapIValueSourceType } from './values.js'
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, NoTableOrViewRequiredOfSameDB, OfDB, OfSameDB } from '../utils/ITableOrView.js'
 import type { WithView } from '../utils/tableOrViewUtils.js'
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from '../utils/symbols.js'
@@ -8,7 +8,7 @@ import type { ResultObjectValuesProjectedAsNullable } from '../complexProjection
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ColumnsForCompound } from '../complexProjections/compound.js'
 import type { ColumnsForWithView } from '../complexProjections/asWithView.js'
-import type { AnyValueSource, IExecutableSelectQuery, ValueSourceOf, ValueSourceValueTypeForResult } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, IExecutableSelectQuery, ValueSourceOf, ValueSourceValueTypeForResult, TypedValueSource } from '../typeSystem/valueSource.js'
 
 export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                           'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
@@ -523,7 +523,7 @@ type ForUseAsInlineAggregatedArrayValue<FROM extends HasSource<any>, REQUIRED ex
     ) : ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS, FEATURES>
 
 type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
-    COLUMNS extends IValueSource<any, any, any, any>
+    COLUMNS extends TypedValueSource<any, any, any>
     ? (this: GroupByCheck<COLUMNS, FEATURES>) => AggregatedArrayValueSource<REQUIRED[typeof source], Array<COLUMNS[typeof valueType]>, 'required'>
     // When `projectingOptionalValuesAsNullable()` was called on the select, the runtime honours the flag
     // for the inline aggregated array too (SelectQueryBuilder.forUseAsInlineAggregatedArrayValue) and emits

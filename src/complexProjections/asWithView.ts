@@ -1,7 +1,7 @@
-import type { IValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
+import type { RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { Expand, UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
-import type { AnyValueSource } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource.js'
 
 /*
  * Reasign all columns to in a with view
@@ -58,7 +58,7 @@ type ColumnsForWithView5<SOURCE extends NSource, COLUMNS> = Expand<
 
 // Runtime twin: withColumnOptionalType in src/internal/DBColumnImpl.ts; change both together.
 type OptionalTypeForWith<TYPE> = 
-    TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
+    TYPE extends TypedValueSource<any, any, infer OPTIONAL_TYPE> ? (
         'required' extends OPTIONAL_TYPE
         ? 'required'
         : 'optional'

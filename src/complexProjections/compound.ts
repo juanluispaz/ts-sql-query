@@ -1,7 +1,7 @@
-import type { IValueSource, RemapIValueSourceTypeWithOptionalType } from '../expressions/values.js'
+import type { RemapIValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
-import type { AnyValueSource, OptionalTypeRequiredOrAny } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, OptionalTypeRequiredOrAny, TypedValueSource } from '../typeSystem/valueSource.js'
 
 /*
  * Used as type mark in compoundable select, for union, union all, intersect, intersect all, except, except all, minus, minus all;
@@ -50,6 +50,6 @@ type ColumnsForCompound5<SOURCE extends NSource, COLUMNS> =
     }
 
 type CompoundColumnOptionalType<COLUMN> = 
-    COLUMN extends IValueSource<any, any, any, infer OPTIONAL_TYPE> 
+    COLUMN extends TypedValueSource<any, any, infer OPTIONAL_TYPE> 
     ? OptionalTypeRequiredOrAny<OPTIONAL_TYPE>
     : never

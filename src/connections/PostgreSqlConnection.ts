@@ -6,7 +6,7 @@ import type { IntervalSqlDataTypeFields, SqlDataType, SqlDataTypeNative, TypeAda
 import { __isLocalDateTime, __isLocalTime } from '../typeSystem/dataTypes.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
-import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
+import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, StringValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
@@ -16,7 +16,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { postgreSqlZonedParam } from '../utils/metadataSymbols.js'
-import type { ValueSourceOf } from '../typeSystem/valueSource.js'
+import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
@@ -160,7 +160,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'postgreSql', NAME>>>(columns: COLUMNS & NNotNestedAggregate<SourceOfAggregatedArray<COLUMNS>, NConnection<'postgreSql', NAME>>): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'postgreSql', NAME>>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return __createAggregateValueAsArray(columns as QueryColumns, 'InnerResultObject', 'required', true)
     }
-    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], NConnection<'postgreSql', NAME>>): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<NConnection<'postgreSql', NAME>>, Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends TypedValueSource<any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], NConnection<'postgreSql', NAME>>): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<NConnection<'postgreSql', NAME>>, Array<VALUE[typeof valueType]>, 'required'> {
         return __createAggregateValueAsArray(value, 'InnerResultObject', 'required', true)
     }
     stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'postgreSql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'postgreSql', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'postgreSql', NAME>>, 'optional'>
@@ -170,7 +170,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
         return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
 
-    anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'postgreSql', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'postgreSql', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'postgreSql', NAME>>, TYPE, 'optional'> {
+    anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'postgreSql', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'postgreSql', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'postgreSql', NAME>>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (__createAggregateFunction1('_anyValue', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
     }

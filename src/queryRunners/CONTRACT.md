@@ -89,14 +89,16 @@ the other databases.
 
 0. The SQL of each column of the result is written with the `transformProjection` of its type adapter, which receives
    the connection as `next`, or with the connection's: the columns of the outermost select, of the `returning` of an
-   outermost insert, update or delete (the `output` of SQL Server, the `returning … into` of Oracle; a `returning`
-   inside another query isn't converted), and the value of `executeFunction`. By default it is the identity, and on SQL
+   outermost insert, update or delete (the `output` of SQL Server, the `returning … into` of Oracle), and the value of
+   `executeFunction`. By default it is the identity, and on SQL
    Server `convert(nvarchar(41), …)` of a decimal. The group by, the having and the subqueries keep the SQL of the value.
    - Where the query compares or orders the column, what that `transformProjection` says in its context,
-     `comparison`, decides: with `'value'` (the default) the converted SQL stays in place; otherwise the order by of the
-     column writes the value, and a distinct or a compound select ordered by it is wrapped in a select that converts
-     the columns. With `'columnEquality'` (equal only among the values of one column; the connection says it for a SQL
-     Server decimal) a compound select is always wrapped, and with `'none'` a distinct select too.
+     `comparison` (`'value'`, `'equality'`, `'columnEquality'` or `'none'`), decides: with `'value'` (the default) the
+     converted SQL stays in place; with any other the order by of the column writes the value, and a distinct or a
+     compound select ordered by it is wrapped in a select that converts the columns. With `'columnEquality'` (equal
+     only among the values of one column; the connection says it for a SQL Server decimal) a compound select is always
+     wrapped, and with `'none'` a compound and a distinct select. Tests:
+     `test/db/<db>/<version>/<connector>/select.type-adapter.transform-projection.test.ts`.
    - On Oracle, the OUT bind of a returning column is of the type of the value its converted SQL gives: the one its
      `transformProjection` requests (`setRequestedType`, like `'string'` for the text of a date), otherwise the one of
      the column. Every column of the result carries that type in the context of the query (`requestedType`,
@@ -112,12 +114,16 @@ the other databases.
      `localDateTime` or a `localTime` with its zone, §7.3), and the value keeps the encoding the library gives it in
      the JSON (§3.2).
    - The leaf is written outside the select whose distinct, order by and limit use the value (over a wrapped select,
-     or in an aggregate without them). On SQL Server a select of objects is written with `for json path`, its leaves
-     converted in place, unless a leaf is `'none'` or another converted leaf is named by the order by. The distinct of
-     `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` is inside the aggregate and compares what goes
-     in the JSON, except for a `'none'` value when the aggregate is the only column of a select without group by,
-     having or order by: the select is written as the aggregate over a select of the distinct values. MariaDB never
-     does it, because it doesn't see a column of the outer query in a derived table (error 1054).
+     or in an aggregate without them; MariaDB keeps the order by and the limit inside its `json_arrayagg`). On SQL
+     Server a plain select of objects is written with `for json path`, its leaves converted in place, unless a leaf is
+     `'none'` or the order by names a leaf whose comparison isn't `'value'`; a compound select of objects converts its
+     leaves over the wrapped compound.
+   - The distinct of `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` (PostgreSQL, SQLite and
+     MariaDB) is inside the aggregate and compares what goes in the JSON, except for a `'none'` value when the
+     aggregate is the only column of a select (a correlated subquery too) without group by, having, order by or
+     customizations: PostgreSQL and SQLite write the select as the aggregate over a select of the distinct values;
+     MariaDB never does, because it doesn't see a column of the outer query in a derived table (error 1054). Tests:
+     `test/db/<db>/<version>/<connector>/select.type-adapter.transform-projection-aggregated-array.test.ts`.
 1. The runner executes with its per-query options (§3.1) and returns rows as plain objects keyed by the column alias.
    The one-column / one-value methods take the only own property of the row and throw `ONLY_ONE_COLUMN_EXPECTED` if
    there are more.
@@ -279,7 +285,7 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 
 | Data type | PostgreSQL | MySQL / MariaDB | SQL Server (mssql type) | Oracle (bind) | SQLite |
 |---|---|---|---|---|---|
-| boolean | boolean; forced: `bool` | boolean [inferred: the driver writes it as 1/0 or true/false] | `Bit` | number `1`/`0`; null → `DB_TYPE_NUMBER`; in a procedure, or with `booleanStorage: 'boolean'`, `DB_TYPE_BOOLEAN` (a null too) | `1`/`0` (bun:sqlite and Bun SQL: the boolean, bound as `1`/`0` by the driver) |
+| boolean | boolean; forced: `bool` | boolean, stored as 1/0 | `Bit` | number `1`/`0`; null → `DB_TYPE_NUMBER`; in a procedure, or with `booleanStorage: 'boolean'`, `DB_TYPE_BOOLEAN` (a null too) | `1`/`0` (bun:sqlite and Bun SQL: the boolean, bound as `1`/`0` by the driver) |
 | int, customInt | number; forced: `int4` | number | `Int` | number; null → `DB_TYPE_NUMBER` | number (wasm: beyond 64 bits as `cast(text as real)`) |
 | bigint, customBigint | bigint; forced: `int8` | bigint | `BigInt` | bigint; null → `DB_TYPE_NUMBER` | bigint |
 | double, customDouble | number; forced: `float8` | number | `Float` | number; null → `DB_TYPE_NUMBER` | number |
@@ -301,14 +307,14 @@ their own queries.
 
 | Runner | Per query / statement | Delivers | Tests |
 |---|---|---|---|
-| `PgQueryRunner`, `PgPoolQueryRunner` | `types`, built once per client: `date` (1082) and `timestamp` (1114) in text format parsed as a `Date` whose UTC getters are the digits (`infinity` stays text); every other type with the client's parser (the user's parsers apply) | `date`/`timestamp` as UTC Date; the rest as the client parses it (pg defaults [inferred]: `int8`, `numeric`, `time`, `timetz` as text; `timestamptz` an instant Date; `int4`, `float8` numbers; `bool` boolean) | `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-and-a-timestamp-are-read-as-utc-and-the-other-parsers-of-the-client-apply`, `the-types-of-the-pool-apply-to-the-other-types`) |
+| `PgQueryRunner`, `PgPoolQueryRunner` | `types`, built once per client: `date` (1082) and `timestamp` (1114) in text format parsed as a `Date` whose UTC getters are the digits (`infinity` stays text); every other type with the client's parser (the user's parsers apply) | `date`/`timestamp` as UTC Date; the rest as the client parses it (pg defaults: `int8`, `numeric`, `time`, `timetz` and a count as text; `timestamptz` an instant Date; `int4`, `float8` numbers; `bool` boolean) | `test/runners/postgres/DeliveredValues.test.ts`, `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-and-a-timestamp-are-read-as-utc-and-the-other-parsers-of-the-client-apply`, `the-types-of-the-pool-apply-to-the-other-types`) |
 | `PostgresQueryRunner` | nothing for reading | postgres.js defaults; `date`/`timestamp` with UTC digits in any zone of the process, unless `infer` (§5) | `test/environments/postgres/LocalTemporalValuesInAnyZone.test.ts` |
 | `PgLiteQueryRunner` | `parsers` merged over the database's: `date` and `timestamp` as pg's above, `time` (1083) as its text | those three as above; any other type with PGlite's or the user's parser | `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-a-time-and-a-timestamp-are-read-as-the-library-reads-them-and-the-other-parsers-apply`) |
 | `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner` | nothing | Bun SQL defaults: UTC Dates (MySQL: Bun sets the session at `+00:00`, measured), text for times | the `LocalTemporalValuesInAnyZone` tests of PostgreSQL, MySQL and MariaDB |
 | `BunSqlSqliteQueryRunner` | nothing | numbers, text; dates as stored per format (SQLite has no date types) | `test/runners/sqlite/BunSqlSqliteQueryRunner.test.ts` |
-| `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: true`, `bigNumberStrings: true`, `rowsAsArray: false`; and its own `typeCast` (DECIMAL/NEWDECIMAL as their text, else `next()`) when the connection has a `typeCast` function, `typeCast: false` or `decimalNumbers: true`, since a typeCast given with the query replaces the connection's | DATE/DATETIME/TIMESTAMP/TIME as text; BIGINT and DECIMAL as exact text; objects | `test/runners/mysql/DriverConfiguration.test.ts` (`a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner`) |
-| `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: false`, `bigIntAsNumber: false`, `decimalAsNumber: false`, `insertIdAsNumber: false`, `rowsAsArray: false`, `metaAsArray: false`, `nestTables: false`, `typeCast: undefined` (each replaces the connection's) | dates as text; BIGINT and insert id as `bigint`; DECIMAL as text; objects | `test/runners/mariadb/DriverConfiguration.test.ts` |
-| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false` | tedious defaults [inferred]: BIGINT as text, DECIMAL as a number (the connection converts decimal result columns to `nvarchar(41)`); dates with the UTC getters (`useUTC`), the instant for `datetimeoffset` | `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
+| `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: true`, `bigNumberStrings: true`, `rowsAsArray: false`; and its own `typeCast` (DECIMAL/NEWDECIMAL as their text, else `next()`) when the connection has a `typeCast` function, `typeCast: false` or `decimalNumbers: true`, since a typeCast given with the query replaces the connection's | DATE/DATETIME/TIMESTAMP/TIME as text; BIGINT and DECIMAL as exact text; objects | `test/runners/mysql/DriverConfiguration.test.ts` (`a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner`), `test/runners/mysql/DeliveredValues.test.ts` |
+| `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: false`, `bigIntAsNumber: false`, `decimalAsNumber: false`, `insertIdAsNumber: false`, `rowsAsArray: false`, `metaAsArray: false`, `nestTables: false`, `typeCast: undefined` (each replaces the connection's) | dates as text; BIGINT and insert id as `bigint`; DECIMAL as text; objects | `test/runners/mariadb/DriverConfiguration.test.ts`, `test/runners/mariadb/DeliveredValues.test.ts` |
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false` | tedious defaults: BIGINT as text, INT and DECIMAL as numbers (the connection converts decimal result columns to `nvarchar(41)`), BIT as a boolean; dates with the UTC getters (`useUTC`), the instant for `datetimeoffset` | `test/runners/sqlserver/DeliveredValues.test.ts`, `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
 | `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `outFormat: OUT_FORMAT_OBJECT`, `maxRows: 0`, a `fetchTypeHandler` answering every column: a result column of type stringDecimal/customDecimal/bigint/customBigint (by name, or the only column of an unnamed one-value result) → `DB_TYPE_VARCHAR`; `DATE`/`TIMESTAMP` → the `Date` rebuilt with its local getters as UTC; CLOB/NCLOB → string; BLOB → Buffer; else its own type | decimals and bigints as text; DATE/TIMESTAMP as UTC Date (exact except a wall clock skipped by summer time in the zone of the process, and years < 100 built as 19xx by oracledb); NUMBER as number; RETURNING OUT binds as in §2.4 | `test/runners/oracle/OracleDBResultTypes.test.ts`, `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` |
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner` | nothing (`safeIntegers` not forced) | numbers, or `bigint` with the driver's big-integer mode; text; dates as stored per format | the tests of each runner in `test/runners/sqlite/` |
 | `NodeSqliteQueryRunner` | `setReturnArrays(false)` per statement, where the method exists (Node 22.16 and 24); `readBigInts` not forced | objects even on a database opened with `returnArrays: true`; numbers, or `bigint` with `readBigInts` | `test/runners/sqlite/NodeSqliteQueryRunner.test.ts` (`the-rows-are-objects-with-return-arrays-on-the-database`) |
@@ -321,14 +327,14 @@ through `transformValueFromDB` of the id column like any value.
 
 ### 3.2 Per data type: what may arrive
 
-What the runners of each database deliver for a value of the data type, all accepted by §3.3. Driver defaults not set
-by the runners are [inferred].
+What the runners of each database deliver for a value of the data type, all accepted by §3.3. What the drivers deliver by
+themselves is in the `DeliveredValues` tests of `test/runners/<db>/` and in the environment tests.
 
 | Data type | PostgreSQL | MySQL / MariaDB | SQL Server | Oracle | SQLite |
 |---|---|---|---|---|---|
-| boolean | boolean; text `t`/`f` from a driver or a mock that gives the text | number 0/1 [inferred] | boolean [inferred] | number; text `"1"` from an OUT bind of a `NUMBER(1)`; `TRUE`/`FALSE` from an OUT bind of a native BOOLEAN column (23) | number 0/1, bigint |
-| int | number; text (int8, count) | number; text (mysql2 BIGINT); bigint (mariadb BIGINT) | number; text (BIGINT) [inferred] | number; text from an OUT bind | number, bigint |
-| bigint | text (int8) | text (mysql2); bigint (mariadb) | text [inferred] | text (fetched as VARCHAR) | number, bigint |
+| boolean | boolean; text `t`/`f` from a driver or a mock that gives the text | number 0/1 (a TINYINT(1)); text `'1'`/`'0'` of an expression like `true` on mysql2, a BIGINT for MySQL | boolean | number; text `"1"` from an OUT bind of a `NUMBER(1)`; `TRUE`/`FALSE` from an OUT bind of a native BOOLEAN column (23) | number 0/1, bigint |
+| int | number; text (int8, count) | number; text (mysql2 BIGINT); bigint (mariadb BIGINT) | number; text (BIGINT) | number; text from an OUT bind | number, bigint |
+| bigint | text (int8) | text (mysql2); bigint (mariadb) | text | text (fetched as VARCHAR) | number, bigint |
 | double | number; text (numeric) | number; text (DECIMAL) | number | number | number |
 | stringDecimal, customDecimal | text | text | text (`convert(nvarchar(41))`) | text, possibly `.5` / `-.5` | text per `decimalStrategy` |
 | string, uuid | text | text | text | text | text |

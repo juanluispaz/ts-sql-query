@@ -30,6 +30,10 @@ class TDocument extends Table<DBConnection, 'TDocument'> {
 }
 const tDocument = new TDocument()
 
+// A text of 40,000 characters travels as a CLOB both ways: alone it takes about a second, but with every engine of
+// the matrix running at once the Oracle container can take much longer, as the suite of the contract allows
+const LONG_TEXT_TIMEOUT = 300_000
+
 // The binds the runner gives oracledb, kept to look at them
 class InspectedRunner extends OracleDBQueryRunner {
     lastBinds: Record<string, any> | undefined
@@ -47,10 +51,13 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         const oracledb = (await import('oracledb')).default
         connection = await oracledb.getConnection({ user: db.user, password: db.password, connectString: db.connectString })
         try { await connection.execute('drop table rt_sql_type_note purge') } catch { /* it doesn't exist */ }
+        try { await connection.execute('drop table rt_sql_type_document purge') } catch { /* it doesn't exist */ }
         await connection.execute('create table rt_sql_type_note (id number primary key, body clob, plain clob, code varchar2(10 char))')
+        await connection.execute('create table rt_sql_type_document (id number primary key, doc json)')
     }, 300_000)
     afterAll(async () => {
         try { await connection?.execute('drop table rt_sql_type_note purge') } catch { /* already dropped */ }
+        try { await connection?.execute('drop table rt_sql_type_document purge') } catch { /* already dropped */ }
         await connection?.close()
         await db?.release()
     }, 300_000)
@@ -65,7 +72,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         const outBinds = Object.values(runner.lastBinds!).filter(bind => bind && typeof bind === 'object' && 'dir' in bind)
         // The CLOB, as a CLOB; the text of 10 characters in a buffer of 10 characters of 4 bytes
         expect(outBinds.map(bind => ({ type: bind.type?.name, maxSize: bind.maxSize }))).toEqual([{ type: 'DB_TYPE_CLOB', maxSize: 32767 }, { type: undefined, maxSize: 40 }])
-    })
+    }, LONG_TEXT_TIMEOUT)
 
     test('without-a-sql-data-type-a-long-text-needs-types-by-name', async () => {
         const conn = new DBConnection(new OracleDBQueryRunner(connection!))
@@ -76,19 +83,14 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
             error = e
         }
         expect(String(error)).toMatch(/ORA-|NJS-|DPI-/)
-    })
+    }, LONG_TEXT_TIMEOUT)
 
     test('an-object-of-a-json-column-is-bound-as-a-json', async () => {
         // Without a type, oracledb rejects an object (NJS-044)
-        await connection!.execute('create table rt_sql_type_document (id number primary key, doc json)')
-        try {
-            const conn = new DBConnection(new OracleDBQueryRunner(connection!))
-            await conn.insertInto(tDocument).set({ id: 1, doc: { a: 1 } }).executeInsert()
-            const stored = (await connection!.execute<[string]>('select json_serialize(doc) from rt_sql_type_document')).rows
-            expect(stored).toEqual([['{"a":1}']])
-            expect(await conn.selectFrom(tDocument).selectOneColumn(tDocument.doc).executeSelectMany()).toEqual([{ a: 1 }])
-        } finally {
-            await connection!.execute('drop table rt_sql_type_document purge')
-        }
-    })
+        const conn = new DBConnection(new OracleDBQueryRunner(connection!))
+        await conn.insertInto(tDocument).set({ id: 1, doc: { a: 1 } }).executeInsert()
+        const stored = (await connection!.execute<[string]>('select json_serialize(doc) from rt_sql_type_document')).rows
+        expect(stored).toEqual([['{"a":1}']])
+        expect(await conn.selectFrom(tDocument).selectOneColumn(tDocument.doc).executeSelectMany()).toEqual([{ a: 1 }])
+    }, LONG_TEXT_TIMEOUT)
 })

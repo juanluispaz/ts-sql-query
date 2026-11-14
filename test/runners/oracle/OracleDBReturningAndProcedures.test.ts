@@ -10,6 +10,10 @@ import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 import { rejectionOf } from '../lib/runnerContract.js'
 import { addOutParam, addParam } from '../lib/params.js'
 
+// A text of 40,000 characters travels as a CLOB both ways: alone it takes about a second, but with every engine of
+// the matrix running at once the Oracle container can take much longer, as the suite of the contract allows
+const LONG_TEXT_TIMEOUT = 300_000
+
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: returning texts and calling procedures', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
     let connection: oracledb.Connection | undefined
@@ -73,7 +77,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         const value = addParam(r, params, text, 'LongText', undefined, false)
         const out = addOutParam(r, params, 'c', 'LongText', undefined, false)
         expect(await r.executeQuery('insertReturningOneRow', `insert into rt_text (c) values (${value}) returning c into ${out}`, params)).toEqual({ c: text })
-    })
+    }, LONG_TEXT_TIMEOUT)
 
     test('a-procedure-takes-a-boolean-as-a-pl-sql-boolean', async () => {
         const r = runner()

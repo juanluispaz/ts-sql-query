@@ -235,6 +235,7 @@ nav:
     - Update API: api/update.md
     - Delete API: api/delete.md
     - Type adapters API: api/type-adapters.md
+    - SQL data types API: api/sql-data-types.md
     - Dynamic conditions API: api/dynamic-conditions.md
     - Error Management:
       - Overview: api/error-management/overview.md

@@ -8,7 +8,7 @@ This page documents the API for defining and customizing type adapters in `ts-sq
 
 Type adapters control how values are serialized when writing to the database and deserialized when reading from it. They can be applied at the field level (when defining a table or view), or globally by overriding the `transformValueFromDB`, `transformValueToDB`, `transformPlaceholder` and `transformProjection` methods in the connection.
 
-To learn how to write a type adapter, where it goes and when to choose one, see [Type adapters](../advanced/type-adapters.md); for the data types it converts, [Data types](../configuration/data-types.md); for a boolean stored as other values, [Custom booleans values](../advanced/custom-booleans-values.md); and for what an adapter keeps for the query runner, [Metadata of a query and its parameters](../advanced/metadata.md).
+To learn how to write a type adapter, where it goes and when to choose one, see [Type adapters](../advanced/type-adapters.md); for the data types it converts, [Data types](../configuration/data-types.md); for a boolean stored as other values, [Custom booleans values](../advanced/custom-booleans-values.md); and for what an adapter keeps for the query runner, [Metadata of a query and its parameters](../advanced/metadata.md). The type of the column in the database an adapter can say is in the [SQL data types API](sql-data-types.md).
 
 !!! info
 

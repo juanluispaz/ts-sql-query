@@ -581,6 +581,10 @@ interface Connection {
     readonly queryRunner: QueryRunner
     /** The transformations of the connection, without any type adapter */
     readonly defaultTypeAdapter: DefaultTypeAdapter
+    /** The SQL data type of a type of the database of the connection, as its catalogue writes it */
+    sqlDataTypeFrom(nativeName: string): SqlDataType
+    /** The type of the database of the connection for a SQL data type; undefined when it can't hold it */
+    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined
 
     // Transaction management. A failure of beginTransaction, commit, rollback or transaction rejects the promise
     beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void>
@@ -2751,6 +2755,8 @@ type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal
 type BuiltInType = 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'
 
 interface TypeAdapter {
+    /** The type of the value in the database; set it with withSqlDataType */
+    readonly sqlDataType?: SqlDataType | undefined
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
     transformPlaceholder?(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
@@ -2768,15 +2774,21 @@ interface TypeAdapterContext {
     readonly originalCustomType: CustomType | undefined
     readonly requestedType: string
     readonly requestedCustomType: CustomType | undefined
+    /** The type of the value in the database: the one of the type adapter, unless a transformation set another */
+    readonly sqlDataType: SqlDataType | undefined
 }
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType): void
     setRequestedType(customType: CustomType, type: string): void
     resetRequestedType(): void
+    /** The SQL data type the query runner receives with the parameter */
+    setSqlDataType(sqlDataType: SqlDataType | undefined): void
     forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
     getMetadata(key: symbol): unknown
+    setQueryMetadata(key: symbol, value: unknown): void
+    getQueryMetadata(key: symbol): unknown
 }
 
 interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
@@ -2785,21 +2797,32 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
     readonly forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
     getMetadata(key: symbol): unknown
+    setQueryMetadata(key: symbol, value: unknown): void
+    getQueryMetadata(key: symbol): unknown
 }
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType): void
     setRequestedType(customType: CustomType, type: string): void
     resetRequestedType(): void
+    /** The SQL data type the query runner receives with the column of the result */
+    setSqlDataType(sqlDataType: SqlDataType | undefined): void
     readonly output: ProjectionOutput
     comparison: ProjectionComparison
+    setQueryMetadata(key: symbol, value: unknown): void
+    getQueryMetadata(key: symbol): unknown
 }
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType): void
     setRequestedType(customType: CustomType, type: string): void
     resetRequestedType(): void
+    setSqlDataType(sqlDataType: SqlDataType | undefined): void
 }
+
+/** Sets the SQL data type on the adapter given (a new one per column), or creates one that only says it */
+declare function withSqlDataType(sqlDataType: SqlDataType): TypeAdapter
+declare function withSqlDataType<ADAPTER extends TypeAdapter>(sqlDataType: SqlDataType, adapter: ADAPTER): ADAPTER
 
 interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown
@@ -2847,6 +2870,8 @@ type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>
 type TransactionIsolationLevel = any
 type ConnectionConfiguration = any
+/** The type of a value in the database: its family with what refines it (see SqlDataType in TypeAdapter.ts) */
+type SqlDataType = any
 
 void function (_c: Connection, _v: Values, _config: MariaDBConnectionConfiguration | MySqlConnectionConfiguration | OracleConnectionConfiguration | PostgreSqlConnectionConfiguration | SqliteConnectionConfiguration | SqlServerConnectionConfiguration) { return null}
 interface ValueSource<T, TYPE_NAME extends string> {

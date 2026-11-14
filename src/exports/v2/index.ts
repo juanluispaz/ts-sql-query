@@ -42,6 +42,7 @@ export {
     type ExactNumericSqlDataType,
     type HierarchySqlDataType,
     type IntervalSqlDataType,
+    type IntervalSqlDataTypeFields,
     type MoneySqlDataType,
     type NetworkAddressSqlDataType,
     type RowLocatorSqlDataType,

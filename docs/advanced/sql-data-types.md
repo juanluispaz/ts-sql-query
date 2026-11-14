@@ -78,7 +78,7 @@ A value compared with the column (`equals`, `in`, `between`, …) and the value 
 | `'character string'` | `length` (none: unlimited or the maximum), `lengthUnit` (`'characters'` or `'octets'`), `fixed`, `national`, `largeObject`, `characterSet`, `collation` |
 | `'binary string'` | `length`, `fixed`, `largeObject`, `external` (Oracle `BFILE`) |
 | `'datetime'` | `fields` (`'date'`, `'time'`, `'timestamp'`, `'year'`), `precision` (digits of the fraction of the seconds), `timeZone` |
-| `'interval'` | `fields` (`'year to month'`, `'day to second'`, …), `precision` |
+| `'interval'` | `fields` (as the SQL standard names them: `'year'`, `'month'`, `'day'`, `'hour'`, `'minute'`, `'second'`, `'year to month'`, `'day to hour'`, `'day to minute'`, `'day to second'`, `'hour to minute'`, `'hour to second'`, `'minute to second'`; none: every field), `precision` |
 | `'uuid'` | — |
 | `'document'` | `format` (`'json'`, `'jsonb'`, `'xml'`, `'jsonpath'`); a description only: the library has no data type for a document |
 | `'spatial'` | `model` (`'geometry'`, `'geography'`, `'planar'`, `'raster'`), `subtype`, `srid` |

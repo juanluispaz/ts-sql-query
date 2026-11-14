@@ -39,6 +39,7 @@ const cases: CatalogCase[] = [
     { ddl: 'timestamptz', family: { family: 'datetime', fields: 'timestamp', timeZone: 'instant' }, canonical: 'timestamp with time zone' },
     { ddl: 'interval', family: { family: 'interval' }, canonical: 'interval' },
     { ddl: 'interval year to month', family: { family: 'interval', fields: 'year to month' }, canonical: 'interval year to month' },
+    { ddl: 'interval hour to minute', family: { family: 'interval', fields: 'hour to minute' }, canonical: 'interval hour to minute' },
     { ddl: 'interval day to second(3)', family: { family: 'interval', fields: 'day to second', precision: 3 }, canonical: 'interval day to second(3)' },
     { ddl: 'uuid', family: { family: 'uuid' }, canonical: 'uuid' },
     { ddl: 'json', family: { family: 'document', format: 'json' }, canonical: 'json' },

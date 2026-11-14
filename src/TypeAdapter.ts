@@ -269,10 +269,14 @@ export interface DatetimeSqlDataType extends SqlDataTypeCommon {
     readonly precision?: number | undefined
     readonly timeZone?: 'none' | 'session' | 'instant' | 'kept' | undefined
 }
+/** The fields of an interval, as the SQL standard names them */
+export type IntervalSqlDataTypeFields = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second' | 'year to month'
+    | 'day to hour' | 'day to minute' | 'day to second' | 'hour to minute' | 'hour to second' | 'minute to second'
+
 export interface IntervalSqlDataType extends SqlDataTypeCommon {
     readonly family: 'interval'
-    /** Like `'year to month'` or `'day to second'` */
-    readonly fields?: string | undefined
+    /** Undefined: every field (PostgreSQL `interval`) */
+    readonly fields?: IntervalSqlDataTypeFields | undefined
     readonly precision?: number | undefined
 }
 export interface UuidSqlDataType extends SqlDataTypeCommon {

@@ -123,10 +123,14 @@ interface DatetimeSqlDataType extends SqlDataTypeCommon {
     /** 'none' a wall clock; 'session' converted with the zone of the session; 'instant' one instant; 'kept' each value with its zone */
     readonly timeZone?: 'none' | 'session' | 'instant' | 'kept' | undefined
 }
+/** The fields of an interval, as the SQL standard names them */
+type IntervalSqlDataTypeFields = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second' | 'year to month'
+    | 'day to hour' | 'day to minute' | 'day to second' | 'hour to minute' | 'hour to second' | 'minute to second'
+
 interface IntervalSqlDataType extends SqlDataTypeCommon {
     readonly family: 'interval'
-    /** Like 'year to month' or 'day to second' */
-    readonly fields?: string | undefined
+    /** Undefined: every field (PostgreSQL interval) */
+    readonly fields?: IntervalSqlDataTypeFields | undefined
     readonly precision?: number | undefined
 }
 interface UuidSqlDataType extends SqlDataTypeCommon {

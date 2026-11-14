@@ -2,7 +2,7 @@ import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../u
 import { argumentNumber, nativeNameFor, nativeTypeParts, withNative } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
-import type { SqlDataType, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { IntervalSqlDataTypeFields, SqlDataType, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
@@ -268,7 +268,10 @@ function postgreSqlFamilyOf(nativeName: string): SqlDataType {
     }
     if (key.startsWith('interval')) {
         const fields = key.slice('interval'.length).trim()
-        return { family: 'interval', ...(fields ? { fields } : {}), ...(n0 !== undefined ? { precision: n0 } : {}) }
+        const known = intervalFields.find(field => field === fields)
+        if (fields === '' || known) {
+            return { family: 'interval', ...(known ? { fields: known } : {}), ...(n0 !== undefined ? { precision: n0 } : {}) }
+        }
     }
     return { family: 'user-defined', name: nativeName.trim() }
 }
@@ -399,3 +402,6 @@ function rangeNameOf(of: SqlDataType): string | undefined {
     }
     return undefined
 }
+
+const intervalFields: readonly IntervalSqlDataTypeFields[] = ['year', 'month', 'day', 'hour', 'minute', 'second', 'year to month',
+    'day to hour', 'day to minute', 'day to second', 'hour to minute', 'hour to second', 'minute to second']

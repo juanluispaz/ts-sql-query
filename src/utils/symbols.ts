@@ -30,6 +30,8 @@ export const primaryKeyValue: unique symbol = Symbol('primaryKeyValue')
 
 // Value source type
 export const typeName: unique symbol = Symbol('typeName')
+export const operandTypeName: unique symbol = Symbol('operandTypeName')
+export const valueSourceType: unique symbol = Symbol('valueSourceType')
 export const nullableValueSource: unique symbol = Symbol('nullableValueSource')
 export const equalableValueSource: unique symbol = Symbol('equalableValueSource')
 export const comparableValueSource: unique symbol = Symbol('comparableValueSource')

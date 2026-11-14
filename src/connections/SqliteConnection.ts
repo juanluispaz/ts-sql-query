@@ -157,7 +157,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
         const customType = context.requestedCustomType
-        if (value === undefined || value == null) {
+        if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueFromDB(value, context)
         }
         if (__isLocalDate(context.requestedType, customType)) {
@@ -427,7 +427,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         const customType = context.requestedCustomType
-        if (value === undefined || value == null) {
+        if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueToDB(value, context)
         }
         if (__isLocalDate(context.requestedType, customType)) {

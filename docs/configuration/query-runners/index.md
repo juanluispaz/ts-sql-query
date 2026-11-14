@@ -58,7 +58,7 @@ The general purpose query runners don't know about any driver:
 | [`LoggingQueryRunner`](general-purpose/LoggingQueryRunner.md) | Calls your logger with each statement and its result or error | Another query runner |
 | [`ConsoleLogQueryRunner`](general-purpose/ConsoleLogQueryRunner.md) | Writes each statement on the console | Another query runner |
 | [`MockQueryRunner`](general-purpose/MockQueryRunner.md) | Takes the place of the database: your function decides the result of each statement, for a test | Your function |
-| [`NoopQueryRunner`](general-purpose/NoopQueryRunner.md) | Takes the place of the database, and always returns empty results: a `MockQueryRunner` with a function that gives them | Nothing: the connection says which database to write the SQL for |
+| [`NoopQueryRunner`](general-purpose/NoopQueryRunner.md) | Takes the place of the database, and always returns empty results: a `MockQueryRunner` without a function | Nothing: the connection says which database to write the SQL for |
 | [`NoExecutionQueryRunner`](general-purpose/NoExecutionQueryRunner.md) | Takes the place of the database, and rejects every statement: for a connection used only for its methods | Nothing: the connection says which database to write the SQL for |
 
 The ones that receive another query runner can be chained:

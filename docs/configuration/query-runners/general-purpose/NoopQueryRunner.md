@@ -4,7 +4,7 @@ search:
 ---
 # NoopQueryRunner
 
-A query runner that takes the place of the database: it sends nothing, and always returns empty results. Useful for running code without a database when the results don't matter, and, wrapped in a [`ConsoleLogQueryRunner`](ConsoleLogQueryRunner.md), for seeing the SQL each call writes. It is a [`MockQueryRunner`](MockQueryRunner.md) with a function that gives those results, `noopQueryExecutor`: to decide the result of each statement in a test, use `MockQueryRunner` with a function of yours.
+A query runner that takes the place of the database: it sends nothing, and always returns empty results. Useful for running code without a database when the results don't matter, and, wrapped in a [`ConsoleLogQueryRunner`](ConsoleLogQueryRunner.md), for seeing the SQL each call writes. It is a [`MockQueryRunner`](MockQueryRunner.md) without a function, so with the one that gives those results, `noopQueryExecutor`, that rejects a transaction inside another one by default: to decide the result of each statement in a test, use `MockQueryRunner` with a function of yours.
 
 !!! success "Supported databases"
 
@@ -51,7 +51,7 @@ const connection = new DBConnection(new ConsoleLogQueryRunner(new NoopQueryRunne
 | `executeInsert`, `executeUpdate`, `executeDelete` | `0`, so with a minimum of rows (`executeUpdate(1)`) they reject with `MINIMUM_ROWS_NOT_REACHED` |
 | `executeSelectPage` | No rows, and a count of `0` |
 
-`noopQueryExecutor`, exported from `ts-sql-query`, is that function: give it to a `MockQueryRunner` to start from these results, or call it from a function of yours for the queries your test doesn't care about.
+`noopQueryExecutor`, exported from `ts-sql-query`, is that function, the one of a `MockQueryRunner` created without a function: call it from a function of yours for the queries your test doesn't care about.
 
 As a `MockQueryRunner`, `isMocked` is `true`, and only a `TsSqlError` is an error of the database: an error your code throws in a transaction reaches you as it is, not wrapped.
 

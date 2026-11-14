@@ -190,6 +190,27 @@ Inside a transaction, the registered functions run when it ends, with the mock a
 
 - **Ask the query runner whether it is a mock**: `connection.queryRunner.isMocked` is `true` with `MockQueryRunner`, so the function can skip its work. This puts knowledge of the tests in the production code, and it doesn't help a test against a real database; prefer a fake service.
 
+## A mock of your own, as a class
+
+Without a function, `new MockQueryRunner(config)` answers every statement as a database without rows, with `noopQueryExecutor` (see [NoopQueryRunner](NoopQueryRunner.md#what-each-query-returns)). Each statement goes to the protected method `executeMockedQuery(type, query, params, index)`, which by default calls the function: a class that extends `MockQueryRunner` overrides it to answer by itself, with the same arguments and the same [results](#what-your-function-returns). Use it when the same answers serve many tests, or when they need state of their own:
+
+```ts
+import { MockQueryRunner, type QueryType } from "ts-sql-query";
+
+class CompaniesMockQueryRunner extends MockQueryRunner {
+    protected override executeMockedQuery(type: QueryType, query: string, params: any[], index: number): any {
+        if (type === 'selectManyRows' && query.includes(' from company ')) {
+            return [{ id: 1, name: 'ACME' }]
+        }
+        return super.executeMockedQuery(type, query, params, index)
+    }
+}
+
+const connection = new DBConnection(new CompaniesMockQueryRunner({ database: 'postgreSql' }));
+```
+
+`super.executeMockedQuery` calls the function given to the constructor, here `noopQueryExecutor`, so the statements the class doesn't answer get empty results.
+
 ## Resetting between test cases
 
 When you reuse one `MockQueryRunner` across many test cases, each with its own sequence of responses by `index`, call `runner.reset()` between them. It brings `index` back to `0` and closes any transaction the previous case left open:

@@ -181,17 +181,17 @@ export interface DefaultTypeAdapter {
     transformProjection(sql: string, context: TypeAdapterProjectionContext): string
 }
 
-/** The name of a type in one database, as it is written there, like `{ database: 'sqlServer', name: 'datetime2(3)' }` */
-export interface SqlDataTypeNative {
-    readonly database: DatabaseType
-    readonly name: string
-}
+/**
+ * The name of the type in each database, as it is written there, like `{ sqlServer: 'datetime2(3)', oracle:
+ * 'TIMESTAMP(3)' }`
+ */
+export type SqlDataTypeNative = { readonly [database in DatabaseType]?: string | undefined }
 
 /** What every family of a SQL data type can say */
 export interface SqlDataTypeCommon {
     /**
-     * The name of the type in one database, as it is written there: the connection of that database uses it as it is;
-     * another database ignores it and works from the family and its properties
+     * The name of the type in each database, as it is written there: the connection of a database uses its name as it
+     * is; a database without one works from the family and its properties
      */
     readonly native?: SqlDataTypeNative | undefined
     /** The name of the domain the type is defined by, when it is one; the family is the type the domain is over */

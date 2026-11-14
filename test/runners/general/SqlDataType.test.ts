@@ -4,6 +4,8 @@
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
+import { SqlServerConnection } from '../../../src/connections/SqlServerConnection.js'
+import { OracleConnection } from '../../../src/connections/OracleConnection.js'
 import { Table } from '../../../src/Table.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
@@ -51,6 +53,15 @@ describe('withSqlDataType', () => {
         }
         expect(reasonOf(error)).toBe('INVALID_CONFIGURATION')
         expect(adapter.sqlDataType).toBe(price)
+    })
+})
+
+describe('the native names of several databases', () => {
+    test('each-database-uses-its-own-and-the-others-the-family', () => {
+        const timestamp: SqlDataType = { family: 'datetime', fields: 'timestamp', precision: 3, timeZone: 'none', native: { sqlServer: 'datetime', postgreSql: 'timestamp(3) without time zone' } }
+        expect(SqlServerConnection.nativeSqlDataTypeOf(timestamp)).toBe('datetime')
+        expect(PostgreSqlConnection.nativeSqlDataTypeOf(timestamp)).toBe('timestamp(3) without time zone')
+        expect(OracleConnection.nativeSqlDataTypeOf(timestamp)).toBe('TIMESTAMP(3)')
     })
 })
 

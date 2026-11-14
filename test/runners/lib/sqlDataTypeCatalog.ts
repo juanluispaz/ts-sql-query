@@ -48,7 +48,7 @@ export async function checkCatalog(engine: CatalogEngine, cases: readonly Catalo
         const sqlDataType = engine.from(text)
         return { ddl: c.ddl, text, family: withoutNative(sqlDataType), native: sqlDataType.native, back: engine.of(sqlDataType), canonical: engine.of(c.family) }
     })
-    expect(read).toEqual(cases.map((c, i) => ({ ddl: c.ddl, text: texts[i], family: c.family, native: { database: engine.database, name: texts[i] }, back: texts[i], canonical: c.canonical })))
+    expect(read).toEqual(cases.map((c, i) => ({ ddl: c.ddl, text: texts[i], family: c.family, native: { [engine.database]: texts[i] }, back: texts[i], canonical: c.canonical })))
 
     const canonical = cases.filter(c => c.canonical !== undefined)
     await engine.createTable(table + '_c', canonical.map((c, i) => 'c' + i + ' ' + c.canonical))

@@ -95,15 +95,14 @@ export function unquotedArgument(arg: string): string {
     return text
 }
 
-/** The SQL data type with the native name of that database, as it was written */
+/** The SQL data type with the native name of that database, as it was written, beside the ones it already has */
 export function withNative(sqlDataType: SqlDataType, database: DatabaseType, nativeName: string): SqlDataType {
-    return { ...sqlDataType, native: { database, name: nativeName.trim() } }
+    return { ...sqlDataType, native: { ...sqlDataType.native, [database]: nativeName.trim() } }
 }
 
 /** The native name the SQL data type keeps for that database, or undefined */
 export function nativeNameFor(sqlDataType: SqlDataType, database: DatabaseType): string | undefined {
-    const native = sqlDataType.native
-    return native && native.database === database ? native.name : undefined
+    return sqlDataType.native?.[database]
 }
 
 /** An integer of that many bytes: the number of decimal digits its range takes */

@@ -12,7 +12,7 @@ import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn } from '../utils/Column.js'
-import type { CustomType, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, SqlDataType, TypeAdapter } from '../TypeAdapter.js'
+import type { CustomType, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, SequenceValueSource } from '../internal/ValueSourceImpl.js'
@@ -648,41 +648,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * Writes in `into` the type of the value the SQL of `_appendValueProjection` gives for `output`: the one its
-     * `transformProjection` requests when it converts the value, otherwise the original one. What a projection requests
-     * depends only on the value and the connection, so it is kept for each value and output
+     * `transformProjection` requests when it converts the value, otherwise the original one; and the SQL data type it
+     * requests, also when it doesn't convert the SQL
      */
     _resolveRequestedTypeOfProjection(value: AnyValueSource, output: ProjectionOutput, into: QueryParamContextImpl): void {
-        const types = output === 'resultColumn' ? this.__requestedTypesOfResultColumn : this.__requestedTypesOfAggregatedArrayValue
-        const sqlDataTypes = output === 'resultColumn' ? this.__sqlDataTypesOfResultColumn : this.__sqlDataTypesOfAggregatedArrayValue
-        if (types.has(value)) {
-            into.requestedType = types.get(value)
-            into.requestedCustomType = (output === 'resultColumn' ? this.__requestedCustomTypesOfResultColumn : this.__requestedCustomTypesOfAggregatedArrayValue).get(value)
-            into.requestedSqlDataType = sqlDataTypes.get(value)
-            return
-        }
         const adapterContext = this._typeAdapterContextOf(undefined)
         if (this._appendValueProjection(value, '', output) === '') {
             into.requestedType = into.originalType
             into.requestedCustomType = into.originalCustomType
-            // The SQL data type its transformProjection requests, also when it doesn't convert the SQL
             into.requestedSqlDataType = adapterContext.requestedSqlDataType
         } else {
             adapterContext.copyRequestedTypeTo(into)
         }
-        types.set(value, into.requestedType)
-        if (into.requestedSqlDataType !== undefined) {
-            sqlDataTypes.set(value, into.requestedSqlDataType)
-        }
-        if (into.requestedCustomType !== undefined) {
-            (output === 'resultColumn' ? this.__requestedCustomTypesOfResultColumn : this.__requestedCustomTypesOfAggregatedArrayValue).set(value, into.requestedCustomType)
-        }
     }
-    __requestedTypesOfResultColumn = new WeakMap<AnyValueSource, string | undefined>()
-    __requestedCustomTypesOfResultColumn = new WeakMap<AnyValueSource, CustomType>()
-    __requestedTypesOfAggregatedArrayValue = new WeakMap<AnyValueSource, string | undefined>()
-    __requestedCustomTypesOfAggregatedArrayValue = new WeakMap<AnyValueSource, CustomType>()
-    __sqlDataTypesOfResultColumn = new WeakMap<AnyValueSource, SqlDataType>()
-    __sqlDataTypesOfAggregatedArrayValue = new WeakMap<AnyValueSource, SqlDataType>()
     /**
      * The `transformProjection` of the type adapter of the value, or of the connection, for `output`; its context then
      * holds what it says of the SQL it returns (how it compares, the type of the value it gives). With the context of

@@ -27,8 +27,24 @@ interface ColumnsInfo {
     groups: Map<string, string[]>
 }
 
-const columnsInfoOfTable = new WeakMap<object, ColumnsInfo>()
-const columnsInfoOfShape = new WeakMap<object, ColumnsInfo>()
+/**
+ * Where a table, a view or a values, and a shape, keep their columns info once computed: in the object itself, hidden
+ * (not enumerable, under a symbol); an object that inherits from one (__tableWithColumnPaths) doesn't read it
+ */
+const columnsInfoOfTableKey: unique symbol = Symbol('columnsInfoOfTable')
+const columnsInfoOfShapeKey: unique symbol = Symbol('columnsInfoOfShape')
+
+/** The columns info kept in the object under that key, not inherited */
+function keptColumnsInfo(object: object, key: symbol): ColumnsInfo | undefined {
+    return Object.hasOwn(object, key) ? (object as { [key: symbol]: ColumnsInfo })[key] : undefined
+}
+
+/** Keeps the columns info in the object under that key; an object that can't be extended (frozen) keeps nothing */
+function keepColumnsInfo(object: object, key: symbol, info: ColumnsInfo): void {
+    if (Object.isExtensible(object)) {
+        Object.defineProperty(object, key, { value: info })
+    }
+}
 
 function collectColumnPaths(container: any, prefix: string, ancestors: object[], target: string[]): void {
     for (const property in container) {
@@ -68,21 +84,21 @@ function infoFromPaths(paths: string[]): ColumnsInfo {
 }
 
 function columnsInfoOf(table: object): ColumnsInfo {
-    let result = columnsInfoOfTable.get(table)
+    let result = keptColumnsInfo(table, columnsInfoOfTableKey)
     if (!result) {
         const paths: string[] = []
         collectColumnPaths(table, '', [], paths)
         result = infoFromPaths(paths)
-        columnsInfoOfTable.set(table, result)
+        keepColumnsInfo(table, columnsInfoOfTableKey, result)
     }
     return result
 }
 
 function shapeInfoOf(shape: object): ColumnsInfo {
-    let result = columnsInfoOfShape.get(shape)
+    let result = keptColumnsInfo(shape, columnsInfoOfShapeKey)
     if (!result) {
         result = infoFromPaths(Object.getOwnPropertyNames(shape))
-        columnsInfoOfShape.set(shape, result)
+        keepColumnsInfo(shape, columnsInfoOfShapeKey, result)
     }
     return result
 }

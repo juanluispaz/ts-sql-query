@@ -6,7 +6,7 @@
  */
 
 import type { QueryExecutionSource } from './TsSqlError.js'
-import type { CustomType } from './TypeAdapter.js'
+import type { CustomType, SqlDataType } from './TypeAdapter.js'
 import type { ConnectionConfiguration, FunctionExecutingQueryInformation, QueryResultColumn } from './queryRunners/QueryRunner.js'
 import { emptyQueryContext, existingQueryContextOf } from './internal/QueryContextImpl.js'
 
@@ -60,6 +60,12 @@ export interface QueryParamContext {
     readonly forceTypeCast: boolean | undefined
     /** The parameter is the value given to a column of a table, in the values of an insert or the set of an update */
     readonly isValueForColumn: boolean
+    /**
+     * The type of the value in the database, the one the type adapter it is converted with says (`withSqlDataType`):
+     * the one of the column it is given to or compared with; undefined when it says none. It describes the column: when
+     * the requested type is of another family (an adapter that sends a date as a text), it doesn't describe the value
+     */
+    readonly sqlDataType: SqlDataType | undefined
     /** What a type adapter kept for the parameter under that key, or undefined */
     getMetadata(key: symbol): unknown
 }

@@ -1,5 +1,6 @@
 import { oracleDateParam } from './utils/metadataSymbols.js'
-import type { ConnectionConfiguration } from './queryRunners/QueryRunner.js'
+import type { ConnectionConfiguration, DatabaseType } from './queryRunners/QueryRunner.js'
+import { TsSqlProcessingError } from './TsSqlError.js'
 import { __isLocalDateTime, __isLocalTime } from './utils/dataTypes.js'
 
 /**
@@ -180,7 +181,184 @@ export interface DefaultTypeAdapter {
     transformProjection(sql: string, context: TypeAdapterProjectionContext): string
 }
 
+/** The name of a type in one database, as it is written there, like `{ database: 'sqlServer', name: 'datetime2(3)' }` */
+export interface SqlDataTypeNative {
+    readonly database: DatabaseType
+    readonly name: string
+}
+
+/** What every family of a SQL data type can say */
+export interface SqlDataTypeCommon {
+    /**
+     * The name of the type in one database, as it is written there: the connection of that database uses it as it is;
+     * another database ignores it and works from the family and its properties
+     */
+    readonly native?: SqlDataTypeNative | undefined
+    /** The name of the domain the type is defined by, when it is one; the family is the type the domain is over */
+    readonly domain?: string | undefined
+}
+
+/** An exact number: an integer (`scale` 0, and `bytes` of its storage when it is one) or a decimal */
+export interface ExactNumericSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'exact numeric'
+    readonly precision?: number | undefined
+    readonly scale?: number | undefined
+    readonly unsigned?: boolean | undefined
+    /** The bytes of an integer: 1 (tinyint), 2 (smallint), 3 (mediumint), 4 (integer), 8 (bigint) */
+    readonly bytes?: 1 | 2 | 3 | 4 | 8 | undefined
+}
+/** A floating point number; `precision` in binary digits: 24 single, 53 double */
+export interface ApproximateNumericSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'approximate numeric'
+    readonly precision?: number | undefined
+}
+export interface BooleanSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'boolean'
+}
+/** A text: `length` undefined is without a limit or the maximum of the database */
+export interface CharacterStringSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'character string'
+    readonly length?: number | undefined
+    readonly lengthUnit?: 'characters' | 'octets' | undefined
+    readonly fixed?: boolean | undefined
+    /** A national character type (SQL Server `nvarchar`, Oracle `NVARCHAR2`); undefined is not stated */
+    readonly national?: boolean | undefined
+    readonly largeObject?: boolean | undefined
+    readonly characterSet?: string | undefined
+    readonly collation?: string | undefined
+}
+export interface BinaryStringSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'binary string'
+    readonly length?: number | undefined
+    readonly fixed?: boolean | undefined
+    readonly largeObject?: boolean | undefined
+    /** A file outside the database (Oracle `BFILE`) */
+    readonly external?: boolean | undefined
+}
+/**
+ * A date, a time of the day, a date and time, or a year. `precision` is the digits of the fraction of the seconds.
+ * `timeZone` is the kind of the column: `'none'`, a wall clock as it is; `'session'`, converted in and out with the zone
+ * of the session; `'instant'`, one normalized instant; `'kept'`, each value with its zone
+ */
+export interface DatetimeSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'datetime'
+    readonly fields: 'date' | 'time' | 'timestamp' | 'year'
+    readonly precision?: number | undefined
+    readonly timeZone?: 'none' | 'session' | 'instant' | 'kept' | undefined
+}
+export interface IntervalSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'interval'
+    /** Like `'year to month'` or `'day to second'` */
+    readonly fields?: string | undefined
+    readonly precision?: number | undefined
+}
+export interface UuidSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'uuid'
+}
+/** A document of the database; a description only: the library has no data type for it */
+export interface DocumentSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'document'
+    readonly format: 'json' | 'jsonb' | 'xml' | 'jsonpath'
+}
+export interface SpatialSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'spatial'
+    /** `'planar'` is PostgreSQL's geometric types (`point`, `box`, …), without a reference system */
+    readonly model: 'geometry' | 'geography' | 'planar' | 'raster'
+    /** Like `'point'`, `'polygon'`, `'multipolygon'` */
+    readonly subtype?: string | undefined
+    readonly srid?: number | undefined
+}
+export interface NetworkAddressSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'network address'
+    readonly kind: 'inet' | 'cidr' | 'macaddr' | 'macaddr8'
+    readonly ipFamily?: 4 | 6 | undefined
+}
+export interface BitStringSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'bit string'
+    readonly length?: number | undefined
+    readonly fixed?: boolean | undefined
+}
+export interface EnumerationSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'enumeration'
+    readonly values?: readonly string[] | undefined
+    /** The name of the type, when the database names it (PostgreSQL) */
+    readonly name?: string | undefined
+    /** Several values at once (MySQL and MariaDB `SET`) */
+    readonly multiple?: boolean | undefined
+}
+export interface CollectionSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'collection'
+    readonly kind: 'array' | 'multiset' | 'range' | 'multirange' | 'map'
+    readonly of?: SqlDataType | undefined
+    readonly cardinality?: number | undefined
+}
+export interface VectorSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'vector'
+    readonly dimensions?: number | undefined
+    readonly element?: 'float32' | 'float16' | 'float64' | 'int8' | 'binary' | undefined
+    readonly storage?: 'dense' | 'sparse' | undefined
+}
+export interface MoneySqlDataType extends SqlDataTypeCommon {
+    readonly family: 'money'
+    readonly scale?: number | undefined
+}
+export interface TextSearchSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'text search'
+    readonly kind: 'document' | 'query'
+}
+/** Where a row is stored: `'physical'` (PostgreSQL `tid`, Oracle `ROWID`), `'universal'` (Oracle `UROWID`) */
+export interface RowLocatorSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'row locator'
+    readonly kind: 'physical' | 'universal'
+}
+/** A number the database changes at each change of the row (SQL Server `rowversion`) */
+export interface RowVersionSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'row version'
+}
+/** A value of any type (SQL Server `sql_variant`, Oracle `ANYDATA`, SQLite `ANY`) */
+export interface VariantSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'variant'
+}
+/** A position in a hierarchy (SQL Server `hierarchyid`, PostgreSQL `ltree`) */
+export interface HierarchySqlDataType extends SqlDataTypeCommon {
+    readonly family: 'hierarchy'
+}
+/** An internal type of the engine (PostgreSQL `oid` and its `reg*` aliases, `xid`, `xid8`, `cid`, `pg_lsn`, `pg_snapshot`) */
+export interface SystemSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'system'
+    readonly kind: 'oid' | 'xid' | 'xid8' | 'cid' | 'pg_lsn' | 'pg_snapshot' | 'txid_snapshot'
+}
+/** A composite type of PostgreSQL, an object type of Oracle (`reference` for a `REF` to it) */
+export interface StructuredSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'structured'
+    readonly name: string
+    readonly reference?: boolean | undefined
+}
+/** A type of an extension or of the user that no other family describes */
+export interface UserDefinedSqlDataType extends SqlDataTypeCommon {
+    readonly family: 'user-defined'
+    readonly name: string
+}
+
+/**
+ * The type a value has in the database: its family, with the properties that refine it (precision, scale, length,
+ * fractional seconds, …). A type adapter carries it (`withSqlDataType`), and the library and the query runner use it
+ * to write the query and to send each parameter with the type of the database, where it gives a better query; the
+ * connection of each database converts it from and to its own names (`sqlDataTypeFrom`, `nativeSqlDataTypeOf`)
+ */
+export type SqlDataType = ExactNumericSqlDataType | ApproximateNumericSqlDataType | BooleanSqlDataType
+    | CharacterStringSqlDataType | BinaryStringSqlDataType | DatetimeSqlDataType | IntervalSqlDataType | UuidSqlDataType
+    | DocumentSqlDataType | SpatialSqlDataType | NetworkAddressSqlDataType | BitStringSqlDataType
+    | EnumerationSqlDataType | CollectionSqlDataType | VectorSqlDataType | MoneySqlDataType | TextSearchSqlDataType
+    | RowLocatorSqlDataType | RowVersionSqlDataType | VariantSqlDataType | HierarchySqlDataType | SystemSqlDataType
+    | StructuredSqlDataType | UserDefinedSqlDataType
+
 export interface TypeAdapter {
+    /**
+     * The type the value has in the database (see `SqlDataType`): the query runner receives it with each parameter
+     * converted with this adapter, and with each column of the result; set it with `withSqlDataType`
+     */
+    readonly sqlDataType?: SqlDataType | undefined
     /** Converts a value read from the database; `next.transformValueFromDB(...)` applies the conversion of the library */
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
     /**
@@ -217,6 +395,41 @@ export interface TypeAdapter {
      *   distinct of an aggregated array is applied to the values before converting them, where the database allows it.
      */
     transformProjection?(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
+}
+
+/** A type adapter that only says the type of the value in the database; everything else is done by the library */
+class SqlDataTypeAdapter implements TypeAdapter {
+    readonly sqlDataType: SqlDataType
+    constructor(sqlDataType: SqlDataType) {
+        this.sqlDataType = sqlDataType
+    }
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
+    }
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, context)
+    }
+}
+
+/**
+ * Gives the type of the value in the database to a type adapter, like
+ * `withSqlDataType(PostgreSqlConnection.sqlDataTypeFrom('numeric(18,4)'))`: without an adapter it creates one that
+ * only says it; with one, it sets it on that instance, a new one for each column (as `new` in place gives it), and
+ * returns it. An adapter that already says another type (an instance given to two columns) is rejected with
+ * `INVALID_CONFIGURATION`.
+ */
+export function withSqlDataType(sqlDataType: SqlDataType): TypeAdapter & { readonly sqlDataType: SqlDataType }
+export function withSqlDataType<ADAPTER extends TypeAdapter>(sqlDataType: SqlDataType, adapter: ADAPTER): ADAPTER & { readonly sqlDataType: SqlDataType }
+export function withSqlDataType(sqlDataType: SqlDataType, adapter?: TypeAdapter): TypeAdapter & { readonly sqlDataType: SqlDataType } {
+    if (!adapter) {
+        return new SqlDataTypeAdapter(sqlDataType)
+    }
+    const current = adapter.sqlDataType
+    if (current !== undefined && current !== sqlDataType && JSON.stringify(current) !== JSON.stringify(sqlDataType)) {
+        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'sqlDataType', value: sqlDataType }, 'The type adapter already says another SQL data type (' + JSON.stringify(current) + '): give each column a new instance of its type adapter')
+    }
+    (adapter as { sqlDataType?: SqlDataType | undefined }).sqlDataType = sqlDataType
+    return adapter as TypeAdapter & { readonly sqlDataType: SqlDataType }
 }
 
 export class CustomBooleanTypeAdapter implements TypeAdapter {

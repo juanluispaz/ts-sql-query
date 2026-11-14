@@ -1,6 +1,6 @@
 import type { QueryContext, QueryParamContext } from '../QueryContext.js'
 import type { QueryExecutionSource } from '../TsSqlError.js'
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 import type { ConnectionConfiguration, FunctionExecutingQueryInformation, QueryResultColumn } from '../queryRunners/QueryRunner.js'
 
 /** The key of the context of the query on its params */
@@ -14,6 +14,7 @@ export class QueryParamContextImpl implements QueryParamContext {
     requestedCustomType: CustomType | undefined = undefined
     forceTypeCast: boolean | undefined = undefined
     isValueForColumn: boolean = false
+    sqlDataType: SqlDataType | undefined = undefined
     private metadata: Map<symbol, unknown> | undefined = undefined
 
     /** Sets the original type of the parameter, which is also the one requested until a type adapter requests another */

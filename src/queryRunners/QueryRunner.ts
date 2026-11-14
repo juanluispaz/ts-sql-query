@@ -1,5 +1,5 @@
 import type { TsSqlErrorReason } from "../TsSqlError.js"
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 
 export interface QueryRunner {
     readonly database: DatabaseType
@@ -206,6 +206,8 @@ export interface QueryResultColumn {
     readonly requestedType: string
     /** Which custom type the requested type is; undefined for a built-in type */
     readonly requestedCustomType: CustomType | undefined
+    /** The type of the column in the database, the one its type adapter says (`withSqlDataType`), or undefined */
+    readonly sqlDataType?: SqlDataType | undefined
 }
 
 export interface FunctionExecutingQueryInformation {

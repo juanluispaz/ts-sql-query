@@ -458,7 +458,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const adapterContext = this._typeAdapterContextOf(context)
         if (context) {
             const index = context.params.length
-            adapterContext.prepareParam(context.queryContext.paramAt(index), index, forceTypeCast, type, customType)
+            const param = context.queryContext.paramAt(index)
+            param.sqlDataType = typeAdapter?.sqlDataType
+            adapterContext.prepareParam(param, index, forceTypeCast, type, customType)
         } else {
             adapterContext.prepareParam(undefined, undefined, forceTypeCast, type, customType)
         }

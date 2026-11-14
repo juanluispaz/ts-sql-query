@@ -572,7 +572,9 @@ function resultColumnOf(name: string, path: string, valueSource: AnyValueSource,
     if (projectedBy) {
         projectedBy._resolveRequestedTypeOfProjection(valueSource, 'resultColumn', types)
     }
-    return { name, path, originalType: types.originalType!, originalCustomType: types.originalCustomType, requestedType: types.requestedType!, requestedCustomType: types.requestedCustomType }
+    const sqlDataType = valueSourcePrivate.__typeAdapter?.sqlDataType
+    const result: QueryResultColumn = { name, path, originalType: types.originalType!, originalCustomType: types.originalCustomType, requestedType: types.requestedType!, requestedCustomType: types.requestedCustomType }
+    return sqlDataType === undefined ? result : { ...result, sqlDataType }
 }
 
 /**

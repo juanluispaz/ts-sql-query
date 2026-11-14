@@ -12,7 +12,7 @@ import { isColumn, __getColumnPrivate, __getColumnOfObject } from '../utils/Colu
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
-import { __isOperation1, __isOperation1IfValueOrIgnore } from '../internal/valueSourceFactory.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { CustomType } from '../TypeAdapter.js'
 

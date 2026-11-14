@@ -1,6 +1,6 @@
 import type { Sequence } from '../expressions/sequence.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import { __createSequence } from '../internal/valueSourceFactory.js'
+import { __createSequence } from '../typeSystem/valueSourceFactory.js'
 import type { CustomType } from '../TypeAdapter.js'
 
 export class SequenceQueryBuilder implements Sequence<any> {

@@ -1,7 +1,7 @@
 import type { DynamicConditionExpression, DynamicFilter, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
 import type { BooleanValueSource } from '../expressions/values.js'
 import { isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isBooleanValueSource } from '../expressions/values.js'
-import { __createIfValueAlwaysNoop, __isIfValueAlwaysNoop } from '../internal/valueSourceFactory.js'
+import { __createIfValueAlwaysNoop, __isIfValueAlwaysNoop } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 

@@ -2,7 +2,7 @@ import type { HasIsValue, IWithView, __ITableOrViewPrivate, AnyTableOrView } fro
 import { __addWiths, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from '../utils/tableOrViewUtils.js'
 import type { SelectData, SqlBuilder, WithSelectData } from '../sqlBuilders/SqlBuilder.js'
-import { createColumnsFrom } from './valueSourceFactory.js'
+import { createColumnsFrom } from '../typeSystem/valueSourceFactory.js'
 import { isTableOrViewObject, source, type } from '../utils/symbols.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { RawFragment } from '../utils/RawFragment.js'

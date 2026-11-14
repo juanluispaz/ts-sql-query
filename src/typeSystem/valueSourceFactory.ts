@@ -3,9 +3,9 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
-import { AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateSelectValueSource, AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, FragmentValueSource, FunctionCallValueSource, InlineSelectValueSource, SequenceValueSource, SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore, SqlOperationConstValueSource, SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, SqlOperationStaticBooleanValueSource, SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceFromBuilder, ValueSourceImpl, type InlineSelectData } from './ValueSourceImpl.js'
-import { DBColumnImpl, createColumnsFrom } from './DBColumnImpl.js'
-import { RawFragmentImpl } from './RawFragmentImpl.js'
+import { AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateSelectValueSource, AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, FragmentValueSource, FunctionCallValueSource, InlineSelectValueSource, SequenceValueSource, SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore, SqlOperationConstValueSource, SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, SqlOperationStaticBooleanValueSource, SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceFromBuilder, ValueSourceImpl, type InlineSelectData } from '../internal/ValueSourceImpl.js'
+import { DBColumnImpl, createColumnsFrom } from '../internal/DBColumnImpl.js'
+import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 
 // How the rest of the library builds a value source, a column or a raw fragment, and asks which one it has: the only
 // module that knows the classes that implement them, so the implementation can change without touching who uses it.

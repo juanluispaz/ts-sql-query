@@ -7,7 +7,7 @@ import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin 
 import type { Column } from './utils/Column.js'
 import { __getColumnPrivate, isColumn } from './utils/Column.js'
 import { __flattenSets } from './utils/columnPaths.js'
-import { __createDBColumn, __createValueSourceFromBuilder } from './internal/valueSourceFactory.js'
+import { __createDBColumn, __createValueSourceFromBuilder } from './typeSystem/valueSourceFactory.js'
 import { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'

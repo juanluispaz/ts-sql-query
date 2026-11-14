@@ -4,7 +4,7 @@ search:
 ---
 # InterceptorQueryRunner
 
-A query runner that calls your code before and after each statement, and runs the statement with the query runner it receives in the constructor. What your code returns before the statement reaches it after the statement, like the time it started. If you only need to log, [`LoggingQueryRunner`](LoggingQueryRunner.md) takes an object with your functions and gives you the times.
+A query runner that calls your code before and after each statement, and runs the statement with the query runner it receives in the constructor. What your code returns before the statement reaches it after the statement, like the time it started. If you only need to log, [`LoggingQueryRunner`](LoggingQueryRunner.md), made from this class, gives you the times: it takes an object with your functions, or you extend it and override its methods.
 
 !!! success "Supported databases"
 

@@ -4,7 +4,7 @@ search:
 ---
 # ConsoleLogQueryRunner
 
-A query runner that writes each statement on the standard output with `console.log`, before running it with the query runner it wraps. To send the statements to a logger of your own, use [`LoggingQueryRunner`](LoggingQueryRunner.md).
+A query runner that writes each statement on the standard output with `console.log`, before running it with the query runner it wraps. It is a [`LoggingQueryRunner`](LoggingQueryRunner.md) that writes with `console.log`: to send the statements somewhere else, give a `LoggingQueryRunner` your functions, or [extend it](LoggingQueryRunner.md#a-logger-of-your-own-as-a-class) as this one does.
 
 !!! success "Supported databases"
 
@@ -32,6 +32,16 @@ async function main() {
 ```
 
 By default it writes one line for each statement before it runs, with the type of query, the SQL and its parameters. It doesn't write the result, or an error. With `logResults`, `logDurations` or `logTimestamps` it also writes a line when the statement ends, with its result or its error.
+
+## Seeing the SQL without a database
+
+Over a [`NoopQueryRunner`](NoopQueryRunner.md), which sends nothing and returns empty results, it writes the SQL each call of your code would run:
+
+```ts
+import { ConsoleLogQueryRunner, NoopQueryRunner } from "ts-sql-query";
+
+const connection = new DBConnection(new ConsoleLogQueryRunner(new NoopQueryRunner()));
+```
 
 ## Options
 

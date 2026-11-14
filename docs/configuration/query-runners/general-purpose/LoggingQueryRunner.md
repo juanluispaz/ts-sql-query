@@ -48,7 +48,7 @@ async function main() {
 
     The statement has already run when `onQueryResult` is called. If it throws, the promise of the query rejects with the reason `UNKNOWN`, although the statement went through and an insert has written its row. Handle your errors inside the logger.
 
-The first argument of the constructor is an object of type `QueryLogger` (exported from `ts-sql-query`) that can define these functions, all of them optional:
+The first argument of the constructor is an object of type `QueryLogger` (exported from `ts-sql-query`), a plain object or an instance of a class of yours, that can define these functions, all of them optional. Each one is called as a method of the logger, so `this` is the logger:
 
 - **`onQuery`**: Executed before the query.
 - **`onQueryResult`**: Executed after the successful execution of the query.

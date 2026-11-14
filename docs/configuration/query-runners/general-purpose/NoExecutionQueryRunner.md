@@ -4,7 +4,7 @@ search:
 ---
 # NoExecutionQueryRunner
 
-A query runner that executes nothing: every query, and every statement of a transaction, is rejected with a `TsSqlProcessingError` of reason `QUERY_NOT_ALLOWED`, without reaching a database. It's for a connection made only to use its methods, like converting the types of its database to [SQL data types](../../../advanced/sql-data-types.md#the-types-of-a-database) in a program that reads the catalogue. It writes the SQL of its database, as [`NoopQueryRunner`](NoopQueryRunner.md) does, which instead pretends to execute and returns empty results.
+A query runner that executes nothing: every query, and every statement of a transaction, is rejected with a `TsSqlProcessingError` of reason `QUERY_NOT_ALLOWED`, without reaching a database. It's for a connection made only to use its methods, like converting the types of its database to [SQL data types](../../../advanced/sql-data-types.md#the-types-of-a-database) in a program that reads the catalogue. It writes the SQL of its database, as [`NoopQueryRunner`](NoopQueryRunner.md) does, which instead pretends to execute and returns empty results. Like it, it is a [`MockQueryRunner`](MockQueryRunner.md), whose answer to each statement is the rejection, so `isMocked` is `true`.
 
 !!! success "Supported databases"
 

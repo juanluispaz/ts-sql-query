@@ -85,8 +85,12 @@ function quoted(value: string): string {
     return "'" + value.split("'").join("''") + "'"
 }
 
-/** The type of MySQL or MariaDB for the SQL data type, or undefined when it can't hold it */
-export function mySqlMariaDBNativeSqlDataTypeOf(sqlDataType: SqlDataType, database: MySqlMariaDB): string | undefined {
+/**
+ * The type of MySQL or MariaDB for the SQL data type, in that version, or undefined when it can't hold it; a uuid as the
+ * connection stores it (uuidStrategy)
+ */
+export function mySqlMariaDBNativeSqlDataTypeOf(sqlDataType: SqlDataType, database: MySqlMariaDB, compatibilityVersion: number, uuidStrategy: string): string | undefined {
+    const mariaDB = database === 'mariaDB'
     const native = nativeNameFor(sqlDataType, database)
     if (native !== undefined) {
         return native
@@ -137,23 +141,31 @@ export function mySqlMariaDBNativeSqlDataTypeOf(sqlDataType: SqlDataType, databa
             return timeZone === undefined || timeZone === 'none' ? 'datetime' + p : undefined
         }
         case 'uuid':
-            return database === 'mariaDB' ? 'uuid' : undefined
+            if (uuidStrategy === 'string' || uuidStrategy === 'string as sent') return 'char(36)'
+            if (uuidStrategy === 'binary') return 'binary(16)'
+            // MariaDB's UUID came in 10.7
+            return mariaDB && compatibilityVersion >= 10_007_000 ? 'uuid' : 'char(36)'
         case 'document':
-            if (sqlDataType.format === 'json') return 'json'
-            return sqlDataType.format === 'xml' && database === 'mariaDB' ? 'xmltype' : undefined
+            // MySQL's JSON came in 5.7.8 (MariaDB's is an alias of longtext); MariaDB's XMLTYPE in 12.3
+            if (sqlDataType.format === 'json') return mariaDB || compatibilityVersion >= 5_007_008 ? 'json' : undefined
+            return sqlDataType.format === 'xml' && mariaDB && compatibilityVersion >= 12_003_000 ? 'xmltype' : undefined
         case 'spatial': {
             const { model, subtype, srid } = sqlDataType
             if (model !== 'geometry') return undefined
             return (subtype ?? 'geometry') + (srid === undefined ? '' : ' srid ' + srid)
         }
         case 'network address':
-            if (database !== 'mariaDB' || sqlDataType.kind !== 'inet') return undefined
-            return sqlDataType.ipFamily === 4 ? 'inet4' : 'inet6'
+            // MariaDB's INET6 came in 10.5, INET4 in 10.10
+            if (!mariaDB || sqlDataType.kind !== 'inet') return undefined
+            if (sqlDataType.ipFamily === 4 && compatibilityVersion >= 10_010_000) return 'inet4'
+            return compatibilityVersion >= 10_005_000 ? 'inet6' : undefined
         case 'bit string':
             return (sqlDataType.length ?? 1) <= 64 ? 'bit(' + (sqlDataType.length ?? 1) + ')' : undefined
         case 'enumeration':
             return sqlDataType.values === undefined ? undefined : (sqlDataType.multiple ? 'set' : 'enum') + '(' + sqlDataType.values.map(quoted).join(', ') + ')'
         case 'vector':
+            // VECTOR came in MySQL 9.0 and MariaDB 11.7
+            if (compatibilityVersion < (mariaDB ? 11_007_000 : 9_000_000)) return undefined
             return sqlDataType.element === undefined || sqlDataType.element === 'float32' ? (sqlDataType.storage === 'sparse' ? undefined : 'vector' + precision(sqlDataType.dimensions)) : undefined
         case 'user-defined':
             return sqlDataType.name

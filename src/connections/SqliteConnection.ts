@@ -1,5 +1,5 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
-import { sqliteSqlDataTypeFrom, sqliteNativeSqlDataTypeOf } from '../utils/sqlite/sqliteSqlDataTypes.js'
+import { argumentNumber, nativeNameFor, nativeTypeParts, withNative } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './AbstractConnection.js'
@@ -20,18 +20,51 @@ import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
     /**
-     * The SQL data type of a type of SQLite, written as in the declaration of the column: the six types of a STRICT table, or any other name, read as the type of another database, aliases
-     * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
+     * The SQL data type of a column of SQLite, as it is declared (`pragma table_info`), with that name as its native
+     * one: the six types of a STRICT table as they are (`INTEGER`, `INT`, `REAL`, `TEXT`, `BLOB`, `ANY`); in a table
+     * that isn't STRICT, the common names of the other databases (`VARCHAR(n)`, `DECIMAL(p, s)`, `DATETIME`,
+     * `BOOLEAN`, `UUID`, …), the intent of who wrote them; any other name, a user-defined type (override this method
+     * to read a name of your own); no name, a value of any type
      */
-    static sqlDataTypeFrom(nativeName: string): SqlDataType {
-        return sqliteSqlDataTypeFrom(nativeName)
+    sqlDataTypeFrom(nativeName: string): SqlDataType {
+        return withNative(sqliteFamilyOf(nativeName), 'sqlite', nativeName)
     }
     /**
-     * The type of SQLite for a SQL data type: its native name of SQLite when it has one, otherwise from its family and
-     * its properties; undefined when SQLite can't hold it (never another type)
+     * The type of a STRICT table of SQLite for a SQL data type: its native name of SQLite when it has one, otherwise
+     * where this connection stores it (a date as its date and time format says, a uuid as its uuid strategy says, a
+     * decimal as text); undefined when SQLite can't hold it (never another type)
      */
-    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
-        return sqliteNativeSqlDataTypeOf(sqlDataType)
+    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        const native = nativeNameFor(sqlDataType, 'sqlite')
+        if (native !== undefined) {
+            return native
+        }
+        switch (sqlDataType.family) {
+            case 'exact numeric':
+                return sqlDataType.bytes !== undefined || sqlDataType.scale === 0 ? 'INTEGER' : 'TEXT'
+            case 'approximate numeric':
+                return 'REAL'
+            case 'boolean':
+                return 'INTEGER'
+            case 'character string':
+            case 'document':
+            case 'enumeration':
+                return 'TEXT'
+            case 'datetime': {
+                const fields = sqlDataType.fields
+                if (fields === 'year') return undefined
+                const format: string = this.getDateTimeFormat(fields === 'timestamp' ? 'dateTime' : fields)
+                return format.endsWith('as real number') ? 'REAL' : format.endsWith('as integer') ? 'INTEGER' : 'TEXT'
+            }
+            case 'binary string':
+                return sqlDataType.external ? undefined : 'BLOB'
+            case 'uuid':
+                return this.uuidStrategy === 'uuid-extension' ? 'BLOB' : 'TEXT'
+            case 'variant':
+                return 'ANY'
+            default:
+                return undefined
+        }
     }
 
     protected uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' = 'uuid-extension'
@@ -602,4 +635,39 @@ function containsTimezone(value: string): boolean {
 
 function containsDate(value: string): boolean {
     return /^\d+-\d\d?-\d\d?(\s|T)/.test(value)
+}
+
+/** The family of a declared type of SQLite (see sqlDataTypeFrom), without its native name */
+function sqliteFamilyOf(nativeName: string): SqlDataType {
+    const { key, args } = nativeTypeParts(nativeName)
+    const n0 = argumentNumber(args[0])
+    const n1 = argumentNumber(args[1])
+    const sized = n0 === undefined ? {} : { length: n0 }
+    switch (key) {
+        case '': case 'any': return { family: 'variant' }
+        case 'int': case 'integer': case 'bigint': case 'int8': return { family: 'exact numeric', scale: 0, bytes: 8 }
+        case 'smallint': case 'int2': return { family: 'exact numeric', scale: 0, bytes: 2 }
+        case 'tinyint': return { family: 'exact numeric', scale: 0, bytes: 1 }
+        case 'mediumint': return { family: 'exact numeric', scale: 0, bytes: 3 }
+        case 'int4': return { family: 'exact numeric', scale: 0, bytes: 4 }
+        case 'decimal': case 'numeric': case 'dec':
+            return n0 === undefined ? { family: 'exact numeric' } : { family: 'exact numeric', precision: n0, scale: n1 ?? 0 }
+        case 'real': case 'double': case 'double precision': case 'float': case 'float8': return { family: 'approximate numeric', precision: 53 }
+        case 'float4': return { family: 'approximate numeric', precision: 24 }
+        case 'boolean': case 'bool': return { family: 'boolean' }
+        case 'text': case 'clob': return { family: 'character string' }
+        case 'varchar': case 'character varying': case 'varchar2': return { family: 'character string', ...sized }
+        case 'char': case 'character': return { family: 'character string', length: n0 ?? 1, fixed: true }
+        case 'nvarchar': case 'nvarchar2': case 'national character varying': return { family: 'character string', ...sized, national: true }
+        case 'nchar': case 'national character': return { family: 'character string', length: n0 ?? 1, fixed: true, national: true }
+        case 'blob': case 'bytea': return { family: 'binary string' }
+        case 'binary': return { family: 'binary string', length: n0 ?? 1, fixed: true }
+        case 'varbinary': return { family: 'binary string', ...sized }
+        case 'date': return { family: 'datetime', fields: 'date' }
+        case 'time': return { family: 'datetime', fields: 'time', timeZone: 'none' }
+        case 'datetime': case 'timestamp': return { family: 'datetime', fields: 'timestamp', timeZone: 'none' }
+        case 'uuid': return { family: 'uuid' }
+        case 'json': return { family: 'document', format: 'json' }
+    }
+    return { family: 'user-defined', name: nativeName.trim() }
 }

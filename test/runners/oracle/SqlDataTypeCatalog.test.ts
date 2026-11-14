@@ -1,12 +1,18 @@
-// The types of Oracle as SQL data types and back (OracleConnection.sqlDataTypeFrom / nativeSqlDataTypeOf), against the
+// The types of Oracle as SQL data types and back (sqlDataTypeFrom / nativeSqlDataTypeOf of a connection), against the
 // catalogue of the engine: the DATA_TYPE of user_tab_columns with its precision, scale and length, as a generator
 // writes them.
 
 import { afterAll, beforeAll, describe, test } from '../../lib/testRunner.js'
 import { OracleConnection } from '../../../src/connections/OracleConnection.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
+
+
+// A connection made only to convert the types: it executes nothing
+class IntrospectionConnection extends OracleConnection<'IntrospectionConnection'> { }
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('oracle'))
 
 const cases: CatalogCase[] = [
     { ddl: 'number(18, 4)', family: { family: 'exact numeric', precision: 18, scale: 4 }, canonical: 'NUMBER(18, 4)' },
@@ -17,7 +23,7 @@ const cases: CatalogCase[] = [
     { ddl: 'float', family: { family: 'approximate numeric', precision: 126 }, canonical: 'BINARY_DOUBLE' },
     { ddl: 'binary_float', family: { family: 'approximate numeric', precision: 24 }, canonical: 'BINARY_FLOAT' },
     { ddl: 'binary_double', family: { family: 'approximate numeric', precision: 53 }, canonical: 'BINARY_DOUBLE' },
-    { ddl: 'boolean', family: { family: 'boolean' }, canonical: 'BOOLEAN' },
+    { ddl: 'boolean', family: { family: 'boolean' }, canonical: 'NUMBER(1)' },
     { ddl: 'char(5)', family: { family: 'character string', length: 5, lengthUnit: 'octets', fixed: true }, canonical: 'CHAR(5 BYTE)' },
     { ddl: 'varchar2(20 char)', family: { family: 'character string', length: 20, lengthUnit: 'characters' }, canonical: 'VARCHAR2(20 CHAR)' },
     { ddl: 'varchar2(20)', family: { family: 'character string', length: 20, lengthUnit: 'octets' }, canonical: 'VARCHAR2(20 BYTE)' },
@@ -75,8 +81,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     test('every-type-and-back', async () => {
         await checkCatalog({
             database: 'oracle',
-            from: name => OracleConnection.sqlDataTypeFrom(name),
-            of: type => OracleConnection.nativeSqlDataTypeOf(type),
+            from: name => introspection.sqlDataTypeFrom(name),
+            of: type => introspection.nativeSqlDataTypeOf(type),
             createTable: async (table, columns) => { await connection!.execute(`create table ${table} (${columns.join(', ')})`) },
             catalogTypes: async (table) => ((await connection!.execute(`select data_type, data_precision, data_scale, data_length, char_length, char_used from user_tab_columns where table_name = upper(:0) order by column_id`, [table], { outFormat: oracledb!.OUT_FORMAT_OBJECT })).rows as any[]).map(typeOfColumn),
             dropTable: async (table) => { try { await connection!.execute(`drop table ${table} purge`) } catch { /* it doesn't exist */ } },

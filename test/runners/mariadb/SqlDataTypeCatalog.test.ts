@@ -1,12 +1,18 @@
-// The types of MariaDB as SQL data types and back (MariaDBConnection.sqlDataTypeFrom / nativeSqlDataTypeOf), against the
+// The types of MariaDB as SQL data types and back (sqlDataTypeFrom / nativeSqlDataTypeOf of a connection), against the
 // catalogue of the engine (the COLUMN_TYPE of information_schema.columns).
 
 import mariadb from 'mariadb'
 import { afterAll, beforeAll, describe, test } from '../../lib/testRunner.js'
 import { MariaDBConnection } from '../../../src/connections/MariaDBConnection.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/mariadb/runners.js'
 import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
+
+
+// A connection made only to convert the types: it executes nothing
+class IntrospectionConnection extends MariaDBConnection<'IntrospectionConnection'> { }
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('mariaDB'))
 
 const integer = (bytes: 1 | 2 | 3 | 4 | 8, unsigned?: boolean) => unsigned ? { family: 'exact numeric' as const, scale: 0, bytes, unsigned } : { family: 'exact numeric' as const, scale: 0, bytes }
 const cases: CatalogCase[] = [
@@ -66,8 +72,8 @@ describe.skipIf(!isRealDbEnabled('mariadb', 'docker', 'newest', 'mariadb'))('Mar
     test('every-type-and-back', async () => {
         await checkCatalog({
             database: 'mariaDB',
-            from: name => MariaDBConnection.sqlDataTypeFrom(name),
-            of: type => MariaDBConnection.nativeSqlDataTypeOf(type),
+            from: name => introspection.sqlDataTypeFrom(name),
+            of: type => introspection.nativeSqlDataTypeOf(type),
             createTable: async (table, columns) => { await connection!.query(`create table ${table} (${columns.join(', ')})`) },
             catalogTypes: async (table) => (await connection!.query(`select column_type as t from information_schema.columns where table_schema = database() and table_name = ? order by ordinal_position`, [table]) as any[]).map(row => String(row.t)),
             dropTable: async (table) => { await connection!.query(`drop table if exists ${table}`) },

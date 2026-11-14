@@ -1,12 +1,18 @@
-// The types of SQL Server as SQL data types and back (SqlServerConnection.sqlDataTypeFrom / nativeSqlDataTypeOf),
+// The types of SQL Server as SQL data types and back (sqlDataTypeFrom / nativeSqlDataTypeOf of a connection),
 // against the catalogue of the engine: the name of sys.types with the length, precision and scale of sys.columns, as
 // a generator writes them.
 
 import { afterAll, beforeAll, describe, test } from '../../lib/testRunner.js'
 import { SqlServerConnection } from '../../../src/connections/SqlServerConnection.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/sqlserver/runners.js'
 import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
+
+
+// A connection made only to convert the types: it executes nothing
+class IntrospectionConnection extends SqlServerConnection<'IntrospectionConnection'> { }
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('sqlServer'))
 
 const cases: CatalogCase[] = [
     { ddl: 'tinyint', family: { family: 'exact numeric', scale: 0, bytes: 1, unsigned: true }, canonical: 'tinyint' },
@@ -77,8 +83,8 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('SQL
     test('every-type-and-back', async () => {
         await checkCatalog({
             database: 'sqlServer',
-            from: name => SqlServerConnection.sqlDataTypeFrom(name),
-            of: type => SqlServerConnection.nativeSqlDataTypeOf(type),
+            from: name => introspection.sqlDataTypeFrom(name),
+            of: type => introspection.nativeSqlDataTypeOf(type),
             createTable: async (table, columns) => { await pool!.request().query(`create table ${table} (${columns.join(', ')})`) },
             catalogTypes: async (table) => (await pool!.request().query(`select t.name as type, c.max_length, c.precision, c.scale from sys.columns c join sys.types t on c.user_type_id = t.user_type_id where c.object_id = object_id('${table}') order by c.column_id`)).recordset.map(typeOfColumn),
             dropTable: async (table) => { await pool!.request().query(`drop table if exists ${table}`) },

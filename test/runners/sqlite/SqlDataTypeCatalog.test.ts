@@ -1,12 +1,18 @@
-// The types of SQLite as SQL data types and back (SqliteConnection.sqlDataTypeFrom / nativeSqlDataTypeOf), against the
+// The types of SQLite as SQL data types and back (sqlDataTypeFrom / nativeSqlDataTypeOf of a connection), against the
 // declarations SQLite keeps (pragma table_info): the six types of a STRICT table as they are, and in a table that isn't
 // STRICT, the declared name read as the type of another database.
 
 import Database from 'better-sqlite3'
 import { describe, test } from '../../lib/testRunner.js'
 import { SqliteConnection } from '../../../src/connections/SqliteConnection.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { checkCatalog, type CatalogCase, type CatalogEngine } from '../lib/sqlDataTypeCatalog.js'
+
+
+// A connection made only to convert the types: it executes nothing
+class IntrospectionConnection extends SqliteConnection<'IntrospectionConnection'> { }
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('sqlite'))
 
 const strictCases: CatalogCase[] = [
     { ddl: 'INT', family: { family: 'exact numeric', scale: 0, bytes: 8 }, canonical: 'INTEGER' },
@@ -34,8 +40,8 @@ const declaredCases: CatalogCase[] = [
 function engineOf(db: Database.Database, strict: boolean): CatalogEngine {
     return {
         database: 'sqlite',
-        from: name => SqliteConnection.sqlDataTypeFrom(name),
-        of: type => SqliteConnection.nativeSqlDataTypeOf(type),
+        from: name => introspection.sqlDataTypeFrom(name),
+        of: type => introspection.nativeSqlDataTypeOf(type),
         createTable: async (table, columns) => { db.exec(`create table ${table} (${columns.join(', ')})${strict ? ' strict' : ''}`) },
         catalogTypes: async (table) => (db.prepare(`pragma table_info(${table})`).all() as { type: string }[]).map(row => row.type),
         dropTable: async (table) => { db.exec(`drop table if exists ${table}`) },

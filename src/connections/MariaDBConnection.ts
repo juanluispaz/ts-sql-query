@@ -21,15 +21,15 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      * The SQL data type of a type of MariaDB, written as the `COLUMN_TYPE` of `information_schema.columns` (`decimal(18,4) unsigned`, `varchar(20)`, `uuid`, `inet6`), aliases
      * accepted, with that name as its native one: for `withSqlDataType`, or a generator that reads the catalogue
      */
-    static sqlDataTypeFrom(nativeName: string): SqlDataType {
+    sqlDataTypeFrom(nativeName: string): SqlDataType {
         return mySqlMariaDBSqlDataTypeFrom(nativeName, 'mariaDB')
     }
     /**
      * The type of MariaDB for a SQL data type: its native name of MariaDB when it has one, otherwise from its family and
      * its properties; undefined when MariaDB can't hold it (never another type)
      */
-    static nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
-        return mySqlMariaDBNativeSqlDataTypeOf(sqlDataType, 'mariaDB')
+    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return mySqlMariaDBNativeSqlDataTypeOf(sqlDataType, 'mariaDB', this.compatibilityVersion, this.uuidStrategy)
     }
 
     /**

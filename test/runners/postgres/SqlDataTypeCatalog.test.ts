@@ -1,12 +1,18 @@
-// The types of PostgreSQL as SQL data types and back (PostgreSqlConnection.sqlDataTypeFrom / nativeSqlDataTypeOf),
+// The types of PostgreSQL as SQL data types and back (sqlDataTypeFrom / nativeSqlDataTypeOf of a connection),
 // against the catalogue of the engine (format_type).
 
 import pg from 'pg'
 import { afterAll, beforeAll, describe, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
 import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
+
+
+// A connection made only to convert the types: it executes nothing
+class IntrospectionConnection extends PostgreSqlConnection<'IntrospectionConnection'> { }
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('postgreSql'))
 
 const cases: CatalogCase[] = [
     { ddl: 'smallint', family: { family: 'exact numeric', scale: 0, bytes: 2 }, canonical: 'smallint' },
@@ -76,8 +82,8 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('Postgre
     test('every-type-and-back', async () => {
         await checkCatalog({
             database: 'postgreSql',
-            from: name => PostgreSqlConnection.sqlDataTypeFrom(name),
-            of: type => PostgreSqlConnection.nativeSqlDataTypeOf(type),
+            from: name => introspection.sqlDataTypeFrom(name),
+            of: type => introspection.nativeSqlDataTypeOf(type),
             createTable: async (table, columns) => { await client!.query(`create table ${table} (${columns.join(', ')})`) },
             catalogTypes: async (table) => (await client!.query(`select format_type(atttypid, atttypmod) as t from pg_attribute where attrelid = '${table}'::regclass and attnum > 0 and not attisdropped order by attnum`)).rows.map(row => row.t),
             dropTable: async (table) => { await client!.query(`drop table if exists ${table}`) },

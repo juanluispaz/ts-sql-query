@@ -8,6 +8,7 @@ import { SqlServerConnection } from '../../../src/connections/SqlServerConnectio
 import { OracleConnection } from '../../../src/connections/OracleConnection.js'
 import { Table } from '../../../src/Table.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { CustomBooleanTypeAdapter, withSqlDataType, type SqlDataType } from '../../../src/TypeAdapter.js'
 import { reasonOf } from '../lib/runnerContract.js'
@@ -59,9 +60,38 @@ describe('withSqlDataType', () => {
 describe('the native names of several databases', () => {
     test('each-database-uses-its-own-and-the-others-the-family', () => {
         const timestamp: SqlDataType = { family: 'datetime', fields: 'timestamp', precision: 3, timeZone: 'none', native: { sqlServer: 'datetime', postgreSql: 'timestamp(3) without time zone' } }
-        expect(SqlServerConnection.nativeSqlDataTypeOf(timestamp)).toBe('datetime')
-        expect(PostgreSqlConnection.nativeSqlDataTypeOf(timestamp)).toBe('timestamp(3) without time zone')
-        expect(OracleConnection.nativeSqlDataTypeOf(timestamp)).toBe('TIMESTAMP(3)')
+        class SqlServer extends SqlServerConnection<'SqlServer'> { }
+        class Oracle extends OracleConnection<'Oracle'> { }
+        expect(new SqlServer(new NoExecutionQueryRunner('sqlServer')).nativeSqlDataTypeOf(timestamp)).toBe('datetime')
+        expect(new DBConnection(new NoExecutionQueryRunner('postgreSql')).nativeSqlDataTypeOf(timestamp)).toBe('timestamp(3) without time zone')
+        expect(new Oracle(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(timestamp)).toBe('TIMESTAMP(3)')
+    })
+})
+
+describe('the version and the strategies of the connection', () => {
+    const json: SqlDataType = { family: 'document', format: 'json' }
+    const uuid: SqlDataType = { family: 'uuid' }
+    test('a-type-the-version-does-not-have-is-undefined', () => {
+        class Oracle21 extends OracleConnection<'Oracle21'> { protected override compatibilityVersion = 21_000_000 }
+        class Oracle19 extends OracleConnection<'Oracle19'> { protected override compatibilityVersion = 19_000_000 }
+        class SqlServer2022 extends SqlServerConnection<'SqlServer2022'> { protected override compatibilityVersion = 16_000_000 }
+        class SqlServer2025 extends SqlServerConnection<'SqlServer2025'> { protected override compatibilityVersion = 17_000_000 }
+        expect(new Oracle21(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(json)).toBe('JSON')
+        expect(new Oracle19(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(json)).toBeUndefined()
+        expect(new SqlServer2025(new NoExecutionQueryRunner('sqlServer')).nativeSqlDataTypeOf(json)).toBe('json')
+        expect(new SqlServer2022(new NoExecutionQueryRunner('sqlServer')).nativeSqlDataTypeOf(json)).toBeUndefined()
+    })
+    test('a-type-the-library-stores-in-another-follows-the-strategy', () => {
+        class OracleRaw extends OracleConnection<'OracleRaw'> { }
+        class OracleText extends OracleConnection<'OracleText'> { protected override uuidStrategy = 'string' as const }
+        class OracleBoolean extends OracleConnection<'OracleBoolean'> { protected override booleanStorage = 'boolean' as const }
+        const oracle = new OracleRaw(new NoExecutionQueryRunner('oracle'))
+        expect(oracle.nativeSqlDataTypeOf(uuid)).toBe('RAW(16)')
+        expect(new OracleText(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf(uuid)).toBe('VARCHAR2(36)')
+        expect(oracle.nativeSqlDataTypeOf({ family: 'boolean' })).toBe('NUMBER(1)')
+        expect(new OracleBoolean(new NoExecutionQueryRunner('oracle')).nativeSqlDataTypeOf({ family: 'boolean' })).toBe('BOOLEAN')
+        // A time of the day is kept on 1970-01-01
+        expect(oracle.nativeSqlDataTypeOf({ family: 'datetime', fields: 'time', precision: 3 })).toBe('TIMESTAMP(3)')
     })
 })
 

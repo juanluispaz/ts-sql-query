@@ -1,12 +1,18 @@
-// The types of MySQL as SQL data types and back (MySqlConnection.sqlDataTypeFrom / nativeSqlDataTypeOf), against the
+// The types of MySQL as SQL data types and back (sqlDataTypeFrom / nativeSqlDataTypeOf of a connection), against the
 // catalogue of the engine (the COLUMN_TYPE of information_schema.columns).
 
 import mysql2 from 'mysql2/promise'
 import { afterAll, beforeAll, describe, test } from '../../lib/testRunner.js'
 import { MySqlConnection } from '../../../src/connections/MySqlConnection.js'
+import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/mysql/runners.js'
 import { checkCatalog, type CatalogCase } from '../lib/sqlDataTypeCatalog.js'
+
+
+// A connection made only to convert the types: it executes nothing
+class IntrospectionConnection extends MySqlConnection<'IntrospectionConnection'> { }
+const introspection = new IntrospectionConnection(new NoExecutionQueryRunner('mySql'))
 
 const integer = (bytes: 1 | 2 | 3 | 4 | 8, unsigned?: boolean) => unsigned ? { family: 'exact numeric' as const, scale: 0, bytes, unsigned } : { family: 'exact numeric' as const, scale: 0, bytes }
 const cases: CatalogCase[] = [
@@ -61,8 +67,8 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('MySQL:
     test('every-type-and-back', async () => {
         await checkCatalog({
             database: 'mySql',
-            from: name => MySqlConnection.sqlDataTypeFrom(name),
-            of: type => MySqlConnection.nativeSqlDataTypeOf(type),
+            from: name => introspection.sqlDataTypeFrom(name),
+            of: type => introspection.nativeSqlDataTypeOf(type),
             createTable: async (table, columns) => { await connection!.query(`create table ${table} (${columns.join(', ')})`) },
             catalogTypes: async (table) => ((await connection!.query(`select column_type as t from information_schema.columns where table_schema = database() and table_name = ? order by ordinal_position`, [table]))[0] as any[]).map(row => String(row.t)),
             dropTable: async (table) => { await connection!.query(`drop table if exists ${table}`) },

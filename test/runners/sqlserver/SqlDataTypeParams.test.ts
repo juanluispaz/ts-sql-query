@@ -21,6 +21,14 @@ class TCode extends Table<DBConnection, 'TCode'> {
     }
 }
 const tCode = new TCode()
+class TUtf8 extends Table<DBConnection, 'TUtf8'> {
+    id = this.primaryKey('id', 'int')
+    code = this.column('code', 'string', withSqlDataType({ family: 'character string', length: 50, national: false, collation: 'Latin1_General_100_CI_AS_SC_UTF8' }))
+    constructor() {
+        super('rt_sql_type_utf8')
+    }
+}
+const tUtf8 = new TUtf8()
 
 describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('SQL Server: a text of a column that is not national', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
@@ -82,5 +90,16 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('SQL
         const conn = new DBConnection(new MssqlPoolQueryRunner(pool!))
         expect(await conn.selectFrom(tCode).where(tCode.code.equals('x'.repeat(60))).selectOneColumn(tCode.id).executeSelectMany()).toEqual([])
         expect((await cached('where code = @0')).declaration).toBe('(@0 varchar(max))')
+    })
+    test('a-text-outside-ascii-is-kept-also-in-a-column-of-a-utf8-collation', async () => {
+        // As a varchar, tedious would write it in the code page of the database: '中文' would be stored as '??'
+        await pool!.request().query('drop table if exists rt_sql_type_utf8; create table rt_sql_type_utf8 (id int primary key, code varchar(50) collate Latin1_General_100_CI_AS_SC_UTF8)')
+        try {
+            const conn = new DBConnection(new MssqlPoolQueryRunner(pool!))
+            await conn.insertInto(tUtf8).set({ id: 1, code: '中文ñ€' }).executeInsert()
+            expect((await pool!.request().query('select code from rt_sql_type_utf8')).recordset).toEqual([{ code: '中文ñ€' }])
+        } finally {
+            await pool!.request().query('drop table if exists rt_sql_type_utf8')
+        }
     })
 })

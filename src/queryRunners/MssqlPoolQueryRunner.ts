@@ -309,8 +309,9 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     /**
      * A text of a column that isn't national (a varchar or a char, said by its SQL data type, withSqlDataType) goes as a
      * varchar: compared as a nvarchar, SQL Server converts the column, and with a SQL collation it reads its whole index.
-     * Only when the text fits in it: ASCII, or a column of a UTF-8 collation; a character its code page lacks would
-     * become `?`. Its length is the one of the column, or max when the text is longer
+     * Only for an ASCII text, the same in every code page: tedious writes a varchar in the code page of the database,
+     * and a character it lacks becomes `?`, also for a column of a UTF-8 collation (measured on SQL Server 2025: '中文'
+     * stored as '??'). Its length is the one of the column, or max when the text is longer
      */
     private getTypeOfVarcharColumn(params: any[], index: number): ISqlType | undefined {
         const param = existingParamContextOf(params, index)
@@ -319,7 +320,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         if (sqlDataType?.family !== 'character string' || sqlDataType.national !== false || typeof value !== 'string' || !__isString(param?.requestedType ?? '', param?.requestedCustomType)) {
             return undefined
         }
-        if (!/^[\x00-\x7f]*$/.test(value) && !/_utf8$/i.test(sqlDataType.collation ?? '')) {
+        if (!/^[\x00-\x7f]*$/.test(value)) {
             return undefined
         }
         const length = sqlDataType.length

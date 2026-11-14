@@ -11,7 +11,7 @@ import { isColumn } from '../utils/Column.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from '../connections/SqliteConfiguration.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { FragmentValueSource, InlineSelectValueSource, SqlOperationConstValueSource, TableOrViewRawFragmentValueSource } from '../internal/ValueSourceImpl.js'
+import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment } from '../internal/valueSourceFactory.js'
 import { __isExactDecimal, __isUuid } from '../utils/dataTypes.js'
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
@@ -100,7 +100,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * fragment) may give another text of the same number
      */
     _isCanonicalDecimalSource(value: unknown): boolean {
-        return !isValueSource(value) || isColumn(value) || value instanceof SqlOperationConstValueSource || value instanceof InlineSelectValueSource
+        return !isValueSource(value) || isColumn(value) || __isConst(value) || __isInlineSelect(value)
     }
     /**
      * In a canonical text variant, the SQL of a customDecimal turned into its canonical text when it may not be, the
@@ -113,7 +113,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (!this._isCanonicalDecimalText() || this._isCanonicalDecimalSource(value)) {
             return sql
         }
-        if (value instanceof FragmentValueSource || value instanceof TableOrViewRawFragmentValueSource) {
+        if (__isFragment(value) || __isTableOrViewRawFragment(value)) {
             return "(select case when typeof(tsq_v) = 'text' and tsq_v not glob '*[^0-9.-]*' then " + this._decimalNormalForm('tsq_v') + ' else tsq_v end from (select ' + sql + ' as tsq_v))'
         }
         return "(select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select " + sql + ' as tsq_v))'

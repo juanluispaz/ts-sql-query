@@ -12,7 +12,7 @@ import { isColumn, __getColumnPrivate, __getColumnOfObject } from '../utils/Colu
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
-import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore } from '../internal/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { CustomType } from '../TypeAdapter.js'
 
@@ -909,7 +909,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     _appendMaybeInnerConcat(valueSource: AnyValueSource, context: SqlBuildContext): string {
-        if (valueSource instanceof SqlOperation1ValueSource && valueSource.__operation === '_concat') {
+        if (__isOperation1(valueSource) && valueSource.__operation === '_concat') {
             let result = this._appendMaybeInnerConcat(valueSource.__valueSource, context)
             const value = valueSource.__value
             result += ', '
@@ -920,7 +920,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             }
             return result
         }
-        if (valueSource instanceof SqlOperation1ValueSourceIfValueOrIgnore && valueSource.__operation === '_concat') {
+        if (__isOperation1IfValueOrIgnore(valueSource) && valueSource.__operation === '_concat') {
             let result = this._appendMaybeInnerConcat(valueSource.__valueSource, context)
             const value = valueSource.__value
             if (this._isValue(value)) {

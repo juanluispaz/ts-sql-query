@@ -13,7 +13,7 @@ import { __columnPathsOf } from '../utils/columnPaths.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
-import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource } from '../internal/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isBoolean, __isLocalDateTime, __isLocalTime, __isUuid } from '../utils/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
@@ -246,8 +246,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // says. Treating it as a leaf instead would hand it back to the public `_concat` via its own
     // `__toSql`, and a receiver that is itself a concat would come back wearing its own poison `CASE`
     // — a `CASE` this level then emits TWICE, once per branch, doubling the whole subchain per link.
-    private _isConcatChainNode(node: unknown): node is SqlOperation1ValueSource | SqlOperation1ValueSourceIfValueOrIgnore {
-        if (!(node instanceof SqlOperation1ValueSource) && !(node instanceof SqlOperation1ValueSourceIfValueOrIgnore)) {
+    private _isConcatChainNode(node: unknown): node is __Operation1ValueSource {
+        if (!__isOperation1(node) && !__isOperation1IfValueOrIgnore(node)) {
             return false
         }
         return node.__operation === '_concat'
@@ -255,8 +255,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // A `.concatIfValue()` whose value is ABSENT (`null` / `undefined` / `''` under
     // `allowEmptyString:false`) renders as just its receiver, so the chain skips its operand: emitting
     // it would bind a param for the ignored value and feed `undefined` to `_isNull`.
-    private _concatChainDropsValue(node: SqlOperation1ValueSource | SqlOperation1ValueSourceIfValueOrIgnore): boolean {
-        return node instanceof SqlOperation1ValueSourceIfValueOrIgnore && !this._isValue(node.__value)
+    private _concatChainDropsValue(node: __Operation1ValueSource): boolean {
+        return __isOperation1IfValueOrIgnore(node) && !this._isValue(node.__value)
     }
     /**
      * Oracle's `||` already reads a NULL operand as the empty string — what `_concat` above has to

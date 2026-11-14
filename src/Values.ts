@@ -7,12 +7,11 @@ import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin 
 import type { Column } from './utils/Column.js'
 import { __getColumnPrivate, isColumn } from './utils/Column.js'
 import { __flattenSets } from './utils/columnPaths.js'
-import { DBColumnImpl } from './internal/DBColumnImpl.js'
+import { __createDBColumn, __createValueSourceFromBuilder } from './internal/valueSourceFactory.js'
 import { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'
 import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, LocalDateFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalTimeFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression } from './expressions/fragment.js'
-import { ValueSourceFromBuilder } from './internal/ValueSourceImpl.js'
 import { FragmentQueryBuilder } from './queryBuilders/FragmentQueryBuilder.js'
 import type { MandatoryInsertSets } from './expressions/insert.js'
 import type { NDBWithType, NGetNameFrom, NNoTableOrViewRequiredFrom, NSourceAllowingNoTableOrViewRequired, NValues } from './utils/sourceName.js'
@@ -96,9 +95,9 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         // table column, not a read-only view column). `__asColumn()` sets it,
         // matching `optionalColumn` below. See `Column.ts` for the model.
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, '', adapter, type as CustomType, adapter2)).__asColumn()
+            return (__createDBColumn(this, '', adapter, type as CustomType, adapter2)).__asColumn()
         }
-        return (new DBColumnImpl(this, '', type, undefined, adapter)).__asColumn()
+        return (__createDBColumn(this, '', type, undefined, adapter)).__asColumn()
     }
 
     protected optionalColumn(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'> & Column
@@ -124,9 +123,9 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
     protected optionalColumn<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & Column
     protected optionalColumn(type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, '', adapter, type as CustomType, adapter2)).__asOptionalColumn()
+            return (__createDBColumn(this, '', adapter, type as CustomType, adapter2)).__asOptionalColumn()
         }
-        return (new DBColumnImpl(this, '', type, undefined, adapter)).__asOptionalColumn()
+        return (__createDBColumn(this, '', type, undefined, adapter)).__asOptionalColumn()
     }
 
     protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>
@@ -153,10 +152,10 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
     protected virtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {
             const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'required', arg3)
-            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'required', arg3)
+            return __createValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'required', arg3)
         }
         const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'required', arg2 as TypeAdapter | undefined)
-        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'required', arg2 as TypeAdapter | undefined)
+        return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'required', arg2 as TypeAdapter | undefined)
     }
 
     protected optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'>
@@ -183,10 +182,10 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
     protected optionalVirtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {
             const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'optional', arg3)
-            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'optional', arg3)
+            return __createValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'optional', arg3)
         }
         const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'optional', arg2 as TypeAdapter | undefined)
-        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'optional', arg2 as TypeAdapter | undefined)
+        return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'optional', arg2 as TypeAdapter | undefined)
     }
 
     // @ts-ignore

@@ -10,7 +10,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
-import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
+import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray } from '../internal/valueSourceFactory.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
@@ -24,21 +24,21 @@ export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends A
     }
 
     aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'noopDB', NAME>>>(columns: COLUMNS & NNotNestedAggregate<SourceOfAggregatedArray<COLUMNS>, NConnection<'noopDB', NAME>>): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'noopDB', NAME>>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
-        return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', true)
+        return __createAggregateValueAsArray(columns as QueryColumns, 'InnerResultObject', 'required', true)
     }
     aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], NConnection<'noopDB', NAME>>): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, Array<VALUE[typeof valueType]>, 'required'> {
-        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
+        return __createAggregateValueAsArray(value, 'InnerResultObject', 'required', true)
     }
     stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, 'optional'>
     stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
 
     anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'noopDB', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
+        return (__createAggregateFunction1('_anyValue', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
     }
 
     default(): Default {

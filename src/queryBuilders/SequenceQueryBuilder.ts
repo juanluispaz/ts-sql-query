@@ -1,6 +1,6 @@
 import type { Sequence } from '../expressions/sequence.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import { SequenceValueSource } from '../internal/ValueSourceImpl.js'
+import { __createSequence } from '../internal/valueSourceFactory.js'
 import type { CustomType } from '../TypeAdapter.js'
 
 export class SequenceQueryBuilder implements Sequence<any> {
@@ -16,9 +16,9 @@ export class SequenceQueryBuilder implements Sequence<any> {
         this.__typeAdapter = typeAdapter
     }
     nextValue(): any {
-        return new SequenceValueSource('_nextSequenceValue', this.__sequenceName, this.__type, this.__customType, 'required', this.__typeAdapter) as any
+        return __createSequence('_nextSequenceValue', this.__sequenceName, this.__type, this.__customType, 'required', this.__typeAdapter) as any
     }
     currentValue(): any {
-        return new SequenceValueSource('_currentSequenceValue', this.__sequenceName, this.__type, this.__customType, 'required', this.__typeAdapter) as any
+        return __createSequence('_currentSequenceValue', this.__sequenceName, this.__type, this.__customType, 'required', this.__typeAdapter) as any
     }
 }

@@ -1,7 +1,7 @@
 import type { DynamicConditionExpression, DynamicFilter, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
 import type { BooleanValueSource } from '../expressions/values.js'
 import { isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isBooleanValueSource } from '../expressions/values.js'
-import { SqlOperationValueSourceIfValueAlwaysNoop } from '../internal/ValueSourceImpl.js'
+import { __createIfValueAlwaysNoop, __isIfValueAlwaysNoop } from '../internal/valueSourceFactory.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
@@ -30,7 +30,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processFilter(filter: DynamicFilter<any, any>, definitionColumns: QueryColumns, extension: any, prefix: string): BooleanValueSource<any, any> {
-        let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
+        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
         
         if (filter === null || filter === undefined) {
             return result
@@ -76,7 +76,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (!__isBooleanValueSource(valueSourcePrivate) && !(extensionResult instanceof SqlOperationValueSourceIfValueAlwaysNoop)) {
+                if (!__isBooleanValueSource(valueSourcePrivate) && !__isIfValueAlwaysNoop(extensionResult)) {
                     const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__type, path: joinPath(prefix, key), extensionName: key}, 'Invalid return type for the extension ' + joinPath(prefix, key) + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__type + '. Processed value: ' +  value);
                     (error as any).key = joinPath(prefix, key);
                     (error as any).extensionResult = extensionResult;
@@ -107,7 +107,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processColumnFilter(filter: any, valueSource: any, extension: any, column: string) {
-        let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
+        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         for (const key in filter) {
             const value = filter[key]
@@ -126,7 +126,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (!__isBooleanValueSource(valueSourcePrivate) && !(extensionResult instanceof SqlOperationValueSourceIfValueAlwaysNoop)) {
+                if (!__isBooleanValueSource(valueSourcePrivate) && !__isIfValueAlwaysNoop(extensionResult)) {
                     const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__type, path: column, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + column + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__type + '. Processed value: ' +  value);
                     (error as any).path = column;
                     (error as any).rule = key;
@@ -181,7 +181,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processAndFilter(filter: DynamicFilter<any, any>[], definition: QueryColumns, extension: any, prefix: string) {
-        let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
+        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)
             result = result.and(condition)
@@ -190,7 +190,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processOrFilter(filter: DynamicFilter<any, any>[], definition: QueryColumns, extension: any, prefix: string) {
-        let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
+        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)
             result = result.or(condition)
@@ -199,7 +199,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processAdditionalColumnFilter(filter: any, extension: any, path: string) {
-        let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop('required') as any
+        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
         for (const key in filter) {
             const value = filter[key]
 
@@ -217,7 +217,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (!__isBooleanValueSource(valueSourcePrivate) && !(extensionResult instanceof SqlOperationValueSourceIfValueAlwaysNoop)) {
+                if (!__isBooleanValueSource(valueSourcePrivate) && !__isIfValueAlwaysNoop(extensionResult)) {
                     const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__type, path, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + path + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__type + '. Processed value: ' +  value);
                     (error as any).path = path;
                     (error as any).rule = key;

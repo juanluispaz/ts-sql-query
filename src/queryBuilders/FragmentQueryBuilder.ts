@@ -1,7 +1,7 @@
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType } from '../expressions/values.js'
 import { Argument, isValueSource, __getValueSourcePrivate, __mergeOptional } from '../expressions/values.js'
-import { FragmentValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from '../internal/ValueSourceImpl.js'
+import { __createConst, __createFragment, __createIfValueAlwaysNoop } from '../internal/valueSourceFactory.js'
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { CustomType } from '../TypeAdapter.js'
 
@@ -21,7 +21,7 @@ export class FragmentQueryBuilder {
     }
 
     sql(sql: TemplateStringsArray, ...params: AnyValueSource[]): AnyValueSource {
-        return new FragmentValueSource(sql, params, this.__type, this.__customType, this.__optionalType, this.__adapter, this.__isAggregate)
+        return __createFragment(sql, params, this.__type, this.__customType, this.__optionalType, this.__adapter, this.__isAggregate)
     }
 }
 
@@ -43,7 +43,7 @@ export class FragmentFunctionBuilder {
                     newArgs.push(arg)
                 } else {
                     const definition = this.definitions[i]!
-                    const newArg = new SqlOperationConstValueSource(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }
@@ -88,7 +88,7 @@ export class FragmentFunctionBuilderIfValue {
                             noValue = true
                         }
                     }
-                    const newArg = new SqlOperationConstValueSource(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }
@@ -98,7 +98,7 @@ export class FragmentFunctionBuilderIfValue {
                 // boolean expression the fragment builds, the same one returned when the value is provided. The
                 // expression is built and discarded here only to get it: it is not stored anywhere else, it lives in
                 // the value returned by the implementation function.
-                return new SqlOperationValueSourceIfValueAlwaysNoop(__getValueSourcePrivate(result).__optionalType)
+                return __createIfValueAlwaysNoop(__getValueSourcePrivate(result).__optionalType)
             }
             if (this.isAggregate) {
                 __getValueSourcePrivate(result).__isAggregate = true
@@ -136,7 +136,7 @@ export class FragmentFunctionBuilderMaybeOptional {
                         argOptionalType = 'optional'
                     }
                     const definition = this.definitions[i]!
-                    const newArg = new SqlOperationConstValueSource(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
                 optionalType = __mergeOptional(optionalType, argOptionalType)

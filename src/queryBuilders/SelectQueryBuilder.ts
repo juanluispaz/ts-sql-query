@@ -9,11 +9,10 @@ import { isValueSource } from '../expressions/values.js'
 import { __addWiths, __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
-import { AggregateFunctions0ValueSource, AggregateSelectValueSource, InlineSelectValueSource, ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import { __createAggregateFunction0, __createAggregateSelect, __createInlineSelect, __priorOf, createColumnsFrom } from '../internal/valueSourceFactory.js'
 import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from '../utils/symbols.js'
 import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { WithViewImpl } from '../internal/WithViewImpl.js'
-import { createColumnsFrom } from '../internal/DBColumnImpl.js'
 import { View } from '../View.js'
 import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -187,7 +186,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         const source = new QueryExecutionSource('Query executed at')
         return this.__executeSelectMany(source)
     }
-    abstract __buildSelectCount(countAll: AggregateFunctions0ValueSource, context: SqlBuildContext): string
+    abstract __buildSelectCount(countAll: AnyValueSource, context: SqlBuildContext): string
     /**
      * Strips from a copy of the select data everything that only describes the page, so
      * what remains is the same query counting every matching row.
@@ -216,7 +215,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     __executeSelectCount(source: QueryExecutionSource): Promise<any> {
         let query = ''
         try {
-            const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', undefined, 'required', undefined)
+            const countAll = __createAggregateFunction0('_countAll', 'int', undefined, 'required', undefined)
             const params: any[] = []
             query = this.__buildSelectCount(countAll, new SqlBuildContext(params))
             const executionParams = __setQueryMetadata(source, params, this.__sqlBuilder, __resultColumnsOf({ '': countAll }, this.__sqlBuilder), this.__customization, true)
@@ -651,7 +650,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
 
     forUseAsInlineQueryValue(): any {
-        return new InlineSelectValueSource(this.__asSelectData() as any, !!this.__requiredResult)
+        return __createInlineSelect(this.__asSelectData() as any, !!this.__requiredResult)
     }
 
     forUseAsInlineAggregatedArrayValue(): any {
@@ -663,7 +662,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         } else {
             aggregatedArrayColumns = this.__columns
         }
-        const result = new AggregateSelectValueSource(selectData as any, aggregatedArrayColumns, 'ResultObject', 'required')
+        const result = __createAggregateSelect(selectData as any, aggregatedArrayColumns, 'ResultObject', 'required')
         if (this.__projectOptionalValuesAsNullable) {
             return result.projectingOptionalValuesAsNullable()
         } else {
@@ -843,7 +842,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
     }
 
-    __buildSelectCount(countAll: AggregateFunctions0ValueSource, context: SqlBuildContext): string {
+    __buildSelectCount(countAll: AnyValueSource, context: SqlBuildContext): string {
         const recursiveSelect = this.__recursiveSelect
         if (recursiveSelect) {
             return recursiveSelect.__buildSelectCount(countAll, context)
@@ -915,7 +914,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     selectCountAll(): any {
         this.__requiredResult = true
-        const column = new AggregateFunctions0ValueSource('_countAll', 'int', undefined, 'required', undefined)
+        const column = __createAggregateFunction0('_countAll', 'int', undefined, 'required', undefined)
         this.__finishJoinHaving()
         this.__invalidateQuery()
         this.__oneColumn = true
@@ -1223,7 +1222,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         function prior(column: AnyValueSource): AnyValueSource {
-            return (column as ValueSourceImpl).__prior()
+            return __priorOf(column)
         }
         const connectBy = asAlwaysIfValueSource(condition(prior))
         this.__connectBy = connectBy
@@ -1236,7 +1235,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         function prior(column: AnyValueSource): AnyValueSource {
-            return (column as ValueSourceImpl).__prior()
+            return __priorOf(column)
         }
         const connectBy = asAlwaysIfValueSource(condition(prior))
         this.__connectBy = connectBy
@@ -1633,7 +1632,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         __registerRequiredColumn(this.__secondQuery, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
 
-    __buildSelectCount(countAll: AggregateFunctions0ValueSource, context: SqlBuildContext): string {
+    __buildSelectCount(countAll: AnyValueSource, context: SqlBuildContext): string {
         const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
         this.__dropPaginationForCount(data)
 

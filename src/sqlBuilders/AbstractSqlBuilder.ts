@@ -15,8 +15,7 @@ import { isColumn } from '../utils/Column.js'
 import type { CustomType, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
-import { AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, SequenceValueSource } from '../internal/ValueSourceImpl.js'
-import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
+import { __createSequence, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isRawFragment } from '../internal/valueSourceFactory.js'
 import { hasToSql, operationOf } from './SqlBuilder.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
@@ -777,10 +776,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return undefined
         }
         const column = columns[property]
-        if (!(column instanceof AggregateValueAsArrayValueSource) || !column.__aggregatedArrayDistinct) {
+        if (!__isAggregateValueAsArray(column) || !column.__aggregatedArrayDistinct) {
             return undefined
         }
-        if (column instanceof AllowWhenAggregateValueAsArrayValueSource && !column.__allowed) {
+        if (__isAllowWhenAggregateValueAsArray(column) && !column.__allowed) {
             return undefined
         }
         const aggregatedArrayColumns = column.__aggregatedArrayColumns
@@ -2009,7 +2008,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (isValueSource(expression)) {
                 return true
             }
-            if (expression instanceof RawFragmentImpl && expression.__params.length > 0) {
+            if (__isRawFragment(expression) && expression.__params.length > 0) {
                 // A raw fragment embedding a value source / subquery renders as
                 // an expression or bound parameter, illegal inline here on the
                 // strict engines just like a bare value source.
@@ -2669,7 +2668,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             addedColumns.push(columnName)
             columnsForInsert[columnName] = column
-            const sequenceValue = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__type, columnPrivate.__customType, 'required', columnPrivate.__typeAdapter)
+            const sequenceValue = __createSequence('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__type, columnPrivate.__customType, 'required', columnPrivate.__typeAdapter)
             selectColumns[columnName] = sequenceValue
             flatSelectColumns[columnName] = sequenceValue
         }

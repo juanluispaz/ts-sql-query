@@ -8,7 +8,7 @@ import { AbstractConnection } from './AbstractConnection.js'
 import type { IStringValueSource, IValueSource, StringValueSource, ValueSourceOf , RemapValueSourceTypeWithOptionalType} from '../expressions/values.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { source } from '../utils/symbols.js'
-import { AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } from '../internal/ValueSourceImpl.js'
+import { __createAggregateFunction1, __createAggregateFunction1or2 } from '../internal/valueSourceFactory.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
@@ -90,12 +90,12 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
     stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mySql', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
     }
 
     anyValue<TYPE extends IValueSource<any, any, any, any>>(value: TYPE & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'mySql', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'mySql', NAME>>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_anyValue', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
+        return (__createAggregateFunction1('_anyValue', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
     }
 
     default(): Default {

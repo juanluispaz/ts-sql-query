@@ -28,7 +28,7 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      * The type of MariaDB for a SQL data type: its native name of MariaDB when it has one, otherwise from its family and
      * its properties; undefined when MariaDB can't hold it (never another type)
      */
-    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+    protected override buildNativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
         return mySqlMariaDBNativeSqlDataTypeOf(sqlDataType, 'mariaDB', this.compatibilityVersion, this.uuidStrategy)
     }
 

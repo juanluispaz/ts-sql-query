@@ -27,7 +27,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * The type of Oracle for a SQL data type: its native name of Oracle when it has one, otherwise from its family and
      * its properties; undefined when Oracle can't hold it (never another type)
      */
-    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+    protected override buildNativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
         return oracleNativeSqlDataTypeOf(sqlDataType, this.compatibilityVersion, this.booleanStorage, this.uuidStrategy)
     }
 

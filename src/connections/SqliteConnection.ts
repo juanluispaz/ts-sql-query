@@ -34,7 +34,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * where this connection stores it (a date as its date and time format says, a uuid as its uuid strategy says, a
      * decimal as text); undefined when SQLite can't hold it (never another type)
      */
-    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+    protected override buildNativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
         const native = nativeNameFor(sqlDataType, 'sqlite')
         if (native !== undefined) {
             return native

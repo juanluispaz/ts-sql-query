@@ -177,3 +177,29 @@ describe('the SQL data type in the context of a type adapter', () => {
         expect(dayAdapter.seen[dayAdapter.seen.length - 1]).toEqual([day, asText])
     })
 })
+
+describe('the native name, built once for each class of connection', () => {
+    test('it-is-built-once-and-kept-hidden-in-the-sql-data-type', () => {
+        let builds = 0
+        class Counted extends PostgreSqlConnection<'Counted'> {
+            protected override buildNativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+                builds++
+                return super.buildNativeSqlDataTypeOf(sqlDataType)
+            }
+        }
+        class Oracle21 extends OracleConnection<'Oracle21'> { protected override compatibilityVersion = 21_000_000 }
+        const type: SqlDataType = { family: 'exact numeric', precision: 18, scale: 4 }
+        const json: SqlDataType = { family: 'document', format: 'json' }
+        const first = new Counted(new NoExecutionQueryRunner())
+        const second = new Counted(new NoExecutionQueryRunner())
+        expect([first.nativeSqlDataTypeOf(type), first.nativeSqlDataTypeOf(type), second.nativeSqlDataTypeOf(type)]).toEqual(['numeric(18, 4)', 'numeric(18, 4)', 'numeric(18, 4)'])
+        expect(builds).toBe(1)
+        // Another class has its own entry; undefined (a type the database can't hold) is kept too
+        const oracle = new Oracle21(new NoExecutionQueryRunner())
+        expect(oracle.nativeSqlDataTypeOf(type)).toBe('NUMBER(18, 4)')
+        expect([first.nativeSqlDataTypeOf({ family: 'row version' }), first.nativeSqlDataTypeOf(json)]).toEqual([undefined, 'json'])
+        // Hidden: a copy, the JSON and the keys of the SQL data type don't see it
+        expect(JSON.stringify(type)).toBe('{"family":"exact numeric","precision":18,"scale":4}')
+        expect(Object.keys({ ...type })).toEqual(['family', 'precision', 'scale'])
+    })
+})

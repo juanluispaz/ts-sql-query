@@ -115,3 +115,43 @@ export function integerDigits(bytes: 1 | 2 | 3 | 4 | 8, unsigned: boolean): numb
         case 8: return unsigned ? 20 : 19
     }
 }
+
+/** Where a SQL data type keeps, hidden, the native name each class of connection resolved for it */
+const nativeCacheKey: unique symbol = Symbol('nativeSqlDataTypes')
+/** Where a class of connection keeps its id, the index of its entry in that cache */
+const connectionClassIdKey: unique symbol = Symbol('sqlDataTypeConnectionClassId')
+let nextConnectionClassId = 0
+
+/** The id of the class of the connection, given the first time it is asked */
+export function connectionClassIdOf(connection: object): number {
+    const connectionClass = connection.constructor as { [connectionClassIdKey]?: number }
+    if (Object.hasOwn(connectionClass, connectionClassIdKey)) {
+        return connectionClass[connectionClassIdKey]!
+    }
+    const id = nextConnectionClassId++
+    Object.defineProperty(connectionClass, connectionClassIdKey, { value: id })
+    return id
+}
+
+/**
+ * The native name of the SQL data type for that class of connection, built once and kept in the SQL data type itself,
+ * hidden (not enumerable: a spread, JSON.stringify and a comparison don't see it); undefined (the database can't hold
+ * it) is kept too. A SQL data type that can't be extended (frozen) is built every time
+ */
+export function cachedNativeSqlDataType(sqlDataType: SqlDataType, connectionClassId: number, build: () => string | undefined): string | undefined {
+    let cache = (sqlDataType as { [nativeCacheKey]?: (string | null | undefined)[] })[nativeCacheKey]
+    const cached = cache?.[connectionClassId]
+    if (cached !== undefined) {
+        return cached ?? undefined
+    }
+    const native = build()
+    if (!cache) {
+        if (!Object.isExtensible(sqlDataType)) {
+            return native
+        }
+        cache = []
+        Object.defineProperty(sqlDataType, nativeCacheKey, { value: cache })
+    }
+    cache[connectionClassId] = native ?? null
+    return native
+}

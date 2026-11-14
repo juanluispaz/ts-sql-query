@@ -25,7 +25,7 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
      * The type of MySQL for a SQL data type: its native name of MySQL when it has one, otherwise from its family and
      * its properties; undefined when MySQL can't hold it (never another type)
      */
-    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+    protected override buildNativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
         return mySqlMariaDBNativeSqlDataTypeOf(sqlDataType, 'mySql', this.compatibilityVersion, this.uuidStrategy)
     }
 

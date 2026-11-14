@@ -334,7 +334,9 @@ changes, which nothing reads), and one that doesn't is rounded or cut without an
 are methods of each connection: they follow its `compatibilityVersion` (a type the version doesn't have gives
 `undefined`, never another type) and where it stores what the database lacks (`uuidStrategy`, Oracle's
 `booleanStorage` and its time of the day on 1970-01-01, the date formats of SQLite). A generator uses a connection with
-`NoExecutionQueryRunner`, which rejects every query with `QUERY_NOT_ALLOWED`. Tests:
+`NoExecutionQueryRunner`, which rejects every query with `QUERY_NOT_ALLOWED`. `nativeSqlDataTypeOf` builds the name
+once for each SQL data type and class of connection (the version and the strategies are the ones of the class) and keeps
+it in the SQL data type, hidden; the class overrides `buildNativeSqlDataTypeOf` to change it. Tests:
 `test/runners/<db>/SqlDataTypeCatalog.test.ts` (against the catalogue of each engine), `test/runners/general/SqlDataType.test.ts`.
 
 ## 3. Reading

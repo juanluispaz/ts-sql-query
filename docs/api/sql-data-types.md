@@ -42,7 +42,8 @@ interface ConnectionOfADatabase {
 
 - `sqlDataTypeFrom` reads the name as the catalogue of the database writes it: PostgreSQL `format_type`, the `COLUMN_TYPE` of MySQL and MariaDB, the declaration on SQL Server and Oracle, the declared type on SQLite. A name it doesn't know gives `{ family: 'user-defined', name }`.
 - `nativeSqlDataTypeOf` gives the name in `native` for this database when there is one; otherwise a name from the family and its properties, for the `compatibilityVersion` of the connection and where it stores what the database lacks (`uuidStrategy`, Oracle's `booleanStorage`, the date formats of SQLite); `undefined` when the database can't hold it.
-- Both can be overridden in your connection, like to read a name of your own on SQLite.
+- `nativeSqlDataTypeOf` builds the name once for each SQL data type and class of connection, and keeps it in the SQL data type, hidden (a copy, `JSON.stringify` and a comparison don't see it): the version and the strategies are the ones the class of the connection sets, so set them in the class, not on each instance. Don't change a SQL data type after it's used.
+- To change them, override `sqlDataTypeFrom` (like to read a name of your own on SQLite), or `buildNativeSqlDataTypeOf(sqlDataType)`, a protected method that builds what `nativeSqlDataTypeOf` gives, called once for each SQL data type and class.
 
 A connection only to use them takes a `NoExecutionQueryRunner`, which rejects every query with `QUERY_NOT_ALLOWED`:
 

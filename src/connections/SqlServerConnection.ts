@@ -21,7 +21,7 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * The type of SQL Server for a SQL data type: its native name of SQL Server when it has one, otherwise from its family and
      * its properties; undefined when SQL Server can't hold it (never another type)
      */
-    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+    protected override buildNativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
         return sqlServerNativeSqlDataTypeOf(sqlDataType, this.compatibilityVersion)
     }
 

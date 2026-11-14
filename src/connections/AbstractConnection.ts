@@ -1,6 +1,7 @@
 import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
+import { cachedNativeSqlDataType, connectionClassIdOf } from '../utils/sqlDataTypeNames.js'
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
@@ -8,7 +9,7 @@ import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDat
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
-import type { TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { SqlDataType, TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
 import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, StringDecimalFragmentExpression, CustomIntFragmentExpression, CustomBigintFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomDecimalFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
@@ -60,6 +61,20 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      * breakpoint.
      */
     protected compatibilityVersion: number = Number.POSITIVE_INFINITY
+
+    /**
+     * The type of the database of this connection for a SQL data type: its native name of this database when it has
+     * one, otherwise from its family and its properties, for the version and the strategies of the connection;
+     * undefined when the database can't hold it (never another type). Built once for each class of connection and kept
+     * in the SQL data type: override `buildNativeSqlDataTypeOf` to change it
+     */
+    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+        return cachedNativeSqlDataType(sqlDataType, connectionClassIdOf(this), () => this.buildNativeSqlDataTypeOf(sqlDataType))
+    }
+    /** Builds what nativeSqlDataTypeOf gives (see it); called once for each SQL data type and class of connection */
+    protected buildNativeSqlDataTypeOf(_sqlDataType: SqlDataType): string | undefined {
+        return undefined
+    }
     /**
      * The zone of the database, an IANA name like `'Europe/Madrid'`: the zone of its data, in which it gives its current
      * date and time. A localDateTime or a localTime stored without zone is a wall clock of this zone, and the session of

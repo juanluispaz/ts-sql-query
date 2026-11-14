@@ -30,7 +30,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * The type of PostgreSQL for a SQL data type: its native name of PostgreSQL when it has one, otherwise from its family and
      * its properties; undefined when PostgreSQL can't hold it (never another type)
      */
-    nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
+    protected override buildNativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
         return postgreSqlNativeSqlDataTypeOf(sqlDataType, this.compatibilityVersion)
     }
 

@@ -1,10 +1,15 @@
-import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, SqlDataType, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 
 export class ProxyTypeAdapter implements TypeAdapter {
     typeAdapter: TypeAdapter
 
     constructor(typeAdapter: TypeAdapter) {
         this.typeAdapter = typeAdapter
+    }
+
+    /** The SQL data type of the adapter it wraps */
+    get sqlDataType(): SqlDataType | undefined {
+        return this.typeAdapter.sqlDataType
     }
 
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
@@ -30,15 +35,19 @@ export class ProxyTypeAdapter implements TypeAdapter {
     }
 }
 
-// A proxy holds nothing but the adapter it wraps, so one per wrapped adapter is enough — and a caller that keys a
-// cache by adapter IDENTITY only hits it if the proxy is the same object every time.
-const proxies = new WeakMap<TypeAdapter, ProxyTypeAdapter>()
+// A proxy holds nothing but the adapter it wraps, so one per wrapped adapter is enough, and a caller that keys a cache by
+// adapter identity only hits it if the proxy is the same object every time. It is kept in the adapter, hidden (not
+// enumerable, under a symbol)
+const proxyKey: unique symbol = Symbol('proxyTypeAdapter')
 
 export function proxyTypeAdapterFor(typeAdapter: TypeAdapter): ProxyTypeAdapter {
-    let proxy = proxies.get(typeAdapter)
-    if (!proxy) {
-        proxy = new ProxyTypeAdapter(typeAdapter)
-        proxies.set(typeAdapter, proxy)
+    const proxy = (typeAdapter as { [proxyKey]?: ProxyTypeAdapter })[proxyKey]
+    if (proxy !== undefined) {
+        return proxy
     }
-    return proxy
+    const created = new ProxyTypeAdapter(typeAdapter)
+    if (Object.isExtensible(typeAdapter)) {
+        Object.defineProperty(typeAdapter, proxyKey, { value: created })
+    }
+    return created
 }

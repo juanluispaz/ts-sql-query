@@ -9,6 +9,7 @@ import { OracleConnection } from '../../../src/connections/OracleConnection.js'
 import { Table } from '../../../src/Table.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
+import { proxyTypeAdapterFor } from '../../../src/internal/ProxyTypeAdapter.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { CustomBooleanTypeAdapter, withSqlDataType, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../src/TypeAdapter.js'
 import { reasonOf } from '../lib/runnerContract.js'
@@ -219,5 +220,16 @@ describe('the conversion of the types in the configuration of the connection', (
         }))
         await conn.selectFrom(tProduct).where(tProduct.price.equals('2.25')).and(tProduct.code.equals('A')).and(tProduct.name.equals('x')).select({ id: tProduct.id }).executeSelectMany()
         expect(natives).toEqual(['numeric(18, 4)', 'character varying(20)', undefined])
+    })
+})
+
+describe('the proxy of a custom boolean adapter (a table used as the view of a with)', () => {
+    test('it-is-the-same-one-each-time-and-says-the-sql-data-type-of-the-adapter', () => {
+        const adapter = withSqlDataType({ family: 'character string', length: 1, fixed: true }, new CustomBooleanTypeAdapter('Y', 'N'))
+        const proxy = proxyTypeAdapterFor(adapter)
+        expect(proxyTypeAdapterFor(adapter)).toBe(proxy)
+        expect(proxy.sqlDataType).toBe(adapter.sqlDataType)
+        // Kept in the adapter, hidden
+        expect(Object.keys(adapter).sort()).toEqual(['falseValue', 'sqlDataType', 'trueValue'])
     })
 })

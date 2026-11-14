@@ -557,8 +557,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const paramContext = context.queryContext.paramAt(context.params.length)
         const valueSourcePrivate = __getValueSourcePrivate(value)
         paramContext.setOriginalType(valueSourcePrivate.__type, valueSourcePrivate.__customType)
-        // The SQL data type of the column, or the one its transformProjection says
-        paramContext.sqlDataType = valueSourcePrivate.__typeAdapter?.sqlDataType
+        // The SQL data type of the column; the requested one, the one its transformProjection requests
+        paramContext.setOriginalSqlDataType(valueSourcePrivate.__typeAdapter?.sqlDataType)
         if (output) {
             this._resolveRequestedTypeOfProjection(value, output, paramContext)
         }
@@ -657,21 +657,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (types.has(value)) {
             into.requestedType = types.get(value)
             into.requestedCustomType = (output === 'resultColumn' ? this.__requestedCustomTypesOfResultColumn : this.__requestedCustomTypesOfAggregatedArrayValue).get(value)
-            into.sqlDataType = sqlDataTypes.get(value)
+            into.requestedSqlDataType = sqlDataTypes.get(value)
             return
         }
         const adapterContext = this._typeAdapterContextOf(undefined)
         if (this._appendValueProjection(value, '', output) === '') {
             into.requestedType = into.originalType
             into.requestedCustomType = into.originalCustomType
-            // The SQL data type its transformProjection says, also when it doesn't convert the SQL
-            into.sqlDataType = adapterContext.sqlDataType
+            // The SQL data type its transformProjection requests, also when it doesn't convert the SQL
+            into.requestedSqlDataType = adapterContext.requestedSqlDataType
         } else {
             adapterContext.copyRequestedTypeTo(into)
         }
         types.set(value, into.requestedType)
-        if (into.sqlDataType !== undefined) {
-            sqlDataTypes.set(value, into.sqlDataType)
+        if (into.requestedSqlDataType !== undefined) {
+            sqlDataTypes.set(value, into.requestedSqlDataType)
         }
         if (into.requestedCustomType !== undefined) {
             (output === 'resultColumn' ? this.__requestedCustomTypesOfResultColumn : this.__requestedCustomTypesOfAggregatedArrayValue).set(value, into.requestedCustomType)

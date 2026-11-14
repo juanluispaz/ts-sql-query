@@ -207,7 +207,9 @@ export interface QueryResultColumn {
     /** Which custom type the requested type is; undefined for a built-in type */
     readonly requestedCustomType: CustomType | undefined
     /** The type of the column in the database, the one its type adapter says (`withSqlDataType`), or undefined */
-    readonly sqlDataType?: SqlDataType | undefined
+    readonly originalSqlDataType?: SqlDataType | undefined
+    /** The type in the database of the value the database returns for the column: the original one, unless its transformProjection requested another */
+    readonly requestedSqlDataType?: SqlDataType | undefined
 }
 
 export interface FunctionExecutingQueryInformation {

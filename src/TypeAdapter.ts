@@ -55,10 +55,12 @@ export interface TypeAdapterContext {
     /** Which custom type the requested type is; undefined for a built-in type */
     readonly requestedCustomType: CustomType | undefined
     /**
-     * The type of the value in the database (see `SqlDataType`): the one the type adapter says (`withSqlDataType`), unless
-     * a transformation set another (`setSqlDataType`); undefined when none says it
+     * The original type of the value in the database (see `SqlDataType`): the one the type adapter says
+     * (`withSqlDataType`), undefined when it says none; it never changes
      */
-    readonly sqlDataType: SqlDataType | undefined
+    readonly originalSqlDataType: SqlDataType | undefined
+    /** The type of the value in the database requested for it; by default the original one */
+    readonly requestedSqlDataType: SqlDataType | undefined
 }
 
 /**
@@ -77,11 +79,13 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     /** Requests the original type again */
     resetRequestedType(): void
     /**
-     * Says the type of the value in the database, like the one of the type the value is converted to: the query runner
-     * receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
-     * `transformProjection`); undefined says none
+     * Requests a type of the value in the database, like the one of the type the value is converted to: the query
+     * runner receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
+     * `transformProjection`); undefined requests none
      */
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    /** Requests the original type of the value in the database again */
+    resetRequestedSqlDataType(): void
     /**
      * Whether the database must receive the type of the parameter (the query runner writes a cast in the placeholder,
      * or sends the parameter with its type): it comes with what the library decided for the position where the
@@ -144,11 +148,13 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
     /** Requests the original type again */
     resetRequestedType(): void
     /**
-     * Says the type of the value in the database, like the one of the type the value is converted to: the query runner
-     * receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
-     * `transformProjection`); undefined says none
+     * Requests a type of the value in the database, like the one of the type the value is converted to: the query
+     * runner receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
+     * `transformProjection`); undefined requests none
      */
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    /** Requests the original type of the value in the database again */
+    resetRequestedSqlDataType(): void
     /** Where the value leaves the database (see `ProjectionOutput`) */
     readonly output: ProjectionOutput
     /**
@@ -182,11 +188,13 @@ export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     /** Requests the original type again */
     resetRequestedType(): void
     /**
-     * Says the type of the value in the database, like the one of the type the value is converted to: the query runner
-     * receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
-     * `transformProjection`); undefined says none
+     * Requests a type of the value in the database, like the one of the type the value is converted to: the query
+     * runner receives it with the parameter (in `transformValueToDB`) or with the column of the result (in
+     * `transformProjection`); undefined requests none
      */
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    /** Requests the original type of the value in the database again */
+    resetRequestedSqlDataType(): void
 }
 
 export interface DefaultTypeAdapter {

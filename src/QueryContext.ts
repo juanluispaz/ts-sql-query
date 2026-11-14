@@ -61,11 +61,15 @@ export interface QueryParamContext {
     /** The parameter is the value given to a column of a table, in the values of an insert or the set of an update */
     readonly isValueForColumn: boolean
     /**
-     * The type of the value in the database, the one the type adapter it is converted with says (`withSqlDataType`):
-     * the one of the column it is given to or compared with; undefined when it says none. It describes the column: when
-     * the requested type is of another family (an adapter that sends a date as a text), it doesn't describe the value
+     * The original type of the value in the database, the one the type adapter it is converted with says
+     * (`withSqlDataType`): the one of the column it is given to or compared with; undefined when it says none
      */
-    readonly sqlDataType: SqlDataType | undefined
+    readonly originalSqlDataType: SqlDataType | undefined
+    /**
+     * The type of the value in the database it is sent with: the original one, unless the type adapter requested another
+     * (`setRequestedSqlDataType`, like for a value it converts to another type)
+     */
+    readonly requestedSqlDataType: SqlDataType | undefined
     /** What a type adapter kept for the parameter under that key, or undefined */
     getMetadata(key: symbol): unknown
 }

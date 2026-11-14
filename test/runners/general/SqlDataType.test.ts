@@ -101,8 +101,8 @@ describe('the SQL data type in the context of the query', () => {
         const conn = new DBConnection(new MockQueryRunner((type, query, params) => {
             const context = getQueryContext(query, params)
             captured = {
-                params: params.map((_, index) => context.getParam(index)?.sqlDataType),
-                columns: (context.resultColumns ?? []).map(column => column.sqlDataType),
+                params: params.map((_, index) => context.getParam(index)?.requestedSqlDataType),
+                columns: (context.resultColumns ?? []).map(column => column.requestedSqlDataType),
             }
             return type === 'insert' ? 1 : []
         }))
@@ -132,19 +132,19 @@ describe('the SQL data type in the context of the query', () => {
 // result is the one of the text, and it sees the SQL data type of the column in each transformation
 const asText: SqlDataType = { family: 'character string', length: 10 }
 class DateAsTextAdapter implements TypeAdapter {
-    readonly seen: (SqlDataType | undefined)[] = []
+    readonly seen: [SqlDataType | undefined, SqlDataType | undefined][] = []
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        this.seen.push(context.sqlDataType)
-        context.setSqlDataType(asText)
+        this.seen.push([context.originalSqlDataType, context.requestedSqlDataType])
+        context.setRequestedSqlDataType(asText)
         return next.transformValueToDB(value, context)
     }
     transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        this.seen.push(context.sqlDataType)
-        context.setSqlDataType(asText)
+        this.seen.push([context.originalSqlDataType, context.requestedSqlDataType])
+        context.setRequestedSqlDataType(asText)
         return next.transformProjection(sql, context)
     }
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        this.seen.push(context.sqlDataType)
+        this.seen.push([context.originalSqlDataType, context.requestedSqlDataType])
         return next.transformValueFromDB(value, context)
     }
 }
@@ -161,18 +161,19 @@ const tEvent = new TEvent()
 
 describe('the SQL data type in the context of a type adapter', () => {
     test('it-is-read-and-set-in-each-transformation', async () => {
-        let captured: { params: (SqlDataType | undefined)[], columns: (SqlDataType | undefined)[] } | undefined
+        let captured: { params: (SqlDataType | undefined)[][], columns: (SqlDataType | undefined)[][] } | undefined
         const conn = new DBConnection(new MockQueryRunner((_type, query, params) => {
             const context = getQueryContext(query, params)
-            captured = { params: params.map((_, index) => context.getParam(index)?.sqlDataType), columns: (context.resultColumns ?? []).map(column => column.sqlDataType) }
+            captured = { params: params.map((_, index) => [context.getParam(index)?.originalSqlDataType, context.getParam(index)?.requestedSqlDataType]), columns: (context.resultColumns ?? []).map(column => [column.originalSqlDataType, column.requestedSqlDataType]) }
             return [{ day: '2024-01-15' }]
         }))
         const rows = await conn.selectFrom(tEvent).where(tEvent.day.equals(new Date('2024-01-15T00:00:00Z'))).select({ day: tEvent.day }).executeSelectMany()
         expect(rows).toEqual([{ day: new Date('2024-01-15T10:00:00.000Z') }])
-        // The parameter and the column of the result say the type the adapter set
-        expect(captured).toEqual({ params: [asText], columns: [asText] })
-        // Each transformation saw the SQL data type of the column first; reading, the one its projection set
-        expect(dayAdapter.seen.slice(0, 2)).toEqual([day, day])
-        expect(dayAdapter.seen[dayAdapter.seen.length - 1]).toEqual(asText)
+        // The parameter and the column of the result keep the original type, and request the one the adapter set
+        expect(captured).toEqual({ params: [[day, asText]], columns: [[day, asText]] })
+        // Each transformation saw the SQL data type of the column as the original and the requested one; reading, the
+        // one its projection requested
+        expect(dayAdapter.seen.slice(0, 2)).toEqual([[day, day], [day, day]])
+        expect(dayAdapter.seen[dayAdapter.seen.length - 1]).toEqual([day, asText])
     })
 })

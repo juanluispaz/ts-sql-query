@@ -14,7 +14,8 @@ export class QueryParamContextImpl implements QueryParamContext {
     requestedCustomType: CustomType | undefined = undefined
     forceTypeCast: boolean | undefined = undefined
     isValueForColumn: boolean = false
-    sqlDataType: SqlDataType | undefined = undefined
+    originalSqlDataType: SqlDataType | undefined = undefined
+    requestedSqlDataType: SqlDataType | undefined = undefined
     private metadata: Map<symbol, unknown> | undefined = undefined
 
     /** Sets the original type of the parameter, which is also the one requested until a type adapter requests another */
@@ -23,6 +24,11 @@ export class QueryParamContextImpl implements QueryParamContext {
         this.originalCustomType = customType
         this.requestedType = type
         this.requestedCustomType = customType
+    }
+    /** Sets the original SQL data type of the parameter, which is also the one requested until an adapter requests another */
+    setOriginalSqlDataType(sqlDataType: SqlDataType | undefined): void {
+        this.originalSqlDataType = sqlDataType
+        this.requestedSqlDataType = sqlDataType
     }
     getMetadata(key: symbol): unknown {
         return this.metadata?.get(key)

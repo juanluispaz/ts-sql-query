@@ -315,7 +315,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
      */
     private getTypeOfVarcharColumn(params: any[], index: number): ISqlType | undefined {
         const param = existingParamContextOf(params, index)
-        const sqlDataType = param?.sqlDataType
+        const sqlDataType = param?.requestedSqlDataType
         const value: unknown = params[index]
         if (sqlDataType?.family !== 'character string' || sqlDataType.national !== false || typeof value !== 'string' || !__isString(param?.requestedType ?? '', param?.requestedCustomType)) {
             return undefined

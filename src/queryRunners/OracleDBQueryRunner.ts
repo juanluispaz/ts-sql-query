@@ -190,7 +190,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
                 // A text of a column its SQL data type says (withSqlDataType) is a large object is returned as a CLOB
                 // (a VARCHAR2 can't hold it, ORA-22835), and one of a known length in a buffer of that length
-                const sqlDataType = param?.sqlDataType?.family === 'character string' && __isString(typeName ?? '', customType) ? param.sqlDataType : undefined
+                const sqlDataType = param?.requestedSqlDataType?.family === 'character string' && __isString(typeName ?? '', customType) ? param.requestedSqlDataType : undefined
                 const lob = sqlDataType?.largeObject ? (sqlDataType.national ? oracleDb.DB_TYPE_NCLOB : oracleDb.DB_TYPE_CLOB) : undefined
                 const dbType = declared ?? lob ?? (isTemporal(typeName, customType) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(typeName, customType, nativeBoolean))
                 // A text, or a value received as one, is returned in a buffer of maxSize bytes; a character of a text

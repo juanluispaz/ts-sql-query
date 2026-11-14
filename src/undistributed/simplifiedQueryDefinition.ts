@@ -2774,8 +2774,10 @@ interface TypeAdapterContext {
     readonly originalCustomType: CustomType | undefined
     readonly requestedType: string
     readonly requestedCustomType: CustomType | undefined
-    /** The type of the value in the database: the one of the type adapter, unless a transformation set another */
-    readonly sqlDataType: SqlDataType | undefined
+    /** The original type of the value in the database: the one of the type adapter; it never changes */
+    readonly originalSqlDataType: SqlDataType | undefined
+    /** The type of the value in the database requested for it; by default the original one */
+    readonly requestedSqlDataType: SqlDataType | undefined
 }
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
@@ -2783,7 +2785,8 @@ interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(customType: CustomType, type: string): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the parameter */
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    resetRequestedSqlDataType(): void
     forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
     getMetadata(key: symbol): unknown
@@ -2806,7 +2809,8 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(customType: CustomType, type: string): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the column of the result */
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    resetRequestedSqlDataType(): void
     readonly output: ProjectionOutput
     comparison: ProjectionComparison
     setQueryMetadata(key: symbol, value: unknown): void
@@ -2817,7 +2821,8 @@ interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType): void
     setRequestedType(customType: CustomType, type: string): void
     resetRequestedType(): void
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    resetRequestedSqlDataType(): void
 }
 
 /** Sets the SQL data type on the adapter given (a new one per column), or creates one that only says it */

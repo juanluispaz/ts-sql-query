@@ -68,6 +68,8 @@ Give each column a new adapter, as `new` in place does: `withSqlDataType` change
 
 A value compared with the column (`equals`, `in`, `between`, …) and the value given to it in an insert or an update take the SQL data type of the column, as they take its type adapter; so does a column of the result.
 
+Like the type of a value, the SQL data type is two in the context of each transformation of a type adapter: the **original** one, `originalSqlDataType`, the one the adapter says, which never changes, and the **requested** one, `requestedSqlDataType`, the one the query runner receives, by default the original one. An adapter that sends a value as another type, like a date as its text, requests the type of what it sends with `setRequestedSqlDataType` (in `transformValueToDB` for the parameter, in `transformProjection` for the column of the result), and `resetRequestedSqlDataType()` requests the original one again.
+
 ## The families
 
 | `family` | What it refines |
@@ -107,7 +109,7 @@ Every family also takes `domain`, the name of the domain the column is declared 
 |---|---|
 | SQL Server | A text of a `character string` with `national: false` (a `varchar` or a `char` column) is sent as a `varchar` of the length of the column, a `varchar(max)` when it's longer, instead of an `nvarchar`. Compared with an `nvarchar`, SQL Server converts a `varchar` column, and with a SQL collation, like the default `SQL_Latin1_General_CP1_CI_AS`, it reads its whole index; as a `varchar` it seeks it. A text with a character outside ASCII is still sent as an `nvarchar`, which keeps it: as a `varchar` the driver would write it in the code page of the database, and a character it lacks would become `?`, also for a column of a UTF-8 collation |
 | Oracle | The `returning` of a `character string` that is a `largeObject` (a `CLOB`, an `NCLOB` with `national`) is received whole, without declaring the type in `typesByName` (without it, a text longer than 4000 bytes is rejected by Oracle, ORA-22835); one of a known `length` is received in a buffer of that length |
-| The others | Nothing yet: the query runner receives it, so a query runner of yours can read it in [the context of the query](query-execution-metadata.md) (`sqlDataType` of each parameter and of each column of the result) |
+| The others | Nothing yet: the query runner receives it, so a query runner of yours can read it in [the context of the query](query-execution-metadata.md) (`originalSqlDataType` and `requestedSqlDataType` of each parameter and of each column of the result) |
 
 A type declared in `typesByName` of a query runner wins over the SQL data type. A SQL data type never cuts a value: a value is sent with the type of the column only where it fits in it.
 

@@ -60,7 +60,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.valueSentToDB = undefined
         this.queryContext = this.builtQueryContext
         state.setOriginalType(originalType, originalCustomType)
-        state.sqlDataType = sqlDataType
+        state.setOriginalSqlDataType(sqlDataType)
         state.forceTypeCast = forceTypeCast
     }
     /** The parameter the context points at is no longer being prepared */
@@ -79,7 +79,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.pendingProjection = undefined
         this.queryContext = queryContext
         this.own.setOriginalType(originalType, originalCustomType)
-        this.own.sqlDataType = sqlDataType
+        this.own.setOriginalSqlDataType(sqlDataType)
         this.output = output
         this.comparison = 'value'
     }
@@ -91,7 +91,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.clearParam()
         this.queryContext = undefined
         this.own.setOriginalType(originalType, originalCustomType)
-        this.own.sqlDataType = sqlDataType
+        this.own.setOriginalSqlDataType(sqlDataType)
         this.projector = projector
         this.pendingProjection = projector ? value : undefined
         this.pendingOutput = output
@@ -138,21 +138,27 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         state.requestedType = state.originalType
         state.requestedCustomType = state.originalCustomType
     }
-    /** The SQL data type of what is processed: the one of its type adapter, unless a transformation set another */
-    get sqlDataType(): SqlDataType | undefined {
-        this.resolvePendingProjection()
-        return this.state.sqlDataType
+    get originalSqlDataType(): SqlDataType | undefined {
+        return this.state.originalSqlDataType
     }
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void {
+    get requestedSqlDataType(): SqlDataType | undefined {
         this.resolvePendingProjection()
-        this.state.sqlDataType = sqlDataType
+        return this.state.requestedSqlDataType
+    }
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void {
+        this.resolvePendingProjection()
+        this.state.requestedSqlDataType = sqlDataType
+    }
+    resetRequestedSqlDataType(): void {
+        this.resolvePendingProjection()
+        this.state.requestedSqlDataType = this.state.originalSqlDataType
     }
     /** Copies the requested type and the SQL data type of what the context processes into `into` */
     copyRequestedTypeTo(into: QueryParamContextImpl): void {
         this.resolvePendingProjection()
         into.requestedType = this.state.requestedType
         into.requestedCustomType = this.state.requestedCustomType
-        into.sqlDataType = this.state.sqlDataType
+        into.requestedSqlDataType = this.state.requestedSqlDataType
     }
 
     get index(): number | undefined {

@@ -89,9 +89,13 @@ class AdapterContext implements TypeAdapterValueFromDBContext, TypeAdapterValueT
         this.requestedType = this.originalType
         this.requestedCustomType = this.originalCustomType
     }
-    sqlDataType: SqlDataType | undefined = undefined
-    setSqlDataType(sqlDataType: SqlDataType | undefined): void {
-        this.sqlDataType = sqlDataType
+    readonly originalSqlDataType: SqlDataType | undefined = undefined
+    requestedSqlDataType: SqlDataType | undefined = undefined
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void {
+        this.requestedSqlDataType = sqlDataType
+    }
+    resetRequestedSqlDataType(): void {
+        this.requestedSqlDataType = this.originalSqlDataType
     }
     private readonly metadata = new Map<symbol, Parameters<TypeAdapterValueToDBContext['setMetadata']>[1]>()
     setMetadata(key: symbol, value: unknown): void {

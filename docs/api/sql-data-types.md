@@ -211,6 +211,28 @@ interface UserDefinedSqlDataType extends SqlDataTypeCommon {
 }
 ```
 
+## In the context of a type adapter
+
+As the type of a value, the SQL data type is two in the context of each transformation:
+
+```typescript
+interface TypeAdapterContext {
+    // ... the original and the requested type (see the Type adapters API)
+    /** The one the type adapter says (withSqlDataType); it never changes */
+    readonly originalSqlDataType: SqlDataType | undefined
+    /** The one requested for the value; by default the original one */
+    readonly requestedSqlDataType: SqlDataType | undefined
+}
+
+/** In the context of transformValueToDB, transformProjection and transformValueFromDB */
+interface TypeAdapterRequestedSqlDataType {
+    /** The query runner receives it with the parameter (transformValueToDB) or the column of the result (transformProjection) */
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    /** Requests the original one again */
+    resetRequestedSqlDataType(): void
+}
+```
+
 ## In the context of a query
 
-A query runner of yours reads it with [`getQueryContext`](../advanced/query-execution-metadata.md): `sqlDataType` of each parameter (`QueryParamContext`), the one of the type adapter it is converted with, and of each column of the result (`QueryResultColumn`), when its type adapter says one.
+A query runner of yours reads it with [`getQueryContext`](../advanced/query-execution-metadata.md): `originalSqlDataType` and `requestedSqlDataType` of each parameter (`QueryParamContext`) and of each column of the result (`QueryResultColumn`), when its type adapter says one. The query runners of the library use the requested one.

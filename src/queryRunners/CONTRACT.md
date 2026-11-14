@@ -303,7 +303,10 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 A type adapter can say the type of its value in the database (`sqlDataType`, set with `withSqlDataType`): a family
 (`'exact numeric'`, `'character string'`, `'datetime'`, …) with the properties that refine it (precision, scale,
 length, `national`, fractional seconds, …) and, optionally, the name of the type in each database (`native`). The
-parameters converted with that adapter carry it in the context of the query (`sqlDataType` of each parameter): the
+parameters converted with that adapter carry it in the context of the query, as the types: the original one
+(`originalSqlDataType`, the one of the adapter) and the requested one (`requestedSqlDataType`, the original one unless
+the adapter requested another with `setRequestedSqlDataType`, like for a value it converts to another type), which the
+runners use: the
 value of the column in an insert or an update, and a value compared with the column (`equals`, `in`, `between`, …),
 which takes the adapter of the column; also the OUT params of a `returning` of that column. A constant gets it only from
 an adapter of its own. It describes the column: a runner uses it only when the requested type of the parameter is of
@@ -451,11 +454,11 @@ by hand (an empty context).
 | Of | Field | Written by | What it is for |
 |---|---|---|---|
 | each parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType`, `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
-| each parameter | `sqlDataType` | the type adapter the parameter is converted with (`withSqlDataType`); the one of the column for a value compared with it (§2.6) | the type of the column in the database, for the bind type or the buffer of the driver |
+| each parameter | `originalSqlDataType`, `requestedSqlDataType` | the type adapter the parameter is converted with (`withSqlDataType`), the one of the column for a value compared with it; the requested one, by the adapter (`setRequestedSqlDataType`) (§2.6) | the type of the column in the database, for the bind type or the buffer of the driver |
 | each parameter | `isValueForColumn` | the library before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server; on Oracle with a database outside UTC, a bare placeholder (§7.3) |
 | each parameter | `getMetadata(key)`: a key of a type adapter or of the library | `transformValueToDB` of the type adapter and of the connection (`setMetadata`), before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters, which the Oracle runners bind as a `DATE` when of whole seconds, and as a `DATE` when `null` (§2.4); the connection marks the temporal values of a database outside UTC (§7.3) |
 | the query | `getMetadata(key)`: a key of a type adapter | `setQueryMetadata` in the context of `transformValueToDB`, `transformPlaceholder` and `transformProjection` of a type adapter or of the connection, while the query is built (a value only looked at, or a projection called only to learn what it says, writes nothing) | what an adapter knows of the whole query, for the query runner |
-| the query | `resultColumns`, `getResultColumn(name)` | the library | the expected type of each result column (`name` = key in the row, `path`, the original and the requested type, the `sqlDataType` of its adapter when it says one; `aggregatedArray` for an aggregated array): Oracle fetches decimals and bigints as text. `[]` when the query returns no columns, `undefined` for a query the library didn't build |
+| the query | `resultColumns`, `getResultColumn(name)` | the library | the expected type of each result column (`name` = key in the row, `path`, the original and the requested type, the original and the requested SQL data type when its adapter says one; `aggregatedArray` for an aggregated array): Oracle fetches decimals and bigints as text. `[]` when the query returns no columns, `undefined` for a query the library didn't build |
 | the query | `connectionConfiguration` | the library | the connection's settings (`ConnectionConfiguration`: `allowEmptyString`, `compatibilityVersion`, `uuidStrategy`, `decimalStrategy`, `databaseTimeZone`, `booleanStorage`, the SQLite date formats, …), read live from the connection |
 | each execution | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata` | the library | logging and errors |
 | each execution | `isSelectPageCount` | `executeSelectPage` | tells the count query apart |
@@ -845,7 +848,7 @@ runner still works with params built by hand.
 | The types of a parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType` | the type it is sent with | §4 |
 | Whether the database must receive its type | `forceTypeCast` of the parameter | the cast or the typed bind | §2.2 |
 | Whether it is the value of a column | `isValueForColumn` of the parameter | no cast where the column gives the type | §2.2 |
-| The SQL data type of the column | `sqlDataType` of the parameter and of each result column | the bind type, the buffer | §2.6 |
+| The SQL data type of the column | `originalSqlDataType`, `requestedSqlDataType` of the parameter and of each result column (the runners use the requested one) | the bind type, the buffer | §2.6 |
 | What a type adapter or the library marks | `getMetadata(key)` of the parameter and of the query | `OracleDateAsTimestampTypeAdapter`, a database outside UTC | §4, §7.3 |
 | The columns of the result | `resultColumns`, `getResultColumn(name)` | the fetch types, the shape of the rows | §4 |
 | The configuration of the connection | `connectionConfiguration` | `compatibilityVersion`, the strategies, `booleanStorage`, `databaseTimeZone`, the date formats of SQLite | §4, §7.3 |

@@ -1,7 +1,7 @@
 import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { cachedNativeSqlDataType, connectionClassIdOf } from '../utils/sqlDataTypeNames.js'
+import { connectionClassIdOf, keepNativeSqlDataType, keptNativeSqlDataType } from '../utils/sqlDataTypeNames.js'
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
@@ -69,7 +69,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      * in the SQL data type: override `buildNativeSqlDataTypeOf` to change it
      */
     nativeSqlDataTypeOf(sqlDataType: SqlDataType): string | undefined {
-        return cachedNativeSqlDataType(sqlDataType, connectionClassIdOf(this), () => this.buildNativeSqlDataTypeOf(sqlDataType))
+        const connectionClassId = connectionClassIdOf(this)
+        const kept = keptNativeSqlDataType(sqlDataType, connectionClassId)
+        if (kept !== undefined) {
+            return kept === null ? undefined : kept
+        }
+        const native = this.buildNativeSqlDataTypeOf(sqlDataType)
+        keepNativeSqlDataType(sqlDataType, connectionClassId, native)
+        return native
     }
     /** Builds what nativeSqlDataTypeOf gives (see it); called once for each SQL data type and class of connection */
     protected buildNativeSqlDataTypeOf(_sqlDataType: SqlDataType): string | undefined {

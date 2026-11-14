@@ -134,24 +134,24 @@ export function connectionClassIdOf(connection: object): number {
 }
 
 /**
- * The native name of the SQL data type for that class of connection, built once and kept in the SQL data type itself,
- * hidden (not enumerable: a spread, JSON.stringify and a comparison don't see it); undefined (the database can't hold
- * it) is kept too. A SQL data type that can't be extended (frozen) is built every time
+ * The native name of the SQL data type kept for that class of connection: the name, null when the database can't hold
+ * it, or undefined when it isn't kept yet. It is kept in the SQL data type itself, hidden (not enumerable: a spread,
+ * JSON.stringify and a comparison don't see it)
  */
-export function cachedNativeSqlDataType(sqlDataType: SqlDataType, connectionClassId: number, build: () => string | undefined): string | undefined {
+export function keptNativeSqlDataType(sqlDataType: SqlDataType, connectionClassId: number): string | null | undefined {
+    const cache = (sqlDataType as { [nativeCacheKey]?: (string | null | undefined)[] })[nativeCacheKey]
+    return cache === undefined ? undefined : cache[connectionClassId]
+}
+
+/** Keeps the native name of the SQL data type for that class of connection; a SQL data type that can't be extended (frozen) keeps nothing */
+export function keepNativeSqlDataType(sqlDataType: SqlDataType, connectionClassId: number, native: string | undefined): void {
     let cache = (sqlDataType as { [nativeCacheKey]?: (string | null | undefined)[] })[nativeCacheKey]
-    const cached = cache?.[connectionClassId]
-    if (cached !== undefined) {
-        return cached ?? undefined
-    }
-    const native = build()
-    if (!cache) {
+    if (cache === undefined) {
         if (!Object.isExtensible(sqlDataType)) {
-            return native
+            return
         }
         cache = []
         Object.defineProperty(sqlDataType, nativeCacheKey, { value: cache })
     }
-    cache[connectionClassId] = native ?? null
-    return native
+    cache[connectionClassId] = native === undefined ? null : native
 }

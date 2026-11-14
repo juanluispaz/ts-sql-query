@@ -262,7 +262,7 @@ changes:
   `lib/impl/datahandlers/buffer.js`; `lib/transformer.js` passes the `Date` as it is), with the zone the process has
   when it binds: read at each execution, in a process in UTC the `Date` goes as it is, otherwise a copy, `OracleUtcDigitsDate` (`:20-29`), whose local getters give the UTC ones, also for a
   time the zone of the process skips. This relies on how oracledb reads the `Date`: the `send …` cases of
-  `test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts`, with the process in Madrid and New York, check the stored
+  `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts`, with the process in Madrid and New York, check the stored
   text and fail if it changes (621 fail with a plain `Date`). Thick isn't covered by the tests.
 
 | Runner | What the driver receives | `typesByName` | Source |
@@ -315,7 +315,7 @@ their own queries.
 | Runner | Per query / statement | Delivers | Source / test |
 |---|---|---|---|
 | `PgQueryRunner`, `PgPoolQueryRunner` | `types: { getTypeParser }` built once per client: OID 1082 (`date`) and 1114 (`timestamp`) in text format → `parseUtcDateTimeTextOrKeepIt` (a Date whose UTC getters are the digits; `infinity` stays text); every other OID → `client.getTypeParser(oid, format)` (the user's parsers apply) | `date`/`timestamp` as UTC Date; the rest as the client parses it (pg defaults [inferred]: `int8`, `numeric`, `time` as text; `timestamptz` an instant Date; `int4`, `float8` numbers; `bool` boolean) | `PgQueryRunner.ts:29-36,59-64,104-117`; `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-and-a-timestamp-are-read-as-utc-and-the-other-parsers-of-the-client-apply`, `the-types-of-the-pool-apply-to-the-other-types`) |
-| `PostgresQueryRunner` | nothing for reading | postgres.js defaults; `date`/`timestamp` with UTC digits in any zone of the process, unless `infer` (§5) | `PostgresQueryRunner.ts:101-117`; `test/runners/postgres/LocalTemporalValuesInAnyZone.test.ts` |
+| `PostgresQueryRunner` | nothing for reading | postgres.js defaults; `date`/`timestamp` with UTC digits in any zone of the process, unless `infer` (§5) | `PostgresQueryRunner.ts:101-117`; `test/environments/postgres/LocalTemporalValuesInAnyZone.test.ts` |
 | `PgLiteQueryRunner` | `parsers` merged over the database's: 1082 and 1114 → `parseUtcDateTimeTextOrKeepIt`, 1083 → its text | those three as above; any other OID with PGlite's or the user's parser | `PgLiteQueryRunner.ts:57-86,127-137`; `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-a-time-and-a-timestamp-are-read-as-the-library-reads-them-and-the-other-parsers-apply`) |
 | `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`, `BunSqlSqliteQueryRunner` | nothing | Bun SQL defaults: UTC Dates (MySQL: Bun sets the session at `+00:00`, measured), text for times | `AbstractBunSqlQueryRunner.ts:63-74`; the `LocalTemporalValuesInAnyZone` tests of PostgreSQL and MySQL |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: true`, `bigNumberStrings: true`, `rowsAsArray: false`; and its own `typeCast` (DECIMAL/NEWDECIMAL → `field.string('ascii')`, else `next()`) when the connection has a `typeCast` function, `typeCast: false` or `decimalNumbers: true`, since a typeCast given with the query replaces the connection's | DATE/DATETIME/TIMESTAMP/TIME as text; BIGINT and DECIMAL as exact text; objects | `MySql2QueryRunner.ts:29,159-193`; `test/runners/mysql/DriverConfiguration.test.ts` (`a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner`) |
@@ -486,7 +486,7 @@ value of `process.env.TZ` changes, since Node and Bun change the zone of the pro
 | `MssqlPoolQueryRunner` (and the per-pool runner `MssqlPoolPromiseQueryRunner` creates, so it rejects its first query) | `useUTC` | `pool.config.options.useUTC === false` and the process isn't in UTC (a `Transaction` gives its pool's config) | `MssqlPoolQueryRunner.ts:42-46`; `MssqlPoolPromiseQueryRunner.ts:49` |
 | `MssqlPoolQueryRunner` | `textsize` | `pool.config.options.textsize` is a number below `2147483647`, the default of tedious (a longer text of a `max` type would be cut without an error) | `MssqlPoolQueryRunner.ts:47-51`; `test/runners/sqlserver/DriverConfiguration.test.ts` (`a-pool-with-a-textsize-below-the-default-is-rejected`) |
 | `MssqlPoolQueryRunner` | `camelCaseColumns`, `columnNameReplacer` | `camelCaseColumns === true` or a `columnNameReplacer` in `pool.config.options` | `MssqlPoolQueryRunner.ts:52-56`; same test file (`a-pool-that-renames-the-columns-is-rejected`) |
-| `OracleDB*QueryRunner` | `ORA_SDTZ` | at each query, not in the constructor: the session isn't in the `databaseTimeZone` (UTC by default; Oracle supports no other yet): `process.env.ORA_SDTZ` set and neither a UTC name nor a zero offset (`LOCAL` and `DBTIMEZONE` included, whose zone isn't known without a query), or unset with the process outside UTC | `utils/processTimeZone.ts:123-133`; `OracleDBQueryRunner.ts:47`; `OracleDBPoolQueryRunner.ts:27`; `OracleDBPoolPromiseQueryRunner.ts:27`; `test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts` |
+| `OracleDB*QueryRunner` | `ORA_SDTZ` | at each query, not in the constructor: the session isn't in the `databaseTimeZone` (UTC by default; Oracle supports no other yet): `process.env.ORA_SDTZ` set and neither a UTC name nor a zero offset (`LOCAL` and `DBTIMEZONE` included, whose zone isn't known without a query), or unset with the process outside UTC | `utils/processTimeZone.ts:123-133`; `OracleDBQueryRunner.ts:47`; `OracleDBPoolQueryRunner.ts:27`; `OracleDBPoolPromiseQueryRunner.ts:27`; `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` |
 | mysql2, mariadb, PGlite, better-sqlite3, bun:sqlite, node:sqlite, sqlite-wasm | — | nothing (what they could change is isolated per query) | — |
 
 Other `INVALID_CONFIGURATION`: `registerSqliteFunctions` on a Node without `function`/`aggregate`
@@ -546,7 +546,7 @@ requirements"; `docs/configuration/time-zones.md#known-limits`.
    `transformValueFromDB` rejects it. An undetectable one (a Date built in the process zone, a cut text, a renamed
    key, a lost row) is not.
 8. Tests in `test/runners/<db>/` against the real engine, including `LocalTemporalValuesInAnyZone` (§7.3: spawned
-   processes in UTC, Madrid, New York, Tokyo, `test/runners/lib/localTemporalValues.ts:11`) and `DriverConfiguration`.
+   processes in UTC, Madrid, New York, Tokyo, `test/environments/lib/localTemporalValues.ts:11`) and `DriverConfiguration`.
 
 ## 7. Dates and times
 
@@ -719,7 +719,7 @@ writes no zone arithmetic. With UTC the SQL doesn't change.
   so they keep giving the parts in UTC. A `localTime` is completed with the `localTimeReferenceDate` (`'1970-01-01'`
   by default, a date, or `'today'`, `current_date`), and the connection keeps that day in the `Date` it reads. A wall
   clock the zone skips is moved forward by PostgreSQL, one it repeats is taken in winter time.
-  `test/runners/postgres/DatabaseOutsideUtc.test.ts` (PGlite created in Madrid; pg with the session in Madrid).
+  `test/environments/postgres/DatabaseOutsideUtc.test.ts` (PGlite created in Madrid; pg with the session in Madrid).
 - **Oracle** (supported; `_supportDatabaseOutsideUtc`): the connection marks each `localDateTime` and `localTime`
   parameter (in `transformValueToDB`, `oracleZonedParam`), which oracledb sends as a `TIMESTAMP WITH LOCAL TIME ZONE`
   of its instant, written from the UTC of the `Date` and the offset of `DBTIMEZONE`, whatever the zone of the process
@@ -745,7 +745,7 @@ writes no zone arithmetic. With UTC the SQL doesn't change.
   when it connects), a stored wall clock the zone skips (ORA-01878 when it is read or given to a date function; one it
   repeats is taken in winter time). A `localTime` compares with the day it is kept on, 1970-01-01, in UTC too: one
   written by another program on another day doesn't match (keeping that day is the user's convention, as for every
-  library that maps a time of the day on Oracle). Measured on Oracle 23 and 21; `test/runners/oracle/DatabaseOutsideUtc.test.ts` (Oracle 23, `ORA_SDTZ`
+  library that maps a time of the day on Oracle). Measured on Oracle 23 and 21; `test/environments/oracle/DatabaseOutsideUtc.test.ts` (Oracle 23, `ORA_SDTZ`
   in Madrid, the process in Madrid, UTC and Tokyo; and the sessions rejected).
 - **Rejected** at the first query (`_checkConnectionConfiguration`, from `__setQueryMetadata`), as limits of the
   database (`test/runners/general/DatabaseTimeZone.test.ts`): MariaDB and MySQL (`convert_tz` leaves a value before
@@ -786,9 +786,11 @@ supported (or to be supported) is tested with the process in three positions: in
 deployment, where a driver that uses the zone of the process goes unnoticed, because both agree), in UTC, and in a zone
 that agrees with neither (where such a driver shows). With the
 database in UTC the first two are the same; with a database outside UTC (for example Europe/Madrid, when supported)
-they are Europe/Madrid, UTC and another (Asia/Tokyo). Today: `test/runners/<db>/LocalTemporalValuesInAnyZone.test.ts`
-(spawned processes in UTC, Madrid, New York and Tokyo, the database in UTC; 0 failures on PostgreSQL, MySQL, MariaDB,
-SQL Server and Oracle, with the limits each test declares: Oracle's Julian calendar before 1582-10-15, a wall clock in
-the summer-time gap of the process zone on oracledb), and the oracledb checks in the same Oracle test; the checks of pg and postgres.js in
+they are Europe/Madrid, UTC and another (Asia/Tokyo). Today: the environment tests (`test/ENVIRONMENT_TESTS.md`),
+`test/environments/<db>/LocalTemporalValuesInAnyZone.test.ts` (spawned processes in UTC, Madrid, New York and Tokyo, the
+database in UTC; 0 failures on PostgreSQL, MySQL, MariaDB, SQL Server and Oracle, on every version mapped for the
+tests, with the limits each test declares: Oracle's Julian calendar before 1582-10-15, a wall clock in the summer-time
+gap of the process zone on oracledb, MariaDB before 10.5 without `json_arrayagg`, MySQL 8.0 not finding a `TIME` in a
+prepared `in` list of several values, which Bun SQL sends), and the oracledb checks in the same Oracle test; the checks of pg and postgres.js in
 `test/runners/postgres/DriverConfiguration.test.ts`. A runner that
 changes how it reads or sends a temporal value states here what it supports, with the test that proves it.

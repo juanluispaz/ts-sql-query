@@ -275,6 +275,10 @@ bun run tests --docker --docker-mode no-reuse
 # (postgres/oldest → a real PostgreSQL 17). Focused + one image per engine.
 bun run tests postgres/oldest/pg --docker --docker-version closest
 
+# The environment tests (the process in other zones, a database outside UTC)
+# on every version of the engines, one pass per version (test/ENVIRONMENT_TESTS.md).
+bun run tests:environments --docker --wasm --all-versions
+
 # Fully mocked — even native SQLite routed through the mock.
 bun run tests --native none
 ```

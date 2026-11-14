@@ -49,6 +49,7 @@ uses.
 | Wall-time numbers for each invocation, bun vs vitest | [`BENCHMARKS.md`](./BENCHMARKS.md) |
 | Validate the documentation code examples (type-check + mock SQL tests of the doc snippets) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
 | Test the query runners directly (`test/runners/`, `tests:runners`) | [`RUNNER_TESTS.md`](./RUNNER_TESTS.md) |
+| Test what needs an environment of its own: the process in other zones, a database outside UTC, every version of the engine (`test/environments/`, `tests:environments`) | [`ENVIRONMENT_TESTS.md`](./ENVIRONMENT_TESTS.md) |
 | The shell scripts behind the CLIs | [`scripts/tests.sh`](../scripts/tests.sh) |
 
 ### … write or port a test

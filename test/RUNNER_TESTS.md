@@ -72,6 +72,11 @@ Whether a test runs is decided like a cell's: `isRealDbEnabled(<db>, <kind>,
 their coords, e.g. `--docker postgres/newest/pg`) select them too; a runner
 whose engine isn't selected is skipped.
 
+The tests that need an environment of their own (the process in another
+zone, a database outside UTC), on every version of the engine, are the
+environment tests, in `test/environments/`: see
+[`ENVIRONMENT_TESTS.md`](./ENVIRONMENT_TESTS.md).
+
 The runtime is the one the script was launched with — `bun run` runs the
 tests on Bun, `npm run` on Node — and each runtime runs what it can: on Node
 the Bun runners are skipped. `--use-node` forces Node under `bun run`, and

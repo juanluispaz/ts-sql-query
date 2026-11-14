@@ -817,6 +817,20 @@ rejected when read (`INVALID_VALUE_RECEIVED_FROM_DATABASE`, hours above 23), so 
 data type carries such a value. Only a custom type over a `TIME` used as a duration would meet
 it, inside an aggregated array on MySQL before 26. No test covers it.
 
+### MySQL 8.0 doesn't find a `TIME` in a prepared `in` list of several values
+
+On MySQL 8.0.46, a prepared statement (the binary protocol) whose `in` list has several
+values sent as text doesn't find a row of a `TIME` column: `t in (?, ?)` with
+`'09:15:30.123'` and `'10:00:00.000'` finds nothing, where `t = ?`, `t in (?)` (one value,
+which MySQL turns into `=`), `t in (cast(? as time(3)))`, the same list as literals, and the
+same query through the text protocol find it. 26.10.0 and 5.7.44 find it. Measured
+2026-11-14 with mysql2's `execute` against `query`, and with Bun SQL.
+
+**What this means** — of the runners of MySQL only `BunSqlMySqlQueryRunner` prepares its
+statements (mysql2 and mariadb send the query through the text protocol), so on MySQL 8.0
+`localTime.in([...])` with more than one value finds nothing through it. Declared as a limit
+in `test/environments/mysql/LocalTemporalValuesInAnyZone.test.ts` (`send in | t TIME`).
+
 ### MySQL `EXCEPT` / `INTERSECT` compound operators require MySQL 8.0.31+
 
 MySQL added `EXCEPT` and `INTERSECT` (base and the `ALL` variants) in **8.0.31**; MySQL
@@ -904,7 +918,7 @@ emission would make every `getDay()` / `getTime()` worse for a range few schemas
 
 **What this means for tests** — the `read getters` and `send getters` cases of
 `getDay` and `getTime` for the `0999-01-14` values in
-`test/runners/oracle/LocalTemporalValuesInAnyZone.test.ts` are declared as this engine
+`test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` are declared as this engine
 limit (`oracleLimitOf`). Documented for users in
 `docs/configuration/supported-databases/oracle.md` ("Dates before 1582").
 

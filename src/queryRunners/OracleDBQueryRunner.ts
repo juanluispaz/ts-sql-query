@@ -8,7 +8,7 @@ import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } 
 import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import type { CustomType } from '../TypeAdapter.js'
-import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime } from '../utils/dataTypes.js'
+import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString } from '../utils/dataTypes.js'
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
@@ -188,9 +188,15 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
                 // timestamp column with the zone of the session (the zone of the database, see oracleSessionTimeZone), and oracledb
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
-                const dbType = declared ?? (isTemporal(typeName, customType) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(typeName, customType, nativeBoolean))
-                // A text, or a value received as one, is returned in a buffer of maxSize bytes
-                const maxSize = (isOracleDBBindType(declaredBind) ? declaredBind.maxSize : undefined) ?? this.config?.returningMaxSize ?? defaultReturningMaxSize
+                // A text of a column its SQL data type says (withSqlDataType) is a large object is returned as a CLOB
+                // (a VARCHAR2 can't hold it, ORA-22835), and one of a known length in a buffer of that length
+                const sqlDataType = param?.sqlDataType?.family === 'character string' && __isString(typeName ?? '', customType) ? param.sqlDataType : undefined
+                const lob = sqlDataType?.largeObject ? (sqlDataType.national ? oracleDb.DB_TYPE_NCLOB : oracleDb.DB_TYPE_CLOB) : undefined
+                const dbType = declared ?? lob ?? (isTemporal(typeName, customType) ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(typeName, customType, nativeBoolean))
+                // A text, or a value received as one, is returned in a buffer of maxSize bytes; a character of a text
+                // is up to 4 bytes (AL32UTF8)
+                const lengthBytes = sqlDataType?.length !== undefined && !sqlDataType.largeObject ? (sqlDataType.lengthUnit === 'octets' ? sqlDataType.length : sqlDataType.length * 4) : undefined
+                const maxSize = (isOracleDBBindType(declaredBind) ? declaredBind.maxSize : undefined) ?? lengthBytes ?? this.config?.returningMaxSize ?? defaultReturningMaxSize
                 if (dbType === undefined || (dbType === oracleDb.DB_TYPE_NUMBER && declared === undefined)) {
                     // Without a type, oracledb returns an OUT value as a string; a number, with all its digits
                     result[i] = { ...value, maxSize }

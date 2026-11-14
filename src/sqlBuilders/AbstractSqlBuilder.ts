@@ -559,6 +559,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const paramContext = context.queryContext.paramAt(context.params.length)
         const valueSourcePrivate = __getValueSourcePrivate(value)
         paramContext.setOriginalType(valueSourcePrivate.__type, valueSourcePrivate.__customType)
+        paramContext.sqlDataType = valueSourcePrivate.__typeAdapter?.sqlDataType
         if (output) {
             this._resolveRequestedTypeOfProjection(value, output, paramContext)
         }

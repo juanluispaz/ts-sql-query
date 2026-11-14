@@ -303,7 +303,27 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             // A type with its arguments, like TYPES.Decimal(18, 4)
             return declared as ISqlType
         }
-        return { type: this.getType(params, index) }
+        return this.getTypeOfVarcharColumn(params, index) ?? { type: this.getType(params, index) }
+    }
+
+    /**
+     * A text of a column that isn't national (a varchar or a char, said by its SQL data type, withSqlDataType) goes as a
+     * varchar: compared as a nvarchar, SQL Server converts the column, and with a SQL collation it reads its whole index.
+     * Only when the text fits in it: ASCII, or a column of a UTF-8 collation; a character its code page lacks would
+     * become `?`. Its length is the one of the column, or max when the text is longer
+     */
+    private getTypeOfVarcharColumn(params: any[], index: number): ISqlType | undefined {
+        const param = existingParamContextOf(params, index)
+        const sqlDataType = param?.sqlDataType
+        const value: unknown = params[index]
+        if (sqlDataType?.family !== 'character string' || sqlDataType.national !== false || typeof value !== 'string' || !__isString(param?.requestedType ?? '', param?.requestedCustomType)) {
+            return undefined
+        }
+        if (!/^[\x00-\x7f]*$/.test(value) && !/_utf8$/i.test(sqlDataType.collation ?? '')) {
+            return undefined
+        }
+        const length = sqlDataType.length
+        return TYPES.VarChar(length !== undefined && !sqlDataType.largeObject && value.length <= length ? length : mssql.MAX)
     }
 
     protected getType(params: any[], index: number): ISqlTypeFactory {

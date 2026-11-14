@@ -174,6 +174,41 @@ describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: the
     })
 })
 
+describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: a client in binary mode given by a pool', () => {
+    let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
+    beforeAll(async () => {
+        db = await acquireRunnerTestDatabase()
+    }, 300_000)
+    afterAll(async () => {
+        await db?.release()
+    }, 300_000)
+
+    test('a-client-in-binary-mode-a-pool-gives-is-rejected-and-given-back', async () => {
+        // pg.defaults.binary reaches only the clients the pool creates: the pool is accepted, its first query is
+        // rejected, and the client goes back to the pool
+        const defaults = pg.defaults as { binary?: boolean | undefined }
+        const previous = defaults.binary
+        const pool = new pg.Pool({ connectionString: db!.uri, max: 1 })
+        try {
+            const runner = new PgPoolQueryRunner(pool)
+            defaults.binary = true
+            let error: unknown
+            try {
+                await runner.executeSelectOneRow('select 1 as one', [])
+            } catch (e) {
+                error = e
+            }
+            defaults.binary = previous
+            expect(reasonOf(error)).toBe('INVALID_CONFIGURATION')
+            // With max: 1, a query of the pool works only if the client was given back
+            expect((await pool.query('select 1 as one')).rows[0]).toEqual({ one: 1 })
+        } finally {
+            defaults.binary = previous
+            await pool.end()
+        }
+    })
+})
+
 describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: the parsers of the user', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
     beforeAll(async () => {

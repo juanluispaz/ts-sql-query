@@ -97,6 +97,7 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
             { title: 'with-ora-sdtz-utc-is-rejected', zone: 'UTC', env: { ORA_SDTZ: 'UTC' }, expected: /^rejected: INVALID_CONFIGURATION/ },
             { title: 'with-ora-sdtz-an-offset-is-rejected', zone: 'Europe/Madrid', env: { ORA_SDTZ: '+01:00' }, expected: /^rejected: INVALID_CONFIGURATION/ },
             { title: 'with-ora-sdtz-dbtimezone-is-rejected', zone: 'Europe/Madrid', env: { ORA_SDTZ: 'DBTIMEZONE' }, expected: /^rejected: INVALID_CONFIGURATION/ },
+            { title: 'with-ora-sdtz-local-is-rejected', zone: 'Europe/Madrid', env: { ORA_SDTZ: 'LOCAL' }, expected: /^rejected: INVALID_CONFIGURATION/ },
         ]
         for (const runner of version === 'newest' ? runners : []) {
             for (const session of sessions) {

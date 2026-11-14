@@ -314,8 +314,9 @@ shard_paths() {
                 printf '%s\n' "$cell"
             done < <(list_all_connector_paths)
             list_types_negative_paths
-            # The query-runner tests (outside the cell matrix)
-            printf '%s\n' test/runners/ ;;
+            # The query-runner tests and the environment tests (outside the cell matrix)
+            printf '%s\n' test/runners/
+            printf '%s\n' test/environments/ ;;
     esac
 }
 
@@ -886,7 +887,7 @@ expand_newest_paths() {
 # nothing runs twice. Run them with docker and native off: these files also hold
 # tests of other runners, which the main pass runs.
 wasm_runner_test_files() {
-    grep -rlE "isRealDbEnabled\('[a-z]+', 'wasm'" test/runners | sort
+    grep -rlE "isRealDbEnabled\('[a-z]+', 'wasm'" test/runners test/environments | sort
 }
 
 # Keep only WASM_PATHS entries that pass through a `newest/` segment.
@@ -1353,12 +1354,13 @@ resolve_main_paths() {
             */*)            shape=deep ;;
             *)              shape=bare-db ;;
         esac
-        # `runners[/…]` addresses the query-runner tests under test/runners/
+        # `runners[/…]` addresses the query-runner tests under test/runners/ and
+        # `environments[/…]` the environment tests under test/environments/
         # (outside the cell matrix: no version tiers, so --run-versions does
         # not narrow them); every other coord is a matrix path under test/db/.
         local base="test/db/"
         case "$coord" in
-            runners|runners/*) base="test/"; [ "$shape" = "bare-db" ] && shape=deep ;;
+            runners|runners/*|environments|environments/*) base="test/"; [ "$shape" = "bare-db" ] && shape=deep ;;
         esac
         if [ "$RUN_VERSIONS" = "newest" ]; then
             case "$coord" in

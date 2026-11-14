@@ -8,28 +8,35 @@ import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/sqlserver/runners.js'
 import { describeLocalTemporalValuesInAnyZone, describeRunnerRequirements } from '../lib/localTemporalValues.js'
 import { sqlServerTemporalDialect } from '../lib/localTemporalValuesProbe.js'
+import { environmentVersions, isEnvironmentVersionSelected } from '../lib/versions.js'
 
 const probe = fileURLToPath(new URL('./localTemporalValuesInAnyZone/probe.ts', import.meta.url))
 const enabled = isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql')
 
-async function acquire() {
-    const db = await acquireRunnerTestDatabase()
+async function acquireOn(version: string) {
+    const db = await acquireRunnerTestDatabase(undefined, version)
     return { info: { config: db.config }, release: () => db.release() }
 }
+const acquire = () => acquireOn('newest')
 
 const runners = ['MssqlPoolQueryRunner', 'MssqlPoolPromiseQueryRunner']
 
-describeLocalTemporalValuesInAnyZone({
-    database: 'SQL Server',
-    dialect: sqlServerTemporalDialect,
-    probe,
-    acquire,
-    runners: runners.flatMap(runner => [
-        { runner, label: `${runner} (useUTC: true)`, options: { useUTC: true }, enabled, needsConnection: true },
-        // useUTC: false is only valid with the process in UTC (see the requirements below)
-        { runner, label: `${runner} (useUTC: false)`, options: { useUTC: false }, enabled, needsConnection: true, zones: ['UTC'] },
-    ]),
-})
+// Each version of the engine mapped for --docker-version closest runs too, with the compatibilityVersion of its cells
+for (const { version, compatibilityVersion, label } of await environmentVersions('sqlserver', 'mssql')) {
+    const enabledOn = isRealDbEnabled('sqlserver', 'docker', version, 'mssql')
+    describeLocalTemporalValuesInAnyZone({
+        database: 'SQL Server' + label,
+        compatibilityVersion,
+        dialect: sqlServerTemporalDialect,
+        probe,
+        acquire: () => acquireOn(version),
+        runners: runners.flatMap(runner => [
+            { runner, label: `${runner} (useUTC: true)`, options: { useUTC: true }, enabled: enabledOn, needsConnection: true },
+            // useUTC: false is only valid with the process in UTC (see the requirements below)
+            { runner, label: `${runner} (useUTC: false)`, options: { useUTC: false }, enabled: enabledOn, needsConnection: true, zones: ['UTC'] },
+        ]),
+    })
+}
 
 // What the runners of mssql must validate when created: useUTC not false, unless the process is in UTC. The promise
 // of a pool only gives its configuration once it resolves, so MssqlPoolPromiseQueryRunner may reject at its first query
@@ -37,7 +44,7 @@ describeRunnerRequirements({
     title: 'SQL Server: the runners of mssql require useUTC unless the process is in UTC',
     probe,
     acquire,
-    enabled,
+    enabled: enabled && isEnvironmentVersionSelected('sqlserver', 'newest'),
     requirements: runners.flatMap(runner => {
         const rejected = runner === 'MssqlPoolPromiseQueryRunner' ? 'rejected when created or at its first query' as const : 'rejected' as const
         return [

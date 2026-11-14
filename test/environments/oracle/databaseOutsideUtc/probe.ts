@@ -8,12 +8,12 @@ import { Table } from '../../../../src/Table.js'
 import { OracleDateAsTimestampTypeAdapter } from '../../../../src/TypeAdapter.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { printResult, probeConfig } from '../../lib/localTemporalValuesProbe.js'
-import { reasonOf } from '../../lib/runnerContract.js'
+import { reasonOf } from '../../../runners/lib/runnerContract.js'
 
 interface Config {
     mode: 'scenario' | 'firstQuery'
     runner: string
-    options: { table?: string }
+    options: { table?: string, compatibilityVersion?: number }
     connection: { user: string, password: string, connectString: string }
 }
 
@@ -23,14 +23,17 @@ const { default: oracledb } = await import('oracledb')
 
 class MadridConnection extends OracleConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
+    protected override compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
 }
 // The same database, with a reference date of summer
 class MadridSummerConnection extends OracleConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
+    protected override compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
     protected override localTimeReferenceDate = '2024-07-14'
 }
 class MadridTodayConnection extends OracleConnection<'MadridTodayConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
+    protected override compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
     protected override localTimeReferenceDate = 'today'
 }
 

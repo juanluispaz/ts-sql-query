@@ -77,7 +77,10 @@ export interface TemporalRunner {
 }
 
 export interface TemporalValuesOptions {
+    /** The database, with the version folder when it isn't the newest */
     readonly database: string
+    /** The compatibilityVersion of the cells of that version, given to the connection of the probe */
+    readonly compatibilityVersion?: number | undefined
     readonly dialect: TemporalDialect
     readonly probe: string
     readonly runners: readonly TemporalRunner[]
@@ -96,7 +99,8 @@ export function describeLocalTemporalValuesInAnyZone(opts: TemporalValuesOptions
                     let failure: unknown
                     beforeAll(async () => {
                         try {
-                            const printed = await runProbe(opts.probe, 'cases', { runner: runner.runner, options: runner.options, zone, env: runner.envFor?.(zone) }, connection()) as TemporalCaseResult[]
+                            const options = opts.compatibilityVersion === undefined ? runner.options : { ...runner.options, compatibilityVersion: opts.compatibilityVersion }
+                            const printed = await runProbe(opts.probe, 'cases', { runner: runner.runner, options, zone, env: runner.envFor?.(zone) }, connection()) as TemporalCaseResult[]
                             results = new Map(printed.map(result => [result.name, result]))
                         } catch (error) {
                             failure = error

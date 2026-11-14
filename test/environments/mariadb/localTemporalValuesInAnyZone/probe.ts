@@ -3,65 +3,76 @@
 // ../../lib/localTemporalValuesProbe.ts (mode `cases`), or only creates the runner and uses it once (mode `create`),
 // and prints the result as JSON.
 
-import { OracleConnection } from '../../../../src/connections/OracleConnection.js'
+import { MariaDBConnection } from '../../../../src/connections/MariaDBConnection.js'
 import { Table } from '../../../../src/Table.js'
-import { OracleDateAsTimestampTypeAdapter } from '../../../../src/TypeAdapter.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
-import { creationOutcome, dateGetterOf, oracleTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
+import { creationOutcome, dateGetterOf, mysqlTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
 
 interface Config {
     mode: 'cases' | 'create'
     runner: string
-    options: Record<string, never>
-    connection: { user: string, password: string, connectString: string } | undefined
+    options: { compatibilityVersion?: number }
+    connection: { host: string, port: number, user: string, password: string, database: string } | undefined
 }
 
 const config = probeConfig<Config>()
-const db = config.connection ?? { user: '', password: '', connectString: '' }
+const db = config.connection ?? { host: '', port: 0, user: '', password: '', database: '' }
 
 async function createRunner(): Promise<{ runner: QueryRunner, close: () => Promise<unknown> }> {
     switch (config.runner) {
-        case 'OracleDBQueryRunner': {
-            const { default: oracledb } = await import('oracledb')
-            const { OracleDBQueryRunner } = await import('../../../../src/queryRunners/OracleDBQueryRunner.js')
-            const connection = await oracledb.getConnection(db)
-            return { runner: new OracleDBQueryRunner(connection), close: () => connection.close() }
+        case 'MySql2QueryRunner': {
+            const { default: mysql2 } = await import('mysql2')
+            const { MySql2QueryRunner } = await import('../../../../src/queryRunners/MySql2QueryRunner.js')
+            const connection = mysql2.createConnection(db)
+            return { runner: new MySql2QueryRunner(connection, 'mariaDB'), close: () => new Promise<void>(resolve => connection.end(() => resolve())) }
         }
-        case 'OracleDBPoolQueryRunner': {
-            const { default: oracledb } = await import('oracledb')
-            const { OracleDBPoolQueryRunner } = await import('../../../../src/queryRunners/OracleDBPoolQueryRunner.js')
-            const pool = await oracledb.createPool({ ...db, poolMin: 0, poolMax: 2 })
-            return { runner: new OracleDBPoolQueryRunner(pool), close: () => pool.close(0) }
+        case 'MySql2PoolQueryRunner': {
+            const { default: mysql2 } = await import('mysql2')
+            const { MySql2PoolQueryRunner } = await import('../../../../src/queryRunners/MySql2PoolQueryRunner.js')
+            const pool = mysql2.createPool({ ...db, connectionLimit: 2 })
+            return { runner: new MySql2PoolQueryRunner(pool, 'mariaDB'), close: () => new Promise<void>(resolve => pool.end(() => resolve())) }
         }
-        case 'OracleDBPoolPromiseQueryRunner': {
-            const { default: oracledb } = await import('oracledb')
-            const { OracleDBPoolPromiseQueryRunner } = await import('../../../../src/queryRunners/OracleDBPoolPromiseQueryRunner.js')
-            const pool = oracledb.createPool({ ...db, poolMin: 0, poolMax: 2 })
-            return { runner: new OracleDBPoolPromiseQueryRunner(pool), close: async () => (await pool).close(0) }
+        case 'MariaDBQueryRunner': {
+            const { default: mariadb } = await import('mariadb')
+            const { MariaDBQueryRunner } = await import('../../../../src/queryRunners/MariaDBQueryRunner.js')
+            const connection = await mariadb.createConnection({ ...db, allowPublicKeyRetrieval: true })
+            return { runner: new MariaDBQueryRunner(connection, 'mariaDB'), close: () => connection.end() }
+        }
+        case 'MariaDBPoolQueryRunner': {
+            const { default: mariadb } = await import('mariadb')
+            const { MariaDBPoolQueryRunner } = await import('../../../../src/queryRunners/MariaDBPoolQueryRunner.js')
+            const pool = mariadb.createPool({ ...db, allowPublicKeyRetrieval: true, connectionLimit: 2, minimumIdle: 0 })
+            return { runner: new MariaDBPoolQueryRunner(pool, 'mariaDB'), close: () => pool.end() }
+        }
+        case 'BunSqlMySqlQueryRunner': {
+            const { SQL } = await import('bun')
+            const { BunSqlMySqlQueryRunner } = await import('../../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
+            const sql = new SQL({ adapter: 'mysql', hostname: db.host, port: db.port, username: db.user, password: db.password, database: db.database, foundRows: true, allowPublicKeyRetrieval: true, max: 2 })
+            return { runner: new BunSqlMySqlQueryRunner(sql, 'mariaDB'), close: () => sql.close() }
         }
         default:
             throw new Error('Unknown runner ' + config.runner)
     }
 }
 
-class DBConnection extends OracleConnection<'DBConnection'> { }
+// The compatibilityVersion of the cells of the version the test runs against
+class DBConnection extends MariaDBConnection<'DBConnection'> {
+    protected override compatibilityVersion = config.options?.compatibilityVersion ?? Number.POSITIVE_INFINITY
+}
 
 class TValues extends Table<DBConnection, 'TValues'> {
     id = this.primaryKey('id', 'int')
     d = this.optionalColumn('d', 'localDate')
     t = this.optionalColumn('t', 'localTime')
     dt = this.optionalColumn('dt', 'localDateTime')
-    // A localDateTime in a DATE column is declared with this adapter, so the time getters read it as a timestamp
-    dtx = this.optionalColumn('dtx', 'localDateTime', new OracleDateAsTimestampTypeAdapter())
     dtl = this.optionalColumn('dtl', 'localDateTime')
-    dtz = this.optionalColumn('dtz', 'localDateTime')
     constructor() {
         super('rt_tz_values')
     }
 }
 const tValues = new TValues()
 
-type DateTimeName = 'dt' | 'dtx' | 'dtl' | 'dtz'
+type DateTimeName = 'dt' | 'dtl'
 
 function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, TemporalColumnOps>> {
     const byId = (id: number) => conn.selectFrom(tValues).where(tValues.id.equals(id))
@@ -74,9 +85,7 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             insertFromSelectOfConsts: (id, value) => {
                 switch (name) {
                     case 'dt': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dt: conn.const(value, 'localDateTime') })).executeInsert()
-                    case 'dtx': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtx: conn.const(value, 'localDateTime') })).executeInsert()
                     case 'dtl': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtl: conn.const(value, 'localDateTime') })).executeInsert()
-                    case 'dtz': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtz: conn.const(value, 'localDateTime') })).executeInsert()
                 }
             },
             equals: (id, value) => byId(id).and(column.equals(value)).selectOneColumn(tValues.id).executeSelectMany(),
@@ -117,9 +126,7 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             readGetter: (id, getter) => byId(id).selectOneColumn(tValues.t[timeGetterOf(getter)]()).executeSelectOne(),
         },
         dt: localDateTime('dt'),
-        dtx: localDateTime('dtx'),
         dtl: localDateTime('dtl'),
-        dtz: localDateTime('dtz'),
     }
 }
 
@@ -129,11 +136,11 @@ if (config.mode === 'create') {
         const created = await createRunner()
         close = created.close
         return created.runner
-    }, oracleTemporalDialect.selectOne))
+    }, mysqlTemporalDialect.selectOne))
     await close?.()
 } else {
     const { runner, close } = await createRunner()
-    printResult(await runTemporalProbe(oracleTemporalDialect, runner, opsFor(new DBConnection(runner))))
+    printResult(await runTemporalProbe(mysqlTemporalDialect, runner, opsFor(new DBConnection(runner))))
     await close()
 }
 process.exit(0)

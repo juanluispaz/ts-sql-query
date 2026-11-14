@@ -29,7 +29,7 @@ import {
     type RunnerConnectionFailure,
     UNREACHABLE_PORT,
 } from '../../lib/containerLifecycle.js'
-import { imageForCell, newestImage } from '../../lib/dockerImages.js'
+import { closestImage, imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import type { QueryRunnerName } from '../../../src/queryRunners/MockQueryRunner.js'
 import { CaptureInterceptor } from '../../lib/captureInterceptor.js'
@@ -654,8 +654,8 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
 // connect their own driver to: the newest image, with the worker database
 // bootstrapped exactly as the cells get it. With a `failure`, the parameters
 // of a connection that fails that way (nothing is held: release() is a no-op).
-export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure): Promise<{ uri: string, release(): Promise<void> }> {
-    const image = newestImage(DATABASE)
+export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure, version: string = 'newest'): Promise<{ uri: string, release(): Promise<void> }> {
+    const image = version === 'newest' ? newestImage(DATABASE) : closestImage(DATABASE, version)
     const container = await containers.getFor(image).acquire()
     const uri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())
     if (failure && failure !== 'client timeout') {

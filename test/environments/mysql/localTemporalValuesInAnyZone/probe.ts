@@ -3,76 +3,76 @@
 // ../../lib/localTemporalValuesProbe.ts (mode `cases`), or only creates the runner and uses it once (mode `create`),
 // and prints the result as JSON.
 
-import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConnection.js'
+import { MySqlConnection } from '../../../../src/connections/MySqlConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
-import { creationOutcome, dateGetterOf, postgresTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
+import { creationOutcome, dateGetterOf, mysqlTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
 
 interface Config {
     mode: 'cases' | 'create'
     runner: string
-    options: { binary?: boolean, infer?: boolean }
-    connection: { uri: string } | undefined
+    options: { compatibilityVersion?: number }
+    connection: { host: string, port: number, user: string, password: string, database: string } | undefined
 }
 
 const config = probeConfig<Config>()
-const uri = config.connection?.uri ?? ''
-const binary = config.options.binary === undefined ? {} : { binary: config.options.binary }
+const db = config.connection ?? { host: '', port: 0, user: '', password: '', database: '' }
 
 async function createRunner(): Promise<{ runner: QueryRunner, close: () => Promise<unknown> }> {
     switch (config.runner) {
-        case 'PgPoolQueryRunner': {
-            const { default: pg } = await import('pg')
-            const { PgPoolQueryRunner } = await import('../../../../src/queryRunners/PgPoolQueryRunner.js')
-            const pool = new pg.Pool({ connectionString: uri, max: 2, ...binary })
-            return { runner: new PgPoolQueryRunner(pool), close: () => pool.end() }
+        case 'MySql2QueryRunner': {
+            const { default: mysql2 } = await import('mysql2')
+            const { MySql2QueryRunner } = await import('../../../../src/queryRunners/MySql2QueryRunner.js')
+            const connection = mysql2.createConnection(db)
+            return { runner: new MySql2QueryRunner(connection, 'mySql'), close: () => new Promise<void>(resolve => connection.end(() => resolve())) }
         }
-        case 'PgQueryRunner': {
-            const { default: pg } = await import('pg')
-            const { PgQueryRunner } = await import('../../../../src/queryRunners/PgQueryRunner.js')
-            const client = new pg.Client({ connectionString: uri, ...binary })
-            await client.connect()
-            return { runner: new PgQueryRunner(client), close: () => client.end() }
+        case 'MySql2PoolQueryRunner': {
+            const { default: mysql2 } = await import('mysql2')
+            const { MySql2PoolQueryRunner } = await import('../../../../src/queryRunners/MySql2PoolQueryRunner.js')
+            const pool = mysql2.createPool({ ...db, connectionLimit: 2 })
+            return { runner: new MySql2PoolQueryRunner(pool, 'mySql'), close: () => new Promise<void>(resolve => pool.end(() => resolve())) }
         }
-        case 'PostgresQueryRunner': {
-            const { default: postgres } = await import('postgres')
-            const { PostgresQueryRunner } = await import('../../../../src/queryRunners/PostgresQueryRunner.js')
-            const sql = postgres(uri, { max: 2, onnotice: () => undefined, ...(config.options.infer === undefined ? {} : { infer: config.options.infer }) })
-            return { runner: new PostgresQueryRunner(sql), close: () => sql.end() }
+        case 'MariaDBQueryRunner': {
+            const { default: mariadb } = await import('mariadb')
+            const { MariaDBQueryRunner } = await import('../../../../src/queryRunners/MariaDBQueryRunner.js')
+            const connection = await mariadb.createConnection({ ...db, allowPublicKeyRetrieval: true })
+            return { runner: new MariaDBQueryRunner(connection, 'mySql'), close: () => connection.end() }
         }
-        case 'PgLiteQueryRunner': {
-            const { PGlite } = await import('@electric-sql/pglite')
-            const { PgLiteQueryRunner } = await import('../../../../src/queryRunners/PgLiteQueryRunner.js')
-            // PGlite runs inside the process: created in UTC, its session doesn't take the zone of the process
-            const db = await PGlite.create('memory://', { postgresqlconf: ["timezone = 'UTC'"] })
-            return { runner: new PgLiteQueryRunner(db), close: () => db.close() }
+        case 'MariaDBPoolQueryRunner': {
+            const { default: mariadb } = await import('mariadb')
+            const { MariaDBPoolQueryRunner } = await import('../../../../src/queryRunners/MariaDBPoolQueryRunner.js')
+            const pool = mariadb.createPool({ ...db, allowPublicKeyRetrieval: true, connectionLimit: 2, minimumIdle: 0 })
+            return { runner: new MariaDBPoolQueryRunner(pool, 'mySql'), close: () => pool.end() }
         }
-        case 'BunSqlPostgresQueryRunner': {
+        case 'BunSqlMySqlQueryRunner': {
             const { SQL } = await import('bun')
-            const { BunSqlPostgresQueryRunner } = await import('../../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
-            const sql = new SQL(uri, { max: 2 })
-            return { runner: new BunSqlPostgresQueryRunner(sql), close: () => sql.close() }
+            const { BunSqlMySqlQueryRunner } = await import('../../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
+            const sql = new SQL({ adapter: 'mysql', hostname: db.host, port: db.port, username: db.user, password: db.password, database: db.database, foundRows: true, allowPublicKeyRetrieval: true, max: 2 })
+            return { runner: new BunSqlMySqlQueryRunner(sql, 'mySql'), close: () => sql.close() }
         }
         default:
             throw new Error('Unknown runner ' + config.runner)
     }
 }
 
-class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
+// The compatibilityVersion of the cells of the version the test runs against
+class DBConnection extends MySqlConnection<'DBConnection'> {
+    protected override compatibilityVersion = config.options?.compatibilityVersion ?? Number.POSITIVE_INFINITY
+}
 
 class TValues extends Table<DBConnection, 'TValues'> {
     id = this.primaryKey('id', 'int')
     d = this.optionalColumn('d', 'localDate')
     t = this.optionalColumn('t', 'localTime')
     dt = this.optionalColumn('dt', 'localDateTime')
-    dtz = this.optionalColumn('dtz', 'localDateTime')
+    dtl = this.optionalColumn('dtl', 'localDateTime')
     constructor() {
         super('rt_tz_values')
     }
 }
 const tValues = new TValues()
 
-type DateTimeName = 'dt' | 'dtz'
+type DateTimeName = 'dt' | 'dtl'
 
 function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, TemporalColumnOps>> {
     const byId = (id: number) => conn.selectFrom(tValues).where(tValues.id.equals(id))
@@ -85,7 +85,7 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             insertFromSelectOfConsts: (id, value) => {
                 switch (name) {
                     case 'dt': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dt: conn.const(value, 'localDateTime') })).executeInsert()
-                    case 'dtz': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtz: conn.const(value, 'localDateTime') })).executeInsert()
+                    case 'dtl': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtl: conn.const(value, 'localDateTime') })).executeInsert()
                 }
             },
             equals: (id, value) => byId(id).and(column.equals(value)).selectOneColumn(tValues.id).executeSelectMany(),
@@ -126,7 +126,7 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             readGetter: (id, getter) => byId(id).selectOneColumn(tValues.t[timeGetterOf(getter)]()).executeSelectOne(),
         },
         dt: localDateTime('dt'),
-        dtz: localDateTime('dtz'),
+        dtl: localDateTime('dtl'),
     }
 }
 
@@ -136,11 +136,11 @@ if (config.mode === 'create') {
         const created = await createRunner()
         close = created.close
         return created.runner
-    }, postgresTemporalDialect.selectOne))
+    }, mysqlTemporalDialect.selectOne))
     await close?.()
 } else {
     const { runner, close } = await createRunner()
-    printResult(await runTemporalProbe(postgresTemporalDialect, runner, opsFor(new DBConnection(runner))))
+    printResult(await runTemporalProbe(mysqlTemporalDialect, runner, opsFor(new DBConnection(runner))))
     await close()
 }
 process.exit(0)

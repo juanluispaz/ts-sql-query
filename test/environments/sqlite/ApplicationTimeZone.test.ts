@@ -5,6 +5,7 @@
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from '../../lib/testRunner.js'
+import { isEnvironmentVersionSelected } from '../lib/versions.js'
 
 const probe = fileURLToPath(new URL('./applicationTimeZone/probe.ts', import.meta.url))
 const runtimeArguments = typeof globalThis.Bun !== 'undefined' ? [probe] : ['--import', 'tsx', probe]
@@ -20,7 +21,8 @@ function run(zone: string, mode: 'with-option' | 'without-option', compatibility
     return JSON.parse(result.stdout)
 }
 
-describe('SQLite and the zone of the application', () => {
+// Once, in the pass of the newest versions (SQLite has no docker images)
+describe.skipIf(!isEnvironmentVersionSelected('sqlite', 'newest'))('SQLite and the zone of the application', () => {
     for (const zone of zones) {
         test(`with sqliteRunsInApplicationTimeZone, the database and JavaScript agree in ${zone}`, () => {
             expect(run(zone, 'with-option')).toEqual([])

@@ -62,7 +62,10 @@ Coords
   Each positional arg is a path under test/db/ — or, with the root
   `runners` (`runners`, `runners/postgres`, `runners/sqlite/<file>`), under
   test/runners/, the query-runner tests outside the cell matrix (no version
-  tiers: --run-versions doesn't narrow them). The matrix structure has four
+  tiers: --run-versions doesn't narrow them), or, with the root
+  `environments` (`environments`, `environments/oracle`), under
+  test/environments/, the tests that need an environment of their own (the
+  process in another zone, a database outside UTC; see --all-versions). The matrix structure has four
   navigable levels — supply any prefix; the rest are walked by the
   runner:
 
@@ -288,6 +291,12 @@ Runner flags
         reuse:    sets TESTCONTAINERS_REUSE_ENABLE=true. Containers
                   persist across invocations — preferred for local dev.
         no-reuse: fresh containers every run. Hermetic.
+  --all-versions
+        Only with coords under `environments`: runs them once per version of
+        the engines mapped in test/lib/dockerImages.ts, one image per engine
+        in each pass (test/environments/lib/versionPasses.ts), each version
+        with the compatibilityVersion of its cells. Without it they run on the
+        newest image. See test/ENVIRONMENT_TESTS.md.
   --docker-version <latest|closest>       (default: latest)
         latest:   every real docker cell runs against the engine's latest
                   pinned image (the normal behaviour).
@@ -665,6 +674,9 @@ TIMEOUT=
 SHARD_MODE=off
 SHARD_ONLY=
 EXTRA_ARGS=()
+# --all-versions: the environment tests once per version of the engines (re-runs this script per pass)
+ALL_VERSIONS=off
+ALL_ARGS=("$@")
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -731,6 +743,7 @@ while [ $# -gt 0 ]; do
             esac ;;
         --shard=*)              SHARD_MODE=on; SHARD_ONLY="${1#--shard=}"; shift ;;
         --no-color)             NO_COLOR_FLAG=on; shift ;;
+        --all-versions)         ALL_VERSIONS=on; shift ;;
         --isolate)              BUN_ISOLATE=on; shift ;;
         --list-cells)           LIST_CELLS=on; shift ;;
         --list-files)           LIST_FILES=on; shift ;;
@@ -772,6 +785,34 @@ done
 # two-phase split (full-matrix only) or a single-pass override
 # (focused mode).
 if [ "${#COORDS[@]}" -gt 0 ]; then FOCUSED=on; else FOCUSED=off; fi
+
+# --all-versions: one run of this script per pass of versionPasses.ts, each with TS_SQL_QUERY_ENVIRONMENT_VERSIONS
+# (read by test/environments/lib/versions.ts), one after another so each pass keeps one image per engine
+if [ "$ALL_VERSIONS" = "on" ]; then
+    if [ "${#COORDS[@]}" -eq 0 ]; then
+        echo "Error: --all-versions needs coords under environments, e.g. bun run tests environments --docker --all-versions" >&2; exit 2
+    fi
+    for _coord in "${COORDS[@]}"; do
+        case "$_coord" in
+            environments|environments/*) ;;
+            *) echo "Error: --all-versions is for the environment tests: $_coord isn't under environments" >&2; exit 2 ;;
+        esac
+    done
+    _rest=()
+    for _arg in "${ALL_ARGS[@]}"; do
+        [ "$_arg" = "--all-versions" ] || _rest+=("$_arg")
+    done
+    _passes=(tsx test/environments/lib/versionPasses.ts)
+    [ "$(detect_runtime)" = "bun" ] && _passes=(bun test/environments/lib/versionPasses.ts)
+    _ec=0; _n=0
+    while IFS= read -r _pass; do
+        [ -n "$_pass" ] || continue
+        _n=$((_n + 1))
+        echo ">>> environments, pass $_n: $_pass" >&2
+        TS_SQL_QUERY_ENVIRONMENT_VERSIONS="$_pass" bash "$0" "${_rest[@]}" || _ec=1
+    done < <("${_passes[@]}")
+    exit "$_ec"
+fi
 
 case "$MODE" in parallel|sequential) ;; *)
     echo "Invalid --mode: $MODE (expected parallel|sequential)" >&2; exit 2 ;;

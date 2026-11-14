@@ -3,73 +3,65 @@
 // ../../lib/localTemporalValuesProbe.ts (mode `cases`), or only creates the runner and uses it once (mode `create`),
 // and prints the result as JSON.
 
-import { MySqlConnection } from '../../../../src/connections/MySqlConnection.js'
+import { SqlServerConnection } from '../../../../src/connections/SqlServerConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
-import { creationOutcome, dateGetterOf, mysqlTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
+import { creationOutcome, dateGetterOf, sqlServerTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
 
 interface Config {
     mode: 'cases' | 'create'
     runner: string
-    options: Record<string, never>
-    connection: { host: string, port: number, user: string, password: string, database: string } | undefined
+    options: { useUTC?: boolean, compatibilityVersion?: number }
+    connection: { config: import('mssql').config } | undefined
 }
 
 const config = probeConfig<Config>()
-const db = config.connection ?? { host: '', port: 0, user: '', password: '', database: '' }
+const mssqlModule = await import('mssql')
+// The module is CommonJS: under some loaders its exports are under default
+const mssql = mssqlModule.default ?? mssqlModule
+const baseConfig = config.connection?.config ?? { server: '' }
+const poolConfig: import('mssql').config = {
+    ...baseConfig,
+    options: { ...baseConfig.options, ...(config.options.useUTC === undefined ? {} : { useUTC: config.options.useUTC }) },
+    pool: { max: 2, min: 0 },
+}
 
 async function createRunner(): Promise<{ runner: QueryRunner, close: () => Promise<unknown> }> {
     switch (config.runner) {
-        case 'MySql2QueryRunner': {
-            const { default: mysql2 } = await import('mysql2')
-            const { MySql2QueryRunner } = await import('../../../../src/queryRunners/MySql2QueryRunner.js')
-            const connection = mysql2.createConnection(db)
-            return { runner: new MySql2QueryRunner(connection, 'mySql'), close: () => new Promise<void>(resolve => connection.end(() => resolve())) }
+        case 'MssqlPoolQueryRunner': {
+            const { MssqlPoolQueryRunner } = await import('../../../../src/queryRunners/MssqlPoolQueryRunner.js')
+            const pool = await new mssql.ConnectionPool(poolConfig).connect()
+            return { runner: new MssqlPoolQueryRunner(pool), close: () => pool.close() }
         }
-        case 'MySql2PoolQueryRunner': {
-            const { default: mysql2 } = await import('mysql2')
-            const { MySql2PoolQueryRunner } = await import('../../../../src/queryRunners/MySql2PoolQueryRunner.js')
-            const pool = mysql2.createPool({ ...db, connectionLimit: 2 })
-            return { runner: new MySql2PoolQueryRunner(pool, 'mySql'), close: () => new Promise<void>(resolve => pool.end(() => resolve())) }
-        }
-        case 'MariaDBQueryRunner': {
-            const { default: mariadb } = await import('mariadb')
-            const { MariaDBQueryRunner } = await import('../../../../src/queryRunners/MariaDBQueryRunner.js')
-            const connection = await mariadb.createConnection({ ...db, allowPublicKeyRetrieval: true })
-            return { runner: new MariaDBQueryRunner(connection, 'mySql'), close: () => connection.end() }
-        }
-        case 'MariaDBPoolQueryRunner': {
-            const { default: mariadb } = await import('mariadb')
-            const { MariaDBPoolQueryRunner } = await import('../../../../src/queryRunners/MariaDBPoolQueryRunner.js')
-            const pool = mariadb.createPool({ ...db, allowPublicKeyRetrieval: true, connectionLimit: 2, minimumIdle: 0 })
-            return { runner: new MariaDBPoolQueryRunner(pool, 'mySql'), close: () => pool.end() }
-        }
-        case 'BunSqlMySqlQueryRunner': {
-            const { SQL } = await import('bun')
-            const { BunSqlMySqlQueryRunner } = await import('../../../../src/queryRunners/BunSqlMySqlQueryRunner.js')
-            const sql = new SQL({ adapter: 'mysql', hostname: db.host, port: db.port, username: db.user, password: db.password, database: db.database, foundRows: true, allowPublicKeyRetrieval: true, max: 2 })
-            return { runner: new BunSqlMySqlQueryRunner(sql, 'mySql'), close: () => sql.close() }
+        case 'MssqlPoolPromiseQueryRunner': {
+            const { MssqlPoolPromiseQueryRunner } = await import('../../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js')
+            const pool = new mssql.ConnectionPool(poolConfig).connect()
+            return { runner: new MssqlPoolPromiseQueryRunner(pool), close: async () => (await pool).close() }
         }
         default:
             throw new Error('Unknown runner ' + config.runner)
     }
 }
 
-class DBConnection extends MySqlConnection<'DBConnection'> { }
+// The compatibilityVersion of the cells of the version the test runs against
+class DBConnection extends SqlServerConnection<'DBConnection'> {
+    protected override compatibilityVersion = config.options?.compatibilityVersion ?? Number.POSITIVE_INFINITY
+}
 
 class TValues extends Table<DBConnection, 'TValues'> {
     id = this.primaryKey('id', 'int')
     d = this.optionalColumn('d', 'localDate')
     t = this.optionalColumn('t', 'localTime')
     dt = this.optionalColumn('dt', 'localDateTime')
-    dtl = this.optionalColumn('dtl', 'localDateTime')
+    dtx = this.optionalColumn('dtx', 'localDateTime')
+    dtz = this.optionalColumn('dtz', 'localDateTime')
     constructor() {
         super('rt_tz_values')
     }
 }
 const tValues = new TValues()
 
-type DateTimeName = 'dt' | 'dtl'
+type DateTimeName = 'dt' | 'dtx' | 'dtz'
 
 function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, TemporalColumnOps>> {
     const byId = (id: number) => conn.selectFrom(tValues).where(tValues.id.equals(id))
@@ -82,7 +74,8 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             insertFromSelectOfConsts: (id, value) => {
                 switch (name) {
                     case 'dt': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dt: conn.const(value, 'localDateTime') })).executeInsert()
-                    case 'dtl': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtl: conn.const(value, 'localDateTime') })).executeInsert()
+                    case 'dtx': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtx: conn.const(value, 'localDateTime') })).executeInsert()
+                    case 'dtz': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtz: conn.const(value, 'localDateTime') })).executeInsert()
                 }
             },
             equals: (id, value) => byId(id).and(column.equals(value)).selectOneColumn(tValues.id).executeSelectMany(),
@@ -123,7 +116,8 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
             readGetter: (id, getter) => byId(id).selectOneColumn(tValues.t[timeGetterOf(getter)]()).executeSelectOne(),
         },
         dt: localDateTime('dt'),
-        dtl: localDateTime('dtl'),
+        dtx: localDateTime('dtx'),
+        dtz: localDateTime('dtz'),
     }
 }
 
@@ -133,11 +127,11 @@ if (config.mode === 'create') {
         const created = await createRunner()
         close = created.close
         return created.runner
-    }, mysqlTemporalDialect.selectOne))
+    }, sqlServerTemporalDialect.selectOne))
     await close?.()
 } else {
     const { runner, close } = await createRunner()
-    printResult(await runTemporalProbe(mysqlTemporalDialect, runner, opsFor(new DBConnection(runner))))
+    printResult(await runTemporalProbe(sqlServerTemporalDialect, runner, opsFor(new DBConnection(runner))))
     await close()
 }
 process.exit(0)

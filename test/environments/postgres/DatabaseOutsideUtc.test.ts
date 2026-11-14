@@ -12,19 +12,33 @@ import { PgQueryRunner } from '../../../src/queryRunners/PgQueryRunner.js'
 import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
-import { reasonOf } from '../lib/runnerContract.js'
+import { reasonOf } from '../../runners/lib/runnerContract.js'
+import { environmentVersions, isEnvironmentVersionSelected } from '../lib/versions.js'
 
+// Each connection takes the compatibilityVersion of the cells of the version it runs against
 class MadridConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
+    constructor(queryRunner: QueryRunner, compatibilityVersion?: number) {
+        super(queryRunner)
+        if (compatibilityVersion !== undefined) this.compatibilityVersion = compatibilityVersion
+    }
 }
 class MadridTodayConnection extends PostgreSqlConnection<'MadridTodayConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override localTimeReferenceDate = 'today'
+    constructor(queryRunner: QueryRunner, compatibilityVersion?: number) {
+        super(queryRunner)
+        if (compatibilityVersion !== undefined) this.compatibilityVersion = compatibilityVersion
+    }
 }
 // The same database, with a reference date of summer
 class MadridSummerConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override localTimeReferenceDate = '2024-07-14'
+    constructor(queryRunner: QueryRunner, compatibilityVersion?: number) {
+        super(queryRunner)
+        if (compatibilityVersion !== undefined) this.compatibilityVersion = compatibilityVersion
+    }
 }
 class UtcConnection extends PostgreSqlConnection<'UtcConnection'> { }
 
@@ -42,11 +56,11 @@ class TMoment extends Table<MadridConnection, 'TMoment'> {
 const winter = new Date('2024-01-14T09:15:30.123Z')
 const summer = new Date('2024-07-14T09:15:30.123Z')
 
-async function scenario(runner: QueryRunner, raw: (sql: string) => Promise<any[]>): Promise<void> {
+async function scenario(runner: QueryRunner, raw: (sql: string) => Promise<any[]>, compatibilityVersion?: number): Promise<void> {
     await raw('drop table if exists rt_madrid_moment')
     await raw('create table rt_madrid_moment (id int primary key, ts timestamp, tstz timestamptz, t time)')
     try {
-        const conn = new MadridConnection(runner)
+        const conn = new MadridConnection(runner, compatibilityVersion)
         const tMoment = new TMoment()
         // Sent: stored as the wall clock of Madrid
         await conn.insertInto(tMoment).set({ id: 1, ts: winter, tstz: winter, t: new Date('1970-01-01T17:00:00.000Z') }).executeInsert()
@@ -76,12 +90,12 @@ async function scenario(runner: QueryRunner, raw: (sql: string) => Promise<any[]
         const now = await conn.selectFromNoTable().selectOneColumn(conn.currentTimestamp()).executeSelectOne()
         expect(Math.abs(now.getTime() - before)).toBeLessThan(60_000)
         // A localTime on today, the current date of the database: its offset is the one of today in Madrid
-        const today = await new MadridTodayConnection(runner).selectFromNoTable().selectOneColumn(new MadridTodayConnection(runner).const(new Date('1970-01-01T17:00:00.000Z'), 'localTime')).executeSelectOne()
+        const today = await new MadridTodayConnection(runner, compatibilityVersion).selectFromNoTable().selectOneColumn(new MadridTodayConnection(runner, compatibilityVersion).const(new Date('1970-01-01T17:00:00.000Z'), 'localTime')).executeSelectOne()
         expect([16, 17]).toContain(today.getUTCHours())
         expect(today.getUTCFullYear()).toBeGreaterThan(2000)
         // A localTime is written and read with the offset of its own day: a day of summer, the reference date (18:00 in
         // Madrid is 16:00Z in summer)
-        const summerConn = new MadridSummerConnection(runner)
+        const summerConn = new MadridSummerConnection(runner, compatibilityVersion)
         const summerTime = new Date('2024-07-14T16:00:00.000Z')
         await summerConn.insertInto(tMoment).set({ id: 4, t: summerTime }).executeInsert()
         expect(await raw('select t::text as t from rt_madrid_moment where id = 4')).toEqual([{ t: '18:00:00' }])
@@ -91,7 +105,7 @@ async function scenario(runner: QueryRunner, raw: (sql: string) => Promise<any[]
     }
 }
 
-describe.skipIf(!isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'))('PGlite: a database in Europe/Madrid, declared in the connection', () => {
+describe.skipIf(!isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite') || !isEnvironmentVersionSelected('postgres', 'newest'))('PGlite: a database in Europe/Madrid, declared in the connection', () => {
     test('the-values-without-zone-are-wall-clocks-of-madrid', async () => {
         const { PGlite } = await import('@electric-sql/pglite')
         const db = await PGlite.create('memory://', { postgresqlconf: ["timezone = 'Europe/Madrid'"] })
@@ -103,18 +117,24 @@ describe.skipIf(!isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'))('PGlit
     })
 })
 
-describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg'))('pg: a session in Europe/Madrid, the zone declared in the connection', () => {
-    test('the-values-without-zone-are-wall-clocks-of-madrid', async () => {
-        const db = await acquireRunnerTestDatabase()
-        const client = new pg.Client({ connectionString: db.uri, options: '-c TimeZone=Europe/Madrid' })
-        await client.connect()
-        try {
-            await scenario(new PgQueryRunner(client), async (sql) => (await client.query(sql)).rows)
-        } finally {
-            await client.end()
-            await db.release()
-        }
-    }, 300_000)
+// Each version of the engine mapped for --docker-version closest runs too, with the compatibilityVersion of its cells
+for (const { version, compatibilityVersion, label } of await environmentVersions('postgres', 'pg')) {
+    describe.skipIf(!isRealDbEnabled('postgres', 'docker', version, 'pg'))('pg: a session in Europe/Madrid, the zone declared in the connection' + label, () => {
+        test('the-values-without-zone-are-wall-clocks-of-madrid', async () => {
+            const db = await acquireRunnerTestDatabase(undefined, version)
+            const client = new pg.Client({ connectionString: db.uri, options: '-c TimeZone=Europe/Madrid' })
+            await client.connect()
+            try {
+                await scenario(new PgQueryRunner(client), async (sql) => (await client.query(sql)).rows, compatibilityVersion)
+            } finally {
+                await client.end()
+                await db.release()
+            }
+        }, 300_000)
+    })
+}
+
+describe.skipIf(!isRealDbEnabled('postgres', 'docker', 'newest', 'pg') || !isEnvironmentVersionSelected('postgres', 'newest'))('pg: a session in Europe/Madrid, rejected when the connection declares UTC', () => {
 
     test('a-session-in-madrid-is-rejected-when-the-connection-declares-utc', async () => {
         const db = await acquireRunnerTestDatabase()

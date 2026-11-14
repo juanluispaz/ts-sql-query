@@ -70,7 +70,7 @@ validate:tests — type-check the test/ matrix with tsc (one program per connect
     validate:tests postgres/newest/pg           # one cell, ~3 s
     validate:tests postgres                     # every postgres connector
     validate:tests '*/types.negative'           # the negative-type cells
-    validate:tests runners                      # the query-runner tests (test/runners/)
+    validate:tests runners                      # the query-runner tests (test/runners/) and the environment tests (test/environments/)
     validate:tests 'postgres/*/{pg,postgres}'   # two connectors, all versions
     validate:tests mariadb/newest/mariadb mysql/newest/mysql2
 
@@ -126,9 +126,9 @@ EOF
     rm -f "$cfg"
 }
 
-# The query-runner tests (test/runners/) sit outside the cell matrix: one
-# program over them, every database's runners.ts they acquire engines from
-# and that file's domain.
+# The query-runner tests (test/runners/) and the environment tests
+# (test/environments/) sit outside the cell matrix: one program over them,
+# every database's runners.ts they acquire engines from and that file's domain.
 run_runners_slice() {
     local cfg="test/tsconfig.runners.generated.json"
     cat > "$cfg" <<EOF
@@ -137,6 +137,7 @@ run_runners_slice() {
     "include": [
         "lib/**/*.ts",
         "runners/**/*.ts",
+        "environments/**/*.ts",
         "db/*/runners.ts",
         "db/*/domain/**/*.ts",
         "../src/**/*.ts"
@@ -144,7 +145,7 @@ run_runners_slice() {
 }
 EOF
     echo ""
-    echo ">>> validate:tests — runners"
+    echo ">>> validate:tests — runners and environments"
     tsc -p "$cfg" --noEmit
     rm -f "$cfg"
 }
@@ -175,7 +176,7 @@ fi
 matched=()
 runners_slice=0
 for coord in "${COORDS[@]}"; do
-    if [ "$coord" = "runners" ]; then runners_slice=1; continue; fi
+    if [ "$coord" = "runners" ] || [ "$coord" = "environments" ]; then runners_slice=1; continue; fi
     case "$coord" in
         *[*?[{]*) shape=expand ;;
         */*)      shape=deep ;;

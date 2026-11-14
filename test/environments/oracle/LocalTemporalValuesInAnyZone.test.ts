@@ -8,14 +8,16 @@ import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 import { describeLocalTemporalValuesInAnyZone, describeRunnerRequirements } from '../lib/localTemporalValues.js'
 import { oracleTemporalDialect } from '../lib/localTemporalValuesProbe.js'
+import { environmentVersions, isEnvironmentVersionSelected } from '../lib/versions.js'
 
 const probe = fileURLToPath(new URL('./localTemporalValuesInAnyZone/probe.ts', import.meta.url))
 const enabled = isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb')
 
-async function acquire() {
-    const db = await acquireRunnerTestDatabase()
+async function acquireOn(version: string) {
+    const db = await acquireRunnerTestDatabase(undefined, version)
     return { info: { user: db.user, password: db.password, connectString: db.connectString }, release: () => db.release() }
 }
+const acquire = () => acquireOn('newest')
 
 const runners = ['OracleDBQueryRunner', 'OracleDBPoolQueryRunner', 'OracleDBPoolPromiseQueryRunner']
 
@@ -37,14 +39,19 @@ function oracleLimitOf(zone: string, caseName: string): string | undefined {
     return undefined
 }
 
-describeLocalTemporalValuesInAnyZone({
-    database: 'Oracle',
-    dialect: oracleTemporalDialect,
-    probe,
-    acquire,
-    // ORA_SDTZ = UTC is what the runners require when the process isn't in UTC (see the requirements below)
-    runners: runners.map(runner => ({ runner, enabled, needsConnection: true, envFor: (zone: string) => zone === 'UTC' ? {} : { ORA_SDTZ: 'UTC' }, limitOf: oracleLimitOf })),
-})
+// Each version of the engine mapped for --docker-version closest runs too, with the compatibilityVersion of its cells
+for (const { version, compatibilityVersion, label } of await environmentVersions('oracle', 'oracledb')) {
+    const enabledOn = isRealDbEnabled('oracle', 'docker', version, 'oracledb')
+    describeLocalTemporalValuesInAnyZone({
+        database: 'Oracle' + label,
+        compatibilityVersion,
+        dialect: oracleTemporalDialect,
+        probe,
+        acquire: () => acquireOn(version),
+        // ORA_SDTZ = UTC is what the runners require when the process isn't in UTC (see the requirements below)
+        runners: runners.map(runner => ({ runner, enabled: enabledOn, needsConnection: true, envFor: (zone: string) => zone === 'UTC' ? {} : { ORA_SDTZ: 'UTC' }, limitOf: oracleLimitOf })),
+    })
+}
 
 // What the runners of oracledb must validate, at the first query (which carries the databaseTimeZone of the
 // connection, UTC here): the session in the zone of the database.
@@ -54,7 +61,7 @@ describeRunnerRequirements({
     title: 'Oracle: the runners of oracledb require the session in UTC, from ORA_SDTZ or from a process in UTC',
     probe,
     acquire,
-    enabled,
+    enabled: enabled && isEnvironmentVersionSelected('oracle', 'newest'),
     requirements: runners.flatMap(runner => [
         { title: `${runner} without ORA_SDTZ is rejected in Europe/Madrid`, runner, zone: 'Europe/Madrid', expected: 'rejected at its first query' as const },
         { title: `${runner} without ORA_SDTZ is rejected in America/New_York`, runner, zone: 'America/New_York', expected: 'rejected at its first query' as const },

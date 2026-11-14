@@ -26,7 +26,7 @@ import {
     type RunnerConnectionFailure,
     UNREACHABLE_PORT,
 } from '../../lib/containerLifecycle.js'
-import { imageForCell, newestImage } from '../../lib/dockerImages.js'
+import { closestImage, imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { DBConnection } from './domain/connection.js'
 
@@ -539,8 +539,8 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
 // connect their own driver to: the newest image, with the worker database
 // bootstrapped exactly as the cells get it. With a `failure`, the parameters
 // of a connection that fails that way (nothing is held: release() is a no-op).
-export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure): Promise<{ config: import('mssql').config, mssql: typeof import('mssql'), release(): Promise<void> }> {
-    const image = newestImage(DATABASE)
+export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailure, version: string = 'newest'): Promise<{ config: import('mssql').config, mssql: typeof import('mssql'), release(): Promise<void> }> {
+    const image = version === 'newest' ? newestImage(DATABASE) : closestImage(DATABASE, version)
     const container = await containers.getFor(image).acquire()
     const host = container.getHost()
     const port = container.getMappedPort(1433)

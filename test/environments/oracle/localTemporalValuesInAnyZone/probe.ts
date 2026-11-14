@@ -3,54 +3,60 @@
 // ../../lib/localTemporalValuesProbe.ts (mode `cases`), or only creates the runner and uses it once (mode `create`),
 // and prints the result as JSON.
 
-import { SqlServerConnection } from '../../../../src/connections/SqlServerConnection.js'
+import { OracleConnection } from '../../../../src/connections/OracleConnection.js'
 import { Table } from '../../../../src/Table.js'
+import { OracleDateAsTimestampTypeAdapter } from '../../../../src/TypeAdapter.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
-import { creationOutcome, dateGetterOf, sqlServerTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
+import { creationOutcome, dateGetterOf, oracleTemporalDialect, printResult, probeConfig, runTemporalProbe, timeGetterOf, type TemporalColumnOps } from '../../lib/localTemporalValuesProbe.js'
 
 interface Config {
     mode: 'cases' | 'create'
     runner: string
-    options: { useUTC?: boolean }
-    connection: { config: import('mssql').config } | undefined
+    options: { compatibilityVersion?: number }
+    connection: { user: string, password: string, connectString: string } | undefined
 }
 
 const config = probeConfig<Config>()
-const mssqlModule = await import('mssql')
-// The module is CommonJS: under some loaders its exports are under default
-const mssql = mssqlModule.default ?? mssqlModule
-const baseConfig = config.connection?.config ?? { server: '' }
-const poolConfig: import('mssql').config = {
-    ...baseConfig,
-    options: { ...baseConfig.options, ...(config.options.useUTC === undefined ? {} : { useUTC: config.options.useUTC }) },
-    pool: { max: 2, min: 0 },
-}
+const db = config.connection ?? { user: '', password: '', connectString: '' }
 
 async function createRunner(): Promise<{ runner: QueryRunner, close: () => Promise<unknown> }> {
     switch (config.runner) {
-        case 'MssqlPoolQueryRunner': {
-            const { MssqlPoolQueryRunner } = await import('../../../../src/queryRunners/MssqlPoolQueryRunner.js')
-            const pool = await new mssql.ConnectionPool(poolConfig).connect()
-            return { runner: new MssqlPoolQueryRunner(pool), close: () => pool.close() }
+        case 'OracleDBQueryRunner': {
+            const { default: oracledb } = await import('oracledb')
+            const { OracleDBQueryRunner } = await import('../../../../src/queryRunners/OracleDBQueryRunner.js')
+            const connection = await oracledb.getConnection(db)
+            return { runner: new OracleDBQueryRunner(connection), close: () => connection.close() }
         }
-        case 'MssqlPoolPromiseQueryRunner': {
-            const { MssqlPoolPromiseQueryRunner } = await import('../../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js')
-            const pool = new mssql.ConnectionPool(poolConfig).connect()
-            return { runner: new MssqlPoolPromiseQueryRunner(pool), close: async () => (await pool).close() }
+        case 'OracleDBPoolQueryRunner': {
+            const { default: oracledb } = await import('oracledb')
+            const { OracleDBPoolQueryRunner } = await import('../../../../src/queryRunners/OracleDBPoolQueryRunner.js')
+            const pool = await oracledb.createPool({ ...db, poolMin: 0, poolMax: 2 })
+            return { runner: new OracleDBPoolQueryRunner(pool), close: () => pool.close(0) }
+        }
+        case 'OracleDBPoolPromiseQueryRunner': {
+            const { default: oracledb } = await import('oracledb')
+            const { OracleDBPoolPromiseQueryRunner } = await import('../../../../src/queryRunners/OracleDBPoolPromiseQueryRunner.js')
+            const pool = oracledb.createPool({ ...db, poolMin: 0, poolMax: 2 })
+            return { runner: new OracleDBPoolPromiseQueryRunner(pool), close: async () => (await pool).close(0) }
         }
         default:
             throw new Error('Unknown runner ' + config.runner)
     }
 }
 
-class DBConnection extends SqlServerConnection<'DBConnection'> { }
+// The compatibilityVersion of the cells of the version the test runs against
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override compatibilityVersion = config.options?.compatibilityVersion ?? Number.POSITIVE_INFINITY
+}
 
 class TValues extends Table<DBConnection, 'TValues'> {
     id = this.primaryKey('id', 'int')
     d = this.optionalColumn('d', 'localDate')
     t = this.optionalColumn('t', 'localTime')
     dt = this.optionalColumn('dt', 'localDateTime')
-    dtx = this.optionalColumn('dtx', 'localDateTime')
+    // A localDateTime in a DATE column is declared with this adapter, so the time getters read it as a timestamp
+    dtx = this.optionalColumn('dtx', 'localDateTime', new OracleDateAsTimestampTypeAdapter())
+    dtl = this.optionalColumn('dtl', 'localDateTime')
     dtz = this.optionalColumn('dtz', 'localDateTime')
     constructor() {
         super('rt_tz_values')
@@ -58,7 +64,7 @@ class TValues extends Table<DBConnection, 'TValues'> {
 }
 const tValues = new TValues()
 
-type DateTimeName = 'dt' | 'dtx' | 'dtz'
+type DateTimeName = 'dt' | 'dtx' | 'dtl' | 'dtz'
 
 function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, TemporalColumnOps>> {
     const byId = (id: number) => conn.selectFrom(tValues).where(tValues.id.equals(id))
@@ -72,6 +78,7 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
                 switch (name) {
                     case 'dt': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dt: conn.const(value, 'localDateTime') })).executeInsert()
                     case 'dtx': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtx: conn.const(value, 'localDateTime') })).executeInsert()
+                    case 'dtl': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtl: conn.const(value, 'localDateTime') })).executeInsert()
                     case 'dtz': return conn.insertInto(tValues).from(conn.selectFromNoTable().select({ id: conn.const(id, 'int'), dtz: conn.const(value, 'localDateTime') })).executeInsert()
                 }
             },
@@ -114,6 +121,7 @@ function opsFor(conn: DBConnection): Partial<Record<'d' | 't' | DateTimeName, Te
         },
         dt: localDateTime('dt'),
         dtx: localDateTime('dtx'),
+        dtl: localDateTime('dtl'),
         dtz: localDateTime('dtz'),
     }
 }
@@ -124,11 +132,11 @@ if (config.mode === 'create') {
         const created = await createRunner()
         close = created.close
         return created.runner
-    }, sqlServerTemporalDialect.selectOne))
+    }, oracleTemporalDialect.selectOne))
     await close?.()
 } else {
     const { runner, close } = await createRunner()
-    printResult(await runTemporalProbe(sqlServerTemporalDialect, runner, opsFor(new DBConnection(runner))))
+    printResult(await runTemporalProbe(oracleTemporalDialect, runner, opsFor(new DBConnection(runner))))
     await close()
 }
 process.exit(0)

@@ -1,6 +1,6 @@
 // sqliteRunsInApplicationTimeZone: what the date functions write when SQLite runs in the zone of the application.
 // The suite pins UTC, so here only the SQL can be compared; what those queries give in other zones is proved in
-// test/runners/sqlite/ApplicationTimeZone.test.ts, which starts a process in each zone.
+// test/environments/sqlite/ApplicationTimeZone.test.ts, which starts a process in each zone.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

@@ -361,6 +361,9 @@ export type TsSqlErrorReason =
      */
     | /** Invalid configuration provided */
       { reason: 'INVALID_CONFIGURATION', name: string, value: unknown }
+    | /** A query given to a query runner that executes nothing (`NoExecutionQueryRunner`), the one of a connection made
+        only to use its methods, like converting the types of the database (`sqlDataTypeFrom`) */
+      { reason: 'QUERY_NOT_ALLOWED', query: string }
 
     /* ********************************************************************************************
      * Testing errors

@@ -218,6 +218,10 @@ export {
 } from '../../queryRunners/NoopQueryRunner.js'
 
 export {
+    NoExecutionQueryRunner,
+} from '../../queryRunners/NoExecutionQueryRunner.js'
+
+export {
     type TimeGranularity,
     type ConsoleLogQueryRunnerOpts,
     ConsoleLogQueryRunner,

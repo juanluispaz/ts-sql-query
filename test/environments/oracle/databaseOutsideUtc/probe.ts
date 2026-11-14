@@ -1,6 +1,6 @@
 // Run by DatabaseOutsideUtc.test.ts in a process of its own, started with TZ and ORA_SDTZ set (the zone of a process
 // and the zone oracledb gives the session are set when they start). Mode `scenario` runs the queries of a database in
-// Europe/Madrid declared in the connection and prints what was stored and read; mode `firstQuery` builds the runner it
+// Europe/Madrid declared in the connection, through the runner it is told, and prints what was stored and read; mode `firstQuery` builds the runner it
 // is told and prints the outcome of its first query.
 
 import { OracleConnection } from '../../../../src/connections/OracleConnection.js'
@@ -101,12 +101,15 @@ async function scenario(): Promise<ScenarioResult> {
     const connection = await oracledb.getConnection(db)
     const raw = async (sql: string, binds: any = {}): Promise<any[]> => (await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: true })).rows ?? []
     const out: ScenarioResult = {}
+    let closeRunner: (() => Promise<unknown>) | undefined
     try { await raw('drop table ' + tableName + ' purge') } catch { /* it doesn't exist */ }
     await raw('create table ' + tableName + ' (id number primary key, ts timestamp(3), dx date, t timestamp(3), tz timestamp(3) with time zone)')
     await raw('create index ' + tableName + '_ts on ' + tableName + ' (ts)')
     await raw('create index ' + tableName + '_dx on ' + tableName + ' (dx)')
     try {
-        const conn = new MadridConnection(new (await import('../../../../src/queryRunners/OracleDBQueryRunner.js')).OracleDBQueryRunner(connection))
+        const created = await createRunner()
+        closeRunner = created.close
+        const conn = new MadridConnection(created.runner)
         out.session = (await raw('select sessiontimezone as s from dual'))[0].S
         // Sent: stored as the wall clock of Madrid of the instant
         await conn.insertInto(tMoment).set({ id: 1, ts: winter, dx: winterWhole, t: time17, tz: winter }).executeInsert()
@@ -176,6 +179,7 @@ async function scenario(): Promise<ScenarioResult> {
         await raw(`insert into ${tableName} (id, ts) values (4, timestamp '2024-03-31 02:30:00')`)
         out.skipped = await outcomeOf(() => conn.selectFrom(tMoment).where(tMoment.id.equals(4)).selectOneColumn(tMoment.ts).executeSelectOne())
     } finally {
+        await closeRunner?.()
         await raw('drop table ' + tableName + ' purge')
         await connection.close()
     }

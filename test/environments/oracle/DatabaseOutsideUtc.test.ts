@@ -29,9 +29,10 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
         }, TIMEOUT)
         const connection = () => ({ user: db!.user, password: db!.password, connectString: db!.connectString })
 
-        for (const zone of ['Europe/Madrid', 'UTC', 'Asia/Tokyo']) {
-            test(`the-values-without-zone-are-wall-clocks-of-madrid-with-the-process-in-${zone.replace('/', '-')}`, async () => {
-                const out = await runProbe(probe, 'scenario', { runner: 'OracleDBQueryRunner', options: { table: 'rt_ora_madrid', compatibilityVersion }, zone, env: { ORA_SDTZ: 'Europe/Madrid' } }, connection()) as Required<ScenarioResult>
+        const runners = ['OracleDBQueryRunner', 'OracleDBPoolQueryRunner', 'OracleDBPoolPromiseQueryRunner']
+        for (const runner of runners) for (const zone of ['Europe/Madrid', 'UTC', 'Asia/Tokyo']) {
+            test(`${runner}-the-values-without-zone-are-wall-clocks-of-madrid-with-the-process-in-${zone.replace('/', '-')}`, async () => {
+                const out = await runProbe(probe, 'scenario', { runner, options: { table: 'rt_ora_madrid', compatibilityVersion }, zone, env: { ORA_SDTZ: 'Europe/Madrid' } }, connection()) as Required<ScenarioResult>
                 expect(out.session).toBe('Europe/Madrid')
                 // Sent: the value of a column goes as it is, stored as the wall clock of Madrid of its instant (1960 at
                 // +01:00, summer at +02:00); a DATE keeps the whole seconds
@@ -89,7 +90,6 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
 
         // The session must be in the declared zone: ORA_SDTZ with its name. Unset, oracledb gives the session the offset of
         // the process, which doesn't follow summer time, also with the process in Madrid
-        const runners = ['OracleDBQueryRunner', 'OracleDBPoolQueryRunner', 'OracleDBPoolPromiseQueryRunner']
         const sessions: { title: string, zone: string, env: Record<string, string | undefined>, expected: RegExp }[] = [
             { title: 'with-ora-sdtz-europe-madrid-is-accepted-in-asia-tokyo', zone: 'Asia/Tokyo', env: { ORA_SDTZ: 'Europe/Madrid' }, expected: /^executed$/ },
             { title: 'without-ora-sdtz-is-rejected-in-europe-madrid', zone: 'Europe/Madrid', env: {}, expected: /^rejected: INVALID_CONFIGURATION: .*ORA_SDTZ to 'Europe\/Madrid'/ },

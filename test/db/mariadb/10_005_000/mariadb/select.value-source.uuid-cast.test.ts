@@ -119,6 +119,12 @@ describe(ctx.label, () => {
     })
 
     test('uuid-asString-valueWhenNull-fallback', async () => {
+        // MOCK-ONLY: on the newest image external_ref is of MariaDB's native UUID type (10.7 on), which this version
+        // doesn't have: the SQL written for a uuid stored as text, the only one this version knows, gives a NULL with
+        // that column. On the image of this version (--docker-version closest) it runs against the engine.
+        if (ctx.realDbOnTheNewestImage) {
+            ctx.mockOnlyConnection()
+        }
         // Issue 3 has a NULL external_ref; the uuid-derived receiver falls
         // back to the placeholder. Exercises the receiver-side convert.
         ctx.mockNext('(no ref)')
@@ -363,6 +369,12 @@ describe(ctx.label, () => {
     })
 
     test('uuid-asString-in-a-union-with-a-text-column', async () => {
+        // MOCK-ONLY: on the newest image external_ref is of MariaDB's native UUID type (10.7 on), which this version
+        // doesn't have: the SQL written for a uuid stored as text, the only one this version knows, gives a NULL with
+        // that column. On the image of this version (--docker-version closest) it runs against the engine.
+        if (ctx.realDbOnTheNewestImage) {
+            ctx.mockOnlyConnection()
+        }
         // The column `ref` of the union is the text of issue 1's uuid in one arm
         // and the slug of project 2, a text that isn't a uuid, in the other: each
         // row keeps its text.

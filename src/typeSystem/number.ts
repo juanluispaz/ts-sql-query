@@ -32,7 +32,6 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
 
 /** The int and the double, the numbers of JavaScript */
 export abstract class NumberType extends ComparableType<number> {
-    /** The int and the double of the group (valueWhenNull of an int with a double gives a double) */
     /** Whether a type and a custom type are of the group number: an int or a double */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return customType === undefined && (type === 'int' || type === 'double')
@@ -41,21 +40,19 @@ export abstract class NumberType extends ComparableType<number> {
     declare [typeName]: `type:${string}:number:`
     declare [operandTypeName]: `type:${string}:number:`
 
-    /** The number as an int: a double is rounded (DoubleType), an int stays as it is */
+    /** The number as an int: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
     asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     asInt(): any {
-        const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, IntType, vs.__optionalType, vs.__typeAdapter)
+        return __operation0(this, '_asInt', IntType)
     }
     asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     asDouble(): any {
         return __operation0(this, '_asDouble', DoubleType)
     }
-    /** The number as a bigint: a double is rounded (DoubleType), an int stays as it is */
+    /** The number as a bigint: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
     asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
     asBigint(): any {
-        const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, BigintType, vs.__optionalType, vs.__typeAdapter)
+        return __operation0(this, '_asBigint', BigintType)
     }
     abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abs(): any {
@@ -187,6 +184,19 @@ export abstract class IntType extends NumberType {
     static override readonly type = 'int'
     static override readonly customType = undefined
     declare [typeName]: 'type:int:number:'
+
+    /** An int is already an int */
+    override asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    override asInt(): any {
+        const vs = this as unknown as ValueSourceRoot
+        return __newNoopValueSource(vs, IntType, vs.__optionalType, vs.__typeAdapter)
+    }
+    /** An int is a bigint as it is */
+    override asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
+    override asBigint(): any {
+        const vs = this as unknown as ValueSourceRoot
+        return __newNoopValueSource(vs, BigintType, vs.__optionalType, vs.__typeAdapter)
+    }
 }
 
 /** A floating point number, a JavaScript number */
@@ -194,17 +204,7 @@ export abstract class DoubleType extends NumberType {
     static override readonly type = 'double'
     static override readonly customType = undefined
     declare [typeName]: 'type:double:number:'
-
-    /** A double is rounded */
-    override asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>> {
-        return __operation0(this, '_asInt', IntType)
-    }
-    /** A double is rounded */
-    override asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>> {
-        return __operation0(this, '_asBigint', BigintType)
-    }
 }
-
 
 /**
  * An operation of an int or a double with another number (add, minValue, ...): a double with a double; an int with an

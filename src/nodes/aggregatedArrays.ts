@@ -11,7 +11,7 @@ import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSourc
 import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __addInlineQueryWiths, type InlineSelectData } from './inlineSelect.js'
-import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { __adaptedTypeClassOf, __classOf } from './adaptedTypeClass.js'
 
 /*
  * The aggregates as array, a select used as an aggregated array (`forUseAsInlineAggregatedArrayValue`) and the
@@ -81,7 +81,7 @@ function allowWhenAggregateNode<VS extends AggregatedArrayValueSource>(node: Nod
 
 /** The null of an aggregate as array: it reaches nothing */
 function nullAggregateToSql(vs: AggregatedArrayValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext): string {
-    return sqlBuilder._asNullValue(context, vs.__type, vs.__customType, undefined)
+    return sqlBuilder._asNullValue(context, __classOf(vs))
 }
 
 function newAggregateSelect(node: NodeStrategy<AggregateSelectValueSource>, typeClass: DataTypeClass, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateSelectValueSource {

@@ -1,5 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
-import type { TypeAdapter } from '../TypeAdapter.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData, ToSql } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
@@ -11,6 +11,8 @@ import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
+import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // MariaDB 10.5+ reads a column of the row in its on duplicate key update with a subquery over a derived table of
@@ -44,16 +46,16 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     _appendUuidTextAsChar(sql: string): string {
         return 'cast(' + sql + ' as char(36))'
     }
-    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (this._hasNativeUuid()) {
             const receiverIsUuidText = this._isUuidText(valueSource)
             if (receiverIsUuidText !== this._isUuidText(value)) {
                 const receiver = this._appendSql(valueSource, context, false)
-                const fallback = this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
+                const fallback = this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
                 return 'ifnull(' + (receiverIsUuidText ? this._appendUuidTextAsChar(receiver) : receiver) + ', ' + (receiverIsUuidText ? fallback : this._appendUuidTextAsChar(fallback)) + ')'
             }
         }
-        return super._valueWhenNull(context, valueSource, value, type, customType, typeAdapter)
+        return super._valueWhenNull(context, valueSource, value, typeClass)
     }
     override _convertUuidTextInCompound(): boolean {
         return this._hasNativeUuid()

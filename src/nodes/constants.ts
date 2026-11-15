@@ -12,6 +12,7 @@ import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { __classOf } from '../nodes/adaptedTypeClass.js'
 
 export interface SqlOperationStatic0ValueSource extends NodeValueSource, HasOperation {
     __operation: keyof SqlOperationStatic0
@@ -66,7 +67,7 @@ export interface SqlOperationStatic1ValueSource extends NodeValueSource, HasOper
 export const sqlOperationStatic1ValueSourceNode: NodeStrategy<SqlOperationStatic1ValueSource> = {
     ...valueSourceNode,
     __toSql(vs: SqlOperationStatic1ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter, forceTypeCast)
+        return sqlBuilder[vs.__operation](context, vs.__value, __classOf(vs), forceTypeCast)
     },
     __addWiths(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         __addWiths(vs.__value, sqlBuilder, withs)
@@ -111,15 +112,15 @@ export const sqlOperationConstValueSourceNode: NodeStrategy<SqlOperationConstVal
     ...valueSourceNode,
     __toSql(vs: SqlOperationConstValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (vs.__forceTypeCast) {
-            return sqlBuilder._typedConst(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter)
+            return sqlBuilder._typedConst(context, vs.__value, __classOf(vs))
         }
-        return sqlBuilder._const(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter, forceTypeCast)
+        return sqlBuilder._const(context, vs.__value, __classOf(vs), forceTypeCast)
     },
     __toSqlForCondition(vs: SqlOperationConstValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (vs.__forceTypeCast) {
-            return sqlBuilder._typedConstForCondition(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter)
+            return sqlBuilder._typedConstForCondition(context, vs.__value, __classOf(vs))
         }
-        return sqlBuilder._constForCondition(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter, forceTypeCast)
+        return sqlBuilder._constForCondition(context, vs.__value, __classOf(vs), forceTypeCast)
     },
     isConstValue(_vs: SqlOperationConstValueSource): boolean {
         return true
@@ -187,7 +188,7 @@ export interface NullValueSource extends NodeValueSource, HasOperation {
 export const nullValueSourceNode: NodeStrategy<NullValueSource> = {
     ...valueSourceNode,
     __toSql(vs: NullValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._asNullValue(context, vs.__type, vs.__customType, vs.__typeAdapter)
+        return sqlBuilder._asNullValue(context, __classOf(vs))
     },
     __isAllowed(_vs: NullValueSource, _sqlBuilder: HasIsValue): boolean {
         return true

@@ -69,3 +69,13 @@ function createAdaptedClass(base: DataTypeClass, typeAdapter: TypeAdapter): Data
     Object.defineProperty(adapted, unadaptedClass, { value: base })
     return adapted as unknown as DataTypeClass
 }
+
+/** The class of a value source: the one of its data type, with its type adapter */
+export function __classOf(valueSource: object): DataTypeClass {
+    return valueSource.constructor as unknown as DataTypeClass
+}
+
+/** The type adapter of a class of a data type, if it has one */
+export function __typeAdapterOf(typeClass: DataTypeClass): TypeAdapter | undefined {
+    return (typeClass as AdaptableClass)[typeAdapterOfClass]
+}

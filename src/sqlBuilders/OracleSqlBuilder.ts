@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
-import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
+import type { CustomType, TypeAdapter, DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
@@ -17,6 +17,9 @@ import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import { __isCondition } from '../typeSystem/logical.js'
+import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
+import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     // Oracle truncates a fractional scale of round
@@ -125,13 +128,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._concatSql(left, right)
     }
-    override _concat(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _concat(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         const configuration = this._connectionConfiguration
         // Function opt-in and native opt-out both go through `_concatSql` (super): the
         // function propagates NULL itself, the native `||` is the deliberate opt-out. Neither
         // needs the poison `CASE`.
         if (configuration.concatFunction || configuration.ignoreNullInConcat) {
-            return super._concat(context, valueSource, value, type, customType, typeAdapter)
+            return super._concat(context, valueSource, value, typeClass)
         }
         // Default: emulate NULL propagation, following the same shape as the base's min/max
         // poisoning (`_minAndMaxValueBetweenTwoValuesPoisoningNull`): `case when <null check>
@@ -148,11 +151,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // The chain already holds the NULL the `CASE` below exists to propagate, so the
             // concatenation cannot produce anything else: neither the check nor the operands
             // feeding it are worth emitting.
-            return this._asNullValue(context, type, customType, typeAdapter)
+            return this._asNullValue(context, typeClass)
         }
         const nullCheck = this._appendConcatNullCheck(context, valueSource, value, false)
         if (!nullCheck) {
-            return super._concat(context, valueSource, value, type, customType, typeAdapter)
+            return super._concat(context, valueSource, value, typeClass)
         }
         return 'case when ' + nullCheck + ' then null else ' + this._concatChainSql(context, valueSource, value, false) + ' end'
     }
@@ -236,7 +239,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             right = this._concatChainSql(context, value.__valueSource, value.__value, this._concatChainDropsValue(value))
         } else {
             const leftPrivate = __getValueSourcePrivate(valueSource as unknown as AnyValueSource)
-            right = this._appendValueParenthesisExcluding(value, context, leftPrivate.__type, leftPrivate.__customType, leftPrivate.__typeAdapter, '_concat', false)
+            right = this._appendValueParenthesisExcluding(value, context, __classOf(leftPrivate), '_concat', false)
         }
         return this._concatSql(left, right)
     }
@@ -264,45 +267,45 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * IS NULL. `concatFunction` / `ignoreNullInConcat` are not consulted: both choose how `concat`
      * PROPAGATES NULL, which this operation never asks.
      */
-    override _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false) + ' || ' + this._appendValueParenthesisExcluding(value, context, type, customType, typeAdapter, '_concatIgnoringNull', false)
+    override _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false) + ' || ' + this._appendValueParenthesisExcluding(value, context, typeClass, '_concatIgnoringNull', false)
     }
-    override _likePatternStartingWith(context: SqlBuildContext, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+    override _likePatternStartingWith(context: SqlBuildContext, value: any, typeClass: DataTypeClass, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
         if (concatFunction) {
-            const term = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
+            const term = this._escapeLikeWildcard(value, context, typeClass, false)
             const sql = concatFunction + '(' + term + ", '%')"
             return fold ? 'lower(' + sql + ')' : sql
         }
         if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
-            return super._likePatternStartingWith(context, value, type, customType, typeAdapter, fold)
+            return super._likePatternStartingWith(context, value, typeClass, fold)
         }
-        return this._poisonAffixPattern(context, value, type, customType, typeAdapter, fold, (term) => term + " || '%'")
+        return this._poisonAffixPattern(context, value, typeClass, fold, (term) => term + " || '%'")
     }
-    override _likePatternEndingWith(context: SqlBuildContext, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+    override _likePatternEndingWith(context: SqlBuildContext, value: any, typeClass: DataTypeClass, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
         if (concatFunction) {
-            const term = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
+            const term = this._escapeLikeWildcard(value, context, typeClass, false)
             const sql = concatFunction + "('%', " + term + ')'
             return fold ? 'lower(' + sql + ')' : sql
         }
         if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
-            return super._likePatternEndingWith(context, value, type, customType, typeAdapter, fold)
+            return super._likePatternEndingWith(context, value, typeClass, fold)
         }
-        return this._poisonAffixPattern(context, value, type, customType, typeAdapter, fold, (term) => "'%' || " + term)
+        return this._poisonAffixPattern(context, value, typeClass, fold, (term) => "'%' || " + term)
     }
-    override _likePatternContaining(context: SqlBuildContext, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+    override _likePatternContaining(context: SqlBuildContext, value: any, typeClass: DataTypeClass, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
         if (concatFunction) {
             // The function is binary, so gluing both wildcards nests: `f(f('%', term), '%')`.
-            const term = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
+            const term = this._escapeLikeWildcard(value, context, typeClass, false)
             const sql = concatFunction + '(' + concatFunction + "('%', " + term + "), '%')"
             return fold ? 'lower(' + sql + ')' : sql
         }
         if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
-            return super._likePatternContaining(context, value, type, customType, typeAdapter, fold)
+            return super._likePatternContaining(context, value, typeClass, fold)
         }
-        return this._poisonAffixPattern(context, value, type, customType, typeAdapter, fold, (term) => "'%' || " + term + " || '%'")
+        return this._poisonAffixPattern(context, value, typeClass, fold, (term) => "'%' || " + term + " || '%'")
     }
     // Default-mode affix pattern for an OPTIONAL term: propagate the NULL Oracle's `||` would
     // swallow, so the predicate matches nothing (as it does on every other dialect) instead of
@@ -310,13 +313,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // TWICE — once for the null check, once for the pattern — because it must be re-emitted, not
     // a reused placeholder (see the header comment): `case when <term> is null then null else
     // <glue(term)> end`.
-    private _poisonAffixPattern(context: SqlBuildContext, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, fold: boolean, glue: (term: string) => string): string {
-        const check = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
-        const term = this._escapeLikeWildcard(value, context, type, customType, typeAdapter, false)
+    private _poisonAffixPattern(context: SqlBuildContext, value: any, typeClass: DataTypeClass, fold: boolean, glue: (term: string) => string): string {
+        const check = this._escapeLikeWildcard(value, context, typeClass, false)
+        const term = this._escapeLikeWildcard(value, context, typeClass, false)
         const sql = 'case when ' + check + ' is null then null else ' + glue(term) + ' end'
         return fold ? 'lower(' + sql + ')' : '(' + sql + ')'
     }
-    override _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         // Oracle's `REPLACE` honours the session collation, so on a database configured
         // case-insensitive (`NLS_COMP=LINGUISTIC` + a CI sort) `replaceAll('abc', 'X')` on
         // `'ABCabc'` matches both cases and corrupts the value. Force `replaceCollation` (the
@@ -325,11 +328,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // downstream. An empty (or unset) `replaceCollation` opts out to the native `replace`.
         const collation = this._connectionConfiguration.replaceCollation
         if (!collation) {
-            return super._replaceAll(context, valueSource, value, value2, type, customType, typeAdapter)
+            return super._replaceAll(context, valueSource, value, value2, typeClass)
         }
-        return 'replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, context, type, customType, typeAdapter, false) + ') collate USING_NLS_COMP'
+        return 'replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, context, typeClass, false) + ' collate ' + collation + ', ' + this._appendValue(value2, context, typeClass, false) + ') collate USING_NLS_COMP'
     }
-    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         // Oracle's `REPLACE` folds case under a case-insensitive collation. Force a CI collation on
         // the match operands: `insensitiveCollation` when it names one (so a shared language
         // collation carries over), otherwise the configurable `replaceInsensitiveCollation` (which
@@ -341,9 +344,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             collation = this._connectionConfiguration.replaceInsensitiveCollation
         }
         if (!collation) {
-            return super._replaceAll(context, valueSource, value, value2, type, customType, typeAdapter)
+            return super._replaceAll(context, valueSource, value, value2, typeClass)
         }
-        return 'replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, context, type, customType, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, context, type, customType, typeAdapter, false) + ') collate USING_NLS_COMP'
+        return 'replace(' + this._appendSqlParenthesis(valueSource, context, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, context, typeClass, false) + ' collate ' + collation + ', ' + this._appendValue(value2, context, typeClass, false) + ') collate USING_NLS_COMP'
     }
     override _isReservedKeyword(word: string): boolean {
         return isOracleReservedWord(word)
@@ -432,11 +435,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendConditionSql(value, context, forceTypeCast)
     }
-    override _appendConditionParam(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _appendConditionParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
         if (this._nativeBoolean()) {
-            return super._appendConditionParam(value, context, type, customType, typeAdapter, forceTypeCast)
+            return super._appendConditionParam(value, context, typeClass, forceTypeCast)
         }
-        if (__isBoolean(type, customType)) {
+        if (__isBoolean(typeClass.type, typeClass.customType)) {
             if (__isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
                 const typeAdapter = columnPrivate.__typeAdapter
@@ -444,9 +447,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     return '(' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
                 }
             }
-            return '(' + this._appendParam(value, context, type, customType, typeAdapter, forceTypeCast) + ' = 1)'
+            return '(' + this._appendParam(value, context, typeClass, forceTypeCast) + ' = 1)'
         }
-        return this._appendParam(value, context, type, customType, typeAdapter, forceTypeCast)
+        return this._appendParam(value, context, typeClass, forceTypeCast)
     }
     override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
         if (this._nativeBoolean()) {
@@ -536,32 +539,32 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 } else {
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                        return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else if (value === true || value === false) {
                     // remapped
-                    return 'case ' + this._appendValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 } else {
                     // remapped
                     // A null here is bound with the type of a number by the query runner, so Oracle can compare it with 1
-                    return 'case ' + this._appendValue(value, context, type, customType, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -651,11 +654,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
     }
-    override _appendParam(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        if (__isUuid(type, customType) && this._uuidUsesRawFunctions()) {
-            return 'uuid_to_raw(' + super._appendParam(value, context, type, customType, typeAdapter, forceTypeCast) + ')'
+    override _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
+        if (__isUuid(typeClass.type, typeClass.customType) && this._uuidUsesRawFunctions()) {
+            return 'uuid_to_raw(' + super._appendParam(value, context, typeClass, forceTypeCast) + ')'
         }
-        return super._appendParam(value, context, type, customType, typeAdapter, forceTypeCast)
+        return super._appendParam(value, context, typeClass, forceTypeCast)
     }
     override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._uuidUsesRawFunctions()) {
@@ -1241,17 +1244,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return valueSourcePrivate.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter
             && (__isLocalDateTimeValueSource(valueSourcePrivate) || __isLocalTimeValueSource(valueSourcePrivate))
     }
-    override _is(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 1'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ', 1, 0 ) = 1'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ', 1, 0 ) = 1'
     }
-    override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 0'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ', 1, 0 ) = 0'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ', 1, 0 ) = 0'
     }
     override _random(_context: SqlBuildContext): string {
         return '(select dbms_random.value from dual)'
@@ -1269,26 +1272,26 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // that day, so it compares with a localTime only by the time of the day (`localtimestamp` carries today)
         return "timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp))"
     }
-    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (this._isDateReadAsTimestamp(valueSource) && !this._isDateReadAsTimestamp(value)) {
             // nvl has the type of its first operand: a DATE read as a timestamp with something else makes it a
             // TIMESTAMP, so the result needs nothing more (it doesn't keep the adapter). A first operand of another
             // type already decides it, and two of them stay a DATE that keeps the adapter
-            return 'nvl(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp), ' + this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')'
+            return 'nvl(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp), ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
         }
-        return 'nvl(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')'
+        return 'nvl(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
-    override _divide(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _divide(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // Unlike the other dialects, Oracle divides in NUMBER, which is exact to 38
         // significant digits — more precision than the double this operation yields.
         // Casting the operands to float here would *lose* precision instead of
         // preserving it, so the bare division is the correct emission on Oracle.
-        return this._appendSqlParenthesis(valueSource, context, false) + ' / ' + this._appendValueParenthesis(value, context, this._getMathArgumentType(type, customType, value), this._getMathArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' / ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
     }
-    override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // Oracle does not accept `a % b`; the `%` token is a syntax error.
         // Use the built-in MOD(a, b) function instead.
-        return 'mod(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, this._getMathArgumentType(type, customType, value), this._getMathArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')'
+        return 'mod(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
     override _appendCastAsDouble(sql: string): string {
         return 'cast(' + sql + ' as float)'
@@ -1332,22 +1335,22 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // character (the empty string IS NULL here), so `greatest(-1, -length(x))` is always -1.
     private _substrNegativeStart(context: SqlBuildContext, valueSource: ToSql, value: number, typeAdapter: TypeAdapter | undefined): string {
         if (value === -1) {
-            return this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, 'int', undefined, typeAdapter, false)
+            return this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__registeredDataType('int'), typeAdapter), false)
         }
-        return this._appendSql(valueSource, context, false) + ', greatest(' + this._appendValue(value, context, 'int', undefined, typeAdapter, false) + ', -length(' + this._appendSql(valueSource, context, false) + '))'
+        return this._appendSql(valueSource, context, false) + ', greatest(' + this._appendValue(value, context, __adaptedTypeClassOf(__registeredDataType('int'), typeAdapter), false) + ', -length(' + this._appendSql(valueSource, context, false) + '))'
     }
-    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (typeof value === 'number' && value < 0) {
-            return 'substr(' + this._substrNegativeStart(context, valueSource, value, typeAdapter) + ')'
+            return 'substr(' + this._substrNegativeStart(context, valueSource, value, __typeAdapterOf(typeClass)) + ')'
         }
-        return super._substrToEnd(context, valueSource, value, type, customType, typeAdapter)
+        return super._substrToEnd(context, valueSource, value, typeClass)
     }
-    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
+    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'substr(' + this._substrNegativeStart(context, valueSource, value, typeAdapter) + ', ' + this._appendValue(value2, context, 'int', undefined, typeAdapter, false) + ')'
+            return 'substr(' + this._substrNegativeStart(context, valueSource, value, __typeAdapterOf(typeClass)) + ', ' + this._appendValue(value2, context, __adaptedTypeClassOf(__registeredDataType('int'), __typeAdapterOf(typeClass)), false) + ')'
         }
-        return super._substr(context, valueSource, value, value2, type, customType, typeAdapter)
+        return super._substr(context, valueSource, value, value2, typeClass)
     }
     override _getTime(context: SqlBuildContext, valueSource: ToSql): string {
         const zoned = this._appendZonedUtcTimestamp(context, valueSource)
@@ -1441,7 +1444,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         } else if (separator === '') {
             return 'listagg(' + this._appendSql(value, context, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         } else {
-            return 'listagg(' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', undefined, undefined, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
+            return 'listagg(' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, __registeredDataType('string'), false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         }
     }
     override _stringConcatDistinct(context: SqlBuildContext, separator: string | undefined, value: any): string {
@@ -1450,7 +1453,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         } else if (separator === '') {
             return 'listagg(distinct ' + this._appendSql(value, context, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         } else {
-            return 'listagg(distinct ' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', undefined, undefined, false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
+            return 'listagg(distinct ' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, __registeredDataType('string'), false) + ') within group (order by ' +  this._appendSql(value, context, false) + ')'
         }
     }
     // Oracle LIKE has no `[...]` character classes; wildcards are escaped with

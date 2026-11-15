@@ -32,11 +32,10 @@ import type { ResultObjectValuesForAggregatedArray } from '../complexProjections
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
-import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { BuiltInDataType, BuiltInDataTypes, BuiltInDataTypeValues, BuiltInDataTypeValueSources, BuiltInDataTypeFragments } from '../typeSystem/builtInDataTypes.js'
-import type { DoubleType, IntType } from '../typeSystem/number.js'
+import { DoubleType, IntType } from '../typeSystem/number.js'
 import type { CustomBigintType, CustomDoubleType, CustomIntType } from '../typeSystem/customNumber.js'
 import type { CustomDecimalType } from '../typeSystem/customDecimals.js'
 import type { IAnyComparableValueSource } from '../typeSystem/comparable.js'
@@ -44,12 +43,14 @@ import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } fr
 import { Argument } from '../typeSystem/arguments.js'
 import type { AnyTypeClass, IValueSource, RemapValueSourceTypeWithOptionalType, TypeClass, ValueSource, ValueTypeOf } from '../typeSystem/base.js'
 import type { NullableType } from '../typeSystem/nullable.js'
-import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSystem/logical.js'
+import { type AlwaysIfValueSource, type IfValueSource, BooleanType } from '../typeSystem/logical.js'
 import type { FragmentExpression } from '../typeSystem/fragments.js'
-import type { LocalDateTimeType, LocalDateType, LocalTimeType } from '../typeSystem/localDates.js'
+import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/localDates.js'
 import type { BigintType, NumberType } from '../typeSystem/number.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
 import type { StringType } from '../typeSystem/strings.js'
+import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
+import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -596,45 +597,39 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // visibility-narrowed inherited method would produce.
     pi(): ValueSource<NNoTableOrViewRequired<DB>, DoubleType, 'required'>
     pi(): any {
-        return __createStatic0('_pi', 'double', undefined, 'required', undefined)
+        return __createStatic0('_pi', DoubleType, 'required', undefined)
     }
     random(): ValueSource<NNoTableOrViewRequired<DB>, DoubleType, 'required'>
     random(): any {
-        return __createStatic0('_random', 'double', undefined, 'required', undefined)
+        return __createStatic0('_random', DoubleType, 'required', undefined)
     }
     currentDate(): ValueSource<NNoTableOrViewRequired<DB>, LocalDateType, 'required'>
     currentDate(): any {
-        return __createStatic0('_currentDate', 'localDate', undefined, 'required', undefined)
+        return __createStatic0('_currentDate', LocalDateType, 'required', undefined)
     }
     currentTime(): ValueSource<NNoTableOrViewRequired<DB>, LocalTimeType, 'required'>
     currentTime(): any {
-        return __createStatic0('_currentTime', 'localTime', undefined, 'required', undefined)
+        return __createStatic0('_currentTime', LocalTimeType, 'required', undefined)
     }
     currentDateTime(): ValueSource<NNoTableOrViewRequired<DB>, LocalDateTimeType, 'required'>
     currentDateTime(): any {
-        return __createStatic0('_currentTimestamp', 'localDateTime', undefined, 'required', undefined)
+        return __createStatic0('_currentTimestamp', LocalDateTimeType, 'required', undefined)
     }
     currentTimestamp(): ValueSource<NNoTableOrViewRequired<DB>, LocalDateTimeType, 'required'>
     currentTimestamp(): any {
-        return __createStatic0('_currentTimestamp', 'localDateTime', undefined, 'required', undefined)
+        return __createStatic0('_currentTimestamp', LocalDateTimeType, 'required', undefined)
     }
 
     const<TYPE extends BuiltInDataType>(value: BuiltInDataTypeValues[TYPE], type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
     const<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE>, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'required'>
     const(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
-        if (typeof type !== 'string') {
-            return __createConst(value, type.type, type.customType, 'required', adapter)
-        }
-        return __createConst(value, type, undefined, 'required', adapter)
+        return __createConst(value, __dataTypeClassFrom(type), 'required', adapter)
     }
 
     optionalConst<TYPE extends BuiltInDataType>(value: BuiltInDataTypeValues[TYPE] | null | undefined, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
     optionalConst<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE> | null | undefined, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'optional'>
     optionalConst(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
-        if (typeof type !== 'string') {
-            return __createConst(value, type.type, type.customType, 'optional', adapter)
-        }
-        return __createConst(value, type, undefined, 'optional', adapter)
+        return __createConst(value, __dataTypeClassFrom(type), 'optional', adapter)
     }
 
     true(): ValueSource<NNoTableOrViewRequired<DB>, BooleanType, 'required'> {
@@ -650,12 +645,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         // (e.g. `(exists(...) = 1)`, which SQL Server rejects as a syntax
         // error). Marking the result as a condition-only boolean keeps the
         // wrap from kicking in inside `where`/`and`/`or`.
-        const vs = __createStatic1('_exists', select, 'boolean', undefined, 'required', undefined)
+        const vs = __createStatic1('_exists', select, BooleanType, 'required', undefined)
         vs.__isBooleanForCondition = true
         return vs
     }
     notExists<SOURCE extends NSource>(select: IExecutableSelectQuery<SOURCE, any, any> & SameDB<DB>): ValueSource<SOURCE, BooleanType, 'required'> {
-        const vs = __createStatic1('_notExists', select, 'boolean', undefined, 'required', undefined)
+        const vs = __createStatic1('_notExists', select, BooleanType, 'required', undefined)
         vs.__isBooleanForCondition = true
         return vs
     }
@@ -683,17 +678,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         const source = new QueryExecutionSource('Query executed at')
         let query: string | undefined
         try {
-            // A class of a data type gives its type and its custom type
-            let type: string
-            let customType: CustomType | undefined
-            if (typeof returnType === 'string') {
-                type = returnType
-                customType = undefined
-            } else {
-                type = returnType.type
-                customType = returnType.customType
-            }
-            const functionCall = __createFunctionCall(functionName, params as AnyValueSource[], type, customType, required === 'optional' ? 'optional' : 'required', adapter)
+            const typeClass = __dataTypeClassFrom(returnType)
+            const type = typeClass.type
+            const functionCall = __createFunctionCall(functionName, params as AnyValueSource[], typeClass, required === 'optional' ? 'optional' : 'required', adapter)
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallFunction(new SqlBuildContext(queryParams), functionCall)
             const executionParams = __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall, this.__sqlBuilder))
@@ -746,10 +733,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     fragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
     fragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'optional'>
     fragmentWithType(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
-        if (typeof type !== 'string') {
-            return new FragmentQueryBuilder(type.type, type.customType, required as any, adapter)
-        }
-        return new FragmentQueryBuilder(type, undefined, required as any, adapter)
+        return new FragmentQueryBuilder(__dataTypeClassFrom(type), required as any, adapter)
     }
 
     protected arg<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'required', 'combined'>
@@ -757,10 +741,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected arg<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'optional', 'combined'>
     protected arg<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): Argument<TYPE, 'optional', 'combined'>
     protected arg(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
-        if (typeof type !== 'string') {
-            return new Argument(type.customType ?? type.type, type.type, type.customType, required as any, 'combined', adapter)
-        }
-        return new Argument(type as any, type, undefined, required as any, 'combined', adapter)
+        return new Argument(__dataTypeClassFrom(type), required as any, 'combined', adapter)
     }
 
     protected valueArg<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'required', 'value'>
@@ -768,10 +749,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected valueArg<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'optional', 'value'>
     protected valueArg<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): Argument<TYPE, 'optional', 'value'>
     protected valueArg(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
-        if (typeof type !== 'string') {
-            return new Argument(type.customType ?? type.type, type.type, type.customType, required as any, 'value', adapter)
-        }
-        return new Argument(type as any, type, undefined, required as any, 'value', adapter)
+        return new Argument(__dataTypeClassFrom(type), required as any, 'value', adapter)
     }
 
     protected buildFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>>
@@ -814,10 +792,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     aggregateFragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>[TYPE]
     aggregateFragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
-        if (typeof type !== 'string') {
-            return new FragmentQueryBuilder(type.type, type.customType, required as any, adapter, true)
-        }
-        return new FragmentQueryBuilder(type, undefined, required as any, adapter, true)
+        return new FragmentQueryBuilder(__dataTypeClassFrom(type), required as any, adapter, true)
     }
 
     protected buildAggregateFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>, NAggregate<DB>>
@@ -907,21 +882,21 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     // Agregate functions
     countAll(): ValueSource<NNoTableOrViewRequired<DB> | NAggregate<DB>, IntType, 'required'> {
-        return __createAggregateFunction0('_countAll', 'int', undefined, 'required', undefined)
+        return __createAggregateFunction0('_countAll', IntType, 'required', undefined)
     }
     count<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, IntType, 'required'> {
-        return __createAggregateFunction1('_count', value, 'int', undefined, 'required', undefined)
+        return __createAggregateFunction1('_count', value, IntType, 'required', undefined)
     }
     countDistinct<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, IntType, 'required'> {
-        return __createAggregateFunction1('_countDistinct', value, 'int', undefined, 'required', undefined)
+        return __createAggregateFunction1('_countDistinct', value, IntType, 'required', undefined)
     }
     max<TYPE extends IAnyComparableValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_max', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
+        return (__createAggregateFunction1('_max', value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)) as any
     }
     min<TYPE extends IAnyComparableValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_min', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)) as any
+        return (__createAggregateFunction1('_min', value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)) as any
     }
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, NumberType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, NumberType, 'optional'>
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, BigintType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, BigintType, 'optional'>
@@ -932,7 +907,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     sum<TYPE extends IValueSource<any, CustomDecimalType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomDecimalType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
     sum(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1('_sum', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1('_sum', value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)
     }
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, NumberType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, NumberType, 'optional'>
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, BigintType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, BigintType, 'optional'>
@@ -943,7 +918,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     sumDistinct<TYPE extends IValueSource<any, CustomDecimalType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomDecimalType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
     sumDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1('_sumDistinct', value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1('_sumDistinct', value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)
     }
     // `AVG` is conceptually a fractional operation: averaging any set of
     // numerics may yield a non-integer scalar. Every supported engine
@@ -960,18 +935,18 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     average<SOURCE extends NSource>(value: (IValueSource<SOURCE, NumberType, any> | IValueSource<SOURCE, BigintType, any> | IValueSource<SOURCE, StringDecimalType, any> | IValueSource<SOURCE, CustomIntType<any, any>, any> | IValueSource<SOURCE, CustomBigintType<any, any>, any> | IValueSource<SOURCE, CustomDoubleType<any, any>, any> | IValueSource<SOURCE, CustomDecimalType<any, any>, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
     average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1('_average', value, 'double', undefined, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1('_average', value, DoubleType, 'optional', valuePrivate.__typeAdapter)
     }
     averageDistinct<SOURCE extends NSource>(value: (IValueSource<SOURCE, NumberType, any> | IValueSource<SOURCE, BigintType, any> | IValueSource<SOURCE, StringDecimalType, any> | IValueSource<SOURCE, CustomIntType<any, any>, any> | IValueSource<SOURCE, CustomBigintType<any, any>, any> | IValueSource<SOURCE, CustomDoubleType<any, any>, any> | IValueSource<SOURCE, CustomDecimalType<any, any>, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
     averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1('_averageDistinct', value, 'double', undefined, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1('_averageDistinct', value, DoubleType, 'optional', valuePrivate.__typeAdapter)
     }
     stringConcat<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, StringType, 'optional'>
     stringConcat<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>, separator: string): ValueSource<SOURCE | NAggregate<DB>, StringType, 'optional'>
     stringConcat(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcat', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1or2('_stringConcat', separator, value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)
     }
     // `stringConcatDistinct` is declared on each concrete connection whose
     // dialect accepts DISTINCT inside its string-aggregation function (PG,

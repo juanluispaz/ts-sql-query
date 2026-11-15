@@ -49,6 +49,11 @@ const customDataTypeFamilies: { readonly [customType in CustomType]: { of(typeNa
     customComparable: CustomComparableType,
 }
 
+/** The class a method that takes a data type gets: the class itself, or the class of a built-in data type by its name */
+export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass {
+    return typeof type === 'string' ? __dataTypeClassOf(type, undefined) : type
+}
+
 /** The class of the data type of a type and a custom type */
 export function __dataTypeClassOf(type: string, customType: CustomType | undefined): DataTypeClass {
     if (customType !== undefined) {

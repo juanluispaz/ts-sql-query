@@ -1,7 +1,7 @@
 import type { AnyType, ConditionOfType, IValueSource, RemapValueSourceType, ValueSource, ValueTypeOf } from './base.js'
 import type { IfType, IfValueSource } from './logical.js'
 import type { OptionalValueType } from './valueSource.js'
-import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
+import type { DataTypeClass, TypeAdapter } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'
 import { valueSourceType } from '../utils/symbols.js'
 
@@ -15,18 +15,15 @@ export type ArgumentMode = 'value' | 'combined'
 
 /** An argument of a fragment, of its data type */
 export class Argument</*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends ArgumentOptionalType, /*in|out*/ MODE extends ArgumentMode> {
-    readonly type: string
-    readonly typeName: string
-    readonly customType: CustomType | undefined
+    /** The class of its data type */
+    readonly typeClass: DataTypeClass
     readonly optionalType: OPTIONAL_TYPE
     readonly mode: MODE
     readonly adapter?: TypeAdapter | undefined
     declare [valueSourceType]: TYPE
 
-    constructor (type: string, typeName: string, customType: CustomType | undefined, optionalType: OPTIONAL_TYPE, mode: MODE, adapter?: TypeAdapter) {
-        this.type = type
-        this.typeName = typeName
-        this.customType = customType
+    constructor (typeClass: DataTypeClass, optionalType: OPTIONAL_TYPE, mode: MODE, adapter?: TypeAdapter) {
+        this.typeClass = typeClass
         this.optionalType = optionalType
         this.mode = mode
         this.adapter = adapter

@@ -8,6 +8,7 @@ import type { NDB, NNoTableOrViewRequired } from '../utils/sourceName.js'
 import type { BuiltInDataType, BuiltInDataTypeValueSources } from '../typeSystem/builtInDataTypes.js'
 import type { AnyTypeClass, TypeClass, ValueSource } from '../typeSystem/base.js'
 import type { NullableType } from '../typeSystem/nullable.js'
+import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
 
 export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> extends AbstractConnection<DB> {
 
@@ -18,9 +19,6 @@ export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> exte
     protected sequence<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): Sequence<BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]>
     protected sequence<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): Sequence<ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'required'>>
     protected sequence<_T>(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter): Sequence<any> {
-        if (typeof type !== 'string') {
-            return new SequenceQueryBuilder(name, type.type, type.customType, adapter)
-        }
-        return new SequenceQueryBuilder(name, type, undefined, adapter)
+        return new SequenceQueryBuilder(name, __dataTypeClassFrom(type), adapter)
     }
 }

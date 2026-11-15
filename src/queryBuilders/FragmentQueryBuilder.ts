@@ -1,28 +1,26 @@
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { __createConst, __createFragment, __createIfValueAlwaysNoop } from '../typeSystem/valueSourceFactory.js'
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
-import type { CustomType } from '../TypeAdapter.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __mergeOptional, isValueSource } from '../typeSystem/valueSource.js'
 import { Argument } from '../typeSystem/arguments.js'
 
 export class FragmentQueryBuilder {
-    __type: string
-    __customType: CustomType | undefined
+    __typeClass: DataTypeClass
     __adapter: TypeAdapter | undefined
     __optionalType: OptionalType
     __isAggregate: boolean
 
-    constructor(type: string, customType: CustomType | undefined, optionalType: OptionalType, adapter: TypeAdapter | undefined, isAggregate: boolean = false) {
-        this.__type = type
-        this.__customType = customType
+    constructor(typeClass: DataTypeClass, optionalType: OptionalType, adapter: TypeAdapter | undefined, isAggregate: boolean = false) {
+        this.__typeClass = typeClass
         this.__adapter = adapter
         this.__optionalType = optionalType
         this.__isAggregate = isAggregate
     }
 
     sql(sql: TemplateStringsArray, ...params: AnyValueSource[]): AnyValueSource {
-        return __createFragment(sql, params, this.__type, this.__customType, this.__optionalType, this.__adapter, this.__isAggregate)
+        return __createFragment(sql, params, this.__typeClass, this.__optionalType, this.__adapter, this.__isAggregate)
     }
 }
 
@@ -44,7 +42,7 @@ export class FragmentFunctionBuilder {
                     newArgs.push(arg)
                 } else {
                     const definition = this.definitions[i]!
-                    const newArg = __createConst(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, definition.typeClass, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }
@@ -89,7 +87,7 @@ export class FragmentFunctionBuilderIfValue {
                             noValue = true
                         }
                     }
-                    const newArg = __createConst(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, definition.typeClass, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }
@@ -137,7 +135,7 @@ export class FragmentFunctionBuilderMaybeOptional {
                         argOptionalType = 'optional'
                     }
                     const definition = this.definitions[i]!
-                    const newArg = __createConst(arg, definition.typeName, definition.customType, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, definition.typeClass, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
                 optionalType = __mergeOptional(optionalType, argOptionalType)

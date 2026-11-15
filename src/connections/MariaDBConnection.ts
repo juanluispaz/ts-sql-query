@@ -18,6 +18,7 @@ import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { StringType } from '../typeSystem/strings.js'
+import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
 
 export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'mariaDB', NAME>> {
     /**
@@ -136,7 +137,7 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'mariaDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mariaDB', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'mariaDB', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)
     }
 
     default(): Default {

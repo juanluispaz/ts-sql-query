@@ -13,7 +13,7 @@ import { isColumn } from '../utils/Column.js'
 import type { CustomType, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
-import { __createSequence, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isRawFragment } from '../typeSystem/valueSourceFactory.js'
+import { __createSequence, __typeClassOf, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isRawFragment } from '../typeSystem/valueSourceFactory.js'
 import { hasToSql, operationOf } from './SqlBuilder.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
@@ -2671,7 +2671,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             addedColumns.push(columnName)
             columnsForInsert[columnName] = column
-            const sequenceValue = __createSequence('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__type, columnPrivate.__customType, 'required', columnPrivate.__typeAdapter)
+            const sequenceValue = __createSequence('_nextSequenceValue', columnPrivate.__sequenceName, __typeClassOf(columnPrivate), 'required', columnPrivate.__typeAdapter)
             selectColumns[columnName] = sequenceValue
             flatSelectColumns[columnName] = sequenceValue
         }

@@ -17,7 +17,7 @@ import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSourc
 import type { ILogicalValueSource, IValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource, BooleanType } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
-import type { NumberType } from '../typeSystem/number.js'
+import { type NumberType, IntType } from '../typeSystem/number.js'
 
 abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQueryDataDiscovery, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, OrderedExecutableSelectExpression<any,any,any,any, any>, OffsetExecutableSelectExpression<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any> {
     [source]: any
@@ -217,7 +217,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     __executeSelectCount(source: QueryExecutionSource): Promise<any> {
         let query = ''
         try {
-            const countAll = __createAggregateFunction0('_countAll', 'int', undefined, 'required', undefined)
+            const countAll = __createAggregateFunction0('_countAll', IntType, 'required', undefined)
             const params: any[] = []
             query = this.__buildSelectCount(countAll, new SqlBuildContext(params))
             const executionParams = __setQueryMetadata(source, params, this.__sqlBuilder, __resultColumnsOf({ '': countAll }, this.__sqlBuilder), this.__customization, true)
@@ -916,7 +916,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     selectCountAll(): any {
         this.__requiredResult = true
-        const column = __createAggregateFunction0('_countAll', 'int', undefined, 'required', undefined)
+        const column = __createAggregateFunction0('_countAll', IntType, 'required', undefined)
         this.__finishJoinHaving()
         this.__invalidateQuery()
         this.__oneColumn = true

@@ -39,9 +39,12 @@ Read this before changing anything here. The code is the reference; this file sa
   classes of their own.
 - Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) creates them: it creates the value sources
   (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the runtime is not
-  typed by the data type: the code that calls them declares what it creates. The class of a type and a custom type is
-  given by [`dataTypeClasses.ts`](./dataTypeClasses.ts): the built-in data types by their name, the custom ones with
-  the `of` of their family. No class of a data type imports it.
+  typed by the data type: the code that calls them declares what it creates. They receive the class of the data type:
+  a method that takes a data type turns a name of a built-in one into its class once, with `__dataTypeClassFrom` of
+  [`dataTypeClasses.ts`](./dataTypeClasses.ts), and a value source of the data type of another one takes its class
+  (`__typeClassOf`). `dataTypeClasses.ts` also gives the class of a type and a custom type (the custom ones with the
+  `of` of their family), for the value sources that are not yet instances of a class (the aggregated arrays). No class
+  of a data type imports it.
 
 ## The NType: the name of a data type for TypeScript
 

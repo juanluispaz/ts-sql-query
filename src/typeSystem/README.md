@@ -228,7 +228,8 @@ At run time it reads the type and the custom type of the value source: a class w
 class (a custom type and no type) its custom type, and the classes that group data types answer with their
 `__isOfGroup` (direct questions about the type and the custom type, as in [`dataTypes.ts`](./dataTypes.ts)). What only
 TypeScript tells apart, `is` can't: a condition is a boolean at run time, so the condition classes have no `is` (they
-don't extend `ValueSourceBaseType`) and `BooleanType.is` says yes to a condition; the two classes of an aggregated array
+don't extend `ValueSourceBaseType`) and `BooleanType.is` says yes to a condition, also to the neutral (no condition,
+recognised by its node); the two classes of an aggregated array
 are one. A value that is not a value source is `false`.
 
 ## The data types by their names

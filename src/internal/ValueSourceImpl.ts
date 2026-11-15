@@ -1672,8 +1672,6 @@ export const sqlOperationValueSourceIfValueAlwaysNoopNode: NodeStrategy<SqlOpera
  */
 export function __newSqlOperationValueSourceIfValueAlwaysNoop(typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationValueSourceIfValueAlwaysNoop {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, undefined) as SqlOperationValueSourceIfValueAlwaysNoop
-    // The neutral condition has no type at run time: it is a boolean only to have the methods of one
-    vs.__type = ''
     vs.__node = sqlOperationValueSourceIfValueAlwaysNoopNode
     return vs
 }

@@ -55,6 +55,7 @@ const values: Record<string, unknown> = {
     price: tThing.price, status: tThing.status, version: tThing.version,
     aggregatedArray: conn.aggregateAsArrayOfOneColumn(tThing.int),
     condition: tThing.int.equalsIfValue(1),
+    neutral: conn.noValueBoolean(),
     number: 5, text: 'text', null: null, undefined: undefined, object: {},
 }
 
@@ -101,13 +102,13 @@ describe('DataTypeClasses', () => {
         expect(accepted(AggregatedArraysType)).toEqual(['aggregatedArray'])
         expect(accepted(LocalDatesType)).toEqual(['localDate'])
         expect(accepted(ComparableType)).toEqual(['int', 'double', 'bigint', 'string', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'version'])
-        const equalable = ['int', 'double', 'bigint', 'string', 'boolean', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'status', 'version', 'condition']
+        const equalable = ['int', 'double', 'bigint', 'string', 'boolean', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'status', 'version', 'condition', 'neutral']
         expect(accepted(EqualableType)).toEqual(equalable)
         expect(accepted(NullableType)).toEqual(equalable)
     })
 
-    test('is-of-boolean-says-yes-to-a-condition-which-is-a-boolean-at-run-time', () => {
-        expect(accepted(BooleanType)).toEqual(['boolean', 'condition'])
+    test('is-of-boolean-says-yes-to-a-condition-and-to-the-neutral-which-are-booleans-at-run-time', () => {
+        expect(accepted(BooleanType)).toEqual(['boolean', 'condition', 'neutral'])
     })
 
     test('is-narrows-to-a-value-source-of-its-data-type', () => {
@@ -144,6 +145,7 @@ describe('DataTypeClasses', () => {
         expect(tThing.int.add(0.5)).toBeInstanceOf(DoubleType)
         expect(tThing.string.length()).toBeInstanceOf(IntType)
         expect(tThing.int.equals(1)).toBeInstanceOf(BooleanType)
+        expect(conn.noValueBoolean()).toBeInstanceOf(BooleanType)
         expect(tThing.status.equals('open')).toBeInstanceOf(BooleanType)
         expect(tThing.uuid.asString()).toBeInstanceOf(StringType)
         expect(tThing.stringDecimal.sqrt()).toBeInstanceOf(DoubleType)

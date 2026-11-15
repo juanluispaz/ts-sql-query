@@ -180,7 +180,7 @@ export function __getValueSourceOfObject(obj: AnyTableOrView, prop: string): Any
     if (typeof result !== 'object') {
         return undefined
     }
-    if (result[isValueSourceObject]) {
+    if (isValueSource(result)) {
         return result as any
     } else {
         return undefined

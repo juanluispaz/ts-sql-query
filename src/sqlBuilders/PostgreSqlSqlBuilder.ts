@@ -6,7 +6,7 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
@@ -14,6 +14,7 @@ import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -323,7 +324,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
-            if (isColumn(value)) {
+            if (__isColumn(value)) {
                 const valuePrivate = __getColumnPrivate(value)
                 const valueTypeAdapter = valuePrivate.__typeAdapter
 

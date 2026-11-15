@@ -1,4 +1,6 @@
-import { isColumnObject, isTableOrViewObject, isValueSourceObject } from './symbols.js'
+import { isTableOrViewObject } from './symbols.js'
+import { isValueSource } from '../typeSystem/valueSource.js'
+import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 
 /*
  * The columns of a table, view or values can be grouped in plain objects:
@@ -15,7 +17,7 @@ export function isColumnsGroupCandidate(value: any): boolean {
     if (!value || typeof value !== 'object') {
         return false
     }
-    if (value[isValueSourceObject] || value[isTableOrViewObject]) {
+    if (isValueSource(value) || value[isTableOrViewObject]) {
         return false
     }
     return value.constructor === Object // Plain object
@@ -55,7 +57,7 @@ function collectColumnPaths(container: any, prefix: string, ancestors: object[],
         if (!value || typeof value !== 'object') {
             continue
         }
-        if (value[isColumnObject]) {
+        if (__isColumn(value)) {
             target.push(prefix + property)
         } else if (isColumnsGroupCandidate(value) && !ancestors.includes(value)) {
             ancestors.push(value)
@@ -191,7 +193,7 @@ function flattenShapeInto(shape: any, prefix: string, target: any): void {
     for (let i = 0, length = properties.length; i < length; i++) {
         const property = properties[i]!
         const value = shape[property]
-        if (isColumnsGroupCandidate(value) && !value[isColumnObject]) {
+        if (isColumnsGroupCandidate(value) && !__isColumn(value)) {
             flattenShapeInto(value, prefix + property + '.', target)
         } else {
             target[prefix + property] = value

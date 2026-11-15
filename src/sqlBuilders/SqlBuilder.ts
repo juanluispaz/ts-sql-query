@@ -8,7 +8,8 @@ import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import type { UpdateCustomization } from '../expressions/update.js'
 import type { DeleteCustomization } from '../expressions/delete.js'
 import type { InsertCustomization } from '../expressions/insert.js'
-import { isSelectQueryObject, isTableOrViewObject, isValueSourceObject } from '../utils/symbols.js'
+import type { isSelectQueryObject } from '../utils/symbols.js'
+import { isTableOrViewObject } from '../utils/symbols.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
@@ -119,7 +120,7 @@ export function isUsableValue(prop: string, value: any, _columns: QueryColumns) 
     if (typeof value !== 'object') {
         return false
     }
-    if (value[isValueSourceObject]) {
+    if (isValueSource(value)) {
         return true
     }
     if (value[isTableOrViewObject]) {

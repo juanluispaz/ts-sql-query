@@ -8,9 +8,9 @@ import { isDefault } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isBoolean, __isLocalDateTime, __isLocalTime, __isUuid } from '../typeSystem/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
@@ -380,7 +380,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._nativeBoolean() ? 'false' : super._false(context)
     }
     override _appendSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value)) {
+        if (!this._nativeBoolean() && isValueSource(value) && !__isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isCondition(valueSourcePrivate)) {
                 if (valueSourcePrivate.__optionalType === 'required') {
@@ -394,7 +394,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendSelectColumnReferenceForCondition(column: AnyValueSource, context: SqlBuildContext): string {
         if (this._nativeBoolean()) {
-            if (isColumn(column) && !(__getColumnPrivate(column).__typeAdapter instanceof CustomBooleanTypeAdapter)) {
+            if (__isColumn(column) && !(__getColumnPrivate(column).__typeAdapter instanceof CustomBooleanTypeAdapter)) {
                 // A BOOLEAN column of the table is a condition by itself
                 return super._appendSelectColumnReferenceForCondition(column, context)
             }
@@ -409,7 +409,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return '(' + this._appendSelectColumnReference(column, context) + ' = 1)'
     }
     override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value) && hasToSql(value)) {
+        if (!this._nativeBoolean() && isValueSource(value) && !__isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && !__isCondition(valueSourcePrivate)) {
                 // A boolean value used as a condition is a `1`/`0` number; coerce
@@ -437,7 +437,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return super._appendConditionParam(value, context, type, customType, typeAdapter, forceTypeCast)
         }
         if (__isBoolean(type, customType)) {
-            if (isColumn(value)) {
+            if (__isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
                 const typeAdapter = columnPrivate.__typeAdapter
                 if (typeAdapter instanceof CustomBooleanTypeAdapter) {
@@ -517,7 +517,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
-            if (isColumn(value)) {
+            if (__isColumn(value)) {
                 const valuePrivate = __getColumnPrivate(value)
                 const valueTypeAdapter = valuePrivate.__typeAdapter
 
@@ -1192,7 +1192,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return ' returning ' + result
     }
     override _isNull(context: SqlBuildContext, valueSource: ToSql): string {
-        if (isColumn(valueSource)) {
+        if (__isColumn(valueSource)) {
             // The null state lives in the stored column, not in the 0/1 expression a
             // CustomBooleanTypeAdapter column remaps to (which is never null for a
             // required adapter), so the null check must read the raw column name.
@@ -1211,7 +1211,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return super._isNull(context, valueSource)
     }
     override _isNotNull(context: SqlBuildContext, valueSource: ToSql): string {
-        if (isColumn(valueSource)) {
+        if (__isColumn(valueSource)) {
             return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
@@ -1242,13 +1242,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             && (__isLocalDateTimeValueSource(valueSourcePrivate) || __isLocalTimeValueSource(valueSourcePrivate))
     }
     override _is(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 1'
         }
         return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ', 1, 0 ) = 1'
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 0'
         }
         return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ', 1, 0 ) = 0'
@@ -1358,7 +1358,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // A DATE has no fraction of a second: the day count is the whole time. A value made from the column may
             // not be a DATE (nullif with a timestamp gives a TIMESTAMP, and a TIMESTAMP minus a DATE is an interval)
             // The difference of two DATEs is a decimal number of days, inexact for a second (1/86400): rounded to seconds
-            const date = isColumn(valueSource) ? this._appendSql(valueSource, context, false) : 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
+            const date = __isColumn(valueSource) ? this._appendSql(valueSource, context, false) : 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
             return "round((" + date + " - date '1970-01-01') * 86400) * 1000"
         }
         // Whole days from trunc, the seconds since midnight and the milliseconds from 'SSSSSFF3' (FF3 truncates, like a

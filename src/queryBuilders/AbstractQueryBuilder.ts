@@ -11,7 +11,7 @@ import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
 import type { ProjectionOutput } from '../TypeAdapter.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
-import { __isUuidText } from '../typeSystem/uuidText.js'
+import { UuidTextType } from '../typeSystem/uuidText.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -77,7 +77,7 @@ export class AbstractQueryBuilder {
     __transformValueFromDB(valueSource: AnyValueSource, value: any, output: ProjectionOutput | undefined, column?: string, index?: number, count?: boolean) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
-        if (__isUuidText(valueSourcePrivate) && typeof value === 'string' && this.__sqlBuilder._lowerCaseUuidTextReceived()) {
+        if (valueSource instanceof UuidTextType && typeof value === 'string' && this.__sqlBuilder._lowerCaseUuidTextReceived()) {
             // The text of a uuid, which the database gives in upper case
             value = value.toLowerCase()
         }

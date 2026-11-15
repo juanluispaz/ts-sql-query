@@ -1,6 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
 import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
+import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } from '../utils/operationsThatNeedParenthesis.js'
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, PlainSelectData, CompoundSelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
@@ -9,11 +10,10 @@ import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITable
 import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import { isColumn } from '../utils/Column.js'
 import type { CustomType, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
-import { __createSequence, __typeClassOf, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isRawFragment } from '../typeSystem/valueSourceFactory.js'
+import { __createSequence, __typeClassOf, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { hasToSql, operationOf } from './SqlBuilder.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
@@ -29,7 +29,7 @@ import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
-import { __isUuidText } from '../typeSystem/uuidText.js'
+import { UuidTextType } from '../typeSystem/uuidText.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
@@ -1201,7 +1201,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             for (const arm of arms) {
                 const value = arm[name]
                 if (value) {
-                    if (__isUuidText(__getValueSourcePrivate(value))) {
+                    if (value instanceof UuidTextType) {
                         uuidText = true
                     } else {
                         otherText = true
@@ -1211,7 +1211,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (uuidText && otherText) {
                 for (const arm of arms) {
                     const value = arm[name]
-                    if (value && __isUuidText(__getValueSourcePrivate(value))) {
+                    if (value instanceof UuidTextType) {
                         if (!result) {
                             result = new Set()
                         }
@@ -2012,7 +2012,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (isValueSource(expression)) {
                 return true
             }
-            if (__isRawFragment(expression) && expression.__params.length > 0) {
+            if (expression instanceof RawFragmentImpl && expression.__params.length > 0) {
                 // A raw fragment embedding a value source / subquery renders as
                 // an expression or bound parameter, illegal inline here on the
                 // strict engines just like a bare value source.
@@ -2281,7 +2281,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
-            if (isColumn(value)) {
+            if (__isColumn(value)) {
                 const valuePrivate = __getColumnPrivate(value)
                 const valueTypeAdapter = valuePrivate.__typeAdapter
 
@@ -2984,7 +2984,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 } else {
                     column = shapePropertyValue
                 }
-                if (!isColumn(column)) {
+                if (!__isColumn(column)) {
                     // Additional property provided in the value object
                     // Skipped because it is not part of the table
                     // This allows to have more complex objects used in the query
@@ -3458,7 +3458,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return __getValueSourcePrivate(value).__optionalType !== 'required'
     }
     _hasSameBooleanTypeAdapter(valueSource: DBColumn, value: DBColumn): valueSource is DBColumn  {
-        if (isColumn(valueSource) && isColumn(value)) {
+        if (__isColumn(valueSource) && __isColumn(value)) {
             const valueSourcePrivate = __getColumnPrivate(valueSource)
             const valuePrivate = __getColumnPrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && __isBooleanValueSource(valuePrivate)) {
@@ -3473,25 +3473,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlComparator1
     _equals(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' = ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
     }
     _notEquals(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' <> ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
     }
     _is(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is not distinct from ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' is not distinct from ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
     }
     _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is distinct from ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' is distinct from ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))

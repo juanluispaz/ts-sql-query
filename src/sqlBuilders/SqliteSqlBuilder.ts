@@ -4,11 +4,10 @@ import { flattenQueryColumns, getQueryColumn, hasToSql } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
-import { isColumn } from '../utils/Column.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from '../connections/SqliteConfiguration.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment } from '../typeSystem/valueSourceFactory.js'
+import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment, __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
@@ -99,7 +98,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * fragment) may give another text of the same number
      */
     _isCanonicalDecimalSource(value: unknown): boolean {
-        return !isValueSource(value) || isColumn(value) || __isConst(value) || __isInlineSelect(value)
+        return !isValueSource(value) || __isColumn(value) || __isConst(value) || __isInlineSelect(value)
     }
     /**
      * In a canonical text variant, the SQL of a customDecimal turned into its canonical text when it may not be, the
@@ -1050,7 +1049,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (__isExactDecimal(type, customType)) {
             return this._decimalIs(context, valueSource, value, type, customType, typeAdapter)
         }
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' is ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
@@ -1059,7 +1058,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (__isExactDecimal(type, customType)) {
             return 'not ' + this._decimalIs(context, valueSource, value, type, customType, typeAdapter)
         }
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is not ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' is not ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))

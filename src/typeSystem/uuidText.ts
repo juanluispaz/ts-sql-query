@@ -12,8 +12,3 @@ export abstract class UuidTextType extends StringType {
     /** A value computed from the text of a uuid is a text */
     static readonly [computedType] = StringType
 }
-
-/** Whether the value source is the text of a uuid */
-export function __isUuidText(valueSource: unknown): boolean {
-    return valueSource instanceof UuidTextType
-}

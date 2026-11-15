@@ -11,12 +11,12 @@ import { __addWiths } from '../utils/ITableOrView.js'
 import { __setQueryMetadata, AbstractQueryBuilder, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __expandColumnNames, __flattenSets, __flattenShape, __tableWithColumnPaths } from '../utils/columnPaths.js'
-import { isColumn } from '../utils/Column.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
+import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 
 export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
     [source]: any
@@ -281,9 +281,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             const property = properties[i]!
             const value = shape[property]
             // It will review only the properties that can be used as shape, skiiping the other one to allow more complex usages
-            if (typeof value === 'string' || isColumn(value)) {
+            if (typeof value === 'string' || __isColumn(value)) {
                 const currentShapeValue = this.__shape[property]
-                if (typeof currentShapeValue === 'string' || isColumn(currentShapeValue)) {
+                if (typeof currentShapeValue === 'string' || __isColumn(currentShapeValue)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_SHAPE_OVERRIDE', property }, 'You cannot override the previously defined shape property with name ' + property)
                 }
             }

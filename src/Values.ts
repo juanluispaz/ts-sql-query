@@ -3,9 +3,9 @@ import { __addWiths, __registerRequiredColumn, __registerTableOrView, __getTable
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import type { Column } from './utils/Column.js'
-import { __getColumnPrivate, isColumn } from './utils/Column.js'
+import { __getColumnPrivate } from './utils/Column.js'
 import { __flattenSets } from './utils/columnPaths.js'
-import { __createDBColumn, __createValueSourceFromBuilder, __asColumn, __asOptionalColumn } from './typeSystem/valueSourceFactory.js'
+import { __createDBColumn, __createValueSourceFromBuilder, __asColumn, __asOptionalColumn, __isColumn } from './typeSystem/valueSourceFactory.js'
 import { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'
@@ -149,7 +149,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
             if (!isUsableValue(prop, column, columns)) {
                 continue
             }
-            if (isColumn(column)) {
+            if (__isColumn(column)) {
                 const columnPrivate = __getColumnPrivate(column)
                 columnPrivate.__name = prefix + prop
             } else if (isValueSource(column)) {

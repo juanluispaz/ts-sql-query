@@ -6,7 +6,6 @@ import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, DynamicOnConflictDoUpdateWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, CustomizableExecutableInsertDefaultValues, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConflict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConflictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable, OnConflictDoInsertFromSelect } from '../expressions/insert.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf, __expandColumnNames, __flattenSets, __flattenShape, __tableWithColumnPaths } from '../utils/columnPaths.js'
-import { isColumn } from '../utils/Column.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { TsSqlError, TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
@@ -18,6 +17,7 @@ import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSourc
 import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
+import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -427,9 +427,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             const property = properties[i]!
             const value = extendShape[property]
             // It will review only the properties that can be used as shape, skiiping the other one to allow more complex usages
-            if (typeof value === 'string' || isColumn(value)) {
+            if (typeof value === 'string' || __isColumn(value)) {
                 const currentShapeValue = shape[property]
-                if (typeof currentShapeValue === 'string' || isColumn(currentShapeValue)) {
+                if (typeof currentShapeValue === 'string' || __isColumn(currentShapeValue)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_SHAPE_OVERRIDE', property }, 'You cannot override the previously defined shape property with name ' + property)
                 }
             }

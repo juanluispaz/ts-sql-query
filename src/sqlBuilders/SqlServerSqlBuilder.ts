@@ -7,7 +7,7 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -16,8 +16,9 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
-import { __isUuidText } from '../typeSystem/uuidText.js'
+import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __isCondition } from '../typeSystem/logical.js'
+import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -69,7 +70,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
     override _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (isValueSource(value) && !isColumn(value)) {
+        if (isValueSource(value) && !__isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isCondition(valueSourcePrivate)) {
                 if (valueSourcePrivate.__optionalType === 'required') {
@@ -88,7 +89,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return '(' + this._appendSelectColumnReference(column, context) + ' = 1)'
     }
     override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
+        if (isValueSource(value) && !__isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && !__isCondition(valueSourcePrivate)) {
                 // A boolean value used as a condition is a `bit`; coerce it to a
@@ -115,7 +116,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _isUuid(value: any): boolean {
         if (isValueSource(value)) {
             const valuePrivate = __getValueSourcePrivate(value)
-            if (__isUuidValueSource(valuePrivate) || __isUuidText(valuePrivate)) {
+            if (__isUuidValueSource(valuePrivate) || value instanceof UuidTextType) {
                 return true
             }
         }
@@ -188,7 +189,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendConditionParam(value: any, context: SqlBuildContext, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isBoolean(type, customType)) {
-            if (isColumn(value)) {
+            if (__isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
                 const typeAdapter = columnPrivate.__typeAdapter
                 if (typeAdapter instanceof CustomBooleanTypeAdapter) {
@@ -323,7 +324,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 for (const property in columns) {
                     index++
                     const column = columns[property]
-                    if (isColumn(column)) {
+                    if (__isColumn(column)) {
                         if (__getColumnPrivate(column).__isPrimaryKey) {
                             return ' order by ' + index
                         }
@@ -555,7 +556,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _isNull(context: SqlBuildContext, valueSource: ToSql): string {
-        if (isColumn(valueSource)) {
+        if (__isColumn(valueSource)) {
             // The null state lives in the stored column, not in the 0/1 expression a
             // CustomBooleanTypeAdapter column remaps to (which is never null for a
             // required adapter), so the null check must read the raw column name.
@@ -580,7 +581,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendValueParenthesis(value, context, type, customType, typeAdapter, false) + ' is null'
     }
     override _isNotNull(context: SqlBuildContext, valueSource: ToSql): string {
-        if (isColumn(valueSource)) {
+        if (__isColumn(valueSource)) {
             return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
@@ -661,13 +662,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // to a CASE that double-evaluates its first argument; accepted, because that
         // argument is the receiver — almost always a column, so repeating it is free.
         let result = 'coalesce('
-        if (isValueSource(valueSource) && __isUuidText(__getValueSourcePrivate(valueSource))) {
+        if (valueSource instanceof UuidTextType) {
             result += this._uuidAsText(this._appendSql(valueSource, context, false))
         } else {
             result += this._appendSql(valueSource, context, false)
         }
         result += ', '
-        if (isValueSource(value) && __isUuidText(__getValueSourcePrivate(value))) {
+        if (value instanceof UuidTextType) {
             result += this._uuidAsText(this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)))
         } else {
             result += this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
@@ -1469,14 +1470,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendJsonValue(valueSource, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)
     }
     override _appendFragmentParam(value: AnyValueSource, context: SqlBuildContext): string {
-        if (__isUuidText(__getValueSourcePrivate(value))) {
+        if (value instanceof UuidTextType) {
             // The SQL around it is the user's: the text of the uuid is written as it leaves the database
             return this._uuidAsText(this._appendConditionSql(value, context, false))
         }
         return this._appendConditionSql(value, context, false)
     }
     override _appendRawFragmentParam(value: AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext): string {
-        if (isValueSource(value) && __isUuidText(__getValueSourcePrivate(value))) {
+        if (value instanceof UuidTextType) {
             return this._uuidAsText(this._appendSql(value, context, false))
         }
         return this._appendSql(value, context, false)

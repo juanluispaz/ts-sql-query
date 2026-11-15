@@ -5,11 +5,11 @@ import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
-import { isColumn, __getColumnPrivate, __getColumnOfObject } from '../utils/Column.js'
+import { __getColumnPrivate, __getColumnOfObject } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
-import { __isOperation1, __isOperation1IfValueOrIgnore } from '../typeSystem/valueSourceFactory.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore, __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
@@ -46,7 +46,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             const groupBy = query.__groupBy
             for (let i = 0, length = groupBy.length; i < length; i++) {
                 const entry = groupBy[i]!
-                if (!isColumn(entry)) {
+                if (!__isColumn(entry)) {
                     continue
                 }
                 const entryPrivate = __getColumnPrivate(entry)
@@ -55,7 +55,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     if (selectColumn.name.toLowerCase() !== entryName) {
                         return
                     }
-                    if (isColumn(column)) {
+                    if (__isColumn(column)) {
                         const columnPrivate = __getColumnPrivate(column)
                         if (columnPrivate.__name === entryPrivate.__name && columnPrivate.__tableOrView === entryPrivate.__tableOrView) {
                             // The column of the select is that same column
@@ -572,7 +572,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             }
             const target = shape ? shape[property] : property
             const column = typeof target === 'string' ? __getColumnOfObject(table, target) : target
-            if (!isColumn(column)) {
+            if (!__isColumn(column)) {
                 continue
             }
             result.push({ property, column, value: sets[property] })
@@ -688,13 +688,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _is(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' <=>' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): string {
-        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+        if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'not (' + this._appendRawColumnName(valueSource, context) + ' <=> ' + this._appendRawColumnName(value, context) + ')'
         }
         return 'not (' + this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)) + ')'

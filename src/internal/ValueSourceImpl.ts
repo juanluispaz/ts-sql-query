@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from './SqlBuildContext.js'
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData, SqlBoolean0 } from '../sqlBuilders/SqlBuilder.js'
 import { hasToSql } from '../sqlBuilders/SqlBuilder.js'
-import type { ValueSource } from '../expressions/values.js'
+import type { TypedValueSource } from '../typeSystem/valueSource.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
@@ -17,7 +17,7 @@ import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
-export abstract class ValueSourceImpl implements ValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [nullableValueSource]!: 'NullableValueSource'
     [equalableValueSource]!: 'EqualableValueSource'
     [comparableValueSource]!: 'ComparableValueSource'
@@ -2279,7 +2279,7 @@ function condition(valueSource: ValueSourceImpl): ValueSourceImpl {
     return valueSource
 }
 
-export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class TableOrViewRawFragmentValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [valueType_]: any
     [optionalType_]: any
     [source]: any
@@ -2408,7 +2408,7 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     }
 }
 
-export class AggregateSelectValueSource implements ValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class AggregateSelectValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [valueType_]: any
     [optionalType_]: any
     [source]: any
@@ -2534,7 +2534,7 @@ export class AllowWhenAggregateSelectValueSource extends AggregateSelectValueSou
     }
 }
 
-export class NullAggregateSelectValueSource implements ValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class NullAggregateSelectValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [valueType_]: any
     [optionalType_]: any
     [source]: any
@@ -2706,7 +2706,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
     }
 }
 
-export class AggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class AggregateValueAsArrayValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [valueType_]: any
     [optionalType_]: any
     [source]: any
@@ -2915,7 +2915,7 @@ export class AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsA
     }
 }
 
-export class NullAggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class NullAggregateValueAsArrayValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [valueType_]: any
     [optionalType_]: any
     [source]: any

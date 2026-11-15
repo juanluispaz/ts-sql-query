@@ -9,8 +9,9 @@ Each entry says what it is, why it waits, and what is already known.
 ## `multiply` and `divide` on `BigintValueSource`
 
 - **What:** the overloads of `multiply` and `divide` for `BigintValueSource`.
-- **Why deferred:** they are commented out in `src/expressions/values.ts`, so the
-  value source offers only `add`, `subtract` and `modulo` with a bigint.
+- **Why deferred:** `BigintType` in `src/typeSystem/numbers.ts` doesn't declare them
+  (it extends `NumericType`, not `MultipliableNumericType`), so the value source
+  offers only `add`, `subtract` and `modulo` with a bigint.
 - **Known:** [`docs/api/value-expressions.md`](../docs/api/value-expressions.md)
   is consistent with that: it lists no `multiply` or `divide` for a bigint.
 

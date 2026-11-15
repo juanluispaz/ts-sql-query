@@ -5,7 +5,6 @@ import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import { ChainedQueryRunner } from '../queryRunners/ChainedQueryRunner.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
-import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, StringValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
@@ -16,6 +15,9 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
+import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
+import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
+import type { StringType } from '../typeSystem/strings.js'
 
 export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'noopDB', NAME>> {
 
@@ -24,14 +26,14 @@ export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends A
         queryRunner.useDatabase('noopDB')
     }
 
-    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'noopDB', NAME>>>(columns: COLUMNS & NNotNestedAggregate<SourceOfAggregatedArray<COLUMNS>, NConnection<'noopDB', NAME>>): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'noopDB', NAME>>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'noopDB', NAME>>>(columns: COLUMNS & NNotNestedAggregate<SourceOfAggregatedArray<COLUMNS>, NConnection<'noopDB', NAME>>): ValueSource<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'noopDB', NAME>>, AggregatedArrayProjectableAsNullableType<Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>>, 'required'> {
         return __createAggregateValueAsArray(columns as QueryColumns, 'InnerResultObject', 'required', true)
     }
-    aggregateAsArrayOfOneColumnDistinct<VALUE extends TypedValueSource<any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], NConnection<'noopDB', NAME>>): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends TypedValueSource<any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], NConnection<'noopDB', NAME>>): ValueSource<VALUE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, AggregatedArrayType<Array<VALUE[typeof valueType]>>, 'required'> {
         return __createAggregateValueAsArray(value, 'InnerResultObject', 'required', true)
     }
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, 'optional'>
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, StringType, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)

@@ -10,13 +10,14 @@ import { isColumn } from '../utils/Column.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { TsSqlError, TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
-import type { AlwaysIfValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
-import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf, __unnamedResultColumn } from './AbstractQueryBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import type { AnyValueSource, IExecutableSelectQuery } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
+import type { ILogicalValueSource } from '../typeSystem/base.js'
+import type { AlwaysIfValueSource } from '../typeSystem/booleans.js'
+import { asAlwaysIfValueSource } from '../typeSystem/booleans.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -1918,7 +1919,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         this.__invalidateQuery()
         return this
     }
-    where(condition: IAnyBooleanValueSource<any, any>): this {
+    where(condition: ILogicalValueSource<any, any>): this {
         this.__invalidateQuery()
 
         if (this.__onConflictUpdateSets) {
@@ -1938,7 +1939,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         }
         return this
     }
-    and(condition: IAnyBooleanValueSource<any, any>): this {
+    and(condition: ILogicalValueSource<any, any>): this {
         this.__invalidateQuery()
         if (this.__onConflictUpdateSets) {
             if (!this.__onConflictUpdateWhere) {
@@ -1959,7 +1960,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         }
         return this
     }
-    or(condition: IAnyBooleanValueSource<any, any>): this {
+    or(condition: ILogicalValueSource<any, any>): this {
         this.__invalidateQuery()
         if (this.__onConflictUpdateSets) {
             if (!this.__onConflictUpdateWhere) {

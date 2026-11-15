@@ -1,8 +1,8 @@
-import type { RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { WritableColumnBrandsOf } from '../utils/Column.js'
 import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource.js'
+import type { RemapValueSourceTypeWithOptionalType } from '../typeSystem/base.js'
 
 /*
  * Reasign all columns to in a with view

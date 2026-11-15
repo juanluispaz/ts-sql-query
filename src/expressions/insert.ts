@@ -1,4 +1,3 @@
-import type { IAnyBooleanValueSource } from './values.js'
 import type { HasSource, IRawFragment, OfDB, ResolvedShape } from '../utils/ITableOrView.js'
 import type { columnsType, from, source, using } from '../utils/symbols.js'
 import type { RawFragment } from '../utils/RawFragment.js'
@@ -10,6 +9,7 @@ import type { DataToProject } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { AnyValueSource, IExecutableInsertQuery, IExecutableSelectQuery, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from '../typeSystem/valueSource.js'
+import type { ILogicalValueSource } from '../typeSystem/base.js'
 
 export interface InsertCustomization</*in|out*/ _TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> {
     afterInsertKeyword?: IRawFragment<USING[typeof source]>
@@ -893,19 +893,19 @@ export interface ShapedInsertOnConflictSetsExpression</*in|out*/ TABLE extends H
 }
 
 export interface DynamicOnConflictWhereExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, NEXT> {
-    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    and(condition: ILogicalValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    or(condition: ILogicalValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 // The condition of the update (unlike the one of the conflict target) can read the values to insert
 export interface DynamicOnConflictDoUpdateWhereExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, NEXT> {
-    and(condition: IAnyBooleanValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
-    or(condition: IAnyBooleanValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
+    and(condition: ILogicalValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
+    or(condition: ILogicalValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 export interface OnConflictOnColumnWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, NEXT> {
     dynamicWhere() : DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    where(condition: ILogicalValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 type OnConflictDoNothingFnType<TABLE extends HasSource<any>, _USING extends HasSource<any>, NEXT> =
@@ -999,7 +999,7 @@ type OnConflictDoUpdateWhereFnType<TABLE extends HasSource<any>, USING extends H
     : never
 
 interface OnConflictDoUpdateWhereFnTypeInterface</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ NEXT> {
-    (condition: IAnyBooleanValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
+    (condition: ILogicalValueSource<USING[typeof source] | NValuesForInsertFrom<TABLE[typeof source]>, any>): DynamicOnConflictDoUpdateWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 type OnConflictOnColumnFnType<TABLE extends HasSource<any>, USING extends HasSource<any>, NEXT> =

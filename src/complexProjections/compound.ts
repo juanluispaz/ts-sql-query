@@ -1,7 +1,7 @@
-import type { RemapIValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { AnyValueSource, OptionalTypeRequiredOrAny, TypedValueSource } from '../typeSystem/valueSource.js'
+import type { RemapIValueSourceTypeWithOptionalType } from '../typeSystem/base.js'
 
 /*
  * Used as type mark in compoundable select, for union, union all, intersect, intersect all, except, except all, minus, minus all;

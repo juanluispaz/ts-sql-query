@@ -1,38 +1,11 @@
-import type { RemapValueSourceType, TypeOfArgument, MapArgumentToValueSource, ArgForFn, IfValueSource, ArgForBuilderIfValue, IAnyBooleanValueSource, IValueSource, RemapValueSourceTypeWithOptionalType, ArgBaseTypeForFn } from './values.js'
 import type { optionalType, source } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
-import type { MergeOptionalUnion, OptionalType, OptionalTypeOfValue, ValueSourceOf } from '../typeSystem/valueSource.js'
+import type { MergeOptionalUnion, OptionalType, OptionalTypeOfValue, TypedValueSource, ValueSourceOf } from '../typeSystem/valueSource.js'
 
-import type { FragmentExpression } from '../typeSystem/fragments.js'
-import type { BooleanType } from '../typeSystem/booleans.js'
-import type { BigintType, CustomBigintType, CustomDecimalType, CustomDoubleType, CustomIntType, NumberType, StringDecimalType } from '../typeSystem/numbers.js'
-import type { StringType } from '../typeSystem/strings.js'
-import type { CustomUuidType, UuidType } from '../typeSystem/uuids.js'
-import type { CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, LocalDateTimeType, LocalDateType, LocalTimeType } from '../typeSystem/localDates.js'
-import type { CustomEqualableType, EnumType } from '../typeSystem/equalable.js'
-import type { CustomComparableType } from '../typeSystem/comparable.js'
+import type { ArgBaseTypeForFn, ArgForBuilderIfValue, ArgForFn, MapArgumentToValueSource, TypeOfArgument } from '../typeSystem/arguments.js'
+import type { ILogicalValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType } from '../typeSystem/base.js'
+import type { IfValueSource } from '../typeSystem/booleans.js'
 
-// The fragment expression of each data type, by its name
-export type BooleanFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, BooleanType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type NumberFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, NumberType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type BigintFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, BigintType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type StringFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, StringType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type UuidFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, UuidType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type StringDecimalFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, StringDecimalType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type LocalDateFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, LocalDateType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type LocalTimeFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, LocalTimeType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type LocalDateTimeFragmentExpression<NO_SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, LocalDateTimeType, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type EqualableFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomEqualableType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type ComparableFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomComparableType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomIntFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomIntType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomBigintFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomBigintType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomDoubleFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomDoubleType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomDecimalFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomDecimalType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomUuidFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomUuidType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomLocalDateTimeFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomLocalDateTimeType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomLocalDateFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomLocalDateType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type CustomLocalTimeFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, CustomLocalTimeType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
-export type EnumFragmentExpression<NO_SOURCE extends NSource, TYPE, TYPE_NAME extends string, OPTIONAL_TYPE extends OptionalType, EXTRA_SOURCE extends NSource = never> = FragmentExpression<NO_SOURCE, EnumType<TYPE, TYPE_NAME>, OPTIONAL_TYPE, EXTRA_SOURCE>
 
 export interface FragmentBuilder0</*in|out*/ NO_SOURCE extends NSource, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
     as<RESULT extends ValueSourceOf<NO_SOURCE | EXTRA_SOURCE>>(impl: () => RESULT): () => RESULT
@@ -140,27 +113,27 @@ export interface FragmentFunction5</*in|out*/ NO_SOURCE extends NSource, A1, A2,
 }
 
 export interface FragmentBuilder0IfValue</*in|out*/ NO_SOURCE extends NSource, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: () => RESULT): () => IfValueSource<NO_SOURCE | EXTRA_SOURCE, RESULT[typeof optionalType]>
+    as<RESULT extends ILogicalValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: () => RESULT): () => IfValueSource<NO_SOURCE | EXTRA_SOURCE, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder1IfValue</*in|out*/ NO_SOURCE extends NSource, A1, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>) => RESULT): FragmentFunctionIfValue1<NO_SOURCE, A1, RESULT[typeof optionalType], EXTRA_SOURCE>
+    as<RESULT extends ILogicalValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>) => RESULT): FragmentFunctionIfValue1<NO_SOURCE, A1, RESULT[typeof optionalType], EXTRA_SOURCE>
 }
 
 export interface FragmentBuilder2IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>) => RESULT): FragmentFunctionIfValue2<NO_SOURCE, A1, A2, RESULT[typeof optionalType], EXTRA_SOURCE>
+    as<RESULT extends ILogicalValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>) => RESULT): FragmentFunctionIfValue2<NO_SOURCE, A1, A2, RESULT[typeof optionalType], EXTRA_SOURCE>
 }
 
 export interface FragmentBuilder3IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>) => RESULT): FragmentFunctionIfValue3<NO_SOURCE, A1, A2, A3, RESULT[typeof optionalType], EXTRA_SOURCE>
+    as<RESULT extends ILogicalValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>) => RESULT): FragmentFunctionIfValue3<NO_SOURCE, A1, A2, A3, RESULT[typeof optionalType], EXTRA_SOURCE>
 }
 
 export interface FragmentBuilder4IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, A4, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>) => RESULT): FragmentFunctionIfValue4<NO_SOURCE, A1, A2, A3, A4, RESULT[typeof optionalType], EXTRA_SOURCE>
+    as<RESULT extends ILogicalValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>) => RESULT): FragmentFunctionIfValue4<NO_SOURCE, A1, A2, A3, A4, RESULT[typeof optionalType], EXTRA_SOURCE>
 }
 
 export interface FragmentBuilder5IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, A4, A5, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>, a5: ArgForBuilderIfValue<NO_SOURCE, A5>) => RESULT): FragmentFunctionIfValue5<NO_SOURCE, A1, A2, A3, A4, A5, RESULT[typeof optionalType], EXTRA_SOURCE>
+    as<RESULT extends ILogicalValueSource<NO_SOURCE | EXTRA_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>, a5: ArgForBuilderIfValue<NO_SOURCE, A5>) => RESULT): FragmentFunctionIfValue5<NO_SOURCE, A1, A2, A3, A4, A5, RESULT[typeof optionalType], EXTRA_SOURCE>
 }
 
 export interface FragmentFunctionIfValue1</*in|out*/ NO_SOURCE extends NSource, A1, /*in|out*/ OPTIONAL_TYPE extends OptionalType, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
@@ -249,23 +222,23 @@ export interface FragmentBuilderMaybeOptional0</*in|out*/ NO_SOURCE extends NSou
 }
 
 export interface FragmentBuilderMaybeOptional1</*in|out*/ NO_SOURCE extends NSource, A1, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IValueSource<NO_SOURCE | EXTRA_SOURCE, any, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>) => RESULT): FragmentFunctionMaybeOptional1<NO_SOURCE, A1, RESULT, EXTRA_SOURCE>
+    as<RESULT extends TypedValueSource<NO_SOURCE | EXTRA_SOURCE, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>) => RESULT): FragmentFunctionMaybeOptional1<NO_SOURCE, A1, RESULT, EXTRA_SOURCE>
 }
 
 export interface FragmentBuilderMaybeOptional2</*in|out*/ NO_SOURCE extends NSource, A1, A2, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IValueSource<NO_SOURCE | EXTRA_SOURCE, any, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>) => RESULT): FragmentFunctionMaybeOptional2<NO_SOURCE, A1, A2, RESULT, EXTRA_SOURCE>
+    as<RESULT extends TypedValueSource<NO_SOURCE | EXTRA_SOURCE, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>) => RESULT): FragmentFunctionMaybeOptional2<NO_SOURCE, A1, A2, RESULT, EXTRA_SOURCE>
 }
 
 export interface FragmentBuilderMaybeOptional3</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IValueSource<NO_SOURCE | EXTRA_SOURCE, any, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>, a3: MapArgumentToValueSource<NO_SOURCE, A3>) => RESULT): FragmentFunctionMaybeOptional3<NO_SOURCE, A1, A2, A3, RESULT, EXTRA_SOURCE>
+    as<RESULT extends TypedValueSource<NO_SOURCE | EXTRA_SOURCE, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>, a3: MapArgumentToValueSource<NO_SOURCE, A3>) => RESULT): FragmentFunctionMaybeOptional3<NO_SOURCE, A1, A2, A3, RESULT, EXTRA_SOURCE>
 }
 
 export interface FragmentBuilderMaybeOptional4</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, A4, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IValueSource<NO_SOURCE | EXTRA_SOURCE, any, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>, a3: MapArgumentToValueSource<NO_SOURCE, A3>, a4: MapArgumentToValueSource<NO_SOURCE, A4>) => RESULT): FragmentFunctionMaybeOptional4<NO_SOURCE, A1, A2, A3, A4, RESULT, EXTRA_SOURCE>
+    as<RESULT extends TypedValueSource<NO_SOURCE | EXTRA_SOURCE, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>, a3: MapArgumentToValueSource<NO_SOURCE, A3>, a4: MapArgumentToValueSource<NO_SOURCE, A4>) => RESULT): FragmentFunctionMaybeOptional4<NO_SOURCE, A1, A2, A3, A4, RESULT, EXTRA_SOURCE>
 }
 
 export interface FragmentBuilderMaybeOptional5</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, A4, A5, /*in|out*/ EXTRA_SOURCE extends NSource = never> {
-    as<RESULT extends IValueSource<NO_SOURCE | EXTRA_SOURCE, any, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>, a3: MapArgumentToValueSource<NO_SOURCE, A3>, a4: MapArgumentToValueSource<NO_SOURCE, A4>, a5: MapArgumentToValueSource<NO_SOURCE, A5>) => RESULT): FragmentFunctionMaybeOptional5<NO_SOURCE, A1, A2, A3, A4, A5, RESULT, EXTRA_SOURCE>
+    as<RESULT extends TypedValueSource<NO_SOURCE | EXTRA_SOURCE, any, 'optional'>>(impl: (a1: MapArgumentToValueSource<NO_SOURCE, A1>, a2: MapArgumentToValueSource<NO_SOURCE, A2>, a3: MapArgumentToValueSource<NO_SOURCE, A3>, a4: MapArgumentToValueSource<NO_SOURCE, A4>, a5: MapArgumentToValueSource<NO_SOURCE, A5>) => RESULT): FragmentFunctionMaybeOptional5<NO_SOURCE, A1, A2, A3, A4, A5, RESULT, EXTRA_SOURCE>
 }
 
 export interface FragmentFunctionMaybeOptional1</*in|out*/ NO_SOURCE extends NSource, A1, RESULT, /*in|out*/ EXTRA_SOURCE extends NSource = never> {

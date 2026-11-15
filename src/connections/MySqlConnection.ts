@@ -5,7 +5,6 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { MySqlSqlBuilder } from '../sqlBuilders/MySqlSqlBuilder.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import { AbstractConnection } from './AbstractConnection.js'
-import type { IStringValueSource, StringValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { source } from '../utils/symbols.js'
 import { __createAggregateFunction1, __createAggregateFunction1or2 } from '../typeSystem/valueSourceFactory.js'
 import type { SameDB } from '../utils/ITableOrView.js'
@@ -13,6 +12,8 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
+import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
+import type { StringType } from '../typeSystem/strings.js'
 
 export abstract class MySqlConnection</*in|out*/ NAME extends string> extends AbstractConnection<NConnection<'mySql', NAME>> {
     /**
@@ -87,8 +88,8 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
         queryRunner.useDatabase('mySql')
     }
 
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mySql', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, 'optional'>
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mySql', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mySql', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, StringType, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mySql', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)

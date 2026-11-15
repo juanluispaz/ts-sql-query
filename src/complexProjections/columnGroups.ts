@@ -1,9 +1,9 @@
-import type { RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType } from '../expressions/values.js'
 import type { Default } from '../expressions/Default.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import type { WritableDBColumn, WritableDBColumnWithDefaultValue, WritableDBColumnWithoutDefaultValue } from '../utils/Column.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { AnyValueSource, ValueSourceValueType, TypedValueSource } from '../typeSystem/valueSource.js'
+import type { RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType } from '../typeSystem/base.js'
 
 /*
  * The columns of a table, view or values grouped in objects. There are no recursive types here: each level has its own

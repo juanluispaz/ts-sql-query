@@ -1,7 +1,15 @@
 import type { DataToProjectOf, DataToProjectOfAny, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
-import type { BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, IStringDecimalValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, IEnumValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource } from './values.js'
 import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource.js'
+import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
+import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
+import type { BooleanType } from '../typeSystem/booleans.js'
+import type { CustomComparableType } from '../typeSystem/comparable.js'
+import type { CustomEqualableType, EnumType } from '../typeSystem/equalable.js'
+import type { CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, LocalDateTimeType, LocalDateType, LocalTimeType } from '../typeSystem/localDates.js'
+import type { BigintType, CustomBigintType, CustomDecimalType, CustomDoubleType, CustomIntType, NumberType, StringDecimalType } from '../typeSystem/numbers.js'
+import type { StringType } from '../typeSystem/strings.js'
+import type { CustomUuidType, UuidType } from '../typeSystem/uuids.js'
 
 export interface Filter {
 }
@@ -192,34 +200,34 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION ext
 
 export type MapValueSourceToFilter<TYPE> =
     TYPE extends TypedValueSource<any, infer T, any> ? (
-        TYPE extends IBooleanValueSource<any, any> ? BooleanFilter :
-        TYPE extends IBigintValueSource<any, any> ? BigintFilter :
-        TYPE extends INumberValueSource<any, any> ? NumberFilter :
-        TYPE extends IStringValueSource<any, any> ? StringFilter :
-        TYPE extends IUuidValueSource<any, any> ? StringFilter :
-        TYPE extends IStringDecimalValueSource<any, any> ? StringDecimalFilter :
-        TYPE extends ILocalDateTimeValueSource<any, any> ? DateTimeFilter :
-        TYPE extends ILocalDateValueSource<any, any> ? DateFilter :
-        TYPE extends ILocalTimeValueSource<any, any> ? TimeFilter :
-        TYPE extends ICustomIntValueSource<any, any, any, any> ? CustomIntFilter<T> :
-        TYPE extends ICustomBigintValueSource<any, any, any, any> ? CustomBigintFilter<T> :
-        TYPE extends ICustomDoubleValueSource<any, any, any, any> ? CustomDoubleFilter<T> :
-        TYPE extends ICustomDecimalValueSource<any, any, any, any> ? CustomDecimalFilter<T> :
-        TYPE extends ICustomUuidValueSource<any, any, any, any> ? CustomUuidFilter<T> :
-        TYPE extends ICustomLocalDateValueSource<any, any, any, any> ? CustomLocalDateFilter<T> :
-        TYPE extends ICustomLocalTimeValueSource<any, any, any, any> ? CustomLocalTimeFilter<T> :
-        TYPE extends ICustomLocalDateTimeValueSource<any, any, any, any> ? CustomLocalDateTimeFilter<T> :
-        TYPE extends IComparableValueSource<any, any, any, any> ? ComparableFilter<T> :
-        TYPE extends IEnumValueSource<any, any, any, any> ? EqualableFilter<T> :
-        TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableFilter<T> :
-        TYPE extends IAggregatedArrayValueSource<any, any, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
+        TYPE extends IValueSource<any, BooleanType, any> ? BooleanFilter :
+        TYPE extends IValueSource<any, BigintType, any> ? BigintFilter :
+        TYPE extends IValueSource<any, NumberType, any> ? NumberFilter :
+        TYPE extends IValueSource<any, StringType, any> ? StringFilter :
+        TYPE extends IValueSource<any, UuidType, any> ? StringFilter :
+        TYPE extends IValueSource<any, StringDecimalType, any> ? StringDecimalFilter :
+        TYPE extends IValueSource<any, LocalDateTimeType, any> ? DateTimeFilter :
+        TYPE extends IValueSource<any, LocalDateType, any> ? DateFilter :
+        TYPE extends IValueSource<any, LocalTimeType, any> ? TimeFilter :
+        TYPE extends IValueSource<any, CustomIntType<any, any>, any> ? CustomIntFilter<T> :
+        TYPE extends IValueSource<any, CustomBigintType<any, any>, any> ? CustomBigintFilter<T> :
+        TYPE extends IValueSource<any, CustomDoubleType<any, any>, any> ? CustomDoubleFilter<T> :
+        TYPE extends IValueSource<any, CustomDecimalType<any, any>, any> ? CustomDecimalFilter<T> :
+        TYPE extends IValueSource<any, CustomUuidType<any, any>, any> ? CustomUuidFilter<T> :
+        TYPE extends IValueSource<any, CustomLocalDateType<any, any>, any> ? CustomLocalDateFilter<T> :
+        TYPE extends IValueSource<any, CustomLocalTimeType<any, any>, any> ? CustomLocalTimeFilter<T> :
+        TYPE extends IValueSource<any, CustomLocalDateTimeType<any, any>, any> ? CustomLocalDateTimeFilter<T> :
+        TYPE extends IValueSource<any, CustomComparableType<any, any>, any> ? ComparableFilter<T> :
+        TYPE extends IValueSource<any, EnumType<any, any>, any> ? EqualableFilter<T> :
+        TYPE extends IValueSource<any, CustomEqualableType<any, any>, any> ? EqualableFilter<T> :
+        TYPE extends IValueSource<any, AggregatedArrayType<any>, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
         Filter
     ) : never
 
 export type Filterable = DataToProjectOfAny
 
 export type DynamicConditionExtension = DataToProjectOf<DynamicConditionRule<any>>
-export type DynamicConditionRule<T> = (rule: T) => IAnyBooleanValueSource<any, any>
+export type DynamicConditionRule<T> = (rule: T) => ILogicalValueSource<any, any>
 
 type NonReplacedField<DEFINITION, EXTENSION> = Exclude<UsableKeyOf<DEFINITION>, DynamicConditionExtensionKeys<EXTENSION>> 
 type DynamicConditionExtensionKeys<EXTENSION> = {[K in keyof EXTENSION]: EXTENSION[K] extends DynamicConditionRule<any> ? K : never }[keyof EXTENSION]
@@ -263,7 +271,7 @@ export type DynamicFilter<DEFINITION extends Filterable, EXTENSION extends Dynam
 export interface DynamicConditionExpression<DEFINITION extends Filterable, EXTENSION extends DynamicConditionExtension> {
     // It is optional because some members can be optionals, another strategy will be look inside the object looking for 
     // any optional, but is provides low value
-    withValues(filter: DynamicFilter<DEFINITION, EXTENSION>): BooleanValueSource<SourceOf<DEFINITION> | SourceOf<EXTENSION>, 'optional'>
+    withValues(filter: DynamicFilter<DEFINITION, EXTENSION>): ValueSource<SourceOf<DEFINITION> | SourceOf<EXTENSION>, BooleanType, 'optional'>
 }
 
 type SourceOf<TYPE> = [TYPE] extends [never] ? never : GetDataToProjectSource<TYPE>

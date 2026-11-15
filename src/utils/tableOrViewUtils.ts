@@ -1,12 +1,12 @@
 import type { ColumnNamesOf, ColumnsGroupKeyOf, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, RequiredColumnPathsOf, ResolveShapeContent, ShapeValuesOf } from '../complexProjections/columnGroups.js'
 import type { ITable, ITableOrView, IView, IWithView, IValues, ResolvedShape, OldValues, ValuesForInsert, ForUseInLeftJoin, HasSource, ITableOrViewAlias } from './ITableOrView.js'
-import type { RemapValueSourceType } from '../expressions/values.js'
 import type { source } from './symbols.js'
 import type { WritableDBPrimaryKeyColumnWithDefaultValue } from './Column.js'
 import type { NAlias, NAsLeftJoin, NCustomizeAs, NGetDBFrom, NGetNameFrom, NOldValues, NSource, NValuesForInsert } from './sourceName.js'
 import type { ColumnsForAlias } from '../complexProjections/tableAlias.js'
 import type { ColumnsForLeftJoin } from '../complexProjections/asLeftJoin.js'
 import type { AnyValueSource, ValueSourceValueType } from '../typeSystem/valueSource.js'
+import type { RemapValueSourceType } from '../typeSystem/base.js'
 
 export type { ColumnPathsOf, ColumnsGroupKeyOf, ColumnsKeyOf, IsColumnsGroupCandidate, OptionalColumnsForSetOf, RequiredColumnsForSetOf } from '../complexProjections/columnGroups.js'
 

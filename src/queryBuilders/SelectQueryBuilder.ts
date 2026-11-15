@@ -4,18 +4,20 @@ import { flattenQueryColumns, hasAggregationQueryColumns, isAllowedQueryColumns 
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression, OrderByExecutableSelectExpressionProjectableAsNullable, GroupByOrderByExecutableSelectExpressionProjectableAsNullable, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable, ExecutableSelectExpressionWithoutWhereProjectableAsNullable, DynamicWhereLastCompoundableCustomizableExecutableSelectExpression } from '../expressions/select.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import type { IAnyBooleanValueSource, IBooleanValueSource, INumberValueSource, AlwaysIfValueSource } from '../expressions/values.js'
 import { __addWiths, __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { __createAggregateFunction0, __createAggregateSelect, __createInlineSelect, __priorOf, createColumnsFrom } from '../typeSystem/valueSourceFactory.js'
 import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from '../utils/symbols.js'
-import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { WithViewImpl } from '../internal/WithViewImpl.js'
 import { View } from '../View.js'
 import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyValueSource, IExecutableSelectQuery } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
+import type { ILogicalValueSource, IValueSource } from '../typeSystem/base.js'
+import type { AlwaysIfValueSource, BooleanType } from '../typeSystem/booleans.js'
+import { asAlwaysIfValueSource } from '../typeSystem/booleans.js'
+import type { NumberType } from '../typeSystem/numbers.js'
 
 abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQueryDataDiscovery, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, OrderedExecutableSelectExpression<any,any,any,any, any>, OffsetExecutableSelectExpression<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any> {
     [source]: any
@@ -33,8 +35,8 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     override __columns: QueryColumns = {}
     __orderBy?: OrderByEntry[] | undefined
     __orderingSiblingsOnly?: boolean | undefined // Oracle
-    __limit?: number | INumberValueSource<any, any> | undefined
-    __offset?: number | INumberValueSource<any, any> | undefined
+    __limit?: number | IValueSource<any, NumberType, any> | undefined
+    __offset?: number | IValueSource<any, NumberType, any> | undefined
     __withs: Array<IWithView<any>> = []
     __customization?: SelectCustomization<any, any> | undefined
 
@@ -364,7 +366,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         this.__orderingAndPagingTarget().__orderingSiblingsOnly = true
         return this
     }
-    limit(limit: number | INumberValueSource<any, any>): any {
+    limit(limit: number | IValueSource<any, NumberType, any>): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         this.__orderingAndPagingTarget().__limit = limit
@@ -379,7 +381,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             return this
         }
     }
-    offset(offset: number | INumberValueSource<any, any>): any {
+    offset(offset: number | IValueSource<any, NumberType, any>): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         this.__orderingAndPagingTarget().__offset = offset
@@ -758,7 +760,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         this.__buildRecursive(fn, true)
         return this
     }
-    __buildRecursiveFn(fn: (view: any) => IBooleanValueSource<any, any>): (view: any) => ICompoundableSelect<any, any, any> {
+    __buildRecursiveFn(fn: (view: any) => IValueSource<any, BooleanType, any>): (view: any) => ICompoundableSelect<any, any, any> {
         return (view: any) => {
             const current = this as any as PlainSelectData
             const result = new SelectQueryBuilder(this.__sqlBuilder, current.__tablesOrViews, false)
@@ -770,11 +772,11 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             return result as any
         }
     }
-    recursiveUnionOn(fn: (view: any) => IBooleanValueSource<any, any>): any {
+    recursiveUnionOn(fn: (view: any) => IValueSource<any, BooleanType, any>): any {
         this.__buildRecursive(this.__buildRecursiveFn(fn), false)
         return this
     }
-    recursiveUnionAllOn(fn: (view: any) => IBooleanValueSource<any, any>): any {
+    recursiveUnionAllOn(fn: (view: any) => IValueSource<any, BooleanType, any>): any {
         this.__buildRecursive(this.__buildRecursiveFn(fn), true)
         return this
     }
@@ -1035,7 +1037,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__invalidateQuery()
         return this
     }
-    on(condition: IAnyBooleanValueSource<any, any>): any {
+    on(condition: ILogicalValueSource<any, any>): any {
         this.__invalidateQuery()
         if (!this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
@@ -1055,7 +1057,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__invalidateQuery()
         return this
     }
-    where(condition: IAnyBooleanValueSource<any, any>): any {
+    where(condition: ILogicalValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         if (this.__where) {
@@ -1064,7 +1066,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__where = asAlwaysIfValueSource(condition)
         return this
     }
-    and(condition: IAnyBooleanValueSource<any, any>): any {
+    and(condition: ILogicalValueSource<any, any>): any {
         this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -1089,7 +1091,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    or(condition: IAnyBooleanValueSource<any, any>): any {
+    or(condition: ILogicalValueSource<any, any>): any {
         this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -1120,7 +1122,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__inHaving = true
         return this
     }
-    having(condition: IAnyBooleanValueSource<any, any> | ((columns: any) => IAnyBooleanValueSource<any, any>)): any {
+    having(condition: ILogicalValueSource<any, any> | ((columns: any) => ILogicalValueSource<any, any>)): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         this.__inHaving = true
@@ -1206,7 +1208,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    startWith(condition: IAnyBooleanValueSource<any, any>): any {
+    startWith(condition: ILogicalValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         if (this.__startWith) {
@@ -1215,7 +1217,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__startWith = asAlwaysIfValueSource(condition)
         return this
     }
-    connectBy(condition: (prior: (column: AnyValueSource) => any) => IBooleanValueSource<any, any>): any {
+    connectBy(condition: (prior: (column: AnyValueSource) => any) => IValueSource<any, BooleanType, any>): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         if (this.__connectBy) {
@@ -1228,7 +1230,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__connectBy = connectBy
         return this
     }
-    connectByNoCycle(condition: (prior: (column: AnyValueSource) => any) => IBooleanValueSource<any, any>): any {
+    connectByNoCycle(condition: (prior: (column: AnyValueSource) => any) => IValueSource<any, BooleanType, any>): any {
         this.__finishJoinHaving()
         this.__invalidateQuery()
         if (this.__connectBy) {

@@ -5,7 +5,6 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { MariaDBSqlBuilder } from '../sqlBuilders/MariaDBSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
-import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, StringValueSource } from '../expressions/values.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
@@ -16,6 +15,9 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
+import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
+import type { IValueSource, ValueSource } from '../typeSystem/base.js'
+import type { StringType } from '../typeSystem/strings.js'
 
 export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'mariaDB', NAME>> {
     /**
@@ -124,14 +126,14 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
         queryRunner.useDatabase('mariaDB')
     }
 
-    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'mariaDB', NAME>>>(columns: COLUMNS & NNotNestedAggregate<SourceOfAggregatedArray<COLUMNS>, NConnection<'mariaDB', NAME>>): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'mariaDB', NAME>>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'mariaDB', NAME>>>(columns: COLUMNS & NNotNestedAggregate<SourceOfAggregatedArray<COLUMNS>, NConnection<'mariaDB', NAME>>): ValueSource<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'mariaDB', NAME>>, AggregatedArrayProjectableAsNullableType<Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>>, 'required'> {
         return __createAggregateValueAsArray(columns as QueryColumns, 'InnerResultObject', 'required', true)
     }
-    aggregateAsArrayOfOneColumnDistinct<VALUE extends TypedValueSource<any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], NConnection<'mariaDB', NAME>>): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<NConnection<'mariaDB', NAME>>, Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends TypedValueSource<any, any, any>>(value: VALUE & NNotNestedAggregate<VALUE[typeof source], NConnection<'mariaDB', NAME>>): ValueSource<VALUE[typeof source] | NAggregate<NConnection<'mariaDB', NAME>>, AggregatedArrayType<Array<VALUE[typeof valueType]>>, 'required'> {
         return __createAggregateValueAsArray(value, 'InnerResultObject', 'required', true)
     }
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mariaDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mariaDB', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'mariaDB', NAME>>, 'optional'>
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mariaDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mariaDB', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'mariaDB', NAME>>, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'mariaDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mariaDB', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'mariaDB', NAME>>, StringType, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'mariaDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mariaDB', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'mariaDB', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, valuePrivate.__type, valuePrivate.__customType, 'optional', valuePrivate.__typeAdapter)

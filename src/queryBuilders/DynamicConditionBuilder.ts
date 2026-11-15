@@ -1,9 +1,10 @@
 import type { DynamicConditionExpression, DynamicFilter, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
-import type { BooleanValueSource } from '../expressions/values.js'
 import { __createIfValueAlwaysNoop, __isIfValueAlwaysNoop } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import type { ValueSource } from '../typeSystem/base.js'
+import type { BooleanType } from '../typeSystem/booleans.js'
 
 // Joins an accumulated nested-filter path prefix with the next key using a dot
 // separator, matching the `column + '.' + key` form used deeper in the builder.
@@ -29,8 +30,8 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         return this.processFilter(filter, this.definition as QueryColumns, this.extension, '')
     }
 
-    processFilter(filter: DynamicFilter<any, any>, definitionColumns: QueryColumns, extension: any, prefix: string): BooleanValueSource<any, any> {
-        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
+    processFilter(filter: DynamicFilter<any, any>, definitionColumns: QueryColumns, extension: any, prefix: string): ValueSource<any, BooleanType, any> {
+        let result: ValueSource<any, BooleanType, any> = __createIfValueAlwaysNoop('required') as any
         
         if (filter === null || filter === undefined) {
             return result
@@ -41,7 +42,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
 
         for (const key in filter) {
             const value: any = filter[key]
-            let condition: BooleanValueSource<any, any>
+            let condition: ValueSource<any, BooleanType, any>
             if (key === 'and') {
                 if (value === null || value === undefined) {
                     continue
@@ -107,7 +108,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processColumnFilter(filter: any, valueSource: any, extension: any, column: string) {
-        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
+        let result: ValueSource<any, BooleanType, any> = __createIfValueAlwaysNoop('required') as any
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         for (const key in filter) {
             const value = filter[key]
@@ -135,7 +136,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 
-                let condition: BooleanValueSource<any, any>  = extensionResult as any
+                let condition: ValueSource<any, BooleanType, any>  = extensionResult as any
                 result = result.and(condition)
                 continue
             }
@@ -162,7 +163,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     continue
                 }
             }
-            let condition: BooleanValueSource<any, any>
+            let condition: ValueSource<any, BooleanType, any>
             if (operation === 'isNull' || operation === 'isNotNull') {
                 condition = valueSource[operation]()
                 if (!value) {
@@ -181,7 +182,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processAndFilter(filter: DynamicFilter<any, any>[], definition: QueryColumns, extension: any, prefix: string) {
-        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
+        let result: ValueSource<any, BooleanType, any> = __createIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)
             result = result.and(condition)
@@ -190,7 +191,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processOrFilter(filter: DynamicFilter<any, any>[], definition: QueryColumns, extension: any, prefix: string) {
-        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
+        let result: ValueSource<any, BooleanType, any> = __createIfValueAlwaysNoop('required') as any
         for (let i = 0, length = filter.length; i < length; i++) {
             const condition = this.processFilter(filter[i]!, definition, extension, prefix)
             result = result.or(condition)
@@ -199,7 +200,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processAdditionalColumnFilter(filter: any, extension: any, path: string) {
-        let result: BooleanValueSource<any, any> = __createIfValueAlwaysNoop('required') as any
+        let result: ValueSource<any, BooleanType, any> = __createIfValueAlwaysNoop('required') as any
         for (const key in filter) {
             const value = filter[key]
 
@@ -226,7 +227,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 
-                let condition: BooleanValueSource<any, any>  = extensionResult as any
+                let condition: ValueSource<any, BooleanType, any>  = extensionResult as any
                 result = result.and(condition)
                 continue
             }

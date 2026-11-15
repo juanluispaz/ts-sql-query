@@ -1,8 +1,8 @@
-import type { RemapValueSourceType } from '../expressions/values.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { WritableColumnBrandsOf } from '../utils/Column.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
+import type { RemapValueSourceType } from '../typeSystem/base.js'
 
 /*
  * Reasign all columns to a new table/view alias

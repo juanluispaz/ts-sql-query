@@ -6,7 +6,6 @@ import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData,
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import type { BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -26,6 +25,10 @@ import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __isAggregatedArray, __isBigint, __isDouble, __isExactDecimal, __isInt } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSource, __isStringValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
+import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
+import type { BooleanType } from '../typeSystem/booleans.js'
+import type { CustomEqualableType } from '../typeSystem/equalable.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
@@ -343,19 +346,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendRawFragment(rawFragment: RawFragment<any>, context: SqlBuildContext): string {
         return this._appendSql(rawFragment as any as ToSql, context, false) // RawFragment has a hidden implemetation of ToSql
     }
-    _appendCondition(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext): string {
+    _appendCondition(condition: ILogicalValueSource<any, any>, context: SqlBuildContext): string {
         if (hasToSql(condition)) {
             return this._appendConditionSql(condition, context, false)
         }
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid value source' }, 'Conditions must have a __toSqlForCondition method')
     }
-    _appendConditionParenthesis(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext): string {
+    _appendConditionParenthesis(condition: ILogicalValueSource<any, any>, context: SqlBuildContext): string {
         if (this._needParenthesis(condition)) {
             return '(' + this._appendCondition(condition, context) + ')'
         }
         return this._appendCondition(condition, context)
     }
-    _appendConditionParenthesisExcluding(condition: IAnyBooleanValueSource<any, any>, context: SqlBuildContext, excluding: keyof SqlOperation): string {
+    _appendConditionParenthesisExcluding(condition: ILogicalValueSource<any, any>, context: SqlBuildContext, excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(condition, excluding)) {
             return '(' + this._appendCondition(condition, context) + ')'
         }
@@ -1837,7 +1840,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return query.__orderBy.some(entry => this._isOrderByAliasNeedingTheValue(entry, query, context))
     }
-    _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, context: SqlBuildContext): string {
+    _appendHavingCondition(having: ILogicalValueSource<any, any>, context: SqlBuildContext): string {
         return this._appendCondition(having, context)
     }
     /**
@@ -3038,7 +3041,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         updateQuery += this._buildUpdateFrom(query, updatePrimaryKey, requiredTables, requiredColumns, context)
 
         if (oldValues && this._useUpdateOldValueInFrom()) {
-            let where: BooleanValueSource<any, any> | undefined
+            let where: ValueSource<any, BooleanType, any> | undefined
             for (const property of __columnPathsOf(table)) {
                 const column = __getColumnOfObject(table, property)
                 if (!column) {
@@ -3052,7 +3055,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (!oldCoumn) {
                     throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'The column ' + property + ' is missing from the old values table')
                 }
-                const condition = (column as any as EqualableValueSource<any, any, any, any>).equals(oldCoumn)
+                const condition = (column as any as ValueSource<any, CustomEqualableType<any, any>, any>).equals(oldCoumn)
                 if (where) {
                     where = where.and(condition)
                 } else {
@@ -4749,7 +4752,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, context, false) + ', ' + this._appendValue(separator, context, 'string', undefined, undefined, false) + ')'
         }
     }
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, context: SqlBuildContext): string {
+    _aggregateValueAsArray(valueSource: IValueSource<any, AggregatedArrayType<any>, any>, context: SqlBuildContext): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
         const aggregatedArrayDistinct = valueSourcePrivate.__aggregatedArrayDistinct!

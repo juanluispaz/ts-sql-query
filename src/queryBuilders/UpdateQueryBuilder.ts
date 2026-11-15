@@ -4,11 +4,9 @@ import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from '../s
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
-import type { AlwaysIfValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from '../expressions/update.js'
 import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
-import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { __setQueryMetadata, AbstractQueryBuilder, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -16,6 +14,9 @@ import { __expandColumnNames, __flattenSets, __flattenShape, __tableWithColumnPa
 import { isColumn } from '../utils/Column.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
+import type { ILogicalValueSource } from '../typeSystem/base.js'
+import type { AlwaysIfValueSource } from '../typeSystem/booleans.js'
+import { asAlwaysIfValueSource } from '../typeSystem/booleans.js'
 
 export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
     [source]: any
@@ -839,7 +840,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         this.__invalidateQuery()
         return this
     }
-    where(condition: IAnyBooleanValueSource<any, any>): this {
+    where(condition: ILogicalValueSource<any, any>): this {
         this.__invalidateQuery()
         if (this.__where) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
@@ -847,7 +848,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         this.__where = asAlwaysIfValueSource(condition)
         return this
     }
-    and(condition: IAnyBooleanValueSource<any, any>): this {
+    and(condition: ILogicalValueSource<any, any>): this {
         this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -864,7 +865,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         }
         return this
     }
-    or(condition: IAnyBooleanValueSource<any, any>): this {
+    or(condition: ILogicalValueSource<any, any>): this {
         this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -945,7 +946,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         this.__invalidateQuery()
         return this
     }
-    on(condition: IAnyBooleanValueSource<any, any>): any {
+    on(condition: ILogicalValueSource<any, any>): any {
         this.__invalidateQuery()
         if (!this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')

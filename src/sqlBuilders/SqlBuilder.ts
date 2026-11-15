@@ -1,6 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ITable, IWithView, HasIsValue, AnyTableOrView } from '../utils/ITableOrView.js'
-import type { AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource } from '../expressions/values.js'
 import type { DefaultTypeAdapter, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
 import type { OrderByMode, SelectCustomization } from '../expressions/select.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -17,6 +16,10 @@ import type { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.
 import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
+import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
+import type { IValueSource } from '../typeSystem/base.js'
+import type { AlwaysIfValueSource } from '../typeSystem/booleans.js'
+import type { NumberType } from '../typeSystem/numbers.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
@@ -197,8 +200,8 @@ export interface PlainSelectData extends WithQueryData {
     __havingColumnNames?: Set<AnyValueSource> | undefined
     __orderBy?: OrderByEntry[] | undefined
     __orderingSiblingsOnly?: boolean | undefined // Oracle
-    __limit?: number | INumberValueSource<any, any> | undefined
-    __offset?: number | INumberValueSource<any, any> | undefined
+    __limit?: number | IValueSource<any, NumberType, any> | undefined
+    __offset?: number | IValueSource<any, NumberType, any> | undefined
     __requiredTablesOrViews?: Set<AnyTableOrView> | undefined
     __asInlineAggregatedArrayValue?: boolean | undefined
 }
@@ -215,8 +218,8 @@ export interface CompoundSelectData extends WithQueryData {
     __oneColumn: boolean
     __orderBy?: OrderByEntry[] | undefined
     __orderingSiblingsOnly?: boolean | undefined // Oracle
-    __limit?: number | INumberValueSource<any, any> | undefined
-    __offset?: number | INumberValueSource<any, any> | undefined
+    __limit?: number | IValueSource<any, NumberType, any> | undefined
+    __offset?: number | IValueSource<any, NumberType, any> | undefined
     __asInlineAggregatedArrayValue?: boolean | undefined
 }
 
@@ -339,7 +342,7 @@ export interface SqlBuilder extends SqlOperation {
 
     _inlineSelectAsValue(query: SelectData, context: SqlBuildContext): string
     _inlineSelectAsValueForCondition(query: SelectData, context: SqlBuildContext): string
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, context: SqlBuildContext): string
+    _aggregateValueAsArray(valueSource: IValueSource<any, AggregatedArrayType<any>, any>, context: SqlBuildContext): string
 }
 
 export interface ToSql {

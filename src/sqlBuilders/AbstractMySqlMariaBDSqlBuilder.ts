@@ -3,7 +3,6 @@ import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { IAnyBooleanValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnPrivate, __getColumnOfObject } from '../utils/Column.js'
@@ -15,6 +14,7 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
+import type { ILogicalValueSource } from '../typeSystem/base.js'
 
 /** One assignment of the set of an update: the property of the values, the column of the table and its value */
 interface UpdateAssignment {
@@ -68,7 +68,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return super._buildSelectGroupBy(query, context, isOutermostQuery, selectColumnsSql)
     }
-    override _appendHavingCondition(having: IAnyBooleanValueSource<any, any>, context: SqlBuildContext): string {
+    override _appendHavingCondition(having: ILogicalValueSource<any, any>, context: SqlBuildContext): string {
         // In a having, MySQL and MariaDB resolve a bare name to an alias of the select before a column of the table
         // that isn't grouped: the columns of the tables are written with the table name, so they never take an alias
         const oldSafeTableOrView = context.safeTableOrView

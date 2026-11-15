@@ -6,7 +6,9 @@
     "author": "juanluispaz",
     "readmeFilename": "README.md",
     "type": "module",
-    "sideEffects": false,
+    "sideEffects": [
+        "./typeSystem/registerDataTypes.js"
+    ],
     "files": [
         "**/*.js",
         "**/*.d.ts",

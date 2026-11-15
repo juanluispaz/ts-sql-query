@@ -3,7 +3,7 @@ import { EqualableType } from './equalable.js'
 import type { MergeOptional, OptionalType } from './valueSource.js'
 import { __getValueSourcePrivate } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
-import { computedType, operandTypeName, typeName, logicalTypes } from '../utils/symbols.js'
+import { computedType, operandTypeName, typeName } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newValueWhenNoValueValueSource, __newBooleanValueWhenNoValueValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop } from '../nodes/ifValue.js'
 import { mergeOptional, getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
@@ -22,7 +22,6 @@ export type IBooleanValue = IValueWithType<'type:boolean:logical:'>
 /** A boolean value */
 export abstract class BooleanType extends EqualableType<boolean> {
     /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
-    static get [logicalTypes]() { return logicalTypeClasses }
     static override readonly type = 'boolean'
     static override readonly customType = undefined
     declare [typeName]: 'type:boolean:logical:'
@@ -107,8 +106,6 @@ export function __isCondition(valueSource: unknown): boolean {
     return valueSource instanceof BooleanConditionType && !(valueSource as any).__selectColumnReference
 }
 
-// After the classes it names: read by the getter of [logicalTypes] of BooleanType
-const logicalTypeClasses = { boolean: BooleanType, condition: BooleanConditionType }
 
 /** The root of the conditions */
 export abstract class ConditionType extends BaseType<boolean> {

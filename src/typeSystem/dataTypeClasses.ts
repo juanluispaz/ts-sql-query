@@ -2,55 +2,10 @@ import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import type { __ValueSourcePrivate } from './valueSource.js'
-import { BooleanConditionType, BooleanType } from './logical.js'
-import { BigintType, DoubleType, IntType } from './number.js'
-import { StringDecimalType } from './decimals.js'
-import { StringType } from './strings.js'
-import { UuidType } from './uuids.js'
-import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
-import { AggregatedArrayProjectableAsNullableType } from './aggregatedArrays.js'
-import { CustomBigintType, CustomDoubleType, CustomIntType } from './customNumber.js'
-import { CustomDecimalType } from './customDecimals.js'
-import { CustomUuidType } from './customUuids.js'
-import { CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType } from './customLocalDates.js'
-import { EnumType } from './enum.js'
-import { CustomEqualableType } from './customEqualable.js'
-import { CustomComparableType } from './customComparable.js'
+import { __registeredCustomDataTypeFamily, __registeredDataType } from './dataTypeRegistry.js'
 
 // The class of the data type a value source is created from, by the names the library knows a data type by at run time:
-// the type, and the custom type of a custom data type. Only the modules that create value sources from those names
-// import it; a class of a data type never does.
-
-/** The class of each built-in data type, by its name */
-const builtInDataTypeClasses: { readonly [type: string]: DataTypeClass | undefined } = {
-    boolean: BooleanType,
-    int: IntType,
-    bigint: BigintType,
-    double: DoubleType,
-    stringDecimal: StringDecimalType,
-    string: StringType,
-    uuid: UuidType,
-    localDate: LocalDateType,
-    localTime: LocalTimeType,
-    localDateTime: LocalDateTimeType,
-    // The class that has projectingOptionalValuesAsNullable, which its types offer until it is called
-    aggregatedArray: AggregatedArrayProjectableAsNullableType,
-}
-
-/** The family of each custom type, whose `of` gives the class of each type name */
-const customDataTypeFamilies: { readonly [customType in CustomType]: { of(typeName: string): DataTypeClass } } = {
-    customInt: CustomIntType,
-    customBigint: CustomBigintType,
-    customDouble: CustomDoubleType,
-    customDecimal: CustomDecimalType,
-    customUuid: CustomUuidType,
-    customLocalDate: CustomLocalDateType,
-    customLocalTime: CustomLocalTimeType,
-    customLocalDateTime: CustomLocalDateTimeType,
-    enum: EnumType,
-    custom: CustomEqualableType,
-    customComparable: CustomComparableType,
-}
+// the type, and the custom type of a custom data type, as the registry has them (dataTypeRegistry.ts).
 
 /** The class a method that takes a data type gets: the class itself, or the class of a built-in data type by its name */
 export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass {
@@ -64,21 +19,17 @@ export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass
  */
 export function __projectedTypeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
     const typeClass = __sameTypeClassOf(valueSource)
-    return typeClass === BooleanConditionType ? BooleanType : typeClass
+    return typeClass === __registeredDataType('condition') ? __registeredDataType('boolean') : typeClass
 }
 
 /** The class of the data type of a type and a custom type */
 export function __dataTypeClassOf(type: string, customType: CustomType | undefined): DataTypeClass {
-    if (customType !== undefined) {
-        const family = customDataTypeFamilies[customType]
-        if (family) {
-            return family.of(type)
-        }
-    } else {
-        const result = builtInDataTypeClasses[type]
-        if (result) {
-            return result
-        }
+    if (customType === undefined) {
+        return __registeredDataType(type)
     }
-    throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unknown data type: ' + type + (customType === undefined ? '' : ' of ' + customType))
+    const family = __registeredCustomDataTypeFamily(customType)
+    if (!family) {
+        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unknown data type: ' + type + ' of ' + customType)
+    }
+    return family.of(type)
 }

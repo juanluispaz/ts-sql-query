@@ -1,7 +1,6 @@
 import type { CustomTypeClass } from './base.js'
-import { intType, operandTypeName, typeName } from '../utils/symbols.js'
+import { operandTypeName, typeName } from '../utils/symbols.js'
 import { IntegersType, RealsType } from './numeric.js'
-import { IntType } from './number.js'
 
 /** The class `CustomIntType.of` made for each type name */
 const customIntClasses = new Map<string, CustomTypeClass<CustomIntType<any, any>>>()
@@ -14,8 +13,6 @@ const customDoubleClasses = new Map<string, CustomTypeClass<CustomDoubleType<any
 
 /** An integer number of a type of the user, of its type name */
 export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
-    /** The int its sign gives (NumericType can't import it at run time) */
-    static readonly [intType] = IntType
     static override readonly customType = 'customInt'
     declare [typeName]: `type:${TYPE_NAME}:customInt:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
@@ -36,8 +33,6 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
 
 /** An integer number of 64 bits of a type of the user, of its type name */
 export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
-    /** The int its sign gives (NumericType can't import it at run time) */
-    static readonly [intType] = IntType
     static override readonly customType = 'customBigint'
     declare [typeName]: `type:${TYPE_NAME}:customBigint:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customBigint:`
@@ -58,8 +53,6 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
 
 /** A floating point number of a type of the user, of its type name */
 export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends RealsType<VALUE_TYPE> {
-    /** The int its sign gives (NumericType can't import it at run time) */
-    static readonly [intType] = IntType
     static override readonly customType = 'customDouble'
     declare [typeName]: `type:${TYPE_NAME}:customDouble:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`

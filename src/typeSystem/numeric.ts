@@ -4,7 +4,8 @@ import { ComparableType } from './comparable.js'
 import type { IntType } from './number.js'
 import type { INumberValue, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
-import { intType, type operandTypeName } from '../utils/symbols.js'
+import type { operandTypeName } from '../utils/symbols.js'
+import { __registeredDataType } from './dataTypeRegistry.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
 
@@ -38,7 +39,7 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
     }
     sign(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     sign(): any {
-        return __operation0(this, '_sign', (this.constructor as any)[intType])
+        return __operation0(this, '_sign', __registeredDataType('int'))
     }
     minValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     minValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>

@@ -123,8 +123,9 @@ concat(value: any): any {
 - **The operands** ([`operands.ts`](./operands.ts): `getOptionalType2`, `getOptionalType3`, `getRequiredType2`,
   `getOptionalTypeOfIn`, `getOptionalTypeN`, `getTypeAdapter2`, `getTypeAdapter3`) take the receiver the same way.
 - **The class of the result**: `__typeClassOf` and `__sameTypeClassOf` ([`dataTypeClassOf.ts`](./dataTypeClassOf.ts)) take a
-  `DataTypeValueSource` or the private state of a value source (`__ValueSourcePrivate`), and `__conditionTypeOf` /
-  `__doubleTypeOf` (of `src/typeSystem/valueSourceBase.ts`) a `DataTypeValueSource`.
+  `DataTypeValueSource` or the private state of a value source (`__ValueSourcePrivate`); the class of a data type that
+  extends the receiver's (the boolean of a condition, the int of `sign`) comes from the registry of the data types
+  (`src/typeSystem/dataTypeRegistry.ts`).
 - **An operation of the receiver with its own optionality and type adapter**: `__operation0(this, operation, typeClass)`,
   and `__operation1(this, operation, value, typeClass)` with those of the receiver and the value
   ([`operations.ts`](./operations.ts)).

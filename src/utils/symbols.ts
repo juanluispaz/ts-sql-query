@@ -34,9 +34,6 @@ export const operandTypeName: unique symbol = Symbol('operandTypeName')
 export const valueSourceType: unique symbol = Symbol('valueSourceType')
 export const comparableValueSource: unique symbol = Symbol('comparableValueSource')
 // The data types a family gives in what its bases declare, so a base doesn't name a data type that extends it
-export const logicalTypes: unique symbol = Symbol('logicalTypes')
-export const numberTypes: unique symbol = Symbol('numberTypes')
-export const intType: unique symbol = Symbol('intType')
 // The class a value source computed from one of this data type gets, when it is not the same (the text of a uuid gives a
 // text): a static of the class
 export const computedType: unique symbol = Symbol('computedType')

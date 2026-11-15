@@ -19,6 +19,7 @@ import { StringsType } from '../../../src/typeSystem/strings.js'
 import { LocalDatesType } from '../../../src/typeSystem/localDates.js'
 import { AggregatedArraysType, AggregatedArrayType } from '../../../src/typeSystem/aggregatedArrays.js'
 import type { ValueSource } from '../../../src/typeSystem/base.js'
+import type { operandTypeName, typeName } from '../../../src/utils/symbols.js'
 
 type Money = number & { readonly __brand: 'Money' }
 type Status = 'open' | 'closed'
@@ -28,6 +29,14 @@ const OtherType = CustomIntType.of<number, 'Other'>('Other')
 const PriceType = CustomDecimalType.of<string, 'Price'>('Price')
 const StatusType = EnumType.of<Status, 'Status'>('Status')
 const VersionType = CustomComparableType.of<string, 'Version'>('Version')
+
+// A data type of the user that extends a base of the library directly, with nothing more than its type
+abstract class ColorType extends EqualableType<string> {
+    static override readonly type = 'Color'
+    static override readonly customType = 'custom'
+    declare [typeName]: 'type:Color:custom:'
+    declare [operandTypeName]: 'type:Color:custom:'
+}
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {}
 const conn = new DBConnection(new NoopQueryRunner())
@@ -45,6 +54,7 @@ const tThing = new class TThing extends Table<DBConnection, 'TThing'> {
     price = this.column('price', PriceType)
     status = this.column('status', StatusType)
     version = this.column('version', VersionType)
+    color = this.column('color', ColorType)
     constructor() { super('thing') }
 }()
 
@@ -184,6 +194,19 @@ describe('DataTypeClasses', () => {
         expect(classOf(condition.allowWhen(true, 'never'))).toBe(classOf(condition))
         expect(classOf(condition.asOptional())).toBe(classOf(condition))
         expect(classOf(condition.valueWhenNull(false))).toBe(BooleanType)
+    })
+
+    test('a-data-type-that-extends-a-base-directly-gives-the-booleans-of-the-library', () => {
+        const classOf = (value: unknown) => (value as object).constructor
+        const condition = tThing.int.equals(1)
+        expect(tThing.color).toBeInstanceOf(ColorType)
+        expect(classOf(tThing.color.equals('red'))).toBe(classOf(condition))
+        expect(classOf(tThing.color.isNull())).toBe(classOf(condition))
+        expect(classOf(tThing.color.in(['red', 'blue']))).toBe(classOf(condition))
+        expect(classOf(tThing.color.valueWhenNull('red'))).toBe(ColorType)
+        // The same type as the comparison of a built-in data type
+        const red = tThing.color.equals('red')
+        assertType<Exact<typeof red, typeof condition>>()
     })
 
     test('a-built-in-class-gives-the-type-its-name-gives', () => {

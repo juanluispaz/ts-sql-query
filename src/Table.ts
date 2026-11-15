@@ -16,6 +16,8 @@ import type { AnyTypeClass, IValueSource, TypeClass, ValueSource } from './typeS
 import type { NullableType } from './typeSystem/nullable.js'
 import type { FragmentExpression } from './typeSystem/fragments.js'
 import { __dataTypeClassFrom } from './typeSystem/dataTypeClasses.js'
+// Registers the data types of the library (the only module with side effects)
+import './typeSystem/registerDataTypes.js'
 
 class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOURCE> {
     [isTableOrViewObject]: true = true;

@@ -50,6 +50,8 @@ import type { BigintType, NumberType } from '../typeSystem/number.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
 import type { StringType } from '../typeSystem/strings.js'
 import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
+// Registers the data types of the library (the only module with side effects)
+import '../typeSystem/registerDataTypes.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {

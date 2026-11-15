@@ -1,7 +1,8 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray } from './dataTypes.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
-import { ValueSourceBaseType, __conditionTypeOf, __doubleTypeOf } from './valueSourceBase.js'
+import { ValueSourceBaseType } from './valueSourceBase.js'
+import { __registeredDataType } from './dataTypeRegistry.js'
 import type { BooleanType } from './logical.js'
 import type { DoubleType, IntType, NumberType } from './number.js'
 import type { ColumnMarkersOf } from './valueSource.js'
@@ -37,12 +38,12 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperationIsNullValueSource('_isNull', vs, __conditionTypeOf(vs), 'required', vs.__typeAdapter)
+        return __newSqlOperationIsNullValueSource('_isNull', vs, __registeredDataType('condition'), 'required', vs.__typeAdapter)
     }
     isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNotNull(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __conditionTypeOf(vs), 'required', vs.__typeAdapter)
+        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __registeredDataType('condition'), 'required', vs.__typeAdapter)
     }
     valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
     valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, TypeOf<VALUE>>, OptionalOf<VALUE>>
@@ -68,10 +69,10 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
             if (isValueSource(value)) {
                 const operandPrivate = __getValueSourcePrivate(value)
                 if (__isDouble(operandPrivate.__type, operandPrivate.__customType)) {
-                    typeClass = __doubleTypeOf(vs)
+                    typeClass = __registeredDataType('double')
                 }
             } else if (typeof value === 'number' && !Number.isInteger(value)) {
-                typeClass = __doubleTypeOf(vs)
+                typeClass = __registeredDataType('double')
             }
         }
         let typeAdapter = getTypeAdapter2(vs, value)

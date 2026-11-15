@@ -26,11 +26,16 @@ Read this before changing anything here. The code is the reference; this file sa
   classes. A method doesn't read those fields: it passes `this` to the functions of the nodes, which take it as a
   `DataTypeValueSource` (see the README of the nodes).
 - A method gives a value source of the same data type with `this.constructor`. A base can't import at run time the
-  data types that extend it (see below), so the classes it gives are statics of the classes that can import them: the
-  boolean and the condition of the comparisons in `static [logicalTypes]` (`ComparableType`, `BooleanType`, `EnumType`,
-  `CustomEqualableType`, read by `__conditionTypeOf` of [`valueSourceBase.ts`](./valueSourceBase.ts)), the int of `sign`
-  in `static [intType]`, and the int and the double of the group number in `static [numberTypes]` (`__doubleTypeOf`).
+  data types that extend it (see below): it asks the registry of the data types for them when the method is called
+  (`__registeredDataType('condition')`, the boolean of a condition its comparisons give; `'int'` for `sign`; `'double'`
+  for `valueWhenNull` of an int with a double). A class that extends a base, also one of the user, needs nothing more.
   A family that can import a data type imports it (`StringsType` the `IntType` of `length`).
+- **The registry of the data types** ([`dataTypeRegistry.ts`](./dataTypeRegistry.ts)) has the class of each data type
+  by its name (the built-in ones, and `condition`, only for the run time) and the family of each custom type; it
+  imports no class, and a name can be registered only once. It is filled by
+  [`registerDataTypes.ts`](./registerDataTypes.ts), **the only module of the library with side effects**: it registers
+  the data types of the library the same way as any other one, it is declared in `sideEffects` of `package.json`, and
+  the modules a user always starts from import it (`AbstractConnection`, `Table`, `View` and `Values`).
 - A data type can say, in `static [computedType]`, the class a value computed from it gets, when it is not its own:
   the text of a uuid (`UuidTextType`, [`uuidText.ts`](./uuidText.ts), only for the run time: TypeScript sees a
   `StringType`) is still the uuid in SQL, and the SQL builder converts it where it meets another text. A method gives
@@ -55,7 +60,7 @@ Read this before changing anything here. The code is the reference; this file sa
   the data type: a method that takes a data type turns a name of a built-in one into its class once, with
   `__dataTypeClassFrom` of [`dataTypeClasses.ts`](./dataTypeClasses.ts), and a value source of the data type of another
   one takes its class (`__typeClassOf`). `dataTypeClasses.ts` also gives the class of a type and a custom type (the
-  custom ones with the `of` of their family). No class of a data type imports it.
+  custom ones with the `of` of their family), reading the registry. No class of a data type imports it.
 
 ## The operations that disappear without a value (`*IfValue`)
 
@@ -168,7 +173,7 @@ breaks depending on which module is loaded first: a class that extends one not y
 the data types directly: the comparisons of `NullableType` and `EqualableType` give a `BooleanType` (an
 `EqualableType`) with `import type { BooleanType } from './logical.js'`, `NumericType.sign()` gives an `IntType`, and
 `CoalesceTypeOf` asks whether the data type is a `NumberType`. At run time a base never imports a data type that
-extends it: it reads the classes it needs from the statics above. That is why the numbers are in several files: the
+extends it: it asks the registry for the classes it needs (above). That is why the numbers are in several files: the
 bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript
 ([`number.ts`](./number.ts): int, double and bigint, which name each other at run time) and the exact decimals
 ([`decimals.ts`](./decimals.ts)).
@@ -314,6 +319,6 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
    operand NType, its `static type` / `customType`, and its own methods with the result types the runtime gives.
 2. A custom one: its static `of`. A class that groups data types without a type of its own: its `__isOfGroup`.
 3. A built-in one: its entry in each map of `builtInDataTypes.ts`.
-4. A built-in one: its class in `dataTypeClasses.ts`; a new family of custom data types: its family there.
+4. A built-in one: its registration in `registerDataTypes.ts`; a new family of custom data types: its family there.
 5. Its questions in `dataTypes.ts` and its handling in the runtime, as for any data type of the library.
 6. Its cases in the probe, and its tests in the matrix.

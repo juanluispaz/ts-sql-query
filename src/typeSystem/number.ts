@@ -4,7 +4,6 @@ import { IntegersType } from './numeric.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
-import { intType, numberTypes } from '../utils/symbols.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -34,7 +33,6 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
 /** The int and the double, the numbers of JavaScript */
 export abstract class NumberType extends ComparableType<number> {
     /** The int and the double of the group (valueWhenNull of an int with a double gives a double) */
-    static get [numberTypes]() { return numberTypeClasses }
     /** Whether a type and a custom type are of the group number: an int or a double */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return customType === undefined && (type === 'int' || type === 'double')
@@ -209,16 +207,11 @@ export abstract class DoubleType extends NumberType {
 
 /** An integer number of 64 bits, a JavaScript bigint */
 export abstract class BigintType extends IntegersType<bigint> {
-    /** The int its sign gives (NumericType can't import it at run time) */
-    static readonly [intType] = IntType
     static override readonly type = 'bigint'
     static override readonly customType = undefined
     declare [typeName]: 'type:bigint:'
     declare [operandTypeName]: 'type:bigint:'
 }
-
-// After the classes it names, which extend NumberType: read by the getter of [numberTypes]
-const numberTypeClasses = { int: IntType, double: DoubleType }
 
 /**
  * An operation of an int or a double with another number (add, minValue, ...): a double with a double; an int with an

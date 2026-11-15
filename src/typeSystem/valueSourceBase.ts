@@ -1,31 +1,6 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { BaseType, type AnyType, type ValueSource } from './base.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
-import type { DataTypeClass } from '../TypeAdapter.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
-import { logicalTypes, numberTypes } from '../utils/symbols.js'
-import type { DataTypeValueSource } from '../nodes/NodeStrategy.js'
-
-/**
- * The boolean of a condition the comparisons of a value source give: a static of the class of its data type
- * (`[logicalTypes]`), because the bases that compare can't import the data types that extend them
- */
-export function __conditionTypeOf(valueSource: DataTypeValueSource): DataTypeClass {
-    return staticTypeOf(valueSource, logicalTypes, 'condition')
-}
-
-/** The double an int gives with a double (`valueWhenNull`): a static of NumberType (`[numberTypes]`) */
-export function __doubleTypeOf(valueSource: DataTypeValueSource): DataTypeClass {
-    return staticTypeOf(valueSource, numberTypes, 'double')
-}
-
-function staticTypeOf(valueSource: DataTypeValueSource, symbol: symbol, name: string): DataTypeClass {
-    const result: DataTypeClass | undefined = (valueSource.constructor as any)[symbol]?.[name]
-    if (!result) {
-        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'The data type of the value source gives no ' + name)
-    }
-    return result
-}
 
 /** The root of the data types of the value sources (a condition is not one) */
 export abstract class ValueSourceBaseType</*in|out*/ VALUE_TYPE> extends BaseType<VALUE_TYPE> {

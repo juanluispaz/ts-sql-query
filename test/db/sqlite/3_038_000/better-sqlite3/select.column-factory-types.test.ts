@@ -19,10 +19,19 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
+import { tIssueWorklog, tProjectRelease, DBConnection } from '../../domain/connection.js'
 import type { ReleaseChannel, WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomComparableType } from '../../../../../src/exports/v2/index.js'
+import { CustomComparableType, BigintType, BooleanType, IntType } from '../../../../../src/exports/v2/index.js'
+import { Table } from '../../../../../src/Table.js'
+
+// issue_worklog with its built-in data types given by their classes instead of their names
+const tWorklogByClass = new class TWorklogByClass extends Table<DBConnection, 'TWorklogByClass'> {
+    id         = this.primaryKey('id', IntType)
+    billable   = this.optionalColumn('billable', BooleanType)
+    durationMs = this.optionalColumn('duration_ms', BigintType)
+    constructor() { super('issue_worklog') }
+}()
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -110,6 +119,34 @@ describe(ctx.label, () => {
         expect(rows).toEqual([
             { id: 1, durationMs: 5400000n },
             { id: 2 },
+        ])
+    })
+
+    test('built-in-data-types-given-by-their-classes', async () => {
+        // A built-in data type given by its class (`IntType`, `BooleanType`, `BigintType`) declares the column its name
+        // declares: the same projected type, SQL and values as `tIssueWorklog`. Worklog 1 billable=true,
+        // duration_ms 5400000; worklog 2 billable=false, duration_ms NULL (absent).
+        ctx.mockNext([
+            { id: 1, billable: true, durationMs: 5400000n },
+            { id: 2, billable: false, durationMs: undefined },
+        ])
+        const rows = await ctx.conn.selectFrom(tWorklogByClass)
+            .where(tWorklogByClass.id.in([1, 2]))
+            .select({ id: tWorklogByClass.id, billable: tWorklogByClass.billable, durationMs: tWorklogByClass.durationMs })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as billable, duration_ms as durationMs from issue_worklog where id in (?1, ?2) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; billable?: boolean; durationMs?: bigint }>>>()
+        expect(rows).toEqual([
+            { id: 1, billable: true, durationMs: 5400000n },
+            { id: 2, billable: false },
         ])
     })
 

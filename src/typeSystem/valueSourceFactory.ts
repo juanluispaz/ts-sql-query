@@ -6,7 +6,7 @@ import { type AggregateValueAsArrayValueSource, type AllowWhenAggregateValueAsAr
 import { __newDBColumn, createColumnsFrom } from '../internal/DBColumnImpl.js'
 import { __projectedTypeClassOf } from './dataTypeClasses.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
-import { AggregatedArrayType } from './aggregatedArrays.js'
+import { AggregatedArrayProjectableAsNullableType } from './aggregatedArrays.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from './valueSource.js'
@@ -63,11 +63,11 @@ export function __createAggregateFunction1or2(operation: keyof AggregateFunction
 }
 
 export function __createAggregateValueAsArray(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean): any {
-    return __newAggregateValueAsArrayValueSource(AggregatedArrayType, aggregatedArrayColumns, aggregatedArrayMode, optionalType, distinct)
+    return __newAggregateValueAsArrayValueSource(AggregatedArrayProjectableAsNullableType, aggregatedArrayColumns, aggregatedArrayMode, optionalType, distinct)
 }
 
 export function __createAggregateSelect(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType): any {
-    return __newAggregateSelectValueSource(AggregatedArrayType, selectData, aggregatedArrayColumns, aggregatedArrayMode, optionalType)
+    return __newAggregateSelectValueSource(AggregatedArrayProjectableAsNullableType, selectData, aggregatedArrayColumns, aggregatedArrayMode, optionalType)
 }
 
 export function __createInlineSelect(selectData: InlineSelectData, required: boolean): any {

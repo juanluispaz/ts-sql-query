@@ -4,6 +4,7 @@ import type { OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
 import type { ColumnMarkersOf } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
+import { __sameTypeClassOf, __newNoopValueSource, type ValueSourceImpl, __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../internal/ValueSourceImpl.js'
 
 /** The family of the arrays an aggregate as array gives: what every one offers */
 export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
@@ -12,11 +13,48 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
         return __isAggregatedArray(type, customType)
     }
 
-    abstract useEmptyArrayForNoValue(): ValueSource<SourceOf<this>, TypeOf<this>, 'required'>
-    abstract asOptionalNonEmptyArray(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
-    abstract asRequiredInOptionalObject(): ValueSource<SourceOf<this>, TypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>
-    abstract onlyWhenOrNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
-    abstract ignoreWhenAsNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    useEmptyArrayForNoValue(): ValueSource<SourceOf<this>, TypeOf<this>, 'required'>
+    useEmptyArrayForNoValue(): any {
+        const vs = this as unknown as ValueSourceImpl
+        const nodeWithOptionalType = vs.__node.withOptionalType
+        if (nodeWithOptionalType) {
+            return nodeWithOptionalType(vs, 'required')
+        }
+        const result = __newNoopValueSource(vs, __sameTypeClassOf(vs), 'required', vs.__typeAdapter)
+        if (vs.__aggregatedArrayColumns) {
+            result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
+            result.__aggregatedArrayMode = vs.__aggregatedArrayMode
+            result.__aggreagtedProjectingOptionalValuesAsNullable = vs.__aggreagtedProjectingOptionalValuesAsNullable
+        }
+        return result
+    }
+    asOptionalNonEmptyArray(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    asOptionalNonEmptyArray(): any {
+        const vs = this as unknown as ValueSourceImpl
+        const nodeWithOptionalType = vs.__node.withOptionalType
+        if (nodeWithOptionalType) {
+            return nodeWithOptionalType(vs, 'optional')
+        }
+        const result = __newNoopValueSource(vs, __sameTypeClassOf(vs), 'optional', vs.__typeAdapter)
+        if (vs.__aggregatedArrayColumns) {
+            result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
+            result.__aggregatedArrayMode = vs.__aggregatedArrayMode
+            result.__aggreagtedProjectingOptionalValuesAsNullable = vs.__aggreagtedProjectingOptionalValuesAsNullable
+        }
+        return result
+    }
+    asRequiredInOptionalObject(): ValueSource<SourceOf<this>, TypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>
+    asRequiredInOptionalObject(): any {
+        return __asRequiredInOptionalObjectOf(this)
+    }
+    onlyWhenOrNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    onlyWhenOrNull(when: boolean): any {
+        return __onlyWhenOrNullOf(this, when)
+    }
+    ignoreWhenAsNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    ignoreWhenAsNull(when: boolean): any {
+        return __ignoreWhenAsNullOf(this, when)
+    }
 }
 
 /** The array an aggregate as array gives: the rows it aggregates, as objects or as the values of one column */
@@ -29,5 +67,10 @@ export abstract class AggregatedArrayType</*in|out*/ VALUE_TYPE> extends Aggrega
 
 /** An aggregated array whose optional values can be projected as null, with the type it has then */
 export abstract class AggregatedArrayProjectableAsNullableType</*in|out*/ VALUE_TYPE, /*in|out*/ STRICT_VALUE_TYPE> extends AggregatedArrayType<VALUE_TYPE> {
-    abstract projectingOptionalValuesAsNullable(): ValueSource<SourceOf<this>, AggregatedArrayType<STRICT_VALUE_TYPE>, OptionalOf<this>>
+    projectingOptionalValuesAsNullable(): ValueSource<SourceOf<this>, AggregatedArrayType<STRICT_VALUE_TYPE>, OptionalOf<this>>
+    projectingOptionalValuesAsNullable(): any {
+        const vs = this as unknown as ValueSourceImpl
+        const nodeProjectingOptionalValuesAsNullable = vs.__node.projectingOptionalValuesAsNullable
+        return nodeProjectingOptionalValuesAsNullable ? nodeProjectingOptionalValuesAsNullable(vs) : vs
+    }
 }

@@ -3,7 +3,7 @@ import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation
 import { hasToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customBigintValueSource, customDoubleValueSource, customDecimalValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source, logicalTypes, runtimeTypes, computedType } from '../utils/symbols.js'
@@ -101,7 +101,7 @@ export function __sameTypeClassOf(valueSource: object): DataTypeClass {
  * int): the class of the data type of the value source has it in a static, because the classes of the bases can't
  * import the data types that extend them
  */
-function __builtInTypeOf(valueSource: ValueSourceImpl, name: 'boolean' | 'condition' | 'int' | 'double' | 'bigint' | 'string'): DataTypeClass {
+export function __builtInTypeOf(valueSource: ValueSourceImpl, name: 'boolean' | 'condition' | 'int' | 'double' | 'bigint' | 'string'): DataTypeClass {
     const typeClass = valueSource.constructor as any
     const result: DataTypeClass | undefined = name === 'boolean' || name === 'condition' ? typeClass[logicalTypes]?.[name] : typeClass[runtimeTypes]?.[name]
     if (!result) {
@@ -223,158 +223,9 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         }
         return result
     }
-    asOptional(): any {
-        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'optional', this.__typeAdapter)
-        return result
-    }
-    asRequiredInOptionalObject(): any {
-        const nodeAsRequiredInOptionalObject = this.__node.asRequiredInOptionalObject
-        if (nodeAsRequiredInOptionalObject) {
-            return nodeAsRequiredInOptionalObject(this)
-        }
-        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'requiredInOptionalObject', this.__typeAdapter)
-        if (this.__aggregatedArrayColumns) {
-            result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
-            result.__aggregatedArrayMode = this.__aggregatedArrayMode
-            result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
-        }
-        return result
-    }
-    useEmptyArrayForNoValue(): any {
-        const nodeWithOptionalType = this.__node.withOptionalType
-        if (nodeWithOptionalType) {
-            return nodeWithOptionalType(this, 'required')
-        }
-        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'required', this.__typeAdapter)
-        if (this.__aggregatedArrayColumns) {
-            result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
-            result.__aggregatedArrayMode = this.__aggregatedArrayMode
-            result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
-        }
-        return result
-    }
-    asOptionalNonEmptyArray(): any {
-        const nodeWithOptionalType = this.__node.withOptionalType
-        if (nodeWithOptionalType) {
-            return nodeWithOptionalType(this, 'optional')
-        }
-        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'optional', this.__typeAdapter)
-        if (this.__aggregatedArrayColumns) {
-            result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
-            result.__aggregatedArrayMode = this.__aggregatedArrayMode
-            result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
-        }
-        return result
-    }
-    projectingOptionalValuesAsNullable(): any {
-        const nodeProjectingOptionalValuesAsNullable = this.__node.projectingOptionalValuesAsNullable
-        return nodeProjectingOptionalValuesAsNullable ? nodeProjectingOptionalValuesAsNullable(this) : this
-    }
     // SqlComparator0
-    isNull(): any {
-        return __newSqlOperationIsNullValueSource('_isNull', this, __builtInTypeOf(this, 'condition'), 'required', this.__typeAdapter)
-    }
-    isNotNull(): any {
-        return __newSqlOperationIsNullValueSource('_isNotNull', this, __builtInTypeOf(this, 'condition'), 'required', this.__typeAdapter)
-    }
     // SqlComparator1
-    equalsIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    equals(value: any): any {
-        return __newSqlOperation1ValueSource('_equals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    notEqualsIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    notEquals(value: any): any {
-        return __newSqlOperation1ValueSource('_notEquals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    /* The `is`/`isNot` family is a TOTAL predicate: `IS [NOT] DISTINCT FROM` (and the per-dialect emulation of it)
-     * answers true or false even when an operand is NULL — which is the reason to reach for it instead of `equals`.
-     * So the result is ALWAYS `'required'`, whatever the receiver and the operand are. Merging them, the way an
-     * ordinary comparison does (`getOptionalType2`), would report a NULL the operator cannot produce, and that
-     * over-report reaches the SQL: the dialects with no native boolean in a projected position would emit the
-     * 3-branch `case … else null end` with an unreachable branch. The `*IfValue` twins carry the same `'required'`
-     * into the neutral they become when the operand has no value — a neutral inherits the optional type of the
-     * expression it stands for, and for a total predicate that is `'required'`. */
-    isIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_is', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
-    }
-    is(value: any): any {
-        return __newSqlOperation1NotOptionalValueSource('_is', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
-    }
-    isNotIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
-    }
-    isNot(value: any): any {
-        return __newSqlOperation1NotOptionalValueSource('_isNot', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
-    }
-    onlyWhenOrNull(when: boolean): any {
-        if (when) {
-            return this
-        } else {
-            const nodeAsNull = this.__node.asNull
-            return nodeAsNull ? nodeAsNull(this) : __newNullValueSource(__typeClassOf(this), 'optional', this.__typeAdapter)
-        }
-    }
-    ignoreWhenAsNull(when: boolean): any {
-        if (when) {
-            const nodeAsNull = this.__node.asNull
-            return nodeAsNull ? nodeAsNull(this) : __newNullValueSource(__typeClassOf(this), 'optional', this.__typeAdapter)
-        } else {
-            return this
-        }
-    }
-    lessThanIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    lessThan(value: any): any {
-        return __newSqlOperation1ValueSource('_lessThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    greaterThanIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    greaterThan(value: any): any {
-        return __newSqlOperation1ValueSource('_greaterThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    lessOrEqualIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    lessOrEqual(value: any): any {
-        return __newSqlOperation1ValueSource('_lessOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    greaterOrEqualIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    greaterOrEqual(value: any): any {
-        return __newSqlOperation1ValueSource('_greaterOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    inIfValue(value: any): any {
-        return __newSqlOperationInValueSourceIfValueOrNoop('_in', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    in(value: any): any {
-        return __newSqlOperationInValueSource('_in', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value))
-    }
-    notInIfValue(value: any): any {
-        return __newSqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    notIn(value: any): any {
-        return __newSqlOperationInValueSource('_notIn', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value))
-    }
-    inN(...value: any[]): any {
-        return __newSqlOperationInValueSource('_in', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeN(this, value), getTypeAdapter2(this, value))
-    }
-    notInN(...value: any[]): any {
-        return __newSqlOperationInValueSource('_notIn', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeN(this, value), getTypeAdapter2(this, value))
-    }
     // SqlComparator2
-    between(value: any, value2: any): any {
-        return __newSqlOperation2ValueSource('_between', this, value, value2, __builtInTypeOf(this, 'condition'), getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2))
-    }
-    notBetween(value: any, value2: any): any {
-        return __newSqlOperation2ValueSource('_notBetween', this, value, value2, __builtInTypeOf(this, 'condition'), getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2))
-    }
     // SqlFunctionStatic: never used here
     // SqlFunction0
     // Boolean
@@ -383,45 +234,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     // Trigonometric Functions
     // Date & Time Functions
     // SqlFunction1
-    valueWhenNull(value: any): any {
-        let typeClass = __typeClassOf(this)
-        // Promote the declared numeric type from the fallback operand, the same way the
-        // overloaded-number operations do (createSqlOperation1ofOverloadedNumber): an `int`
-        // receiver with a `double` fallback emits `coalesce(<int>, <double>)`, which the
-        // engine resolves to the wider `double`, so a NULL int row legitimately returns the
-        // double's fraction. Without this promotion the result is still declared `int` and
-        // the marshaller's int arm rejects that valid value (INVALID_VALUE_RECEIVED_FROM_DATABASE).
-        // Only a plain `int` receiver needs widening — a double/bigint/customInt/customBigint/customDouble
-        // receiver already carries the wider-or-matching type, and the compile-time signature
-        // only admits a same-`typeName` operand.
-        //
-        // A fractional NUMBER LITERAL widens for exactly the same reason. TypeScript cannot tell
-        // `2` from `2.5` — both are `number`, there is no integer literal type — so this decision
-        // belongs to the runtime half, which has the value in hand; `_getWidenedArgumentType` binds
-        // the operand with the matching type, and the two have to agree or the fraction is rejected
-        // on one of the two crossings.
-        if (this.__customType === undefined && this.__type === 'int') {
-            if (isValueSource(value)) {
-                const operandPrivate = __getValueSourcePrivate(value)
-                if (__isDouble(operandPrivate.__type, operandPrivate.__customType)) {
-                    typeClass = __builtInTypeOf(this, 'double')
-                }
-            } else if (typeof value === 'number' && !Number.isInteger(value)) {
-                typeClass = __builtInTypeOf(this, 'double')
-            }
-        }
-        let typeAdapter = getTypeAdapter2(this, value)
-        if (typeAdapter instanceof OracleDateAsTimestampTypeAdapter && !(this.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter && isValueSource(value) && __getValueSourcePrivate(value).__typeAdapter instanceof OracleDateAsTimestampTypeAdapter)) {
-            // Oracle's nvl has the type of its first operand: a DATE read as a timestamp with something else is
-            // turned into a TIMESTAMP there, and any other first operand already decides the type. Two of them stay a
-            // DATE, and the result keeps the adapter
-            typeAdapter = undefined
-        }
-        return __newSqlOperationValueWhenNullValueSource(this, value, typeClass, getOptionalType2(this, value), typeAdapter)
-    }
-    nullIfValue(value: any): any {
-        return __newSqlOperation1ValueSource('_nullIfValue', this, value, __typeClassOf(this), 'optional', getTypeAdapter2(this, value))
-    }
     // Trigonometric Functions
     // String Functions
     // Number
@@ -560,6 +372,44 @@ function ifValueNode<VS extends IfValueOperation>(node: NodeStrategy<VS>, whenNo
             }
             return receiver ? vs.__valueSource.__hasAggregation(sqlBuilder) : false
         },
+    }
+}
+
+/** What `asRequiredInOptionalObject` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
+export function __asRequiredInOptionalObjectOf(valueSource: object): any {
+    const vs = valueSource as ValueSourceImpl
+    const nodeAsRequiredInOptionalObject = vs.__node.asRequiredInOptionalObject
+    if (nodeAsRequiredInOptionalObject) {
+        return nodeAsRequiredInOptionalObject(vs)
+    }
+    const result = __newNoopValueSource(vs, __sameTypeClassOf(vs), 'requiredInOptionalObject', vs.__typeAdapter)
+    if (vs.__aggregatedArrayColumns) {
+        result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
+        result.__aggregatedArrayMode = vs.__aggregatedArrayMode
+        result.__aggreagtedProjectingOptionalValuesAsNullable = vs.__aggreagtedProjectingOptionalValuesAsNullable
+    }
+    return result
+}
+
+/** What `onlyWhenOrNull` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
+export function __onlyWhenOrNullOf(valueSource: object, when: boolean): any {
+    const vs = valueSource as ValueSourceImpl
+    if (when) {
+        return vs
+    } else {
+        const nodeAsNull = vs.__node.asNull
+        return nodeAsNull ? nodeAsNull(vs) : __newNullValueSource(__typeClassOf(vs), 'optional', vs.__typeAdapter)
+    }
+}
+
+/** What `ignoreWhenAsNull` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
+export function __ignoreWhenAsNullOf(valueSource: object, when: boolean): any {
+    const vs = valueSource as ValueSourceImpl
+    if (when) {
+        const nodeAsNull = vs.__node.asNull
+        return nodeAsNull ? nodeAsNull(vs) : __newNullValueSource(__typeClassOf(vs), 'optional', vs.__typeAdapter)
+    } else {
+        return vs
     }
 }
 
@@ -1908,7 +1758,7 @@ export function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
     return a.__optionalType
 }
 
-function getOptionalTypeOfIn(a: ValueSourceImpl, b: any): OptionalType {
+export function getOptionalTypeOfIn(a: ValueSourceImpl, b: any): OptionalType {
     // A subquery on an optional column can return a NULL, and `<x> in (1, NULL)` is NULL, not false, when no
     // element matches, as the declared type says.
     if (isSelectQuery(b)) {
@@ -1924,7 +1774,7 @@ function getOptionalTypeOfIn(a: ValueSourceImpl, b: any): OptionalType {
     return getOptionalType2(a, b)
 }
 
-function getOptionalTypeN(a: ValueSourceImpl, values: any[]): OptionalType {
+export function getOptionalTypeN(a: ValueSourceImpl, values: any[]): OptionalType {
     // The varargs counterpart of `getOptionalType2`, for `inN` / `notInN`. Their operand is the
     // ARRAY the varargs collected, not a value source, so `getOptionalType2` would find no value
     // source in it and answer the receiver's optional type, ignoring the elements. An element that

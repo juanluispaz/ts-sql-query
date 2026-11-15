@@ -527,7 +527,7 @@ An interface says nothing about the column, so the operators of a property come 
 
 | Property in the interface | What the filter offers | What differs from the column |
 |---|---|---|
-| A branded `string` or `number`, like `number & { brand: 'Money' }` | Equality and comparison, with values of that type | A `custom` column has only equality in its own filter, but a comparison is accepted and sent to the database. The text operators, like `contains`, aren't offered |
+| A branded `string` or `number`, like `number & { brand: 'Money' }` | Equality and comparison, with values of that type | A `custom` column has only equality: a comparison on it throws `DYNAMIC_CONDITION_UNKNOWN_OPERATION` when the condition is built. The text operators, like `contains`, aren't offered |
 | A custom type written as a plain type, like `string` for a `customComparable` column | All the operators of that type | An operator the column doesn't have, like `contains` on a `customComparable` column, throws `DYNAMIC_CONDITION_UNKNOWN_OPERATION` when the condition is built |
 | An object of your own, like a custom type stored in one column | A group of properties, one filter for each | The column is one value, with equality |
 | An array, a `Map`, a `Set`, a function, a binary value, a `RegExp`, or a union of different types like `string \| number` | Nothing: the filter can't use that property | |

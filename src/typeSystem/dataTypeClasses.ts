@@ -8,7 +8,7 @@ import { StringDecimalType } from './decimals.js'
 import { StringType } from './strings.js'
 import { UuidType } from './uuids.js'
 import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
-import { AggregatedArrayType } from './aggregatedArrays.js'
+import { AggregatedArrayProjectableAsNullableType } from './aggregatedArrays.js'
 import { CustomBigintType, CustomDoubleType, CustomIntType } from './customNumber.js'
 import { CustomDecimalType } from './customDecimals.js'
 import { CustomUuidType } from './customUuids.js'
@@ -33,7 +33,8 @@ const builtInDataTypeClasses: { readonly [type: string]: DataTypeClass | undefin
     localDate: LocalDateType,
     localTime: LocalTimeType,
     localDateTime: LocalDateTimeType,
-    aggregatedArray: AggregatedArrayType,
+    // The class that has projectingOptionalValuesAsNullable, which its types offer until it is called
+    aggregatedArray: AggregatedArrayProjectableAsNullableType,
 }
 
 /** The family of each custom type, whose `of` gives the class of each type name */

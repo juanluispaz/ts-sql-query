@@ -90,9 +90,8 @@ describe(ctx.label, () => {
 
     test('view-side-adapter-bearing-column-reads-through-the-adapter', async () => {
         // `versionBracketed` is a VIEW column carrying a trailing
-        // TypeAdapter (bracketAdapter, read wraps the value in [...]). View
-        // columns return a bare DBColumnImpl whose adapter read path is otherwise
-        // never observed. Release 1's version is '1.2.0', so the bracketed read is
+        // TypeAdapter (bracketAdapter, read wraps the value in [...]). The read
+        // of a View column through its adapter is otherwise never observed. Release 1's version is '1.2.0', so the bracketed read is
         // '[1.2.0]'. The adapter is read-only here, so no param is bound.
         const expected = [{ id: 1, versionBracketed: '[1.2.0]' }]
         ctx.mockNext([{ id: 1, versionBracketed: '1.2.0' }])

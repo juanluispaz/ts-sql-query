@@ -306,9 +306,9 @@ describe(ctx.label, () => {
     })
 
     test('null-inline-aggregate-then-use-empty-array-for-no-value', async () => {
-        // `onlyWhenOrNull(false)` swaps in NullAggregateSelectValueSource;
-        // chaining `useEmptyArrayForNoValue()` exercises that modifier on
-        // the Null class. The subquery collapses
+        // `onlyWhenOrNull(false)` turns the inline aggregate into `null`;
+        // chaining `useEmptyArrayForNoValue()` on it still applies. The
+        // subquery collapses
         // to literal `null`; the result is the empty array.
         ctx.mockNext({ id: 1, name: 'Acme Corp', projects: null })
         const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -380,9 +380,7 @@ describe(ctx.label, () => {
 
     test('inline-aggregate-as-required-in-optional-object', async () => {
         // `asRequiredInOptionalObject()` on the inline-aggregate value
-        // source (—
-        // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
-        // subquery the gate of an optional inner object. If the subquery
+        // source makes the subquery the gate of an optional inner object. If the subquery
         // aggregates no rows, the array aggregate returns NULL and the inner
         // `meta` object is dropped from the row.
         ctx.mockNext([
@@ -422,10 +420,8 @@ describe(ctx.label, () => {
     })
 
     test('null-inline-aggregate-as-required-in-optional-object', async () => {
-        // The Null variant — chaining `onlyWhenOrNull(false)` swaps in
-        // `NullAggregateSelectValueSource`; chaining
-        // `asRequiredInOptionalObject()` exercises
-        // (NullAggregateSelectValueSource.asRequiredInOptionalObject).
+        // `onlyWhenOrNull(false)` turns the inline aggregate into `null`;
+        // chaining `asRequiredInOptionalObject()` on it still applies.
         // The whole expression collapses to literal `null`, so `meta` is
         // always absent.
         ctx.mockNext([

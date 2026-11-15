@@ -1,10 +1,9 @@
 // Coverage of INSERT ... SELECT where the source columns are COMPUTED
 // value-source expressions (arithmetic, string ops, column-vs-column,
-// coalesce/least), not plain column references. This drives the
-// expression-tree traversal the SqlBuilder runs over an insert-from-
-// select source (`__registerRequiredColumn` / `__registerTableOrView` /
-// `__getValuesForInsert` on a wider set of ValueSourceImpl subclasses
-// than the plain-column from-select tests reach).
+// coalesce/least), not plain column references. The insert walks every
+// operand of each expression to find the tables and columns it reads,
+// on a wider set of expressions than the plain-column from-select tests
+// reach.
 //
 // Uses `executeInsert()` (affected-row count, no RETURNING) so the body
 // is identical across every dialect — MySQL has no RETURNING but the

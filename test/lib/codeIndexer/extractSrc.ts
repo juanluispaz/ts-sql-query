@@ -303,20 +303,29 @@ function walkInvocations(sf: ts.SourceFile, moduleId: number, ids: Ids, out: Inv
 
     const visit = (node: ts.Node): void => {
         if (ts.isCallExpression(node)) {
-            record(calleeOf(node.expression), ts.isPropertyAccessExpression(node.expression) ? 'method' : 'call', node)
-        } else if (ts.isNewExpression(node)) {
-            const ctor = calleeOf(node.expression)
-            record(ctor, 'new', node)
-            // keyof-dispatch bridge: `new SqlOperation*ValueSource('_op', …)` stores
-            // '_op' as `__operation: keyof Sql…` and later runs `sqlBuilder['_op'](…)`
-            // via element access — a dynamic index the checker CANNOT resolve to a
-            // method. Capture '_op' (the exact SqlBuilder method) at the construction
-            // site, where the name is statically known, so the call chain can cross
-            // the keyof. This edge stays name-only (resolved_* = NULL) by design.
-            const arg0 = node.arguments?.[0]
-            if (ctor && /^SqlOperation.*ValueSource/.test(ctor.name) && arg0 && ts.isStringLiteralLike(arg0) && arg0.text.startsWith('_')) {
-                push(arg0.text, 'operation', node, null)
+            const callee = calleeOf(node.expression)
+            record(callee, ts.isPropertyAccessExpression(node.expression) ? 'method' : 'call', node)
+            // keyof-dispatch bridge: a node creation stores '_op' as
+            // `__operation: keyof Sql…` and its strategy (src/nodes/) later runs
+            // `sqlBuilder[vs.__operation](…)` via element access — a dynamic index the
+            // checker CANNOT resolve to a method. Capture '_op' (the exact SqlBuilder
+            // method) at the creation site, where the name is statically known, so the
+            // call chain can cross the keyof. The creation sites are the
+            // `__newSqlOperation*ValueSource('_op', …)` / `__new*ValueSource('_op', …)`
+            // creations and the factory's `__createStatic*('_op', …)` /
+            // `__createAggregateFunction*('_op', …)` / `__createSequence('_op', …)`
+            // (operation first), and the methods of the data types' shortcuts
+            // `__operation0(this, '_op', …)` / `__operation1(this, '_op', …)` (operation
+            // second). This edge stays name-only (resolved_* = NULL) by design.
+            const opArg = !callee ? undefined
+                : /^__operation[01]$/.test(callee.name) ? node.arguments[1]
+                : /^__(new\w*ValueSource|createStatic\w*|createAggregateFunction\w*|createSequence)$/.test(callee.name) ? node.arguments[0]
+                : undefined
+            if (opArg && ts.isStringLiteralLike(opArg) && opArg.text.startsWith('_')) {
+                push(opArg.text, 'operation', node, null)
             }
+        } else if (ts.isNewExpression(node)) {
+            record(calleeOf(node.expression), 'new', node)
         }
         const sc = scopeFor(node)
         if (sc) stack.push(sc)

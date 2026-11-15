@@ -2,11 +2,9 @@
 // twins live in `select.where.operators-negative.test.ts` (notLike,
 // notStartsWith, notEndsWith, notContains, notBetween) and
 // `select.string-ops.test.ts` (like / startsWith / endsWith / contains
-// proper). The IfValue twins that govern "skip on undefined / empty
-// string" are not exercised — and they map to distinct branches in
-// `SqlOperation1ValueSourceIfValueOrNoop`/`SqlOperation2ValueSourceIfValueOrIgnore`
-// in `ValueSourceImpl.ts`. This file pins both fire and elide paths
-// for:
+// proper). The IfValue twins, which skip the condition on undefined /
+// empty string, are not exercised there. This file pins both the paths
+// that emit the condition and the ones that elide it, for:
 //
 //   - `likeIfValue` / `notLikeIfValue`
 //   - `startsWithIfValue` / `endsWithIfValue` / `notStartsWithIfValue`
@@ -14,8 +12,7 @@
 //   - `notContainsIfValue` (positive `containsIfValue` is already
 //     covered in `null-handling.test.ts`)
 //   - `replaceAllIfValue` — the two-arg IfValue variant that elides
-//     when EITHER `findString` or `replaceWith` is missing
-//     (`SqlOperation2ValueSourceIfValueOrIgnore`).
+//     when EITHER `findString` or `replaceWith` is missing.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

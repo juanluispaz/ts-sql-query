@@ -82,8 +82,10 @@ function parseGeneratedDecls(program: ts.Program, cellPath: string): Map<string,
 // (`AbstractSelect`, `AbstractConnection`), else the concrete builder (Insert/Update/Delete
 // only extend the UNIVERSAL `AbstractQueryBuilder` — rooting there would bleed into the
 // other operations, so root at the builder itself). Collapsed/structural defs only; the
-// `*ValueSource` hierarchy is intentionally NOT here (already name-matches its real
-// interfaces; `ValueSourceImpl` implements them all, too broad for a per-type diff).
+// `*ValueSource` hierarchy is NOT here. It reconciles only by name (pass 2), and the real
+// code has no interfaces of those names any more: a value source is an instance of the
+// class of its data type in `src/typeSystem/` (`NumberType`, `StringType`, ...), so these
+// defs find no real counterpart and get no `reconcile` row today.
 export const SIMPLIFIED_TO_ROOT: Record<string, string> = {
     SelectExpression: 'AbstractSelect',          // → SelectQueryBuilder, CompoundSelectQueryBuilder
     InsertExpression: 'InsertQueryBuilder',

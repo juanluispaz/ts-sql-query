@@ -305,8 +305,8 @@ Worked distinctions:
   value transform → a path (a **value-distinction**, not a type-branch, but in
   scope by the same standard under which the column/fragment/executeFunction
   adapter layers are tested). *Not* degenerate.
-- `column('x','uuid')` vs `column('x','int')` routed through one generic
-  `DBColumnImpl` dispatcher, leaf type already proven for several data types, only
+- `column('x','uuid')` vs `column('x','int')` created by one generic column
+  node (`__newDBColumn`, `src/nodes/column.ts`), leaf type already proven for several data types, only
   the data-type string differs → **degenerate** (list in §C / §B-if-needs-fixture),
   but still worth a fixture under "every variant" — lowest priority.
 
@@ -433,7 +433,7 @@ surface is the biggest fan-out and is split several ways:
 
 | Agent | Surface (src) |
 |---|---|
-| F1-NUM | `NumberValueSource` + `BigintValueSource` (values.ts; ValueSourceImpl.ts) |
+| F1-NUM | `NumberValueSource` + `BigintValueSource` (the classes `NumberType` / `IntType` / `DoubleType` / `BigintType` of `src/typeSystem/number.ts`; their nodes in `src/nodes/`) |
 | F1-CUSTOMNUM | `CustomIntValueSource` + `CustomDoubleValueSource` (+ brand keep/erase) |
 | F1-STR | `StringValueSource` |
 | F1-BOOLIF | `Boolean` / `IfValueSource` / `AlwaysIfValueSource` + the `*IfValue` family |
@@ -790,7 +790,7 @@ Findings should be self-contained and verifiable: each lists the type-path, why
 it is distinct, the exact `src` location, where to test, and the wide-grep (or
 compile-repro) proving absence/reachability. A **§C (degenerate)** entry names
 the path + the shared dispatcher + the tested representative (e.g.
-"`column('x','uuid')` — same `DBColumnImpl` dispatcher as the covered
+"`column('x','uuid')` — same column node (`src/nodes/column.ts`) as the covered
 `int`/`string`/`bigint` data types, data-type string only"). A **refuted** entry names the
 claim + the evidence that killed it (e.g. "bigint `equals` direct — REFUTED,
 covered at `select.value-source.custom-numeric.test.ts:NN`"), so the next round
@@ -846,7 +846,8 @@ these first; they are where output-coincidence most often masks a real defect:
      (`published.negate()` → `not (published = 't')`). Also the factory side: the
      trailing-`TypeAdapter` overload on factories where only the no-adapter form is
      fixtured, and the **View per-column adapter read-path** (a separate code path from
-     Table — View returns the bare `DBColumnImpl`). Same fingerprint as themes 1/2/3.
+     Table — a View column is the bare column node, without the marks a Table column
+     gets from `__asColumn` & co. in `src/nodes/column.ts`). Same fingerprint as themes 1/2/3.
 10. **Structural twin-interface parity** — the technique that has proved a shaped
     bug *bigger* than its first report. For every family of "twin" interfaces —
     shaped vs non-shaped, optional vs required, executable vs not-executable,

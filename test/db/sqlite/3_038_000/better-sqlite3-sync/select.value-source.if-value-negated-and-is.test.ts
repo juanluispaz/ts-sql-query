@@ -4,7 +4,7 @@
 // `select.value-source.null-and-if-value-modifiers.test.ts`; the
 // non-IfValue `notEquals`/`notIn`/`isNot` are in
 // `select.where.operators.test.ts` and `select.where.is-distinct-from.test.ts`.
-// The pieces still uncovered on `ValueSourceImpl` are:
+// The pieces this file covers are:
 //
 //   - `notEqualsIfValue(value)` — `NULLIF`-style skip on undefined for
 //     the non-equality predicate.

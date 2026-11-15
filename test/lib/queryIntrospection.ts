@@ -8,10 +8,10 @@
  * about the built query without rendering SQL:
  *
  * - `__isAllowed` — "is every `allowWhen` / `disallowWhen` gate in this
- *   query open?" (and therefore without triggering the throw that
- *   `AllowWhenValueSource.__toSql` would raise). See the comment on
- *   `AllowWhenValueSource.__toSql` in `src/internal/ValueSourceImpl.ts`
- *   for the design intent.
+ *   query open?" (and therefore without triggering the throw that the
+ *   `__toSql` of the `allowWhen` node would raise). See the comment on
+ *   `allowWhenValueSourceNode.__toSql` in `src/nodes/allowWhen.ts` for the
+ *   design intent.
  * - `__hasAggregation` — "does this query contain an aggregation?".
  *
  * Both are scaffolding for a planned public introspection API — think

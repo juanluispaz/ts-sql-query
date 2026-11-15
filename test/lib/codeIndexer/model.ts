@@ -139,7 +139,7 @@ export interface InvocationRow {
     caller_start_line: number | null   // enclosing scope span (function to read); null at module top-level
     caller_end_line: number | null
     callee_name: string
-    kind: 'call' | 'method' | 'new' | 'operation'   // 'operation' = a keyof-dispatched SqlBuilder method, captured from a `new SqlOperation*ValueSource('_op', …)` site
+    kind: 'call' | 'method' | 'new' | 'operation'   // 'operation' = a keyof-dispatched SqlBuilder method, captured from a node creation site (`__newSqlOperation*ValueSource('_op', …)`, `__operation0(this, '_op', …)`, …)
     line: number
     col: number
     resolved_symbol_id: number | null   // checker-resolved callee declaration (null for 'operation' edges + binds outside the lib)

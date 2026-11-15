@@ -975,8 +975,8 @@ describe(ctx.label, () => {
 
     // View plain localDate — vReleaseOverview.releaseDayPlain: the release's
     // release_day_plain surfaced through the view (a plain, non-custom localDate
-    // View column — a distinct read path from the custom View getters, a bare
-    // DBColumnImpl). Release 1 -> release_day_plain 2024-01-15 (a Monday) -> year
+    // View column — a distinct read path from the custom View getters).
+    // Release 1 -> release_day_plain 2024-01-15 (a Monday) -> year
     // 2024, month 0 (January, JS 0-indexed), date 15, day-of-week 1.
 
     test('view-plain-localDate-getters', async () => {
@@ -1007,8 +1007,8 @@ describe(ctx.label, () => {
 
     // View plain localTime — vReleaseOverview.cutoffPlain: the release's
     // cutoff_plain surfaced through the view (a plain, non-custom localTime View
-    // column — a distinct read path from the custom View getters, a bare
-    // DBColumnImpl). Release 1 -> cutoff_plain 17:00:00 -> hours 17, minutes 0,
+    // column — a distinct read path from the custom View getters).
+    // Release 1 -> cutoff_plain 17:00:00 -> hours 17, minutes 0,
     // seconds 0, milliseconds 0.
 
     test('view-plain-localTime-getters', async () => {

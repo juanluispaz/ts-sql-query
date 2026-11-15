@@ -162,10 +162,12 @@ bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table dire
   enclosing scope's span (`caller_start_line`/`caller_end_line` = the function to *read*
   for context), `callee_name`, `kind`, `line`/`col`, plus the type-resolved
   **`resolved_symbol_id`** / **`resolved_member_id`** of the callee (an exact call edge,
-  not just a name). **`kind='operation'`** bridges the `keyof` dispatch: a
-  `new SqlOperation*ValueSource('_op', …)` later runs `sqlBuilder['_op'](…)` via element
-  access (invisible to the checker — dynamic), so the operation string `'_op'` — the exact
-  `SqlBuilder` method — is recorded at the construction site (`resolved_*` NULL by design).
+  not just a name). **`kind='operation'`** bridges the `keyof` dispatch: a value source
+  created with `__newSqlOperation*ValueSource('_op', …)` (or `__operation0(this, '_op', …)`,
+  `__createStatic*('_op', …)`, …) is later written by its node strategy as
+  `sqlBuilder['_op'](…)` via element access (invisible to the checker — dynamic), so the
+  operation string `'_op'` — the exact `SqlBuilder` method — is recorded at the creation
+  site (`resolved_*` NULL by design).
 
 #### Publics-marking phase (derives `symbol.is_public_surface` + `member.visibility`)
 A finalization pass in `extractSrc.ts`, run once every symbol and member is known. The
@@ -296,14 +298,19 @@ name-based pass would miss.
 [`src/sqlBuilders/SqlBuilder.ts`](../../../src/sqlBuilders/SqlBuilder.ts) declares one
 interface per group of operations (`SqlFunction0/1/2`, `SqlComparator*`,
 `AggregateFunctions*`, …) and groups them into a single **`SqlBuilder`**, implemented by
-**`AbstractSqlBuilder`**. To avoid a case per operation,
-[`src/internal/ValueSourceImpl.ts`](../../../src/internal/ValueSourceImpl.ts) stores the
-operation as `__operation: keyof Sql…` and dispatches with
-`sqlBuilder[this.__operation](…)` — an ELEMENT access whose target is dynamic, invisible
+**`AbstractSqlBuilder`**. To avoid a case per operation, a value source stores the
+operation as `__operation: keyof Sql…`, and the node strategies of
+[`src/nodes/`](../../../src/nodes/README.md) (e.g. `sqlOperation1ValueSourceNode` in
+[`src/nodes/operations.ts`](../../../src/nodes/operations.ts)) dispatch with
+`sqlBuilder[vs.__operation](…)` — an ELEMENT access whose target is dynamic, invisible
 to a name-based call graph.
 
-The bridge: the operation name is a string LITERAL at the **construction** site
-(`new SqlOperation*ValueSource('_concat', …)`), where it's statically known. The indexer
+The bridge: the operation name is a string LITERAL at the **creation** site — a node
+creation such as `__newSqlOperation1ValueSource('_concat', …)`, the shortcuts the classes
+of the data types in `src/typeSystem/` call (`__operation0(this, '_asInt', IntType)`,
+`__operation1(this, '_op', …)`), or the factory's `__createStatic*('_op', …)` /
+`__createAggregateFunction*('_op', …)` / `__createSequence('_op', …)` — where it's
+statically known. The indexer
 records it as an `invocation.kind='operation'` edge to `_concat` (the exact `SqlBuilder`
 method). So a call chain crosses the keyof — `_concat` shows as invoked by
 `concat()`/`concatIfValue()`, bridging to `SqlFunction1` → `SqlBuilder` →
@@ -541,8 +548,9 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   `symbol_name` (text) and the checker-resolved `resolved_symbol_id`/`resolved_member_id`.
   Prefer the FK (exact, collision-free); the name is the fallback for refs that bind
   outside the indexed surface. The **two** things the checker can't do — the `keyof`
-  **operation bridge** (a dynamic element access; recorded name-only from
-  `new SqlOperation*ValueSource('_op', …)`) and the **commented `heritage`** capture
+  **operation bridge** (a dynamic element access; recorded name-only from the node
+  creation sites, `__newSqlOperation*ValueSource('_op', …)` and the like) and the
+  **commented `heritage`** capture
   (text the AST drops) — are still handled by string parsing.
 - **`*_ref` tables are one row per occurrence** (with `line`/`col`); a count is
   `COUNT(*)`, not a stored column.

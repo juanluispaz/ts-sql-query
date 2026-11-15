@@ -1270,8 +1270,8 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     projectName  = this.column('project_name', 'string')
     // An adapter-bearing VIEW column — `versionBracketed` carries the
     // trailing TypeAdapter `bracketAdapter` (read wraps the value in [...]). No
-    // other View column in any dialect carries an adapter, so the bare
-    // DBColumnImpl's adapter read path is otherwise never observed on a View.
+    // other View column in any dialect carries an adapter, so the read of a
+    // View column through its adapter is otherwise never observed.
     versionBracketed = this.column('version_bracketed', 'string', bracketAdapter)
     // A customLocalTime VIEW column — the View side of the
     // customLocalTime kind (Table side is tProjectRelease.cutoffTime). Maps the
@@ -1448,14 +1448,14 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     constructor() { super('release_draft') }
 }()
 
-// Non-virtual column-factory per-kind fan-out. `col_matrix`
-// holds one plain, NOT NULL column per base kind; each tColMatrix* Table below
+// Non-virtual column-factory fan-out per data type. `col_matrix`
+// holds one plain, NOT NULL column per base data type; each tColMatrix* Table below
 // reads those SAME columns through a DIFFERENT column factory, and vColMatrix
 // does so through the View factories. The optionality / default / computed /
 // primary-key distinction each factory encodes is TYPE-LEVEL only, so every
-// factory funnels through the same per-kind DBColumnImpl read marshalling on a
+// factory reads each data type the same way on a
 // single plain row — the read SQL/value coincides, the typed path does not.
-// The custom kinds reuse the domain's registered typeNames (Cents / Money /
+// The custom data types reuse the domain's registered typeNames (Cents / Money /
 // SigningKey / Semver / ReleaseChannel / ReleaseDay / CutoffClock / SignOffStamp
 // via baseTypeForCustom; enum WorklogActivity).
 

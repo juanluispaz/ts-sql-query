@@ -69,12 +69,8 @@ describe(ctx.label, () => {
 
     test('aggregate-as-array-of-one-column-with-expression-fires-case-2', async () => {
         // `aggregateAsArrayOfOneColumn(tIssue.priority.plus(1))` passes
-        // a non-leaf value source (an expression wrapping the column).
-        // The `__*Of` methods hit case 2 (`isValueSource(...)`) at the
-        // root — the value source IS a `SqlOperation1ValueSource`
-        // whose own propagation walks its child column. This pins
-        // /
-        // `AggregateValueAsArrayValueSource`.
+        // a non-leaf value source (an expression wrapping the column);
+        // the aggregate reaches the column through the expression.
         ctx.mockNext([{ pid: 1, bumped: [2, 3] }])
 
         const tIssueLeft = tIssue.forUseInLeftJoin()

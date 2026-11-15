@@ -1,5 +1,5 @@
-// Coverage of the bigint / customInt / customDouble TYPE-DISPATCH arms in
-// ValueSourceImpl's numeric methods. The existing select.numeric-ops /
+// Coverage of the bigint / customInt / customDouble TYPE-DISPATCH arms of
+// the numeric value-source methods. The existing select.numeric-ops /
 // select.value-source.trig files exercise these methods only on plain
 // `int`/`double` operands (`tIssue.priority`), which take the `else`
 // branch of each method; the bigint and custom* arms (e.g.

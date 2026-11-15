@@ -127,7 +127,7 @@ Ordered by yield. Lens #2 alone found the whole date-part family.
 
 ### 1. Declared vs emitted
 
-Walk `src/internal/ValueSourceImpl.ts` for every `new SqlOperation*ValueSource('_op', this, <declaredType>, …)` and ask: **does `_op`'s SQL actually produce `<declaredType>` on every dialect?** Then walk every guard in `src/sqlBuilders/` that keys on a declared type (`customType === undefined && type === 'double'`, `__isDouble`, `_getMathArgumentType`) and ask: **can a declared-vs-emitted divergence route around it?**
+Walk the classes of the data types in `src/typeSystem/` for every operation they create with a declared data type — `__operation0(this, '_op', <DataTypeClass>)`, `__operation1(this, '_op', value, <DataTypeClass>)`, `__newSqlOperation*ValueSource('_op', vs, …, <DataTypeClass>, …)` (the creations live in `src/nodes/`) — and ask: **does `_op`'s SQL actually produce `<DataTypeClass>` on every dialect?** Then walk every guard in `src/sqlBuilders/` that keys on a declared type (`customType === undefined && type === 'double'`, `__isDouble`, `_getMathArgumentType`) and ask: **can a declared-vs-emitted divergence route around it?**
 
 Found: `asInt`/`asBigint`, and the `_modulo` guard that a declared-bigint receiver walks straight past.
 
@@ -268,7 +268,7 @@ Give each agent **one lens or one surface**, never "find bugs":
 |---|---|
 | A | Lens 2 over the **date/time** surface — every `_getX` / `_asX` spelled per dialect; do they agree? |
 | B | Lens 2 over the **string** surface — `_concat`, `_length`, `_substr*`, `_like*`, `_asString`, uuid↔string |
-| C | Lens 1 over `ValueSourceImpl` — every declared type vs its operation's SQL |
+| C | Lens 1 over the classes of `src/typeSystem/` — every declared data type vs its operation's SQL |
 | D | Lens 3+4 — every `private` helper on one dialect doing a general job; every base method all dialects override |
 | E | The **test** surface — fingerprints: string `expected` for numeric leaves, rationalising comments, `Number(...)`/`BigInt(...)`, loose `toBeCloseTo`, degenerate fixtures |
 | F | The **fixture** surface — every custom typeName used vs registered in each `domain/connection.ts`; per-db symmetry |

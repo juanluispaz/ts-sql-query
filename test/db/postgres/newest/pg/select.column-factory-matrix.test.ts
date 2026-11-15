@@ -1,13 +1,13 @@
-// Non-virtual column-factory per-kind fan-out.
+// Non-virtual column-factory fan-out per data type.
 //
 // Every distinct column factory (`column` / `optionalColumn` /
 // `columnWithDefaultValue` / `optionalColumnWithDefaultValue` /
 // `computedColumn` / `optionalComputedColumn` / `primaryKey`, plus the View
 // `column` / `optionalColumn`) is a distinct TYPED read path even though the
 // read SQL and value coincide: the optionality / default / computed / primary-key
-// distinction each factory encodes is type-level, and the per-kind read
-// marshalling funnels through the same `DBColumnImpl` for all of them. So the
-// `col_matrix` fixture holds one plain, NOT NULL column per base kind and the
+// distinction each factory encodes is type-level, and each data type is read
+// the same way whatever the factory. So the
+// `col_matrix` fixture holds one plain, NOT NULL column per base data type and the
 // tColMatrix* Table classes (and vColMatrix View) each read those SAME columns
 // through a DIFFERENT factory. Each test asserts the emitted SQL (snapshot), the
 // bound params (snapshot), the exact projected TYPE (`assertType`) and the real

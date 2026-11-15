@@ -1,34 +1,21 @@
-// Coverage of the propagation methods on five `ValueSourceImpl`
-// subclasses that the existing IfValue tests miss because they only
-// build SELECT statements. SELECT only walks `__addWiths` /
-// `__registerTableOrView` / `__registerRequiredColumn` / `__isAllowed`
-// on every node — it never calls `__getOldValues` /
-// `__getValuesForInsert` (those are wired by UPDATE / INSERT
-// builders to decide whether to materialise the `_old_` / EXCLUDED
-// subquery). Placing the same operators in an UPDATE WHERE / SET
-// closes the remaining uncovered ranges:
+// Coverage of the IfValue operators (and `between`) inside an UPDATE,
+// which the existing IfValue tests miss because they only build SELECT
+// statements. A SELECT only asks each expression for the withs, tables
+// and columns it uses and whether it is allowed; an UPDATE or an INSERT
+// also asks whether it reads the old values (`_old_`) or the values for
+// insert (EXCLUDED), to decide whether to add that subquery. Placing the
+// same operators in an UPDATE WHERE / SET covers that:
 //
-// `SqlOperation1ValueSourceIfValueOrNoop`: created by
-//     the `*IfValue(value)` family. Test 1 uses `equalsIfValue` in an
-//     UPDATE WHERE, exercising the value-present branches of every
-//     method on the node (including `__getOldValues` and
-//     `__getValuesForInsert`).
-// `SqlOperationInValueSourceIfValueOrNoop`: test 2
-//     uses `inIfValue([…])` in an UPDATE WHERE. The non-empty array
-// also exercises the per-item loops (`__addWiths`),
-// (`__registerTableOrView`),
-// (`__registerRequiredColumn`), (`__getOldValues`)
-//     and the matching `__getValuesForInsert` / `__isAllowed`.
-// `SqlOperation2ValueSource`: test 3 uses
-//     `between(a, b)` in an UPDATE WHERE; the 2-arg comparator has no
-//     IfValue guard so every method always propagates.
-// `SqlOperation1ValueSourceIfValueOrIgnore`: test 4
-//     uses `concatIfValue(suffix)` inside an UPDATE SET expression —
-//     the OrIgnore variant fires the propagation through the SET
-// right-hand side, exercising.
-// `SqlOperation2ValueSourceIfValueOrIgnore`: test 5
-//     uses `replaceAllIfValue(find, replace)` inside an UPDATE SET
-//     expression, exercising the 2-arg OrIgnore propagation
+// - test 1: `equalsIfValue(value)` in an UPDATE WHERE, with the value
+//     present.
+// - test 2: `inIfValue([…])` in an UPDATE WHERE; the non-empty array
+//     propagates through each of its items.
+// - test 3: `between(a, b)` in an UPDATE WHERE; the 2-arg comparator
+//     has no IfValue guard, so it always propagates.
+// - test 4: `concatIfValue(suffix)` inside an UPDATE SET expression; the
+//     propagation goes through the SET right-hand side.
+// - test 5: `replaceAllIfValue(find, replace)` inside an UPDATE SET
+//     expression, the 2-arg IfValue variant.
 //
 // LHS columns are all from `tProject` / `tIssue` (no `oldValues()` /
 // `valuesForInsert()` references), so the SQL surface is portable

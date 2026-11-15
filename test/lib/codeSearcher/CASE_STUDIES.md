@@ -26,7 +26,7 @@ one idea rejected for noise (a combined `--tests` detail+gaps shape, P2a) is fla
 | | Seed | Shape | What it surfaced |
 |---|---|---|---|
 | **A** | `SqlBuilder` line (orderBy insensitive) | coverage gap, reached by *data-flow* | per-section levels, `--chain full`, tests detail/gaps, **combine to cut rounds** |
-| **B** | `ValueSourceImpl` method (aggregate modifier) | coverage gap, reached by *chaining off a producer* | **`--ref-return`** (the receiver question) |
+| **B** | value-source method (aggregate modifier) | coverage gap, reached by *chaining off a producer* | **`--ref-return`** (the receiver question) |
 | **C** | a failing test line (real-vs-mock) | debugging from a *test* | **test-line inverse**, **`--emitted-sql`**, dialect divergence |
 | **D** | a failing test (syntax bug) | debugging where the **stack is useless** | **`--emits-keyword`**, **non-overriders** (absence as finding), `--chain none` |
 | **E** | a new DB version (PG18) | matrix-shaped work | **`--version-gates`** (+ what stayed with `tests:audit`) |
@@ -197,27 +197,31 @@ the alias emitter is exercised everywhere, so the uncovered part is specifically
 
 ---
 
-# Case B — `ValueSourceImpl` (an aggregate-array modifier)
+# Case B — an aggregate-array modifier (`asOptionalNonEmptyArray`)
 
 Same exercise, different shape: B's seed is a **fluent method reached by chaining off a producer**,
 which surfaces the *receiver* question A never hit.
 
+> Recorded before the runtime of the value sources was split into the classes of the data types
+> and the nodes. Today `asOptionalNonEmptyArray()` is a method of `AggregatedArraysType`
+> (`src/typeSystem/aggregatedArrays.ts`), and the text of a uuid is a data type of its own
+> (`UuidTextType`, `src/typeSystem/uuidText.ts`), not a flag copied from one value source to
+> another, so the uuid branch below no longer exists. The questions the case raised, and the
+> flags they produced, are the same.
+
 ## The setup
 
-Red line `src/internal/ValueSourceImpl.ts:157`, inside `asOptionalNonEmptyArray()`:
+Red line inside `asOptionalNonEmptyArray()` of the old single implementation class of the value
+sources: a branch that copied the receiver's uuid-as-text flag onto the result.
 
-```ts
-if (this.__uuidString) { result.__uuidString = this.__uuidString }   // ← 157
-```
-
-Problems: **(1)** what is `asOptionalNonEmptyArray`, and what makes the `__uuidString` branch fire?
+Problems: **(1)** what is `asOptionalNonEmptyArray`, and what makes the uuid branch fire?
 **(2 — new)** I need a *receiver* — what public call returns the object I call it on? **(3 — new)**
 the precondition is the receiver's value *type* (uuid), and uuid needs per-connector setup.
 
 ## B.1 — orient (with `--ref-return`)
 
 ```bash
-bun run tests:where-is --search-location src/internal/ValueSourceImpl.ts:157 \
+bun run tests:where-is --search-location <file>:<line of the red line> \
     --classification full --ref-return full --chain full --docs full \
     --signature public-interface --simplified full --tests summary
 ```
@@ -225,13 +229,13 @@ bun run tests:where-is --search-location src/internal/ValueSourceImpl.ts:157 \
 ```markdown
 # where-is: `asOptionalNonEmptyArray`
 ## Classification
-public-surface member on interface `AggregatedArrayValueSource` (src/expressions/values.ts:975),
-implemented on `ValueSourceImpl`. (Line-157 branch fires when the receiver is a **uuid** column.)
+public-surface member on interface `AggregatedArrayValueSource` (then in src/expressions/values.ts),
+implemented on the value-source class. (The red-line branch fires when the receiver is a **uuid** column.)
 
 ## Referenced as a return type (how to obtain a receiver)
 - `AbstractConnection.aggregateAsArray…` → returns `AggregatedArrayValueSource` — so the test shape
   is `connection.aggregateAsArray({ id: tUuidTable.id, … }).asOptionalNonEmptyArray()`, where the
-  column is **uuid** → sets `__uuidString` → covers line 157.
+  column is **uuid** → sets the uuid-as-text flag → covers the red line.
 
 ## Explained in docs (full)
 aggregate-as-object-array.md (the feature) · value-expressions.md (the signature) · **uuid setup:**
@@ -259,9 +263,9 @@ bun run tests:where-is --search asOptionalNonEmptyArray \
 ### What B taught → what shipped
 - **The receiver question ≠ the reach question** → `--ref-return` (members whose return type resolves
   to the owner interface). Built.
-- **The branch trigger was a *property* (`__uuidString`)** — later generalised (case J) into the
+- **The branch trigger was a *property* (the uuid-as-text flag)** — later generalised (case J) into the
   references-by-role family: `--ref-property` lists where a member is read/written as `x.member` (not a
-  call), e.g. `--search __uuidString --ref-property full` → the `DBColumnImpl`/`ValueSourceImpl` sites.
+  call), e.g. `--search <property> --ref-property full` → every site that reads or writes it.
 - *Not shipped:* the "branch precondition" as a named Classification field (same reason as A).
 
 ---

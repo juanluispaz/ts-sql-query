@@ -241,10 +241,11 @@ CREATE TABLE invocation (
     resolved_symbol_id INTEGER REFERENCES symbol(id),  -- checker-resolved callee declaration (NULL for 'operation' edges + binds outside the lib)
     resolved_member_id INTEGER REFERENCES member(id)   -- …and the member, when the callee resolves to one (a type-exact call edge, unlike the name-based callee_name)
 );
--- 'operation' edges bridge the keyof dispatch: a  new SqlOperation*ValueSource('_op', …)
--- stores '_op' as  __operation: keyof Sql…  and later runs  sqlBuilder['_op'](…)  via
+-- 'operation' edges bridge the keyof dispatch: a node creation such as
+-- __newSqlOperation1ValueSource('_op', …)  or  __operation0(this, '_op', …)  stores '_op' as
+-- __operation: keyof Sql…  and its node strategy later runs  sqlBuilder['_op'](…)  via
 -- element access (invisible to a name-based graph). The edge records '_op' (the exact
--- SqlBuilder method) at the construction site, so a call chain can cross the keyof.
+-- SqlBuilder method) at the creation site, so a call chain can cross the keyof.
 
 CREATE INDEX idx_inv_callee ON invocation(callee_name);
 CREATE INDEX idx_inv_caller ON invocation(caller_name);

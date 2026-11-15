@@ -1,7 +1,6 @@
-// Trigonometric `SqlOperation0` paths on `ValueSourceImpl`:
+// Trigonometric functions on numeric columns:
 // `.acos()`, `.asin()`, `.atan()`, `.cos()`, `.cot()`, `.sin()`,
-// `.tan()` — each forwards to the corresponding `_acos`/`_asin`/…
-// emitter on.
+// `.tan()`, each written as the SQL function of the database.
 // `.atan2(other)` (the 2-arg variant) is already covered by
 // `select.numeric-ops.test.ts`, so this file pins only the 1-arg
 // trig family.

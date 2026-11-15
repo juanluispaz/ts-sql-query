@@ -11,9 +11,8 @@
 //      that coerces a `null` aggregate (LEFT JOIN with zero matching
 //      rows on the right) to `[]`. The SQL is unchanged; the
 //      projection layer narrows the TS type from `T[] | null` to `T[]`
-//      and rewrites null → [] at materialisation time. Live in
-//      `internal/ValueSourceImpl.ts` (the `useEmptyArrayForNoValue`
-//      override on every aggregated-array value source).
+//      and rewrites null → [] at materialisation time, on every
+//      aggregated-array value source.
 //
 // The "no matching rows" scenario is built by left-joining `tIssue`
 // onto `tProject` with an impossible filter — the left side keeps the

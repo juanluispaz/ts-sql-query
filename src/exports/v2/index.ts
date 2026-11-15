@@ -68,35 +68,47 @@ export {
 
 export {
     BigintType,
-    CustomBigintType,
-    CustomDoubleType,
-    CustomIntType,
     DoubleType,
     IntType,
 } from '../../typeSystem/number.js'
 
 export {
-    CustomDecimalType,
+    CustomBigintType,
+    CustomDoubleType,
+    CustomIntType,
+} from '../../typeSystem/customNumber.js'
+
+export {
     StringDecimalType,
 } from '../../typeSystem/decimal.js'
+
+export {
+    CustomDecimalType,
+} from '../../typeSystem/customDecimal.js'
 
 export {
     StringType,
 } from '../../typeSystem/strings.js'
 
 export {
-    CustomUuidType,
     UuidType,
 } from '../../typeSystem/uuids.js'
+
+export {
+    CustomUuidType,
+} from '../../typeSystem/customUuids.js'
+
+export {
+    LocalDateTimeType,
+    LocalDateType,
+    LocalTimeType,
+} from '../../typeSystem/localDates.js'
 
 export {
     CustomLocalDateTimeType,
     CustomLocalDateType,
     CustomLocalTimeType,
-    LocalDateTimeType,
-    LocalDateType,
-    LocalTimeType,
-} from '../../typeSystem/localDates.js'
+} from '../../typeSystem/customLocalDates.js'
 
 export {
     CustomEqualableType,
@@ -108,7 +120,7 @@ export {
 
 export {
     CustomComparableType,
-} from '../../typeSystem/comparable.js'
+} from '../../typeSystem/customComparable.js'
 
 export {
     getQueryContext,

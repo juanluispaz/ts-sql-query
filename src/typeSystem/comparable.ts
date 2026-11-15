@@ -1,10 +1,10 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBoolean } from './dataTypes.js'
-import type { IValueWithType, OptionalOf, SourceOf, CustomTypeClass, ValueSource } from './base.js'
+import type { IValueWithType, OptionalOf, SourceOf, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { BooleanType, IfType, IfValueSource } from './booleans.js'
 import type { MergeOptional } from './valueSource.js'
-import { comparableValueSource, operandTypeName, typeName } from '../utils/symbols.js'
+import { comparableValueSource, operandTypeName } from '../utils/symbols.js'
 import type { logicalTypes } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { TypedValueSource } from './valueSource.js'
@@ -43,19 +43,4 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableTyp
     abstract notBetween<VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE_TYPE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE2>>>
     abstract notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE_TYPE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     abstract notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>, VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, BooleanType, MergeOptional<MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>, OptionalOf<VALUE2>>>
-}
-
-/** A value of a type of the user that has an order, of its type name */
-export abstract class CustomComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE> {
-    static override readonly customType = 'customComparable'
-    declare [typeName]: `type:${TYPE_NAME}:customComparable:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customComparable:`
-
-    /** The data type of a value of a type of the user that has an order, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomComparableType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomComparable extends CustomComparableType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
-        }
-        return CustomComparable
-    }
 }

@@ -1,7 +1,7 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isExactDecimal } from './dataTypes.js'
 import { NumericType } from './numeric.js'
-import type { INumberValue, OptionalOf, SourceOf, CustomTypeClass, TypeOf, ValueSource } from './base.js'
+import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { DoubleType, IntType } from './number.js'
 import type { MergeOptional } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
@@ -49,19 +49,4 @@ export abstract class StringDecimalType extends DecimalType<string> {
     static override readonly customType = undefined
     declare [typeName]: 'type:stringDecimal:'
     declare [operandTypeName]: 'type:stringDecimal:'
-}
-
-/** An exact decimal number of a type of the user, of its type name */
-export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DecimalType<VALUE_TYPE> {
-    static override readonly customType = 'customDecimal'
-    declare [typeName]: `type:${TYPE_NAME}:customDecimal:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customDecimal:`
-
-    /** The data type of an exact decimal number of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomDecimalType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomDecimal extends CustomDecimalType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
-        }
-        return CustomDecimal
-    }
 }

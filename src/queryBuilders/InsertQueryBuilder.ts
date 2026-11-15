@@ -93,7 +93,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     try {
                         // The id is read as it is: its SQL isn't converted
                         const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined)
-                        result = __conversionsOf(__classOf(idColumnPrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
+                        result = __conversionsOf(__classOf(idColumnPrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._nextTypeAdapter)
                     } catch(e) {
                         if (e instanceof TsSqlError) {
                             throw e
@@ -123,7 +123,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const conversions = __conversionsOf(__classOf(idColumnPrivate))
                     const idType = idColumnPrivate.__type
-                    const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
+                    const defaultTypeAdapter = this.__sqlBuilder._nextTypeAdapter
                     const length = rows.length
                     const output = new Array(length)
                     for (let index = 0; index < length; index++) {

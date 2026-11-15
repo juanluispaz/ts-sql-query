@@ -45,6 +45,9 @@ function isIntersectOperator(operator: CompoundOperator): boolean {
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
     _defaultTypeAdapter: DefaultTypeAdapter
+    /** The next a type adapter receives: the type adapter of the requested type, if any, and then the connection */
+    // @ts-ignore
+    _nextTypeAdapter: DefaultTypeAdapter
     // @ts-ignore
     _queryRunner: QueryRunner
     // @ts-ignore
@@ -469,7 +472,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             adapterContext.prepareParam(undefined, undefined, forceTypeCast, typeClass, __typeAdapterOf(typeClass)?.sqlDataType)
         }
         try {
-            return __conversionsOf(typeClass).__transformValueToDB(value, adapterContext, this._defaultTypeAdapter)
+            return __conversionsOf(typeClass).__transformValueToDB(value, adapterContext, this._nextTypeAdapter)
         } catch (e) {
             // The value would be the next parameter: an invalid one tells which of them it is
             if (context && e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE' && e.errorReason.paramIndex === undefined) {
@@ -545,7 +548,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // forceTypeCast
         let placeholder = this._queryRunner.addParam(context.params, value)
         adapterContext.valueSentToDB = value
-        placeholder = __conversionsOf(typeClass).__transformPlaceholder(placeholder, adapterContext, this._defaultTypeAdapter)
+        adapterContext.startPlaceholder()
+        placeholder = __conversionsOf(typeClass).__transformPlaceholder(placeholder, adapterContext, this._nextTypeAdapter)
         adapterContext.clearParam()
         return placeholder
     }
@@ -674,7 +678,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const adapterContext = this._typeAdapterContextOf(undefined)
         const valueSourcePrivate = __getValueSourcePrivate(value)
         adapterContext.prepareProjection(__classOf(valueSourcePrivate), valueSourcePrivate.__typeAdapter?.sqlDataType, output, context?.queryContext)
-        return __conversionsOf(__classOf(valueSourcePrivate)).__transformProjection(sql, adapterContext, this._defaultTypeAdapter)
+        return __conversionsOf(__classOf(valueSourcePrivate)).__transformProjection(sql, adapterContext, this._nextTypeAdapter)
     }
     /**
      * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnProjection`),
@@ -4020,7 +4024,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         adapterContext.prepareParam(undefined, undefined, false, typeClass, __typeAdapterOf(typeClass)?.sqlDataType)
         adapterContext.valueSentToDB = null
         let result
-        result = __conversionsOf(typeClass).__transformPlaceholder('null', adapterContext, this._defaultTypeAdapter)
+        result = __conversionsOf(typeClass).__transformPlaceholder('null', adapterContext, this._nextTypeAdapter)
         adapterContext.clearParam()
         return result
     }

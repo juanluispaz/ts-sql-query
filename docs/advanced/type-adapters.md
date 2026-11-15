@@ -254,7 +254,7 @@ A value has two types in the context, so that what was declared and what is sent
 
 Compare the requested type with the class, `context.requestedType === ReleaseDayType`, or its name with `type`, `context.requestedType.type === 'ReleaseDay'`. `of` gives the same class each time it's called with the same name, so both say the same. A comparison of the type with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile: the type is a class, not its name.
 
-`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`.
+`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter when this one calls `next`, and then through the conversion of the library: once, and not the adapter already converting the value.
 
 What the requested type is in each transformation:
 

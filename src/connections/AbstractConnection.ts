@@ -55,6 +55,7 @@ import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
 import '../typeSystem/registerDataTypes.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
 import { __conversionsOf, __classOf } from '../nodes/adaptedTypeClass.js'
+import { NextTypeAdapter } from '../internal/TypeAdapterContextImpl.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -132,6 +133,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     constructor(queryRunner: QueryRunner, sqlBuilder: SqlBuilder) {
         this.defaultTypeAdapter = this as any // transform protected methods to public
         sqlBuilder._defaultTypeAdapter = this.defaultTypeAdapter
+        sqlBuilder._nextTypeAdapter = new NextTypeAdapter(this.defaultTypeAdapter)
         this.__sqlBuilder = sqlBuilder
         this.queryRunner = queryRunner
         sqlBuilder._queryRunner = queryRunner
@@ -688,7 +690,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 let result
                 try {
                     const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(functionCall, 'resultColumn')
-                    result = __conversionsOf(__classOf(functionCall)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
+                    result = __conversionsOf(__classOf(functionCall)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._nextTypeAdapter)
                 } catch(e) {
                     if (e instanceof TsSqlError) {
                         throw e

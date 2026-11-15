@@ -62,7 +62,7 @@ A custom type is converted as the built-in type it is based on (see [Custom type
 
 Compare the type with its class, `context.requestedType === ReleaseDayType` (`of` gives the same class for the same name), or its name, `context.requestedType.type === 'ReleaseDay'`. A comparison with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile.
 
-`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`.
+`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter when this one calls `next`, and then through the conversion of the library: once, and not the adapter already converting the value.
 
 What the requested type is in each transformation:
 
@@ -128,6 +128,7 @@ interface TypeAdapterContext {
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
@@ -148,6 +149,7 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     readonly output: ProjectionOutput
     comparison: ProjectionComparison
@@ -157,6 +159,7 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
 }
 ```

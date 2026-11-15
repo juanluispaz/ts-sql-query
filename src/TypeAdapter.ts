@@ -77,6 +77,11 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
      * be called again
      */
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
+    /**
+     * Requests a type with a type adapter: when this adapter calls `next`, the value goes through that adapter, and
+     * then through the conversion of the library (once; not the adapter already converting the value)
+     */
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -145,6 +150,11 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
      * be called again
      */
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
+    /**
+     * Requests a type with a type adapter: when this adapter calls `next`, the value goes through that adapter, and
+     * then through the conversion of the library (once; not the adapter already converting the value)
+     */
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -184,6 +194,11 @@ export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
      * be called again
      */
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
+    /**
+     * Requests a type with a type adapter: when this adapter calls `next`, the value goes through that adapter, and
+     * then through the conversion of the library (once; not the adapter already converting the value)
+     */
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**

@@ -1,10 +1,10 @@
-import type { DataTypeClass, ProjectionComparison, ProjectionOutput, SqlDataType, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { DataTypeClass, DefaultTypeAdapter, TypeAdapter, ProjectionComparison, ProjectionOutput, SqlDataType, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { QueryParamContextImpl, type QueryContextImpl } from './QueryContextImpl.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import type { BuiltInDataType } from '../typeSystem/builtInDataTypes.js'
 import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
-import { __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __typeAdapterOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** Who gives the type a `transformProjection` requests for a value (the SQL builder) */
 export interface RequestedTypeOfProjection {
@@ -39,6 +39,12 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     /** The context of the query of what is processed, where the metadata of the query goes; none to discard it */
     private queryContext: QueryContextImpl | undefined
 
+    /** The type adapter of the type requested with one (setRequestedType), and whether `next` applied it already */
+    private requestedTypeAdapter: TypeAdapter | undefined = undefined
+    private requestedTypeAdapterApplied = false
+    /** The type adapter of the original type, which is already in the chain */
+    private originalTypeAdapter: TypeAdapter | undefined = undefined
+
     valueSentToDB: unknown = undefined
     output: ProjectionOutput = 'resultColumn'
     comparison: ProjectionComparison = 'value'
@@ -65,6 +71,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         state.setOriginalType(__unadaptedClassOf(originalType))
         state.setOriginalSqlDataType(sqlDataType)
         state.forceTypeCast = forceTypeCast
+        this.startConversion(originalType)
     }
     /** The parameter the context points at is no longer being prepared */
     clearParam(): void {
@@ -83,6 +90,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.queryContext = queryContext
         this.own.setOriginalType(__unadaptedClassOf(originalType))
         this.own.setOriginalSqlDataType(sqlDataType)
+        this.startConversion(originalType)
         this.output = output
         this.comparison = 'value'
     }
@@ -95,9 +103,29 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.queryContext = undefined
         this.own.setOriginalType(__unadaptedClassOf(originalType))
         this.own.setOriginalSqlDataType(sqlDataType)
+        this.startConversion(originalType)
         this.projector = projector
         this.pendingProjection = projector ? value : undefined
         this.pendingOutput = output
+    }
+
+    private startConversion(originalType: DataTypeClass): void {
+        this.originalTypeAdapter = __typeAdapterOf(originalType)
+        this.requestedTypeAdapter = undefined
+        this.requestedTypeAdapterApplied = false
+    }
+    /** The type adapter of the requested type that `next` applies: once, and never the one already in the chain */
+    takeRequestedTypeAdapter(): TypeAdapter | undefined {
+        const typeAdapter = this.requestedTypeAdapter
+        if (!typeAdapter || this.requestedTypeAdapterApplied || typeAdapter === this.originalTypeAdapter) {
+            return undefined
+        }
+        this.requestedTypeAdapterApplied = true
+        return typeAdapter
+    }
+    /** The placeholder of the parameter goes through the type adapter of the type requested for its value again */
+    startPlaceholder(): void {
+        this.requestedTypeAdapterApplied = false
     }
 
     private resolvePendingProjection(): void {
@@ -115,14 +143,16 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.resolvePendingProjection()
         return this.state.requestedType!
     }
-    setRequestedType(type: BuiltInDataType | DataTypeClass): void {
+    setRequestedType(type: BuiltInDataType | DataTypeClass, typeAdapter?: TypeAdapter): void {
         this.pendingProjection = undefined
-        this.state.requestedType = __dataTypeClassFrom(type)
+        this.state.requestedType = __unadaptedClassOf(__dataTypeClassFrom(type))
+        this.requestedTypeAdapter = typeAdapter
     }
     resetRequestedType(): void {
         this.pendingProjection = undefined
         const state = this.state
         state.requestedType = state.originalType
+        this.requestedTypeAdapter = undefined
     }
     get originalSqlDataType(): SqlDataType | undefined {
         return this.state.originalSqlDataType
@@ -167,4 +197,49 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     getQueryMetadata(key: symbol): unknown {
         return this.queryContext?.getMetadata(key)
     }
+}
+
+/**
+ * The `next` a type adapter receives: the type adapter of the type requested with one, if the chain hasn't applied it
+ * yet, and then the connection. One for each connection; it keeps nothing of a conversion (the context does)
+ */
+export class NextTypeAdapter implements DefaultTypeAdapter {
+    private readonly connection: DefaultTypeAdapter
+
+    constructor(connection: DefaultTypeAdapter) {
+        this.connection = connection
+    }
+
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
+        const typeAdapter = requestedTypeAdapterOf(context)
+        if (typeAdapter) {
+            return typeAdapter.transformValueFromDB(value, context, this)
+        }
+        return this.connection.transformValueFromDB(value, context)
+    }
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
+        const typeAdapter = requestedTypeAdapterOf(context)
+        if (typeAdapter) {
+            return typeAdapter.transformValueToDB(value, context, this)
+        }
+        return this.connection.transformValueToDB(value, context)
+    }
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string {
+        const typeAdapter = requestedTypeAdapterOf(context)
+        if (typeAdapter?.transformPlaceholder) {
+            return typeAdapter.transformPlaceholder(placeholder, context, this)
+        }
+        return this.connection.transformPlaceholder(placeholder, context)
+    }
+    transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
+        const typeAdapter = requestedTypeAdapterOf(context)
+        if (typeAdapter?.transformProjection) {
+            return typeAdapter.transformProjection(sql, context, this)
+        }
+        return this.connection.transformProjection(sql, context)
+    }
+}
+
+function requestedTypeAdapterOf(context: unknown): TypeAdapter | undefined {
+    return context instanceof TypeAdapterContextImpl ? context.takeRequestedTypeAdapter() : undefined
 }

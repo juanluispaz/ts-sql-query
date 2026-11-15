@@ -296,6 +296,7 @@ export interface DeleteData extends WithQueryData {
  */
 export interface SqlBuilder extends SqlOperation {
     _defaultTypeAdapter: DefaultTypeAdapter
+    _nextTypeAdapter: DefaultTypeAdapter
     /** The context the type adapters receive: the one of the construction, or the one of the SQL builder */
     _typeAdapterContextOf(context?: SqlBuildContext | undefined): TypeAdapterContextImpl
     /**

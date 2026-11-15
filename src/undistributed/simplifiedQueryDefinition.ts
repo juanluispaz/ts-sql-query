@@ -2784,6 +2784,7 @@ interface TypeAdapterContext {
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType | DataTypeClass): void
+    setRequestedType(type: BuiltInType | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the parameter */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2807,6 +2808,7 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType | DataTypeClass): void
+    setRequestedType(type: BuiltInType | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the column of the result */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2819,6 +2821,7 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType | DataTypeClass): void
+    setRequestedType(type: BuiltInType | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
     resetRequestedSqlDataType(): void

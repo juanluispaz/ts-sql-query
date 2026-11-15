@@ -84,7 +84,7 @@ export class AbstractQueryBuilder {
         let result
         try {
             const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(valueSource, output)
-            result = __conversionsOf(__classOf(valueSourcePrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
+            result = __conversionsOf(__classOf(valueSourcePrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._nextTypeAdapter)
         } catch(e) {
             if (e instanceof TsSqlError) {
                 if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {

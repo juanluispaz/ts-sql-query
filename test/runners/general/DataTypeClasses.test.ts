@@ -166,6 +166,23 @@ describe('DataTypeClasses', () => {
         expect(classOf(conn.max(text))).toBe(StringType)
     })
 
+    test('the-boolean-of-a-condition-keeps-its-class-only-where-its-sql-is-kept', () => {
+        const classOf = (value: unknown) => (value as object).constructor
+        const condition = tThing.int.equals(1)
+        expect(condition).toBeInstanceOf(BooleanType)
+        expect(classOf(condition)).not.toBe(BooleanType)
+        expect(classOf(tThing.boolean)).toBe(BooleanType)
+        // The comparisons, and, or, negate, exists and the neutral are conditions
+        expect(classOf(tThing.boolean.and(true))).toBe(classOf(condition))
+        expect(classOf(condition.negate())).toBe(classOf(condition))
+        expect(classOf(conn.exists(conn.selectFrom(tThing).selectOneColumn(tThing.int)))).toBe(classOf(condition))
+        expect(classOf(conn.noValueBoolean())).toBe(classOf(condition))
+        // What keeps its SQL keeps its class; a value computed from it is a boolean
+        expect(classOf(condition.allowWhen(true, 'never'))).toBe(classOf(condition))
+        expect(classOf(condition.asOptional())).toBe(classOf(condition))
+        expect(classOf(condition.valueWhenNull(false))).toBe(BooleanType)
+    })
+
     test('a-built-in-class-gives-the-type-its-name-gives', () => {
         const byClass = conn.const(5, IntType)
         const byName = conn.const(5, 'int')

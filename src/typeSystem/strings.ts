@@ -2,12 +2,12 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isString } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
-import { BooleanType, type IfValueSource } from './logical.js'
+import { BooleanConditionType, type BooleanType, type IfValueSource } from './logical.js'
 import type { INumberValue } from './base.js'
 import type { MergeOptional, MergeRequired } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import { IntType } from './number.js'
-import { __newSqlOperation0ValueSource, __newSqlOperation1ValueSource, __newSqlOperation1ValueSourceIfValueOrIgnore, __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperation2ValueSource, __newSqlOperation2ValueSourceIfValueOrIgnore, __newSqlOperationCollateValueSource, __typeClassOf, condition, getOptionalType2, getOptionalType3, getRequiredType2, getTypeAdapter2, getTypeAdapter3, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import { __newSqlOperation0ValueSource, __newSqlOperation1ValueSource, __newSqlOperation1ValueSourceIfValueOrIgnore, __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperation2ValueSource, __newSqlOperation2ValueSourceIfValueOrIgnore, __newSqlOperationCollateValueSource, __typeClassOf, getOptionalType2, getOptionalType3, getRequiredType2, getTypeAdapter2, getTypeAdapter3, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
 
 /** What a position that takes a text accepts */
 export type IStringValue = IValueWithType<'type:string:'>
@@ -23,200 +23,200 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     equalsInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     equalsInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     equalsInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     equalsInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_equalsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_equalsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notEqualsInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notEqualsInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notEqualsInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notEqualsInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notEqualsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notEqualsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     likeIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     likeIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_like', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_like', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     like(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     like<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     like(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_like', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_like', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notLikeIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notLikeIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notLike', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notLike', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notLike(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notLike<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notLike(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notLike', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notLike', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     likeInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     likeInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     likeInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     likeInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     likeInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_likeInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_likeInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notLikeInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notLikeInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notLikeInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notLikeInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notLikeInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notLikeInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notLikeInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     startsWithIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     startsWithIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_startsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_startsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     startsWith(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     startsWith<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     startsWith(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_startsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_startsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notStartsWithIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notStartsWithIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notStartsWith(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notStartsWith<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notStartsWith(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notStartsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notStartsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     endsWithIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     endsWithIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_endsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_endsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     endsWith(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     endsWith<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     endsWith(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_endsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_endsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notEndsWithIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notEndsWithIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notEndsWith(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notEndsWith<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notEndsWith(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notEndsWith', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notEndsWith', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     startsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     startsWithInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     startsWithInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     startsWithInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     startsWithInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_startsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_startsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notStartsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notStartsWithInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notStartsWithInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notStartsWithInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notStartsWithInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notStartsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notStartsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     endsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     endsWithInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     endsWithInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     endsWithInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     endsWithInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_endsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_endsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notEndsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notEndsWithInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notEndsWithInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notEndsWithInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notEndsWithInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notEndsWithInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notEndsWithInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     containsIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     containsIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_contains', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_contains', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     contains(value: string ): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     contains<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     contains(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_contains', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_contains', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notContainsIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notContainsIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notContains', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notContains', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notContains(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notContains<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notContains(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notContains', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notContains', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     containsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     containsInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     containsInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     containsInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     containsInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_containsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_containsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notContainsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notContainsInsensitiveIfValue(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     notContainsInsensitive(value: string): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notContainsInsensitive<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notContainsInsensitive(value: any): any {
         const vs = this as unknown as ValueSourceImpl
-        return condition(__newSqlOperation1ValueSource('_notContainsInsensitive', vs, value, BooleanType, getOptionalType2(vs, value), getTypeAdapter2(vs, value)))
+        return __newSqlOperation1ValueSource('_notContainsInsensitive', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
     }
     // SqlFunction0
     /**

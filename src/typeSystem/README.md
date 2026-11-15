@@ -34,7 +34,13 @@ Read this before changing anything here. The code is the reference; this file sa
   `StringType`) is still the uuid in SQL, and the SQL builder converts it where it meets another text. A method gives
   a computed value the class `__typeClassOf` says (`concat`, `valueWhenNull` or `max` of the text of a uuid give a
   text), and a value source that keeps the SQL of another one (`allowWhen`, `asOptional`, a column of a `with`, a
-  select used as a value) its very class (`__sameTypeClassOf`).
+  select used as a value) its very class (`__sameTypeClassOf`). The boolean of a condition is the other one
+  (`BooleanConditionType`, in [`logical.ts`](./logical.ts)): a comparison, `and`, `or`, `negate`, `exists`, a fragment of
+  a boolean and the neutral are conditions in SQL, which a database without a boolean value writes as they are where a
+  condition goes and turns into a value elsewhere (`__isCondition`); it has the methods only the conditions have
+  (`trueWhenNoValue`, ...), so no boolean value has them. A projected column (of a `with`, of a compound select, a
+  select used as a value) has the data type the select projects: the text of a uuid is still the uuid, the boolean
+  of a condition is a value (`__projectedTypeClassOf`).
 - A value source has two axes apart: its data type (its class) and its **node**: how it is written and what it
   reaches in the tree (a constant, a function of a value source, a fragment, a column, ...), `__node`, a
   `NodeStrategy`: one object for each kind of node, shared and without state, which receives the value source; the

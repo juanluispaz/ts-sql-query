@@ -4,7 +4,7 @@ import type { __ColumnPrivate } from '../utils/Column.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { valueSourceNode, type NodeStrategy, type ValueSourceImpl, type ValueSourceConstructor } from './ValueSourceImpl.js'
-import { __dataTypeClassOfValueSource } from '../typeSystem/dataTypeClasses.js'
+import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import { isColumnObject, type hasDefaultValue, type type, type writable } from '../utils/symbols.js'
@@ -91,7 +91,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
                 // Avoid treat the column as a custom boolean
                 typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
-            const withColumn = __newDBColumn(__dataTypeClassOfValueSource(columnPrivate), table, property, typeAdapter)
+            const withColumn = __newDBColumn(__projectedTypeClassOf(columnPrivate), table, property, typeAdapter)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {
@@ -123,7 +123,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
                 // Avoid treat the column as a custom boolean
                 typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
-            const withColumn = __newDBColumn(__dataTypeClassOfValueSource(columnPrivate), table, prefix + property, typeAdapter)
+            const withColumn = __newDBColumn(__projectedTypeClassOf(columnPrivate), table, prefix + property, typeAdapter)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {

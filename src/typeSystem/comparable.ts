@@ -7,7 +7,7 @@ import type { MergeOptional } from './valueSource.js'
 import { comparableValueSource, operandTypeName, logicalTypes } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { TypedValueSource } from './valueSource.js'
-import { BooleanType } from './logical.js'
+import { BooleanConditionType, BooleanType } from './logical.js'
 
 /** What a position that takes a value source of any data type with an order accepts (max, min) */
 export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> extends TypedValueSource<SOURCE, any, any> {
@@ -16,8 +16,8 @@ export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> ex
 
 /** A data type whose values have an order */
 export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableType<VALUE_TYPE> {
-    /** The boolean the comparisons give (the classes of the bases can't import it) */
-    static readonly [logicalTypes] = { boolean: BooleanType }
+    /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
+    static readonly [logicalTypes] = { boolean: BooleanType, condition: BooleanConditionType }
     /** Whether a type and a custom type are of a comparable data type: every one but a boolean, an enum, a custom and an aggregated array */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return !__isBoolean(type, customType) && !__isAggregatedArray(type, customType) && customType !== 'enum' && customType !== 'custom'

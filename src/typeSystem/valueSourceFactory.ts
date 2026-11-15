@@ -4,8 +4,8 @@ import type { DataTypeClass, TypeAdapter } from '../TypeAdapter.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { AggregateSelectValueSource, AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, type FragmentValueSource, type InlineSelectData, type InlineSelectValueSource, type SqlOperation1ValueSource, type SqlOperation1ValueSourceIfValueOrIgnore, type SqlOperationConstValueSource, type SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceImpl, __typeClassOf, __newAggregateFunctions0ValueSource, __newAggregateFunctions1ValueSource, __newAggregateFunctions1or2ValueSource, __newFragmentValueSource, __newFunctionCallValueSource, __newInlineSelectValueSource, __newSequenceValueSource, __newSqlOperationConstValueSource, __newSqlOperationStatic0ValueSource, __newSqlOperationStatic1ValueSource, __newSqlOperationStaticBooleanValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop, __newValueSourceFromBuilder, fragmentValueSourceNode, inlineSelectValueSourceNode, sqlOperation1ValueSourceIfValueOrIgnoreNode, sqlOperation1ValueSourceNode, sqlOperationConstValueSourceNode, sqlOperationValueSourceIfValueAlwaysNoopNode } from '../internal/ValueSourceImpl.js'
 import { __newDBColumn, createColumnsFrom } from '../internal/DBColumnImpl.js'
-import { __dataTypeClassOfValueSource } from './dataTypeClasses.js'
-import { BooleanType } from './logical.js'
+import { __projectedTypeClassOf } from './dataTypeClasses.js'
+import { BooleanConditionType, BooleanType } from './logical.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from './valueSource.js'
@@ -16,12 +16,17 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 
 export { createColumnsFrom, __typeClassOf }
 
+/** The SQL of a fragment of a boolean, and of a virtual column made with one, is a condition */
+function conditionIfBoolean(typeClass: DataTypeClass): DataTypeClass {
+    return typeClass === BooleanType ? BooleanConditionType : typeClass
+}
+
 export function __createDBColumn(table: AnyTableOrView, name: string, typeClass: DataTypeClass, typeAdapter: TypeAdapter | undefined): any {
     return __newDBColumn(typeClass, table, name, typeAdapter)
 }
 
 export function __createValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newValueSourceFromBuilder(builder, fragmentBuilder, typeClass, optionalType, typeAdapter)
+    return __newValueSourceFromBuilder(builder, fragmentBuilder, conditionIfBoolean(typeClass), optionalType, typeAdapter)
 }
 
 export function __createConst(value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
@@ -41,7 +46,7 @@ export function __createStaticBoolean(operation: '_true' | '_false'): any {
 }
 
 export function __createIfValueAlwaysNoop(optionalType: OptionalType): any {
-    return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanType, optionalType)
+    return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanConditionType, optionalType)
 }
 
 export function __createAggregateFunction0(operation: keyof AggregateFunctions0, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
@@ -68,7 +73,7 @@ export function __createInlineSelect(selectData: InlineSelectData, required: boo
     // The data type of its one column (any other select is rejected when it is built)
     const result = selectData.__oneColumn ? selectData.__columns['result'] : undefined
     const resultPrivate = result && isValueSource(result) ? __getValueSourcePrivate(result) : undefined
-    return __newInlineSelectValueSource(selectData, required, resultPrivate ? __dataTypeClassOfValueSource(resultPrivate) : BooleanType)
+    return __newInlineSelectValueSource(selectData, required, resultPrivate ? __projectedTypeClassOf(resultPrivate) : BooleanType)
 }
 
 export function __createFunctionCall(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
@@ -76,7 +81,7 @@ export function __createFunctionCall(functionName: string, functionParams: AnyVa
 }
 
 export function __createFragment(sql: TemplateStringsArray, sqlParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate: boolean | undefined): any {
-    return __newFragmentValueSource(sql, sqlParams, typeClass, optionalType, typeAdapter, isAggregate)
+    return __newFragmentValueSource(sql, sqlParams, conditionIfBoolean(typeClass), optionalType, typeAdapter, isAggregate)
 }
 
 export function __createTableOrViewRawFragment(tableOrView: AnyTableOrView, operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'): any {

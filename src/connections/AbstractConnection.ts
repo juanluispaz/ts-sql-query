@@ -43,7 +43,7 @@ import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } fr
 import { Argument } from '../typeSystem/arguments.js'
 import type { AnyTypeClass, IValueSource, RemapValueSourceTypeWithOptionalType, TypeClass, ValueSource, ValueTypeOf } from '../typeSystem/base.js'
 import type { NullableType } from '../typeSystem/nullable.js'
-import { type AlwaysIfValueSource, type IfValueSource, BooleanType } from '../typeSystem/logical.js'
+import { type AlwaysIfValueSource, type IfValueSource, BooleanConditionType, BooleanType } from '../typeSystem/logical.js'
 import type { FragmentExpression } from '../typeSystem/fragments.js'
 import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/localDates.js'
 import type { BigintType, NumberType } from '../typeSystem/number.js'
@@ -645,14 +645,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         // (e.g. `(exists(...) = 1)`, which SQL Server rejects as a syntax
         // error). Marking the result as a condition-only boolean keeps the
         // wrap from kicking in inside `where`/`and`/`or`.
-        const vs = __createStatic1('_exists', select, BooleanType, 'required', undefined)
-        vs.__isBooleanForCondition = true
-        return vs
+        return __createStatic1('_exists', select, BooleanConditionType, 'required', undefined)
     }
     notExists<SOURCE extends NSource>(select: IExecutableSelectQuery<SOURCE, any, any> & SameDB<DB>): ValueSource<SOURCE, BooleanType, 'required'> {
-        const vs = __createStatic1('_notExists', select, BooleanType, 'required', undefined)
-        vs.__isBooleanForCondition = true
-        return vs
+        return __createStatic1('_notExists', select, BooleanConditionType, 'required', undefined)
     }
 
     protected executeProcedure(procedureName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[]): Promise<void> {

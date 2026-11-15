@@ -16,6 +16,7 @@ import { __isBoolean, __isLocalDateTime, __isLocalTime, __isUuid } from '../type
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isCondition } from '../typeSystem/logical.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     // Oracle truncates a fractional scale of round
@@ -381,7 +382,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _appendSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (valueSourcePrivate.__isBooleanForCondition) {
+            if (__isCondition(valueSourcePrivate)) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return 'case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 else 0 end'
                 } else {
@@ -410,7 +411,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (!this._nativeBoolean() && isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
+            if (__isBooleanValueSource(valueSourcePrivate) && !__isCondition(valueSourcePrivate)) {
                 // A boolean value used as a condition is a `1`/`0` number; coerce
                 // it to a predicate by appending `= 1` exactly once here. Source
                 // the VALUE form (`_appendSql`), not the condition form: a const
@@ -1198,7 +1199,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return this._appendRawColumnName(valueSource, context) + ' is null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (valueSourcePrivate.__isBooleanForCondition && !this._nativeBoolean()) {
+            if (__isCondition(valueSourcePrivate) && !this._nativeBoolean()) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
@@ -1214,7 +1215,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (valueSourcePrivate.__isBooleanForCondition && !this._nativeBoolean()) {
+            if (__isCondition(valueSourcePrivate) && !this._nativeBoolean()) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return this._trueValueForCondition
                 } else {

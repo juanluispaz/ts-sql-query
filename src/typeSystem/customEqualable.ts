@@ -2,15 +2,15 @@ import type { CustomTypeClass } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { IfType } from './logical.js'
 import { operandTypeName, typeName, logicalTypes } from '../utils/symbols.js'
-import { BooleanType } from './logical.js'
+import { BooleanConditionType, BooleanType } from './logical.js'
 
 /** The class `CustomEqualableType.of` made for each type name */
 const customEqualableClasses = new Map<string, CustomTypeClass<CustomEqualableType<any, any>>>()
 
 /** A value of a type of the user that can only be compared for equality, of its type name */
 export abstract class CustomEqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE> {
-    /** The boolean the comparisons give (the classes of the bases can't import it) */
-    static readonly [logicalTypes] = { boolean: BooleanType }
+    /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
+    static readonly [logicalTypes] = { boolean: BooleanType, condition: BooleanConditionType }
     static override readonly customType = 'custom'
     declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     declare [typeName]: `type:${TYPE_NAME}:custom:`

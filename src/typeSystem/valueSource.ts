@@ -114,7 +114,6 @@ export interface __ValueSourcePrivate extends IQueryDataDiscovery {
     __customType: CustomType | undefined
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter | undefined
-    __isBooleanForCondition?: boolean | undefined
     /**
      * `true` when this value source is itself an aggregate function call
      * (`count` / `sum` / `avg` / `min` / `max` / `stringConcat` /

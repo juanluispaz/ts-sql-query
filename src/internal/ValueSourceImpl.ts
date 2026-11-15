@@ -93,9 +93,9 @@ export function __sameTypeClassOf(valueSource: object): DataTypeClass {
  * int): the class of the data type of the value source has it in a static, because the classes of the bases can't
  * import the data types that extend them
  */
-function __builtInTypeOf(valueSource: ValueSourceImpl, name: 'boolean' | 'int' | 'double' | 'bigint' | 'string'): DataTypeClass {
+function __builtInTypeOf(valueSource: ValueSourceImpl, name: 'boolean' | 'condition' | 'int' | 'double' | 'bigint' | 'string'): DataTypeClass {
     const typeClass = valueSource.constructor as any
-    const result: DataTypeClass | undefined = name === 'boolean' ? typeClass[logicalTypes]?.boolean : typeClass[runtimeTypes]?.[name]
+    const result: DataTypeClass | undefined = name === 'boolean' || name === 'condition' ? typeClass[logicalTypes]?.[name] : typeClass[runtimeTypes]?.[name]
     if (!result) {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'The data type ' + valueSource.__type + ' gives no ' + name)
     }
@@ -136,7 +136,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     __customType: CustomType | undefined
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter | undefined
-    __isBooleanForCondition?: boolean | undefined
     __isAggregate?: boolean | undefined
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
@@ -248,23 +247,23 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     }
     // SqlComparator0
     isNull(): any {
-        return condition(__newSqlOperationIsNullValueSource('_isNull', this, __builtInTypeOf(this, 'boolean'), 'required', this.__typeAdapter))
+        return __newSqlOperationIsNullValueSource('_isNull', this, __builtInTypeOf(this, 'condition'), 'required', this.__typeAdapter)
     }
     isNotNull(): any {
-        return condition(__newSqlOperationIsNullValueSource('_isNotNull', this, __builtInTypeOf(this, 'boolean'), 'required', this.__typeAdapter))
+        return __newSqlOperationIsNullValueSource('_isNotNull', this, __builtInTypeOf(this, 'condition'), 'required', this.__typeAdapter)
     }
     // SqlComparator1
     equalsIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     equals(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_equals', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSource('_equals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     notEqualsIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     notEquals(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notEquals', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSource('_notEquals', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     /* The `is`/`isNot` family is a TOTAL predicate: `IS [NOT] DISTINCT FROM` (and the per-dialect emulation of it)
      * answers true or false even when an operand is NULL — which is the reason to reach for it instead of `equals`.
@@ -275,16 +274,16 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
      * into the neutral they become when the operand has no value — a neutral inherits the optional type of the
      * expression it stands for, and for a total predicate that is `'required'`. */
     isIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_is', this, value, __builtInTypeOf(this, 'boolean'), 'required', getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_is', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
     }
     is(value: any): any {
-        return condition(__newSqlOperation1NotOptionalValueSource('_is', this, value, __builtInTypeOf(this, 'boolean'), 'required', getTypeAdapter2(this, value)))
+        return __newSqlOperation1NotOptionalValueSource('_is', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
     }
     isNotIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, __builtInTypeOf(this, 'boolean'), 'required', getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
     }
     isNot(value: any): any {
-        return condition(__newSqlOperation1NotOptionalValueSource('_isNot', this, value, __builtInTypeOf(this, 'boolean'), 'required', getTypeAdapter2(this, value)))
+        return __newSqlOperation1NotOptionalValueSource('_isNot', this, value, __builtInTypeOf(this, 'condition'), 'required', getTypeAdapter2(this, value))
     }
     onlyWhenOrNull(when: boolean): any {
         if (when) {
@@ -301,100 +300,57 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         }
     }
     lessThanIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     lessThan(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_lessThan', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSource('_lessThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     greaterThanIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     greaterThan(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_greaterThan', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSource('_greaterThan', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     lessOrEqualIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     lessOrEqual(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_lessOrEqual', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSource('_lessOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     greaterOrEqualIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     greaterOrEqual(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_greaterOrEqual', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperation1ValueSource('_greaterOrEqual', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     inIfValue(value: any): any {
-        return condition(__newSqlOperationInValueSourceIfValueOrNoop('_in', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperationInValueSourceIfValueOrNoop('_in', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     in(value: any): any {
-        return condition(__newSqlOperationInValueSource('_in', this, value, __builtInTypeOf(this, 'boolean'), getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperationInValueSource('_in', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value))
     }
     notInIfValue(value: any): any {
-        return condition(__newSqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, __builtInTypeOf(this, 'condition'), getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     notIn(value: any): any {
-        return condition(__newSqlOperationInValueSource('_notIn', this, value, __builtInTypeOf(this, 'boolean'), getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperationInValueSource('_notIn', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value))
     }
     inN(...value: any[]): any {
-        return condition(__newSqlOperationInValueSource('_in', this, value, __builtInTypeOf(this, 'boolean'), getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperationInValueSource('_in', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeN(this, value), getTypeAdapter2(this, value))
     }
     notInN(...value: any[]): any {
-        return condition(__newSqlOperationInValueSource('_notIn', this, value, __builtInTypeOf(this, 'boolean'), getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
+        return __newSqlOperationInValueSource('_notIn', this, value, __builtInTypeOf(this, 'condition'), getOptionalTypeN(this, value), getTypeAdapter2(this, value))
     }
     // SqlComparator2
     between(value: any, value2: any): any {
-        return condition(__newSqlOperation2ValueSource('_between', this, value, value2, __builtInTypeOf(this, 'boolean'), getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
+        return __newSqlOperation2ValueSource('_between', this, value, value2, __builtInTypeOf(this, 'condition'), getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2))
     }
     notBetween(value: any, value2: any): any {
-        return condition(__newSqlOperation2ValueSource('_notBetween', this, value, value2, __builtInTypeOf(this, 'boolean'), getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
+        return __newSqlOperation2ValueSource('_notBetween', this, value, value2, __builtInTypeOf(this, 'condition'), getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2))
     }
     // SqlFunctionStatic: never used here
     // SqlFunction0
     // Boolean
-    negate(): any {
-        return condition(__newSqlOperation0ValueSource('_negate', this, __builtInTypeOf(this, 'boolean'), this.__optionalType, this.__typeAdapter))
-    }
-    onlyWhen(condition: boolean): any {
-        if (condition) {
-            return this
-        } else {
-            return __newSqlOperationValueSourceIfValueAlwaysNoop(__builtInTypeOf(this, 'boolean'), this.__optionalType)
-        }
-    }
-    ignoreWhen(condition: boolean): any {
-        if (condition) {
-            return __newSqlOperationValueSourceIfValueAlwaysNoop(__builtInTypeOf(this, 'boolean'), this.__optionalType)
-        } else {
-            return this
-        }
-    }
-    trueWhenNoValue(): any {
-        const result = __newBooleanValueWhenNoValueValueSource('_true', this, __builtInTypeOf(this, 'boolean'), this.__optionalType, this.__typeAdapter)
-        result.__isBooleanForCondition = this.__isBooleanForCondition
-        return result
-    }
-    falseWhenNoValue(): any {
-        const result = __newBooleanValueWhenNoValueValueSource('_false', this, __builtInTypeOf(this, 'boolean'), this.__optionalType, this.__typeAdapter)
-        result.__isBooleanForCondition = this.__isBooleanForCondition
-        return result
-    }
-    valueWhenNoValue(value: any): any {
-        const nodeValueWhenNoValue = this.__node.valueWhenNoValue
-        if (nodeValueWhenNoValue) {
-            return nodeValueWhenNoValue(this, value)
-        }
-        if (value === true) {
-            return this.trueWhenNoValue()
-        }
-        if (value === false) {
-            return this.falseWhenNoValue()
-        }
-
-        const result = __newValueWhenNoValueValueSource(value, this, __builtInTypeOf(this, 'boolean'), mergeOptional(this.__optionalType, __getValueSourcePrivate(value).__optionalType), this.__typeAdapter)
-        result.__isBooleanForCondition = this.__isBooleanForCondition
-        return result
-    }
     // String
     // Number functions
     // Trigonometric Functions
@@ -438,12 +394,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     }
     nullIfValue(value: any): any {
         return __newSqlOperation1ValueSource('_nullIfValue', this, value, __typeClassOf(this), 'optional', getTypeAdapter2(this, value))
-    }
-    and(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_and', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    or(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_or', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     // Trigonometric Functions
     // String Functions
@@ -1416,8 +1366,9 @@ export const sqlOperationValueSourceIfValueAlwaysNoopNode: NodeStrategy<SqlOpera
         // missing — always resolves to `value`, the expression placed in its
         // stead. A bare `true` / `false` is not an expression, so it becomes
         // the constant true / false condition.
-        if (value === true) return vs.trueWhenNoValue()
-        if (value === false) return vs.falseWhenNoValue()
+        // The neutral is a BooleanConditionType, which has them
+        if (value === true) return (vs as any).trueWhenNoValue()
+        if (value === false) return (vs as any).falseWhenNoValue()
         return value
     },
     __toSql(_vs: SqlOperationValueSourceIfValueAlwaysNoop, _sqlBuilder: SqlBuilder, _context: SqlBuildContext, _forceTypeCast: boolean): string {
@@ -1752,9 +1703,6 @@ export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: A
 
     vs.__sql = sql
     vs.__sqlParams = sqlParams
-    if (typeClass.type === 'boolean') {
-        vs.__isBooleanForCondition = true
-    }
     if (isAggregate) {
         vs.__isAggregate = true
     }
@@ -1841,9 +1789,6 @@ export function __newValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQ
     vs.__node = valueSourceFromBuilderNode
     vs.__builder = builder
     vs.__fragmentBuilder = fragmentBuilder
-    if (typeClass.type === 'boolean') {
-        vs.__isBooleanForCondition = true
-    }
     return vs
 }
 
@@ -1937,14 +1882,6 @@ export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueS
     vs.__valueSource = valueSource
     vs.__error = error
     vs.__allowed = allowed
-    // Mirror the wrapped source's "boolean-as-condition" flag so that
-    // dialects without a native boolean (Oracle, SQL Server) emit the
-    // condition directly under WHERE/HAVING/ON instead of wrapping it
-    // with `= 1` (the path inside `_appendConditionSql` for boolean
-    // value sources whose surface form is a number).
-    if (valueSource.__isBooleanForCondition) {
-        vs.__isBooleanForCondition = valueSource.__isBooleanForCondition
-    }
     return vs
 }
 
@@ -2071,7 +2008,7 @@ export function __newAggregateFunctions1or2ValueSource(operation: keyof Aggregat
     return vs
 }
 
-function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
+export function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
     if (op1 === 'required') {
         return op2
     } else if (op1 === 'requiredInOptionalObject') {
@@ -2207,11 +2144,6 @@ export function __operation0(valueSource: object, operation: keyof SqlFunction0 
 export function __operation1(valueSource: object, operation: keyof SqlOperation1, value: any, typeClass: DataTypeClass): any {
     const vs = valueSource as ValueSourceImpl
     return __newSqlOperation1ValueSource(operation, vs, value, typeClass, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
-}
-
-export function condition(valueSource: ValueSourceImpl): ValueSourceImpl {
-    valueSource.__isBooleanForCondition = true
-    return valueSource
 }
 
 export class TableOrViewRawFragmentValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {

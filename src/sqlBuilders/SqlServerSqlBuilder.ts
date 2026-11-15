@@ -17,6 +17,7 @@ import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDeci
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import { __isUuidText } from '../typeSystem/uuidText.js'
+import { __isCondition } from '../typeSystem/logical.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -70,7 +71,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (valueSourcePrivate.__isBooleanForCondition) {
+            if (__isCondition(valueSourcePrivate)) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return 'cast(case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 else 0 end as bit)'
                 } else {
@@ -89,7 +90,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
+            if (__isBooleanValueSource(valueSourcePrivate) && !__isCondition(valueSourcePrivate)) {
                 // A boolean value used as a condition is a `bit`; coerce it to a
                 // predicate by appending `= 1` exactly once here. Source the bit
                 // VALUE form (`_appendSql`), not the condition form: a const or
@@ -561,7 +562,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return this._appendRawColumnName(valueSource, context) + ' is null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (valueSourcePrivate.__isBooleanForCondition) {
+            if (__isCondition(valueSourcePrivate)) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
@@ -583,7 +584,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (valueSourcePrivate.__isBooleanForCondition) {
+            if (__isCondition(valueSourcePrivate)) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return this._trueValueForCondition
                 } else {

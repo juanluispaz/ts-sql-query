@@ -1,8 +1,10 @@
 import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType, type OptionalOf, type SourceOf, type ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { MergeOptional, OptionalType } from './valueSource.js'
+import { __getValueSourcePrivate } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
-import { operandTypeName, typeName, logicalTypes } from '../utils/symbols.js'
+import { computedType, operandTypeName, typeName, logicalTypes } from '../utils/symbols.js'
+import { mergeOptional, __sameTypeClassOf, __newValueWhenNoValueValueSource, __newBooleanValueWhenNoValueValueSource, __newSqlOperation0ValueSource, __newSqlOperation1ValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop, getOptionalType2, getTypeAdapter2, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
 
 /*
  * The logical data types: the boolean value, and the two conditions (`if`, `alwaysIf`). They share the group
@@ -15,22 +17,98 @@ export type IBooleanValue = IValueWithType<'type:boolean:logical:'>
 
 /** A boolean value */
 export abstract class BooleanType extends EqualableType<boolean> {
-    /** The boolean the comparisons give (the classes of the bases can't import it) */
-    static readonly [logicalTypes] = { boolean: BooleanType }
+    /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
+    static get [logicalTypes]() { return logicalTypeClasses }
     static override readonly type = 'boolean'
     static override readonly customType = undefined
     declare [typeName]: 'type:boolean:logical:'
     declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     declare [operandTypeName]: 'type:boolean:logical:'
 
-    abstract negate(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract and<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    negate(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
+    negate(): any {
+        const vs = this as unknown as ValueSourceImpl
+        return __newSqlOperation0ValueSource('_negate', vs, BooleanConditionType, vs.__optionalType, vs.__typeAdapter)
+    }
+    and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
+    and<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    and(value: any): any {
+        const vs = this as unknown as ValueSourceImpl
+        return __newSqlOperation1ValueSource('_and', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
+    }
+    or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
+    or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    or(value: any): any {
+        const vs = this as unknown as ValueSourceImpl
+        return __newSqlOperation1ValueSource('_or', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
+    }
+    onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    onlyWhen(condition: boolean): any {
+        const vs = this as unknown as ValueSourceImpl
+        if (condition) {
+            return vs
+        } else {
+            return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanConditionType, vs.__optionalType)
+        }
+    }
+    ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    ignoreWhen(condition: boolean): any {
+        const vs = this as unknown as ValueSourceImpl
+        if (condition) {
+            return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanConditionType, vs.__optionalType)
+        } else {
+            return vs
+        }
+    }
 }
+
+/**
+ * The boolean of a condition (a comparison, `and`, `or`, `negate`, `exists`, a fragment of a boolean, the neutral), for
+ * the run time only: TypeScript sees a `BooleanType` or a condition. Its SQL is a condition, so the SQL builder of a
+ * database without a boolean value writes it as it is where a condition goes and turns it into a value elsewhere. What
+ * keeps its SQL (`allowWhen`, `valueWhenNoValue`, ...) keeps this data type; a value computed from it (`valueWhenNull`,
+ * `max`, ...) is a boolean. The methods only the conditions have (`trueWhenNoValue`, `falseWhenNoValue`,
+ * `valueWhenNoValue`) are here, where no boolean value has them
+ */
+export abstract class BooleanConditionType extends BooleanType {
+    /** A value computed from the boolean of a condition is a boolean */
+    static readonly [computedType] = BooleanType
+
+    trueWhenNoValue(): any {
+        const vs = this as unknown as ValueSourceImpl
+        return __newBooleanValueWhenNoValueValueSource('_true', vs, __sameTypeClassOf(vs), vs.__optionalType, vs.__typeAdapter)
+    }
+    falseWhenNoValue(): any {
+        const vs = this as unknown as ValueSourceImpl
+        return __newBooleanValueWhenNoValueValueSource('_false', vs, __sameTypeClassOf(vs), vs.__optionalType, vs.__typeAdapter)
+    }
+    valueWhenNoValue(value: any): any {
+        const vs = this as unknown as ValueSourceImpl
+        const nodeValueWhenNoValue = vs.__node.valueWhenNoValue
+        if (nodeValueWhenNoValue) {
+            return nodeValueWhenNoValue(vs, value)
+        }
+        if (value === true) {
+            return this.trueWhenNoValue()
+        }
+        if (value === false) {
+            return this.falseWhenNoValue()
+        }
+
+        return __newValueWhenNoValueValueSource(value, vs, __sameTypeClassOf(vs), mergeOptional(vs.__optionalType, __getValueSourcePrivate(value).__optionalType), vs.__typeAdapter)
+    }
+}
+
+/**
+ * Whether the value source is written as a condition: the boolean of a condition, but not the reference to a column of
+ * a select that is one (the select list writes it as a value)
+ */
+export function __isCondition(valueSource: unknown): boolean {
+    return valueSource instanceof BooleanConditionType && !(valueSource as any).__selectColumnReference
+}
+
+// After the classes it names: read by the getter of [logicalTypes] of BooleanType
+const logicalTypeClasses = { boolean: BooleanType, condition: BooleanConditionType }
 
 /** The root of the conditions */
 export abstract class ConditionType extends BaseType<boolean> {

@@ -119,7 +119,7 @@ const tPriceDelegating = new class TPriceDelegating extends Table<DBConnection, 
 // Every ReleaseDay of the connection, without a type adapter, given as the text DD/MM/YYYY and read back as the day
 class DayAsTextConnection extends DBConnection {
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        if (context.originalType === 'ReleaseDay' && context.output === 'resultColumn') {
+        if (context.originalType.type === 'ReleaseDay' && context.output === 'resultColumn') {
             context.setRequestedType('string')
             return 'convert(varchar(10), ' + sql + ', 103)'
         }
@@ -128,7 +128,7 @@ class DayAsTextConnection extends DBConnection {
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
         // The value it gives super is of the original type
         context.resetRequestedType()
-        const parts = context.originalType === 'ReleaseDay' && typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
+        const parts = context.originalType.type === 'ReleaseDay' && typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
             return super.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], context)
         }
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
             expect(row).toEqual({ version: '2.0.0', day: dayOf(2024, 6, 1) })
             // The query runner receives the type of the value the conversion gives: a text
             const day = getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('day')
-            expect([day?.originalCustomType, day?.requestedType, day?.requestedCustomType]).toEqual(['customLocalDate', 'string', undefined])
+            expect([day?.originalType?.customType, day?.requestedType?.type, day?.requestedType?.customType]).toEqual(['customLocalDate', 'string', undefined])
         })
     })
 

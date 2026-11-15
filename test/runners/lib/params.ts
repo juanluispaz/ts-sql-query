@@ -9,7 +9,8 @@ import { queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
 
 function keepParamType(params: any[], type: string, customType: CustomType | undefined, forceTypeCast: boolean): void {
     const paramContext = queryParamContextOf(params, params.length)
-    paramContext.setOriginalType(type, customType)
+    // A query runner reads the names of the type: also a type it doesn't know, or none ('')
+    paramContext.setOriginalType({ type, customType })
     paramContext.forceTypeCast = forceTypeCast
 }
 

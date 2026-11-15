@@ -60,13 +60,13 @@ import { CustomDoubleType, CustomIntType, CustomLocalDateTimeType, CustomLocalDa
 const scaledByTypeName: TypeAdapter = {
     transformValueFromDB(value, context, next) {
         const v = next.transformValueFromDB(value, context)
-        if ((context.originalType === 'Cents' || context.originalType === 'Money' || context.originalType === 'Ratio') && typeof v === 'number') {
+        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money' || context.originalType.type === 'Ratio') && typeof v === 'number') {
             return v / 100
         }
         return v
     },
     transformValueToDB(value, context, next) {
-        if ((context.originalType === 'Cents' || context.originalType === 'Money' || context.originalType === 'Ratio') && typeof value === 'number') {
+        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money' || context.originalType.type === 'Ratio') && typeof value === 'number') {
             return next.transformValueToDB(value * 100, context)
         }
         return next.transformValueToDB(value, context)

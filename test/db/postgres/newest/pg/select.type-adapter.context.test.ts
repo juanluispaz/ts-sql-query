@@ -97,7 +97,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual([{ id: 1 }])
         const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
-        expect([param?.getMetadata(sentAt), param?.originalType, param?.originalCustomType, param?.requestedType]).toEqual(['value 1', 'int', undefined, 'int'])
+        expect([param?.getMetadata(sentAt), param?.originalType?.type, param?.originalType?.customType, param?.requestedType?.type]).toEqual(['value 1', 'int', undefined, 'int'])
     })
 
     test('force-type-cast-of-a-type-adapter-goes-with-its-parameter', async () => {

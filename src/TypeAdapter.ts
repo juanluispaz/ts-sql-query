@@ -52,14 +52,10 @@ export interface DataTypeClass {
 export interface TypeAdapterContext {
     /** The configuration of the connection of the query */
     readonly connectionConfiguration: ConnectionConfiguration
-    /** The name of the original type of the value, like `'int'` or `'ReleaseDay'`; it never changes */
-    readonly originalType: string
-    /** Which custom type the original type is, as declared in its column; undefined for a built-in type */
-    readonly originalCustomType: CustomType | undefined
-    /** The name of the type requested for the value; by default the original one */
-    readonly requestedType: string
-    /** Which custom type the requested type is; undefined for a built-in type */
-    readonly requestedCustomType: CustomType | undefined
+    /** The original type of the value, its class (`IntType`, `ReleaseDayType`), as declared in its column; it never changes */
+    readonly originalType: DataTypeClass
+    /** The type requested for the value, its class; by default the original one */
+    readonly requestedType: DataTypeClass
     /**
      * The original type of the value in the database (see `SqlDataType`): the one the type adapter says
      * (`withSqlDataType`), undefined when it says none; it never changes
@@ -76,14 +72,11 @@ export interface TypeAdapterContext {
  */
 export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     /**
-     * Requests a built-in type, like `setRequestedType('string')`: the next type adapter and the conversion of the
-     * library decide by it. It can be called again
+     * Requests a type, by the name of a built-in one or by its class, like `setRequestedType('string')` or
+     * `setRequestedType(ReleaseDayType)`: the next type adapter and the conversion of the library decide by it. It can
+     * be called again
      */
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
-    setRequestedType(customType: CustomType, type: string): void
-    /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -147,14 +140,11 @@ export interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
  */
 export interface TypeAdapterProjectionContext extends TypeAdapterContext {
     /**
-     * Requests a built-in type, like `setRequestedType('string')`: the next type adapter and the conversion of the
-     * library decide by it. It can be called again
+     * Requests a type, by the name of a built-in one or by its class, like `setRequestedType('string')` or
+     * `setRequestedType(ReleaseDayType)`: the next type adapter and the conversion of the library decide by it. It can
+     * be called again
      */
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
-    setRequestedType(customType: CustomType, type: string): void
-    /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -189,14 +179,11 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
  */
 export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     /**
-     * Requests a built-in type, like `setRequestedType('string')`: the next type adapter and the conversion of the
-     * library decide by it. It can be called again
+     * Requests a type, by the name of a built-in one or by its class, like `setRequestedType('string')` or
+     * `setRequestedType(ReleaseDayType)`: the next type adapter and the conversion of the library decide by it. It can
+     * be called again
      */
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
-    setRequestedType(customType: CustomType, type: string): void
-    /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -520,7 +507,7 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
      */
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         const result = next.transformValueToDB(value, context)
-        if (__isLocalDateTime(context.requestedType, context.requestedCustomType) || __isLocalTime(context.requestedType, context.requestedCustomType)) {
+        if (__isLocalDateTime(context.requestedType.type, context.requestedType.customType) || __isLocalTime(context.requestedType.type, context.requestedType.customType)) {
             context.setMetadata(oracleDateParam, true)
         }
         return result

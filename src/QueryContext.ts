@@ -6,7 +6,7 @@
  */
 
 import type { QueryExecutionSource } from './TsSqlError.js'
-import type { CustomType, SqlDataType } from './TypeAdapter.js'
+import type { DataTypeClass, SqlDataType } from './TypeAdapter.js'
 import type { ConnectionConfiguration, FunctionExecutingQueryInformation, QueryResultColumn } from './queryRunners/QueryRunner.js'
 import { emptyQueryContext, existingQueryContextOf } from './internal/QueryContextImpl.js'
 
@@ -48,14 +48,10 @@ export interface QueryContext {
  * adapter can request another in its `transformValueToDB`).
  */
 export interface QueryParamContext {
-    /** The name of the original type of the parameter, like `'int'` or the one of a custom type */
-    readonly originalType: string | undefined
-    /** Which custom type the original type is, like `'customInt'`; undefined for a built-in type */
-    readonly originalCustomType: CustomType | undefined
-    /** The name of the type the parameter is sent with */
-    readonly requestedType: string | undefined
-    /** Which custom type the requested type is; undefined for a built-in type */
-    readonly requestedCustomType: CustomType | undefined
+    /** The original type of the parameter, its class (`IntType`, or the class of a custom type) */
+    readonly originalType: DataTypeClass | undefined
+    /** The type the parameter is sent with, its class */
+    readonly requestedType: DataTypeClass | undefined
     /** The database must receive the type of the parameter: the position where it is written gives it none */
     readonly forceTypeCast: boolean | undefined
     /** The parameter is the value given to a column of a table, in the values of an insert or the set of an update */

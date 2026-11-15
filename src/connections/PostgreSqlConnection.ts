@@ -64,7 +64,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if (this.isDatabaseOutsideUtc()) {
-            if (__isLocalDateTime(context.requestedType, context.requestedCustomType) || __isLocalTime(context.requestedType, context.requestedCustomType)) {
+            if (__isLocalDateTime(context.requestedType.type, context.requestedType.customType) || __isLocalTime(context.requestedType.type, context.requestedType.customType)) {
                 context.setMetadata(postgreSqlZonedParam, true)
             }
         }
@@ -77,7 +77,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = postgreSqlZonedValueSql(sql, context.requestedType, context.requestedCustomType, this.localTimeReferenceDate)
+            const zoned = postgreSqlZonedValueSql(sql, context.requestedType.type, context.requestedType.customType, this.localTimeReferenceDate)
             if (zoned) {
                 return context.output === 'aggregatedArrayValue' ? zoned + '::text' : zoned
             }

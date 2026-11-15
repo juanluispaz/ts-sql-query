@@ -280,7 +280,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     // The type the parameter is bound with: the one declared in typesByName for its type name, or the one getType gives
     private getInputType(params: any[], index: number): ISqlType {
         const typesByName = this.config?.typesByName
-        const type = existingParamContextOf(params, index)?.requestedType
+        const type = existingParamContextOf(params, index)?.requestedType?.type
         const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
         if (declared) {
             if (typeof declared === 'function') {
@@ -308,7 +308,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     private getTypeOfSqlDataType(params: any[], index: number): ISqlType | undefined {
         const param = existingParamContextOf(params, index)
         const sqlDataType = param?.requestedSqlDataType
-        if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType, param!.requestedCustomType)) {
+        if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)) {
             return undefined
         }
         const value: unknown = params[index]
@@ -338,8 +338,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         // The requested type of the parameter decides the type it is bound with; a parameter added without one, like
         // one of a query written by hand, gets a type inferred from its value
         const param = existingParamContextOf(params, index)
-        const type = param?.requestedType
-        const customType = param?.requestedCustomType
+        const type = param?.requestedType?.type
+        const customType = param?.requestedType?.customType
         if (!type && !customType) {
             return this.inferType(params[index])
         }

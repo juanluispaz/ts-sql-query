@@ -110,7 +110,7 @@ On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#
 
 ## Custom types
 
-A custom type gives a column your own TypeScript type, and its type name (the one given to `of`, like `'Cents'`) identifies it. The family whose `of` made it is which custom type it is, a `CustomType` (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` or `customComparable`): it says which operations the column offers in a query, and how its values are converted. A [type adapter](../advanced/type-adapters.md) receives it by that name.
+A custom type gives a column your own TypeScript type, and its type name (the one given to `of`, like `'Cents'`) identifies it. The family whose `of` made it is which custom type it is, a `CustomType` (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` or `customComparable`): it says which operations the column offers in a query, and how its values are converted. A [type adapter](../advanced/type-adapters.md) receives the class of the type, with its type name in `type` and which custom type it is in `customType`.
 
 | Family | Custom type | Its values are converted as |
 |---|---|---|

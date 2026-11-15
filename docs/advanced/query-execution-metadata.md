@@ -352,9 +352,8 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 
 | Property | What it is |
 |---|---|
-| `originalType` | The name of its original type, the one declared in the library, like `'int'` or the one of a custom type |
-| `originalCustomType` | Which custom type the original type is, the first argument of the column, like `'customInt'`; `undefined` for a built-in type |
-| `requestedType`, `requestedCustomType` | The type the parameter is sent with: the original one, unless the `transformValueToDB` of its type adapter or of the connection requested another with `setRequestedType`, like `'string'` for a date sent as its text (see [The original and the requested type](type-adapters.md#the-original-and-the-requested-type)) |
+| `originalType` | The class of its original type, the one declared in the library, like `IntType` or the class of a custom type; its `type` is the name of the type, like `'int'`, and its `customType` which custom type it is, like `'customInt'`, `undefined` for a built-in type |
+| `requestedType` | The class of the type the parameter is sent with: the original one, unless the `transformValueToDB` of its type adapter or of the connection requested another with `setRequestedType`, like `StringType` for a date sent as its text (see [The original and the requested type](type-adapters.md#the-original-and-the-requested-type)) |
 | `forceTypeCast` | Whether the database must receive its type, because the position where it's written gives it none: the query runners of PostgreSQL then write a cast or send the parameter with its type |
 | `isValueForColumn` | Whether it's the value given to a column of a table, in the values of an insert or in the set of an update, where the column gives it its type |
 | `originalSqlDataType`, `requestedSqlDataType` | The type of the column in the database, when its type adapter says it ([`withSqlDataType`](sql-data-types.md)): of the column it's given to or compared with; the requested one, the one it's sent with, unless the adapter requested another. `undefined` without one |
@@ -363,20 +362,18 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 ```ts
 import { InterceptorQueryRunner, getQueryContext } from "ts-sql-query";
 import type { QueryType } from "ts-sql-query";
-import type { CustomType } from "ts-sql-query"
+import type { DataTypeClass } from "ts-sql-query"
 
 class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
         const context = getQueryContext(query, params)
         for (let index = 0; index < params.length; index++) {
             const param = context.getParam(index)
-            const originalType: string | undefined = param?.originalType
-            const originalCustomType: CustomType | undefined = param?.originalCustomType
-            const requestedType: string | undefined = param?.requestedType
-            const requestedCustomType: CustomType | undefined = param?.requestedCustomType
+            const originalType: DataTypeClass | undefined = param?.originalType
+            const requestedType: DataTypeClass | undefined = param?.requestedType
             const forceTypeCast: boolean | undefined = param?.forceTypeCast
             const isValueForColumn: boolean | undefined = param?.isValueForColumn
-            console.log('parameter', index, params[index], originalType, originalCustomType, requestedType, requestedCustomType, forceTypeCast, isValueForColumn)
+            console.log('parameter', index, params[index], originalType?.type, originalType?.customType, requestedType?.type, requestedType?.customType, forceTypeCast, isValueForColumn)
         }
         // Additional information
         console.log('query type', queryType)
@@ -390,7 +387,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 }
 ```
 
-In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7, 10 ]`, the first parameter is an `'int'`, original and requested, with `forceTypeCast` `true`: a constant selected on its own. The second is an `'int'` too, with `forceTypeCast` `false`: compared with the column `id`, it takes its type from it.
+In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7, 10 ]`, the first parameter is an `IntType`, original and requested (its `type` is `'int'`), with `forceTypeCast` `true`: a constant selected on its own. The second is an `IntType` too, with `forceTypeCast` `false`: compared with the column `id`, it takes its type from it.
 
 `isValueForColumn` is `true` for both parameters of `insert into customer (first_name, company_id) values ($1, $2)`, and `false` in a `where`, or anywhere else. The query runners of MariaDB, MySQL and SQL Server use it to leave a `stringDecimal` or a `customDecimal` without the cast they write elsewhere.
 
@@ -406,9 +403,8 @@ The context of each query the library builds also has the columns of its result,
 |---|---|
 | `name` | The key of the column in a row returned by the database. `''` when the SQL gives the column no alias: the count query of a select page, the id returned by `returningLastInsertedId`, the value of a function |
 | `path` | The property of the result object it fills, like `'customer.name'` for a nested object, `'result'` for a query that selects one column, `''` without one |
-| `originalType` | The name of the original type of its value, the one declared in the library, like `'int'` or the one of a custom type; `'aggregatedArray'` for an aggregated array, whose JSON text the library converts value by value |
-| `originalCustomType` | Which custom type the original type is, like `'customInt'`; `undefined` for a built-in type and an aggregated array |
-| `requestedType`, `requestedCustomType` | The type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection requests with `setRequestedType`, like `'string'` for the text of a date (see [The original and the requested type](type-adapters.md#the-original-and-the-requested-type)); otherwise the original one |
+| `originalType` | The class of the original type of its value, the one declared in the library, like `IntType` or the class of a custom type; its `type` is the name of the type, like `'int'`, and its `customType` which custom type it is, like `'customInt'`, `undefined` for a built-in type. For an aggregated array, whose JSON text the library converts value by value, its `type` is `'aggregatedArray'` and its `customType` `undefined` |
+| `requestedType` | The class of the type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection requests with `setRequestedType`, like `StringType` for the text of a date (see [The original and the requested type](type-adapters.md#the-original-and-the-requested-type)); otherwise the original one |
 
 The array is empty for a query that returns no columns: an insert, update or delete without returning, a procedure, and the statements of a transaction. `resultColumns` is `undefined` for a statement you run through the query runner yourself. `getResultColumn(name)` finds one column by its `name`.
 
@@ -420,7 +416,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
         const columns: readonly QueryResultColumn[] | undefined = getQueryContext(query, params).resultColumns
         for (const column of columns ?? []) {
-            console.log('result column', column.name, column.path, column.originalType, column.originalCustomType, column.requestedType, column.requestedCustomType)
+            console.log('result column', column.name, column.path, column.originalType.type, column.originalType.customType, column.requestedType.type, column.requestedType.customType)
         }
         // Additional information
         console.log('query type', queryType)

@@ -12,8 +12,16 @@ import { tColMatrixOptional, tIssue, tOrganization, tProject } from '../../domai
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
-function resultColumns(params = ctx.lastParams): readonly QueryResultColumn[] | undefined {
-    return getQueryContext(ctx.lastSql, params).resultColumns
+// A type shown by its name, and a custom one with its custom type: `int`, `Money (customInt)`
+function typeLabel(type: QueryResultColumn['originalType']): string {
+    return type.customType === undefined ? type.type : type.type + ' (' + type.customType + ')'
+}
+
+// A result column with its types shown by typeLabel
+type ShownResultColumn = Omit<QueryResultColumn, 'originalType' | 'requestedType'> & { originalType: string, requestedType: string }
+
+function resultColumns(params = ctx.lastParams): ShownResultColumn[] | undefined {
+    return getQueryContext(ctx.lastSql, params).resultColumns?.map(column => ({ ...column, originalType: typeLabel(column.originalType), requestedType: typeLabel(column.requestedType) }))
 }
 
 describe(ctx.label, () => {
@@ -38,159 +46,122 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "id",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "mInt",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "mInt",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "mBigint",
-              "originalCustomType": undefined,
               "originalType": "bigint",
               "path": "mBigint",
-              "requestedCustomType": undefined,
               "requestedType": "bigint",
             },
             {
               "name": "mDouble",
-              "originalCustomType": undefined,
               "originalType": "double",
               "path": "mDouble",
-              "requestedCustomType": undefined,
               "requestedType": "double",
             },
             {
               "name": "mBool",
-              "originalCustomType": undefined,
               "originalType": "boolean",
               "path": "mBool",
-              "requestedCustomType": undefined,
               "requestedType": "boolean",
             },
             {
               "name": "mUuid",
-              "originalCustomType": undefined,
               "originalType": "uuid",
               "path": "mUuid",
-              "requestedCustomType": undefined,
               "requestedType": "uuid",
             },
             {
               "name": "mDate",
-              "originalCustomType": undefined,
               "originalType": "localDate",
               "path": "mDate",
-              "requestedCustomType": undefined,
               "requestedType": "localDate",
             },
             {
               "name": "mTime",
-              "originalCustomType": undefined,
               "originalType": "localTime",
               "path": "mTime",
-              "requestedCustomType": undefined,
               "requestedType": "localTime",
             },
             {
               "name": "mDatetime",
-              "originalCustomType": undefined,
               "originalType": "localDateTime",
               "path": "mDatetime",
-              "requestedCustomType": undefined,
               "requestedType": "localDateTime",
             },
             {
               "name": "mStr",
-              "originalCustomType": undefined,
               "originalType": "string",
               "path": "mStr",
-              "requestedCustomType": undefined,
               "requestedType": "string",
             },
             {
               "name": "cents",
-              "originalCustomType": "customInt",
-              "originalType": "Cents",
+              "originalType": "Cents (customInt)",
               "path": "cents",
-              "requestedCustomType": "customInt",
-              "requestedType": "Cents",
+              "requestedType": "Cents (customInt)",
             },
             {
               "name": "money",
-              "originalCustomType": "customDouble",
-              "originalType": "Money",
+              "originalType": "Money (customDouble)",
               "path": "money",
-              "requestedCustomType": "customDouble",
-              "requestedType": "Money",
+              "requestedType": "Money (customDouble)",
             },
             {
               "name": "signingKey",
-              "originalCustomType": "customUuid",
-              "originalType": "SigningKey",
+              "originalType": "SigningKey (customUuid)",
               "path": "signingKey",
-              "requestedCustomType": "customUuid",
-              "requestedType": "SigningKey",
+              "requestedType": "SigningKey (customUuid)",
             },
             {
               "name": "semver",
-              "originalCustomType": "customComparable",
-              "originalType": "Semver",
+              "originalType": "Semver (customComparable)",
               "path": "semver",
-              "requestedCustomType": "customComparable",
-              "requestedType": "Semver",
+              "requestedType": "Semver (customComparable)",
             },
             {
               "name": "channel",
-              "originalCustomType": "custom",
-              "originalType": "ReleaseChannel",
+              "originalType": "ReleaseChannel (custom)",
               "path": "channel",
-              "requestedCustomType": "custom",
-              "requestedType": "ReleaseChannel",
+              "requestedType": "ReleaseChannel (custom)",
             },
             {
               "name": "releaseDay",
-              "originalCustomType": "customLocalDate",
-              "originalType": "ReleaseDay",
+              "originalType": "ReleaseDay (customLocalDate)",
               "path": "releaseDay",
-              "requestedCustomType": "customLocalDate",
-              "requestedType": "ReleaseDay",
+              "requestedType": "ReleaseDay (customLocalDate)",
             },
             {
               "name": "cutoffClock",
-              "originalCustomType": "customLocalTime",
-              "originalType": "CutoffClock",
+              "originalType": "CutoffClock (customLocalTime)",
               "path": "cutoffClock",
-              "requestedCustomType": "customLocalTime",
-              "requestedType": "CutoffClock",
+              "requestedType": "CutoffClock (customLocalTime)",
             },
             {
               "name": "signOff",
-              "originalCustomType": "customLocalDateTime",
-              "originalType": "SignOffStamp",
+              "originalType": "SignOffStamp (customLocalDateTime)",
               "path": "signOff",
-              "requestedCustomType": "customLocalDateTime",
-              "requestedType": "SignOffStamp",
+              "requestedType": "SignOffStamp (customLocalDateTime)",
             },
             {
               "name": "activity",
-              "originalCustomType": "enum",
-              "originalType": "WorklogActivity",
+              "originalType": "WorklogActivity (enum)",
               "path": "activity",
-              "requestedCustomType": "enum",
-              "requestedType": "WorklogActivity",
+              "requestedType": "WorklogActivity (enum)",
             },
           ]
         `)
-        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('money')).toEqual({ name: 'money', path: 'money', originalType: 'Money', originalCustomType: 'customDouble', requestedType: 'Money', requestedCustomType: 'customDouble' })
+        const money = getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('money')
+        expect(money && { ...money, originalType: typeLabel(money.originalType), requestedType: typeLabel(money.requestedType) }).toEqual({ name: 'money', path: 'money', originalType: 'Money (customDouble)', requestedType: 'Money (customDouble)' })
         expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('unknown')).toBeUndefined()
         // Hidden: the params list only the values sent to the database
         expect(Object.keys(ctx.lastParams)).toEqual(['0'])
@@ -216,34 +187,26 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "id",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "detail.title",
-              "originalCustomType": undefined,
               "originalType": "string",
               "path": "detail.title",
-              "requestedCustomType": undefined,
               "requestedType": "string",
             },
             {
               "name": "parent.id",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "parent.id",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "parent.title",
-              "originalCustomType": undefined,
               "originalType": "string",
               "path": "parent.title",
-              "requestedCustomType": undefined,
               "requestedType": "string",
             },
           ]
@@ -262,18 +225,14 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "id",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier",
-              "originalCustomType": undefined,
               "originalType": "string",
               "path": "aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier",
-              "requestedCustomType": undefined,
               "requestedType": "string",
             },
           ]
@@ -291,10 +250,8 @@ describe(ctx.label, () => {
           [
             {
               "name": "result",
-              "originalCustomType": undefined,
               "originalType": "string",
               "path": "result",
-              "requestedCustomType": undefined,
               "requestedType": "string",
             },
           ]
@@ -310,10 +267,8 @@ describe(ctx.label, () => {
           [
             {
               "name": "result",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "result",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
           ]
@@ -340,28 +295,22 @@ describe(ctx.label, () => {
             [
               {
                 "name": "id",
-                "originalCustomType": undefined,
                 "originalType": "int",
                 "path": "id",
-                "requestedCustomType": undefined,
                 "requestedType": "int",
               },
               {
                 "name": "name",
-                "originalCustomType": undefined,
                 "originalType": "string",
                 "path": "name",
-                "requestedCustomType": undefined,
                 "requestedType": "string",
               },
             ],
             [
               {
                 "name": "",
-                "originalCustomType": undefined,
                 "originalType": "int",
                 "path": "",
-                "requestedCustomType": undefined,
                 "requestedType": "int",
               },
             ],
@@ -387,18 +336,14 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "id",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "label",
-              "originalCustomType": undefined,
               "originalType": "string",
               "path": "label",
-              "requestedCustomType": undefined,
               "requestedType": "string",
             },
           ]
@@ -418,18 +363,14 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "id",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "issueIds",
-              "originalCustomType": undefined,
               "originalType": "aggregatedArray",
               "path": "issueIds",
-              "requestedCustomType": undefined,
               "requestedType": "aggregatedArray",
             },
           ]
@@ -448,18 +389,14 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalCustomType": undefined,
               "originalType": "int",
               "path": "id",
-              "requestedCustomType": undefined,
               "requestedType": "int",
             },
             {
               "name": "shout",
-              "originalCustomType": undefined,
               "originalType": "string",
               "path": "shout",
-              "requestedCustomType": undefined,
               "requestedType": "string",
             },
           ]
@@ -478,10 +415,8 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "",
-                  "originalCustomType": undefined,
                   "originalType": "int",
                   "path": "",
-                  "requestedCustomType": undefined,
                   "requestedType": "int",
                 },
               ]
@@ -501,10 +436,8 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "",
-                  "originalCustomType": undefined,
                   "originalType": "int",
                   "path": "",
-                  "requestedCustomType": undefined,
                   "requestedType": "int",
                 },
               ]
@@ -550,18 +483,14 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "id",
-                  "originalCustomType": undefined,
                   "originalType": "int",
                   "path": "id",
-                  "requestedCustomType": undefined,
                   "requestedType": "int",
                 },
                 {
                   "name": "name",
-                  "originalCustomType": undefined,
                   "originalType": "string",
                   "path": "name",
-                  "requestedCustomType": undefined,
                   "requestedType": "string",
                 },
               ]
@@ -587,10 +516,8 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "name",
-                  "originalCustomType": undefined,
                   "originalType": "string",
                   "path": "name",
-                  "requestedCustomType": undefined,
                   "requestedType": "string",
                 },
               ]
@@ -610,18 +537,14 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "id",
-                  "originalCustomType": undefined,
                   "originalType": "int",
                   "path": "id",
-                  "requestedCustomType": undefined,
                   "requestedType": "int",
                 },
                 {
                   "name": "name",
-                  "originalCustomType": undefined,
                   "originalType": "string",
                   "path": "name",
-                  "requestedCustomType": undefined,
                   "requestedType": "string",
                 },
               ]

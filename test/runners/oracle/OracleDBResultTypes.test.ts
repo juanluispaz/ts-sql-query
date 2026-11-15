@@ -10,7 +10,10 @@ import type { QueryResultColumn, QueryRunner } from '../../../src/queryRunners/Q
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
 import { queryContextOf } from '../../../src/internal/QueryContextImpl.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
+import { BigintType, CustomDecimalType, DoubleType } from '../../../src/exports/v2/index.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
+
+const AmountType = CustomDecimalType.of<string, 'Amount'>('Amount')
 
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: result types', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
@@ -28,8 +31,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     }, 300_000)
 
     const sql = 'select cast(12345678901234567890.1234567891 as number(38, 10)) as "amount", cast(-0.25 as number(10, 2)) as "price", 1.5 as "plain" from dual'
-    const decimal = (name: string): QueryResultColumn => ({ name, path: name, originalType: 'Amount', originalCustomType: 'customDecimal', requestedType: 'Amount', requestedCustomType: 'customDecimal' })
-    const double = (name: string): QueryResultColumn => ({ name, path: name, originalType: 'double', originalCustomType: undefined, requestedType: 'double', requestedCustomType: undefined })
+    const decimal = (name: string): QueryResultColumn => ({ name, path: name, originalType: AmountType, requestedType: AmountType })
+    const double = (name: string): QueryResultColumn => ({ name, path: name, originalType: DoubleType, requestedType: DoubleType })
 
     function paramsExpecting(columns: QueryResultColumn[]): any[] {
         const params: any[] = []
@@ -48,12 +51,12 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     })
 
     test('the-only-column-without-a-name', async () => {
-        const params = paramsExpecting([{ name: '', path: '', originalType: 'Amount', originalCustomType: 'customDecimal', requestedType: 'Amount', requestedCustomType: 'customDecimal' }])
+        const params = paramsExpecting([{ name: '', path: '', originalType: AmountType, requestedType: AmountType }])
         expect(await runner!.executeQuery('selectOneColumnOneRow', 'select cast(12345678901234567890.1234567891 as number(38, 10)) from dual', params)).toBe('12345678901234567890.1234567891')
     })
 
     test('a-bigint-column-is-fetched-as-text', async () => {
-        const params = paramsExpecting([{ name: 'big', path: 'big', originalType: 'bigint', originalCustomType: undefined, requestedType: 'bigint', requestedCustomType: undefined }, double('plain')])
+        const params = paramsExpecting([{ name: 'big', path: 'big', originalType: BigintType, requestedType: BigintType }, double('plain')])
         const row = await runner!.executeQuery('selectOneRow', 'select cast(123456789012345678901 as number(21)) as "big", 1.5 as "plain" from dual', params)
         expect(row).toEqual({ big: '123456789012345678901', plain: 1.5 })
     })

@@ -87,7 +87,7 @@ class VBrandedSampler extends Values<DBConnection, 'brandedSampler'> {
 // number read is handed back as text.
 class NumericIdConnection extends DBConnection {
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        if (context.originalType === 'NumericId') {
+        if (context.originalType.type === 'NumericId') {
             context.setRequestedType('bigint')
             const id = super.transformValueFromDB(value, context)
             return typeof id === 'bigint' ? id.toString() : id
@@ -95,7 +95,7 @@ class NumericIdConnection extends DBConnection {
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if (context.originalType === 'NumericId') {
+        if (context.originalType.type === 'NumericId') {
             if (typeof value !== 'string') {
                 return null
             }

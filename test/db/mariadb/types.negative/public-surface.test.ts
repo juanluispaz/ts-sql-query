@@ -43,9 +43,9 @@ function _typeNegatives() {
     void root.MariaDBConnection
 
     // Rule: what a query runner reads of the result columns is read-only.
-    const resultColumn: QueryResultColumn = { name: 'id', path: 'id', originalType: 'int', originalCustomType: undefined, requestedType: 'int', requestedCustomType: undefined }
+    const resultColumn: QueryResultColumn = { name: 'id', path: 'id', originalType: root.IntType, requestedType: root.IntType }
     // @ts-expect-error a result column is read-only
-    resultColumn.requestedType = 'bigint'
+    resultColumn.requestedType = root.BigintType
     // @ts-expect-error the custom type of a result column is one of the list
     void ({ name: 'id', path: 'id', originalType: 'Money', originalCustomType: 'number', requestedType: 'Money', requestedCustomType: undefined } satisfies QueryResultColumn)
     // Rule: the mock imitates a query runner of the library by the name of its class.
@@ -87,16 +87,20 @@ function _typeNegatives() {
             return next.transformValueFromDB(value, context)
         },
         transformValueToDB(value, context, next) {
-            context.setRequestedType('customLocalDate', 'ReleaseDay')
+            context.setRequestedType(root.CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
             context.resetRequestedType()
             // @ts-expect-error the original type is read-only
-            context.originalType = 'string'
+            context.originalType = root.StringType
             // @ts-expect-error the requested type changes with setRequestedType
-            context.requestedType = 'string'
-            // @ts-expect-error a custom type needs which custom type it is
+            context.requestedType = root.StringType
+            // @ts-expect-error a custom type is requested by its class, not by its name
             context.setRequestedType('ReleaseDay')
-            // @ts-expect-error a custom type needs its name
+            // @ts-expect-error a custom type is requested by its class, not by its custom type
             context.setRequestedType('customLocalDate')
+            // @ts-expect-error nor by its custom type and its name
+            context.setRequestedType('customLocalDate', 'ReleaseDay')
+            // @ts-expect-error the type is its class: it is compared with the class, or by its name with .type
+            void (context.requestedType === 'string')
             return next.transformValueToDB(value, context)
         },
         transformPlaceholder(placeholder, context, next) {

@@ -23,7 +23,7 @@ function toHexPair(value: number): string {
 
 class RgbColorConnection extends DBConnection {
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext) {
-        if (context.originalType === 'RgbColor' && value) {
+        if (context.originalType.type === 'RgbColor' && value) {
             if (typeof value === 'string' && value.length === 7) {
                 return { r: parseInt(value.slice(1, 3), 16), g: parseInt(value.slice(3, 5), 16), b: parseInt(value.slice(5, 7), 16) }
             }
@@ -32,7 +32,7 @@ class RgbColorConnection extends DBConnection {
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext) {
-        if (context.originalType === 'RgbColor' && value) {
+        if (context.originalType.type === 'RgbColor' && value) {
             if (typeof value === 'object' && isRgbColor(value)) {
                 return `#${toHexPair(value.r)}${toHexPair(value.g)}${toHexPair(value.b)}`
             }
@@ -41,7 +41,7 @@ class RgbColorConnection extends DBConnection {
         return super.transformValueToDB(value, context)
     }
     protected override transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string {
-        if (context.originalType === 'RgbColor') {
+        if (context.originalType.type === 'RgbColor') {
             return 'cast(' + placeholder + ' as char(32))'
         }
         return super.transformPlaceholder(placeholder, context)
@@ -58,13 +58,13 @@ type ExactDecimal = string & { readonly __brand: 'ExactDecimal' }
 
 class ExactDecimalConnection extends DBConnection {
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext) {
-        if (context.originalType === 'ExactDecimal' && value !== null && value !== undefined) {
+        if (context.originalType.type === 'ExactDecimal' && value !== null && value !== undefined) {
             return String(value)
         }
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext) {
-        if (context.originalType === 'ExactDecimal') {
+        if (context.originalType.type === 'ExactDecimal') {
             return value
         }
         return super.transformValueToDB(value, context)
@@ -119,7 +119,7 @@ const dayMonthYear: TypeAdapter = {
         return next.transformValueToDB(value, context)
     },
     transformPlaceholder(placeholder, context, next) {
-        if (context.requestedType === 'string') {
+        if (context.requestedType.type === 'string') {
             return dateOfDayMonthYearText(placeholder)
         }
         return next.transformPlaceholder(placeholder, context)

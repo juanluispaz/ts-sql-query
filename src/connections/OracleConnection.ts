@@ -196,8 +196,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * converts with its session (the zone of the database) into the wall clock it stores or compares with
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const type = context.requestedType
-        const customType = context.requestedCustomType
+        const type = context.requestedType.type
+        const customType = context.requestedType.customType
         if ((__isLocalDateTime(type, customType) || __isLocalTime(type, customType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
         }
@@ -215,7 +215,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = oracleZonedValueSql(sql, context.requestedType, context.requestedCustomType, this.localTimeReferenceDate)
+            const zoned = oracleZonedValueSql(sql, context.requestedType.type, context.requestedType.customType, this.localTimeReferenceDate)
             if (zoned) {
                 return zoned
             }

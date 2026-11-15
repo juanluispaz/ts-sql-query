@@ -41,12 +41,17 @@ type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
 A value has two types in the context, so that what was declared and what is sent or read never get confused:
 
-- The **original type**, `originalType` and `originalCustomType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
-- The **requested type**, `requestedType` and `requestedCustomType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
+- The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
+- The **requested type**, `requestedType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
-`originalType` and `requestedType` are the name of the type, like `'int'` or `'ReleaseDay'`. `originalCustomType` and `requestedCustomType` say which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), and are `undefined` for a built-in type:
+`originalType` and `requestedType` are the class of the type, like `IntType` or `ReleaseDayType`. What the context reads of the class is `DataTypeClass`, exported from `ts-sql-query`: `type` is the name of the type, like `'int'` or `'ReleaseDay'`, and `customType` says which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), `undefined` for a built-in type:
 
 ```typescript
+interface DataTypeClass {
+    readonly type: string
+    readonly customType: CustomType | undefined
+}
+
 type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal'
     | 'customUuid'
     | 'customLocalDate' | 'customLocalTime' | 'customLocalDateTime'
@@ -55,7 +60,9 @@ type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal
 
 A custom type is converted as the built-in type it is based on (see [Custom types](../configuration/data-types.md#custom-types)) unless its conversion is registered.
 
-`setRequestedType` takes a type as a column does, by its class, like `setRequestedType(StringType)` or `setRequestedType(ReleaseDayType)`, or by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
+Compare the type with its class, `context.requestedType === ReleaseDayType` (`of` gives the same class for the same name), or its name, `context.requestedType.type === 'ReleaseDay'`. A comparison with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile.
+
+`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`.
 
 What the requested type is in each transformation:
 
@@ -75,8 +82,8 @@ Each transformation receives the context of what it works on. What each one has,
 | Member | `transformValueToDB` | `transformPlaceholder` | `transformProjection` | `transformValueFromDB` |
 |---|---|---|---|---|
 | `connectionConfiguration` | reads | reads | reads | reads |
-| `originalType`, `originalCustomType` | reads | reads | reads | reads |
-| `requestedType`, `requestedCustomType` | reads | reads | reads | reads |
+| `originalType` | reads | reads | reads | reads |
+| `requestedType` | reads | reads | reads | reads |
 | `setRequestedType`, `resetRequestedType` | changes | — | changes | changes |
 | `forceTypeCast` | reads and changes | reads | — | — |
 | `index`, `valueSentToDB` | — | reads | — | — |
@@ -88,7 +95,7 @@ Each transformation receives the context of what it works on. What each one has,
 ### In every context
 
 - `connectionConfiguration` is the configuration of the connection, the same the [context of the query](../advanced/query-execution-metadata.md#get-the-configuration-of-the-connection) has.
-- `originalType` and `originalCustomType` are the type declared for the value; `requestedType` and `requestedCustomType`, the one requested for it, which `setRequestedType` changes and `resetRequestedType` takes back to the original: see [The original and the requested type](#the-original-and-the-requested-type).
+- `originalType` is the class of the type declared for the value; `requestedType`, the class of the one requested for it, which `setRequestedType` changes and `resetRequestedType` takes back to the original: see [The original and the requested type](#the-original-and-the-requested-type).
 
 ### Of a parameter
 
@@ -115,16 +122,12 @@ The library may call `transformValueToDB` only to look at a value, and `transfor
 ```typescript
 interface TypeAdapterContext {
     readonly connectionConfiguration: ConnectionConfiguration
-    readonly originalType: string
-    readonly originalCustomType: CustomType | undefined
-    readonly requestedType: string
-    readonly requestedCustomType: CustomType | undefined
+    readonly originalType: DataTypeClass
+    readonly requestedType: DataTypeClass
 }
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
     resetRequestedType(): void
     forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
@@ -144,9 +147,7 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
     resetRequestedType(): void
     readonly output: ProjectionOutput
     comparison: ProjectionComparison
@@ -155,9 +156,7 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
     resetRequestedType(): void
 }
 ```

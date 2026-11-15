@@ -83,7 +83,7 @@ export function oraclePlaceholder(placeholder: string, params: any[], index: num
     const param = existingParamContextOf(params, index)
     const ofDate = param?.getMetadata(oracleDateParam) === true && value.getUTCMilliseconds() === 0
     const cast = 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
-    if (__isLocalTime(param?.requestedType, param?.requestedCustomType)) {
+    if (__isLocalTime(param?.requestedType?.type, param?.requestedType?.customType)) {
         // A localTime is kept on 1970-01-01, as in UTC: the time of the day of the wall clock, also as the value of a
         // column, so a time after midnight in the zone of the database isn't kept on another day
         return (ofDate ? "date '1970-01-01'" : "timestamp '1970-01-01 00:00:00'") + ' + (' + cast + ' - trunc(' + cast + '))'

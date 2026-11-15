@@ -45,8 +45,8 @@ function isKnownType(type: unknown, customType: unknown, internalTypes: readonly
 function checkParamTypes(query: string, params: unknown[]): void {
     for (let index = 0; index < params.length; index++) {
         const param = getQueryContext(query, params as any[]).getParam(index)
-        if (!param || !isKnownType(param.originalType, param.originalCustomType) || !isKnownType(param.requestedType, param.requestedCustomType) || typeof param.forceTypeCast !== 'boolean') {
-            throw new Error('The parameter ' + index + ' of the query has no type (original: ' + String(param?.originalType) + ' ' + String(param?.originalCustomType) + ', requested: ' + String(param?.requestedType) + ' ' + String(param?.requestedCustomType) + ', forceTypeCast: ' + String(param?.forceTypeCast) + '): ' + query)
+        if (!param || !isKnownType(param.originalType?.type, param.originalType?.customType) || !isKnownType(param.requestedType?.type, param.requestedType?.customType) || typeof param.forceTypeCast !== 'boolean') {
+            throw new Error('The parameter ' + index + ' of the query has no type (original: ' + String(param?.originalType?.type) + ' ' + String(param?.originalType?.customType) + ', requested: ' + String(param?.requestedType?.type) + ' ' + String(param?.requestedType?.customType) + ', forceTypeCast: ' + String(param?.forceTypeCast) + '): ' + query)
         }
     }
 }
@@ -82,8 +82,8 @@ function checkResultColumns(queryType: QueryType, query: string, params: unknown
     }
     for (const column of columns) {
         const valid = typeof column.name === 'string' && typeof column.path === 'string'
-            && isKnownType(column.originalType, column.originalCustomType, ['aggregatedArray'])
-            && isKnownType(column.requestedType, column.requestedCustomType, ['aggregatedArray'])
+            && isKnownType(column.originalType.type, column.originalType.customType, ['aggregatedArray'])
+            && isKnownType(column.requestedType.type, column.requestedType.customType, ['aggregatedArray'])
         if (!valid) {
             throw new Error('A result column of the query has no type (' + JSON.stringify(column) + '): ' + query)
         }

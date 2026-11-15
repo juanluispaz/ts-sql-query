@@ -25,7 +25,7 @@ class ZonedDateTimeAsTextTypeAdapter implements TypeAdapter {
     constructor(readonly zone: 'TZH:TZM' | ' TZR') {}
 
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.originalType === 'ZonedDateTime' && value !== null && value !== undefined) {
+        if (context.originalType.type === 'ZonedDateTime' && value !== null && value !== undefined) {
             if (typeof value === 'string') {
                 return value
             }
@@ -35,14 +35,14 @@ class ZonedDateTimeAsTextTypeAdapter implements TypeAdapter {
     }
 
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.originalType === 'ZonedDateTime') {
+        if (context.originalType.type === 'ZonedDateTime') {
             return value
         }
         return next.transformValueToDB(value, context)
     }
 
     transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        if (context.originalType === 'ZonedDateTime') {
+        if (context.originalType.type === 'ZonedDateTime') {
             // Reads an offset (2024-07-01T10:30:15.123+09:00) or a region (2024-07-01T07:45:00.5 Europe/Madrid)
             return "to_timestamp_tz(" + placeholder + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF TZR')"
         }
@@ -50,10 +50,10 @@ class ZonedDateTimeAsTextTypeAdapter implements TypeAdapter {
     }
 
     transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        if (context.originalType === 'ZonedDateTime') {
+        if (context.originalType.type === 'ZonedDateTime') {
             context.comparison = 'none'
         }
-        if (context.originalType === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
+        if (context.originalType.type === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
             return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9" + this.zone + "')"
         }
         return next.transformProjection(sql, context)

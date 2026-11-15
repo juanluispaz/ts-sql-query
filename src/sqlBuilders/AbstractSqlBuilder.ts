@@ -30,7 +30,7 @@ import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSyst
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __conversionsOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __conversionsOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 
@@ -464,9 +464,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const adapterContext = this._typeAdapterContextOf(context)
         if (context) {
             const index = context.params.length
-            adapterContext.prepareParam(context.queryContext.paramAt(index), index, forceTypeCast, typeClass.type, typeClass.customType, __typeAdapterOf(typeClass)?.sqlDataType)
+            adapterContext.prepareParam(context.queryContext.paramAt(index), index, forceTypeCast, typeClass, __typeAdapterOf(typeClass)?.sqlDataType)
         } else {
-            adapterContext.prepareParam(undefined, undefined, forceTypeCast, typeClass.type, typeClass.customType, __typeAdapterOf(typeClass)?.sqlDataType)
+            adapterContext.prepareParam(undefined, undefined, forceTypeCast, typeClass, __typeAdapterOf(typeClass)?.sqlDataType)
         }
         try {
             return __conversionsOf(typeClass).__transformValueToDB(value, adapterContext, this._defaultTypeAdapter)
@@ -524,7 +524,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _prepareTypeAdapterReadContext(value: AnyValueSource, output: ProjectionOutput | undefined): TypeAdapterContextImpl {
         const valueSourcePrivate = __getValueSourcePrivate(value)
         const result = this._typeAdapterReadContextOf()
-        result.prepareRead(valueSourcePrivate.__type, valueSourcePrivate.__customType, valueSourcePrivate.__typeAdapter?.sqlDataType, output ? this : undefined, value, output ?? 'resultColumn')
+        result.prepareRead(__classOf(valueSourcePrivate), valueSourcePrivate.__typeAdapter?.sqlDataType, output ? this : undefined, value, output ?? 'resultColumn')
         return result
     }
     _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
@@ -536,7 +536,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const paramContext = context.queryContext.paramAt(index)
         const adapterContext = this._typeAdapterContextOf(context)
         if (adapterContext.index !== index) {
-            adapterContext.prepareParam(paramContext, index, forceTypeCast, typeClass.type, typeClass.customType, __typeAdapterOf(typeClass)?.sqlDataType)
+            adapterContext.prepareParam(paramContext, index, forceTypeCast, typeClass, __typeAdapterOf(typeClass)?.sqlDataType)
         }
         if (context.assigningValueToColumn) {
             paramContext.isValueForColumn = true
@@ -557,7 +557,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _addOutParam(context: SqlBuildContext, name: string, value: AnyValueSource, output: ProjectionOutput | undefined): string {
         const paramContext = context.queryContext.paramAt(context.params.length)
         const valueSourcePrivate = __getValueSourcePrivate(value)
-        paramContext.setOriginalType(valueSourcePrivate.__type, valueSourcePrivate.__customType)
+        paramContext.setOriginalType(__unadaptedClassOf(__classOf(valueSourcePrivate)))
         // The SQL data type of the column; the requested one, the one its transformProjection requests
         paramContext.setOriginalSqlDataType(valueSourcePrivate.__typeAdapter?.sqlDataType)
         if (output) {
@@ -656,7 +656,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const adapterContext = this._typeAdapterContextOf(undefined)
         if (this._appendValueProjection(value, '', output) === '') {
             into.requestedType = into.originalType
-            into.requestedCustomType = into.originalCustomType
             into.requestedSqlDataType = adapterContext.requestedSqlDataType
         } else {
             adapterContext.copyRequestedTypeTo(into)
@@ -674,7 +673,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const adapterContext = this._typeAdapterContextOf(undefined)
         const valueSourcePrivate = __getValueSourcePrivate(value)
-        adapterContext.prepareProjection(valueSourcePrivate.__type, valueSourcePrivate.__customType, valueSourcePrivate.__typeAdapter?.sqlDataType, output, context?.queryContext)
+        adapterContext.prepareProjection(__classOf(valueSourcePrivate), valueSourcePrivate.__typeAdapter?.sqlDataType, output, context?.queryContext)
         return __conversionsOf(__classOf(valueSourcePrivate)).__transformProjection(sql, adapterContext, this._defaultTypeAdapter)
     }
     /**
@@ -4018,7 +4017,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _asNullValue(context: SqlBuildContext, typeClass: DataTypeClass): string {
         // The literal null is not a parameter
         const adapterContext = this._typeAdapterContextOf(context)
-        adapterContext.prepareParam(undefined, undefined, false, typeClass.type, typeClass.customType, __typeAdapterOf(typeClass)?.sqlDataType)
+        adapterContext.prepareParam(undefined, undefined, false, typeClass, __typeAdapterOf(typeClass)?.sqlDataType)
         adapterContext.valueSentToDB = null
         let result
         result = __conversionsOf(typeClass).__transformPlaceholder('null', adapterContext, this._defaultTypeAdapter)

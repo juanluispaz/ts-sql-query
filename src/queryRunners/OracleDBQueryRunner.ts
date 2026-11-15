@@ -114,7 +114,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         let names: Set<string> | undefined
         if (columns) {
             for (const column of columns) {
-                if (!__isExactDecimal(column.requestedType, column.requestedCustomType) && !__isBigint(column.requestedType, column.requestedCustomType)) {
+                if (!__isExactDecimal(column.requestedType.type, column.requestedType.customType) && !__isBigint(column.requestedType.type, column.requestedType.customType)) {
                     continue
                 }
                 if (column.name) {
@@ -193,8 +193,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         for (let i = 0, length = params.length; i < length; i++) {
             const value = params[i]
             const param = existingParamContextOf(params, i)
-            const typeName = param?.requestedType
-            const customType = param?.requestedCustomType
+            const typeName = param?.requestedType?.type
+            const customType = param?.requestedType?.customType
             const declaredBind = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
             const declared = isOracleDBBindType(declaredBind) ? declaredBind.type : declaredBind
             if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
@@ -495,5 +495,5 @@ function oracleFetchTypeHandler(metadata: Metadata<any>): FetchTypeResponse {
 /** Whether the SQL data type requested for the parameter is a JSON document that describes its value */
 function isJsonSqlDataTypeOf(param: QueryParamContext | undefined): boolean {
     const sqlDataType = param?.requestedSqlDataType
-    return sqlDataType !== undefined && sqlDataType.family === 'document' && sqlDataType.format === 'json' && __isSqlDataTypeOf(sqlDataType, param!.requestedType, param!.requestedCustomType)
+    return sqlDataType !== undefined && sqlDataType.family === 'document' && sqlDataType.format === 'json' && __isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)
 }

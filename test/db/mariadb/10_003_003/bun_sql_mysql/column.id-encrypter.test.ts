@@ -26,7 +26,7 @@ const dec = (id: string) => encrypter.decrypt(id)
 
 class EncryptedIdConnection extends DBConnection {
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        if (context.originalType === 'encryptedID') {
+        if (context.originalType.type === 'encryptedID') {
             context.setRequestedType('bigint')
             const id = super.transformValueFromDB(value, context)
             if (typeof id === 'bigint') {
@@ -39,7 +39,7 @@ class EncryptedIdConnection extends DBConnection {
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if (context.originalType === 'encryptedID') {
+        if (context.originalType.type === 'encryptedID') {
             if (value === null || value === undefined) {
                 return null
             } else if (typeof value === 'string') {

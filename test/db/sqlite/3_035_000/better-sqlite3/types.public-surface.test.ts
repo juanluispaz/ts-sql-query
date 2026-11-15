@@ -16,7 +16,7 @@ import { sync } from '../../../../../src/extras/sync.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../../../../../src/connections/SqliteConfiguration.js'
 import { Table } from '../../../../../src/Table.js'
 import { QueryExecutionSource, TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason, type TsSqlInternalErrorReason } from '../../../../../src/TsSqlError.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, type CustomType, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, type DataTypeClass, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 import { getQueryContext } from '../../../../../src/QueryContext.js'
 import type { ConnectionConfiguration } from '../../../../../src/queryRunners/QueryRunner.js'
 import { Values, type OpaqueValues } from '../../../../../src/Values.js'
@@ -46,19 +46,19 @@ interface Model {
 class RecordingAdapter implements DefaultTypeAdapter {
     calls: string[] = []
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        this.calls.push(JSON.stringify(['from', value, context.requestedType]))
+        this.calls.push(JSON.stringify(['from', value, context.requestedType.type]))
         return 'from-result'
     }
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        this.calls.push(JSON.stringify(['to', value, context.requestedType]))
+        this.calls.push(JSON.stringify(['to', value, context.requestedType.type]))
         return 'to-result'
     }
     transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string {
-        this.calls.push(JSON.stringify(['placeholder', placeholder, context.requestedType, context.valueSentToDB]))
+        this.calls.push(JSON.stringify(['placeholder', placeholder, context.requestedType.type, context.valueSentToDB]))
         return 'placeholder-result'
     }
     transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        this.calls.push(JSON.stringify(['projection', sql, context.requestedType, context.output]))
+        this.calls.push(JSON.stringify(['projection', sql, context.requestedType.type, context.output]))
         return sql
     }
 }
@@ -66,39 +66,28 @@ class RecordingAdapter implements DefaultTypeAdapter {
 // The configuration of a connection, for the context a type adapter receives
 const configuration: ConnectionConfiguration = { allowEmptyString: false, compatibilityVersion: 0, escape: (identifier: string) => identifier, sqlDataTypeFrom: (nativeName: string) => ({ family: 'user-defined', name: nativeName }), nativeSqlDataTypeOf: () => undefined }
 
-// The custom types, the first argument of a custom column
-function isCustomType(type: string): type is CustomType {
-    return ['customInt', 'customBigint', 'customDouble', 'customDecimal', 'customUuid', 'customLocalDate', 'customLocalTime', 'customLocalDateTime', 'enum', 'custom', 'customComparable'].includes(type)
+// The class of each built-in type, by its name
+const builtInTypes = {
+    boolean: root.BooleanType, int: root.IntType, bigint: root.BigintType, double: root.DoubleType, stringDecimal: root.StringDecimalType,
+    string: root.StringType, uuid: root.UuidType, localDate: root.LocalDateType, localTime: root.LocalTimeType, localDateTime: root.LocalDateTimeType,
 }
 
 // The context a type adapter receives in transformValueFromDB and transformValueToDB, as the library gives it, for a
 // value of a built-in type
 class AdapterContext implements TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext {
     readonly connectionConfiguration = configuration
-    readonly originalType: string
-    readonly originalCustomType = undefined
-    requestedType: string
-    requestedCustomType: CustomType | undefined = undefined
+    readonly originalType: DataTypeClass
+    requestedType: DataTypeClass
     forceTypeCast = false
-    constructor(type: string) {
-        this.originalType = type
-        this.requestedType = type
+    constructor(type: keyof typeof builtInTypes) {
+        this.originalType = builtInTypes[type]
+        this.requestedType = this.originalType
     }
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: { readonly type: string, readonly customType: CustomType | undefined }): void
-    setRequestedType(typeOrCustomType: string | { readonly type: string, readonly customType: CustomType | undefined }, type?: string): void {
-        if (typeof typeOrCustomType !== 'string') {
-            this.requestedType = typeOrCustomType.type
-            this.requestedCustomType = typeOrCustomType.customType
-            return
-        }
-        this.requestedType = type ?? typeOrCustomType
-        this.requestedCustomType = type !== undefined && isCustomType(typeOrCustomType) ? typeOrCustomType : undefined
+    setRequestedType(type: keyof typeof builtInTypes | DataTypeClass): void {
+        this.requestedType = typeof type === 'string' ? builtInTypes[type] : type
     }
     resetRequestedType(): void {
         this.requestedType = this.originalType
-        this.requestedCustomType = this.originalCustomType
     }
     readonly originalSqlDataType: SqlDataType | undefined = undefined
     requestedSqlDataType: SqlDataType | undefined = undefined

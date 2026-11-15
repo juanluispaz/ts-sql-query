@@ -33,7 +33,7 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * column of the result keeps every digit of a decimal(38): 38 digits, the sign and the point
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        if (context.output === 'resultColumn' && __isExactDecimal(context.requestedType, context.requestedCustomType)) {
+        if (context.output === 'resultColumn' && __isExactDecimal(context.requestedType.type, context.requestedType.customType)) {
             // The text of a decimal orders as a text, not as the number; two equal decimals of a column give the same
             // text, but of two columns of different scales (in the arms of a compound query) not, 1.5 and 1.50
             context.comparison = 'columnEquality'

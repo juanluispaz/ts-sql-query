@@ -22,7 +22,7 @@ type ZonedDateTime = string
 
 const zonedDateTimeAsText: TypeAdapter = {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.originalType === 'ZonedDateTime' && value !== null && value !== undefined) {
+        if (context.originalType.type === 'ZonedDateTime' && value !== null && value !== undefined) {
             if (typeof value === 'string') {
                 return value
             }
@@ -31,22 +31,22 @@ const zonedDateTimeAsText: TypeAdapter = {
         return next.transformValueFromDB(value, context)
     },
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.originalType === 'ZonedDateTime') {
+        if (context.originalType.type === 'ZonedDateTime') {
             return value
         }
         return next.transformValueToDB(value, context)
     },
     transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        if (context.originalType === 'ZonedDateTime') {
+        if (context.originalType.type === 'ZonedDateTime') {
             return 'cast(' + placeholder + ' as datetimeoffset)'
         }
         return next.transformPlaceholder(placeholder, context)
     },
     transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        if (context.originalType === 'ZonedDateTime') {
+        if (context.originalType.type === 'ZonedDateTime') {
             context.comparison = 'none'
         }
-        if (context.originalType === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
+        if (context.originalType.type === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
             return 'convert(nvarchar(40), ' + sql + ', 126)'
         }
         return next.transformProjection(sql, context)

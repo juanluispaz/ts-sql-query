@@ -63,14 +63,14 @@ export function mySqlMariaDBDriverParams(params: any[]): any[] {
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
         const param = existingParamContextOf(params, i)
-        const type = param?.requestedType
+        const type = param?.requestedType?.type
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = mySqlMariaDBParamValue(value, type, param?.requestedCustomType)
+        result[i] = mySqlMariaDBParamValue(value, type, param?.requestedType?.customType)
     }
     return result ?? params
 }

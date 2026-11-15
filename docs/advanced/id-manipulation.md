@@ -33,7 +33,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        if (context.requestedType === 'encryptedID') {
+        if (context.requestedType.type === 'encryptedID') {
             // The database gives a bigint
             context.setRequestedType('bigint');
             const id = super.transformValueFromDB(value, context);
@@ -47,7 +47,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         return super.transformValueFromDB(value, context);
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if (context.requestedType === 'encryptedID') {
+        if (context.requestedType.type === 'encryptedID') {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
                 return null;
@@ -137,8 +137,8 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        if (context.requestedType.startsWith('ID_')) {
-            const prefix = context.requestedType.substring(3) // 'ID_'.length
+        if (context.requestedType.type.startsWith('ID_')) {
+            const prefix = context.requestedType.type.substring(3) // 'ID_'.length
             // The database gives a bigint
             context.setRequestedType('bigint');
             const id = super.transformValueFromDB(value, context);
@@ -152,12 +152,12 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         return super.transformValueFromDB(value, context);
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if (context.requestedType.startsWith('ID_')) {
+        if (context.requestedType.type.startsWith('ID_')) {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
                 return null;
             } else if (typeof value === 'string') {
-                const prefix = context.requestedType.substring(3) // 'ID_'.length
+                const prefix = context.requestedType.type.substring(3) // 'ID_'.length
                 const id = this.encrypter.decrypt(value, prefix);
                 // Sent to the database as a bigint
                 context.setRequestedType('bigint');

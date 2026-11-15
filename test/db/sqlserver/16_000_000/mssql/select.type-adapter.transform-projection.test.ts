@@ -174,14 +174,14 @@ const tPriceDelegating = new class TPriceDelegating extends Table<DBConnection, 
 // Every ReleaseDay of the connection, without a type adapter, given as the text DD/MM/YYYY and read back as the day
 class DayAsTextConnection extends DBConnection {
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        if (context.originalType === 'ReleaseDay' && context.output === 'resultColumn') {
+        if (context.originalType.type === 'ReleaseDay' && context.output === 'resultColumn') {
             context.comparison = 'equality'
             return 'convert(varchar(10), ' + sql + ', 103)'
         }
         return super.transformProjection(sql, context)
     }
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        const parts = context.originalType === 'ReleaseDay' && typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
+        const parts = context.originalType.type === 'ReleaseDay' && typeof value === 'string' ? /^(\d\d)\/(\d\d)\/(\d{4})$/.exec(value) : null
         if (parts) {
             return super.transformValueFromDB(parts[3] + '-' + parts[2] + '-' + parts[1], context)
         }

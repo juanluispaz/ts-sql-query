@@ -72,7 +72,7 @@ describe(ctx.label, () => {
           ]
         `)
         const params = ctx.lastParams
-        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType, getQueryContext(ctx.lastSql, params).getParam(index)?.originalCustomType])).toEqual([
+        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.customType])).toEqual([
             ['stringDecimal', undefined],
             ['stringDecimal', undefined],
             ['stringDecimal', undefined],

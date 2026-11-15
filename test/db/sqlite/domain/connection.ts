@@ -99,13 +99,13 @@ export type Money = number & { readonly __brand: 'Money' }
 const scaledByTypeName: TypeAdapter = {
     transformValueFromDB(value, context, next) {
         const v = next.transformValueFromDB(value, context)
-        if ((context.originalType === 'Cents' || context.originalType === 'Money' || context.originalType === 'ReleaseTag') && typeof v === 'number') {
+        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money' || context.originalType.type === 'ReleaseTag') && typeof v === 'number') {
             return v / 100
         }
         return v
     },
     transformValueToDB(value, context, next) {
-        if ((context.originalType === 'Cents' || context.originalType === 'Money' || context.originalType === 'ReleaseTag') && typeof value === 'number') {
+        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money' || context.originalType.type === 'ReleaseTag') && typeof value === 'number') {
             return next.transformValueToDB(value * 100, context)
         }
         return next.transformValueToDB(value, context)
@@ -176,7 +176,7 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
         }
     }
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        const baseType = DBConnection.baseTypeForCustom(context.requestedType)
+        const baseType = DBConnection.baseTypeForCustom(context.requestedType.type)
         if (baseType) {
             context.setRequestedType(baseType)
         }

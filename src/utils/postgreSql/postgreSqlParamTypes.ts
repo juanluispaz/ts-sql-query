@@ -51,11 +51,11 @@ const paramTypeOfSqlDataTypeKey: unique symbol = Symbol('postgreSqlParamTypeOfSq
 export function postgreSqlParamTypeOfSqlDataType(params: any[], index: number): PostgreSqlParamType | undefined {
     const param = existingParamContextOf(params, index)
     const sqlDataType = param?.requestedSqlDataType
-    if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType, param!.requestedCustomType)) {
+    if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)) {
         return undefined
     }
     // A localTime has no zone: a cast to a time with time zone would complete it with the zone of the session
-    if (__isLocalTime(param!.requestedType, param!.requestedCustomType) && sqlDataType.family === 'datetime' && sqlDataType.timeZone !== undefined && sqlDataType.timeZone !== 'none') {
+    if (__isLocalTime(param!.requestedType?.type, param!.requestedType?.customType) && sqlDataType.family === 'datetime' && sqlDataType.timeZone !== undefined && sqlDataType.timeZone !== 'none') {
         return undefined
     }
     const configuration = existingQueryContextOf(params)?.connectionConfiguration
@@ -213,14 +213,14 @@ export function postgreSqlDriverParams(params: any[]): any[] {
     for (let i = 0, length = params.length; i < length; i++) {
         const value = params[i]
         const param = existingParamContextOf(params, i)
-        const type = param?.requestedType
+        const type = param?.requestedType?.type
         if (!(value instanceof Date) || type === undefined) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = postgreSqlParamValue(value, type, param?.requestedCustomType, isPostgreSqlZonedParam(params, i))
+        result[i] = postgreSqlParamValue(value, type, param?.requestedType?.customType, isPostgreSqlZonedParam(params, i))
     }
     return result ?? params
 }

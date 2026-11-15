@@ -211,11 +211,11 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        const customType = context.requestedCustomType
+        const customType = context.requestedType.customType
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueFromDB(value, context)
         }
-        if (__isLocalDate(context.requestedType, customType)) {
+        if (__isLocalDate(context.requestedType.type, customType)) {
             if (typeof value === 'string') {
                 const valueAsNumber = +value
                 if (!isNaN(valueAsNumber)) {
@@ -228,7 +228,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
             } else if (typeof value === 'string') {
                 if (isDateTimeTextOutOfCalendar(value)) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (out of the calendar)`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDate value received from the db: ${value} (out of the calendar)`)
                 }
                 if (containsTimezone(value)) {
                     result = utcDateOnly(new Date(value))
@@ -293,17 +293,17 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 }
                 result.setUTCHours(0, 0, 0, 0)
             } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (type ${typeof value})`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDate value received from the db: ${value} (type ${typeof value})`)
             }
             if (isNaN(result.getTime())) {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
             }
             (result as any).___type___ = 'localDate'
             // date-stability offset (see the note on AbstractConnection's 'localDate' decode)
             result.setUTCMinutes(600)
             return result
         }
-        if (__isLocalTime(context.requestedType, customType)) {
+        if (__isLocalTime(context.requestedType.type, customType)) {
             if (typeof value === 'string') {
                 const valueAsNumber = +value
                 if (!isNaN(valueAsNumber)) {
@@ -316,7 +316,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 result = new Date(value.getTime())
             } else if (typeof value === 'string') {
                 if (isDateTimeTextOutOfCalendar(value)) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (out of the calendar)`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localTime value received from the db: ${value} (out of the calendar)`)
                 }
                 if (containsTimezone(value)) {
                     if (containsDate(value)) {
@@ -394,16 +394,16 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                     }
                 }
             } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (type ${typeof value})`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localTime value received from the db: ${value} (type ${typeof value})`)
             }
             if (isNaN(result.getTime())) {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value received from the db: ${value} (.getTime() returns NaN)`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localTime value received from the db: ${value} (.getTime() returns NaN)`)
             }
             (result as any).___type___ = 'localTime'
             result.setFullYear(1970, 0, 1)
             return result
         }
-        if (__isLocalDateTime(context.requestedType, customType)) {
+        if (__isLocalDateTime(context.requestedType.type, customType)) {
             if (typeof value === 'string') {
                 const valueAsNumber = +value
                 if (!isNaN(valueAsNumber)) {
@@ -416,7 +416,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 result = value
             } else if (typeof value === 'string') {
                 if (isDateTimeTextOutOfCalendar(value)) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (out of the calendar)`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDateTime value received from the db: ${value} (out of the calendar)`)
                 }
                 if (containsTimezone(value)) {
                     result = new Date(value)
@@ -470,10 +470,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                     }
                 }
             } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (type ${typeof value})`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDateTime value received from the db: ${value} (type ${typeof value})`)
             }
             if (isNaN(result.getTime())) {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
             }
             (result as any).___type___ = 'localDateTime'
             return result
@@ -481,11 +481,11 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const customType = context.requestedCustomType
+        const customType = context.requestedType.customType
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueToDB(value, context)
         }
-        if (__isLocalDate(context.requestedType, customType)) {
+        if (__isLocalDate(context.requestedType.type, customType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 const dateTimeFormat = this.getDateTimeFormat('date')
                 switch (dateTimeFormat) {
@@ -512,9 +512,9 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                 }
             }
-            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
         }
-        if (__isLocalTime(context.requestedType, customType)) {
+        if (__isLocalTime(context.requestedType.type, customType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 const dateTimeFormat = this.getDateTimeFormat('time')
                 switch (dateTimeFormat) {
@@ -546,9 +546,9 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                 }
             }
-            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, `Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
         }
-        if (__isLocalDateTime(context.requestedType, customType)) {
+        if (__isLocalDateTime(context.requestedType.type, customType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 const dateTimeFormat = this.getDateTimeFormat('dateTime')
                 switch (dateTimeFormat) {
@@ -598,7 +598,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                 }
             }
-            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType }, `Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
         }
         return super.transformValueToDB(value, context)
     }

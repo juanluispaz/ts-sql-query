@@ -10,7 +10,7 @@ import { ctx } from './setup.js'
 
 function paramTypes(): Array<[string | undefined, string | undefined]> {
     const params = ctx.lastParams
-    return params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType, getQueryContext(ctx.lastSql, params).getParam(index)?.originalCustomType])
+    return params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.customType])
 }
 
 describe(ctx.label, () => {

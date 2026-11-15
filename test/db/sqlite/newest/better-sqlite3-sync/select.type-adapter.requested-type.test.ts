@@ -45,8 +45,8 @@ const dayMonthYear: TypeAdapter = {
         return next.transformValueToDB(value, context)
     },
     transformPlaceholder(placeholder, context, next) {
-        seenByThePlaceholder.push([context.originalType, context.originalCustomType, context.requestedType, context.requestedCustomType])
-        if (context.requestedType === 'string') {
+        seenByThePlaceholder.push([context.originalType.type, context.originalType.customType, context.requestedType.type, context.requestedType.customType])
+        if (context.requestedType.type === 'string') {
             return dateOfDayMonthYearText(placeholder)
         }
         return next.transformPlaceholder(placeholder, context)
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
         // The placeholder and the query runner see both types of the parameter
         expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'customLocalDate', 'string', undefined]])
         const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
-        expect([param?.originalType, param?.originalCustomType, param?.requestedType, param?.requestedCustomType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])
+        expect([param?.originalType?.type, param?.originalType?.customType, param?.requestedType?.type, param?.requestedType?.customType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])
     })
 
     test('requested-type/a-type-requested-by-its-class', async () => {
@@ -137,7 +137,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1 }])
         expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'customLocalDate', 'string', undefined]])
         const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
-        expect([param?.originalType, param?.originalCustomType, param?.requestedType, param?.requestedCustomType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])
+        expect([param?.originalType?.type, param?.originalType?.customType, param?.requestedType?.type, param?.requestedType?.customType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])
     })
 
     test('requested-type/a-value-sent-as-the-type-the-adapter-requests-where-the-database-receives-its-type', async () => {

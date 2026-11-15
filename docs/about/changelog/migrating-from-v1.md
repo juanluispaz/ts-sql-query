@@ -189,7 +189,7 @@ See [grouping by every non-aggregated column](../../queries/aggregate-and-group-
 
 ### Type adapters and the transforms of the connection
 
-`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive what they transform and a context: in a type adapter before `next`, `transformValueToDB(value, context, next)`, and in the connection at the end, `transformValueToDB(value, context)`. The type of the value is no longer an argument: it is in the context, as the original type, declared in the library, which never changes (`originalType`, `originalCustomType`), and the type requested for the value (`requestedType`, `requestedCustomType`), by default the original one, by which the next type adapter and the conversion of the library decide. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: read the type from the context and pass the context on to `next` or `super`. When your rule changes the type, request the new one with `setRequestedType` before calling `next` or `super`: in `transformValueToDB` it is also the type the parameter is sent with (see [The original and the requested type](../../advanced/type-adapters.md#the-original-and-the-requested-type)):
+`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive what they transform and a context: in a type adapter before `next`, `transformValueToDB(value, context, next)`, and in the connection at the end, `transformValueToDB(value, context)`. The type of the value is no longer an argument: it is in the context, as the original type, declared in the library, which never changes (`originalType`), and the type requested for the value (`requestedType`), by default the original one, by which the next type adapter and the conversion of the library decide. Both are the class of the type, not its name: where v1 compared `type === 'MyIntTypeName'`, compare the name of the type, `context.requestedType.type === 'MyIntTypeName'`, or the class itself, `context.requestedType === MyIntType` for a column declared with `MyIntType = CustomIntType.of<MyInt, 'MyIntTypeName'>('MyIntTypeName')`; a comparison of the class with a text doesn't compile. Which custom type it is, is `context.requestedType.customType`. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: read the type from the context and pass the context on to `next` or `super`. When your rule changes the type, request the new one with `setRequestedType` before calling `next` or `super`, a built-in type by its name, like `setRequestedType('int')`, and a custom one by its class, like `setRequestedType(MyIntType)`: in `transformValueToDB` it is also the type the parameter is sent with (see [The original and the requested type](../../advanced/type-adapters.md#the-original-and-the-requested-type)):
 
 In v1:
 
@@ -208,7 +208,7 @@ In v2:
 import type { TypeAdapterValueToDBContext } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if (context.originalType === 'MyIntTypeName') {
+        if (context.originalType.type === 'MyIntTypeName') {
             context.setRequestedType('int')
             return super.transformValueToDB(value, context);
         }

@@ -25,11 +25,11 @@ const toDBCalls:   Array<{ type: string }> = []
 
 const loggingAdapter: TypeAdapter = {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        fromDBCalls.push({ type: context.requestedType })
+        fromDBCalls.push({ type: context.requestedType.type })
         return next.transformValueFromDB(value, context)
     },
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        toDBCalls.push({ type: context.requestedType })
+        toDBCalls.push({ type: context.requestedType.type })
         return next.transformValueToDB(value, context)
     },
 }

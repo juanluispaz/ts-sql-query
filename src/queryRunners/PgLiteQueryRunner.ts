@@ -72,13 +72,13 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         let paramTypes: number[] | undefined = undefined
         for (let i = 0, length = params.length; i < length; i++) {
             const param = existingParamContextOf(params, i)
-            const type = param?.requestedType
+            const type = param?.requestedType?.type
             // A value of a database outside UTC goes as a timestamptz, whatever type is declared for it
             const zoned = isPostgreSqlZonedParam(params, i)
             let oid = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             if (oid === undefined && (param?.forceTypeCast || zoned)) {
                 // The oid of its SQL data type, when it has a fixed one, or the one of its type
-                oid = (zoned ? undefined : postgreSqlParamTypeOfSqlDataType(params, i)?.oid) ?? postgreSqlParamType(type, param?.requestedCustomType, params[i], zoned)?.oid
+                oid = (zoned ? undefined : postgreSqlParamTypeOfSqlDataType(params, i)?.oid) ?? postgreSqlParamType(type, param?.requestedType?.customType, params[i], zoned)?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {

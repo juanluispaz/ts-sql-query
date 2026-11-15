@@ -179,31 +179,31 @@ type ZonedDateTime = string
 
 class ZonedDateTimeTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.requestedType === 'ZonedDateTime') {
+        if (context.requestedType.type === 'ZonedDateTime') {
             return value // the text, or null
         }
         return next.transformValueFromDB(value, context)
     }
 
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.requestedType === 'ZonedDateTime') {
+        if (context.requestedType.type === 'ZonedDateTime') {
             return value
         }
         return next.transformValueToDB(value, context)
     }
 
     transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        if (context.requestedType === 'ZonedDateTime') {
+        if (context.requestedType.type === 'ZonedDateTime') {
             return "to_timestamp_tz(" + placeholder + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF TZR')"
         }
         return next.transformPlaceholder(placeholder, context)
     }
 
     transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        if (context.requestedType === 'ZonedDateTime') {
+        if (context.requestedType.type === 'ZonedDateTime') {
             context.comparison = 'none'
         }
-        if (context.requestedType === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
+        if (context.requestedType.type === 'ZonedDateTime' && (context.output === 'resultColumn' || context.output === 'aggregatedArrayValue')) {
             return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM')"
         }
         return next.transformProjection(sql, context)

@@ -5,6 +5,8 @@
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { queryContextOf, queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
+import { CustomDoubleType, IntType, StringType } from '../../../src/exports/v2/index.js'
+import type { DataTypeClass } from '../../../src/TypeAdapter.js'
 import {
     getFunctionExecutingQuery, getQueryExecutionMetadata, getQueryExecutionName, getQueryExecutionStack, isSelectPageCountQuery,
 } from '../../../src/exports/v1/queryRunners/QueryRunner.js'
@@ -47,20 +49,19 @@ describe('QueryRunner functions', () => {
 
     test('param-types', () => {
         const params: any[] = [1, 'a', null]
-        const setType = (index: number, type: string, customType: 'customDouble' | undefined, forceTypeCast: boolean) => {
+        const setType = (index: number, type: DataTypeClass, forceTypeCast: boolean) => {
             const param = queryParamContextOf(params, index)
-            param.setOriginalType(type, customType)
+            param.setOriginalType(type)
             param.forceTypeCast = forceTypeCast
         }
-        setType(0, 'int', undefined, true)
-        setType(2, 'Money', 'customDouble', false)
+        setType(0, IntType, true)
+        setType(2, CustomDoubleType.of<number, 'Money'>('Money'), false)
         // A type adapter requested to send the third one as a text
-        queryParamContextOf(params, 2).requestedType = 'string'
-        queryParamContextOf(params, 2).requestedCustomType = undefined
+        queryParamContextOf(params, 2).requestedType = StringType
         const context = getQueryContext('q', params)
         expect([0, 1, 2].map(index => {
             const param = context.getParam(index)
-            return [param?.originalType, param?.originalCustomType, param?.requestedType, param?.requestedCustomType, param?.forceTypeCast, param?.isValueForColumn]
+            return [param?.originalType?.type, param?.originalType?.customType, param?.requestedType?.type, param?.requestedType?.customType, param?.forceTypeCast, param?.isValueForColumn]
         })).toEqual([
             ['int', undefined, 'int', undefined, true, false],
             [undefined, undefined, undefined, undefined, undefined, undefined],
@@ -75,7 +76,7 @@ describe('QueryRunner functions', () => {
         queryParamContextOf(params, 1).setMetadata(mark, 'kept')
         const context = getQueryContext('q', params)
         expect([context.getParam(0)?.getMetadata(mark), context.getParam(1)?.getMetadata(mark)]).toEqual([undefined, 'kept'])
-        expect(context.getParam(1)?.originalType).toBeUndefined()
+        expect(context.getParam(1)?.originalType?.type).toBeUndefined()
         expect(Object.keys(params)).toEqual(['0', '1'])
         expect(JSON.stringify(params)).toBe('[1,2]')
         expect([...params]).toEqual([1, 2])
@@ -99,8 +100,8 @@ describe('QueryRunner functions', () => {
 
     test('result-columns', () => {
         const params: any[] = []
-        queryContextOf(params).resultColumns = [{ name: 'id', path: 'id', originalType: 'int', originalCustomType: undefined, requestedType: 'int', requestedCustomType: undefined }]
-        expect(getQueryContext('q', params).getResultColumn('id')).toEqual({ name: 'id', path: 'id', originalType: 'int', originalCustomType: undefined, requestedType: 'int', requestedCustomType: undefined })
+        queryContextOf(params).resultColumns = [{ name: 'id', path: 'id', originalType: IntType, requestedType: IntType }]
+        expect(getQueryContext('q', params).getResultColumn('id')).toEqual({ name: 'id', path: 'id', originalType: IntType, requestedType: IntType })
         expect(getQueryContext('q', params).getResultColumn('name')).toBeUndefined()
     })
 

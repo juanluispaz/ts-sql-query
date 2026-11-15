@@ -972,8 +972,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
     /** Converts a value received from the database as the requested type */
     protected transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        const type = context.requestedType
-        const customType = context.requestedCustomType
+        const type = context.requestedType.type
+        const customType = context.requestedType.customType
         if (value === undefined) {
             return null
         }
@@ -1208,8 +1208,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
     /** Converts a value to send to the database as the requested type */
     protected transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const type = context.requestedType
-        const customType = context.requestedCustomType
+        const type = context.requestedType.type
+        const customType = context.requestedType.customType
         if (value === undefined) {
             return null
         }

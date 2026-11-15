@@ -33,7 +33,7 @@ function isRgbColor(value: any): value is RgbColor {
 
 class RgbColorTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.requestedType === 'RgbColor' && value) {
+        if (context.requestedType.type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return {r: value[0], g: value[1], b: value[2]};
             }
@@ -43,7 +43,7 @@ class RgbColorTypeAdapter implements TypeAdapter {
     }
 
     transformValueToDB(value: RgbColor, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        if (context.requestedType === 'RgbColor' && value) {
+        if (context.requestedType.type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
@@ -55,7 +55,7 @@ class RgbColorTypeAdapter implements TypeAdapter {
     // Optional
     transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
         // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
-        if (context.requestedType === 'RgbColor') {
+        if (context.requestedType.type === 'RgbColor') {
             return placeholder + '::bytea'
         }
         return next.transformPlaceholder(placeholder, context)
@@ -74,7 +74,7 @@ this.column('ColumnName', RgbColorType, new RgbColorTypeAdapter())
 !!! important
 
     - The type adapter receives every value sent to or coming from the database, also `null` and `undefined`, so it has to handle them.
-    - `context.requestedType` says the type requested for the value: process the value only if it's the one your rule applies to.
+    - `context.requestedType` is the class of the type requested for the value, and `context.requestedType.type` its name: process the value only if it's the one your rule applies to (see [The original and the requested type](#the-original-and-the-requested-type)).
     - `next` is the default implementation: call it for what your rule doesn't handle.
     - An error thrown here arrives through the promise of the query, as it is.
 
@@ -119,7 +119,7 @@ function isRgbColor(value: any): value is RgbColor {
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext) {
-        if (context.requestedType === 'RgbColor' && value) {
+        if (context.requestedType.type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return { r: value[0], g: value[1], b: value[2] };
             }
@@ -128,7 +128,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         return super.transformValueFromDB(value, context);
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext) {
-        if (context.requestedType === 'RgbColor' && value) {
+        if (context.requestedType.type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
             }
@@ -138,7 +138,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     }   
     protected override transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string {
         // You can write a type cast in the query if you want. With this code, the parameter in the SQL will look like $1::bytea
-        if (context.requestedType === 'RgbColor') {
+        if (context.requestedType.type === 'RgbColor') {
             return placeholder + '::bytea'
         }
         return super.transformPlaceholder(placeholder, context)
@@ -159,7 +159,7 @@ import type { TypeAdapterProjectionContext } from "ts-sql-query"
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        if (context.requestedType === 'Birthday' && context.output === 'resultColumn') {
+        if (context.requestedType.type === 'Birthday' && context.output === 'resultColumn') {
             context.comparison = 'equality'
             context.setRequestedType('string')
             return "to_char(" + sql + ", 'DD/MM/YYYY')"
@@ -187,13 +187,13 @@ For example, a `customDouble` kept as text, so that no digit is lost: it's read 
 import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query"
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext) {
-        if (context.requestedType === 'ExactDecimal' && value !== null && value !== undefined) {
+        if (context.requestedType.type === 'ExactDecimal' && value !== null && value !== undefined) {
             return String(value);
         }
         return super.transformValueFromDB(value, context);
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext) {
-        if (context.requestedType === 'ExactDecimal') {
+        if (context.requestedType.type === 'ExactDecimal') {
             return value;
         }
         return super.transformValueToDB(value, context);
@@ -247,12 +247,14 @@ async function main() {
 
 A value has two types in the context, so that what was declared and what is sent or read never get confused:
 
-- The **original type**, `originalType` and `originalCustomType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
-- The **requested type**, `requestedType` and `requestedCustomType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
+- The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
+- The **requested type**, `requestedType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
-`originalType` and `requestedType` are the name of the type, like `'int'` or `'ReleaseDay'`; `originalCustomType` and `requestedCustomType` say which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), and are `undefined` for a built-in type.
+`originalType` and `requestedType` are the class of the type: `IntType` for `const(1, 'int')`, `ReleaseDayType` for the column above. The class has the name of the type in `type`, like `'int'` or `'ReleaseDay'`, and in `customType` which custom type it is, the family of the class (`'customLocalDate'` for a `CustomLocalDateType`), `undefined` for a built-in type.
 
-`setRequestedType` takes a type as a column does, by its class, like `setRequestedType(StringType)` or `setRequestedType(ReleaseDayType)`, or by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
+Compare the requested type with the class, `context.requestedType === ReleaseDayType`, or its name with `type`, `context.requestedType.type === 'ReleaseDay'`. `of` gives the same class each time it's called with the same name, so both say the same. A comparison of the type with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile: the type is a class, not its name.
+
+`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`.
 
 What the requested type is in each transformation:
 
@@ -282,7 +284,7 @@ const dayMonthYear: TypeAdapter = {
         return next.transformValueToDB(value, context)
     },
     transformPlaceholder(placeholder, context, next) {
-        if (context.requestedType === 'string') {
+        if (context.requestedType.type === 'string') {
             return 'to_date(' + placeholder + ", 'DD/MM/YYYY')"
         }
         return next.transformPlaceholder(placeholder, context)

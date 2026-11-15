@@ -1,5 +1,5 @@
 import type { TsSqlErrorReason } from "../TsSqlError.js"
-import type { CustomType, SqlDataType } from '../TypeAdapter.js'
+import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 
 /**
  * What a connection uses to reach the database: it executes the SQL the connection writes, through a driver, and gives
@@ -243,14 +243,10 @@ export interface QueryResultColumn {
     readonly name: string
     /** The property path in the result object (`customer.name`), `result` for a single value, '' without one */
     readonly path: string
-    /** The name of the original type (`int`, `Money`, `aggregatedArray`, …) */
-    readonly originalType: string
-    /** Which custom type the original type is, like `'customInt'`; undefined for a built-in type and an aggregated array */
-    readonly originalCustomType: CustomType | undefined
-    /** The name of the type of the value the database returns for the column */
-    readonly requestedType: string
-    /** Which custom type the requested type is; undefined for a built-in type */
-    readonly requestedCustomType: CustomType | undefined
+    /** The original type, its class (`IntType`, the class of a custom type, the one of an aggregated array) */
+    readonly originalType: DataTypeClass
+    /** The type of the value the database returns for the column, its class */
+    readonly requestedType: DataTypeClass
     /** The type of the column in the database, the one its type adapter says (`withSqlDataType`), or undefined */
     readonly originalSqlDataType?: SqlDataType | undefined
     /** The type in the database of the value the database returns for the column: the original one, unless its transformProjection requested another */

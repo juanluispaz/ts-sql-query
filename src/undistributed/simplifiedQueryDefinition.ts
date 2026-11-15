@@ -2772,10 +2772,10 @@ type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 /** The original type of a value never changes; the requested one, by default the original, is the one the next adapter and the library decide by */
 interface TypeAdapterContext {
     readonly connectionConfiguration: ConnectionConfiguration
-    readonly originalType: string
-    readonly originalCustomType: CustomType | undefined
-    readonly requestedType: string
-    readonly requestedCustomType: CustomType | undefined
+    /** The class of the original type (IntType, the class of a custom type) */
+    readonly originalType: DataTypeClass
+    /** The class of the requested type */
+    readonly requestedType: DataTypeClass
     /** The original type of the value in the database: the one of the type adapter; it never changes */
     readonly originalSqlDataType: SqlDataType | undefined
     /** The type of the value in the database requested for it; by default the original one */
@@ -2783,9 +2783,7 @@ interface TypeAdapterContext {
 }
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
-    setRequestedType(type: BuiltInType): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: BuiltInType | DataTypeClass): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the parameter */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2808,9 +2806,7 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
-    setRequestedType(type: BuiltInType): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: BuiltInType | DataTypeClass): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the column of the result */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2822,9 +2818,7 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
-    setRequestedType(type: BuiltInType): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: DataTypeClass): void
+    setRequestedType(type: BuiltInType | DataTypeClass): void
     resetRequestedType(): void
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
     resetRequestedSqlDataType(): void

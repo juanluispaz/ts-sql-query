@@ -101,8 +101,8 @@ the other databases.
      `test/db/<db>/<version>/<connector>/select.type-adapter.transform-projection.test.ts`.
    - On Oracle, the OUT bind of a returning column is of the type of the value its converted SQL gives: the one its
      `transformProjection` requests (`setRequestedType`, like `'string'` for the text of a date), otherwise the one of
-     the column. Every column of the result carries that type in the context of the query (`requestedType`,
-     `requestedCustomType` of each result column, beside its `originalType` and `originalCustomType`), and the Oracle
+     the column. Every column of the result carries that type in the context of the query (`requestedType`
+     of each result column, the class of the type, beside its `originalType`), and the Oracle
      runners fetch with it (§3.1).
    - The id the library reads by itself in an insert without a returning of the query (`returning id`,
      `output inserted.id`, Oracle's `returning id into`) keeps its SQL.
@@ -456,7 +456,7 @@ by hand (an empty context).
 
 | Of | Field | Written by | What it is for |
 |---|---|---|---|
-| each parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType`, `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
+| each parameter | `originalType`, `requestedType` (the class of each type, with its `type` and `customType`), `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
 | each parameter | `originalSqlDataType`, `requestedSqlDataType` | the type adapter the parameter is converted with (`withSqlDataType`), the one of the column for a value compared with it; the requested one, by the adapter (`setRequestedSqlDataType`) (§2.6) | the type of the column in the database, for the bind type or the buffer of the driver |
 | each parameter | `isValueForColumn` | the library before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server; on Oracle with a database outside UTC, a bare placeholder (§7.3) |
 | each parameter | `getMetadata(key)`: a key of a type adapter or of the library | `transformValueToDB` of the type adapter and of the connection (`setMetadata`), before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters, which the Oracle runners bind as a `DATE` when of whole seconds, and as a `DATE` when `null` (§2.4); the connection marks the temporal values of a database outside UTC (§7.3) |
@@ -848,7 +848,7 @@ runner still works with params built by hand.
 | What | Where | What it is for | Section |
 |---|---|---|---|
 | The context of the query | `getQueryContext(query, params)` | everything below | §4 |
-| The types of a parameter | `originalType`, `originalCustomType`, `requestedType`, `requestedCustomType` | the type it is sent with | §4 |
+| The types of a parameter | `originalType`, `requestedType` (classes) | the type it is sent with | §4 |
 | Whether the database must receive its type | `forceTypeCast` of the parameter | the cast or the typed bind | §2.2 |
 | Whether it is the value of a column | `isValueForColumn` of the parameter | no cast where the column gives the type | §2.2 |
 | The SQL data type of the column | `originalSqlDataType`, `requestedSqlDataType` of the parameter and of each result column (the runners use the requested one) | the bind type, the buffer | §2.6 |

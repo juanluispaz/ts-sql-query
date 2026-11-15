@@ -1,6 +1,6 @@
 import type { QueryContext, QueryParamContext } from '../QueryContext.js'
 import type { QueryExecutionSource } from '../TsSqlError.js'
-import type { CustomType, SqlDataType } from '../TypeAdapter.js'
+import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import type { ConnectionConfiguration, FunctionExecutingQueryInformation, QueryResultColumn } from '../queryRunners/QueryRunner.js'
 
 /** The key of the context of the query on its params */
@@ -8,10 +8,8 @@ const queryContextKey: unique symbol = Symbol('queryContext')
 
 /** What the library knows of a parameter; what the library writes for its own query runners has a key of its own */
 export class QueryParamContextImpl implements QueryParamContext {
-    originalType: string | undefined = undefined
-    originalCustomType: CustomType | undefined = undefined
-    requestedType: string | undefined = undefined
-    requestedCustomType: CustomType | undefined = undefined
+    originalType: DataTypeClass | undefined = undefined
+    requestedType: DataTypeClass | undefined = undefined
     forceTypeCast: boolean | undefined = undefined
     isValueForColumn: boolean = false
     originalSqlDataType: SqlDataType | undefined = undefined
@@ -19,11 +17,9 @@ export class QueryParamContextImpl implements QueryParamContext {
     private metadata: Map<symbol, unknown> | undefined = undefined
 
     /** Sets the original type of the parameter, which is also the one requested until a type adapter requests another */
-    setOriginalType(type: string, customType: CustomType | undefined): void {
+    setOriginalType(type: DataTypeClass): void {
         this.originalType = type
-        this.originalCustomType = customType
         this.requestedType = type
-        this.requestedCustomType = customType
     }
     /** Sets the original SQL data type of the parameter, which is also the one requested until an adapter requests another */
     setOriginalSqlDataType(sqlDataType: SqlDataType | undefined): void {

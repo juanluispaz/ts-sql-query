@@ -1,8 +1,10 @@
-import type { CustomType, ProjectionComparison, ProjectionOutput, SqlDataType, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { DataTypeClass, ProjectionComparison, ProjectionOutput, SqlDataType, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { QueryParamContextImpl, type QueryContextImpl } from './QueryContextImpl.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
-import type { AnyTypeClass } from '../typeSystem/base.js'
+import type { BuiltInDataType } from '../typeSystem/builtInDataTypes.js'
+import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
+import { __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** Who gives the type a `transformProjection` requests for a value (the SQL builder) */
 export interface RequestedTypeOfProjection {
@@ -52,7 +54,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
      * library decided of forceTypeCast; without a parameter (a value transformed only to look at it, the literal null),
      * at the own state of the context
      */
-    prepareParam(param: QueryParamContextImpl | undefined, index: number | undefined, forceTypeCast: boolean, originalType: string, originalCustomType: CustomType | undefined, sqlDataType: SqlDataType | undefined): void {
+    prepareParam(param: QueryParamContextImpl | undefined, index: number | undefined, forceTypeCast: boolean, originalType: DataTypeClass, sqlDataType: SqlDataType | undefined): void {
         const state = param ?? this.own
         this.state = state
         this.param = param
@@ -60,7 +62,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.pendingProjection = undefined
         this.valueSentToDB = undefined
         this.queryContext = this.builtQueryContext
-        state.setOriginalType(originalType, originalCustomType)
+        state.setOriginalType(__unadaptedClassOf(originalType))
         state.setOriginalSqlDataType(sqlDataType)
         state.forceTypeCast = forceTypeCast
     }
@@ -75,11 +77,11 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
      * Prepares the context for the transformProjection of a value of that original type, for output, in the query with
      * that context (none when the projection is only looked at)
      */
-    prepareProjection(originalType: string, originalCustomType: CustomType | undefined, sqlDataType: SqlDataType | undefined, output: ProjectionOutput, queryContext: QueryContextImpl | undefined): void {
+    prepareProjection(originalType: DataTypeClass, sqlDataType: SqlDataType | undefined, output: ProjectionOutput, queryContext: QueryContextImpl | undefined): void {
         this.clearParam()
         this.pendingProjection = undefined
         this.queryContext = queryContext
-        this.own.setOriginalType(originalType, originalCustomType)
+        this.own.setOriginalType(__unadaptedClassOf(originalType))
         this.own.setOriginalSqlDataType(sqlDataType)
         this.output = output
         this.comparison = 'value'
@@ -88,10 +90,10 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
      * Prepares the context for the transformValueFromDB of a value of that original type; its requested type is the one
      * the projection of the value requests for output (resolved when it is read), or the original one without it
      */
-    prepareRead(originalType: string, originalCustomType: CustomType | undefined, sqlDataType: SqlDataType | undefined, projector: RequestedTypeOfProjection | undefined, value: AnyValueSource | undefined, output: ProjectionOutput): void {
+    prepareRead(originalType: DataTypeClass, sqlDataType: SqlDataType | undefined, projector: RequestedTypeOfProjection | undefined, value: AnyValueSource | undefined, output: ProjectionOutput): void {
         this.clearParam()
         this.queryContext = undefined
-        this.own.setOriginalType(originalType, originalCustomType)
+        this.own.setOriginalType(__unadaptedClassOf(originalType))
         this.own.setOriginalSqlDataType(sqlDataType)
         this.projector = projector
         this.pendingProjection = projector ? value : undefined
@@ -106,42 +108,21 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         }
     }
 
-    get originalType(): string {
-        return this.state.originalType ?? ''
+    get originalType(): DataTypeClass {
+        return this.state.originalType!
     }
-    get originalCustomType(): CustomType | undefined {
-        return this.state.originalCustomType
-    }
-    get requestedType(): string {
+    get requestedType(): DataTypeClass {
         this.resolvePendingProjection()
-        return this.state.requestedType ?? ''
+        return this.state.requestedType!
     }
-    get requestedCustomType(): CustomType | undefined {
-        this.resolvePendingProjection()
-        return this.state.requestedCustomType
-    }
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(type: AnyTypeClass): void
-    setRequestedType(typeOrCustomType: string | AnyTypeClass, type?: string): void {
+    setRequestedType(type: BuiltInDataType | DataTypeClass): void {
         this.pendingProjection = undefined
-        const state = this.state
-        if (typeof typeOrCustomType !== 'string') {
-            state.requestedType = typeOrCustomType.type
-            state.requestedCustomType = typeOrCustomType.customType
-        } else if (type === undefined) {
-            state.requestedType = typeOrCustomType
-            state.requestedCustomType = undefined
-        } else {
-            state.requestedType = type
-            state.requestedCustomType = typeOrCustomType as CustomType
-        }
+        this.state.requestedType = __dataTypeClassFrom(type)
     }
     resetRequestedType(): void {
         this.pendingProjection = undefined
         const state = this.state
         state.requestedType = state.originalType
-        state.requestedCustomType = state.originalCustomType
     }
     get originalSqlDataType(): SqlDataType | undefined {
         return this.state.originalSqlDataType
@@ -162,7 +143,6 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     copyRequestedTypeTo(into: QueryParamContextImpl): void {
         this.resolvePendingProjection()
         into.requestedType = this.state.requestedType
-        into.requestedCustomType = this.state.requestedCustomType
         into.requestedSqlDataType = this.state.requestedSqlDataType
     }
 

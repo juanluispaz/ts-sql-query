@@ -90,7 +90,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         for (let i = 0, length = params.length; i < length; i++) {
             const value = values[i]
             const param = existingParamContextOf(params, i)
-            const type = param?.requestedType
+            const type = param?.requestedType?.type
             // A value of a database outside UTC goes as a timestamptz, whatever type is declared for it
             const zoned = isPostgreSqlZonedParam(params, i)
             const declared = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
@@ -106,7 +106,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
                 if ((ofSqlDataType === 114 || ofSqlDataType === 3802) && typeof value === 'string') {
                     ofSqlDataType = undefined
                 }
-                const oid = ofSqlDataType ?? postgreSqlParamType(type, param?.requestedCustomType, value, zoned)?.oid
+                const oid = ofSqlDataType ?? postgreSqlParamType(type, param?.requestedType?.customType, value, zoned)?.oid
                 if (oid !== undefined) {
                     typed = sql.typed(value, oid)
                 }

@@ -29,7 +29,7 @@ const castString: TypeAdapter = {
     transformValueFromDB(value, context, next) { return next.transformValueFromDB(value, context) },
     transformValueToDB(value, context, next) { return next.transformValueToDB(value, context) },
     transformPlaceholder(placeholder, context, next) {
-        if (context.requestedType === 'string') {
+        if (context.requestedType.type === 'string') {
             return castPlaceholder(placeholder, STRING_CAST_TYPE)
         }
         return next.transformPlaceholder(placeholder, context)
@@ -48,7 +48,7 @@ const tProjectCastName = new class TProjectCastName extends Table<DBConnection, 
 class CastingBooleanAdapter extends CustomBooleanTypeAdapter {
     constructor() { super('Y', 'N') }
     transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        if (context.requestedType === 'boolean') {
+        if (context.requestedType.type === 'boolean') {
             return castPlaceholder(placeholder, BOOLEAN_CAST_TYPE)
         }
         return next.transformPlaceholder(placeholder, context)

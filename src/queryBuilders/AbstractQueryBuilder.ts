@@ -12,7 +12,7 @@ import type { ProjectionOutput } from '../TypeAdapter.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __conversionsOf, __classOf } from '../nodes/adaptedTypeClass.js'
+import { __conversionsOf, __classOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -565,14 +565,14 @@ export function __unnamedResultColumn(valueSource: AnyValueSource, projectedBy?:
  */
 function resultColumnOf(name: string, path: string, valueSource: AnyValueSource, projectedBy: SqlBuilder | undefined, types: QueryParamContextImpl): QueryResultColumn {
     const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-    types.setOriginalType(valueSourcePrivate.__type, valueSourcePrivate.__customType)
+    types.setOriginalType(__unadaptedClassOf(__classOf(valueSourcePrivate)))
     if (projectedBy) {
         projectedBy._resolveRequestedTypeOfProjection(valueSource, 'resultColumn', types)
     }
     // The SQL data type of the column, and the one its transformProjection requests
     const originalSqlDataType = valueSourcePrivate.__typeAdapter?.sqlDataType
     const requestedSqlDataType = projectedBy ? types.requestedSqlDataType : originalSqlDataType
-    const result: QueryResultColumn = { name, path, originalType: types.originalType!, originalCustomType: types.originalCustomType, requestedType: types.requestedType!, requestedCustomType: types.requestedCustomType }
+    const result: QueryResultColumn = { name, path, originalType: types.originalType!, requestedType: types.requestedType! }
     if (originalSqlDataType === undefined && requestedSqlDataType === undefined) {
         return result
     }

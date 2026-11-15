@@ -46,6 +46,32 @@ Read this before changing anything here. The code is the reference; this file sa
   `of` of their family), for the value sources that are not yet instances of a class (the aggregated arrays). No class
   of a data type imports it.
 
+## The operations that disappear without a value (`*IfValue`)
+
+An `*IfValue` method gives an operation that disappears when its operand is not a value. Whether it is a value is
+decided when the SQL is written, by `sqlBuilder._isValue`: `null`, `undefined`, an empty array, and `''` when the
+connection doesn't allow empty strings (`allowEmptyString`, which only the connection knows), are not values. Without a
+value the operation becomes one of two things:
+
+| Without a value it is | Methods | SQL with a value / without |
+|---|---|---|
+| the **neutral**: no condition | `equalsIfValue`, `inIfValue`, `containsIfValue`, ... | `name = $1` / nothing |
+| its **receiver**, without the operation | `concatIfValue`, `replaceAllIfValue`, ... | `name \|\| $1` / `name` |
+
+The neutral is also a value source of its own (`noValueBoolean()`, `onlyWhen(false)`, the start of a dynamic boolean
+expression): a boolean recognised by its node, never by its type.
+
+Two rules hold them:
+
+- **The neutral is written as an empty SQL** (`''`). Whoever composes conditions skips an empty side: `_and` and `_or`
+  give the other side, a `where` or a `having` with nothing is not written. A new place that composes conditions must
+  do the same.
+- **Without a value, an operation reaches only what it writes**: the neutral reaches nothing (its receiver must not
+  make a table of an optional join required, nor add a `with`), the receiver reaches what the receiver reaches. Each
+  method of the node (`__addWiths`, `__registerTableOrView`, ..., `__hasAggregation`) asks for the value as `__toSql`
+  does. These guards came one node at a time with the fixes of 2022 and 2023; the nodes of the receiver walk the
+  operand also without a value, which reaches nothing because it is not a value.
+
 ## The NType: the name of a data type for TypeScript
 
 Every data type class declares its NType in `[typeName]`:

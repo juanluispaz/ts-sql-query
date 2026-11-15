@@ -1639,6 +1639,10 @@ export function __newSqlOperationInValueSourceIfValueOrNoop(operation: '_in' | '
 export interface SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
 }
 
+/**
+ * The neutral condition (no condition): written as an empty SQL, which whoever composes conditions skips (`_and`, `_or`,
+ * the where); it reaches nothing. See "The operations that disappear without a value" in src/typeSystem/README.md
+ */
 export const sqlOperationValueSourceIfValueAlwaysNoopNode: NodeStrategy<SqlOperationValueSourceIfValueAlwaysNoop> = {
     ...valueSourceNode,
     valueWhenNoValue(vs: SqlOperationValueSourceIfValueAlwaysNoop, value: any): any {

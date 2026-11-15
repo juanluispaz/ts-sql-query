@@ -1,7 +1,7 @@
 import type { AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlOperationStatic0, SqlOperationStatic1, SqlSequenceOperation } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import { type DataTypeClass, type TypeAdapter, CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { proxyTypeAdapterFor } from '../internal/ProxyTypeAdapter.js'
+import type { DataTypeClass, TypeAdapter } from '../TypeAdapter.js'
+import { projectedColumnClassOf } from '../internal/columnsFrom.js'
 import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
@@ -87,12 +87,7 @@ export function __createInlineSelect(selectData: InlineSelectData, required: boo
     // The data type of its one column (any other select is rejected when it is built)
     const result = selectData.__oneColumn ? selectData.__columns['result'] : undefined
     const resultPrivate = result && isValueSource(result) ? __getValueSourcePrivate(result) : undefined
-    let typeAdapter = resultPrivate?.__typeAdapter
-    if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-        // Avoid treat the column as a custom boolean
-        typeAdapter = proxyTypeAdapterFor(typeAdapter)
-    }
-    return __newInlineSelectValueSource(selectData, required, __adaptedTypeClassOf(resultPrivate ? __projectedTypeClassOf(resultPrivate) : BooleanType, typeAdapter))
+    return __newInlineSelectValueSource(selectData, required, resultPrivate ? projectedColumnClassOf(resultPrivate) : BooleanType)
 }
 
 export function __createFunctionCall(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): any {

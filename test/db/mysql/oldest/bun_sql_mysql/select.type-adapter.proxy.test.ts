@@ -1,13 +1,7 @@
-// Coverage of `ProxyTypeAdapter`.
-//
-// When a column carrying a `CustomBooleanTypeAdapter` is re-projected by
-// `createColumnsFrom` (building the columns of a WITH view / inline
-// query), the adapter is wrapped in a `ProxyTypeAdapter` so the *outer*
-// reference is NOT treated as a custom boolean again: the inner select
-// already remapped the stored value (`'Y'`/`'N'`, `'t'`/`'f'`, …) to a
-// real boolean, so re-applying the remap on the outer column would be
-// wrong. These tests pin that "remap once, in the inner select only"
-// contract and exercise the proxy's `transformValueFromDB` delegation.
+// A column with a `CustomBooleanTypeAdapter` projected by a WITH view: the
+// inner select already remaps the stored value (`'Y'`/`'N'`, `'t'`/`'f'`, …)
+// to a real boolean, so the column of the view is a plain boolean, without
+// the adapter, and the outer query doesn't remap it again.
 //
 // `organization.verified` is the custom-boolean column under test (the
 // shared domain stores it via `CustomBooleanTypeAdapter`).
@@ -22,12 +16,12 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('proxy-adapter/custom-boolean-projected-through-with-clause', async () => {
+    test('custom-boolean/projected-through-a-with-view-is-a-plain-boolean', async () => {
         const connection = ctx.conn
 
-        // The inner select remaps `verified` to a real boolean; the WITH
-        // view exposes it through a ProxyTypeAdapter so the outer select
-        // reads the already-boolean column verbatim (no second remap).
+        // The inner select remaps `verified` to a real boolean; the column of
+        // the WITH view is a plain boolean, which the outer select reads as it
+        // is (no second remap).
         const verifiedOrgs = connection.selectFrom(tOrganization)
             .select({
                 id:       tOrganization.id,
@@ -60,7 +54,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('proxy-adapter/filtering-the-proxied-boolean-skips-the-remap', async () => {
+    test('custom-boolean/filtering-the-with-view-column-skips-the-remap', async () => {
         const connection = ctx.conn
 
         // Filtering on the WITH view's `verified` must compare against a

@@ -9,7 +9,6 @@ import { OracleConnection } from '../../../src/connections/OracleConnection.js'
 import { Table } from '../../../src/Table.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQueryRunner.js'
-import { proxyTypeAdapterFor } from '../../../src/internal/ProxyTypeAdapter.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { CustomBooleanTypeAdapter, withSqlDataType, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../src/TypeAdapter.js'
 import { reasonOf } from '../lib/runnerContract.js'
@@ -224,13 +223,27 @@ describe('the conversion of the types in the configuration of the connection', (
     })
 })
 
-describe('the proxy of a custom boolean adapter (a table used as the view of a with)', () => {
-    test('it-is-the-same-one-each-time-and-says-the-sql-data-type-of-the-adapter', () => {
-        const adapter = withSqlDataType({ family: 'character string', length: 1, fixed: true }, new CustomBooleanTypeAdapter('Y', 'N'))
-        const proxy = proxyTypeAdapterFor(adapter)
-        expect(proxyTypeAdapterFor(adapter)).toBe(proxy)
-        expect(proxy.sqlDataType).toBe(adapter.sqlDataType)
-        // Kept in the adapter, hidden
-        expect(Object.keys(adapter).sort()).toEqual(['falseValue', 'sqlDataType', 'trueValue'])
+describe('a custom boolean column projected by a with', () => {
+    test('the-column-of-the-with-is-a-boolean-without-the-adapter-nor-its-sql-data-type', async () => {
+        const yesNo = withSqlDataType({ family: 'character string', length: 1, fixed: true }, new CustomBooleanTypeAdapter('Y', 'N'))
+        class TFlag extends Table<DBConnection, 'TFlag'> {
+            id = this.column('id', 'int')
+            active = this.column('active', 'boolean', yesNo)
+            constructor() { super('flag') }
+        }
+        const tFlag = new TFlag()
+        let lastQuery = ''
+        let lastParams: any[] = []
+        const conn = new DBConnection(new MockQueryRunner((_type, query, params) => {
+            lastQuery = query
+            lastParams = params
+            return [{ active: true }]
+        }))
+        const flags = conn.selectFrom(tFlag).select({ id: tFlag.id, active: tFlag.active }).forUseInQueryAs('flags')
+        const rows = await conn.selectFrom(flags).select({ active: flags.active }).executeSelectMany()
+        // The with already writes the boolean of the database: the column of the with is that boolean
+        expect(lastQuery).toBe("with flags as (select id as id, (active = 'Y') as active from flag) select active as active from flags")
+        expect(rows).toEqual([{ active: true }])
+        expect(getQueryContext(lastQuery, lastParams).resultColumns?.[0]?.originalSqlDataType).toBeUndefined()
     })
 })

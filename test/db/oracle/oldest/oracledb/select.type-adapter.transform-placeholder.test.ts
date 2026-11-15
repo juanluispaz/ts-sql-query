@@ -85,10 +85,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1, name: 'Marketing site' }])
     })
 
-    test('transform-placeholder/forwarded-through-a-with', async () => {
+    test('transform-placeholder/not-applied-to-a-boolean-projected-by-a-with', async () => {
         // The custom boolean is projected by a `with` and filtered outside it:
-        // the outer column still uses the column's adapter for the placeholder,
-        // so the value compared is bound with its cast. Organization 1
+        // the `with` already writes the boolean of the database, so its column
+        // is a plain boolean, without the column's adapter, and the value
+        // compared is bound without the adapter's cast. Organization 1
         // (verified 'Y') is the only verified one.
         const verifiedOrganizations = ctx.conn.selectFrom(tOrganizationCastVerified)
             .select({
@@ -104,7 +105,7 @@ describe(ctx.label, () => {
             .select({ id: verifiedOrganizations.id, name: verifiedOrganizations.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with verifiedOrganizations as (select id as id, name as name, case when verified = 'Y' then 1 else 0 end as verified from "organization") select id as "id", name as "name" from verifiedOrganizations where verified = cast(:0 as number(1)) order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with verifiedOrganizations as (select id as id, name as name, case when verified = 'Y' then 1 else 0 end as verified from "organization") select id as "id", name as "name" from verifiedOrganizations where verified = :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

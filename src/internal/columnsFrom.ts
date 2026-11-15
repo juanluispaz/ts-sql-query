@@ -3,12 +3,21 @@ import { __getTableOrViewPrivate, __registerTableOrView } from '../utils/ITableO
 import type { __ColumnPrivate } from '../utils/Column.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
-import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
-import type { OptionalType } from '../typeSystem/valueSource.js'
+import { CustomBooleanTypeAdapter, type DataTypeClass } from '../TypeAdapter.js'
+import type { OptionalType, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { __newDBColumn, type DBColumnValueSource } from '../nodes/column.js'
-import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
+
+/**
+ * The class of a column of a with or of a compound select: the value of the expression of the select, with its type
+ * adapter as it has it. A boolean of a column with a CustomBooleanTypeAdapter is projected as a boolean of the
+ * database (the select writes it so), and has no adapter
+ */
+export function projectedColumnClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
+    const projected = __projectedTypeClassOf(valueSource)
+    return valueSource.__typeAdapter instanceof CustomBooleanTypeAdapter ? projected : __keptClassOf(valueSource, projected)
+}
 
 // The optionality of a column of a with view, as its type says (see OptionalTypeForWith in
 // complexProjections/asWithView.ts): outside the query that builds it, a value is required or optional. Keeping
@@ -27,12 +36,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
         const column = columns[property]!
         if (isValueSource(column)) {
             const columnPrivate = __getValueSourcePrivate(column)
-            let typeAdapter = columnPrivate.__typeAdapter
-            if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                // Avoid treat the column as a custom boolean
-                typeAdapter = proxyTypeAdapterFor(typeAdapter)
-            }
-            const withColumn = __newDBColumn(__adaptedTypeClassOf(__projectedTypeClassOf(columnPrivate), typeAdapter), table, property)
+            const withColumn = __newDBColumn(projectedColumnClassOf(columnPrivate), table, property)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {
@@ -59,12 +63,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
         const column = columns[property]!
         if (isValueSource(column)) {
             const columnPrivate = __getValueSourcePrivate(column)
-            let typeAdapter = columnPrivate.__typeAdapter
-            if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                // Avoid treat the column as a custom boolean
-                typeAdapter = proxyTypeAdapterFor(typeAdapter)
-            }
-            const withColumn = __newDBColumn(__adaptedTypeClassOf(__projectedTypeClassOf(columnPrivate), typeAdapter), table, prefix + property)
+            const withColumn = __newDBColumn(projectedColumnClassOf(columnPrivate), table, prefix + property)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {

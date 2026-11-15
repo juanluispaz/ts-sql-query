@@ -9,6 +9,7 @@ import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 import type { hasDefaultValue, type, writable } from '../utils/symbols.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
+import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 
 /** A column of a table, a view or values: a value source of its data type with the node of a column */
 export interface DBColumnValueSource extends ValueSourceRoot, __ColumnPrivate {
@@ -54,7 +55,7 @@ export const dbColumnNode: NodeStrategy<DBColumnValueSource> = {
 
 /** A column of a table, a view or values, of the data type of its class */
 export function __newDBColumn(typeClass: DataTypeClass, table: AnyTableOrView, name: string, typeAdapter: TypeAdapter | undefined): DBColumnValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)('required', typeAdapter) as DBColumnValueSource
+    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)('required') as DBColumnValueSource
     vs.__node = dbColumnNode
     vs.__name = name
     vs.__tableOrView = table

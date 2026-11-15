@@ -17,6 +17,7 @@ import { __newAllowWhenValueSource } from './allowWhen.js'
 import { __newNullValueSource } from './constants.js'
 import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
 import { __newNoopValueSource } from './operations.js'
+import { typeAdapterOfClass } from './adaptedTypeClass.js'
 
 export class ValueSourceRoot implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [typeName]: any
@@ -29,24 +30,26 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
     __type: string
     __customType: CustomType | undefined
     __optionalType: OptionalType
-    __typeAdapter?: TypeAdapter | undefined
     __isAggregate?: boolean | undefined
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
 
-    constructor(optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
+    constructor(optionalType: OptionalType, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
         // The class created is the one of the data type (src/typeSystem), which extends this one at run time
         const typeClass = new.target as unknown as DataTypeClass
         this.__type = typeClass.type
         this.__customType = typeClass.customType
         this.__optionalType = optionalType
-        this.__typeAdapter = typeAdapter
         if (aggregatedArrayColumns) {
             this.__aggregatedArrayColumns = aggregatedArrayColumns
             this.__aggregatedArrayMode = aggregatedArrayMode
             this.__aggreagtedProjectingOptionalValuesAsNullable = aggregatedProjectingOptionalValuesAsNullable
         }
+    }
+    /** The type adapter of this value source: the one of its class (see adaptedTypeClass.ts) */
+    get __typeAdapter(): TypeAdapter | undefined {
+        return (this.constructor as { [typeAdapterOfClass]?: TypeAdapter | undefined })[typeAdapterOfClass]
     }
     /** How this value source is written and what it reaches: the strategy of its node, shared by every value source of that node */
     declare __node: NodeStrategy<any>

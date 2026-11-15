@@ -14,6 +14,7 @@ import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __Aggregat
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
+import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 
 export interface FragmentValueSource extends NodeValueSource {
     __operation: keyof SqlFragmentOperation
@@ -98,7 +99,7 @@ export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
 }
 
 export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate?: boolean): FragmentValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, typeAdapter) as FragmentValueSource
+    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as FragmentValueSource
     vs.__node = fragmentValueSourceNode
     vs.__operation = '_fragment' // Needed to detect if parenthesis is required
 
@@ -127,7 +128,7 @@ export const functionCallValueSourceNode: NodeStrategy<FunctionCallValueSource> 
 }
 
 export function __newFunctionCallValueSource(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): FunctionCallValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, typeAdapter) as FunctionCallValueSource
+    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as FunctionCallValueSource
     vs.__node = functionCallValueSourceNode
 
     vs.__functionName = functionName
@@ -186,7 +187,7 @@ export const valueSourceFromBuilderNode: NodeStrategy<ValueSourceFromBuilder> = 
 }
 
 export function __newValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): ValueSourceFromBuilder {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, typeAdapter) as ValueSourceFromBuilder
+    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as ValueSourceFromBuilder
     vs.__node = valueSourceFromBuilderNode
     vs.__builder = builder
     vs.__fragmentBuilder = fragmentBuilder

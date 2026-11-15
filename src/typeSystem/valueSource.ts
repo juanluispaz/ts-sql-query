@@ -113,7 +113,7 @@ export interface __ValueSourcePrivate extends IQueryDataDiscovery {
     __type: string
     __customType: CustomType | undefined
     __optionalType: OptionalType
-    __typeAdapter?: TypeAdapter | undefined
+    readonly __typeAdapter: TypeAdapter | undefined
     /**
      * `true` when this value source is itself an aggregate function call
      * (`count` / `sum` / `avg` / `min` / `max` / `stringConcat` /

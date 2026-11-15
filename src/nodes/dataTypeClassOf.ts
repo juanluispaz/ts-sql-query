@@ -1,4 +1,4 @@
-import type { TypeAdapter } from '../TypeAdapter.js'
+import { __unadaptedClassOf } from './adaptedTypeClass.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { computedType } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
@@ -10,7 +10,7 @@ import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { DataTypeValueSource, NodeValueSource } from './NodeStrategy.js'
 
 /** How a value source is created from the class of its data type, which extends ValueSourceRoot at run time */
-export type ValueSourceConstructor = new (optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, aggregatedProjectingOptionalValuesAsNullable?: boolean) => NodeValueSource
+export type ValueSourceConstructor = new (optionalType: OptionalType, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, aggregatedProjectingOptionalValuesAsNullable?: boolean) => NodeValueSource
 
 /**
  * The class of the data type of a value source computed from this one: its own class, or the one its class says in
@@ -21,11 +21,14 @@ export function __typeClassOf(valueSource: DataTypeValueSource | __ValueSourcePr
     return typeClass[computedType] ?? typeClass
 }
 
-/** The class of the data type of a value source, for a value source that keeps its SQL (`allowWhen`, `asOptional`, ...) */
+/**
+ * The class of the data type of a value source, for a value source that keeps its SQL (`allowWhen`, `asOptional`, ...),
+ * without its type adapter (the one created gets its own)
+ */
 export function __sameTypeClassOf(valueSource: DataTypeValueSource | __ValueSourcePrivate): DataTypeClass {
     // Every value source of a class has its node (the raw fragment of a table, which has no data type, hasn't)
     if ((valueSource as { __node?: unknown }).__node) {
-        return valueSource.constructor as unknown as DataTypeClass
+        return __unadaptedClassOf(valueSource.constructor as unknown as DataTypeClass)
     }
     throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'The value source has no class of a data type')
 }

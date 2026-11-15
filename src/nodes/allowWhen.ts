@@ -9,6 +9,7 @@ import type { __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePriv
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
+import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 
 export interface AllowWhenValueSource extends NodeValueSource {
     __valueSource: NodeValueSource
@@ -95,7 +96,7 @@ export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueS
     // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
     // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
     // is mishandled at read time.
-    const vs = new (__sameTypeClassOf(valueSource) as unknown as ValueSourceConstructor)(valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
+    const vs = new (__adaptedTypeClassOf(__sameTypeClassOf(valueSource), valueSource.__typeAdapter) as unknown as ValueSourceConstructor)(valueSource.__optionalType, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
     vs.__node = allowWhenValueSourceNode
     vs.__valueSource = valueSource
     vs.__error = error

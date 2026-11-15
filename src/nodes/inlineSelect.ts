@@ -6,6 +6,7 @@ import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAgg
 import { isSelectQueryObject } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { proxyTypeAdapterFor } from '../internal/ProxyTypeAdapter.js'
+import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
@@ -54,7 +55,8 @@ export const inlineSelectValueSourceNode: NodeStrategy<InlineSelectValueSource> 
 }
 
 export function __newInlineSelectValueSource(selectData: InlineSelectData, required: boolean, typeClass: DataTypeClass): InlineSelectValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(...valueSourceInitializationForInlineSelect(selectData, required)) as InlineSelectValueSource
+    const [optionalType, typeAdapter, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable] = valueSourceInitializationForInlineSelect(selectData, required)
+    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as InlineSelectValueSource
     vs.__node = inlineSelectValueSourceNode
     vs.__operation = '_inlineSelectAsValue'
 

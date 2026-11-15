@@ -44,7 +44,7 @@ Each kind of node has three things, side by side in its file:
 |---|---|---|
 | Its interface | `SqlOperation0ValueSource` | the fields of the node, on a `NodeValueSource` |
 | Its strategy | `sqlOperation0ValueSourceNode` | how it is written and what it reaches |
-| Its creation | `__newSqlOperation0ValueSource(operation, valueSource, typeClass, optionalType, typeAdapter)` | creates the value source with `new typeClass(...)`, sets its node and its fields |
+| Its creation | `__newSqlOperation0ValueSource(operation, valueSource, typeClass, optionalType, typeAdapter)` | creates the value source with `new` of the class of `typeClass` with `typeAdapter` (see below), sets its node and its fields |
 
 A creation receives **the class of the data type** of the value source it creates, never a name: the method of the
 class that calls it decides it (its own class, the boolean of a comparison, the int of `length`, ...), and
@@ -91,8 +91,13 @@ A few methods of a value source depend on its node and not only on its data type
 [`valueSourceRoot.ts`](./valueSourceRoot.ts) has the class every value source is an instance of at run time:
 
 - its fields: `__type` and `__customType` (filled by its constructor from the statics `type` and `customType` of the
-  class created, so a value source knows its data type by them at run time), its optionality, its type adapter, the
-  fields of an aggregated array, and `__node`;
+  class created, so a value source knows its data type by them at run time), its optionality, the fields of an
+  aggregated array, and `__node`;
+- its type adapter, `__typeAdapter`, read from its class: a value source with a type adapter is an instance of a
+  subclass of the class of its data type that carries the adapter, created once for each class and adapter
+  ([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)). A creation receives the class of the data type and the adapter,
+  and makes the value source of that subclass (`__adaptedTypeClassOf`); `__typeClassOf` and `__sameTypeClassOf` give
+  the class without the adapter;
 - the delegation of each method of the node to `__node`;
 - `isConstValue`, `getConstValue`, `allowWhen` and `disallowWhen`, which every value source has;
 - the functions of the methods two families of data types declare (`__asRequiredInOptionalObjectOf`,
@@ -146,6 +151,7 @@ and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps onl
 | [`NodeStrategy.ts`](./NodeStrategy.ts) | `NodeStrategy`, `NodeValueSource` (a value source as its node sees it), `DataTypeValueSource` (a value source as a method of its class passes it) and `valueSourceNode` |
 | [`valueSourceRoot.ts`](./valueSourceRoot.ts) | `ValueSourceRoot`, and the functions of the methods two families share |
 | [`dataTypeClassOf.ts`](./dataTypeClassOf.ts) | the class of the data type of a value source, and how a class creates one |
+| [`adaptedTypeClass.ts`](./adaptedTypeClass.ts) | the subclass of the class of a data type that carries a type adapter, kept in the adapter |
 | [`operands.ts`](./operands.ts) | the optionality and the type adapter of an operation from those of its operands |
 | [`constants.ts`](./constants.ts) | a constant, the functions without operands (`currentDate`, `true`, `exists`, ...), a sequence, a null |
 | [`operations.ts`](./operations.ts) | the functions and the operators of a value source with zero, one or two operands, `in`, `collate`, `isNull`, `valueWhenNull`, the no-op of `asOptional`, `__operation0` / `__operation1` (an operation of the receiver with the class of its result) |

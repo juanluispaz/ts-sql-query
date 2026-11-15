@@ -23,7 +23,10 @@ export class TableOrViewRawFragmentValueSource implements TypedValueSource<any, 
     __type: string = ''
     __customType: CustomType | undefined = undefined
     __optionalType: OptionalType = 'required'
-    __typeAdapter?: TypeAdapter | undefined
+    /** It has no data type, and no type adapter */
+    get __typeAdapter(): TypeAdapter | undefined {
+        return undefined
+    }
     __tableOrView: AnyTableOrView
     __operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'
 

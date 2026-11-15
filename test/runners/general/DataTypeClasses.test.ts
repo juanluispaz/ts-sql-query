@@ -6,7 +6,7 @@ import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnect
 import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
 import {
     BigintType, BooleanType, CustomBigintType, CustomComparableType, CustomDecimalType, CustomIntType, DoubleType, EnumType, IntType,
-    LocalDateType, StringDecimalType, StringType, Table, UuidType,
+    LocalDateType, StringDecimalType, StringType, Table, UuidType, CustomBooleanTypeAdapter,
 } from '../../../src/exports/v2/index.js'
 import { NumberType } from '../../../src/typeSystem/number.js'
 import { NumericType, IntegersType, RealsType } from '../../../src/typeSystem/numeric.js'
@@ -38,6 +38,10 @@ abstract class ColorType extends EqualableType<string> {
     declare [operandTypeName]: 'type:Color:custom:'
 }
 
+// Type adapters, each one given to the columns that store a boolean that way
+const yesNo = new CustomBooleanTypeAdapter('Y', 'N')
+const oneZero = new CustomBooleanTypeAdapter(1, 0)
+
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {}
 const conn = new DBConnection(new NoopQueryRunner())
 
@@ -55,6 +59,9 @@ const tThing = new class TThing extends Table<DBConnection, 'TThing'> {
     status = this.column('status', StatusType)
     version = this.column('version', VersionType)
     color = this.column('color', ColorType)
+    yes = this.column('yes', BooleanType, yesNo)
+    alsoYes = this.column('also_yes', BooleanType, yesNo)
+    yes10 = this.column('yes10', BooleanType, oneZero)
     constructor() { super('thing') }
 }()
 
@@ -207,6 +214,19 @@ describe('DataTypeClasses', () => {
         // The same type as the comparison of a built-in data type
         const red = tThing.color.equals('red')
         assertType<Exact<typeof red, typeof condition>>()
+    })
+
+    test('a-value-source-with-a-type-adapter-is-an-instance-of-a-class-of-its-data-type-for-that-adapter', () => {
+        const classOf = (value: unknown) => (value as object).constructor
+        expect(tThing.yes).toBeInstanceOf(BooleanType)
+        expect(BooleanType.is(tThing.yes)).toBe(true)
+        expect(classOf(tThing.yes)).not.toBe(BooleanType)
+        // The same class for the same data type and adapter, another one for another adapter
+        expect(classOf(tThing.alsoYes)).toBe(classOf(tThing.yes))
+        expect(classOf(tThing.yes10)).not.toBe(classOf(tThing.yes))
+        // Without an adapter, the class of the data type itself
+        expect(classOf(tThing.boolean)).toBe(BooleanType)
+        expect(classOf(tThing.yes.asOptional())).toBe(classOf(tThing.yes))
     })
 
     test('a-built-in-class-gives-the-type-its-name-gives', () => {

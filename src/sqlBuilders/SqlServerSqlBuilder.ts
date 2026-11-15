@@ -16,6 +16,7 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isUuidText } from '../typeSystem/uuidText.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -113,7 +114,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _isUuid(value: any): boolean {
         if (isValueSource(value)) {
             const valuePrivate = __getValueSourcePrivate(value)
-            if (__isUuidValueSource(valuePrivate) || valuePrivate.__uuidString) {
+            if (__isUuidValueSource(valuePrivate) || __isUuidText(valuePrivate)) {
                 return true
             }
         }
@@ -659,13 +660,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // to a CASE that double-evaluates its first argument; accepted, because that
         // argument is the receiver — almost always a column, so repeating it is free.
         let result = 'coalesce('
-        if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).__uuidString) {
+        if (isValueSource(valueSource) && __isUuidText(__getValueSourcePrivate(valueSource))) {
             result += this._uuidAsText(this._appendSql(valueSource, context, false))
         } else {
             result += this._appendSql(valueSource, context, false)
         }
         result += ', '
-        if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
+        if (isValueSource(value) && __isUuidText(__getValueSourcePrivate(value))) {
             result += this._uuidAsText(this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value)))
         } else {
             result += this._appendValue(value, context, this._getWidenedArgumentType(type, customType, value), this._getWidenedArgumentCustomType(type, customType, value), typeAdapter, this._widenedArgumentNeedsTypeCast(type, customType, value))
@@ -1467,14 +1468,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendJsonValue(valueSource, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)
     }
     override _appendFragmentParam(value: AnyValueSource, context: SqlBuildContext): string {
-        if (__getValueSourcePrivate(value).__uuidString) {
+        if (__isUuidText(__getValueSourcePrivate(value))) {
             // The SQL around it is the user's: the text of the uuid is written as it leaves the database
             return this._uuidAsText(this._appendConditionSql(value, context, false))
         }
         return this._appendConditionSql(value, context, false)
     }
     override _appendRawFragmentParam(value: AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext): string {
-        if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
+        if (isValueSource(value) && __isUuidText(__getValueSourcePrivate(value))) {
             return this._uuidAsText(this._appendSql(value, context, false))
         }
         return this._appendSql(value, context, false)

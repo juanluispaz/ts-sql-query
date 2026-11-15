@@ -4,7 +4,7 @@ import type { DataTypeClass, TypeAdapter } from '../TypeAdapter.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { AggregateSelectValueSource, AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, type FragmentValueSource, type InlineSelectData, type InlineSelectValueSource, type SqlOperation1ValueSource, type SqlOperation1ValueSourceIfValueOrIgnore, type SqlOperationConstValueSource, type SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceImpl, __typeClassOf, __newAggregateFunctions0ValueSource, __newAggregateFunctions1ValueSource, __newAggregateFunctions1or2ValueSource, __newFragmentValueSource, __newFunctionCallValueSource, __newInlineSelectValueSource, __newSequenceValueSource, __newSqlOperationConstValueSource, __newSqlOperationStatic0ValueSource, __newSqlOperationStatic1ValueSource, __newSqlOperationStaticBooleanValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop, __newValueSourceFromBuilder, fragmentValueSourceNode, inlineSelectValueSourceNode, sqlOperation1ValueSourceIfValueOrIgnoreNode, sqlOperation1ValueSourceNode, sqlOperationConstValueSourceNode, sqlOperationValueSourceIfValueAlwaysNoopNode } from '../internal/ValueSourceImpl.js'
 import { __newDBColumn, createColumnsFrom } from '../internal/DBColumnImpl.js'
-import { __dataTypeClassOf } from './dataTypeClasses.js'
+import { __dataTypeClassOfValueSource } from './dataTypeClasses.js'
 import { BooleanType } from './logical.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
@@ -68,7 +68,7 @@ export function __createInlineSelect(selectData: InlineSelectData, required: boo
     // The data type of its one column (any other select is rejected when it is built)
     const result = selectData.__oneColumn ? selectData.__columns['result'] : undefined
     const resultPrivate = result && isValueSource(result) ? __getValueSourcePrivate(result) : undefined
-    return __newInlineSelectValueSource(selectData, required, resultPrivate ? __dataTypeClassOf(resultPrivate.__type, resultPrivate.__customType) : BooleanType)
+    return __newInlineSelectValueSource(selectData, required, resultPrivate ? __dataTypeClassOfValueSource(resultPrivate) : BooleanType)
 }
 
 export function __createFunctionCall(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {

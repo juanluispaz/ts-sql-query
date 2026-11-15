@@ -4,7 +4,7 @@ import type { __ColumnPrivate } from '../utils/Column.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { valueSourceNode, type NodeStrategy, type ValueSourceImpl, type ValueSourceConstructor } from './ValueSourceImpl.js'
-import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __dataTypeClassOfValueSource } from '../typeSystem/dataTypeClasses.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import { isColumnObject, type hasDefaultValue, type type, type writable } from '../utils/symbols.js'
@@ -91,7 +91,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
                 // Avoid treat the column as a custom boolean
                 typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
-            const withColumn = __newDBColumn(__dataTypeClassOf(columnPrivate.__type, columnPrivate.__customType), table, property, typeAdapter)
+            const withColumn = __newDBColumn(__dataTypeClassOfValueSource(columnPrivate), table, property, typeAdapter)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {
@@ -101,9 +101,6 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
                 withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
                 withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
                 withColumn.__aggreagtedProjectingOptionalValuesAsNullable = columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable
-            }
-            if (columnPrivate.__uuidString) {
-                withColumn.__uuidString = columnPrivate.__uuidString
             }
             target[property] = withColumn
         } else {
@@ -126,7 +123,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
                 // Avoid treat the column as a custom boolean
                 typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
-            const withColumn = __newDBColumn(__dataTypeClassOf(columnPrivate.__type, columnPrivate.__customType), table, prefix + property, typeAdapter)
+            const withColumn = __newDBColumn(__dataTypeClassOfValueSource(columnPrivate), table, prefix + property, typeAdapter)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {
@@ -165,9 +162,6 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
                 withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
                 withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
                 withColumn.__aggreagtedProjectingOptionalValuesAsNullable = columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable
-            }
-            if (columnPrivate.__uuidString) {
-                withColumn.__uuidString = columnPrivate.__uuidString
             }
             target[property] = withColumn
         } else {

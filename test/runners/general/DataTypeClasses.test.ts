@@ -152,6 +152,20 @@ describe('DataTypeClasses', () => {
         expect(tThing.version.valueWhenNull('1')).toBeInstanceOf(VersionType)
     })
 
+    test('the-text-of-a-uuid-keeps-its-class-only-where-its-sql-is-kept', () => {
+        const text = tThing.uuid.asString()
+        const classOf = (value: unknown) => (value as object).constructor
+        expect(text).toBeInstanceOf(StringType)
+        expect(classOf(text)).not.toBe(StringType)
+        // A value source that keeps the SQL of the text keeps its class
+        expect(classOf(text.asOptional())).toBe(classOf(text))
+        expect(classOf(text.allowWhen(true, 'never'))).toBe(classOf(text))
+        // A value computed from it is a text
+        expect(classOf(text.concat('-'))).toBe(StringType)
+        expect(classOf(text.valueWhenNull('-'))).toBe(StringType)
+        expect(classOf(conn.max(text))).toBe(StringType)
+    })
+
     test('a-built-in-class-gives-the-type-its-name-gives', () => {
         const byClass = conn.const(5, IntType)
         const byName = conn.const(5, 'int')

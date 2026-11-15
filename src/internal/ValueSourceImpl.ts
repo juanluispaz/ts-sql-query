@@ -6,7 +6,7 @@ import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customBigintValueSource, customDoubleValueSource, customDecimalValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source, logicalTypes, runtimeTypes } from '../utils/symbols.js'
+import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customBigintValueSource, customDoubleValueSource, customDecimalValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source, logicalTypes, runtimeTypes, computedType } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import type { DBColumn, __ColumnPrivate } from '../utils/Column.js'
@@ -69,10 +69,19 @@ export const valueSourceNode: Omit<NodeStrategy<ValueSourceImpl>, '__toSql'> = {
 }
 
 /** How a value source is created from the class of its data type, which extends ValueSourceImpl at run time */
-export type ValueSourceConstructor = new (optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean, aggregatedProjectingOptionalValuesAsNullable?: boolean) => ValueSourceImpl
+export type ValueSourceConstructor = new (optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, aggregatedProjectingOptionalValuesAsNullable?: boolean) => ValueSourceImpl
 
-/** The class of the data type of a value source */
+/**
+ * The class of the data type of a value source computed from this one: its own class, or the one its class says in
+ * `static [computedType]` (the text of a uuid gives a text)
+ */
 export function __typeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
+    const typeClass = __sameTypeClassOf(valueSource) as any
+    return typeClass[computedType] ?? typeClass
+}
+
+/** The class of the data type of a value source, for a value source that keeps its SQL (`allowWhen`, `asOptional`, ...) */
+export function __sameTypeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
     if (valueSource instanceof ValueSourceImpl) {
         return valueSource.constructor as unknown as DataTypeClass
     }
@@ -132,9 +141,8 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
-    __uuidString?: boolean | undefined
 
-    constructor(optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
+    constructor(optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
         // The class created is the one of the data type (src/typeSystem), which extends this one at run time
         const typeClass = new.target as unknown as DataTypeClass
         this.__type = typeClass.type
@@ -145,9 +153,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
             this.__aggregatedArrayColumns = aggregatedArrayColumns
             this.__aggregatedArrayMode = aggregatedArrayMode
             this.__aggreagtedProjectingOptionalValuesAsNullable = aggregatedProjectingOptionalValuesAsNullable
-        }
-        if (uuidString) {
-            this.__uuidString = uuidString
         }
     }
     /** How this value source is written and what it reaches: the strategy of its node, shared by every value source of that node */
@@ -192,9 +197,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         } else {
             result = __newAllowWhenValueSource(when, error, this)
         }
-        if (this.__uuidString) {
-            result.__uuidString = this.__uuidString
-        }
         return result
     }
     disallowWhen(when: boolean, error: string | Error): any {
@@ -204,16 +206,10 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         } else {
             result = __newAllowWhenValueSource(!when, error, this)
         }
-        if (this.__uuidString) {
-            result.__uuidString = this.__uuidString
-        }
         return result
     }
     asOptional(): any {
-        const result = __newNoopValueSource(this, __typeClassOf(this), 'optional', this.__typeAdapter)
-        if (this.__uuidString) {
-            result.__uuidString = this.__uuidString
-        }
+        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'optional', this.__typeAdapter)
         return result
     }
     asRequiredInOptionalObject(): any {
@@ -221,38 +217,29 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         if (nodeAsRequiredInOptionalObject) {
             return nodeAsRequiredInOptionalObject(this)
         }
-        const result = __newNoopValueSource(this, __typeClassOf(this), 'requiredInOptionalObject', this.__typeAdapter)
+        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'requiredInOptionalObject', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
             result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
-        }
-        if (this.__uuidString) {
-            result.__uuidString = this.__uuidString
         }
         return result
     }
     useEmptyArrayForNoValue(): any {
-        const result = __newNoopValueSource(this, __typeClassOf(this), 'required', this.__typeAdapter)
+        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'required', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
             result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
-        }
-        if (this.__uuidString) {
-            result.__uuidString = this.__uuidString
         }
         return result
     }
     asOptionalNonEmptyArray(): any {
-        const result = __newNoopValueSource(this, __typeClassOf(this), 'optional', this.__typeAdapter)
+        const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'optional', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
             result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
-        }
-        if (this.__uuidString) {
-            result.__uuidString = this.__uuidString
         }
         return result
     }
@@ -298,11 +285,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     }
     isNot(value: any): any {
         return condition(__newSqlOperation1NotOptionalValueSource('_isNot', this, value, __builtInTypeOf(this, 'boolean'), 'required', getTypeAdapter2(this, value)))
-    }
-    asString(): any {
-        const result = __newSqlOperation0ValueSource('_asString', this, __builtInTypeOf(this, 'string'), this.__optionalType, this.__typeAdapter)
-        result.__uuidString = __isUuid(this.__type, this.__customType)
-        return result
     }
     onlyWhenOrNull(when: boolean): any {
         if (when) {
@@ -2170,7 +2152,7 @@ export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueS
     // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
     // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
     // is mishandled at read time.
-    const vs = new (__typeClassOf(valueSource) as unknown as ValueSourceConstructor)(valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__uuidString, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
+    const vs = new (__sameTypeClassOf(valueSource) as unknown as ValueSourceConstructor)(valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
     vs.__node = allowWhenValueSourceNode
     vs.__valueSource = valueSource
     vs.__error = error
@@ -2888,7 +2870,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
             // Avoid treat the column as a custom boolean
             typeAdapter = proxyTypeAdapterFor(typeAdapter)
         }
-        return [required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
+        return [required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
     } else {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline select')
     }

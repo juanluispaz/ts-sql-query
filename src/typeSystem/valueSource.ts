@@ -128,7 +128,6 @@ export interface __ValueSourcePrivate extends IQueryDataDiscovery {
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
     __aggregatedArrayDistinct?: boolean | undefined
-    __uuidString?: boolean | undefined
 
     isConstValue(): boolean
     getConstValue(): any

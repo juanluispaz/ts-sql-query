@@ -29,6 +29,7 @@ import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
+import { __isUuidText } from '../typeSystem/uuidText.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
@@ -1200,7 +1201,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             for (const arm of arms) {
                 const value = arm[name]
                 if (value) {
-                    if (__getValueSourcePrivate(value).__uuidString) {
+                    if (__isUuidText(__getValueSourcePrivate(value))) {
                         uuidText = true
                     } else {
                         otherText = true
@@ -1210,7 +1211,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (uuidText && otherText) {
                 for (const arm of arms) {
                     const value = arm[name]
-                    if (value && __getValueSourcePrivate(value).__uuidString) {
+                    if (value && __isUuidText(__getValueSourcePrivate(value))) {
                         if (!result) {
                             result = new Set()
                         }

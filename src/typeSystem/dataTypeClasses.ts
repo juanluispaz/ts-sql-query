@@ -1,5 +1,7 @@
 import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import { ValueSourceImpl, __sameTypeClassOf } from '../internal/ValueSourceImpl.js'
+import type { __ValueSourcePrivate } from './valueSource.js'
 import { BooleanType } from './logical.js'
 import { BigintType, DoubleType, IntType } from './number.js'
 import { StringDecimalType } from './decimals.js'
@@ -52,6 +54,18 @@ const customDataTypeFamilies: { readonly [customType in CustomType]: { of(typeNa
 /** The class a method that takes a data type gets: the class itself, or the class of a built-in data type by its name */
 export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass {
     return typeof type === 'string' ? __dataTypeClassOf(type, undefined) : type
+}
+
+/**
+ * The class of the data type of a value source, for a value source that keeps its SQL (a column of a `with`, a select
+ * used as a value): its class, or, for the value sources that are not yet instances of a class (the aggregated arrays),
+ * the class of its type and custom type
+ */
+export function __dataTypeClassOfValueSource(valueSource: __ValueSourcePrivate): DataTypeClass {
+    if (valueSource instanceof ValueSourceImpl) {
+        return __sameTypeClassOf(valueSource)
+    }
+    return __dataTypeClassOf(valueSource.__type, valueSource.__customType)
 }
 
 /** The class of the data type of a type and a custom type */

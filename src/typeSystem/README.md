@@ -29,6 +29,12 @@ Read this before changing anything here. The code is the reference; this file sa
   `CustomEqualableType`), and, only while the methods live in `ValueSourceImpl`, the int, double, bigint or string a
   family gives in `static [runtimeTypes]` (the int of `length` in `StringsType`, the double of `sqrt` in the numbers,
   ...), which goes away when the family imports them in its own methods.
+- A data type can say, in `static [computedType]`, the class a value computed from it gets, when it is not its own:
+  the text of a uuid (`UuidTextType`, [`uuidText.ts`](./uuidText.ts), only for the run time: TypeScript sees a
+  `StringType`) is still the uuid in SQL, and the SQL builder converts it where it meets another text. A method gives
+  a computed value the class `__typeClassOf` says (`concat`, `valueWhenNull` or `max` of the text of a uuid give a
+  text), and a value source that keeps the SQL of another one (`allowWhen`, `asOptional`, a column of a `with`, a
+  select used as a value) its very class (`__sameTypeClassOf`).
 - A value source has two axes apart: its data type (its class) and its **node**: how it is written and what it
   reaches in the tree (a constant, a function of a value source, a fragment, a column, ...), `__node`, a
   `NodeStrategy`: one object for each kind of node, shared and without state, which receives the value source; the

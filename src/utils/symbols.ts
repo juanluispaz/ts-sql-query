@@ -42,6 +42,9 @@ export const intType: unique symbol = Symbol('intType')
 // While the methods of a family still live in ValueSourceImpl: the built-in data types they give, in a static of the
 // family (the int of `length`, the double of `sqrt`, ...). It goes away when the methods move into the family
 export const runtimeTypes: unique symbol = Symbol('runtimeTypes')
+// The class a value source computed from one of this data type gets, when it is not the same (the text of a uuid gives a
+// text): a static of the class
+export const computedType: unique symbol = Symbol('computedType')
 export const booleanValueSource: unique symbol = Symbol('booleanValueSource')
 export const ifValueSource: unique symbol = Symbol('ifValueSource')
 export const anyBooleanValueSource: unique symbol = Symbol('anyBooleanValueSource')

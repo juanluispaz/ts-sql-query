@@ -10,6 +10,7 @@ import { isMariaDBReservedWord } from '../utils/mySqlMariaDB/mariaDBReservedWord
 import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
+import { __isUuidText } from '../typeSystem/uuidText.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // MariaDB 10.5+ reads a column of the row in its on duplicate key update with a subquery over a derived table of
@@ -38,7 +39,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         return this._getUuidStrategy() === 'uuid' && this._connectionConfiguration.compatibilityVersion >= 10_007_000
     }
     _isUuidText(value: unknown): boolean {
-        return isValueSource(value) && !!__getValueSourcePrivate(value).__uuidString
+        return isValueSource(value) && __isUuidText(__getValueSourcePrivate(value))
     }
     _appendUuidTextAsChar(sql: string): string {
         return 'cast(' + sql + ' as char(36))'

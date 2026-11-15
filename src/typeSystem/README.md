@@ -79,10 +79,13 @@ Two rules hold them:
   give the other side, a `where` or a `having` with nothing is not written. A new place that composes conditions must
   do the same.
 - **Without a value, an operation reaches only what it writes**: the neutral reaches nothing (its receiver must not
-  make a table of an optional join required, nor add a `with`), the receiver reaches what the receiver reaches. Each
-  method of the node (`__addWiths`, `__registerTableOrView`, ..., `__hasAggregation`) asks for the value as `__toSql`
-  does. These guards came one node at a time with the fixes of 2022 and 2023; the nodes of the receiver walk the
-  operand also without a value, which reaches nothing because it is not a value.
+  make a table of an optional join required, nor add a `with`), the receiver reaches what the receiver reaches.
+
+One function of `ValueSourceImpl.ts`, `ifValueNode`, makes the node of each of these operations from the node of the
+operation it applies when there is a value (`sqlOperation1ValueSourceNode`, the `in`, the operation of two operands):
+each method of the node asks for the value once, as `__toSql` does, and without one gives what the neutral or the
+receiver gives. The value source keeps the fields of its operation (`__operation`, `__valueSource`, `__value`), so what
+reads them (the flattening of a `concat`) sees the same thing with or without `IfValue`.
 
 ## The NType: the name of a data type for TypeScript
 

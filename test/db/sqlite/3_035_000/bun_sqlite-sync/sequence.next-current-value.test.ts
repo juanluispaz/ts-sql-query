@@ -109,7 +109,7 @@ describe(ctx.label, () => {
             // int / bigint of the sequences above. The emitted SQL is identical
             // to the int form (the value type only changes the type adapter);
             // the assertion pins that `nextValue()` projects the branded
-            // CustomIntValueSource.
+            // customInt value source.
             ctx.mockNext(7)
             const next = await ctx.conn.selectFromNoTable()
                 .selectOneColumn(ctx.conn.releaseTagSeq.nextValue())
@@ -155,7 +155,7 @@ describe(ctx.label, () => {
         await ctx.withCommit(async () => {
             // `currentValue()` over a branded `customInt` sequence
             // (release_tag_seq / ReleaseTag): the result is the branded
-            // CustomIntValueSource, like nextValue.
+            // customInt value source, like nextValue.
             ctx.mockNext(7)
             if (ctx.realDbEnabled) {
                 await ctx.conn.selectFromNoTable()

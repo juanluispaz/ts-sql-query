@@ -770,8 +770,8 @@ describe(ctx.label, () => {
 
     test('boolean/if-value-source-and-or-with-concrete-boolean-collapses-to-projectable-boolean', async () => {
         // A live IfValueSource (`status.equalsIfValue(value)`) combined via `.and` /
-        // `.or` with a concrete BooleanValueSource operand (`priority.greaterThan(1)`)
-        // collapses to a projectable `BooleanValueSource` (an IfValueSource operand
+        // `.or` with a concrete boolean value source operand (`priority.greaterThan(1)`)
+        // collapses to a projectable boolean value source (an IfValueSource operand
         // would instead keep it a non-projectable IfValueSource). The status filter is
         // a present value, so both predicates fire.
         // issue 1: status 'open', priority 2 → and (T&T)=true,  or (T|T)=true
@@ -812,7 +812,7 @@ describe(ctx.label, () => {
 
     test('null-modifiers-on-custom-comparable-version-leaf', async () => {
         // `version` is a customComparable column typed as the bare
-        // ComparableValueSource — no leaf overrides its Nullable family, so the
+        // comparable value source — no leaf overrides its Nullable family, so the
         // base-interface redeclarations of `valueWhenNull` / `nullIfValue` /
         // `asOptional` (plus inherited `isNotNull`) are reached by NO other leaf.
         // The assertions pin the brand-preserving return type: coalesce stays a
@@ -853,7 +853,7 @@ describe(ctx.label, () => {
 
     test('null-modifiers-on-custom-channel-leaf', async () => {
         // `channel` is a `custom` (equality-only) column typed as the bare
-        // EqualableValueSource — same bare-base situation as version above, but on
+        // equalable value source — same bare-base situation as version above, but on
         // the Equalable redeclarations. The value type is the
         // ReleaseChannel union, so the brand is preserved through coalesce / nullif
         // / asOptional. Seed channels: 'stable'(1), 'beta'(2), 'canary'(3);
@@ -891,7 +891,7 @@ describe(ctx.label, () => {
     })
 
     test('null-modifiers-on-enum-activity-leaf', async () => {
-        // `activity` is an `enum` column typed as the bare EqualableValueSource —
+        // `activity` is an `enum` column typed as the bare equalable value source —
         // the third bare-base leaf. The value type is the WorklogActivity union;
         // valueWhenNull / nullIfValue / asOptional preserve it. Seed activities:
         // 'coding'(1), 'review'(2), 'meeting'(3); nullIfValue's probe 'meeting'

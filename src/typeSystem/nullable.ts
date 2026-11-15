@@ -55,7 +55,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         const vs = this as unknown as ValueSourceRoot
         let typeClass = __typeClassOf(vs)
         // Promote the declared numeric type from the fallback operand, the same way the
-        // overloaded-number operations do (createSqlOperation1ofOverloadedNumber): an `int`
+        // operations of the group number do (promotedNumberOperation in number.ts): an `int`
         // receiver with a `double` fallback emits `coalesce(<int>, <double>)`, which the
         // engine resolves to the wider `double`, so a NULL int row legitimately returns the
         // double's fraction. Without vs promotion the result is still declared `int` and
@@ -91,8 +91,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
     nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, 'optional'>
     nullIfValue(value: any): any {
-        const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperation1ValueSource('_nullIfValue', vs, value, __typeClassOf(vs), 'optional', getTypeAdapter2(vs, value))
+        return __newSqlOperation1ValueSource('_nullIfValue', this, value, __typeClassOf(this), 'optional', getTypeAdapter2(this, value))
     }
     asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     asOptional(): any {

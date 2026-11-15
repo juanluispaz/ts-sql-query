@@ -100,19 +100,54 @@ A few methods of a value source depend on its node and not only on its data type
 
 `BaseType`, the root of the classes of the data types, extends `ValueSourceRoot` through a cast TypeScript doesn't see
 (`ValueSourceRoot as unknown as abstract new () => object`): every value source has these fields and methods at run
-time, and the public types and the `.d.ts` have only what the classes declare. A method of a class reaches them with
-`const vs = this as unknown as ValueSourceRoot`.
+time, and the public types and the `.d.ts` have only what the classes declare.
+
+## How a method of a data type creates its result
+
+A method of a class doesn't see the fields of the run time, so it passes `this` to the functions of the nodes, which
+take it as a **`DataTypeValueSource`** ([`NodeStrategy.ts`](./NodeStrategy.ts)): the value source as a method of a data
+type class passes it. It requires only the NType (`[typeName]`), the member `BaseType` declares for TypeScript, so
+`this` of any class of a data type fits and a plain object doesn't; the function casts it once to `NodeValueSource`
+where it reads a field. The class says the operation, its operands and the class of the result; the functions of the
+nodes combine the optionality and the type adapter:
+
+```ts
+concat(value: any): any {
+    return __newSqlOperation1ValueSource('_concat', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
+}
+```
+
+- **The creations** (`__newSqlOperation1ValueSource`, `__newSqlOperation1ValueSourceIfValueOrNoop`, `__newSqlOperationInValueSource`,
+  `__newNoopValueSource`, ...) take the value source they apply to as `DataTypeValueSource | NodeValueSource`: a class
+  passes `this`, a node or the factory another value source.
+- **The operands** ([`operands.ts`](./operands.ts): `getOptionalType2`, `getOptionalType3`, `getRequiredType2`,
+  `getOptionalTypeOfIn`, `getOptionalTypeN`, `getTypeAdapter2`, `getTypeAdapter3`) take the receiver the same way.
+- **The class of the result**: `__typeClassOf` and `__sameTypeClassOf` ([`dataTypeClassOf.ts`](./dataTypeClassOf.ts)) take a
+  `DataTypeValueSource` or the private state of a value source (`__ValueSourcePrivate`), and `__conditionTypeOf` /
+  `__doubleTypeOf` (of `src/typeSystem/valueSourceBase.ts`) a `DataTypeValueSource`.
+- **An operation of the receiver with its own optionality and type adapter**: `__operation0(this, operation, typeClass)`,
+  and `__operation1(this, operation, value, typeClass)` with those of the receiver and the value
+  ([`operations.ts`](./operations.ts)).
+- **The methods two families share**: `__asRequiredInOptionalObjectOf`, `__onlyWhenOrNullOf`, `__ignoreWhenAsNullOf`
+  ([`valueSourceRoot.ts`](./valueSourceRoot.ts)), and `__priorOf` (`operations.ts`).
+
+A method that passes a field of the receiver itself (its optionality or its type adapter where no function above takes
+them, its node for a hook, its type to decide a promotion) still reads it with `const vs = this as unknown as
+ValueSourceRoot`: `collate`, `isNull`, `isNotNull`, `asOptional`, `valueWhenNull`, `onlyWhen`, `ignoreWhen`,
+`trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue`, `asInt` and `asBigint` of a number, and
+`useEmptyArrayForNoValue`, `asOptionalNonEmptyArray` and `projectingOptionalValuesAsNullable` of an aggregated array;
+and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps only the type adapter of the receiver.
 
 ## The files
 
 | File | What it has |
 |---|---|
-| [`NodeStrategy.ts`](./NodeStrategy.ts) | `NodeStrategy`, `NodeValueSource` (a value source as its node sees it) and `valueSourceNode` |
+| [`NodeStrategy.ts`](./NodeStrategy.ts) | `NodeStrategy`, `NodeValueSource` (a value source as its node sees it), `DataTypeValueSource` (a value source as a method of its class passes it) and `valueSourceNode` |
 | [`valueSourceRoot.ts`](./valueSourceRoot.ts) | `ValueSourceRoot`, and the functions of the methods two families share |
 | [`dataTypeClassOf.ts`](./dataTypeClassOf.ts) | the class of the data type of a value source, and how a class creates one |
 | [`operands.ts`](./operands.ts) | the optionality and the type adapter of an operation from those of its operands |
 | [`constants.ts`](./constants.ts) | a constant, the functions without operands (`currentDate`, `true`, `exists`, ...), a sequence, a null |
-| [`operations.ts`](./operations.ts) | the functions and the operators of a value source with zero, one or two operands, `in`, `collate`, `isNull`, `valueWhenNull`, the no-op of `asOptional`, `__operation0` / `__operation1` (an operation with the class of its result) |
+| [`operations.ts`](./operations.ts) | the functions and the operators of a value source with zero, one or two operands, `in`, `collate`, `isNull`, `valueWhenNull`, the no-op of `asOptional`, `__operation0` / `__operation1` (an operation of the receiver with the class of its result) |
 | [`ifValue.ts`](./ifValue.ts) | the operations that disappear without a value (`*IfValue`), the neutral, and `valueWhenNoValue` / `trueWhenNoValue` / `falseWhenNoValue` |
 | [`allowWhen.ts`](./allowWhen.ts) | a value source guarded by `allowWhen` / `disallowWhen` |
 | [`fragments.ts`](./fragments.ts) | a fragment of SQL, a call to a function of the database, a virtual column made with a fragment |
@@ -141,7 +176,9 @@ operation it is and passes its parts, and never writes the SQL of a database.
 ## Adding a kind of node
 
 1. Its interface (the fields it needs, on a `NodeValueSource`), its strategy (`...valueSourceNode` and what it
-   changes) and its creation, in the file of its group, or in a new file when it is a group of its own.
+   changes) and its creation, in the file of its group, or in a new file when it is a group of its own. A creation that
+   a method of a class calls takes the value source it applies to as `DataTypeValueSource | NodeValueSource`, so the
+   method passes `this`.
 2. Its creation in `valueSourceFactory.ts` if something outside the classes creates it, and a question there
    (`__isX(value)`, comparing `value.__node`) if something else must recognise it.
 3. Its method in the SQL builder (`SqlBuilder.ts` and `AbstractSqlBuilder.ts`) if it writes an operation of its own.

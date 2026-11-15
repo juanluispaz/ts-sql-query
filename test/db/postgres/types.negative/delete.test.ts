@@ -21,7 +21,7 @@ function _typeNegatives() {
     // @ts-expect-error 1 is not a table reference
     void connection.deleteFrom(1)
 
-    // Rule: where(...) must take a BooleanValueSource. An int column
+    // Rule: where(...) must take a boolean value source. An int column
     // reference from the same table is not boolean.
     // @ts-expect-error int column is not a boolean value source
     void connection.deleteFrom(tIssue).where(tIssue.priority)

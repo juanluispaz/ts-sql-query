@@ -9,6 +9,7 @@ import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
+import type { DataTypeValueSource } from '../nodes/NodeStrategy.js'
 import type { SqlOperation1 } from '../sqlBuilders/SqlBuilder.js'
 import { isValueSource } from './valueSource.js'
 
@@ -226,7 +227,7 @@ const numberTypeClasses = { int: IntType, double: DoubleType }
  * int, a double with a double. A number given as a value is an int when it is an integer (TypeScript can't tell 2 from
  * 2.5: the value decides it)
  */
-function promotedNumberOperation(valueSource: object, value: any, operation: keyof SqlOperation1): any {
+function promotedNumberOperation(valueSource: DataTypeValueSource, value: any, operation: keyof SqlOperation1): any {
     const vs = valueSource as ValueSourceRoot
     if (vs instanceof DoubleType) {
         return __operation1(vs, operation, value, DoubleType)

@@ -289,7 +289,7 @@ describe(ctx.label, () => {
 
     // compare-`*IfValue` on a non-int leaf — customComparable
     // tProjectRelease.version ('Semver', required): 1=1.2.0, 2=1.3.0-beta.1,
-    // 3=0.9.0. customComparable is a ComparableValueSource, so the ordered
+    // 3=0.9.0. customComparable is a comparable value source, so the ordered
     // IfValue arms (`greaterOrEqualIfValue`/`lessThanIfValue`) apply.
 
     test('customComparable-compare-if-value-fires-and-elides', async () => {

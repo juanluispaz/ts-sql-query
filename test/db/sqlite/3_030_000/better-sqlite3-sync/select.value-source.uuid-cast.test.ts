@@ -691,7 +691,7 @@ describe(ctx.label, () => {
     })
 
     // -- uuid.asString() string-method fan-out --
-    // The remaining StringValueSource methods on a uuid-derived receiver: each
+    // The remaining string methods on a uuid-derived receiver: each
     // converts the receiver before the string function (bare text elsewhere). Values
     // are pinned against seeded issue 1 (REF1); the negative-index substr forms land
     // in the all-digit tail, so they stay case-invariant across dialects.

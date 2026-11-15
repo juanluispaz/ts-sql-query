@@ -201,7 +201,7 @@ describe(ctx.label, () => {
     })
 
     test('boolean-ignore-when-gates-where', async () => {
-        // `.ignoreWhen(...)` is the inverse gate on a `BooleanValueSource`:
+        // `.ignoreWhen(...)` is the inverse gate on a boolean value source:
         // `true` drops the predicate (no WHERE → every row); `false` keeps it.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(all)

@@ -150,8 +150,8 @@ describe(ctx.label, () => {
     })
 
     test('if-value-and-boolean-collapses-to-projectable-boolean', async () => {
-        // `IfValueSource.and(BooleanValueSource)` returns a `BooleanValueSource`,
-        // not an `IfValueSource`; only a `BooleanValueSource` is projectable as a
+        // `IfValueSource.and(boolean value source)` returns a boolean value source,
+        // not an `IfValueSource`; only a boolean value source is projectable as a
         // boolean leaf, so this select compiles and yields a `boolean`. Issue 1:
         // priority 2 == 2 and the title contains 'hero' -> true.
         const expected = { id: 1, flag: true }
@@ -204,9 +204,9 @@ describe(ctx.label, () => {
     })
 
     test('if-value-or-boolean-collapses-to-projectable-boolean', async () => {
-        // `IfValueSource.or(BooleanValueSource)` collapses to a
-        // `BooleanValueSource` (not an `IfValueSource`) — the `.or` twin of
-        // the `.and` collapse above. Only a `BooleanValueSource` is
+        // `IfValueSource.or(boolean value source)` collapses to a
+        // boolean value source (not an `IfValueSource`) — the `.or` twin of
+        // the `.and` collapse above. Only a boolean value source is
         // projectable as a boolean leaf, so this select compiles and yields a
         // `boolean`. Issue 1: priority 2 == 2, so the disjunction is true.
         const expected = { id: 1, flag: true }
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
     })
 
     test('boolean-and-if-value-present-collapses-to-projectable-boolean', async () => {
-        // `BooleanValueSource.and(IfValueSource)` returns a `BooleanValueSource`
+        // `boolean.and(IfValueSource)` returns a boolean value source
         // (not an IfValueSource) whose optionality is the merge of both
         // operands; `status` is a required column so the merged leaf is a plain
         // `boolean`. With the IfValue argument carrying a value both predicates
@@ -261,7 +261,7 @@ describe(ctx.label, () => {
 
     test('boolean-and-if-value-no-value-elides-to-just-the-boolean', async () => {
         // The runtime fork: when the IfValue argument carries no value it
-        // elides and `BooleanValueSource.and(<no value>)` reduces to just the
+        // elides and `boolean.and(<no value>)` reduces to just the
         // receiver — only `priority = $1` is emitted. The compile-time leaf
         // is still `boolean` (the merged optionality is computed statically,
         // independent of the runtime elision). Issue 1: priority 2 == 2 -> true.
@@ -287,7 +287,7 @@ describe(ctx.label, () => {
     })
 
     test('boolean-or-if-value-present-collapses-to-projectable-boolean', async () => {
-        // `BooleanValueSource.or(IfValueSource)` returns a `BooleanValueSource`
+        // `boolean.or(IfValueSource)` returns a boolean value source
         // (`boolean`); with a value present both predicates are emitted.
         // Issue 1: priority 2 != 99 but status == 'open', so the disjunction
         // is true.

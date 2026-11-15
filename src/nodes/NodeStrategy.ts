@@ -5,9 +5,20 @@ import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAgg
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { typeName } from '../utils/symbols.js'
 import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
+
+/**
+ * A value source as a method of a data type class passes it (`this`) to the functions of the nodes (the creations, the
+ * optionality and the type adapter of the operands, the class of the result, ...). TypeScript sees in a class only what
+ * `BaseType` declares, so it requires the NType (`[typeName]`), which every data type class has and a plain object
+ * doesn't; the function reads the fields of the run time with a single cast to `NodeValueSource`
+ */
+export interface DataTypeValueSource {
+    readonly [typeName]: string
+}
 
 /**
  * A value source as its node sees it: the fields every value source has (`__ValueSourcePrivate`), how it is written,

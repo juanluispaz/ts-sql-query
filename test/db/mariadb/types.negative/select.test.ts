@@ -163,7 +163,7 @@ function _typeNegatives() {
 
     // Rule: .startsWith and other string-only ops are not available on int
     // columns.
-    // @ts-expect-error startsWith does not exist on a NumberValueSource
+    // @ts-expect-error startsWith does not exist on a number value source
     void tProject.id.startsWith('1')
 
     // Rule: .equals on a string column requires a string, not a number.
@@ -177,7 +177,7 @@ function _typeNegatives() {
 
     // Rule: aggregate functions returned a value source — they cannot be
     // called on the connection without a column argument when their
-    // overload requires one (e.g. sum needs a NumberValueSource).
+    // overload requires one (e.g. sum needs a number value source).
     // @ts-expect-error sum requires a number value source, not a string
     void connection.sum(tAppUser.email)
 
@@ -417,48 +417,48 @@ function _typeNegatives() {
             x: tIssueWorklog.billedAmount.add(worklog2.billedAmount),
         })
 
-    // Rule: CustomDoubleValueSource deliberately OMITS the numeric CAST methods
+    // Rule: a customDouble deliberately OMITS the numeric CAST methods
     // asInt / asDouble / asBigint — a custom double carries its own brand +
     // TYPE_NAME, and casting it to a plain int/double/bigint would erase that
-    // brand, so those casts are `NumberValueSource`-only (commented out in the
-    // CustomDoubleValueSource interface). Each must stay absent so an accidental
+    // brand, so those casts are int/double-only (commented out in the
+    // customDouble data type). Each must stay absent so an accidental
     // un-comment would be caught here. billedAmount is a customDouble 'Money' column.
-    // @ts-expect-error asInt is a NumberValueSource-only cast, absent on customDouble
+    // @ts-expect-error asInt is an int/double-only cast, absent on customDouble
     void tIssueWorklog.billedAmount.asInt()
-    // @ts-expect-error asDouble is a NumberValueSource-only cast, absent on customDouble
+    // @ts-expect-error asDouble is an int/double-only cast, absent on customDouble
     void tIssueWorklog.billedAmount.asDouble()
-    // @ts-expect-error asBigint is a NumberValueSource-only cast, absent on customDouble
+    // @ts-expect-error asBigint is an int/double-only cast, absent on customDouble
     void tIssueWorklog.billedAmount.asBigint()
 
-    // Rule: BigintValueSource deliberately OMITS divide and the float-only math
+    // Rule: a bigint deliberately OMITS divide and the float-only math
     // methods (power / sqrt / exp / ln / log10 / cbrt / atan2 / logn / roundn /
     // sin) — bigint arithmetic stays exact (multiply is exact, so it is there). Each must stay absent so
     // that an accidentally-uncommented method would be caught here. viewCount is
     // a bigint column.
-    // @ts-expect-error divide is not a BigintValueSource method
+    // @ts-expect-error divide is not a bigint method
     void tIssue.viewCount.divide(2n)
-    // @ts-expect-error power is not a BigintValueSource method
+    // @ts-expect-error power is not a bigint method
     void tIssue.viewCount.power(2n)
-    // @ts-expect-error sqrt is not a BigintValueSource method
+    // @ts-expect-error sqrt is not a bigint method
     void tIssue.viewCount.sqrt()
-    // @ts-expect-error exp is not a BigintValueSource method
+    // @ts-expect-error exp is not a bigint method
     void tIssue.viewCount.exp()
-    // @ts-expect-error ln is not a BigintValueSource method
+    // @ts-expect-error ln is not a bigint method
     void tIssue.viewCount.ln()
-    // @ts-expect-error log10 is not a BigintValueSource method
+    // @ts-expect-error log10 is not a bigint method
     void tIssue.viewCount.log10()
-    // @ts-expect-error cbrt is not a BigintValueSource method
+    // @ts-expect-error cbrt is not a bigint method
     void tIssue.viewCount.cbrt()
-    // @ts-expect-error atan2 is not a BigintValueSource method
+    // @ts-expect-error atan2 is not a bigint method
     void tIssue.viewCount.atan2(2n)
-    // @ts-expect-error logn is not a BigintValueSource method
+    // @ts-expect-error logn is not a bigint method
     void tIssue.viewCount.logn(2n)
-    // @ts-expect-error roundn is not a BigintValueSource method
+    // @ts-expect-error roundn is not a bigint method
     void tIssue.viewCount.roundn(2)
-    // @ts-expect-error sin is not a BigintValueSource method
+    // @ts-expect-error sin is not a bigint method
     void tIssue.viewCount.sin()
 
-    // Rule: CustomIntValueSource — like BigintValueSource — OMITS the float-only
+    // Rule: a customInt — like a bigint — OMITS the float-only
     // math methods so a custom INT stays exact: exp / ln / log10 / sqrt / cbrt, the
     // trigonometric acos / asin / atan / cos / cot / sin / tan, and power / logn /
     // roundn / divide / atan2 are all absent (commented out in the interface). Only
@@ -467,39 +467,39 @@ function _typeNegatives() {
     // `multiply` is NOT locked here (it is active on customInt, unlike on bigint).
     // Each absent method must stay absent so an accidental un-comment is caught.
     // costCents is a customInt 'Cents' column.
-    // @ts-expect-error exp is not a CustomIntValueSource method
+    // @ts-expect-error exp is not a customInt method
     void tIssueWorklog.costCents.exp()
-    // @ts-expect-error ln is not a CustomIntValueSource method
+    // @ts-expect-error ln is not a customInt method
     void tIssueWorklog.costCents.ln()
-    // @ts-expect-error log10 is not a CustomIntValueSource method
+    // @ts-expect-error log10 is not a customInt method
     void tIssueWorklog.costCents.log10()
-    // @ts-expect-error sqrt is not a CustomIntValueSource method
+    // @ts-expect-error sqrt is not a customInt method
     void tIssueWorklog.costCents.sqrt()
-    // @ts-expect-error cbrt is not a CustomIntValueSource method
+    // @ts-expect-error cbrt is not a customInt method
     void tIssueWorklog.costCents.cbrt()
-    // @ts-expect-error acos is not a CustomIntValueSource method
+    // @ts-expect-error acos is not a customInt method
     void tIssueWorklog.costCents.acos()
-    // @ts-expect-error asin is not a CustomIntValueSource method
+    // @ts-expect-error asin is not a customInt method
     void tIssueWorklog.costCents.asin()
-    // @ts-expect-error atan is not a CustomIntValueSource method
+    // @ts-expect-error atan is not a customInt method
     void tIssueWorklog.costCents.atan()
-    // @ts-expect-error cos is not a CustomIntValueSource method
+    // @ts-expect-error cos is not a customInt method
     void tIssueWorklog.costCents.cos()
-    // @ts-expect-error cot is not a CustomIntValueSource method
+    // @ts-expect-error cot is not a customInt method
     void tIssueWorklog.costCents.cot()
-    // @ts-expect-error sin is not a CustomIntValueSource method
+    // @ts-expect-error sin is not a customInt method
     void tIssueWorklog.costCents.sin()
-    // @ts-expect-error tan is not a CustomIntValueSource method
+    // @ts-expect-error tan is not a customInt method
     void tIssueWorklog.costCents.tan()
-    // @ts-expect-error power is not a CustomIntValueSource method
+    // @ts-expect-error power is not a customInt method
     void tIssueWorklog.costCents.power(2)
-    // @ts-expect-error logn is not a CustomIntValueSource method
+    // @ts-expect-error logn is not a customInt method
     void tIssueWorklog.costCents.logn(2)
-    // @ts-expect-error roundn is not a CustomIntValueSource method
+    // @ts-expect-error roundn is not a customInt method
     void tIssueWorklog.costCents.roundn(2)
-    // @ts-expect-error divide is not a CustomIntValueSource method
+    // @ts-expect-error divide is not a customInt method
     void tIssueWorklog.costCents.divide(2)
-    // @ts-expect-error atan2 is not a CustomIntValueSource method
+    // @ts-expect-error atan2 is not a customInt method
     void tIssueWorklog.costCents.atan2(2)
 
     // Rule: numeric arithmetic requires operands of the SAME leaf kind — a bigint
@@ -516,7 +516,7 @@ function _typeNegatives() {
 
     // Rule: ordered-comparison methods (lessThan / greaterThan / lessOrEquals /
     // greaterOrEquals / between / notBetween) exist only on a
-    // ComparableValueSource. A boolean / enum / custom leaf is Equalable but NOT
+    // comparable value source. A boolean / enum / custom leaf is Equalable but NOT
     // Comparable, so these must not compile. `lessThan` pins the not-Comparable
     // contract; `between` pins the range-comparison group (a distinct signature).
     // @ts-expect-error boolean is not ordered-comparable — no lessThan
@@ -531,7 +531,7 @@ function _typeNegatives() {
     void connection.const('stable', CustomEqualableType.of<string, 'ReleaseChannel'>('ReleaseChannel')).lessThan('beta')
 
     // Rule: equalsInsensitive / notEqualsInsensitive are string-only (case
-    // folding is meaningless off a StringValueSource), so they must not exist on
+    // folding is meaningless off a string value source), so they must not exist on
     // an int / boolean / enum leaf.
     // @ts-expect-error equalsInsensitive is string-only — absent on int
     void tProject.id.equalsInsensitive(1)

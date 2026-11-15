@@ -639,7 +639,7 @@ describe(ctx.label, () => {
     // required `number` leaf (not `?: number`).
 
     test('customLocalDateTime-required-getters', async () => {
-        // All 9 LocalDateTimeValueSource getters on the REQUIRED custom-localDateTime
+        // All 9 localDateTime getters on the REQUIRED custom-localDateTime
         // column publishedAt — every getter is a required `number` leaf. Release 1:
         // published_at 2024-01-16 09:00:00 (a Tuesday) -> year 2024, month 0
         // (January, JS 0-indexed), date 16, day-of-week 2, hours 9, minutes 0,
@@ -676,7 +676,7 @@ describe(ctx.label, () => {
     // -> 17:00:00. The custom-localTime getter surface on a VIEW receiver.
 
     test('view-customLocalTime-getters', async () => {
-        // The 4 LocalTimeValueSource getters on the REQUIRED View custom-localTime
+        // The 4 localTime getters on the REQUIRED View custom-localTime
         // column cutoffClock — each is a required `number` leaf. Release 1:
         // cutoff_clock 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
         const expected = [{ h: 17, m: 0, s: 0, ms: 0 }]
@@ -707,7 +707,7 @@ describe(ctx.label, () => {
     // Release 1 -> released_on 2024-01-15 -> year 2024.
 
     test('view-required-localDateTime-getters', async () => {
-        // All 9 LocalDateTimeValueSource getters on the REQUIRED plain (non-custom)
+        // All 9 localDateTime getters on the REQUIRED plain (non-custom)
         // View localDateTime column publishStampPlain — every getter is a required
         // `number` leaf (not `?: number`). Release 1: published_stamp_plain
         // 2024-01-16 09:00:00 (a Tuesday) -> year 2024, month 0 (January, JS
@@ -741,7 +741,7 @@ describe(ctx.label, () => {
     })
 
     test('view-required-customLocalDateTime-getters', async () => {
-        // All 9 LocalDateTimeValueSource getters on the REQUIRED custom View
+        // All 9 localDateTime getters on the REQUIRED custom View
         // localDateTime column publishStamp ('PublishStamp') — every getter is a
         // required `number` leaf. Release 1: published_stamp 2024-01-16 09:00:00
         // (a Tuesday) -> the same components as the plain twin above.
@@ -802,7 +802,7 @@ describe(ctx.label, () => {
     // 2024-06-15 13:45:30 (a Saturday).
 
     test('view-plain-localDateTime-getters', async () => {
-        // The 9 LocalDateTimeValueSource getters on the plain (non-custom) OPTIONAL
+        // The 9 localDateTime getters on the plain (non-custom) OPTIONAL
         // View localDateTime column archivedAt — each carries the optional marker to
         // a `number | undefined` leaf. project.archived_at is updated in-rollback to
         // 2024-06-15 13:45:30 (a Saturday) -> year 2024, month 5 (June, JS
@@ -857,7 +857,7 @@ describe(ctx.label, () => {
     // date 15, day-of-week 1.
 
     test('custom-localDate-asOptional-getters', async () => {
-        // The `getMonth`/`getDate`/`getDay` LocalDateValueSource getters on the
+        // The `getMonth`/`getDate`/`getDay` localDate getters on the
         // custom-localDate column releasedOn demoted via `.asOptional()` — each carries the
         // optional marker to a `number | undefined` leaf. Release 1: released_on
         // 2024-01-15 (a Monday) -> month 0 (January, JS 0-indexed), date 15,
@@ -889,7 +889,7 @@ describe(ctx.label, () => {
     // cutoff_time 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
 
     test('custom-localTime-asOptional-getters', async () => {
-        // The 4 LocalTimeValueSource getters on the custom-localTime column
+        // The 4 localTime getters on the custom-localTime column
         // cutoffTime demoted via `.asOptional()` — each carries the optional
         // marker to a `number | undefined` leaf. Release 1: cutoff_time 17:00:00
         // -> hours 17, minutes 0, seconds 0, milliseconds 0.
@@ -915,7 +915,7 @@ describe(ctx.label, () => {
     })
 
     test('view-custom-localDate-asOptional-getters', async () => {
-        // The 4 LocalDateValueSource getters on the View custom-localDate column
+        // The 4 localDate getters on the View custom-localDate column
         // releasedOn demoted via `.asOptional()` — each carries the optional
         // marker to a `number | undefined` leaf. Release 1: released_on 2024-01-15
         // (a Monday) -> year 2024, month 0 (January, JS 0-indexed), date 15,
@@ -950,7 +950,7 @@ describe(ctx.label, () => {
     // milliseconds 0.
 
     test('view-custom-localTime-asOptional-getters', async () => {
-        // The 4 LocalTimeValueSource getters on the View custom-localTime column
+        // The 4 localTime getters on the View custom-localTime column
         // cutoffClock demoted via `.asOptional()` — each carries the optional
         // marker to a `number | undefined` leaf. Release 1: cutoff_clock 17:00:00
         // -> hours 17, minutes 0, seconds 0, milliseconds 0.
@@ -982,7 +982,7 @@ describe(ctx.label, () => {
     // 2024, month 0 (January, JS 0-indexed), date 15, day-of-week 1.
 
     test('view-plain-localDate-getters', async () => {
-        // The 4 LocalDateValueSource getters on the plain (non-custom) REQUIRED
+        // The 4 localDate getters on the plain (non-custom) REQUIRED
         // View localDate column releaseDayPlain — each is a required `number`
         // leaf. Release 1: release_day_plain 2024-01-15 (a Monday) -> year 2024,
         // month 0 (January, JS 0-indexed), date 15, day-of-week 1.
@@ -1014,7 +1014,7 @@ describe(ctx.label, () => {
     // seconds 0, milliseconds 0.
 
     test('view-plain-localTime-getters', async () => {
-        // The 4 LocalTimeValueSource getters on the plain (non-custom) REQUIRED
+        // The 4 localTime getters on the plain (non-custom) REQUIRED
         // View localTime column cutoffPlain — each is a required `number` leaf.
         // Release 1: cutoff_plain 17:00:00 -> hours 17, minutes 0, seconds 0,
         // milliseconds 0.

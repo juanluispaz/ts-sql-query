@@ -1,6 +1,6 @@
 // Method-chained boolean composition on boolean value sources:
 // `.and(other)` / `.or(other)` / `.negate()` invoked directly on a
-// `BooleanValueSource` (the result of `.equals(...)`, `.in(...)`, …)
+// boolean value source (the result of `.equals(...)`, `.in(...)`, …)
 // rather than via the SELECT builder's `.where(...).and(...)` chain
 // already covered by `select.where.operators.test.ts`.
 //
@@ -8,7 +8,7 @@
 // (the `SqlOperation1ValueSource` branch
 // Their behaviour is observably different from the builder-side
 // `.and(...)` because the chained `.and(...)` returns a fresh
-// `BooleanValueSource` you can pass around (e.g. into
+// boolean value source you can pass around (e.g. into
 // `connection.exists(...)`, `dynamicConditionFor` extensions, ad-hoc
 // projection columns), where the builder-side `.and(...)` mutates the
 // current `__where`/`__on`/`__having` slot in place.
@@ -30,7 +30,7 @@ describe(ctx.label, () => {
 
     test('boolean-and-method-combines-two-predicates', async () => {
         // `equals(...).and(greaterOrEqual(...))` builds a single
-        // BooleanValueSource — handed to `.where(...)` as one
+        // boolean value source — handed to `.where(...)` as one
         // argument. The emitted SQL pairs the two predicates under
         // `AND` (most dialects without outer parens since AND is the
         // top-level connective in this WHERE).
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
     })
 
     test('boolean-or-method-combines-two-predicates', async () => {
-        // `equals(...).or(equals(...))` — single BooleanValueSource
+        // `equals(...).or(equals(...))` — single boolean value source
         // with two status values. The `OR` should appear without
         // outer parens at the top level of the WHERE.
         const expected = [{ id: 1 }, { id: 3 }, { id: 4 }]
@@ -268,7 +268,7 @@ describe(ctx.label, () => {
 
     test('if-value-and-boolean-literal-collapses-to-boolean', async () => {
         // `IfValueSource.and/or(boolean literal)` collapses to a
-        // BooleanValueSource. Projecting the result as a column is the type
+        // boolean value source. Projecting the result as a column is the type
         // lock: an IfValueSource is NOT projectable, so this only compiles
         // because the collapse produced a Boolean. issue 1 priority 2 →
         // `(priority = 2) and true` → true.
@@ -316,7 +316,7 @@ describe(ctx.label, () => {
     })
 
     test('if-value-or-boolean-literal-collapses-to-boolean', async () => {
-        // `IfValueSource.or(boolean literal)` collapses to a BooleanValueSource.
+        // `IfValueSource.or(boolean literal)` collapses to a boolean value source.
         // Projecting the result is the type lock (an IfValueSource is not
         // projectable). issue 1 priority 2 → `(priority = 2) or false` → true.
         const expected = [{ id: 1, flag: true }]
@@ -422,8 +422,8 @@ describe(ctx.label, () => {
         expect(rightRows).toEqual(expectedRight)
     })
 
-    // `.isNull()` / `.isNotNull()` are declared on NullableValueSource, which
-    // BooleanValueSource inherits, so they are callable on the boolean a
+    // `.isNull()` / `.isNotNull()` are declared for the nullable data types, which
+    // include the boolean, so they are callable on the boolean a
     // comparison produces — not just on a column. Whether the comparison can
     // itself be null decides the shape: a comparison between two required
     // operands never is, while one whose operand is an optional column can be.

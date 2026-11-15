@@ -93,7 +93,7 @@ describe(ctx.label, () => {
 
     // ── A plain (non-adapter) native-boolean COLUMN as a combinator receiver ──
     // `issue_worklog.billable` is a plain nullable boolean (no CustomBooleanTypeAdapter).
-    // Used directly as a BooleanValueSource receiver of `.negate()` / `.and()` /
+    // Used directly as a boolean value source receiver of `.negate()` / `.and()` /
     // `.or()` / `.onlyWhen()` / `.ignoreWhen()`, it renders the bare column
     // predicate for the dialect (native `billable` where the engine has a boolean
     // type, `billable = 1` where it does not). Seed billable: worklog 1 TRUE,

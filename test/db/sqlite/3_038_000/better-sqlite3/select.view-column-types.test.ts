@@ -64,7 +64,7 @@ describe(ctx.label, () => {
 
     test('view-side-custom-comparable-column-supports-ordering-operators', async () => {
         // The customComparable `version` on the View confers `<` / orderBy
-        // (an EqualableValueSource could not). Releases below 1.3.0: 1 (1.2.0)
+        // (an equalable value source could not). Releases below 1.3.0: 1 (1.2.0)
         // and 3 (0.9.0), ordered descending.
         const expected = [
             { id: 1, version: '1.2.0' },

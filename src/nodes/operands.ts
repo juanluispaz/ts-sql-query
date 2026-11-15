@@ -5,7 +5,7 @@ import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.
 import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { isSelectQuery } from './inlineSelect.js'
-import type { NodeValueSource } from './NodeStrategy.js'
+import type { DataTypeValueSource, NodeValueSource } from './NodeStrategy.js'
 
 export function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
     if (op1 === 'required') {
@@ -43,25 +43,25 @@ function mergeRequired(op1: OptionalType, op2: OptionalType): OptionalType {
     return 'optional'
 }
 
-export function getRequiredType2(a: NodeValueSource, b: any): OptionalType {
+export function getRequiredType2(a: DataTypeValueSource | NodeValueSource, b: any): OptionalType {
     if (isValueSource(b)) {
-        return mergeRequired(a.__optionalType, __getValueSourcePrivate(b).__optionalType)
+        return mergeRequired((a as NodeValueSource).__optionalType, __getValueSourcePrivate(b).__optionalType)
     }
     if (b === null || b === undefined) {
-        return a.__optionalType
+        return (a as NodeValueSource).__optionalType
     }
     // A constant of the language is never NULL, so it alone makes the result always present.
     return 'required'
 }
 
-export function getOptionalType2(a: NodeValueSource, b: any): OptionalType {
+export function getOptionalType2(a: DataTypeValueSource | NodeValueSource, b: any): OptionalType {
     if (isValueSource(b)) {
-        return mergeOptional(a.__optionalType, __getValueSourcePrivate(b).__optionalType)
+        return mergeOptional((a as NodeValueSource).__optionalType, __getValueSourcePrivate(b).__optionalType)
     }
-    return a.__optionalType
+    return (a as NodeValueSource).__optionalType
 }
 
-export function getOptionalTypeOfIn(a: NodeValueSource, b: any): OptionalType {
+export function getOptionalTypeOfIn(a: DataTypeValueSource | NodeValueSource, b: any): OptionalType {
     // A subquery on an optional column can return a NULL, and `<x> in (1, NULL)` is NULL, not false, when no
     // element matches, as the declared type says.
     if (isSelectQuery(b)) {
@@ -71,13 +71,13 @@ export function getOptionalTypeOfIn(a: NodeValueSource, b: any): OptionalType {
         }
         const column = select.__columns?.['result']
         if (isValueSource(column)) {
-            return mergeOptional(a.__optionalType, __getValueSourcePrivate(column).__optionalType)
+            return mergeOptional((a as NodeValueSource).__optionalType, __getValueSourcePrivate(column).__optionalType)
         }
     }
     return getOptionalType2(a, b)
 }
 
-export function getOptionalTypeN(a: NodeValueSource, values: any[]): OptionalType {
+export function getOptionalTypeN(a: DataTypeValueSource | NodeValueSource, values: any[]): OptionalType {
     // The varargs counterpart of `getOptionalType2`, for `inN` / `notInN`. Their operand is the
     // ARRAY the varargs collected, not a value source, so `getOptionalType2` would find no value
     // source in it and answer the receiver's optional type, ignoring the elements. An element that
@@ -85,7 +85,7 @@ export function getOptionalTypeN(a: NodeValueSource, values: any[]): OptionalTyp
     // matches (SQL's three-valued logic), so every element has to be merged in, exactly as the
     // declared type says (`MergeOptional<OPTIONAL_TYPE, VALUE[optionalType]>`). A constant of the
     // language is never NULL, so a list of plain values keeps the receiver's optional type.
-    let result = a.__optionalType
+    let result = (a as NodeValueSource).__optionalType
     for (let i = 0, length = values.length; i < length; i++) {
         const value = values[i]
         if (isValueSource(value)) {
@@ -95,8 +95,8 @@ export function getOptionalTypeN(a: NodeValueSource, values: any[]): OptionalTyp
     return result
 }
 
-export function getOptionalType3(a: NodeValueSource, b: any, c: any): OptionalType {
-    let result = a.__optionalType
+export function getOptionalType3(a: DataTypeValueSource | NodeValueSource, b: any, c: any): OptionalType {
+    let result = (a as NodeValueSource).__optionalType
     if (isValueSource(b)) {
         result = mergeOptional(result, __getValueSourcePrivate(b).__optionalType)
     }
@@ -106,9 +106,9 @@ export function getOptionalType3(a: NodeValueSource, b: any, c: any): OptionalTy
     return result
 }
 
-export function getTypeAdapter2(a: NodeValueSource, b: any): TypeAdapter | undefined {
-    if (a.__typeAdapter) {
-        return a.__typeAdapter
+export function getTypeAdapter2(a: DataTypeValueSource | NodeValueSource, b: any): TypeAdapter | undefined {
+    if ((a as NodeValueSource).__typeAdapter) {
+        return (a as NodeValueSource).__typeAdapter
     }
     if (isValueSource(b)) {
         return __getValueSourcePrivate(b).__typeAdapter
@@ -116,9 +116,9 @@ export function getTypeAdapter2(a: NodeValueSource, b: any): TypeAdapter | undef
     return undefined
 }
 
-export function getTypeAdapter3(a: NodeValueSource, b: any, c: any): TypeAdapter | undefined {
-    if (a.__typeAdapter) {
-        return a.__typeAdapter
+export function getTypeAdapter3(a: DataTypeValueSource | NodeValueSource, b: any, c: any): TypeAdapter | undefined {
+    if ((a as NodeValueSource).__typeAdapter) {
+        return (a as NodeValueSource).__typeAdapter
     }
     if (isValueSource(b)) {
         const bPrivate = __getValueSourcePrivate(b)

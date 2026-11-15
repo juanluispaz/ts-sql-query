@@ -308,7 +308,7 @@ function _typeNegatives() {
     // @ts-expect-error sqrt gives a double, not a customDecimal
     void amount.sqrt().equals(amount)
     void amount.roundn(2).equals(amount)
-    // @ts-expect-error asDouble is a NumberValueSource-only cast, absent on customDecimal
+    // @ts-expect-error asDouble is an int/double-only cast, absent on customDecimal
     void amount.asDouble()
 
     // Rule: a stringDecimal takes operands of its own type or a string, and isn't comparable with a customDecimal,

@@ -13,12 +13,11 @@
 // `const(v, CustomIntType.of(...))` or `const(v, CustomDoubleType.of(...))`, which bind a plain
 // number — EXCEPT the arithmetic-and-sign arms, which run over the real
 // `cost_cents` / `billed_amount` worklog columns (marshalled, so `col OP col`
-// stays resolvable and the results come back as clean numbers). The shared arithmetic dispatch
-// (createSqlOperation1ofOverloadedNumber) routes double, bigint AND
-// custom operands through ONE branch, so `double-arithmetic` (a typed
-// `priority.asDouble()` operand, which stays resolvable on every real DB)
-// covers that branch for all of them — a const-built custom operand would
-// emit two untyped params that postgres rejects as `unknown <op> unknown`.
+// stays resolvable and the results come back as clean numbers). The
+// arithmetic with a `double` operand, `double-arithmetic`, uses a typed
+// `priority.asDouble()` operand, which stays resolvable on every real DB —
+// a const-built custom operand would emit two untyped params that postgres
+// rejects as `unknown <op> unknown`.
 //
 // SQL Server supports trig functions and computes exp/ln/log10 with
 // platform precision. These tests pin the emitted SQL and assert the value.
@@ -91,10 +90,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-numeric/double-arithmetic', async () => {
-        // Arithmetic over a `double` operand routes through the
-        // double/bigint/customInt/customDouble branch of
-        // createSqlOperation1ofOverloadedNumber (the same branch the
-        // bigint and custom operators take). A typed column operand
+        // Arithmetic with a `double` operand gives a double. A typed column operand
         // (`priority.asDouble()`) keeps the SQL resolvable on every real
         // DB — a const-built operand would emit two untyped params that
         // postgres rejects as `unknown <op> unknown`.
@@ -357,7 +353,7 @@ describe(ctx.label, () => {
     test('custom-numeric/customdouble-roundn-with-number-value-source-precision', async () => {
         // `roundn` on a customDouble receiver has two overloads: the literal
         // precision (`v.roundn(2)`, covered in customdouble-operation1-math)
-        // and the NumberValueSource precision arm exercised here — the second
+        // and the number value source precision arm exercised here — the second
         // argument is a column value source (`tIssue.priority`), so the
         // emitted SQL rounds to a column-driven number of decimals.
         // round(8, priority=2) = 8 > 7 → true. The comparison keeps the result
@@ -526,7 +522,7 @@ describe(ctx.label, () => {
         // valueWhenNull re-imposes `required` (coalesce), nullIfValue re-imposes
         // `optional` (nullif), and the carried bigint / customInt / customDouble
         // type is preserved. The other tests only exercise the plain
-        // NumberValueSource versions of these two methods.
+        // number value source versions of these two methods.
         //
         // Worklog 2 has duration_ms NULL, so coalesce(duration_ms, 0n) surfaces
         // the 0n fallback (proving the required re-imposition fires) while
@@ -1270,7 +1266,7 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-add-number-literal-overload', async () => {
         // The `add(value: number)` overload on a customDouble receiver (distinct from
-        // the `add<VALUE extends CustomDoubleValueSource>` value-source overload). The
+        // the `add` overload that takes a customDouble value source). The
         // column is declared `<number, 'Money'>`, so its value type is a plain number
         // and the result leaf is `number` (not branded). `billed_amount` ('Money' ->
         // double, marshalled, no per-column adapter) = 200 for worklog 1, so the literal

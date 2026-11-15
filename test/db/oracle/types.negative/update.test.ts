@@ -45,7 +45,7 @@ function _typeNegatives() {
     // @ts-expect-error string is not a boolean value source
     void connection.update(tIssue).set({ title: 'x' }).where('not-a-condition')
 
-    // Rule: where(...) must take a BooleanValueSource. A non-boolean
+    // Rule: where(...) must take a boolean value source. A non-boolean
     // value source (e.g. an int column reference) is rejected.
     // @ts-expect-error int column is not a boolean value source
     void connection.update(tIssue).set({ title: 'x' }).where(tIssue.priority)

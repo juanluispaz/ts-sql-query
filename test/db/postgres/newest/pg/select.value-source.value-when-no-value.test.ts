@@ -272,8 +272,8 @@ describe(ctx.label, () => {
     })
 
     test('value-when-no-value-boolean-value-source-as-selected-column', async () => {
-        // `valueWhenNoValue(BooleanValueSource)` projected as a column. The
-        // collapse to a BooleanValueSource is the type lock; the IfValue is
+        // `valueWhenNoValue(boolean value source)` projected as a column. The
+        // collapse to a boolean value source is the type lock; the IfValue is
         // elided so the fallback boolean expression is emitted. issue 1: filter
         // undefined → `priority > 1` → 2 > 1 → true.
         const expected = [{ id: 1, statusMatches: true }]

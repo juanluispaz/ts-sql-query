@@ -4,7 +4,7 @@ import type { TypedValueSource } from '../typeSystem/valueSource.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { valueType as valueType_, optionalType as optionalType_, booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, uuidValueSource, customIntValueSource, customBigintValueSource, customDoubleValueSource, customDecimalValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source } from '../utils/symbols.js'
+import { valueType as valueType_, optionalType as optionalType_, typeName, isValueSourceObject, source } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -12,35 +12,13 @@ import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.
 import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { type NodeStrategy } from './NodeStrategy.js'
+import { type DataTypeValueSource, type NodeStrategy } from './NodeStrategy.js'
 import { __newAllowWhenValueSource } from './allowWhen.js'
 import { __newNullValueSource } from './constants.js'
 import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
 import { __newNoopValueSource } from './operations.js'
 
 export class ValueSourceRoot implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
-    [nullableValueSource]!: 'NullableValueSource'
-    [equalableValueSource]!: 'EqualableValueSource'
-    [comparableValueSource]!: 'ComparableValueSource'
-    [booleanValueSource]!: 'BooleanValueSource'
-    [ifValueSource]!: 'IfValueSource'
-    [numberValueSource]!: 'NumberValueSource'
-    [bigintValueSource]!: 'BigintValueSource'
-    [customIntValueSource]!: 'CustomIntValueSource'
-    [customBigintValueSource]!: 'CustomBigintValueSource'
-    [customDoubleValueSource]!: 'CustomDoubleValueSource'
-    [customDecimalValueSource]!: 'CustomDecimalValueSource'
-    [stringValueSource]!: 'StringValueSource'
-    [localDateValueSource]!: 'LocalDateValueSource'
-    [localTimeValueSource]!: 'LocalTimeValueSource'
-    [localDateTimeValueSource]!: 'LocalDateTimeValueSource'
-    [customLocalDateValueSource]!: 'CustomLocalDateValueSource'
-    [customLocalTimeValueSource]!: 'CustomLocalTimeValueSource'
-    [customLocalDateTimeValueSource]!: 'CustomLocalDateTimeValueSource'
-    [anyBooleanValueSource]!: 'AnyBooleanValueSource'
-    [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
-    [uuidValueSource]!: 'UuidValueSource'
-    [customUuidValueSource]!: 'CustomUuidValueSource'
     [typeName]: any
     [source]: any
 
@@ -150,7 +128,7 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
 }
 
 /** What `asRequiredInOptionalObject` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
-export function __asRequiredInOptionalObjectOf(valueSource: object): any {
+export function __asRequiredInOptionalObjectOf(valueSource: DataTypeValueSource): any {
     const vs = valueSource as ValueSourceRoot
     const nodeAsRequiredInOptionalObject = vs.__node.asRequiredInOptionalObject
     if (nodeAsRequiredInOptionalObject) {
@@ -166,7 +144,7 @@ export function __asRequiredInOptionalObjectOf(valueSource: object): any {
 }
 
 /** What `onlyWhenOrNull` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
-export function __onlyWhenOrNullOf(valueSource: object, when: boolean): any {
+export function __onlyWhenOrNullOf(valueSource: DataTypeValueSource, when: boolean): any {
     const vs = valueSource as ValueSourceRoot
     if (when) {
         return vs
@@ -177,7 +155,7 @@ export function __onlyWhenOrNullOf(valueSource: object, when: boolean): any {
 }
 
 /** What `ignoreWhenAsNull` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
-export function __ignoreWhenAsNullOf(valueSource: object, when: boolean): any {
+export function __ignoreWhenAsNullOf(valueSource: DataTypeValueSource, when: boolean): any {
     const vs = valueSource as ValueSourceRoot
     if (when) {
         const nodeAsNull = vs.__node.asNull

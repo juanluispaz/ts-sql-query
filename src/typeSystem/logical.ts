@@ -7,7 +7,7 @@ import { computedType, operandTypeName, typeName, logicalTypes } from '../utils/
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newValueWhenNoValueValueSource, __newBooleanValueWhenNoValueValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop } from '../nodes/ifValue.js'
 import { mergeOptional, getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
-import { __newSqlOperation0ValueSource, __newSqlOperation1ValueSource } from '../nodes/operations.js'
+import { __newSqlOperation1ValueSource, __operation0 } from '../nodes/operations.js'
 import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 
 /*
@@ -31,20 +31,17 @@ export abstract class BooleanType extends EqualableType<boolean> {
 
     negate(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     negate(): any {
-        const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperation0ValueSource('_negate', vs, BooleanConditionType, vs.__optionalType, vs.__typeAdapter)
+        return __operation0(this, '_negate', BooleanConditionType)
     }
     and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     and<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     and(value: any): any {
-        const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperation1ValueSource('_and', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
+        return __newSqlOperation1ValueSource('_and', this, value, BooleanConditionType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     or(value: any): any {
-        const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperation1ValueSource('_or', vs, value, BooleanConditionType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
+        return __newSqlOperation1ValueSource('_or', this, value, BooleanConditionType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
     onlyWhen(condition: boolean): any {

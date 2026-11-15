@@ -1,9 +1,7 @@
-// Impl-branch coverage of `createSqlOperation1ofOverloadedNumber` (the shared
-// dispatcher behind add/subtract/multiply/modulo/maximumBetweenTwoValues/
-// minimumBetweenTwoValues) for an INT receiver. When the OTHER operand is a
-// non-int value source the dispatcher PROMOTES the result to `double` (rather
-// than carrying it as `int`). This is the value-source double-promotion arm,
-// previously unexercised: an `int` column added to a `double` column.
+// The arithmetic of an INT receiver (add/subtract/multiply/modulo/
+// maximumBetweenTwoValues/minimumBetweenTwoValues) with a `double` value
+// source gives a `double` (not an `int`): an `int` column added to a
+// `double` column.
 //
 // The promotion is value-observable: with a fractional right operand the
 // fractional result only survives because the operation is carried as double —

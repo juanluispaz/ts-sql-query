@@ -208,7 +208,7 @@ describe(ctx.label, () => {
         expect(rows.map(r => r.id).sort()).toEqual([1, 2])
     })
     test('localDate-getters', async () => {
-        // LocalDateValueSource exposes getFullYear/getMonth/getDate/getDay.
+        // a localDate exposes getFullYear/getMonth/getDate/getDay.
         // work_date is a pure `localDate` column; worklog 1 is 2024-03-04 (a
         // Monday). getMonth follows JS semantics (0 = January) and getDay
         // follows JS semantics (0 = Sunday) on every dialect.
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
     })
 
     test('localTime-getters-optional', async () => {
-        // LocalTimeValueSource exposes getHours/getMinutes/getSeconds/
+        // a localTime exposes getHours/getMinutes/getSeconds/
         // getMilliseconds. started_at is an OPTIONAL localTime column, so each
         // getter carries the 'optional' marker through to a `number | undefined`
         // leaf. Worklog 1 started at 09:15:00.
@@ -291,7 +291,7 @@ describe(ctx.label, () => {
     })
 
     test('optional-localdate-getters', async () => {
-        // The OPTIONAL-receiver branch of LocalDateValueSource getters: reviewDate
+        // The OPTIONAL-receiver branch of localDate getters: reviewDate
         // is an OPTIONAL plain `localDate`, so each getter carries the optional
         // marker to a `number | undefined` leaf. Review 1: review_date 2024-05-20 (a
         // Monday) -> year 2024, month 4 (May, JS 0-indexed), date 20, day-of-week 1.
@@ -317,7 +317,7 @@ describe(ctx.label, () => {
     })
 
     test('required-localtime-getters', async () => {
-        // The REQUIRED-receiver branch of LocalTimeValueSource getters: reviewTime
+        // The REQUIRED-receiver branch of localTime getters: reviewTime
         // is a REQUIRED plain `localTime`, so each getter is a required `number`
         // leaf. Review 1: review_time 14:30:45 -> hours 14, minutes 30,
         // seconds 45, milliseconds 0.
@@ -343,7 +343,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-localdate-remaining-getters', async () => {
-        // The remaining LocalDateValueSource getters on the custom-localDate
+        // The remaining localDate getters on the custom-localDate
         // column releasedOn (required): getMonth (JS 0-indexed), getDate, and
         // getDay (JS 0 = Sunday). Release 1: released_on
         // 2024-01-15 (a Monday) -> month 0 (January), date 15, day-of-week 1.
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-localtime-remaining-getters', async () => {
-        // The remaining LocalTimeValueSource getters on the custom-localTime
+        // The remaining localTime getters on the custom-localTime
         // column cutoffTime (required): getMinutes, getSeconds, getMilliseconds.
         // Release 1: cutoff_time 17:00:00 -> 0, 0, 0.
         const expected = [{ m: 0, s: 0, ms: 0 }]
@@ -392,7 +392,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-localdatetime-optional-getters', async () => {
-        // The full LocalDateTimeValueSource getter set on the OPTIONAL
+        // The full localDateTime getter set on the OPTIONAL
         // custom-localDateTime column signedOffAt — every getter carries the
         // optional marker through to a `?: number` leaf (the custom getter
         // encodes the optional leaf as `?: number`, not `number | undefined`). Release 1: signed_off_at 2024-01-14 12:30:00 (a Sunday) ->

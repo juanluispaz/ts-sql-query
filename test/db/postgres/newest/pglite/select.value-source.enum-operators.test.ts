@@ -1,5 +1,5 @@
 // Direct fluent equality on an `enum` leaf type. Enum value sources are
-// EqualableValueSource (not Comparable), so the typed surface is equals / notEquals /
+// equalable value source (not Comparable), so the typed surface is equals / notEquals /
 // is / isNot / in([..]) / inN(..) and the in(select) / notIn(select) overloads —
 // there is no between / lessThan / greaterThan on an enum.
 //

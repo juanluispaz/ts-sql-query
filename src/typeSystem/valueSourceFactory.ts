@@ -109,7 +109,7 @@ export function __createRawFragment(template: TemplateStringsArray, params: Arra
 
 /** The column of the previous row in a hierarchical query (`connect by prior` of Oracle) */
 export function __priorOf(column: AnyValueSource): AnyValueSource {
-    return __priorOfValueSource(column)
+    return __priorOfValueSource(__getValueSourcePrivate(column))
 }
 
 /** Whether the value source is the condition that is always ignored (the start of a dynamic condition) */

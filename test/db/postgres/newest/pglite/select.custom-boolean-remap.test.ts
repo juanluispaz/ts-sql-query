@@ -75,7 +75,7 @@ describe(ctx.label, () => {
     })
 
     test('where: custom boolean column equals a boolean value source', async () => {
-        // RHS is a derived BooleanValueSource (id > 0), not a column.
+        // RHS is a derived boolean value source (id > 0), not a column.
         // The builder hits the `isValueSource(value)` branch and emits a
         // case expression matching the adapter-stored values.
         //
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
     })
 
     // ── Boolean combinators with a custom-boolean column as the RECEIVER ──
-    // `tProject.published` (t/f) used directly as a BooleanValueSource on the left
+    // `tProject.published` (t/f) used directly as a boolean value source on the left
     // of `.negate()` / `.and()` / `.or()` / `.onlyWhen()` / `.ignoreWhen()` renders
     // the column as the `(published = 't')` predicate. Seed published: project 1
     // 't', 2 'f', 3 't', 4 'f'; project 4 is archived, 1–3 are not.

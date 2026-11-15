@@ -23,7 +23,8 @@ Read this before changing anything here. The code is the reference; this file sa
 - **What every value source has at run time** (its fields, its node, `isConstValue`, `allowWhen`, ...) is
   `ValueSourceRoot`, in [`src/nodes/`](../nodes/README.md). `BaseType` extends it through a cast that TypeScript doesn't
   see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the
-  classes; a method reaches the fields with `const vs = this as unknown as ValueSourceRoot`.
+  classes. A method doesn't read those fields: it passes `this` to the functions of the nodes, which take it as a
+  `DataTypeValueSource` (see the README of the nodes).
 - A method gives a value source of the same data type with `this.constructor`. A base doesn't import the data types
   that extend it (see below), so the data types it gives are statics of the classes that can import them, the
   reflection of their phantom members: the boolean and the condition of the comparisons in `static [logicalTypes]`
@@ -46,8 +47,9 @@ Read this before changing anything here. The code is the reference; this file sa
 - A value source has two axes apart: its data type (its class) and its **node**: how it is written and what it
   reaches in the tree (a constant, a function of a value source, a fragment, a column, an aggregate, ...). The nodes are
   in [`src/nodes/`](../nodes/README.md), which explains them; a method of a class creates its result with the function of
-  a node and the class of the result (`__newSqlOperation0ValueSource(..., IntType, ...)`, `__operation1(this, '_add',
-  value, __typeClassOf(this))`).
+  a node, passing `this` and the class of the result (`__newSqlOperation1ValueSource('_concat', this, value,
+  __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))`, `__operation0(this, '_length',
+  IntType)`).
 - Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) and the classes creates them: the factory creates
   the value sources (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the
   runtime is not typed by the data type: the code that calls them declares what it creates. They receive the class of
@@ -188,7 +190,7 @@ and the ones that come later extend it.
 `customComparable.ts` and `customEqualable.ts`; `enum.ts` has the enumerations. A file of a family never imports its
 custom file.
 
-Each method declares the data type **the runtime gives** for its result (read it in `ValueSourceRoot.ts` before
+Each method declares the data type **the runtime gives** for its result (read it in the body of the method before
 declaring it): a getter of a date gives `IntType`, `asString()` of a uuid gives `StringType`, `length()` gives
 `IntType`. A subclass can't change the type of a result its base declares (TS2416); when a family needs a different
 result, the base declares it through a type that asks the data type, like `CoalesceTypeOf` below.

@@ -13,7 +13,7 @@
 //   - isNull / isNotNull (true vs false branches)
 //   - the `*IfValue` suffix flavour (no-ops on null/undefined)
 //
-// Each filter resolves to a `BooleanValueSource` and is spliced into
+// Each filter resolves to a boolean value source and is spliced into
 // the WHERE clause. The snapshot is the authoritative SQL.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

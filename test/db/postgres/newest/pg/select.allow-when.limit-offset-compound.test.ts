@@ -2,7 +2,7 @@
 // builder paths that `select.allow-when.composition.test.ts` does not
 // reach: the `__isAllowed` walker's handling of a gated value source in
 //
-//   - `.limit(...)` and `.offset(...)` (they accept an INumberValueSource),
+//   - `.limit(...)` and `.offset(...)` (they accept a number value),
 //   - a `customizeQuery({...})` raw-fragment hook, and
 //   - a COMPOUND query (`union`/`unionAll`/...) — a gated column in either
 //     member, members built with `subSelectUsing(...)` over an open or a

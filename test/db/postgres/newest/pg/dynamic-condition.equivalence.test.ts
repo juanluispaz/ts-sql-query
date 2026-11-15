@@ -1558,8 +1558,8 @@ describe(ctx.label, () => {
         // filterable customInt column (`cost_cents`, 'Cents') fed through
         // `dynamicConditionFor(...).withValues({...})` with an INLINE literal —
         // no `DynamicCondition<...>` annotation — so the filter type is inferred
-        // from the value source (ICustomIntValueSource extends
-        // IComparableValueSource, so the comparable operators are available).
+        // from the value source (a customInt is a comparable data type,
+        // so the comparable operators are available).
         // The sibling `custom-int-descriptor-dispatch` test covers the annotated
         // FilterTypeOf path; this reaches the un-annotated inline mapping.
         ctx.mockNext([])

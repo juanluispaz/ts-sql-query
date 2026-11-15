@@ -329,7 +329,7 @@ describe(ctx.label, () => {
         ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
     })
 
-    test('docs-extra:from-business-model/a-plain-type-on-a-custom-column-has-the-operators-of-that-type', async () => {
+    test('docs-extra:from-business-model/a-plain-type-on-a-custom-column-rejects-an-operator-the-column-has-not', async () => {
         interface ReleaseFilterRow {
             id: number
             version: string
@@ -348,17 +348,8 @@ describe(ctx.label, () => {
                 .executeSelectMany()
         }
 
-        ctx.mockNext([{ id: 1 }])
-
-        const result = await filterReleases({ version: { contains: '1.2' } })
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where version like ('%' || :0 || '%') escape '\\' order by "id""`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "1.2",
-          ]
-        `)
-        expect(result).toEqual([{ id: 1 }])
+        // The column is a customComparable: it has no contains, even if the model says the property is a string
+        await expect(filterReleases({ version: { contains: '1.2' } })).rejects.toThrow('Unknown operation with name "contains" for the column "version"')
     })
 
     test('docs-extra:from-business-model/a-branded-property-compares-on-its-column', async () => {

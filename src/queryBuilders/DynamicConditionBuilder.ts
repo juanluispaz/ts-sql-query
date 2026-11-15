@@ -5,8 +5,6 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import type { ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
-import { StringsType } from '../typeSystem/strings.js'
-import { ComparableType } from '../typeSystem/comparable.js'
 
 // Joins an accumulated nested-filter path prefix with the next key using a dot
 // separator, matching the `column + '.' + key` form used deeper in the builder.
@@ -332,12 +330,11 @@ const allowedOperations: { [operation: string]: true | undefined } = {
 }
 
 /**
- * The method of the operation of a filter: the one of the data type of the column or, for a filter typed from a model
- * where a custom type is written as a plain type (a `string` for a `customComparable` column), the one of the data type
- * that has it (the text operators, the comparisons), applied to the column and sent to the database
+ * The method of the operation of a filter, of the data type of the column: an operation the data type doesn't have is
+ * rejected, also when a filter typed from a model offers it (a custom type written as a plain type in the model)
  */
 function operationFor(valueSource: any, operation: string, column: string, key: string): (value: any) => any {
-    const method = valueSource[operation] ?? (StringsType.prototype as any)[operation] ?? (ComparableType.prototype as any)[operation]
+    const method = valueSource[operation]
     if (typeof method !== 'function') {
         throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
     }

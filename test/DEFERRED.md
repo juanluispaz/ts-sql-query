@@ -6,6 +6,52 @@ Bugs found and left for later go in [`BUGS.md`](./BUGS.md), not here.
 
 Each entry says what it is, why it waits, and what is already known.
 
+## Type system: the text of a uuid in an aggregate
+
+- **What:** check on the real engines that `max`, `min` and `anyValue` of the
+  text of a uuid (`max(t.id.asString())`) give the text as the other texts of a
+  uuid: in lower case on SQL Server, and converted to text on MariaDB where it
+  meets another text.
+- **Why deferred:** found while the text of a uuid became a data type of its
+  own, a change that keeps the behaviour; it needs the final round on the real
+  engines of the type system.
+- **Known:** the aggregate of the text of a uuid is still the uuid in SQL
+  (`max(uniqueidentifier)` on SQL Server, the native uuid of MariaDB), but the
+  library treats it as a plain text, as it did before: the reading doesn't lower
+  it, and the SQL doesn't convert it where it meets another text. `valueWhenNull`
+  converts it already.
+
+## Type system: `asInt` of an int whose value has decimals
+
+- **What:** decide whether `asInt()` (and `asBigint()`) of an `int` rounds too.
+  The commitment of the library is that a number with decimals that goes through
+  `asInt` is rounded.
+- **Why deferred:** the maintainer will decide it with the rest of the type
+  system.
+- **Known:** `asInt()` of a `double` writes `cast(round(x) as integer)`; of an
+  `int` it writes nothing, because the data type says it is already an integer.
+  An `int` can still have decimals in SQL: a SQLite column of an `INTEGER`
+  affinity that keeps `2.5`, or a fragment typed `int` whose SQL divides. Then
+  the value read is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE` (it is
+  not taken silently), and `asInt()` doesn't help: rounding there would cost a
+  cast in every `asInt()` of an `int`, which the rule of the cleanest SQL avoids
+  when the type says it isn't needed.
+
+## Type system: converting an exact decimal to another number
+
+- **What:** decide whether the exact decimals (`stringDecimal`, `customDecimal`)
+  get `asInt`, `asBigint` and `asDouble`.
+- **Why deferred:** the maintainer will decide it with the rest of the type
+  system and the decimal libraries that will extend `DecimalsType`.
+- **Known:** today a decimal has none of them, so the only way to an int, a
+  bigint or a double is a fragment. Its `ceil`, `floor` and `round` keep the
+  decimal (exact), its floating point functions give a `double`, and `sign` an
+  `int`. With the commitment of `asInt`, an `asInt` or an `asBigint` of a decimal
+  would round (`cast(round(x) as integer)`, as for a `double`), and an
+  `asDouble` would say in its name or its documentation that it loses digits.
+  The integers that work only with themselves (`bigint`, `customInt`,
+  `customBigint`) have no `asInt` or `asDouble` either.
+
 ## A data type name the library doesn't know, at run time
 
 - **What:** decide what happens when a method that takes a data type gets, at run

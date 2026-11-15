@@ -117,6 +117,16 @@ the bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the num
 ([`number.ts`](./number.ts): int, double and bigint, which name each other) and the exact decimals
 ([`decimals.ts`](./decimals.ts)). A new family declares these members in its base, and the bases never import it.
 
+**A family is named in plural, its data types in singular.** A class in plural is a family: the base that its data
+types extend, which has their shared methods and no type of its own (`UuidsType` for `UuidType` and `CustomUuidType`;
+`LocalDatesType` for `LocalDateType` and `CustomLocalDateType`; `DecimalsType` for `StringDecimalType`,
+`CustomDecimalType` and, tomorrow, the `Decimal` of JavaScript once it is standard, or the decimal of a library). A class
+in singular is a data type with a value: a built-in one (`UuidType`, `IntType`) or a custom one. A file in plural has a
+family and the built-in data types of it (`uuids.ts`, `localDates.ts`, `decimals.ts`); a file in singular has one data
+type, a group or the tiers (`enum.ts`; `number.ts`, the group number; `numeric.ts`, `comparable.ts`, ...). A new kind of
+values (the temporal types, the spatial ones, a decimal library) starts with its family in plural, so the custom ones
+and the ones that come later extend it.
+
 **The custom data types of a family are in a file of their own**, next to the file of the family they extend:
 `customNumber.ts` (customInt, customBigint, customDouble), `customDecimals.ts`, `customUuids.ts`, `customLocalDates.ts`,
 `customComparable.ts` and `customEqualable.ts`; `enum.ts` has the enumerations. A file of a family never imports its
@@ -240,7 +250,8 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
 
 ## Adding a data type
 
-1. Its class in the file of its family, extending the class that has the methods it shares, with its NType and
+1. Its class in the file of its family (a family in plural, see above), extending the class that has the methods it
+   shares, with its NType and
    operand NType, its `static type` / `customType`, and its own methods with the result types the runtime gives.
 2. A custom one: its static `of`. A class that groups data types without a type of its own: its `__isOfGroup`.
 3. A built-in one: its entry in each map of `builtInDataTypes.ts`.

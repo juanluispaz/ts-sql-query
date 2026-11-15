@@ -77,9 +77,10 @@ BaseType<VALUE_TYPE>                         the NType, the operand NType, the t
 │   │       ├── EnumType<T, NAME>, CustomEqualableType<T, NAME>
 │   │       └── ComparableType<VALUE_TYPE>   lessThan, between, ...
 │   │           ├── NumberType               the group number: IntType, DoubleType
-│   │           ├── NumericType<V>           bigint and the custom/exact numbers: BigintType, MultipliableNumericType
-│   │           │                            (CustomIntType, CustomBigintType, CustomDoubleType, DecimalType:
-│   │           │                             StringDecimalType, CustomDecimalType)
+│   │           ├── NumericType<V>           the numbers that work only with themselves: abs, add, multiply, ...
+│   │           │   ├── IntegerType<V>       BigintType, CustomIntType, CustomBigintType
+│   │           │   ├── RealType<V>          its floating point functions keep the data type: CustomDoubleType
+│   │           │   └── DecimalType<V>       exact; what can't be exact gives a double: StringDecimalType, CustomDecimalType
 │   │           ├── StringType
 │   │           ├── UuidsType<V>             UuidType, CustomUuidType
 │   │           ├── LocalDatesType / LocalTimesType / LocalDateTimesType and their leaves and custom ones
@@ -112,8 +113,9 @@ type of both) when one of them can be either. A number given as a value (`intCol
 `valueWhenNull` widens the same way: `NullableType` declares its result as `CoalesceTypeOf<this, OPERAND>`, which is
 `PromotedNumberType` for a number and the data type of the value source for any other.
 
-The other numbers (`bigint`, `stringDecimal`, the custom ones) work only with themselves. `bigint` has no `multiply` or
-`divide` (see `test/DEFERRED.md`); an exact decimal gives a `double` for the computations that can't be exact.
+The other numbers (`bigint`, `stringDecimal`, the custom ones) work only with themselves. An exact number (an integer
+or a decimal) has no `divide`, which wouldn't give an exact value (see `test/DEFERRED.md`); an exact decimal gives a
+`double` for the computations that can't be exact.
 
 ## The gates: what a position accepts
 

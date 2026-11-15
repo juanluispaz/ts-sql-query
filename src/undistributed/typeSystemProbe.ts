@@ -132,8 +132,10 @@ const bigintPlusBigint = aBigint.add(aBigint)
 assertType<Equal<typeof bigintPlusBigint, ValueSource<'s1/', BigintType, 'required'>>>()
 // @ts-expect-error a bigint is not an int
 aBigint.add(anInt)
-// @ts-expect-error a bigint has no multiply
-aBigint.multiply(aBigint)
+const bigintTimesBigint = aBigint.multiply(aBigint)
+assertType<Equal<typeof bigintTimesBigint, ValueSource<'s1/', BigintType, 'required'>>>()
+// @ts-expect-error a bigint has no divide
+aBigint.divide(aBigint)
 const bigintSign = aBigint.sign()
 assertType<Equal<typeof bigintSign, ValueSource<'s1/', IntType, 'required'>>>()
 const moneyTimesMoney = aMoney.multiply(otherMoney)

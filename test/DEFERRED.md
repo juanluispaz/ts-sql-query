@@ -6,15 +6,6 @@ Bugs found and left for later go in [`BUGS.md`](./BUGS.md), not here.
 
 Each entry says what it is, why it waits, and what is already known.
 
-## `multiply` and `divide` on `BigintValueSource`
-
-- **What:** the overloads of `multiply` and `divide` for `BigintValueSource`.
-- **Why deferred:** `BigintType` in `src/typeSystem/numbers.ts` doesn't declare them
-  (it extends `NumericType`, not `MultipliableNumericType`), so the value source
-  offers only `add`, `subtract` and `modulo` with a bigint.
-- **Known:** [`docs/api/value-expressions.md`](../docs/api/value-expressions.md)
-  is consistent with that: it lists no `multiply` or `divide` for a bigint.
-
 ## Explicit divisions on exact numbers
 
 - **What:** two divisions whose name says what happens when the query is

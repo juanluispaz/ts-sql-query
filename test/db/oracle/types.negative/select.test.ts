@@ -428,13 +428,11 @@ function _typeNegatives() {
     // @ts-expect-error asBigint is a NumberValueSource-only cast, absent on customDouble
     void tIssueWorklog.billedAmount.asBigint()
 
-    // Rule: BigintValueSource deliberately OMITS the float-only math methods
-    // (multiply / divide / power / sqrt / exp / ln / log10 / cbrt / atan2 / logn
-    // / roundn / sin) — bigint arithmetic stays exact. Each must stay absent so
+    // Rule: BigintValueSource deliberately OMITS divide and the float-only math
+    // methods (power / sqrt / exp / ln / log10 / cbrt / atan2 / logn / roundn /
+    // sin) — bigint arithmetic stays exact (multiply is exact, so it is there). Each must stay absent so
     // that an accidentally-uncommented method would be caught here. viewCount is
     // a bigint column.
-    // @ts-expect-error multiply is not a BigintValueSource method
-    void tIssue.viewCount.multiply(2n)
     // @ts-expect-error divide is not a BigintValueSource method
     void tIssue.viewCount.divide(2n)
     // @ts-expect-error power is not a BigintValueSource method

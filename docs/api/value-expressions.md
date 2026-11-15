@@ -227,6 +227,7 @@ interface BigintValueSource extends ComparableValueSource<bigint, 'bigint'> {
     maxValue(value: bigint | this): this
     add(value: bigint | this): this
     subtract(value: bigint | this): this
+    multiply(value: bigint | this): this
     modulo(value: bigint | this): this
 }
 ```

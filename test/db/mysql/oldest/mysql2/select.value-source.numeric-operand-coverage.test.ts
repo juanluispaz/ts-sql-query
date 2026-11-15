@@ -408,6 +408,41 @@ describe(ctx.label, () => {
         }
     })
 
+    test('value-source-rhs/bigint-multiply', async () => {
+        // `multiply` on a bigint gives a bigint, with a const, a value and a value-SOURCE
+        // RHS. duration_ms = 5400000 for worklog 1: x 3 = 16200000, x 2 = 10800000, and
+        // x itself = 29160000000000, beyond the integers a JavaScript number keeps exact.
+        // duration_ms is optional, so every product is optional.
+        const expected = [{ id: 1, mc: 16200000n, mv: 10800000n, ms: 29160000000000n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                mc: tIssueWorklog.durationMs.multiply(ctx.conn.const(3n, 'bigint')),
+                mv: tIssueWorklog.durationMs.multiply(2n),
+                ms: tIssueWorklog.durationMs.multiply(tIssueWorklog.durationMs),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms * ? as mc, duration_ms * ? as mv, duration_ms * duration_ms as ms from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3n,
+            2n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; mc?: bigint; mv?: bigint; ms?: bigint }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(BigInt(result[0]!.mc!)).toBe(16200000n)
+            expect(BigInt(result[0]!.mv!)).toBe(10800000n)
+            expect(BigInt(result[0]!.ms!)).toBe(29160000000000n)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
     test('value-source-rhs/bigint-value-when-null-optional-receiver', async () => {
         // `valueWhenNull` with a value-SOURCE arg over an OPTIONAL bigint
         // receiver: coalesce(duration_ms, $1) removes the null, so the result

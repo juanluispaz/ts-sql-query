@@ -104,16 +104,16 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
     abstract subtract<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     abstract modulo(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract modulo<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-}
-
-/** A numeric data type that works only with itself and that can be multiplied */
-export abstract class MultipliableNumericType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     abstract multiply(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract multiply<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
 }
 
+/** An integer number that works only with itself (bigint, customInt, customBigint) */
+export abstract class IntegerType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+}
+
 /** An integer number of 64 bits, a JavaScript bigint */
-export abstract class BigintType extends NumericType<bigint> {
+export abstract class BigintType extends IntegerType<bigint> {
     static override readonly __type = 'bigint'
     static override readonly __customType = undefined
     declare [typeName]: 'type:bigint:'
@@ -121,7 +121,7 @@ export abstract class BigintType extends NumericType<bigint> {
 }
 
 /** An integer number of a type of the user, of its type name */
-export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableNumericType<VALUE_TYPE> {
+export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegerType<VALUE_TYPE> {
     static override readonly __customType = 'customInt'
     declare [typeName]: `type:${TYPE_NAME}:customInt:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
@@ -136,7 +136,7 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
 }
 
 /** An integer number of 64 bits of a type of the user, of its type name */
-export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableNumericType<VALUE_TYPE> {
+export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegerType<VALUE_TYPE> {
     static override readonly __customType = 'customBigint'
     declare [typeName]: `type:${TYPE_NAME}:customBigint:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customBigint:`
@@ -150,12 +150,8 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
     }
 }
 
-/** A floating point number of a type of the user, of its type name */
-export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableNumericType<VALUE_TYPE> {
-    static override readonly __customType = 'customDouble'
-    declare [typeName]: `type:${TYPE_NAME}:customDouble:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`
-
+/** A floating point number that works only with itself (customDouble): its floating point functions keep its data type */
+export abstract class RealType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     abstract exp(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract ln(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract log10(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
@@ -180,6 +176,13 @@ export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
     abstract divide<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     abstract atan2(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract atan2<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+}
+
+/** A floating point number of a type of the user, of its type name */
+export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends RealType<VALUE_TYPE> {
+    static override readonly __customType = 'customDouble'
+    declare [typeName]: `type:${TYPE_NAME}:customDouble:`
+    declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`
 
     /** The data type of a floating point number of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>> {
@@ -191,7 +194,7 @@ export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
 }
 
 /** An exact decimal number: its value keeps every digit; a computation that can't be exact gives a double */
-export abstract class DecimalType</*in|out*/ VALUE_TYPE> extends MultipliableNumericType<VALUE_TYPE> {
+export abstract class DecimalType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     abstract exp(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     abstract ln(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     abstract log10(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>

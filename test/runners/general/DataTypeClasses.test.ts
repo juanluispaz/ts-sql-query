@@ -150,6 +150,9 @@ describe('DataTypeClasses', () => {
         expect(tThing.uuid.asString()).toBeInstanceOf(StringType)
         expect(tThing.stringDecimal.sqrt()).toBeInstanceOf(DoubleType)
         expect(tThing.version.valueWhenNull('1')).toBeInstanceOf(VersionType)
+        expect(conn.aggregateAsArrayOfOneColumn(tThing.int)).toBeInstanceOf(AggregatedArrayType)
+        expect(conn.selectFrom(tThing).select({ int: tThing.int }).forUseAsInlineAggregatedArrayValue()).toBeInstanceOf(AggregatedArrayType)
+        expect(conn.aggregateAsArrayOfOneColumn(tThing.int).onlyWhenOrNull(false)).toBeInstanceOf(AggregatedArrayType)
     })
 
     test('the-text-of-a-uuid-keeps-its-class-only-where-its-sql-is-kept', () => {

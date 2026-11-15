@@ -1,6 +1,6 @@
 import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { ValueSourceImpl, __sameTypeClassOf } from '../internal/ValueSourceImpl.js'
+import { __sameTypeClassOf } from '../internal/ValueSourceImpl.js'
 import type { __ValueSourcePrivate } from './valueSource.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
 import { BigintType, DoubleType, IntType } from './number.js'
@@ -59,15 +59,11 @@ export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass
 /**
  * The class of the data type of a value source as a select projects it, for a value source that is a projected column
  * (a column of a `with` or of a compound select, a select used as a value): its class (the text of a uuid is still the
- * uuid), but the boolean of a condition is projected as a boolean value. For the value sources that are not yet
- * instances of a class (the aggregated arrays), the class of its type and custom type
+ * uuid), but the boolean of a condition is projected as a boolean value
  */
 export function __projectedTypeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
-    if (valueSource instanceof ValueSourceImpl) {
-        const typeClass = __sameTypeClassOf(valueSource)
-        return typeClass === BooleanConditionType ? BooleanType : typeClass
-    }
-    return __dataTypeClassOf(valueSource.__type, valueSource.__customType)
+    const typeClass = __sameTypeClassOf(valueSource)
+    return typeClass === BooleanConditionType ? BooleanType : typeClass
 }
 
 /** The class of the data type of a type and a custom type */

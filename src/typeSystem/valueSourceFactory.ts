@@ -2,10 +2,11 @@ import type { AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, 
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import type { DataTypeClass, TypeAdapter } from '../TypeAdapter.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
-import { AggregateSelectValueSource, AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, type FragmentValueSource, type InlineSelectData, type InlineSelectValueSource, type SqlOperation1ValueSource, type SqlOperation1ValueSourceIfValueOrIgnore, type SqlOperationConstValueSource, type SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceImpl, __typeClassOf, __newAggregateFunctions0ValueSource, __newAggregateFunctions1ValueSource, __newAggregateFunctions1or2ValueSource, __newFragmentValueSource, __newFunctionCallValueSource, __newInlineSelectValueSource, __newSequenceValueSource, __newSqlOperationConstValueSource, __newSqlOperationStatic0ValueSource, __newSqlOperationStatic1ValueSource, __newSqlOperationStaticBooleanValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop, __newValueSourceFromBuilder, fragmentValueSourceNode, inlineSelectValueSourceNode, sqlOperation1ValueSourceIfValueOrIgnoreNode, sqlOperation1ValueSourceNode, sqlOperationConstValueSourceNode, sqlOperationValueSourceIfValueAlwaysNoopNode } from '../internal/ValueSourceImpl.js'
+import { type AggregateValueAsArrayValueSource, type AllowWhenAggregateValueAsArrayValueSource, __newAggregateSelectValueSource, __newAggregateValueAsArrayValueSource, __isAggregateValueAsArrayNode, __isAllowWhenAggregateValueAsArrayNode, type FragmentValueSource, type InlineSelectData, type InlineSelectValueSource, type SqlOperation1ValueSource, type SqlOperation1ValueSourceIfValueOrIgnore, type SqlOperationConstValueSource, type SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceImpl, __typeClassOf, __newAggregateFunctions0ValueSource, __newAggregateFunctions1ValueSource, __newAggregateFunctions1or2ValueSource, __newFragmentValueSource, __newFunctionCallValueSource, __newInlineSelectValueSource, __newSequenceValueSource, __newSqlOperationConstValueSource, __newSqlOperationStatic0ValueSource, __newSqlOperationStatic1ValueSource, __newSqlOperationStaticBooleanValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop, __newValueSourceFromBuilder, fragmentValueSourceNode, inlineSelectValueSourceNode, sqlOperation1ValueSourceIfValueOrIgnoreNode, sqlOperation1ValueSourceNode, sqlOperationConstValueSourceNode, sqlOperationValueSourceIfValueAlwaysNoopNode } from '../internal/ValueSourceImpl.js'
 import { __newDBColumn, createColumnsFrom } from '../internal/DBColumnImpl.js'
 import { __projectedTypeClassOf } from './dataTypeClasses.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
+import { AggregatedArrayType } from './aggregatedArrays.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from './valueSource.js'
@@ -62,11 +63,11 @@ export function __createAggregateFunction1or2(operation: keyof AggregateFunction
 }
 
 export function __createAggregateValueAsArray(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean): any {
-    return new AggregateValueAsArrayValueSource(aggregatedArrayColumns, aggregatedArrayMode, optionalType, distinct)
+    return __newAggregateValueAsArrayValueSource(AggregatedArrayType, aggregatedArrayColumns, aggregatedArrayMode, optionalType, distinct)
 }
 
 export function __createAggregateSelect(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType): any {
-    return new AggregateSelectValueSource(selectData, aggregatedArrayColumns, aggregatedArrayMode, optionalType)
+    return __newAggregateSelectValueSource(AggregatedArrayType, selectData, aggregatedArrayColumns, aggregatedArrayMode, optionalType)
 }
 
 export function __createInlineSelect(selectData: InlineSelectData, required: boolean): any {
@@ -141,12 +142,12 @@ export function __isTableOrViewRawFragment(value: unknown): value is TableOrView
 
 /** Whether the value source is an aggregate as array (`aggregateAsArray`, `aggregateAsArrayOfOneColumn`, …) */
 export function __isAggregateValueAsArray(value: unknown): value is AggregateValueAsArrayValueSource {
-    return value instanceof AggregateValueAsArrayValueSource
+    return value instanceof ValueSourceImpl && __isAggregateValueAsArrayNode(value)
 }
 
 /** Whether the value source is an aggregate as array guarded by `allowWhen` / `disallowWhen` */
 export function __isAllowWhenAggregateValueAsArray(value: unknown): value is AllowWhenAggregateValueAsArrayValueSource {
-    return value instanceof AllowWhenAggregateValueAsArrayValueSource
+    return value instanceof ValueSourceImpl && __isAllowWhenAggregateValueAsArrayNode(value)
 }
 
 /** Whether the value is a raw fragment */

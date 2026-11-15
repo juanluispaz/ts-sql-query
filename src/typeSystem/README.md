@@ -47,16 +47,17 @@ Read this before changing anything here. The code is the reference; this file sa
   value source has the fields of its node (`__operation`, `__valueSource`, `__value`, ...). Each kind has its interface
   (`SqlOperation0ValueSource`), its strategy (`sqlOperation0ValueSourceNode`) and the function that creates it from the
   class of its data type (`__newSqlOperation0ValueSource`). A column is a value source of its data type with the node
-  of a column (`src/internal/DBColumnImpl.ts`). The aggregated arrays and the raw fragments of a table are still
-  classes of their own.
+  of a column (`src/internal/DBColumnImpl.ts`), an aggregate as array an `AggregatedArrayType` with the node of its
+  aggregate (or of the null that replaces it, guarded or not by `allowWhen`), whose hooks say what its methods give
+  (`withOptionalType`, `asNull`, `allowWhen`, ...). The raw fragments of a table (the name or the alias of a table in
+  a raw fragment) are still a class of their own: they have no data type.
 - Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) creates them: it creates the value sources
   (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the runtime is not
   typed by the data type: the code that calls them declares what it creates. They receive the class of the data type:
   a method that takes a data type turns a name of a built-in one into its class once, with `__dataTypeClassFrom` of
   [`dataTypeClasses.ts`](./dataTypeClasses.ts), and a value source of the data type of another one takes its class
   (`__typeClassOf`). `dataTypeClasses.ts` also gives the class of a type and a custom type (the custom ones with the
-  `of` of their family), for the value sources that are not yet instances of a class (the aggregated arrays). No class
-  of a data type imports it.
+  `of` of their family). No class of a data type imports it.
 
 ## The operations that disappear without a value (`*IfValue`)
 

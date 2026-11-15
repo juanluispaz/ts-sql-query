@@ -36,8 +36,16 @@ export interface NodeStrategy<VS extends ValueSourceImpl> {
     getConstValue(vs: VS): any
     /** Only the neutral condition changes it: what `valueWhenNoValue` gives */
     valueWhenNoValue?(vs: VS, value: any): any
-    /** Only a column changes it: what `asRequiredInOptionalObject` gives */
+    /** Only a column and an aggregate as array change it: what `asRequiredInOptionalObject` gives */
     asRequiredInOptionalObject?(vs: VS): any
+    /** Only an aggregate as array changes it: the same aggregate with another optionality (`useEmptyArrayForNoValue`, ...) */
+    withOptionalType?(vs: VS, optionalType: OptionalType): any
+    /** Only an aggregate as array changes it: what replaces it by null (`onlyWhenOrNull`, `ignoreWhenAsNull`) */
+    asNull?(vs: VS): any
+    /** Only an aggregate as array changes it: what `allowWhen` and `disallowWhen` give */
+    allowWhen?(vs: VS, allowed: boolean, error: Error): any
+    /** Only an aggregate as array changes it: what `projectingOptionalValuesAsNullable` gives */
+    projectingOptionalValuesAsNullable?(vs: VS): any
 }
 
 /** What a node does when its strategy doesn't say otherwise: it reaches nothing */
@@ -190,6 +198,10 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return this.__node.getConstValue(this)
     }
     allowWhen(when: boolean, error: string | Error): any {
+        const nodeAllowWhen = this.__node.allowWhen
+        if (nodeAllowWhen) {
+            return nodeAllowWhen(this, when, typeof error === 'string' ? new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error) : error)
+        }
         let result
         if (typeof error === 'string') {
             result = __newAllowWhenValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this)
@@ -199,6 +211,10 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return result
     }
     disallowWhen(when: boolean, error: string | Error): any {
+        const nodeAllowWhen = this.__node.allowWhen
+        if (nodeAllowWhen) {
+            return nodeAllowWhen(this, !when, typeof error === 'string' ? new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error) : error)
+        }
         let result
         if (typeof error === 'string') {
             result = __newAllowWhenValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this)
@@ -225,6 +241,10 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return result
     }
     useEmptyArrayForNoValue(): any {
+        const nodeWithOptionalType = this.__node.withOptionalType
+        if (nodeWithOptionalType) {
+            return nodeWithOptionalType(this, 'required')
+        }
         const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'required', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
@@ -234,6 +254,10 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return result
     }
     asOptionalNonEmptyArray(): any {
+        const nodeWithOptionalType = this.__node.withOptionalType
+        if (nodeWithOptionalType) {
+            return nodeWithOptionalType(this, 'optional')
+        }
         const result = __newNoopValueSource(this, __sameTypeClassOf(this), 'optional', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
@@ -243,7 +267,8 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return result
     }
     projectingOptionalValuesAsNullable(): any {
-        return this
+        const nodeProjectingOptionalValuesAsNullable = this.__node.projectingOptionalValuesAsNullable
+        return nodeProjectingOptionalValuesAsNullable ? nodeProjectingOptionalValuesAsNullable(this) : this
     }
     // SqlComparator0
     isNull(): any {
@@ -289,12 +314,14 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         if (when) {
             return this
         } else {
-            return __newNullValueSource(__typeClassOf(this), 'optional', this.__typeAdapter)
+            const nodeAsNull = this.__node.asNull
+            return nodeAsNull ? nodeAsNull(this) : __newNullValueSource(__typeClassOf(this), 'optional', this.__typeAdapter)
         }
     }
     ignoreWhenAsNull(when: boolean): any {
         if (when) {
-            return __newNullValueSource(__typeClassOf(this), 'optional', this.__typeAdapter)
+            const nodeAsNull = this.__node.asNull
+            return nodeAsNull ? nodeAsNull(this) : __newNullValueSource(__typeClassOf(this), 'optional', this.__typeAdapter)
         } else {
             return this
         }
@@ -2102,254 +2129,6 @@ export function __newInlineSelectValueSource(selectData: InlineSelectData, requi
     return vs
 }
 
-export class AggregateSelectValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
-    [valueType_]: any
-    [optionalType_]: any
-    [source]: any
-    [typeName]: any
-    [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
-
-    [isValueSourceObject]: true = true
-    __type: string = 'aggregatedArray'
-    __customType: CustomType | undefined = undefined
-    __optionalType: OptionalType
-    __operation = '_inlineSelectAsValue' as const
-    __selectData: InlineSelectData
-    __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
-    __aggregatedArrayMode: __AggregatedArrayMode
-    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
-    __isAggregate = true
-
-    constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, projectingOptionalValuesAsNullable?: boolean) {
-        this.__selectData = selectData
-        this.__aggregatedArrayColumns = aggregatedArrayColumns
-        this.__aggregatedArrayMode = aggregatedArrayMode
-        this.__optionalType = _optionalType
-        this.__aggreagtedProjectingOptionalValuesAsNullable = projectingOptionalValuesAsNullable
-    }
-
-    isConstValue(): boolean {
-        return false
-    }
-    getConstValue(): any {
-        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
-    }
-    allowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new AllowWhenAggregateSelectValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        } else {
-            return new AllowWhenAggregateSelectValueSource(when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        }
-    }
-    disallowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new AllowWhenAggregateSelectValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        } else {
-            return new AllowWhenAggregateSelectValueSource(!when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        }
-    }
-
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._inlineSelectAsValue(this.__selectData, context)
-    }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, context)
-    }
-    __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
-        __addInlineQueryWiths(sqlBuilder, withs, this.__selectData)
-    }
-    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__selectData.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__selectData.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__selectData.__getOldValues(sqlBuilder)
-    }
-    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__selectData.__getValuesForInsert(sqlBuilder)
-    }
-    __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__selectData.__isAllowed(sqlBuilder)
-    }
-    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
-        return this.__isAggregate ?? false
-    }
-
-    useEmptyArrayForNoValue(): any {
-        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required', this.__aggreagtedProjectingOptionalValuesAsNullable)
-    }
-    asOptionalNonEmptyArray(): any {
-        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggreagtedProjectingOptionalValuesAsNullable)
-    }
-    asRequiredInOptionalObject(): any {
-        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject', this.__aggreagtedProjectingOptionalValuesAsNullable)
-    }
-    onlyWhenOrNull(when: boolean): any {
-        if (when) {
-            return this
-        } else {
-            return new NullAggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
-        }
-    }
-    ignoreWhenAsNull(when: boolean): any {
-        if (when) {
-            return new NullAggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
-        } else {
-            return this
-        }
-    }
-    projectingOptionalValuesAsNullable(): any {
-        this.__aggreagtedProjectingOptionalValuesAsNullable = true
-        return this
-    }
-}
-
-export class AllowWhenAggregateSelectValueSource extends AggregateSelectValueSource {
-    __allowed: boolean
-    __error: Error
-    constructor(allowed: boolean, error: Error, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, projectingOptionalValuesAsNullable?: boolean) {
-        super(selectData, aggregatedArrayColumns, aggregatedArrayMode, _optionalType, projectingOptionalValuesAsNullable)
-        this.__error = error
-        this.__allowed = allowed
-    }
-    override __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this.__allowed) {
-            throw this.__error
-        }
-        return super.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        if (!this.__allowed) {
-            return false
-        }
-        return super.__isAllowed(sqlBuilder)
-    }
-}
-
-export class NullAggregateSelectValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
-    [valueType_]: any
-    [optionalType_]: any
-    [source]: any
-    [typeName]: any
-    [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
-
-    [isValueSourceObject]: true = true
-    // Replaced by null (onlyWhenOrNull / ignoreWhenAsNull): nothing is aggregated, as for any other value
-    // replaced by null (NullValueSource); the other walkers ignore the replaced query too
-    __isAggregate = false
-    __type: string = 'aggregatedArray'
-    __customType: CustomType | undefined = undefined
-    __optionalType: OptionalType
-    __operation = '_inlineSelectAsValue' as const
-    __selectData: InlineSelectData
-    __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
-    __aggregatedArrayMode: __AggregatedArrayMode
-
-    constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
-        this.__selectData = selectData
-        this.__aggregatedArrayColumns = aggregatedArrayColumns
-        this.__aggregatedArrayMode = aggregatedArrayMode
-        this.__optionalType = _optionalType
-    }
-
-    isConstValue(): boolean {
-        return false
-    }
-    getConstValue(): any {
-        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
-    }
-    allowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
-        } else {
-            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
-        }
-    }
-    disallowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, !when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
-        } else {
-            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, !when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
-        }
-    }
-
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._asNullValue(context, this.__type, this.__customType, undefined)
-    }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return this.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    __addWiths(_sqlBuilder: HasIsValue, _withs: IWithView<any>[]): void {
-    }
-    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
-    }
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<DBColumn>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
-    }
-    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
-    }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
-    }
-    __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return true
-    }
-    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
-        return this.__isAggregate ?? false
-    }
-
-    useEmptyArrayForNoValue(): any {
-        return new NullAggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required')
-    }
-    asOptionalNonEmptyArray(): any {
-        return new NullAggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
-    }
-    asRequiredInOptionalObject(): any {
-        return new NullAggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject')
-    }
-    onlyWhenOrNull(when: boolean): any {
-        if (when) {
-            return this
-        } else {
-            return new NullAggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
-        }
-    }
-    ignoreWhenAsNull(when: boolean): any {
-        if (when) {
-            return new NullAggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
-        } else {
-            return this
-        }
-    }
-    projectingOptionalValuesAsNullable(): any {
-        return this
-    }
-}
-
-export class NullAllowWhenAggregateSelectValueSource extends NullAggregateSelectValueSource {
-    __allowed: boolean
-    __error: Error
-    constructor(selectData: InlineSelectData, allowed: boolean, error: Error, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
-        super(selectData, aggregatedArrayColumns, aggregatedArrayMode, _optionalType)
-        this.__error = error
-        this.__allowed = allowed
-    }
-    override __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this.__allowed) {
-            throw this.__error
-        }
-        return super.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        if (!this.__allowed) {
-            return false
-        }
-        return super.__isAllowed(sqlBuilder)
-    }
-}
-
 function __addInlineQueryWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[], selectData: InlineSelectData): void {
     const withViews: IWithView<any>[] = []
     const subSelectUsing = selectData.__subSelectUsing || []
@@ -2400,332 +2179,318 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
     }
 }
 
-export class AggregateValueAsArrayValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
-    [valueType_]: any
-    [optionalType_]: any
-    [source]: any
-    [typeName]: any
-    [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
+/*
+ * The aggregates as array, a select used as an aggregated array (`forUseAsInlineAggregatedArrayValue`) and the
+ * aggregate functions of the database (`aggregateAsArray`, ...): each one, the same guarded by `allowWhen`, and the
+ * null that replaces it (`onlyWhenOrNull`), with the same guarded. Their value sources are of their class
+ * (AggregatedArrayType); the methods that change them are the hooks of their nodes.
+ */
 
-    [isValueSourceObject]: true = true
-    __isAggregate = true
-    __type: string = 'aggregatedArray'
-    __customType: CustomType | undefined = undefined
-    __optionalType: OptionalType
-    __operation: '_aggregateValueAsArray' = '_aggregateValueAsArray'
+/** The fields every aggregate as array has */
+interface AggregatedArrayValueSource extends ValueSourceImpl {
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode: __AggregatedArrayMode
-    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
-    __aggregatedArrayDistinct: boolean
-
-    constructor(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distict: boolean, projectingOptionalValuesAsNullable?: boolean) {
-        this.__aggregatedArrayColumns = aggregatedArrayColumns
-        this.__aggregatedArrayMode = aggregatedArrayMode
-        this.__optionalType = _optionalType
-        this.__aggregatedArrayDistinct = distict
-        this.__aggreagtedProjectingOptionalValuesAsNullable = projectingOptionalValuesAsNullable
-    }
-
-    isConstValue(): boolean {
-        return false
-    }
-    getConstValue(): any {
-        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
-    }
-    allowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new AllowWhenAggregateValueAsArrayValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        } else {
-            return new AllowWhenAggregateValueAsArrayValueSource(when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        }
-    }
-    disallowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new AllowWhenAggregateValueAsArrayValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        } else {
-            return new AllowWhenAggregateValueAsArrayValueSource(!when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
-        }
-    }
-    __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
-        this.__addWithsOf(sqlBuilder, withs, this.__aggregatedArrayColumns)
-    }
-    __addWithsOf(sqlBuilder: HasIsValue, withs: IWithView<any>[], aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
-        if (!aggregatedArrayColumns) {
-            return
-        } else if (isValueSource(aggregatedArrayColumns)) {
-            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            valueSourcePrivate.__addWiths(sqlBuilder, withs)
-        } else {
-            for (let prop in aggregatedArrayColumns) {
-                this.__addWithsOf(sqlBuilder, withs, aggregatedArrayColumns[prop])
-            }
-        }
-    }
-    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__registerTableOrViewOf(sqlBuilder, requiredTablesOrViews, this.__aggregatedArrayColumns)
-    }
-    __registerTableOrViewOf(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
-        if (!aggregatedArrayColumns) {
-            return
-        } else if (isValueSource(aggregatedArrayColumns)) {
-            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            valueSourcePrivate.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        } else {
-            for (let prop in aggregatedArrayColumns) {
-                this.__registerTableOrViewOf(sqlBuilder, requiredTablesOrViews, aggregatedArrayColumns[prop])
-            }
-        }
-    }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__registerRequiredColumnOf(sqlBuilder, requiredColumns, onlyForTablesOrViews, this.__aggregatedArrayColumns)
-    }
-    __registerRequiredColumnOf(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
-        if (!aggregatedArrayColumns) {
-            return
-        } else if (isValueSource(aggregatedArrayColumns)) {
-            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            valueSourcePrivate.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        } else {
-            for (let prop in aggregatedArrayColumns) {
-                this.__registerRequiredColumnOf(sqlBuilder, requiredColumns, onlyForTablesOrViews, aggregatedArrayColumns[prop])
-            }
-        }
-    }
-    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__getOldValuesOf(sqlBuilder, this.__aggregatedArrayColumns)
-    }
-    __getOldValuesOf(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): AnyTableOrView | undefined {
-        if (!aggregatedArrayColumns) {
-            return undefined
-        } else if (isValueSource(aggregatedArrayColumns)) {
-            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            return valueSourcePrivate.__getOldValues(sqlBuilder)
-        } else {
-            for (let prop in aggregatedArrayColumns) {
-                const result = this.__getOldValuesOf(sqlBuilder, aggregatedArrayColumns[prop])
-                if (result) {
-                    return result
-                }
-            }
-            return undefined
-        }
-    }
-    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__getValuesForInsertOf(sqlBuilder, this.__aggregatedArrayColumns)
-    }
-    __getValuesForInsertOf(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): AnyTableOrView | undefined {
-        if (!aggregatedArrayColumns) {
-            return undefined
-        } else if (isValueSource(aggregatedArrayColumns)) {
-            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            return valueSourcePrivate.__getValuesForInsert(sqlBuilder)
-        } else {
-            for (let prop in aggregatedArrayColumns) {
-                const result = this.__getValuesForInsertOf(sqlBuilder, aggregatedArrayColumns[prop])
-                if (result) {
-                    return result
-                }
-            }
-            return undefined
-        }
-    }
-    __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__isAllowedOf(sqlBuilder, this.__aggregatedArrayColumns)
-    }
-    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
-        return this.__isAggregate ?? false
-    }
-    __isAllowedOf(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): boolean {
-        if (!aggregatedArrayColumns) {
-            return true
-        } else if (isValueSource(aggregatedArrayColumns)) {
-            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            return valueSourcePrivate.__isAllowed(sqlBuilder)
-        } else {
-            for (let prop in aggregatedArrayColumns) {
-                const result = this.__isAllowedOf(sqlBuilder, aggregatedArrayColumns[prop])
-                if (!result) {
-                    return false
-                }
-            }
-            return true
-        }
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._aggregateValueAsArray(this, context)
-    }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return this.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-
-    useEmptyArrayForNoValue(): any {
-        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required', this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
-    }
-    asOptionalNonEmptyArray(): any {
-        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
-    }
-    asRequiredInOptionalObject(): any {
-        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject', this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
-    }
-    onlyWhenOrNull(when: boolean): any {
-        if (when) {
-            return this
-        } else {
-            return new NullAggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct)
-        }
-    }
-    ignoreWhenAsNull(when: boolean): any {
-        if (when) {
-            return new NullAggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct)
-        } else {
-            return this
-        }
-    }
-    projectingOptionalValuesAsNullable(): any {
-        this.__aggreagtedProjectingOptionalValuesAsNullable = true
-        return this
-    }
+    /** Set by `allowWhen` / `disallowWhen` */
+    __allowed?: boolean | undefined
+    __error?: Error | undefined
 }
 
-export class AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsArrayValueSource {
+/** A select used as an aggregated array */
+export interface AggregateSelectValueSource extends AggregatedArrayValueSource {
+    __operation: '_inlineSelectAsValue'
+    __selectData: InlineSelectData
+}
+
+/** An aggregate function of the database that gives an array */
+export interface AggregateValueAsArrayValueSource extends AggregatedArrayValueSource {
+    __operation: '_aggregateValueAsArray'
+    __aggregatedArrayDistinct: boolean
+}
+
+/** An aggregate function that gives an array, guarded by `allowWhen` / `disallowWhen` */
+export interface AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsArrayValueSource {
     __allowed: boolean
     __error: Error
-    constructor(allowed: boolean, error: Error, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distinct: boolean, projectingOptionalValuesAsNullable?: boolean) {
-        super(aggregatedArrayColumns, aggregatedArrayMode, _optionalType, distinct, projectingOptionalValuesAsNullable)
-        this.__error = error
-        this.__allowed = allowed
-    }
-    override __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this.__allowed) {
-            throw this.__error
-        }
-        return super.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        if (!this.__allowed) {
-            return false
-        }
-        return super.__isAllowed(sqlBuilder)
+}
+
+/** The node of an aggregate as array guarded by `allowWhen`: the one of the aggregate, which throws its error when it is not allowed */
+function allowWhenAggregateNode<VS extends AggregatedArrayValueSource>(node: NodeStrategy<VS>): NodeStrategy<VS> {
+    return {
+        ...node,
+        __toSql(vs, sqlBuilder, context, forceTypeCast) {
+            if (!vs.__allowed) {
+                throw vs.__error
+            }
+            return node.__toSql(vs, sqlBuilder, context, forceTypeCast)
+        },
+        __isAllowed(vs, sqlBuilder) {
+            if (!vs.__allowed) {
+                return false
+            }
+            return node.__isAllowed(vs, sqlBuilder)
+        },
     }
 }
 
-export class NullAggregateValueAsArrayValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
-    [valueType_]: any
-    [optionalType_]: any
-    [source]: any
-    [typeName]: any
-    [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
+/** The null of an aggregate as array: it reaches nothing */
+function nullAggregateToSql(vs: AggregatedArrayValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext): string {
+    return sqlBuilder._asNullValue(context, vs.__type, vs.__customType, undefined)
+}
 
-    [isValueSourceObject]: true = true
-    // Replaced by null (onlyWhenOrNull / ignoreWhenAsNull): nothing is aggregated, as for any other value
-    // replaced by null (NullValueSource); the other walkers ignore the replaced query too
-    __isAggregate = false
-    __type: string = 'aggregatedArray'
-    __customType: CustomType | undefined = undefined
-    __optionalType: OptionalType
-    __operation: '_aggregateValueAsArray' = '_aggregateValueAsArray'
-    __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
-    __aggregatedArrayMode: __AggregatedArrayMode
-    __aggregatedArrayDistinct: boolean
+function newAggregateSelect(node: NodeStrategy<AggregateSelectValueSource>, typeClass: DataTypeClass, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateSelectValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, undefined, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateSelectValueSource
+    vs.__node = node
+    vs.__operation = '_inlineSelectAsValue'
+    vs.__selectData = selectData
+    vs.__isAggregate = node === aggregateSelectNode || node === allowWhenAggregateSelectNode
+    if (error) {
+        vs.__allowed = allowed
+        vs.__error = error
+    }
+    return vs
+}
 
-    constructor(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distinct: boolean) {
-        this.__aggregatedArrayColumns = aggregatedArrayColumns
-        this.__aggregatedArrayMode = aggregatedArrayMode
-        this.__optionalType = _optionalType
-        this.__aggregatedArrayDistinct = distinct
-    }
+/** A select used as an aggregated array */
+const aggregateSelectNode: NodeStrategy<AggregateSelectValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs, sqlBuilder, context) {
+        return sqlBuilder._inlineSelectAsValue(vs.__selectData, context)
+    },
+    __toSqlForCondition(vs, sqlBuilder, context) {
+        return sqlBuilder._inlineSelectAsValueForCondition(vs.__selectData, context)
+    },
+    __addWiths(vs, sqlBuilder, withs) {
+        __addInlineQueryWiths(sqlBuilder, withs, vs.__selectData)
+    },
+    __registerTableOrView(vs, sqlBuilder, requiredTablesOrViews) {
+        vs.__selectData.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs, sqlBuilder, requiredColumns, onlyForTablesOrViews) {
+        vs.__selectData.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs, sqlBuilder) {
+        return vs.__selectData.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs, sqlBuilder) {
+        return vs.__selectData.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs, sqlBuilder) {
+        return vs.__selectData.__isAllowed(sqlBuilder)
+    },
+    withOptionalType(vs, optionalType) {
+        return newAggregateSelect(aggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, vs.__aggreagtedProjectingOptionalValuesAsNullable)
+    },
+    asRequiredInOptionalObject(vs) {
+        return newAggregateSelect(aggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', vs.__aggreagtedProjectingOptionalValuesAsNullable)
+    },
+    asNull(vs) {
+        return newAggregateSelect(nullAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'optional', undefined)
+    },
+    allowWhen(vs, allowed, error) {
+        return newAggregateSelect(allowWhenAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggreagtedProjectingOptionalValuesAsNullable, allowed, error)
+    },
+    projectingOptionalValuesAsNullable(vs) {
+        vs.__aggreagtedProjectingOptionalValuesAsNullable = true
+        return vs
+    },
+}
+const allowWhenAggregateSelectNode = allowWhenAggregateNode(aggregateSelectNode)
 
-    isConstValue(): boolean {
-        return false
+/** The null that replaces a select used as an aggregated array */
+const nullAggregateSelectNode: NodeStrategy<AggregateSelectValueSource> = {
+    ...valueSourceNode,
+    __toSql: nullAggregateToSql,
+    withOptionalType(vs, optionalType) {
+        return newAggregateSelect(nullAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, undefined)
+    },
+    asRequiredInOptionalObject(vs) {
+        return newAggregateSelect(nullAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', undefined)
+    },
+    asNull(vs) {
+        return newAggregateSelect(nullAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'optional', undefined)
+    },
+    allowWhen(vs, allowed, error) {
+        return newAggregateSelect(nullAllowWhenAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, undefined, allowed, error)
+    },
+    projectingOptionalValuesAsNullable(vs) {
+        return vs
+    },
+}
+const nullAllowWhenAggregateSelectNode = allowWhenAggregateNode(nullAggregateSelectNode)
+
+/** A select used as an aggregated array, of the class of its data type */
+export function __newAggregateSelectValueSource(typeClass: DataTypeClass, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType): AggregateSelectValueSource {
+    return newAggregateSelect(aggregateSelectNode, typeClass, selectData, aggregatedArrayColumns, aggregatedArrayMode, optionalType, undefined)
+}
+
+function newAggregateValueAsArray(node: NodeStrategy<AggregateValueAsArrayValueSource>, typeClass: DataTypeClass, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateValueAsArrayValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, undefined, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateValueAsArrayValueSource
+    vs.__node = node
+    vs.__operation = '_aggregateValueAsArray'
+    vs.__aggregatedArrayDistinct = distinct
+    vs.__isAggregate = node === aggregateValueAsArrayNode || node === allowWhenAggregateValueAsArrayNode
+    if (error) {
+        vs.__allowed = allowed
+        vs.__error = error
     }
-    getConstValue(): any {
-        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
-    }
-    allowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new NullAllowWhenAggregateValueAsArrayValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
-        } else {
-            return new NullAllowWhenAggregateValueAsArrayValueSource(when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+    return vs
+}
+
+/** What the aggregated columns of an aggregate function reach, each of them */
+function aggregatedColumnsAddWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[], aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+    if (!aggregatedArrayColumns) {
+        return
+    } else if (isValueSource(aggregatedArrayColumns)) {
+        __getValueSourcePrivate(aggregatedArrayColumns).__addWiths(sqlBuilder, withs)
+    } else {
+        for (let prop in aggregatedArrayColumns) {
+            aggregatedColumnsAddWiths(sqlBuilder, withs, aggregatedArrayColumns[prop])
         }
     }
-    disallowWhen(when: boolean, error: string | Error): any {
-        if (typeof error === 'string') {
-            return new NullAllowWhenAggregateValueAsArrayValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
-        } else {
-            return new NullAllowWhenAggregateValueAsArrayValueSource(!when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+}
+function aggregatedColumnsRegisterTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+    if (!aggregatedArrayColumns) {
+        return
+    } else if (isValueSource(aggregatedArrayColumns)) {
+        __getValueSourcePrivate(aggregatedArrayColumns).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    } else {
+        for (let prop in aggregatedArrayColumns) {
+            aggregatedColumnsRegisterTableOrView(sqlBuilder, requiredTablesOrViews, aggregatedArrayColumns[prop])
         }
     }
-    __addWiths(_sqlBuilder: HasIsValue, _withs: IWithView<any>[]): void {
+}
+function aggregatedColumnsRegisterRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+    if (!aggregatedArrayColumns) {
+        return
+    } else if (isValueSource(aggregatedArrayColumns)) {
+        __getValueSourcePrivate(aggregatedArrayColumns).__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    } else {
+        for (let prop in aggregatedArrayColumns) {
+            aggregatedColumnsRegisterRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews, aggregatedArrayColumns[prop])
+        }
     }
-    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
-    }
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<DBColumn>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
-    }
-    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+}
+function aggregatedColumnsGetOldValues(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): AnyTableOrView | undefined {
+    if (!aggregatedArrayColumns) {
+        return undefined
+    } else if (isValueSource(aggregatedArrayColumns)) {
+        return __getValueSourcePrivate(aggregatedArrayColumns).__getOldValues(sqlBuilder)
+    } else {
+        for (let prop in aggregatedArrayColumns) {
+            const result = aggregatedColumnsGetOldValues(sqlBuilder, aggregatedArrayColumns[prop])
+            if (result) {
+                return result
+            }
+        }
         return undefined
     }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+}
+function aggregatedColumnsGetValuesForInsert(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): AnyTableOrView | undefined {
+    if (!aggregatedArrayColumns) {
+        return undefined
+    } else if (isValueSource(aggregatedArrayColumns)) {
+        return __getValueSourcePrivate(aggregatedArrayColumns).__getValuesForInsert(sqlBuilder)
+    } else {
+        for (let prop in aggregatedArrayColumns) {
+            const result = aggregatedColumnsGetValuesForInsert(sqlBuilder, aggregatedArrayColumns[prop])
+            if (result) {
+                return result
+            }
+        }
         return undefined
     }
-    __isAllowed(_sqlBuilder: HasIsValue): boolean {
+}
+function aggregatedColumnsIsAllowed(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): boolean {
+    if (!aggregatedArrayColumns) {
+        return true
+    } else if (isValueSource(aggregatedArrayColumns)) {
+        return __getValueSourcePrivate(aggregatedArrayColumns).__isAllowed(sqlBuilder)
+    } else {
+        for (let prop in aggregatedArrayColumns) {
+            if (!aggregatedColumnsIsAllowed(sqlBuilder, aggregatedArrayColumns[prop])) {
+                return false
+            }
+        }
         return true
     }
-    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
-        return this.__isAggregate ?? false
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._asNullValue(context, this.__type, this.__customType, undefined)
-    }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return this.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-
-    useEmptyArrayForNoValue(): any {
-        return new NullAggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required', this.__aggregatedArrayDistinct)
-    }
-    asOptionalNonEmptyArray(): any {
-        return new NullAggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct)
-    }
-    asRequiredInOptionalObject(): any {
-        return new NullAggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject', this.__aggregatedArrayDistinct)
-    }
-    onlyWhenOrNull(when: boolean): any {
-        if (when) {
-            return this
-        } else {
-            return new NullAggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct)
-        }
-    }
-    ignoreWhenAsNull(when: boolean): any {
-        if (when) {
-            return new NullAggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct)
-        } else {
-            return this
-        }
-    }
-    projectingOptionalValuesAsNullable(): any {
-        return this
-    }
 }
 
-export class NullAllowWhenAggregateValueAsArrayValueSource extends NullAggregateValueAsArrayValueSource {
-    __allowed: boolean
-    __error: Error
-    constructor(allowed: boolean, error: Error, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distinct: boolean) {
-        super(aggregatedArrayColumns, aggregatedArrayMode, _optionalType, distinct)
-        this.__error = error
-        this.__allowed = allowed
-    }
-    override __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this.__allowed) {
-            throw this.__error
-        }
-        return super.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        if (!this.__allowed) {
-            return false
-        }
-        return super.__isAllowed(sqlBuilder)
-    }
+/** An aggregate function of the database that gives an array */
+const aggregateValueAsArrayNode: NodeStrategy<AggregateValueAsArrayValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs, sqlBuilder, context) {
+        return sqlBuilder._aggregateValueAsArray(vs, context)
+    },
+    __addWiths(vs, sqlBuilder, withs) {
+        aggregatedColumnsAddWiths(sqlBuilder, withs, vs.__aggregatedArrayColumns)
+    },
+    __registerTableOrView(vs, sqlBuilder, requiredTablesOrViews) {
+        aggregatedColumnsRegisterTableOrView(sqlBuilder, requiredTablesOrViews, vs.__aggregatedArrayColumns)
+    },
+    __registerRequiredColumn(vs, sqlBuilder, requiredColumns, onlyForTablesOrViews) {
+        aggregatedColumnsRegisterRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews, vs.__aggregatedArrayColumns)
+    },
+    __getOldValues(vs, sqlBuilder) {
+        return aggregatedColumnsGetOldValues(sqlBuilder, vs.__aggregatedArrayColumns)
+    },
+    __getValuesForInsert(vs, sqlBuilder) {
+        return aggregatedColumnsGetValuesForInsert(sqlBuilder, vs.__aggregatedArrayColumns)
+    },
+    __isAllowed(vs, sqlBuilder) {
+        return aggregatedColumnsIsAllowed(sqlBuilder, vs.__aggregatedArrayColumns)
+    },
+    withOptionalType(vs, optionalType) {
+        return newAggregateValueAsArray(aggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, vs.__aggregatedArrayDistinct, vs.__aggreagtedProjectingOptionalValuesAsNullable)
+    },
+    asRequiredInOptionalObject(vs) {
+        return newAggregateValueAsArray(aggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', vs.__aggregatedArrayDistinct, vs.__aggreagtedProjectingOptionalValuesAsNullable)
+    },
+    asNull(vs) {
+        return newAggregateValueAsArray(nullAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'optional', vs.__aggregatedArrayDistinct, undefined)
+    },
+    allowWhen(vs, allowed, error) {
+        return newAggregateValueAsArray(allowWhenAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedArrayDistinct, vs.__aggreagtedProjectingOptionalValuesAsNullable, allowed, error)
+    },
+    projectingOptionalValuesAsNullable(vs) {
+        vs.__aggreagtedProjectingOptionalValuesAsNullable = true
+        return vs
+    },
+}
+const allowWhenAggregateValueAsArrayNode = allowWhenAggregateNode(aggregateValueAsArrayNode)
+
+/** The null that replaces an aggregate function that gives an array */
+const nullAggregateValueAsArrayNode: NodeStrategy<AggregateValueAsArrayValueSource> = {
+    ...valueSourceNode,
+    __toSql: nullAggregateToSql,
+    withOptionalType(vs, optionalType) {
+        return newAggregateValueAsArray(nullAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, vs.__aggregatedArrayDistinct, undefined)
+    },
+    asRequiredInOptionalObject(vs) {
+        return newAggregateValueAsArray(nullAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', vs.__aggregatedArrayDistinct, undefined)
+    },
+    asNull(vs) {
+        return newAggregateValueAsArray(nullAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'optional', vs.__aggregatedArrayDistinct, undefined)
+    },
+    allowWhen(vs, allowed, error) {
+        return newAggregateValueAsArray(nullAllowWhenAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedArrayDistinct, undefined, allowed, error)
+    },
+    projectingOptionalValuesAsNullable(vs) {
+        return vs
+    },
+}
+const nullAllowWhenAggregateValueAsArrayNode = allowWhenAggregateNode(nullAggregateValueAsArrayNode)
+
+/** An aggregate function of the database that gives an array, of the class of its data type */
+export function __newAggregateValueAsArrayValueSource(typeClass: DataTypeClass, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean): AggregateValueAsArrayValueSource {
+    return newAggregateValueAsArray(aggregateValueAsArrayNode, typeClass, aggregatedArrayColumns, aggregatedArrayMode, optionalType, distinct, undefined)
+}
+
+/** Whether the value source is an aggregate function that gives an array, guarded or not by `allowWhen` */
+export function __isAggregateValueAsArrayNode(vs: ValueSourceImpl): boolean {
+    return vs.__node === aggregateValueAsArrayNode || vs.__node === allowWhenAggregateValueAsArrayNode
+}
+
+/** Whether the value source is an aggregate function that gives an array, guarded by `allowWhen` */
+export function __isAllowWhenAggregateValueAsArrayNode(vs: ValueSourceImpl): boolean {
+    return vs.__node === allowWhenAggregateValueAsArrayNode
 }

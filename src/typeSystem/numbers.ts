@@ -75,15 +75,15 @@ export abstract class NumberType extends ComparableType<number> {
 
 /** An integer number, a JavaScript number */
 export abstract class IntType extends NumberType {
-    static override readonly __type = 'int'
-    static override readonly __customType = undefined
+    static override readonly type = 'int'
+    static override readonly customType = undefined
     declare [typeName]: 'type:int:number:'
 }
 
 /** A floating point number, a JavaScript number */
 export abstract class DoubleType extends NumberType {
-    static override readonly __type = 'double'
-    static override readonly __customType = undefined
+    static override readonly type = 'double'
+    static override readonly customType = undefined
     declare [typeName]: 'type:double:number:'
 }
 
@@ -114,22 +114,22 @@ export abstract class IntegerType</*in|out*/ VALUE_TYPE> extends NumericType<VAL
 
 /** An integer number of 64 bits, a JavaScript bigint */
 export abstract class BigintType extends IntegerType<bigint> {
-    static override readonly __type = 'bigint'
-    static override readonly __customType = undefined
+    static override readonly type = 'bigint'
+    static override readonly customType = undefined
     declare [typeName]: 'type:bigint:'
     declare [operandTypeName]: 'type:bigint:'
 }
 
 /** An integer number of a type of the user, of its type name */
 export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegerType<VALUE_TYPE> {
-    static override readonly __customType = 'customInt'
+    static override readonly customType = 'customInt'
     declare [typeName]: `type:${TYPE_NAME}:customInt:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
 
     /** The data type of an integer number of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomInt extends CustomIntType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomInt
     }
@@ -137,14 +137,14 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
 
 /** An integer number of 64 bits of a type of the user, of its type name */
 export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegerType<VALUE_TYPE> {
-    static override readonly __customType = 'customBigint'
+    static override readonly customType = 'customBigint'
     declare [typeName]: `type:${TYPE_NAME}:customBigint:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customBigint:`
 
     /** The data type of an integer number of 64 bits of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomBigint extends CustomBigintType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomBigint
     }
@@ -180,14 +180,14 @@ export abstract class RealType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_
 
 /** A floating point number of a type of the user, of its type name */
 export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends RealType<VALUE_TYPE> {
-    static override readonly __customType = 'customDouble'
+    static override readonly customType = 'customDouble'
     declare [typeName]: `type:${TYPE_NAME}:customDouble:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`
 
     /** The data type of a floating point number of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomDouble extends CustomDoubleType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomDouble
     }
@@ -219,22 +219,22 @@ export abstract class DecimalType</*in|out*/ VALUE_TYPE> extends NumericType<VAL
 
 /** An exact decimal number that the library delivers as its text, a JavaScript string */
 export abstract class StringDecimalType extends DecimalType<string> {
-    static override readonly __type = 'stringDecimal'
-    static override readonly __customType = undefined
+    static override readonly type = 'stringDecimal'
+    static override readonly customType = undefined
     declare [typeName]: 'type:stringDecimal:'
     declare [operandTypeName]: 'type:stringDecimal:'
 }
 
 /** An exact decimal number of a type of the user, of its type name */
 export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DecimalType<VALUE_TYPE> {
-    static override readonly __customType = 'customDecimal'
+    static override readonly customType = 'customDecimal'
     declare [typeName]: `type:${TYPE_NAME}:customDecimal:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customDecimal:`
 
     /** The data type of an exact decimal number of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomDecimalType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomDecimal extends CustomDecimalType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomDecimal
     }

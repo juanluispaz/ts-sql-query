@@ -10,8 +10,8 @@ export type IStringValue = IValueWithType<'type:string:'>
 
 /** A text */
 export abstract class StringType extends ComparableType<string> {
-    static override readonly __type = 'string'
-    static override readonly __customType = undefined
+    static override readonly type = 'string'
+    static override readonly customType = undefined
     declare [typeName]: 'type:string:'
     declare [operandTypeName]: 'type:string:'
 

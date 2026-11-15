@@ -69,7 +69,7 @@ can't be a column or be projected, and it has a value a boolean doesn't have, th
 ## The classes
 
 ```
-BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static __type/__customType
+BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static type/customType
 ├── ValueSourceBaseType<VALUE_TYPE>          isConstValue, getConstValue, allowWhen, disallowWhen
 │   ├── NullableType<VALUE_TYPE>             isNull, valueWhenNull, asOptional, onlyWhenOrNull, ...
 │   │   └── EqualableType<VALUE_TYPE>        equals, is, in, inN, ... (and their *IfValue forms)
@@ -145,7 +145,7 @@ An input position never takes a full value source: it takes a light interface wi
 A custom data type is a child class of its family class with its type name. Each family has a static `of`:
 
 ```ts
-const MoneyType = CustomIntType.of<Money, 'Money'>('Money')   // __type 'Money', __customType 'customInt'
+const MoneyType = CustomIntType.of<Money, 'Money'>('Money')   // type 'Money', customType 'customInt'
 ```
 
 One static per family, because a single generic factory (`customType<Money, 'Money'>('customInt', 'Money')`) can't
@@ -191,7 +191,7 @@ fragment expression. The methods that take a data type by its name (`column`, `c
 ## Adding a data type
 
 1. Its class in the file of its family, extending the class that has the methods it shares, with its NType and
-   operand NType, its `static __type` / `__customType`, and its own methods with the result types the runtime gives.
+   operand NType, its `static type` / `customType`, and its own methods with the result types the runtime gives.
 2. A custom one: its static `of`.
 3. A built-in one: its entry in each map of `builtInDataTypes.ts`.
 4. Its questions in `dataTypes.ts` and its handling in the runtime, as for any data type of the library.

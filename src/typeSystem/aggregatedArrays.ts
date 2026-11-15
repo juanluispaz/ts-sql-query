@@ -4,8 +4,8 @@ import { operandTypeName, typeName } from '../utils/symbols.js'
 
 /** The array an aggregate as array gives: the rows it aggregates, as objects or as the values of one column */
 export abstract class AggregatedArrayType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
-    static override readonly __type = 'aggregatedArray'
-    static override readonly __customType = undefined
+    static override readonly type = 'aggregatedArray'
+    static override readonly customType = undefined
     declare [typeName]: 'type:aggregatedArray:'
     declare [operandTypeName]: 'type:aggregatedArray:'
 

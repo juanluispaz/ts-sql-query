@@ -39,14 +39,14 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE> extends NullableType<
 
 /** A value of an enumeration of the user, of its type name */
 export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE> {
-    static override readonly __customType = 'enum'
+    static override readonly customType = 'enum'
     declare [typeName]: `type:${TYPE_NAME}:enum:`
     declare [operandTypeName]: `type:${TYPE_NAME}:enum:`
 
     /** The data type of a value of an enumeration of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<EnumType<VALUE_TYPE, TYPE_NAME>> {
         abstract class Enum extends EnumType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return Enum
     }
@@ -54,14 +54,14 @@ export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exten
 
 /** A value of a type of the user that can only be compared for equality, of its type name */
 export abstract class CustomEqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE> {
-    static override readonly __customType = 'custom'
+    static override readonly customType = 'custom'
     declare [typeName]: `type:${TYPE_NAME}:custom:`
     declare [operandTypeName]: `type:${TYPE_NAME}:custom:`
 
     /** The data type of a value of a type of the user that can only be compared for equality, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomEqualableType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomEqualable extends CustomEqualableType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomEqualable
     }

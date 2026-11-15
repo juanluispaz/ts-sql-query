@@ -38,14 +38,14 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableTyp
 
 /** A value of a type of the user that has an order, of its type name */
 export abstract class CustomComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE> {
-    static override readonly __customType = 'customComparable'
+    static override readonly customType = 'customComparable'
     declare [typeName]: `type:${TYPE_NAME}:customComparable:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customComparable:`
 
     /** The data type of a value of a type of the user that has an order, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomComparableType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomComparable extends CustomComparableType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomComparable
     }

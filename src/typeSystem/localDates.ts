@@ -39,38 +39,38 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE> extends Comparab
 
 /** A date without a zone, a JavaScript Date */
 export abstract class LocalDateType extends LocalDatesType<Date> {
-    static override readonly __type = 'localDate'
-    static override readonly __customType = undefined
+    static override readonly type = 'localDate'
+    static override readonly customType = undefined
     declare [typeName]: 'type:localDate:'
     declare [operandTypeName]: 'type:localDate:'
 }
 
 /** A time of the day without a zone, a JavaScript Date */
 export abstract class LocalTimeType extends LocalTimesType<Date> {
-    static override readonly __type = 'localTime'
-    static override readonly __customType = undefined
+    static override readonly type = 'localTime'
+    static override readonly customType = undefined
     declare [typeName]: 'type:localTime:'
     declare [operandTypeName]: 'type:localTime:'
 }
 
 /** A date and a time of the day without a zone, a JavaScript Date */
 export abstract class LocalDateTimeType extends LocalDateTimesType<Date> {
-    static override readonly __type = 'localDateTime'
-    static override readonly __customType = undefined
+    static override readonly type = 'localDateTime'
+    static override readonly customType = undefined
     declare [typeName]: 'type:localDateTime:'
     declare [operandTypeName]: 'type:localDateTime:'
 }
 
 /** A date without a zone of a type of the user, of its type name */
 export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDatesType<VALUE_TYPE> {
-    static override readonly __customType = 'customLocalDate'
+    static override readonly customType = 'customLocalDate'
     declare [typeName]: `type:${TYPE_NAME}:customLocalDate:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDate:`
 
     /** The data type of a date without a zone of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomLocalDate extends CustomLocalDateType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomLocalDate
     }
@@ -78,14 +78,14 @@ export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
 
 /** A time of the day without a zone of a type of the user, of its type name */
 export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalTimesType<VALUE_TYPE> {
-    static override readonly __customType = 'customLocalTime'
+    static override readonly customType = 'customLocalTime'
     declare [typeName]: `type:${TYPE_NAME}:customLocalTime:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalTime:`
 
     /** The data type of a time of the day without a zone of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomLocalTime extends CustomLocalTimeType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomLocalTime
     }
@@ -93,14 +93,14 @@ export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
 
 /** A date and a time of the day without a zone of a type of the user, of its type name */
 export abstract class CustomLocalDateTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDateTimesType<VALUE_TYPE> {
-    static override readonly __customType = 'customLocalDateTime'
+    static override readonly customType = 'customLocalDateTime'
     declare [typeName]: `type:${TYPE_NAME}:customLocalDateTime:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDateTime:`
 
     /** The data type of a date and a time of the day without a zone of a type of the user, with its type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomLocalDateTime extends CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly __type = typeName
+            static override readonly type = typeName
         }
         return CustomLocalDateTime
     }

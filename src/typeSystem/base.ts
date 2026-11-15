@@ -19,9 +19,9 @@ import type { OptionalType, TypedValueSource } from './valueSource.js'
 /** The root of every data type */
 export abstract class BaseType</*in|out*/ VALUE_TYPE> {
     /** The type the library knows the data type by at run time (the type name of a custom data type) */
-    declare static readonly __type: string
+    declare static readonly type: string
     /** The custom type of a custom data type; undefined for a built-in data type */
-    declare static readonly __customType: CustomType | undefined
+    declare static readonly customType: CustomType | undefined
 
     declare [valueType]: VALUE_TYPE
     /** The NType of the data type */
@@ -45,8 +45,8 @@ export abstract class ValueSourceBaseType</*in|out*/ VALUE_TYPE> extends BaseTyp
 /** A class of a data type, as the methods that take a data type receive it */
 export interface TypeClass</*in|out*/ TYPE extends AnyType> {
     readonly prototype: TYPE
-    readonly __type: string
-    readonly __customType: CustomType | undefined
+    readonly type: string
+    readonly customType: CustomType | undefined
 }
 
 export type AnyTypeClass = TypeClass<AnyType>

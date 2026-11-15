@@ -2,7 +2,7 @@ import type { HasIsValue, IView, IWithView } from './utils/ITableOrView.js'
 import { __addWiths, __registerRequiredColumn, __registerTableOrView, __getTableOrViewPrivate } from './utils/ITableOrView.js'
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
-import { __createDBColumn, __createValueSourceFromBuilder } from './typeSystem/valueSourceFactory.js'
+import { __createDBColumn, __createValueSourceFromBuilder, __asOptional } from './typeSystem/valueSourceFactory.js'
 import { connection, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'
@@ -63,7 +63,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected optionalColumn<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE]
     protected optionalColumn<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'>
     protected optionalColumn(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
-        return (__createDBColumn(this, name, __dataTypeClassFrom(type), adapter)).__asOptional()
+        return __asOptional(__createDBColumn(this, name, __dataTypeClassFrom(type), adapter))
     }
 
     protected virtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]

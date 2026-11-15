@@ -45,9 +45,11 @@ export abstract class NumberType extends ComparableType<number> {
     asInt(): any {
         return __operation0(this, '_asInt', IntType)
     }
+    /** The number as a double: a number of JavaScript is one already (an int is converted, IntType) */
     asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     asDouble(): any {
-        return __operation0(this, '_asDouble', DoubleType)
+        const vs = this as unknown as ValueSourceRoot
+        return __newNoopValueSource(vs, DoubleType, vs.__optionalType, vs.__typeAdapter)
     }
     /** The number as a bigint: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
     asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
@@ -190,6 +192,11 @@ export abstract class IntType extends NumberType {
     override asInt(): any {
         const vs = this as unknown as ValueSourceRoot
         return __newNoopValueSource(vs, IntType, vs.__optionalType, vs.__typeAdapter)
+    }
+    /** An int is converted to a double */
+    override asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    override asDouble(): any {
+        return __operation0(this, '_asDouble', DoubleType)
     }
     /** An int is a bigint as it is */
     override asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>

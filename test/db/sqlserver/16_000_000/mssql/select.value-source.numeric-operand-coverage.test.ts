@@ -1097,7 +1097,7 @@ describe(ctx.label, () => {
                     ad:  tIssue.estimatedHours.asDouble(),
                 })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceiling(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, log(estimated_hours) as l, log10(estimated_hours) as l10, sign(estimated_hours) * power(cast(abs(estimated_hours) as float), 1.0e0 / 3.0e0) as cb, cast(round(estimated_hours, 0) as bigint) as ai, cast(round(estimated_hours, 0) as bigint) as abi, cast(estimated_hours as float) as ad from issue where id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceiling(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, log(estimated_hours) as l, log10(estimated_hours) as l10, sign(estimated_hours) * power(cast(abs(estimated_hours) as float), 1.0e0 / 3.0e0) as cb, cast(round(estimated_hours, 0) as bigint) as ai, cast(round(estimated_hours, 0) as bigint) as abi, estimated_hours as ad from issue where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

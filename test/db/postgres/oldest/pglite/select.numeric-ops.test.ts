@@ -911,7 +911,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, cbrt(estimated_hours) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log(estimated_hours) as l10, log(($1)::numeric, (estimated_hours)::numeric) as lgn, round((estimated_hours)::numeric, $2) as rn, atan2(estimated_hours, $3) as at, round((estimated_hours)::numeric)::bigint as ai, round((estimated_hours)::numeric)::bigint as abi, estimated_hours::float as ad from issue where id = $4"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, cbrt(estimated_hours) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log(estimated_hours) as l10, log(($1)::numeric, (estimated_hours)::numeric) as lgn, round((estimated_hours)::numeric, $2) as rn, atan2(estimated_hours, $3) as at, round((estimated_hours)::numeric)::bigint as ai, round((estimated_hours)::numeric)::bigint as abi, estimated_hours as ad from issue where id = $4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,

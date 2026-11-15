@@ -1,10 +1,10 @@
 // Numeric value-source methods by operand shape and receiver leaf:
 //
 //   1. Value-SOURCE (column RHS) operands for minValue / maxValue / valueWhenNull /
-//      nullIfValue / subtract / multiply / power on bigint / customInt / customDouble.
-//      (`power` is not typed on bigint nor on customInt — those are skipped; see the
-//      per-test comments.)
-//   2. Const operands for modulo / logn / divide / atan2 on a double and a customDouble.
+//      nullIfValue on bigint / customInt / customDouble, and subtract on customInt /
+//      customDouble.
+//   2. Const operands for logn / divide / atan2 on a double, divide on a
+//      customDouble, and modulo on both.
 //   3. ceil / floor / round on a customDouble.
 //   4. asRequiredInOptionalObject / onlyWhenOrNull / ignoreWhenAsNull on a custom-numeric
 //      column.
@@ -21,7 +21,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tIssueWorklog, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDoubleType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -60,101 +59,65 @@ describe(ctx.label, () => {
     })
 
     test('value-source-rhs/customint-arithmetic-and-clamps', async () => {
-        // subtract / multiply / minValue / maxValue / valueWhenNull / nullIfValue
-        // on a customInt with a value-SOURCE (column) RHS. The RHS is the same
-        // `cost_cents` column (= 100 for worklog 1): subtract(self) = 0,
-        // multiply(self) = 10000, the clamps are 100, valueWhenNull keeps 100,
-        // nullIfValue(self) collapses to NULL -> absent. `power` is NOT typed
-        // on customInt, so it is excluded.
-        const expected = [{ id: 1, s: 0, mu: 10000, mn: 100, mx: 100, wn: 100 }]
+        // subtract / minValue / maxValue / valueWhenNull / nullIfValue on a
+        // customInt with a value-SOURCE (column) RHS. The RHS is the same
+        // `cost_cents` column (= 100 for worklog 1): subtract(self) = 0, the clamps
+        // are 100, valueWhenNull keeps 100, nullIfValue(self) collapses to NULL ->
+        // absent.
+        const expected = [{ id: 1, s: 0, mn: 100, mx: 100, wn: 100 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
                 id: tIssueWorklog.id,
                 s:  tIssueWorklog.costCents.subtract(tIssueWorklog.costCents),
-                mu: tIssueWorklog.costCents.multiply(tIssueWorklog.costCents),
                 mn: tIssueWorklog.costCents.minValue(tIssueWorklog.costCents),
                 mx: tIssueWorklog.costCents.maxValue(tIssueWorklog.costCents),
                 wn: tIssueWorklog.costCents.valueWhenNull(tIssueWorklog.costCents),
                 ni: tIssueWorklog.costCents.nullIfValue(tIssueWorklog.costCents),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents - cost_cents as s, cost_cents * cost_cents as mu, greatest(cost_cents, cost_cents) as mn, least(cost_cents, cost_cents) as mx, coalesce(cost_cents, cost_cents) as wn, nullif(cost_cents, cost_cents) as ni from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents - cost_cents as s, greatest(cost_cents, cost_cents) as mn, least(cost_cents, cost_cents) as mx, coalesce(cost_cents, cost_cents) as wn, nullif(cost_cents, cost_cents) as ni from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof result, Array<{
-            id: number; s: number; mu: number; mn: number; mx: number; wn: number; ni?: number
+            id: number; s: number; mn: number; mx: number; wn: number; ni?: number
         }>>>()
         expect(result).toEqual(expected)
     })
 
     test('value-source-rhs/customdouble-arithmetic-and-clamps', async () => {
-        // subtract / multiply / minValue / maxValue / valueWhenNull / nullIfValue
-        // on a customDouble with a value-SOURCE (column) RHS. The RHS is the same `billed_amount` column (= 200 for
-        // worklog 1): subtract(self) = 0, multiply(self) = 40000, the clamps
-        // are 200, valueWhenNull keeps 200, nullIfValue(self) collapses to NULL
-        // -> absent. `power` is covered separately (a 200-self exponent
-        // overflows double precision).
-        const expected = [{ id: 1, s: 0, mu: 40000, mn: 200, mx: 200, wn: 200 }]
+        // subtract / minValue / maxValue / valueWhenNull / nullIfValue on a
+        // customDouble with a value-SOURCE (column) RHS. The RHS is the same
+        // `billed_amount` column (= 200 for worklog 1): subtract(self) = 0, the
+        // clamps are 200, valueWhenNull keeps 200, nullIfValue(self) collapses to
+        // NULL -> absent.
+        const expected = [{ id: 1, s: 0, mn: 200, mx: 200, wn: 200 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
                 id: tIssueWorklog.id,
                 s:  tIssueWorklog.billedAmount.subtract(tIssueWorklog.billedAmount),
-                mu: tIssueWorklog.billedAmount.multiply(tIssueWorklog.billedAmount),
                 mn: tIssueWorklog.billedAmount.minValue(tIssueWorklog.billedAmount),
                 mx: tIssueWorklog.billedAmount.maxValue(tIssueWorklog.billedAmount),
                 wn: tIssueWorklog.billedAmount.valueWhenNull(tIssueWorklog.billedAmount),
                 ni: tIssueWorklog.billedAmount.nullIfValue(tIssueWorklog.billedAmount),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount - billed_amount as s, billed_amount * billed_amount as mu, greatest(billed_amount, billed_amount) as mn, least(billed_amount, billed_amount) as mx, coalesce(billed_amount, billed_amount) as wn, nullif(billed_amount, billed_amount) as ni from issue_worklog where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount - billed_amount as s, greatest(billed_amount, billed_amount) as mn, least(billed_amount, billed_amount) as mx, coalesce(billed_amount, billed_amount) as wn, nullif(billed_amount, billed_amount) as ni from issue_worklog where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
         assertType<Exact<typeof result, Array<{
-            id: number; s: number; mu: number; mn: number; mx: number; wn: number; ni?: number
+            id: number; s: number; mn: number; mx: number; wn: number; ni?: number
         }>>>()
         expect(result).toEqual(expected)
-    })
-
-    test('value-source-rhs/customdouble-power', async () => {
-        // `power` on a customDouble with a value-SOURCE exponent. The base is the
-        // `billed_amount` column (= 200 for worklog 1); the exponent is a
-        // customDouble value source built with the SAME 'Money' brand so the
-        // value-source overload resolves. power(200, 2) = 40000, finite and
-        // exact.
-        const exponent = ctx.conn.const(2, CustomDoubleType.of<number, 'Money'>('Money'))
-        const expected = [{ id: 1, p: 40000 }]
-        ctx.mockNext(expected)
-        const result = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .select({
-                id: tIssueWorklog.id,
-                p:  tIssueWorklog.billedAmount.power(exponent),
-            })
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(billed_amount, $1) as p from issue_worklog where id = $2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            2,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number; p: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result[0]!.id).toBe(1)
-            expect(result[0]!.p).toBeCloseTo(40000, 5)
-        } else {
-            expect(result).toEqual(expected)
-        }
     })
 
     // ── 2. Const operand twins for value-source-only methods ──────────────
@@ -197,41 +160,32 @@ describe(ctx.label, () => {
         }
     })
 
-    test('const-rhs/customdouble-divide-atan2-logn', async () => {
-        // divide / atan2 / logn on a customDouble with a CONST RHS. `billed_amount`
-        // ('Money', marshalled) = 200 for worklog 1: divide(4) = 50, atan2(200) = π/4.
-        // logn keeps the customDouble type, whose typeName is marshalled through
-        // its base double on the connection — log_200(200) = 1 — so it round-trips
-        // as a number on every dialect, including the ones whose expression is cast
-        // to an exact type the driver hands over as a string.
-        const expected = [{ id: 1, di: 50, at: Math.atan2(200, 200), ln: 1 }]
+    test('const-rhs/customdouble-divide', async () => {
+        // divide on a customDouble with a CONST RHS: `billed_amount` ('Money',
+        // marshalled) = 200 for worklog 1, and divide(4) = 50; the divisor is a
+        // plain number.
+        const expected = [{ id: 1, di: 50 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
                 id: tIssueWorklog.id,
                 di: tIssueWorklog.billedAmount.divide(4),
-                at: tIssueWorklog.billedAmount.atan2(200),
-                ln: tIssueWorklog.billedAmount.logn(200),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount::float / $1 as di, atan2(billed_amount, $2) as at, log(($3)::numeric, (billed_amount)::numeric) as ln from issue_worklog where id = $4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount::float / $1 as di from issue_worklog where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
-            200,
-            200,
             1,
           ]
         `)
         assertType<Exact<typeof result, Array<{
-            id: number; di: number; at: number; ln: number
+            id: number; di: number
         }>>>()
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
             expect(result[0]!.di).toBeCloseTo(50, 5)
-            expect(result[0]!.at).toBeCloseTo(Math.atan2(200, 200), 5)
-            expect(Number(result[0]!.ln)).toBeCloseTo(1, 5)
         } else {
             expect(result).toEqual(expected)
         }

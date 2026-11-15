@@ -8,6 +8,7 @@ import type { operandTypeName } from '../utils/symbols.js'
 import { __registeredDataType } from './dataTypeRegistry.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
+import { __keptClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /*
  * The numeric data types that work only with themselves (bigint, the exact decimals and the custom numbers), by what
@@ -23,19 +24,19 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
 
     abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abs(): any {
-        return __operation0(this, '_abs', __typeClassOf(this))
+        return __operation0(this, '_abs', __computedClassOf(this, __typeClassOf(this)))
     }
     ceil(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     ceil(): any {
-        return __operation0(this, '_ceil', __typeClassOf(this))
+        return __operation0(this, '_ceil', __computedClassOf(this, __typeClassOf(this)))
     }
     floor(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     floor(): any {
-        return __operation0(this, '_floor', __typeClassOf(this))
+        return __operation0(this, '_floor', __computedClassOf(this, __typeClassOf(this)))
     }
     round(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     round(): any {
-        return __operation0(this, '_round', __typeClassOf(this))
+        return __operation0(this, '_round', __computedClassOf(this, __typeClassOf(this)))
     }
     sign(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     sign(): any {
@@ -44,32 +45,32 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
     minValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     minValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     minValue(value: any): any {
-        return __operation1(this, '_maximumBetweenTwoValues', value, __typeClassOf(this))
+        return __operation1(this, '_maximumBetweenTwoValues', value, __keptClassOf(this, __typeClassOf(this)))
     }
     maxValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     maxValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     maxValue(value: any): any {
-        return __operation1(this, '_minimumBetweenTwoValues', value, __typeClassOf(this))
+        return __operation1(this, '_minimumBetweenTwoValues', value, __keptClassOf(this, __typeClassOf(this)))
     }
     add(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     add<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     add(value: any): any {
-        return __operation1(this, '_add', value, __typeClassOf(this))
+        return __operation1(this, '_add', value, __computedClassOf(this, __typeClassOf(this)))
     }
     subtract(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     subtract<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     subtract(value: any): any {
-        return __operation1(this, '_subtract', value, __typeClassOf(this))
+        return __operation1(this, '_subtract', value, __computedClassOf(this, __typeClassOf(this)))
     }
     modulo(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     modulo<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     modulo(value: any): any {
-        return __operation1(this, '_modulo', value, __typeClassOf(this))
+        return __operation1(this, '_modulo', value, __computedClassOf(this, __typeClassOf(this)))
     }
     multiply(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     multiply<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     multiply(value: any): any {
-        return __operation1(this, '_multiply', value, __typeClassOf(this))
+        return __operation1(this, '_multiply', value, __computedClassOf(this, __typeClassOf(this)))
     }
 }
 
@@ -152,12 +153,12 @@ export abstract class RealsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE
     roundn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     roundn(value: any): any {
-        return __operation1(this, '_roundn', value, __typeClassOf(this))
+        return __operation1(this, '_roundn', value, __computedClassOf(this, __typeClassOf(this)))
     }
     divide(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     divide<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     divide(value: any): any {
-        return __operation1(this, '_divide', value, __typeClassOf(this))
+        return __operation1(this, '_divide', value, __computedClassOf(this, __typeClassOf(this)))
     }
     atan2(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     atan2<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>

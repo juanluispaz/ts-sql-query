@@ -7,7 +7,7 @@ import { operandTypeName, typeName } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newNoopValueSource } from '../nodes/operations.js'
 import { type ValueSourceRoot, __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
-import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** The family of the arrays an aggregate as array gives: what every one offers */
 export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
@@ -23,7 +23,7 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
         if (nodeWithOptionalType) {
             return nodeWithOptionalType(vs, 'required')
         }
-        const result = __newNoopValueSource(vs, __adaptedTypeClassOf(__sameTypeClassOf(vs), vs.__typeAdapter), 'required')
+        const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'required')
         if (vs.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
             result.__aggregatedArrayMode = vs.__aggregatedArrayMode
@@ -38,7 +38,7 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
         if (nodeWithOptionalType) {
             return nodeWithOptionalType(vs, 'optional')
         }
-        const result = __newNoopValueSource(vs, __adaptedTypeClassOf(__sameTypeClassOf(vs), vs.__typeAdapter), 'optional')
+        const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'optional')
         if (vs.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
             result.__aggregatedArrayMode = vs.__aggregatedArrayMode

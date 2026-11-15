@@ -5,13 +5,13 @@ import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './
 import type { MergeOptional } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
-import { getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
+import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 import type { DataTypeValueSource } from '../nodes/NodeStrategy.js'
 import type { SqlOperation1 } from '../sqlBuilders/SqlBuilder.js'
 import { isValueSource } from './valueSource.js'
-import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __adaptedTypeClassOf, __computedClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
 
 /*
  * The numbers of JavaScript and the custom ones of them. int and double are the numbers of JavaScript and work
@@ -50,7 +50,7 @@ export abstract class NumberType extends ComparableType<number> {
     asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     asDouble(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, __adaptedTypeClassOf(DoubleType, vs.__typeAdapter), vs.__optionalType)
+        return __newNoopValueSource(vs, DoubleType, vs.__optionalType)
     }
     /** The number as a bigint: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
     asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
@@ -59,7 +59,7 @@ export abstract class NumberType extends ComparableType<number> {
     }
     abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abs(): any {
-        return __operation0(this, '_abs', __typeClassOf(this))
+        return __operation0(this, '_abs', __computedClassOf(this, __typeClassOf(this)))
     }
     ceil(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     ceil(): any {
@@ -192,7 +192,7 @@ export abstract class IntType extends NumberType {
     override asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     override asInt(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, __adaptedTypeClassOf(IntType, vs.__typeAdapter), vs.__optionalType)
+        return __newNoopValueSource(vs, IntType, vs.__optionalType)
     }
     /** An int is converted to a double */
     override asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
@@ -203,7 +203,7 @@ export abstract class IntType extends NumberType {
     override asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
     override asBigint(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, __adaptedTypeClassOf(BigintType, vs.__typeAdapter), vs.__optionalType)
+        return __newNoopValueSource(vs, BigintType, vs.__optionalType)
     }
 }
 
@@ -221,11 +221,15 @@ export abstract class DoubleType extends NumberType {
  */
 function promotedNumberOperation(valueSource: DataTypeValueSource, value: any, operation: keyof SqlOperation1): any {
     const vs = valueSource as ValueSourceRoot
+    // A number computed from the receiver keeps the conversions of its type adapter; an int that becomes a double
+    // changes its data type, and has none
+    // (the minimum or the maximum of two values is one of them, with the SQL data type of the receiver)
+    const sameType = operation === '_minimumBetweenTwoValues' || operation === '_maximumBetweenTwoValues' ? __keptClassOf : __computedClassOf
     if (vs instanceof DoubleType) {
-        return __operation1(vs, operation, value, DoubleType)
+        return __operation1(vs, operation, value, sameType(vs, DoubleType))
     }
     if (isValueSource(value) ? value instanceof IntType : Number.isInteger(value)) {
-        return __newSqlOperation1ValueSource(operation, vs, value, __adaptedTypeClassOf(IntType, vs.__typeAdapter), getOptionalType2(vs, value))
+        return __newSqlOperation1ValueSource(operation, vs, value, sameType(vs, IntType), getOptionalType2(vs, value))
     }
-    return __newSqlOperation1ValueSource(operation, vs, value, __adaptedTypeClassOf(DoubleType, getTypeAdapter2(vs, value)), getOptionalType2(vs, value))
+    return __newSqlOperation1ValueSource(operation, vs, value, DoubleType, getOptionalType2(vs, value))
 }

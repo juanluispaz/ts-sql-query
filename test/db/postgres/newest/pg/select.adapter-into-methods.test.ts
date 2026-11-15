@@ -7,8 +7,11 @@
 // propagates to:
 //   - the BOUND OPERAND of a numeric/string method (the column adapter is
 //     threaded to the literal via `getTypeAdapter*`), and
-//   - the RESULT LEAF of a value-returning transform (`add`, `toLowerCase`,
-//     …) which inherits the column's `transformValueFromDB`.
+//   - the RESULT LEAF of a numeric transform (`add`, …) which inherits the
+//     column's `transformValueFromDB`.
+// A string transform (`toLowerCase`, `concat`, …) gives a new text derived
+// from the column, not a value encoded as the column is, so its result leaf
+// reads back without the column's adapter.
 // Both are value-observable: the bound param is mock-visible, the read
 // transform runs on the mock-primed RAW value, and the real engine confirms
 // the arithmetic/string op end-to-end.
@@ -74,12 +77,12 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('adapter-string-column-into-to-lower-case-keeps-result-leaf-bracketed', async () => {
-        // `reviewerCode.toLowerCase()` produces a value-returning transform
-        // whose result leaf inherits bracketAdapter, so the lowered DB value
-        // 'r-7a2' is read bracketed → '[r-7a2]'. (toLowerCase also makes the
-        // string op observable since the seed value is upper-case.)
-        const expected = { id: 1, code: '[r-7a2]' }
+    test('adapter-string-column-into-to-lower-case-reads-the-result-without-the-adapter', async () => {
+        // `reviewerCode.toLowerCase()` gives a new text derived from the column, not
+        // a value encoded as the column is, so its result leaf has no bracketAdapter:
+        // the lowered DB value 'r-7a2' reads back as it is. (toLowerCase also makes
+        // the string op observable since the seed value is upper-case.)
+        const expected = { id: 1, code: 'r-7a2' }
         ctx.mockNext({ id: 1, code: 'r-7a2' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -123,13 +126,13 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('adapter-string-column-into-upper-and-trim-methods-keep-result-leaf-bracketed', async () => {
-        // `toUpperCase` / `trim` / `trimLeft` / `trimRight` are string-returning
-        // transforms whose result leaf inherits bracketAdapter, so each DB value
-        // reads back bracketed. reviewer_code 'R-7A2' has no lower-case letters
-        // and no surrounding whitespace, so every op is a value no-op — the
-        // observable effect is the re-bracketing of the result leaf.
-        const expected = { id: 1, up: '[R-7A2]', tm: '[R-7A2]', tl: '[R-7A2]', tr: '[R-7A2]' }
+    test('adapter-string-column-into-upper-and-trim-methods-read-the-result-without-the-adapter', async () => {
+        // `toUpperCase` / `trim` / `trimLeft` / `trimRight` give new texts derived
+        // from the column, so their result leaves have no bracketAdapter and each DB
+        // value reads back as it is. reviewer_code 'R-7A2' has no lower-case letters
+        // and no surrounding whitespace, so every op is a value no-op: the result is
+        // the stored text, without the brackets the projected column would add.
+        const expected = { id: 1, up: 'R-7A2', tm: 'R-7A2', tl: 'R-7A2', tr: 'R-7A2' }
         ctx.mockNext({ id: 1, up: 'R-7A2', tm: 'R-7A2', tl: 'R-7A2', tr: 'R-7A2' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -152,12 +155,12 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('adapter-string-column-into-reverse-keeps-result-leaf-bracketed', async () => {
-        // `reverse()` is a string-returning transform whose result leaf inherits
-        // bracketAdapter, so reverse('R-7A2') = '2A7-R' reads back bracketed →
-        // '[2A7-R]'. (Also makes the string op observable — reverse is not a
-        // no-op on this value.)
-        const expected = { id: 1, rev: '[2A7-R]' }
+    test('adapter-string-column-into-reverse-reads-the-result-without-the-adapter', async () => {
+        // `reverse()` gives a new text derived from the column, so its result leaf
+        // has no bracketAdapter: reverse('R-7A2') = '2A7-R' reads back as it is.
+        // (Also makes the string op observable — reverse is not a no-op on this
+        // value.)
+        const expected = { id: 1, rev: '2A7-R' }
         ctx.mockNext({ id: 1, rev: '2A7-R' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -174,11 +177,11 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('adapter-string-column-into-substring-and-substr-keep-result-leaf-bracketed', async () => {
+    test('adapter-string-column-into-substring-and-substr-read-the-result-without-the-adapter', async () => {
         // `substring(0, 3)` and `substr(0, 3)` both return the first 3 chars of
-        // 'R-7A2' = 'R-7'; the result leaf inherits bracketAdapter, so each reads
-        // back bracketed → '[R-7]'.
-        const expected = { id: 1, sg: '[R-7]', sb: '[R-7]' }
+        // 'R-7A2' = 'R-7'; a piece of the column is not a value encoded as the column
+        // is, so neither result leaf has bracketAdapter and each reads back 'R-7'.
+        const expected = { id: 1, sg: 'R-7', sb: 'R-7' }
         ctx.mockNext({ id: 1, sg: 'R-7', sb: 'R-7' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -203,11 +206,11 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('adapter-string-column-into-concat-keeps-result-leaf-bracketed', async () => {
-        // `reviewerCode.concat('!')` is a string-returning transform whose result
-        // leaf inherits the receiver's bracketAdapter, so 'R-7A2' || '!' =
-        // 'R-7A2!' reads back bracketed → '[R-7A2!]'.
-        const expected = { id: 1, cc: '[R-7A2!]' }
+    test('adapter-string-column-into-concat-reads-the-result-without-the-adapter', async () => {
+        // `reviewerCode.concat('!')` gives a new text derived from the receiver, so
+        // its result leaf has no bracketAdapter: 'R-7A2' || '!' = 'R-7A2!' reads back
+        // as it is.
+        const expected = { id: 1, cc: 'R-7A2!' }
         ctx.mockNext({ id: 1, cc: 'R-7A2!' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -424,11 +427,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('reviewer-code-replace-all-rebrackets-result', async () => {
-        // `reviewerCode.replaceAll('-', '_')` is a string-returning transform whose
-        // result leaf inherits the receiver's bracketAdapter, so
-        // replace('R-7A2', '-', '_') = 'R_7A2' reads back bracketed → '[R_7A2]'.
-        const expected = { id: 1, rp: '[R_7A2]' }
+    test('reviewer-code-replace-all-reads-the-result-without-the-adapter', async () => {
+        // `reviewerCode.replaceAll('-', '_')` gives a new text derived from the
+        // receiver, so its result leaf has no bracketAdapter:
+        // replace('R-7A2', '-', '_') = 'R_7A2' reads back as it is.
+        const expected = { id: 1, rp: 'R_7A2' }
         ctx.mockNext({ id: 1, rp: 'R_7A2' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -447,16 +450,15 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // bracketAdapter column `reviewerCode`. Each transform's RESULT leaf inherits
-    // the receiver's bracketAdapter, so the DB value reads back wrapped in [...].
-    // The mock is primed with the RAW DB value, proving the adapter ran on the
-    // transform result.
+    // bracketAdapter column `reviewerCode`. Each transform gives a new text, so
+    // its RESULT leaf has no bracketAdapter and the DB value reads back without
+    // the [...] the projected column would add.
 
-    test('adapter-string-column-into-substring-to-end-keeps-result-leaf-bracketed', async () => {
+    test('adapter-string-column-into-substring-to-end-reads-the-result-without-the-adapter', async () => {
         // `substringToEnd(2)` (SQL-style sibling of `substrToEnd`) over the
         // bracketAdapter column: reviewer_code 'R-7A2' → substring from 0-based 2 →
-        // '7A2', result leaf reads bracketed → '[7A2]'.
-        const expected = { id: 1, sub: '[7A2]' }
+        // '7A2'; a piece of the column has no bracketAdapter, so it reads back '7A2'.
+        const expected = { id: 1, sub: '7A2' }
         ctx.mockNext({ id: 1, sub: '7A2' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -473,11 +475,11 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('adapter-string-column-into-concat-if-value-keeps-result-leaf-bracketed', async () => {
-        // `concatIfValue('!')` with a present value routes through the same
-        // string-returning concat arm as `concat`; the result leaf inherits
-        // bracketAdapter, so 'R-7A2' || '!' = 'R-7A2!' reads bracketed → '[R-7A2!]'.
-        const expected = { id: 1, cc: '[R-7A2!]' }
+    test('adapter-string-column-into-concat-if-value-reads-the-result-without-the-adapter', async () => {
+        // `concatIfValue('!')` with a present value routes through the same concat
+        // arm as `concat`; the new text has no bracketAdapter, so
+        // 'R-7A2' || '!' = 'R-7A2!' reads back as it is.
+        const expected = { id: 1, cc: 'R-7A2!' }
         ctx.mockNext({ id: 1, cc: 'R-7A2!' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -494,12 +496,11 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('adapter-string-column-into-replace-all-if-value-keeps-result-leaf-bracketed', async () => {
+    test('adapter-string-column-into-replace-all-if-value-reads-the-result-without-the-adapter', async () => {
         // `replaceAllIfValue('-', '_')` with both literal arguments present routes
-        // through the same replace arm as `replaceAll`; the result leaf inherits
-        // bracketAdapter, so replace('R-7A2', '-', '_') = 'R_7A2' reads bracketed →
-        // '[R_7A2]'.
-        const expected = { id: 1, rp: '[R_7A2]' }
+        // through the same replace arm as `replaceAll`; the new text has no
+        // bracketAdapter, so replace('R-7A2', '-', '_') = 'R_7A2' reads back as it is.
+        const expected = { id: 1, rp: 'R_7A2' }
         ctx.mockNext({ id: 1, rp: 'R_7A2' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -517,13 +518,13 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('adapter-string-column-into-replace-all-with-value-source-operand-keeps-result-leaf-bracketed', async () => {
-        // `replaceAll('R', reviewerCode)` — the replace operand is a VALUE SOURCE
-        // (the same bracketAdapter column). The RESULT leaf inherits the RECEIVER's
-        // bracketAdapter, so replace('R-7A2', 'R', 'R-7A2') = 'R-7A2-7A2' reads
-        // bracketed → '[R-7A2-7A2]'. The VS operand emits as the raw column ref
-        // (an adapter transforms bound params, not column references).
-        const expected = { id: 1, rp: '[R-7A2-7A2]' }
+    test('adapter-string-column-into-replace-all-with-value-source-operand-reads-the-result-without-the-adapter', async () => {
+        // `replaceAll('R', reviewerCode)` — the replace operand is a VALUE SOURCE (the
+        // same bracketAdapter column). The result is a new text, so its leaf has no
+        // adapter from the receiver nor from the operand: replace('R-7A2', 'R',
+        // 'R-7A2') = 'R-7A2-7A2' reads back as it is. The VS operand emits as the raw
+        // column ref (an adapter transforms bound params, not column references).
+        const expected = { id: 1, rp: 'R-7A2-7A2' }
         ctx.mockNext({ id: 1, rp: 'R-7A2-7A2' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))

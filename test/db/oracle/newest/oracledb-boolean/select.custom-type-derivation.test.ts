@@ -8,7 +8,8 @@
 //     `customDouble` receiver keeps its own type, so the bound operand is
 //     marshalled with the receiver's type name too.
 //   - `ceil` / `floor`: same rule, no bound operand.
-//   - `divide` / `modulo`: a `customDouble` receiver keeps its own type; the
+//   - `divide` / `modulo`: a `customDouble` receiver keeps its own type (a
+//     divisor that is a plain number is bound as it is); the
 //     modulo emission additionally picks its floating-point form from it.
 //   - `getFullYear` on a `customLocalDateTime`: the result is a plain `int`,
 //     while the receiver's own temporal kind still decides how the date part
@@ -139,10 +140,10 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-fragment/custom-double-divide-keeps-custom-double', async () => {
-        // sum(billed_amount) = 450 as a `Money` aggregate, divided by 3 `Money`.
-        // The divisor is bound as `Money` (3 -> 300) and the quotient 1.5 reads
-        // back as 0.015.
-        ctx.mockNext(1.5)
+        // sum(billed_amount) = 450 as a `Money` aggregate, divided by 3: the divisor
+        // is a number without a unit, so it is bound as it is (3), and the quotient
+        // 150 reads back as 1.5.
+        ctx.mockNext(150)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
                 ctx.conn.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
@@ -153,11 +154,11 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) / :0 as "result" from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            300,
+            3,
           ]
         `)
         assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.015)
+        expect(v).toBe(1.5)
     })
 
     test('aggregate-fragment/custom-double-modulo-keeps-custom-double', async () => {

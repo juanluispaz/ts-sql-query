@@ -14,7 +14,7 @@ import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/val
 import { __getValueSourcePrivate, __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
-import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
 /**
  * The canonical text of a decimal: no zeros before the integer part ('0' when it is zero), none at the end of the
@@ -1054,7 +1054,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' is ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isExactDecimal(typeClass.type, typeClass.customType)) {
@@ -1063,7 +1063,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is not ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' is not ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is not ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
     }
     override _currentDate(_context: SqlBuildContext): string {
         const dateTimeFormat = this._getDateTimeFormat('date')
@@ -1164,7 +1164,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'ifnull(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'ifnull(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
     override _random(_context: SqlBuildContext): string {
         // SQLite's `random()` returns a uniform 64-bit signed integer
@@ -1184,13 +1184,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (__isExactDecimal(typeClass.type, typeClass.customType)) {
             return this._decimalChoice('<=', context, valueSource, value, typeClass)
         }
-        return 'min(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'min(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
     override _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isExactDecimal(typeClass.type, typeClass.customType)) {
             return this._decimalChoice('>=', context, valueSource, value, typeClass)
         }
-        return 'max(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'max(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
     override _getDate(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%d', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"

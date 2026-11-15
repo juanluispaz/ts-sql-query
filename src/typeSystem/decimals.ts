@@ -7,6 +7,7 @@ import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './
 import type { MergeOptional } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import { DoubleType } from './number.js'
+import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /*
  * The exact decimal numbers: their value keeps every digit (the library sends and reads it as its text); what can't be
@@ -85,7 +86,7 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VA
     roundn(value: number): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     roundn(value: any): any {
-        return __operation1(this, '_roundn', value, __typeClassOf(this))
+        return __operation1(this, '_roundn', value, __computedClassOf(this, __typeClassOf(this)))
     }
     atan2(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     atan2<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>

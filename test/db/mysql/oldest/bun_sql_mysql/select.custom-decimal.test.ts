@@ -402,25 +402,6 @@ describe(ctx.label, () => {
         ])
     })
 
-    test('custom-decimal/a-root-and-a-power-are-a-double', async () => {
-        ctx.mockNext({ squared: 2.25, root: 1.224744871391589 })
-        const row = await ctx.conn.selectFrom(tExactAmount)
-            .where(tExactAmount.id.equals(1))
-            .select({
-                squared: tExactAmount.price.power(2),
-                root: tExactAmount.price.sqrt(),
-            })
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select power(price, ?) as squared, sqrt(price) as root from exact_amount where id = ?"`)
-        assertType<Exact<typeof row, { squared?: number; root?: number }>>()
-        if (ctx.realDbEnabled) {
-            expect(row.squared).toBeCloseTo(2.25, 12)
-            expect(row.root).toBeCloseTo(1.224744871391589, 12)
-        } else {
-            expect(row).toEqual({ squared: 2.25, root: 1.224744871391589 })
-        }
-    })
-
     test('custom-decimal/an-array-aggregate-reads-the-text-from-the-json', async () => {
         ctx.mockNext([{ id: 1, amounts: '[12345678901234567890.1234567891]' }])
         const rows = await ctx.conn.selectFrom(tExactAmount)

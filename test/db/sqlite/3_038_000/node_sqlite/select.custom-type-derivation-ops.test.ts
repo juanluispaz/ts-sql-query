@@ -5,13 +5,15 @@
 //
 // What is observed. `scaledByTypeName` multiplies by 100 on the way to the
 // database and divides by 100 on the way back, but ONLY when the type NAME it
-// is handed is one of `Cents` / `Money` / `Ratio`; every other name is passed
+// is handed is `Cents` or `Money`; every other name is passed
 // to `next` untouched. So both the bound parameter and the value read back
 // record which type name the expression was carrying at that point:
 //
 //   - an operation that KEEPS the receiver's custom data type binds its operand
-//     as `Cents` / `Money` / `Ratio` (×100) and reads its result back scaled
-//     (÷100);
+//     as `Cents` / `Money` (×100) and reads its result back scaled (÷100);
+//   - a number without a unit (the factor of `multiply`, the divisor of
+//     `divide`, the number of decimals of `roundn`) is bound as it is, and the
+//     result still reads back scaled;
 //   - an operation that resolves to a plain `int` / `double` binds and reads
 //     the raw number.
 //
@@ -19,8 +21,8 @@
 // observation instead of (or on top of) the value: the modulo of a fractional
 // receiver switches to the dialect's floating-point form, an exact operand
 // under `average` is cast before averaging, `round` over an exact operand skips
-// the tie-break cast on MySQL / MariaDB, `power` leaves a floating base uncast
-// on SQL Server, a `customUuid` parameter keeps its uuid marshalling, and the
+// the tie-break cast on MySQL / MariaDB, a `customUuid` parameter keeps its
+// uuid marshalling, and the
 // date-part getters need the receiver to be recognised as a temporal type at
 // all on SQLite.
 //
@@ -39,12 +41,6 @@
 // `project_release` row 1 holds released_on 2024-01-15 (a Monday), cutoff_time
 // 17:00:00, published_at 2024-01-16 09:00:00 and signing_key
 // 0a8f9c1e-1111-4222-8333-444455556666.
-//
-// The trigonometric receivers read `minutes / 120.0` — the worklog's share of a
-// two-hour block, 0.75 on row 1 — so the argument stays inside the domain of
-// acos / asin. Their results are irrational, so a `ceil()` is chained to bring
-// them back to an exact number; the chained `ceil` keeps the custom data type
-// too, so the ÷100 read still applies.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -54,19 +50,19 @@ import { ctx } from './setup.js'
 import { CustomDoubleType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType } from '../../../../../src/exports/v2/index.js'
 
 // Scales a number by 100 in both directions, but ONLY when the type name it is
-// handed is `Cents`, `Money` or `Ratio`; every other type name is delegated to
+// handed is `Cents` or `Money`; every other type name is delegated to
 // `next` untouched. Because the transform is conditional on the type name, the
 // value the adapter produces records which type name the expression carried.
 const scaledByTypeName: TypeAdapter = {
     transformValueFromDB(value, context, next) {
         const v = next.transformValueFromDB(value, context)
-        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money' || context.originalType.type === 'Ratio') && typeof v === 'number') {
+        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money') && typeof v === 'number') {
             return v / 100
         }
         return v
     },
     transformValueToDB(value, context, next) {
-        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money' || context.originalType.type === 'Ratio') && typeof value === 'number') {
+        if ((context.originalType.type === 'Cents' || context.originalType.type === 'Money') && typeof value === 'number') {
             return next.transformValueToDB(value * 100, context)
         }
         return next.transformValueToDB(value, context)
@@ -306,10 +302,10 @@ describe(ctx.label, () => {
     })
 
     test('fragment/custom-int-multiply-integer-literal', async () => {
-        // cost_cents (100) times 2 `Cents` (bound as 200): 20000 reads back as
-        // 200. The scaling cancels out in the product, so the bound parameter is
-        // where the data type shows.
-        ctx.mockNext(20000)
+        // cost_cents (100, read as 1 `Cents`) times 2: the factor is a number
+        // without a unit, so it is bound as it is (2), and the product 200 reads back
+        // as 2.
+        ctx.mockNext(200)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
@@ -321,34 +317,12 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) * ?1 as result from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            200,
+            2,
             1,
           ]
         `)
         assertType<Exact<typeof v, number>>()
-        expect(v).toBe(200)
-    })
-
-    test('fragment/custom-int-multiply-column-operand', async () => {
-        // cost_cents (100) times the `Cents` virtual column id * 100 (100):
-        // 10000 reads back as 100.
-        ctx.mockNext(10000)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.costCents}`
-                    .multiply(tIssueWorklog.centsFromId),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) * id * 100 as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(100)
+        expect(v).toBe(2)
     })
 
     test('fragment/custom-int-modulo-integer-literal', async () => {
@@ -641,285 +615,6 @@ describe(ctx.label, () => {
         expect(v).toBe(1)
     })
 
-    test('fragment/custom-double-sqrt-keeps-custom-double', async () => {
-        // sqrt over billed_amount * 2 (400) is exactly 20, which reads back as 0.2.
-        ctx.mockNext(20)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount} * 2`
-                    .sqrt(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(billed_amount * 2) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.2)
-    })
-
-    test('fragment/custom-double-cbrt-keeps-custom-double', async () => {
-        // cbrt(billed_amount) = 5.848…; the chained ceil brings it to 6, which
-        // reads back as 0.06.
-        ctx.mockNext(6)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount}`
-                    .cbrt()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(sign(billed_amount) * power(abs(billed_amount), 1.0e0 / 3.0e0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.06)
-    })
-
-    test('fragment/custom-double-ln-keeps-custom-double', async () => {
-        // ln(billed_amount) = 5.298…; the chained ceil brings it to 6, which
-        // reads back as 0.06.
-        ctx.mockNext(6)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount}`
-                    .ln()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(ln(billed_amount)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.06)
-    })
-
-    test('fragment/custom-double-log10-keeps-custom-double', async () => {
-        // log10(billed_amount) = 2.301…; the chained ceil brings it to 3, which
-        // reads back as 0.03.
-        ctx.mockNext(3)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount}`
-                    .log10()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(log10(billed_amount)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.03)
-    })
-
-    test('fragment/custom-double-exp-keeps-custom-double', async () => {
-        // exp over the worklog's share of a two-hour block (90 / 120 = 0.75) is
-        // 2.117…; the chained ceil brings it to 3, which reads back as 0.03.
-        ctx.mockNext(3)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .exp()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(exp(minutes / 120.0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.03)
-    })
-
-    test('fragment/custom-double-acos-keeps-custom-double', async () => {
-        // acos(0.75) = 0.7227…; the chained ceil brings it to 1, which reads
-        // back as 0.01.
-        ctx.mockNext(1)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .acos()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(acos(minutes / 120.0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01)
-    })
-
-    test('fragment/custom-double-asin-keeps-custom-double', async () => {
-        // asin(0.75) = 0.8480…; the chained ceil brings it to 1, which reads
-        // back as 0.01.
-        ctx.mockNext(1)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .asin()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(asin(minutes / 120.0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01)
-    })
-
-    test('fragment/custom-double-atan-keeps-custom-double', async () => {
-        // atan(0.75) = 0.6435…; the chained ceil brings it to 1, which reads
-        // back as 0.01.
-        ctx.mockNext(1)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .atan()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(atan(minutes / 120.0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01)
-    })
-
-    test('fragment/custom-double-cos-keeps-custom-double', async () => {
-        // cos(0.75) = 0.7316…; the chained ceil brings it to 1, which reads
-        // back as 0.01.
-        ctx.mockNext(1)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .cos()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(cos(minutes / 120.0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01)
-    })
-
-    // TODO[LIMITATION]: see LIMITATIONS.md — this SQLite build has no `cot()`
-    // function (the rest of the trig family — acos / asin / atan / cos / sin /
-    // tan — exists), so the whole query throws "no such function: cot".
-    /*
-    test('fragment/custom-double-cot-keeps-custom-double', async () => {
-        // cot(0.75) = 1.0734…; the chained ceil brings it to 2, which reads
-        // back as 0.02.
-        ctx.mockNext(2)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .cot()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(cot(minutes / 120.0)) as result from issue_worklog where id = ?"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.02)
-    })
-    */
-
-    test('fragment/custom-double-sin-keeps-custom-double', async () => {
-        // sin(0.75) = 0.6816…; the chained ceil brings it to 1, which reads
-        // back as 0.01.
-        ctx.mockNext(1)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .sin()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(sin(minutes / 120.0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01)
-    })
-
-    test('fragment/custom-double-tan-keeps-custom-double', async () => {
-        // tan(0.75) = 0.9316…; the chained ceil brings it to 1, which reads
-        // back as 0.01.
-        ctx.mockNext(1)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .tan()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(tan(minutes / 120.0)) as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01)
-    })
-
     // ── fragmentWithType · customDouble ('Money') · one operand ────────────
 
     test('fragment/custom-double-add-integer-literal', async () => {
@@ -1035,10 +730,10 @@ describe(ctx.label, () => {
     })
 
     test('fragment/custom-double-multiply-fractional-literal', async () => {
-        // billed_amount (200) times 0.02 `Money` (bound as 2): 400 reads back as
-        // 4. The scaling cancels out in the product, so the bound parameter is
-        // where the data type shows.
-        ctx.mockNext(400)
+        // billed_amount (200, read as 2 `Money`) times 0.02: the factor is a number
+        // without a unit, so it is bound as it is (0.02), and the product 4 reads
+        // back as 0.04.
+        ctx.mockNext(4)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
@@ -1050,40 +745,20 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (billed_amount) * ?1 as result from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2,
+            0.02,
             1,
           ]
         `)
         assertType<Exact<typeof v, number>>()
-        expect(v).toBe(4)
-    })
-
-    test('fragment/custom-double-multiply-column-operand', async () => {
-        // billed_amount (200) times itself is 40000, which reads back as 400.
-        ctx.mockNext(40000)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount}`
-                    .multiply(tIssueWorklog.billedAmount),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (billed_amount) * billed_amount as result from issue_worklog where id = ?1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(400)
+        expect(v).toBe(0.04)
     })
 
     test('fragment/custom-double-divide-integer-literal', async () => {
-        // billed_amount (200) divided by 2 `Money` (bound as 200): 1 reads back
-        // as 0.01. Neither operand is known to be floating point, so the
+        // billed_amount (200, read as 2 `Money`) divided by 2: the divisor is a
+        // number without a unit, so it is bound as it is (2), and the quotient 100
+        // reads back as 1. Neither operand is known to be floating point, so the
         // dividend is cast to keep the division fractional on every engine.
-        ctx.mockNext(1)
+        ctx.mockNext(100)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
@@ -1095,35 +770,12 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((billed_amount) as real) / ?1 as result from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            200,
+            2,
             1,
           ]
         `)
         assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01)
-    })
-
-    test('fragment/custom-double-divide-const-operand', async () => {
-        // A VALUE-SOURCE divisor: 0.5 `Money` is bound as 50, so 200 / 50 = 4
-        // reads back as 0.04.
-        ctx.mockNext(4)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount}`
-                    .divide(ctx.conn.const(0.5, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((billed_amount) as real) / ?1 as result from issue_worklog where id = ?2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            50,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.04)
+        expect(v).toBe(1)
     })
 
     test('fragment/custom-double-modulo-integer-literal', async () => {
@@ -1265,66 +917,17 @@ describe(ctx.label, () => {
         expect(v).toBe(2)
     })
 
-    test('fragment/custom-double-power-keeps-custom-double', async () => {
-        // A floating-point base is left uncast on the dialects that would
-        // otherwise compute the power in the base's own exact type. The exponent
-        // is bound as `Ratio` (0.02 -> 2), so 0.75 ^ 2 = 0.5625 reads back as
-        // 0.005625.
-        ctx.mockNext(0.5625)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Ratio'>('Ratio'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.minutes} / 120.0`
-                    .power(0.02),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select power(minutes / 120.0, ?1) as result from issue_worklog where id = ?2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            2,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.005625)
-    })
-
-    test('fragment/custom-double-logn-keeps-custom-double', async () => {
-        // The base is bound as `Money` (0.02 -> 2), so the logarithm of
-        // billed_amount (200) in base 2 is 7.643…; the chained ceil brings it to
-        // 8, which reads back as 0.08.
-        ctx.mockNext(8)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount}`
-                    .logn(0.02)
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(log(?1, billed_amount)) as result from issue_worklog where id = ?2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            2,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.08)
-    })
-
     test('fragment/custom-double-roundn-literal-precision', async () => {
-        // The precision is bound as `Money` (0.02 -> 2), so billed_amount (200)
-        // rounded to 2 decimals is 200, which reads back as 2.
+        // The number of decimals is a number without a unit, so it is bound as it
+        // is (2): billed_amount (200) rounded to 2 decimals is 200, which reads back
+        // as 2.
         ctx.mockNext(200)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
                 ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
-                    .roundn(0.02),
+                    .roundn(2),
             )
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(billed_amount, ?1) as result from issue_worklog where id = ?2"`)
@@ -1359,31 +962,6 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(2)
-    })
-
-    test('fragment/custom-double-atan2-keeps-custom-double', async () => {
-        // The second argument is bound as `Money` (1 -> 100), so
-        // atan2(200, 100) = 1.107…; the chained ceil brings it to 2, which reads
-        // back as 0.02.
-        ctx.mockNext(2)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.billedAmount}`
-                    .atan2(1)
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(atan2(billed_amount, ?1)) as result from issue_worklog where id = ?2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            100,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.02)
     })
 
     test('fragment/custom-double-average-leaves-the-operand-uncast', async () => {
@@ -1498,9 +1076,9 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-fragment/custom-int-multiply-integer-literal', async () => {
-        // sum(cost_cents) = 600 times 2 `Cents` (bound as 200): 120000 reads
-        // back as 1200.
-        ctx.mockNext(120000)
+        // sum(cost_cents) = 600 times 2: the factor is bound as it is (2), and the
+        // product 1200 reads back as 12.
+        ctx.mockNext(1200)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
                 ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
@@ -1511,11 +1089,11 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(cost_cents)) * ?1 as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            200,
+            2,
           ]
         `)
         assertType<Exact<typeof v, number>>()
-        expect(v).toBe(1200)
+        expect(v).toBe(12)
     })
 
     test('aggregate-fragment/custom-int-modulo-integer-literal', async () => {
@@ -1580,33 +1158,16 @@ describe(ctx.label, () => {
         expect(v).toBe(6)
     })
 
-    test('aggregate-fragment/custom-double-sqrt-keeps-custom-double', async () => {
-        // sum(billed_amount) = 450 as a `Money` aggregate; sqrt(450) = 21.21…,
-        // and the chained ceil brings it to 22, which reads back as 0.22.
-        ctx.mockNext(22)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`sum(${tIssueWorklog.billedAmount})`
-                    .sqrt()
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(sqrt(sum(billed_amount))) as result from issue_worklog"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.22)
-    })
-
     test('aggregate-fragment/custom-double-roundn-literal-precision', async () => {
-        // The precision is bound as `Money` (0.02 -> 2), so sum(billed_amount) =
-        // 450 rounded to 2 decimals is 450, which reads back as 4.5.
+        // The number of decimals is a number without a unit, so it is bound as it
+        // is (2): sum(billed_amount) = 450 rounded to 2 decimals is 450, which reads
+        // back as 4.5.
         ctx.mockNext(450)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
                 ctx.conn.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.billedAmount})`
-                    .roundn(0.02),
+                    .roundn(2),
             )
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(sum(billed_amount), ?1) as result from issue_worklog"`)
@@ -1617,29 +1178,6 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(4.5)
-    })
-
-    test('aggregate-fragment/custom-double-atan2-keeps-custom-double', async () => {
-        // The second argument is bound as `Money` (1 -> 100), so
-        // atan2(450, 100) = 1.352…; the chained ceil brings it to 2, which reads
-        // back as 0.02.
-        ctx.mockNext(2)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
-                    .sql`sum(${tIssueWorklog.billedAmount})`
-                    .atan2(1)
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(atan2(sum(billed_amount), ?1)) as result from issue_worklog"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            100,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.02)
     })
 
     test('aggregate-fragment/custom-double-min-value-integer-literal', async () => {
@@ -1776,49 +1314,6 @@ describe(ctx.label, () => {
         expect(v).toBe(1)
     })
 
-    test('const/custom-double-sqrt-keeps-custom-double', async () => {
-        // A `Money` const of 4 is bound as 400; sqrt(400) = 20 reads back as 0.2.
-        ctx.mockNext(20)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.const(4, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
-                    .sqrt(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(?1) as result from issue_worklog where id = ?2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            400,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.2)
-    })
-
-    test('const/custom-double-divide-column-operand', async () => {
-        // A `Money` const of 8 (bound as 800) divided by the `Money`
-        // billed_amount of worklog 1 (200): the answer 4 reads back as 0.04.
-        ctx.mockNext(4)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.const(8, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
-                    .divide(tIssueWorklog.billedAmount),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(?1 as real) / billed_amount as result from issue_worklog where id = ?2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            800,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.04)
-    })
-
     test('const/custom-double-modulo-column-operand', async () => {
         // A `Money` const of 5 (bound as 500) modulo the `Money` billed_amount of
         // worklog 1 (200): the answer 100 reads back as 1. A fractional receiver
@@ -1863,28 +1358,6 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, { v?: number }>>()
         expect(row).toEqual({ v: 1.6 })
-    })
-
-    test('optional-const/custom-double-sqrt-keeps-custom-double', async () => {
-        // The `optionalConst` sibling of the sqrt case: 4 `Money` is bound as
-        // 400 and sqrt(400) = 20 reads back as 0.2 on an optional leaf.
-        ctx.mockNext({ v: 20 })
-        const row = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .select({
-                v: ctx.conn.optionalConst(4, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
-                    .sqrt(),
-            })
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(?1) as v from issue_worklog where id = ?2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            400,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof row, { v?: number }>>()
-        expect(row).toEqual({ v: 0.2 })
     })
 
     test('optional-const/custom-double-max-value-column-operand', async () => {

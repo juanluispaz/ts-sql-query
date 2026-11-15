@@ -3,6 +3,7 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import type { __ValueSourcePrivate } from './valueSource.js'
 import { __registeredCustomDataTypeFamily, __registeredDataType } from './dataTypeRegistry.js'
+import { __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
 // The class of the data type a value source is created from, by the names the library knows a data type by at run time:
 // the type, and the custom type of a custom data type, as the registry has them (dataTypeRegistry.ts).
@@ -32,4 +33,18 @@ export function __dataTypeClassOf(type: string, customType: CustomType | undefin
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unknown data type: ' + type + ' of ' + customType)
     }
     return family.of(type)
+}
+
+/**
+ * The class of an argument of an operation, of the type and custom type given: the class of the receiver, with its type
+ * adapter, when the argument has its data type (a value compared with a column takes the SQL data type of the column);
+ * the class of that data type, without the adapter, when the argument is of another one (the double of an int
+ * receiver with a fraction, the int position of a substring)
+ */
+export function __argumentClassOf(receiverClass: DataTypeClass, type: string, customType: CustomType | undefined): DataTypeClass {
+    const unadapted = __unadaptedClassOf(receiverClass)
+    if (unadapted.type === type && unadapted.customType === customType) {
+        return receiverClass
+    }
+    return __dataTypeClassOf(type, customType)
 }

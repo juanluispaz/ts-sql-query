@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
-import type { CustomType, TypeAdapter, DataTypeClass } from '../TypeAdapter.js'
+import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
@@ -19,7 +19,7 @@ import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValue
 import { __isCondition } from '../typeSystem/logical.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
-import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     // Oracle truncates a fractional scale of round
@@ -1248,13 +1248,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 1'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ', 1, 0 ) = 1'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ', 1, 0 ) = 1'
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, context) + ', ' + this._appendRawColumnName(value, context) + ', 1, 0 ) = 0'
         }
-        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ', 1, 0 ) = 0'
+        return 'decode(' + this._appendSqlParenthesis(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ', 1, 0 ) = 0'
     }
     override _random(_context: SqlBuildContext): string {
         return '(select dbms_random.value from dual)'
@@ -1277,21 +1277,21 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // nvl has the type of its first operand: a DATE read as a timestamp with something else makes it a
             // TIMESTAMP, so the result needs nothing more (it doesn't keep the adapter). A first operand of another
             // type already decides it, and two of them stay a DATE that keeps the adapter
-            return 'nvl(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp), ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+            return 'nvl(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp), ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
         }
-        return 'nvl(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'nvl(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
     override _divide(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // Unlike the other dialects, Oracle divides in NUMBER, which is exact to 38
         // significant digits — more precision than the double this operation yields.
         // Casting the operands to float here would *lose* precision instead of
         // preserving it, so the bare division is the correct emission on Oracle.
-        return this._appendSqlParenthesis(valueSource, context, false) + ' / ' + this._appendValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' / ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
     }
     override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // Oracle does not accept `a % b`; the `%` token is a syntax error.
         // Use the built-in MOD(a, b) function instead.
-        return 'mod(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'mod(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
     override _appendCastAsDouble(sql: string): string {
         return 'cast(' + sql + ' as float)'
@@ -1333,22 +1333,22 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     //
     // A start of -1 needs no clamp at all: an Oracle string that is not NULL has at least one
     // character (the empty string IS NULL here), so `greatest(-1, -length(x))` is always -1.
-    private _substrNegativeStart(context: SqlBuildContext, valueSource: ToSql, value: number, typeAdapter: TypeAdapter | undefined): string {
+    private _substrNegativeStart(context: SqlBuildContext, valueSource: ToSql, value: number): string {
         if (value === -1) {
-            return this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __adaptedTypeClassOf(__registeredDataType('int'), typeAdapter), false)
+            return this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __registeredDataType('int'), false)
         }
-        return this._appendSql(valueSource, context, false) + ', greatest(' + this._appendValue(value, context, __adaptedTypeClassOf(__registeredDataType('int'), typeAdapter), false) + ', -length(' + this._appendSql(valueSource, context, false) + '))'
+        return this._appendSql(valueSource, context, false) + ', greatest(' + this._appendValue(value, context, __registeredDataType('int'), false) + ', -length(' + this._appendSql(valueSource, context, false) + '))'
     }
     override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (typeof value === 'number' && value < 0) {
-            return 'substr(' + this._substrNegativeStart(context, valueSource, value, __typeAdapterOf(typeClass)) + ')'
+            return 'substr(' + this._substrNegativeStart(context, valueSource, value) + ')'
         }
         return super._substrToEnd(context, valueSource, value, typeClass)
     }
     override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'substr(' + this._substrNegativeStart(context, valueSource, value, __typeAdapterOf(typeClass)) + ', ' + this._appendValue(value2, context, __adaptedTypeClassOf(__registeredDataType('int'), __typeAdapterOf(typeClass)), false) + ')'
+            return 'substr(' + this._substrNegativeStart(context, valueSource, value) + ', ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
         }
         return super._substr(context, valueSource, value, value2, typeClass)
     }

@@ -51,9 +51,9 @@ Read this before changing anything here. The code is the reference; this file sa
 - A value source has two axes apart: its data type (its class) and its **node**: how it is written and what it
   reaches in the tree (a constant, a function of a value source, a fragment, a column, an aggregate, ...). The nodes are
   in [`src/nodes/`](../nodes/README.md), which explains them; a method of a class creates its result with the function of
-  a node, passing `this` and the class of the result (`__newSqlOperation1ValueSource('_concat', this, value,
-  __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))`, `__operation0(this, '_length',
-  IntType)`).
+  a node, passing `this` and the class of the result, which says its type adapter (`__operation1(this, '_add', value,
+  __computedClassOf(this, __typeClassOf(this)))`, `__operation0(this, '_length', IntType)`; see "The type adapter of a
+  result" in the README of the nodes).
 - Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) and the classes creates them: the factory creates
   the value sources (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the
   runtime is not typed by the data type: the code that calls them declares what it creates. They receive the class of

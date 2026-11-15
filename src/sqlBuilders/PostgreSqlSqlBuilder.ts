@@ -17,7 +17,7 @@ import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
-import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -418,7 +418,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             // Cast both operands to numeric so `mod(numeric, numeric)` resolves
             // (the same numeric-cast strategy `_logn` / `_roundn` use). Pure
             // integer / bigint receivers and operands keep the plain `%` form below.
-            return 'mod((' + this._appendSql(valueSource, context, false) + ')::numeric, (' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')::numeric)'
+            return 'mod((' + this._appendSql(valueSource, context, false) + ')::numeric, (' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')::numeric)'
         }
         return super._modulo(context, valueSource, value, typeClass)
     }
@@ -433,7 +433,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // fails at runtime with `function log(unknown, double precision)
         // does not exist`. Cast both operands to numeric so the overload
         // resolves regardless of how the chain was built.
-        return 'log((' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')::numeric, (' + this._appendSql(valueSource, context, false) + ')::numeric)'
+        return 'log((' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')::numeric, (' + this._appendSql(valueSource, context, false) + ')::numeric)'
     }
     override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // PostgreSQL only has the `round(numeric, integer)` overload — there is
@@ -616,14 +616,14 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     // arms are overridden; the rest of the family is the base's.
     override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (typeof value === 'number' && value < 0) {
-            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __adaptedTypeClassOf(__registeredDataType('int'), __typeAdapterOf(typeClass)), false) + ')'
+            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
         }
         return super._substrToEnd(context, valueSource, value, typeClass)
     }
     override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __adaptedTypeClassOf(__registeredDataType('int'), __typeAdapterOf(typeClass)), false) + '), ' + this._appendValue(value2, context, __adaptedTypeClassOf(__registeredDataType('int'), __typeAdapterOf(typeClass)), false) + ')'
+            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + '), ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
         }
         return super._substr(context, valueSource, value, value2, typeClass)
     }

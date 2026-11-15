@@ -6,10 +6,10 @@ import type { NSource } from '../utils/sourceName.js'
 import { computedType, operandTypeName, typeName } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newValueWhenNoValueValueSource, __newBooleanValueWhenNoValueValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop } from '../nodes/ifValue.js'
-import { mergeOptional, getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
+import { mergeOptional, getOptionalType2 } from '../nodes/operands.js'
 import { __newSqlOperation1ValueSource, __operation0 } from '../nodes/operations.js'
 import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
-import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
 
 /*
  * The logical data types: the boolean value, and the two conditions (`if`, `alwaysIf`). They share the group
@@ -35,12 +35,12 @@ export abstract class BooleanType extends EqualableType<boolean> {
     and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     and<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     and(value: any): any {
-        return __newSqlOperation1ValueSource('_and', this, value, __adaptedTypeClassOf(BooleanConditionType, getTypeAdapter2(this, value)), getOptionalType2(this, value))
+        return __newSqlOperation1ValueSource('_and', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
     or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     or(value: any): any {
-        return __newSqlOperation1ValueSource('_or', this, value, __adaptedTypeClassOf(BooleanConditionType, getTypeAdapter2(this, value)), getOptionalType2(this, value))
+        return __newSqlOperation1ValueSource('_or', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
     onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
     onlyWhen(condition: boolean): any {
@@ -76,11 +76,11 @@ export abstract class BooleanConditionType extends BooleanType {
 
     trueWhenNoValue(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newBooleanValueWhenNoValueValueSource('_true', vs, __adaptedTypeClassOf(__sameTypeClassOf(vs), vs.__typeAdapter), vs.__optionalType)
+        return __newBooleanValueWhenNoValueValueSource('_true', vs, __keptClassOf(vs, __sameTypeClassOf(vs)), vs.__optionalType)
     }
     falseWhenNoValue(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newBooleanValueWhenNoValueValueSource('_false', vs, __adaptedTypeClassOf(__sameTypeClassOf(vs), vs.__typeAdapter), vs.__optionalType)
+        return __newBooleanValueWhenNoValueValueSource('_false', vs, __keptClassOf(vs, __sameTypeClassOf(vs)), vs.__optionalType)
     }
     valueWhenNoValue(value: any): any {
         const vs = this as unknown as ValueSourceRoot
@@ -95,7 +95,7 @@ export abstract class BooleanConditionType extends BooleanType {
             return this.falseWhenNoValue()
         }
 
-        return __newValueWhenNoValueValueSource(value, vs, __adaptedTypeClassOf(__sameTypeClassOf(vs), vs.__typeAdapter), mergeOptional(vs.__optionalType, __getValueSourcePrivate(value).__optionalType))
+        return __newValueWhenNoValueValueSource(value, vs, __keptClassOf(vs, __sameTypeClassOf(vs)), mergeOptional(vs.__optionalType, __getValueSourcePrivate(value).__optionalType))
     }
 }
 

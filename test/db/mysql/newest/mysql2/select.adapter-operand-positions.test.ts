@@ -102,12 +102,12 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('replace-all-takes-the-adapter-of-its-find-operand', async () => {
-        // The receiver has no adapter, so `replaceAll` takes the one of its
-        // find operand (the bracketing reviewer_code adapter) and reads the result
-        // through it. 'mktg-site' does not contain 'R-7A2', so only the brackets
-        // change it.
-        const expected = [{ projectId: 1, label: '[mktg-site]' }]
+    test('replace-all-ignores-the-adapter-of-its-find-operand', async () => {
+        // The receiver has no adapter, and `replaceAll` takes none from its find
+        // operand (the bracketing reviewer_code column) either: the result is a new
+        // text and reads back as it is. 'mktg-site' does not contain 'R-7A2', so the
+        // result is the slug unchanged.
+        const expected = [{ projectId: 1, label: 'mktg-site' }]
         ctx.mockNext([{ projectId: 1, label: 'mktg-site' }])
         const rows = await ctx.conn.selectFrom(tProject)
             .innerJoin(tProjectReview).on(tProjectReview.projectId.equals(tProject.id))

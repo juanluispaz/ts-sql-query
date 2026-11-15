@@ -17,7 +17,7 @@ import { __newAllowWhenValueSource } from './allowWhen.js'
 import { __newNullValueSource } from './constants.js'
 import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
 import { __newNoopValueSource } from './operations.js'
-import { typeAdapterOfClass, __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { typeAdapterOfClass, __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
 
 export class ValueSourceRoot implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [typeName]: any
@@ -107,9 +107,9 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
         }
         let result
         if (typeof error === 'string') {
-            result = __newAllowWhenValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this, __adaptedTypeClassOf(__sameTypeClassOf(this), this.__typeAdapter))
+            result = __newAllowWhenValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this, __keptClassOf(this, __sameTypeClassOf(this)))
         } else {
-            result = __newAllowWhenValueSource(when, error, this, __adaptedTypeClassOf(__sameTypeClassOf(this), this.__typeAdapter))
+            result = __newAllowWhenValueSource(when, error, this, __keptClassOf(this, __sameTypeClassOf(this)))
         }
         return result
     }
@@ -120,9 +120,9 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
         }
         let result
         if (typeof error === 'string') {
-            result = __newAllowWhenValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this, __adaptedTypeClassOf(__sameTypeClassOf(this), this.__typeAdapter))
+            result = __newAllowWhenValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this, __keptClassOf(this, __sameTypeClassOf(this)))
         } else {
-            result = __newAllowWhenValueSource(!when, error, this, __adaptedTypeClassOf(__sameTypeClassOf(this), this.__typeAdapter))
+            result = __newAllowWhenValueSource(!when, error, this, __keptClassOf(this, __sameTypeClassOf(this)))
         }
         return result
     }
@@ -151,7 +151,7 @@ export function __asRequiredInOptionalObjectOf(valueSource: DataTypeValueSource)
     if (nodeAsRequiredInOptionalObject) {
         return nodeAsRequiredInOptionalObject(vs)
     }
-    const result = __newNoopValueSource(vs, __adaptedTypeClassOf(__sameTypeClassOf(vs), vs.__typeAdapter), 'requiredInOptionalObject')
+    const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'requiredInOptionalObject')
     if (vs.__aggregatedArrayColumns) {
         result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
         result.__aggregatedArrayMode = vs.__aggregatedArrayMode
@@ -167,7 +167,7 @@ export function __onlyWhenOrNullOf(valueSource: DataTypeValueSource, when: boole
         return vs
     } else {
         const nodeAsNull = vs.__node.asNull
-        return nodeAsNull ? nodeAsNull(vs) : __newNullValueSource(__adaptedTypeClassOf(__typeClassOf(vs), vs.__typeAdapter), 'optional')
+        return nodeAsNull ? nodeAsNull(vs) : __newNullValueSource(__keptClassOf(vs, __typeClassOf(vs)), 'optional')
     }
 }
 
@@ -176,7 +176,7 @@ export function __ignoreWhenAsNullOf(valueSource: DataTypeValueSource, when: boo
     const vs = valueSource as ValueSourceRoot
     if (when) {
         const nodeAsNull = vs.__node.asNull
-        return nodeAsNull ? nodeAsNull(vs) : __newNullValueSource(__adaptedTypeClassOf(__typeClassOf(vs), vs.__typeAdapter), 'optional')
+        return nodeAsNull ? nodeAsNull(vs) : __newNullValueSource(__keptClassOf(vs, __typeClassOf(vs)), 'optional')
     } else {
         return vs
     }

@@ -1134,9 +1134,9 @@ describe(ctx.label, () => {
 
     test('substr-to-end-on-adapter-view-column', async () => {
         // `versionBracketed` (view column, string + bracketAdapter) mapping
-        // `r.version`. Release 1: version '1.2.0' → substr from 0-based 2 → '2.0',
-        // read bracketed → '[2.0]'.
-        const expected = { id: 1, sub: '[2.0]' }
+        // `r.version`. Release 1: version '1.2.0' → substr from 0-based 2 → '2.0'; a
+        // piece of the column has no bracketAdapter, so it reads back '2.0'.
+        const expected = { id: 1, sub: '2.0' }
         ctx.mockNext({ id: 1, sub: '2.0' })
         const row = await ctx.conn.selectFrom(vReleaseOverview)
             .where(vReleaseOverview.id.equals(1))
@@ -1156,9 +1156,9 @@ describe(ctx.label, () => {
     test('substr-to-end-on-optional-adapter-view-column', async () => {
         // `channelBracketed` (view column, OPTIONAL string + bracketAdapter): the
         // optional receiver keeps the leaf optional. Release 1: channel_bracketed
-        // 'stable' (channel <> 'beta') → substr from 0-based 2 → 'able', read
-        // bracketed → '[able]'.
-        const expected = { id: 1, sub: '[able]' }
+        // 'stable' (channel <> 'beta') → substr from 0-based 2 → 'able'; a piece of
+        // the column has no bracketAdapter, so it reads back 'able'.
+        const expected = { id: 1, sub: 'able' }
         ctx.mockNext({ id: 1, sub: 'able' })
         const row = await ctx.conn.selectFrom(vReleaseOverview)
             .where(vReleaseOverview.id.equals(1))
@@ -1177,9 +1177,9 @@ describe(ctx.label, () => {
 
     test('substr-to-end-on-adapter-table-column', async () => {
         // `reviewerCode` (table column, string + bracketAdapter). Review 1:
-        // reviewer_code 'R-7A2' → substr from 0-based 2 → '7A2', read bracketed →
-        // '[7A2]'.
-        const expected = { id: 1, sub: '[7A2]' }
+        // reviewer_code 'R-7A2' → substr from 0-based 2 → '7A2'; a piece of the
+        // column has no bracketAdapter, so it reads back '7A2'.
+        const expected = { id: 1, sub: '7A2' }
         ctx.mockNext({ id: 1, sub: '7A2' })
         const row = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -1278,8 +1278,9 @@ describe(ctx.label, () => {
 
     test('to-upper-case-on-virtual-bracket-view-column', async () => {
         // `versionTagged` = `upper(version)` + bracketAdapter (view). Release 1:
-        // upper(upper('1.2.0')) = '1.2.0', read bracketed → '[1.2.0]'.
-        const expected = { id: 1, t: '[1.2.0]' }
+        // upper(upper('1.2.0')) = '1.2.0'; the new text has no bracketAdapter, so it
+        // reads back as it is.
+        const expected = { id: 1, t: '1.2.0' }
         ctx.mockNext({ id: 1, t: '1.2.0' })
         const row = await ctx.conn.selectFrom(vReleaseOverview)
             .where(vReleaseOverview.id.equals(1))
@@ -1297,8 +1298,9 @@ describe(ctx.label, () => {
 
     test('to-upper-case-on-virtual-bracket-table-column', async () => {
         // `activityTagged` = `upper(activity)` + bracketAdapter (table). Worklog 1:
-        // upper(upper('coding')) = 'CODING', read bracketed → '[CODING]'.
-        const expected = { id: 1, t: '[CODING]' }
+        // upper(upper('coding')) = 'CODING'; the new text has no bracketAdapter, so
+        // it reads back as it is.
+        const expected = { id: 1, t: 'CODING' }
         ctx.mockNext({ id: 1, t: 'CODING' })
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))

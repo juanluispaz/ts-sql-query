@@ -1,4 +1,3 @@
-import type { TypeAdapter } from '../TypeAdapter.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
@@ -106,28 +105,3 @@ export function getOptionalType3(a: DataTypeValueSource | NodeValueSource, b: an
     return result
 }
 
-export function getTypeAdapter2(a: DataTypeValueSource | NodeValueSource, b: any): TypeAdapter | undefined {
-    if ((a as NodeValueSource).__typeAdapter) {
-        return (a as NodeValueSource).__typeAdapter
-    }
-    if (isValueSource(b)) {
-        return __getValueSourcePrivate(b).__typeAdapter
-    }
-    return undefined
-}
-
-export function getTypeAdapter3(a: DataTypeValueSource | NodeValueSource, b: any, c: any): TypeAdapter | undefined {
-    if ((a as NodeValueSource).__typeAdapter) {
-        return (a as NodeValueSource).__typeAdapter
-    }
-    if (isValueSource(b)) {
-        const bPrivate = __getValueSourcePrivate(b)
-        if (bPrivate.__typeAdapter) {
-            return bPrivate.__typeAdapter
-        }
-    }
-    if (isValueSource(c)) {
-        return __getValueSourcePrivate(c).__typeAdapter
-    }
-    return undefined
-}

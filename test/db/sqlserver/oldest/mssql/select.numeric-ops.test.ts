@@ -711,9 +711,10 @@ describe(ctx.label, () => {
     test('optional-custom-int-receiver-unary-math', async () => {
         // `optionalReleaseOrdinal` is an OPTIONAL customInt View column (ReleaseTag,
         // plusOffsetAdapter read +1000). Release 1 resolves optional_release_ordinal
-        // to id 1 (download_count present). abs keeps the branded leaf (?: ReleaseTag);
-        // sign returns a number leaf.
-        const expected = { id: 1, a: 1001 as ReleaseTag, s: 1001 }
+        // to id 1 (download_count present). abs keeps the data type and the adapter,
+        // so 1 reads back as the ReleaseTag 1001; sign gives a plain number without
+        // the adapter, so it reads back as 1.
+        const expected = { id: 1, a: 1001 as ReleaseTag, s: 1 }
         ctx.mockNext({ id: 1, a: 1, s: 1 })
         const row = await ctx.conn.selectFrom(vReleaseOverview)
             .where(vReleaseOverview.id.equals(1))

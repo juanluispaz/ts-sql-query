@@ -7,7 +7,8 @@
 // The instrument is the per-column `scaledByTypeName` adapter declared with the
 // fixtures: it scales a number by 100 only when the type name it is handed is
 // `Cents` or `Money`. A derived expression that KEEPS the column's custom data
-// type therefore binds its extra operand scaled and reads its answer back scaled;
+// type therefore binds an operand of that type scaled (a factor or a divisor is
+// a number without a unit, bound as it is) and reads its answer back scaled;
 // one that has fallen back to a plain `int` / `double` does neither. The mock
 // queues the RAW value the database would answer and the assertion is on the value
 // AFTER the adapter, so the single unconditional `expect(...)` covers the mock
@@ -963,20 +964,20 @@ describe(ctx.label, () => {
     })
 
     test('column/custom-int-multiply-keeps-the-column-data-type', async () => {
-        // 42 cents times 3 `Cents`: the factor binds scaled (300) and the product
-        // 12600 reads back as 126.
-        ctx.mockNext(12600)
+        // m_int 42 (0.42 `Cents`) times 3: the factor is a number without a unit, so
+        // it is bound as it is (3), and the product 126 reads back as 1.26.
+        ctx.mockNext(126)
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.cents.multiply(3))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_int * :0 as "result" from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            300,
+            3,
           ]
         `)
         assertType<Exact<typeof v, number>>()
-        expect(v).toBe(126)
+        expect(v).toBe(1.26)
     })
 
     test('column/custom-int-modulo-keeps-the-column-data-type', async () => {
@@ -1072,50 +1073,38 @@ describe(ctx.label, () => {
     })
 
     test('column/custom-double-multiply-keeps-the-column-data-type', async () => {
-        // 3.5 money times 2 `Money`: the factor binds scaled (200) and the product 700
-        // reads back as 7.
-        ctx.mockNext(700)
+        // m_double 3.5 (0.035 `Money`) times 2: the factor is a number without a
+        // unit, so it is bound as it is (2), and the product 7 reads back as 0.07.
+        ctx.mockNext(7)
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.multiply(2))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double * :0 as "result" from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            200,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(7)
-    })
-
-    test('column/custom-double-divide-keeps-the-column-data-type', async () => {
-        // 3.5 money divided by 0.005 `Money`: the divisor binds scaled (0.5) and the
-        // quotient 7 reads back as 0.07.
-        ctx.mockNext(7)
-        const v = await ctx.conn.selectFrom(tDerivedColumn)
-            .selectOneColumn(tDerivedColumn.money.divide(0.005))
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double / :0 as "result" from col_matrix"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            0.5,
+            2,
           ]
         `)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.07)
     })
 
-    test('column/custom-double-sqrt-keeps-the-column-data-type', async () => {
-        // square root of 3.5 money: no bound operand, and the answer reads back
-        // scaled only while the expression still carries `Money`.
-        ctx.mockNext(1.8708286933869707)
+    test('column/custom-double-divide-keeps-the-column-data-type', async () => {
+        // m_double 3.5 (0.035 `Money`) divided by 0.005: the divisor is a number
+        // without a unit, so it is bound as it is (0.005), and the quotient 700 reads
+        // back as 7.
+        ctx.mockNext(700)
         const v = await ctx.conn.selectFrom(tDerivedColumn)
-            .selectOneColumn(tDerivedColumn.money.sqrt())
+            .selectOneColumn(tDerivedColumn.money.divide(0.005))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sqrt(m_double) as "result" from col_matrix"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double / :0 as "result" from col_matrix"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0.005,
+          ]
+        `)
         assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.01870828693386971)
+        expect(v).toBe(7)
     })
 
     test('column/custom-double-floor-keeps-the-column-data-type', async () => {

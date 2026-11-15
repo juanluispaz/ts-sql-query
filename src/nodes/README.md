@@ -118,20 +118,39 @@ A method of a class doesn't see the fields of the run time, so it passes `this` 
 take it as a **`DataTypeValueSource`** ([`NodeStrategy.ts`](./NodeStrategy.ts)): the value source as a method of a data
 type class passes it. It requires only the NType (`[typeName]`), the member `BaseType` declares for TypeScript, so
 `this` of any class of a data type fits and a plain object doesn't; the function casts it once to `NodeValueSource`
-where it reads a field. The class says the operation, its operands and the class of the result, with the type adapter
-the functions of the nodes combine (`__adaptedTypeClassOf`), and its optionality:
+where it reads a field. The class says the operation, its operands and the class of the result, with its type adapter,
+and its optionality:
 
 ```ts
-concat(value: any): any {
-    return __newSqlOperation1ValueSource('_concat', this, value, __adaptedTypeClassOf(__typeClassOf(this), getTypeAdapter2(this, value)), getOptionalType2(this, value))
+add(value: any): any {
+    return __operation1(this, '_add', value, __computedClassOf(this, __typeClassOf(this)))
 }
 ```
+
+**The type adapter of a result** is decided by the method, by what the operation gives
+([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)):
+
+- a value of one of its operands (`valueWhenNull`, `nullIfValue`, `max`, `minValue`, `asOptional`, `allowWhen`, a
+  `*WhenNoValue`, `collate`): the type adapter of the receiver as it has it, with its SQL data type (`__keptClassOf`);
+  a fallback of another SQL data type keeps only its conversions;
+- a number computed from the receiver, of its data type (`add`, `subtract`, `multiply`, `modulo`, `abs`, `round`,
+  `roundn`, the `divide` of a customDouble, `sum`): the conversions of its type adapter, without its SQL data type
+  (`__computedClassOf`): a value computed from a column is not a value of that column;
+- anything else, none: a comparison, `length`, `sign`, the mathematical functions, an `as*`, `average`, `count`, and the
+  operations of a text that give a new text (`concat`, `substr`, `replaceAll`, `trim`, ...): an adapter of a text says
+  how the stored value is written, and a piece of it is not that value.
+
+With two operands the receiver decides; the type adapter of the other one is never taken. A value given to an operation
+is converted with the class of the result when the result is of the data type of the receiver, and with the one of the
+receiver otherwise (a value compared with a column takes the column's); a number without a unit (the factor of
+`multiply`, the divisor of `divide`, the decimals of `roundn`, the exponent of `power`) with the data type of the
+receiver, without its type adapter.
 
 - **The creations** (`__newSqlOperation1ValueSource`, `__newSqlOperation1ValueSourceIfValueOrNoop`, `__newSqlOperationInValueSource`,
   `__newNoopValueSource`, ...) take the value source they apply to as `DataTypeValueSource | NodeValueSource`: a class
   passes `this`, a node or the factory another value source.
 - **The operands** ([`operands.ts`](./operands.ts): `getOptionalType2`, `getOptionalType3`, `getRequiredType2`,
-  `getOptionalTypeOfIn`, `getOptionalTypeN`, `getTypeAdapter2`, `getTypeAdapter3`) take the receiver the same way.
+  `getOptionalTypeOfIn`, `getOptionalTypeN`) take the receiver the same way.
 - **The class of the result**: `__typeClassOf` and `__sameTypeClassOf` ([`dataTypeClassOf.ts`](./dataTypeClassOf.ts)) take a
   `DataTypeValueSource` or the private state of a value source (`__ValueSourcePrivate`); the class of a data type that
   extends the receiver's (the boolean of a condition, the int of `sign`) comes from the registry of the data types

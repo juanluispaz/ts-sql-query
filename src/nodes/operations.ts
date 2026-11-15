@@ -11,14 +11,33 @@ import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { type DataTypeValueSource, type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
 import { __typeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __addInlineQueryWiths, isSelectQuery } from './inlineSelect.js'
-import { getOptionalType2, getTypeAdapter2 } from './operands.js'
-import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
-import { __classOf } from '../nodes/adaptedTypeClass.js'
+import { getOptionalType2 } from './operands.js'
+import { __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
+import { __classOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
+
+/**
+ * The class the values given to an operation are converted with: the one of its result when it is of the data type of
+ * the receiver (a value computed from it, or one of its values: the result says whether it keeps the type adapter and
+ * its SQL data type), and the one of the receiver otherwise (a value compared with a column takes the column's)
+ */
+function argumentClassOf(vs: NodeValueSource & { __valueSource: NodeValueSource, __operation: string }): DataTypeClass {
+    if (scalarOperations.has(vs.__operation)) {
+        // A number without a unit (a factor, a divisor, a number of decimals, an exponent, a base): the data type of
+        // the receiver (the SQL builder decides by it), without its type adapter
+        return __unadaptedClassOf(__classOf(vs.__valueSource))
+    }
+    const result = __classOf(vs)
+    const receiver = __classOf(vs.__valueSource)
+    return __unadaptedClassOf(result) === __unadaptedClassOf(receiver) ? result : receiver
+}
+
+/** The operations whose value is a number without a unit, not a value of the data type of the receiver */
+const scalarOperations = new Set(['_multiply', '_divide', '_roundn', '_power', '_logn', '_atan2'])
 
 /** The column of the previous row in a hierarchical query (`connect by prior` of Oracle) */
 export function __priorOf(valueSource: DataTypeValueSource | __ValueSourcePrivate): any {
     const vs = valueSource as unknown as NodeValueSource
-    return __newSqlOperation0ValueSource('_prior', vs, __adaptedTypeClassOf(__typeClassOf(vs), vs.__typeAdapter), vs.__optionalType)
+    return __newSqlOperation0ValueSource('_prior', vs, __keptClassOf(vs, __typeClassOf(vs)), vs.__optionalType)
 }
 
 export interface SqlOperation0ValueSource extends NodeValueSource, HasOperation {
@@ -158,7 +177,7 @@ export interface SqlOperation1ValueSource extends NodeValueSource, HasOperation 
 export const sqlOperation1ValueSourceNode: NodeStrategy<SqlOperation1ValueSource> = {
     ...valueSourceNode,
     __toSql(vs: SqlOperation1ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, __classOf(vs.__valueSource))
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, argumentClassOf(vs))
     },
     __addWiths(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         vs.__valueSource.__addWiths(sqlBuilder, withs)
@@ -205,7 +224,7 @@ export interface SqlOperationInValueSource extends NodeValueSource, HasOperation
 export const sqlOperationInValueSourceNode: NodeStrategy<SqlOperationInValueSource> = {
     ...valueSourceNode,
     __toSql(vs: SqlOperationInValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, __classOf(vs.__valueSource))
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, argumentClassOf(vs))
     },
     __addWiths(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         vs.__valueSource.__addWiths(sqlBuilder, withs)
@@ -334,7 +353,7 @@ export interface SqlOperationValueWhenNullValueSource extends NodeValueSource, H
 export const sqlOperationValueWhenNullValueSourceNode: NodeStrategy<SqlOperationValueWhenNullValueSource> = {
     ...valueSourceNode,
     __toSql(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, __classOf(vs.__valueSource))
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, argumentClassOf(vs))
     },
     __addWiths(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         vs.__valueSource.__addWiths(sqlBuilder, withs)
@@ -381,7 +400,7 @@ export interface SqlOperation1NotOptionalValueSource extends NodeValueSource, Ha
 export const sqlOperation1NotOptionalValueSourceNode: NodeStrategy<SqlOperation1NotOptionalValueSource> = {
     ...valueSourceNode,
     __toSql(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, __classOf(vs.__valueSource))
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, argumentClassOf(vs))
     },
     __addWiths(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         vs.__valueSource.__addWiths(sqlBuilder, withs)
@@ -429,7 +448,7 @@ export interface SqlOperation2ValueSource extends NodeValueSource, HasOperation 
 export const sqlOperation2ValueSourceNode: NodeStrategy<SqlOperation2ValueSource> = {
     ...valueSourceNode,
     __toSql(vs: SqlOperation2ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value, vs.__value2], vs.__operation), vs.__value, vs.__value2, __classOf(vs.__valueSource))
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value, vs.__value2], vs.__operation), vs.__value, vs.__value2, argumentClassOf(vs))
     },
     __addWiths(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         vs.__valueSource.__addWiths(sqlBuilder, withs)
@@ -511,14 +530,14 @@ export function __newNoopValueSource(valueSource: DataTypeValueSource | NodeValu
     return vs
 }
 
-/** An operation of the value source alone, whose result is of the data type of the class given */
+/** An operation of the value source alone, whose result has the class given (with its type adapter, if any) */
 export function __operation0(valueSource: DataTypeValueSource, operation: keyof SqlFunction0 | keyof SqlBoolean0, typeClass: DataTypeClass): any {
     const vs = valueSource as unknown as NodeValueSource
-    return __newSqlOperation0ValueSource(operation, vs, __adaptedTypeClassOf(typeClass, vs.__typeAdapter), vs.__optionalType)
+    return __newSqlOperation0ValueSource(operation, vs, typeClass, vs.__optionalType)
 }
 
-/** An operation of the value source with a value, whose result is of the data type of the class given */
+/** An operation of the value source with a value, whose result has the class given (with its type adapter, if any) */
 export function __operation1(valueSource: DataTypeValueSource, operation: keyof SqlOperation1, value: any, typeClass: DataTypeClass): any {
     const vs = valueSource as unknown as NodeValueSource
-    return __newSqlOperation1ValueSource(operation, vs, value, __adaptedTypeClassOf(typeClass, getTypeAdapter2(vs, value)), getOptionalType2(vs, value))
+    return __newSqlOperation1ValueSource(operation, vs, value, typeClass, getOptionalType2(vs, value))
 }

@@ -8,13 +8,13 @@ import type { DoubleType, IntType, NumberType } from './number.js'
 import type { ColumnMarkersOf } from './valueSource.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { __sameTypeClassOf, __typeClassOf } from '../nodes/dataTypeClassOf.js'
-import { getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
+import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource } from '../nodes/operations.js'
 import { type ValueSourceRoot, __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { __isDouble } from './dataTypes.js'
 import { OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
-import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __adaptedTypeClassOf, __keptClassOf, __sqlDataTypeOf, __classOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /**
  * The data type of the value of a null replaced by a fallback: the data type of the value source, but a number widens
@@ -39,12 +39,12 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperationIsNullValueSource('_isNull', vs, __adaptedTypeClassOf(__registeredDataType('condition'), vs.__typeAdapter), 'required')
+        return __newSqlOperationIsNullValueSource('_isNull', vs, __registeredDataType('condition'), 'required')
     }
     isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNotNull(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __adaptedTypeClassOf(__registeredDataType('condition'), vs.__typeAdapter), 'required')
+        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __registeredDataType('condition'), 'required')
     }
     valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
     valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, TypeOf<VALUE>>, OptionalOf<VALUE>>
@@ -76,24 +76,30 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
                 typeClass = __registeredDataType('double')
             }
         }
-        let typeAdapter = getTypeAdapter2(vs, value)
-        if (typeAdapter instanceof OracleDateAsTimestampTypeAdapter && !(vs.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter && isValueSource(value) && __getValueSourcePrivate(value).__typeAdapter instanceof OracleDateAsTimestampTypeAdapter)) {
-            // Oracle's nvl has the type of its first operand: a DATE read as a timestamp with something else is
-            // turned into a TIMESTAMP there, and any other first operand already decides the type. Two of them stay a
-            // DATE, and the result keeps the adapter
-            typeAdapter = undefined
+        // The value is the one of the receiver or of the fallback: the receiver's type adapter, when the data type
+        // stays the one of the receiver (an int that becomes a double has none)
+        let resultClass = typeClass === __typeClassOf(vs) ? __keptClassOf(vs, typeClass) : typeClass
+        if (isValueSource(value) && JSON.stringify(__sqlDataTypeOf(resultClass)) !== JSON.stringify(__sqlDataTypeOf(__classOf(value)))) {
+            // The value can be the one of the fallback, of another SQL data type: it has the conversions of the receiver,
+            // but not its SQL data type
+            resultClass = __computedClassOf(vs, resultClass)
         }
-        return __newSqlOperationValueWhenNullValueSource(vs, value, __adaptedTypeClassOf(typeClass, typeAdapter), getOptionalType2(vs, value))
+        if (vs.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter && !(isValueSource(value) && __getValueSourcePrivate(value).__typeAdapter instanceof OracleDateAsTimestampTypeAdapter)) {
+            // Oracle's nvl has the type of its first operand: a DATE read as a timestamp with something else is
+            // turned into a TIMESTAMP there. Two of them stay a DATE, and the result keeps the adapter
+            resultClass = typeClass
+        }
+        return __newSqlOperationValueWhenNullValueSource(vs, value, resultClass, getOptionalType2(vs, value))
     }
     nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, 'optional'>
     nullIfValue(value: any): any {
-        return __newSqlOperation1ValueSource('_nullIfValue', this, value, __adaptedTypeClassOf(__typeClassOf(this), getTypeAdapter2(this, value)), 'optional')
+        return __newSqlOperation1ValueSource('_nullIfValue', this, value, __keptClassOf(this, __typeClassOf(this)), 'optional')
     }
     asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     asOptional(): any {
         const vs = this as unknown as ValueSourceRoot
-        const result = __newNoopValueSource(vs, __adaptedTypeClassOf(__sameTypeClassOf(vs), vs.__typeAdapter), 'optional')
+        const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'optional')
         return result
     }
     asRequiredInOptionalObject(): ValueSource<SourceOf<this>, TypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>

@@ -12,7 +12,7 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
-import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // MariaDB 10.5+ reads a column of the row in its on duplicate key update with a subquery over a derived table of
@@ -51,7 +51,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             const receiverIsUuidText = this._isUuidText(valueSource)
             if (receiverIsUuidText !== this._isUuidText(value)) {
                 const receiver = this._appendSql(valueSource, context, false)
-                const fallback = this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), __typeAdapterOf(typeClass)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+                const fallback = this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
                 return 'ifnull(' + (receiverIsUuidText ? this._appendUuidTextAsChar(receiver) : receiver) + ', ' + (receiverIsUuidText ? fallback : this._appendUuidTextAsChar(fallback)) + ')'
             }
         }

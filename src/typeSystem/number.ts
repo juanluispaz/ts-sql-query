@@ -1,6 +1,6 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import { IntegersType } from './numeric.js'
+import { BigintType } from './bigint.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
@@ -205,13 +205,6 @@ export abstract class DoubleType extends NumberType {
     }
 }
 
-/** An integer number of 64 bits, a JavaScript bigint */
-export abstract class BigintType extends IntegersType<bigint> {
-    static override readonly type = 'bigint'
-    static override readonly customType = undefined
-    declare [typeName]: 'type:bigint:'
-    declare [operandTypeName]: 'type:bigint:'
-}
 
 /**
  * An operation of an int or a double with another number (add, minValue, ...): a double with a double; an int with an

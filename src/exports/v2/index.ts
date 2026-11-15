@@ -67,10 +67,12 @@ export {
 } from '../../typeSystem/logical.js'
 
 export {
-    BigintType,
     DoubleType,
     IntType,
 } from '../../typeSystem/number.js'
+export {
+    BigintType,
+} from '../../typeSystem/bigint.js'
 
 export {
     CustomBigintType,

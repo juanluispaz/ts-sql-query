@@ -147,7 +147,7 @@ BaseType<VALUE_TYPE>                         the NType, the operand NType, the t
 │   │       └── ComparableType<VALUE_TYPE>   lessThan, between, ...
 │   │           ├── NumberType               the group number: IntType, DoubleType                         (number.ts)
 │   │           ├── NumericType<V>           the numbers that work only with themselves: abs, add, multiply, ... (numeric.ts)
-│   │           │   ├── IntegersType<V>      BigintType (number.ts), CustomIntType, CustomBigintType (customNumber.ts)
+│   │           │   ├── IntegersType<V>      BigintType (bigint.ts), CustomIntType, CustomBigintType (customNumber.ts)
 │   │           │   ├── RealsType<V>         its floating point functions keep the data type: CustomDoubleType (customNumber.ts)
 │   │           │   └── DecimalsType<V>      exact; what can't be exact gives a double: StringDecimalType (decimals.ts), CustomDecimalType (customDecimals.ts)
 │   │           ├── StringsType<V>           StringType
@@ -175,8 +175,8 @@ the data types directly: the comparisons of `NullableType` and `EqualableType` g
 `CoalesceTypeOf` asks whether the data type is a `NumberType`. At run time a base never imports a data type that
 extends it: it asks the registry for the classes it needs (above). That is why the numbers are in several files: the
 bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript
-([`number.ts`](./number.ts): int, double and bigint, which name each other at run time) and the exact decimals
-([`decimals.ts`](./decimals.ts)).
+([`number.ts`](./number.ts): int and double, the group number; [`bigint.ts`](./bigint.ts), which `asBigint` of a
+number gives) and the exact decimals ([`decimals.ts`](./decimals.ts)).
 
 **A family is named in plural, its data types in singular.** A class in plural is a family: the base that its data
 types extend, which has their shared methods and no type of its own (`UuidsType` for `UuidType` and `CustomUuidType`;
@@ -184,7 +184,7 @@ types extend, which has their shared methods and no type of its own (`UuidsType`
 `CustomDecimalType` and, tomorrow, the `Decimal` of JavaScript once it is standard, or the decimal of a library). A class
 in singular is a data type with a value: a built-in one (`UuidType`, `IntType`) or a custom one. A file in plural has a
 family and the built-in data types of it (`uuids.ts`, `localDates.ts`, `decimals.ts`); a file in singular has one data
-type, a group or the tiers (`enum.ts`; `number.ts`, the group number; `logical.ts`, the group logical: the boolean and
+type, a group or the tiers (`enum.ts`; `bigint.ts`; `number.ts`, the group number; `logical.ts`, the group logical: the boolean and
 the conditions; `numeric.ts`, `comparable.ts`, ...). A new kind of
 values (the temporal types, the spatial ones, a decimal library) starts with its family in plural, so the custom ones
 and the ones that come later extend it.

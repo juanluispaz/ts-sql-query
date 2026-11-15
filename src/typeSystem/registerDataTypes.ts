@@ -1,6 +1,7 @@
 import { __registerCustomDataTypeFamily, __registerDataType } from './dataTypeRegistry.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
-import { BigintType, DoubleType, IntType } from './number.js'
+import { DoubleType, IntType } from './number.js'
+import { BigintType } from './bigint.js'
 import { StringDecimalType } from './decimals.js'
 import { StringType } from './strings.js'
 import { UuidType } from './uuids.js'

@@ -184,8 +184,8 @@ are one. A value that is not a value source is `false`.
 class (`BuiltInDataTypes`), the type of its value, its value source, what a position that takes it accepts and its
 fragment expression. The methods that take a data type by its name (`column`, `const`, `arg`, `fragmentWithType`,
 `executeFunction`, `sequence`, ...) have one generic overload for the built-in ones over these maps. A union of names
-(`t: 'int' | 'string'`) compiles and gives a union of value sources; for now the library assumes none reaches it
-(`test/DEFERRED.md`).
+(`t: 'int' | 'string'`) compiles and gives a union of value sources, on purpose: at run time the value is one of
+them, so a union in gives a union out (the maintainer's decision; nothing rejects it).
 
 ## The rest of the folder
 

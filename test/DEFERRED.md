@@ -20,28 +20,6 @@ Each entry says what it is, why it waits, and what is already known.
 - **Known:** `customDecimal` has no `divide`; its rejection is in the
   `types.negative` cells (`expressions.test.ts`).
 
-## A data type given as a union
-
-- **What:** reject a call whose data type is a union of built-in data types
-  (`this.column('a', t)` with `t: 'int' | 'string'`) in the methods that take a
-  data type (`column`, `const`, `arg`, `fragmentWithType`, `executeFunction`, …).
-- **Why deferred:** since those methods have one generic overload for the
-  built-in data types (`TYPE extends BuiltInDataType`), such a call compiles and
-  gives a union of value sources; with one overload per data type no overload
-  accepted it. Nothing goes wrong at run time, and for now the library assumes
-  no union reaches it.
-- **Known:** a guard on the parameter, measured in a probe, rejects a union of
-  some data types and keeps the error of a `string` or a misspelt name (the
-  list of the data types). It doesn't reject a variable of the whole union
-  (`BuiltInDataType`), which TypeScript can't tell from a `string`. Its cost in
-  compile time is not measured:
-
-  ```ts
-  type UnionOfOne<T> = (T extends any ? (x: T) => void : never) extends (x: infer I) => void ? I : never
-  type OneDataType<TYPE> = [TYPE] extends [UnionOfOne<TYPE>] ? TYPE : [BuiltInDataType] extends [TYPE] ? BuiltInDataType : never
-  // type: OneDataType<TYPE> instead of type: TYPE
-  ```
-
 ## Splitting an insert by the parameter limit of each engine
 
 - **What:** split a multi-row insert into several statements when it would pass

@@ -4,7 +4,7 @@ import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, Fla
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
 import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
-import { isDefault } from '../expressions/Default.js'
+import { DefaultImpl } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -512,7 +512,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return null // non-boolean
         }
 
-        if (isDefault(value)) {
+        if (value instanceof DefaultImpl) {
             return null // the DEFAULT sentinel is a column-level keyword, not a boolean value — let _appendValue emit it via _default(...)
         }
 

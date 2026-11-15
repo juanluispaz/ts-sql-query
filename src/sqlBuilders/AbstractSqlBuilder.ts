@@ -7,7 +7,7 @@ import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData,
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { isDefault } from '../expressions/Default.js'
+import { DefaultImpl } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { CustomType, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, TypeAdapter } from '../TypeAdapter.js'
@@ -2276,7 +2276,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return null // non-boolean
         }
 
-        if (isDefault(value)) {
+        if (value instanceof DefaultImpl) {
             return null // the DEFAULT sentinel is a column-level keyword, not a boolean value — let _appendValue emit it via _default(...)
         }
 

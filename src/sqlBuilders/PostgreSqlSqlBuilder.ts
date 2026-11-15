@@ -7,7 +7,7 @@ import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.j
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
-import { isDefault } from '../expressions/Default.js'
+import { DefaultImpl } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
@@ -319,7 +319,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return null // non-boolean
         }
 
-        if (isDefault(value)) {
+        if (value instanceof DefaultImpl) {
             return null // the DEFAULT sentinel is a column-level keyword, not a boolean value — let _appendValue emit it via _default(...)
         }
 

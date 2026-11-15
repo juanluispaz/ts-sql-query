@@ -289,7 +289,11 @@ function precisionSuffix(precision: number | undefined): string {
     return precision === undefined ? '' : '(' + precision + ')'
 }
 
-/** The type of PostgreSQL for the SQL data type, in that version, or undefined when PostgreSQL can't hold it */
+/**
+ * The type of PostgreSQL for the SQL data type, in that version, or undefined when PostgreSQL can't hold it, by the
+ * names best known in PostgreSQL: `int2`, `int4`, `int8`, `float4`, `float8`, `varchar(n)`, `char(n)`, `timestamptz`,
+ * `timetz`; a boolean is a `boolean`, as in TypeScript
+ */
 function postgreSqlNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVersion: number): string | undefined {
     const native = nativeNameFor(sqlDataType, 'postgreSql')
     if (native !== undefined) {
@@ -303,9 +307,9 @@ function postgreSqlNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVe
             const { bytes, unsigned, precision, scale } = sqlDataType
             if (bytes !== undefined) {
                 const size = unsigned ? (bytes === 8 ? 16 : bytes * 2) : bytes
-                if (size <= 2) return 'smallint'
-                if (size <= 4) return 'integer'
-                if (size <= 8) return 'bigint'
+                if (size <= 2) return 'int2'
+                if (size <= 4) return 'int4'
+                if (size <= 8) return 'int8'
                 return 'numeric(20, 0)'
             }
             if (precision === undefined) {
@@ -314,14 +318,14 @@ function postgreSqlNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVe
             return precision > 1000 ? undefined : 'numeric(' + precision + ', ' + (scale ?? 0) + ')'
         }
         case 'approximate numeric':
-            return sqlDataType.precision !== undefined && sqlDataType.precision <= 24 ? 'real' : 'double precision'
+            return sqlDataType.precision !== undefined && sqlDataType.precision <= 24 ? 'float4' : 'float8'
         case 'boolean':
             return 'boolean'
         case 'character string':
             if (sqlDataType.fixed) {
-                return 'character(' + (sqlDataType.length ?? 1) + ')'
+                return 'char(' + (sqlDataType.length ?? 1) + ')'
             }
-            return sqlDataType.length === undefined || sqlDataType.largeObject ? 'text' : 'character varying(' + sqlDataType.length + ')'
+            return sqlDataType.length === undefined || sqlDataType.largeObject ? 'text' : 'varchar(' + sqlDataType.length + ')'
         case 'binary string':
             return sqlDataType.external ? undefined : 'bytea'
         case 'datetime': {
@@ -329,10 +333,10 @@ function postgreSqlNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVe
             if (fields === 'date') return 'date'
             if (fields === 'year') return undefined
             if (fields === 'time') {
-                if (timeZone === 'kept') return 'time' + precisionSuffix(precision) + ' with time zone'
+                if (timeZone === 'kept') return 'timetz' + precisionSuffix(precision)
                 return timeZone === undefined || timeZone === 'none' ? 'time' + precisionSuffix(precision) : undefined
             }
-            if (timeZone === 'instant') return 'timestamp' + precisionSuffix(precision) + ' with time zone'
+            if (timeZone === 'instant') return 'timestamptz' + precisionSuffix(precision)
             return timeZone === undefined || timeZone === 'none' ? 'timestamp' + precisionSuffix(precision) : undefined
         }
         case 'interval':

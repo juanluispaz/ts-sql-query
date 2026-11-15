@@ -56,7 +56,7 @@ The executed query is:
 ===+ "PostgreSQL"
     ```postgresql
     insert into custom_company (name, is_big) 
-    values ($1, case when $2::bool then 'Y' else 'N' end) 
+    values ($1, case when $2::boolean then 'Y' else 'N' end) 
     returning id
     ```
 === "SQLite"

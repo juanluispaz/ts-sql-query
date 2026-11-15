@@ -14,7 +14,7 @@ import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunn
 import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
-import { CustomDecimalType, CustomEqualableType, EnumType } from '../../../src/exports/v2/index.js'
+import { CustomDecimalType, CustomEqualableType, EnumType, IntType, StringType } from '../../../src/exports/v2/index.js'
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 
@@ -24,6 +24,9 @@ const payload = withSqlDataType({ family: 'document', format: 'jsonb' })
 const address = withSqlDataType({ family: 'network address', kind: 'inet' })
 const mood = withSqlDataType({ family: 'enumeration', name: 'rt_mood' })
 const price = withSqlDataType({ family: 'exact numeric', precision: 18, scale: 4 })
+const code = withSqlDataType({ family: 'character string', length: 5, fixed: true })
+const flags = withSqlDataType({ family: 'bit string', length: 3, fixed: true })
+const small = withSqlDataType({ family: 'exact numeric', scale: 0, bytes: 2 })
 
 function describeSqlDataTypeParams(label: string, enabled: boolean, typesTheParam: boolean, jsonbAsText: boolean, create: () => Promise<{ runner: QueryRunner, raw(sql: string): Promise<unknown>, close(): Promise<unknown> }>): void {
     describe.skipIf(!enabled)(label + ': the type of a parameter from its SQL data type', () => {
@@ -53,6 +56,20 @@ function describeSqlDataTypeParams(label: string, enabled: boolean, typesThePara
             // jsonb is given as an object by pg and PGlite, and as its text by Bun SQL and postgres.js (which sends a text
             // untyped: typed as a jsonb, it would serialize it as a JSON string); inet as its text; the decimal keeps every digit
             expect(row).toEqual({ payload: jsonbAsText ? '{"a": 1}' : { a: 1 }, address: '10.0.0.1', mood: 'happy', price: '1.23456' })
+        })
+
+        test('a-constant-of-a-fixed-length-type-keeps-every-character', async () => {
+            const conn = new DBConnection(created!.runner)
+            const query = conn.selectFromNoTable().select({
+                code: conn.const('abcde', StringType, code),
+                flags: conn.const('101', CustomEqualableType.of<string, 'Flags'>('Flags'), flags),
+                small: conn.const(7, IntType, small),
+            })
+            // A char or a bit without its length would be of length 1, and cut the value: a bpchar or a varbit holds any
+            expect(query.query()).toBe(typesTheParam
+                ? 'select $1 as code, $2 as flags, $3 as small'
+                : 'select $1::bpchar as code, $2::varbit as flags, $3::int2 as small')
+            expect(await query.executeSelectOne()).toEqual({ code: 'abcde', flags: '101', small: 7 })
         })
     })
 }

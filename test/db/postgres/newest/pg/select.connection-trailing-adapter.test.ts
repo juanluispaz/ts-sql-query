@@ -500,7 +500,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(true, 'boolean', boolNegate))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::bool as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::boolean as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -517,7 +517,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(true, 'boolean', boolNegate))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::bool as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::boolean as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,

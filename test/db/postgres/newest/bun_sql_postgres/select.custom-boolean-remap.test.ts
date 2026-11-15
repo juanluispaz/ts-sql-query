@@ -179,7 +179,7 @@ describe(ctx.label, () => {
             const inserted = await ctx.conn.insertInto(tOrganization)
                 .values({ name: 'Initech', plan: 'pro', verified: true })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3::bool then 'Y' else 'N' end)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values ($1, $2, case when $3::boolean then 'Y' else 'N' end)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Initech",

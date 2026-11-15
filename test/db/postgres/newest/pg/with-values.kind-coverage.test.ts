@@ -134,7 +134,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ n: v.n, big: v.big, dbl: v.dbl, flag: v.flag })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with kindSampler(n, big, dbl, flag) as (values ($1::int4, $2::int8, $3::float8, $4::bool)) select n as n, big as big, dbl as dbl, flag as flag from kindSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with kindSampler(n, big, dbl, flag) as (values ($1::int4, $2::int8, $3::float8, $4::boolean)) select n as n, big as big, dbl as dbl, flag as flag from kindSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -204,7 +204,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ flag: v.flag })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with boolAdapterSampler(flag) as (values (case when $1::bool then 'Y' else 'N' end)) select (flag = 'Y') as flag from boolAdapterSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with boolAdapterSampler(flag) as (values (case when $1::boolean then 'Y' else 'N' end)) select (flag = 'Y') as flag from boolAdapterSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -604,7 +604,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ flag: v.flag, n: v.n, big: v.big, dbl: v.dbl, str: v.str, cents: v.cents, money: v.money, ver: v.ver, chan: v.chan, act: v.act })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optSampler(flag, n, big, dbl, str, cents, money, ver, chan, act) as (values ($1::bool, $2::int4, $3::int8, $4::float8, $5::text, $6::int4, $7::float8, $8, $9, $10)) select flag as flag, n as n, big as big, dbl as dbl, str as str, cents as cents, money as money, ver as ver, chan as chan, act as act from optSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optSampler(flag, n, big, dbl, str, cents, money, ver, chan, act) as (values ($1::boolean, $2::int4, $3::int8, $4::float8, $5::text, $6::int4, $7::float8, $8, $9, $10)) select flag as flag, n as n, big as big, dbl as dbl, str as str, cents as cents, money as money, ver as ver, chan as chan, act as act from optSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -671,7 +671,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(v)
             .select({ flag: v.flag, big: v.big, dbl: v.dbl, str: v.str, money: v.money, ver: v.ver, chan: v.chan, act: v.act })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterSampler(flag, big, dbl, str, money, ver, chan, act) as (values ($1::bool, $2::int8, $3::float8, $4::text, $5::float8, $6, $7, $8)) select flag as flag, big as big, dbl as dbl, str as str, money as money, ver as ver, chan as chan, act as act from optAdapterSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterSampler(flag, big, dbl, str, money, ver, chan, act) as (values ($1::boolean, $2::int8, $3::float8, $4::text, $5::float8, $6, $7, $8)) select flag as flag, big as big, dbl as dbl, str as str, money as money, ver as ver, chan as chan, act as act from optAdapterSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,

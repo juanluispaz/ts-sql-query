@@ -272,7 +272,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::bool as pub from project where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::boolean as pub from project where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

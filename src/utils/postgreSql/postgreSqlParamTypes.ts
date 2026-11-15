@@ -30,11 +30,11 @@ const timestamptz: PostgreSqlParamType = { cast: 'timestamptz', oid: 1184 }
 
 /** The oids of the types of PostgreSQL that have a fixed one, by the name nativeSqlDataTypeOf gives without its arguments */
 const fixedOids: { readonly [cast: string]: number | undefined } = {
-    'boolean': 16, 'smallint': 21, 'integer': 23, 'bigint': 20, 'real': 700, 'double precision': 701, 'numeric': 1700,
-    'text': 25, 'character varying': 1043, 'character': 1042, 'bytea': 17, 'date': 1082, 'time': 1083,
-    'time with time zone': 1266, 'timestamp': 1114, 'timestamp with time zone': 1184, 'interval': 1186, 'uuid': 2950,
+    'boolean': 16, 'int2': 21, 'int4': 23, 'int8': 20, 'float4': 700, 'float8': 701, 'numeric': 1700,
+    'text': 25, 'varchar': 1043, 'bpchar': 1042, 'bytea': 17, 'date': 1082, 'time': 1083,
+    'timetz': 1266, 'timestamp': 1114, 'timestamptz': 1184, 'interval': 1186, 'uuid': 2950,
     'json': 114, 'jsonb': 3802, 'xml': 142, 'jsonpath': 4072, 'inet': 869, 'cidr': 650, 'macaddr': 829, 'macaddr8': 774,
-    'money': 790, 'bit': 1560, 'bit varying': 1562, 'point': 600, 'line': 628, 'lseg': 601, 'box': 603, 'path': 602,
+    'money': 790, 'varbit': 1562, 'bit varying': 1562, 'point': 600, 'line': 628, 'lseg': 601, 'box': 603, 'path': 602,
     'polygon': 604, 'circle': 718, 'tsvector': 3614, 'tsquery': 3615, 'oid': 26, 'tid': 27, 'xid': 28, 'cid': 29,
     'xid8': 5069, 'pg_lsn': 3220,
 }
@@ -44,15 +44,14 @@ const paramTypeOfSqlDataTypeKey: unique symbol = Symbol('postgreSqlParamTypeOfSq
 
 /**
  * The PostgreSQL type of the parameter at that index from the SQL data type requested for it, when it describes the
- * value (`__isSqlDataTypeOf`): its native name without the arguments (`numeric(18, 4)` is a `numeric`,
- * `character varying(20)` a `character varying`), because a cast with them would round or cut a value that doesn't fit,
- * silently; and its oid, when the type has a fixed one. Derived once for each SQL data type and class of connection
+ * value (`__isSqlDataTypeOf`), the one of its column or of its data type: its native name without the arguments
+ * (castWithoutArguments), because a cast with them would round or cut a value that doesn't fit, silently; and its oid,
+ * when the type has a fixed one. Derived once for each SQL data type and class of connection
  */
 export function postgreSqlParamTypeOfSqlDataType(params: any[], index: number): PostgreSqlParamType | undefined {
     const param = existingParamContextOf(params, index)
     const sqlDataType = param?.requestedSqlDataType
-    // The default of the type is written as postgreSqlParamType writes it
-    if (sqlDataType === undefined || sqlDataType.typeDefault || !__isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)) {
+    if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)) {
         return undefined
     }
     // A localTime has no zone: a cast to a time with time zone would complete it with the zone of the session
@@ -71,11 +70,30 @@ export function postgreSqlParamTypeOfSqlDataType(params: any[], index: number): 
     const native = configuration.nativeSqlDataTypeOf(sqlDataType)
     let result: PostgreSqlParamType | undefined
     if (native !== undefined) {
-        const cast = native.indexOf('(') < 0 ? native : native.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()
+        const cast = castWithoutArguments(native)
         result = { cast, oid: cast.startsWith('interval') ? 1186 : fixedOids[cast] }
     }
     keepDerivedOfSqlDataType(sqlDataType, paramTypeOfSqlDataTypeKey, connectionClassId, result)
     return result
+}
+
+/**
+ * The type of a cast without its arguments, which would round or cut a value that doesn't fit: `numeric(18, 4)` is a
+ * `numeric`, `varchar(20)` a `varchar`. A fixed length text or bit string without its length would be of length 1, and
+ * cut the value: `char(5)` is a `bpchar`, the text of a fixed length of any length, and `bit(5)` a `varbit`
+ */
+function castWithoutArguments(native: string): string {
+    if (native.indexOf('(') < 0) {
+        return native
+    }
+    const cast = native.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()
+    if (cast === 'char') {
+        return 'bpchar'
+    }
+    if (cast === 'bit') {
+        return 'varbit'
+    }
+    return cast
 }
 
 /**

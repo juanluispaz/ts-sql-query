@@ -80,11 +80,12 @@ See [The original and the requested type](../advanced/type-adapters.md#the-origi
 The class of a data type converts the values of its type too, with the same four transformations as statics of the class, which by default convert nothing and call `next`:
 
 ```typescript
-abstract class BaseType {
-    static transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
-    static transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
-    static transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
-    static transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
+// The statics of BaseType, the class every data type extends
+interface BaseTypeConversions {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
+    transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
 }
 ```
 

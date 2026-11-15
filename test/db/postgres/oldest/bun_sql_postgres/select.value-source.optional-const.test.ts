@@ -55,7 +55,7 @@ describe(ctx.label, () => {
                 b:  ctx.conn.optionalConst(true, 'boolean'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as i, $2::float8 as d, $3::int8 as bi, $4::bool as b"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as i, $2::float8 as d, $3::int8 as bi, $4::boolean as b"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             7,
@@ -263,7 +263,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(null, 'boolean'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::bool as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::boolean as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

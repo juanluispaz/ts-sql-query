@@ -220,7 +220,7 @@ describe('the conversion of the types in the configuration of the connection', (
             return []
         }))
         await conn.selectFrom(tProduct).where(tProduct.price.equals('2.25')).and(tProduct.code.equals('A')).and(tProduct.name.equals('x')).select({ id: tProduct.id }).executeSelectMany()
-        expect(natives).toEqual(['numeric(18, 4)', 'character varying(20)', 'text'])
+        expect(natives).toEqual(['numeric(18, 4)', 'varchar(20)', 'text'])
     })
 })
 

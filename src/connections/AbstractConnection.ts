@@ -5,7 +5,7 @@ import { connectionClassIdOf, keepNativeSqlDataType, keptNativeSqlDataType } fro
 import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, EnumValueSource, ComparableValueSource, IfValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, RemapValueSourceTypeWithOptionalType, StringDecimalValueSource, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
+import type { BooleanValueSource, NumberValueSource, ValueSourceOfDataType, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, EnumValueSource, ComparableValueSource, IfValueSource, INumberValueSource, IStringValueSource, IStringDecimalValueSource, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, RemapValueSourceTypeWithOptionalType, StringDecimalValueSource, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource } from '../expressions/values.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
@@ -38,7 +38,7 @@ import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { BuiltInDataType, BuiltInDataTypes, BuiltInDataTypeValues, BuiltInDataTypeValueSources, BuiltInDataTypeFragments } from '../typeSystem/builtInDataTypes.js'
-import type { CustomBigintType, CustomDecimalType, CustomDoubleType, CustomIntType } from '../typeSystem/numbers.js'
+import type { CustomBigintType, CustomDecimalType, CustomDoubleType, CustomIntType, DoubleType, IntType } from '../typeSystem/numbers.js'
 import type { CustomUuidType } from '../typeSystem/uuids.js'
 import type { CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType } from '../typeSystem/localDates.js'
 import type { CustomEqualableType, EnumType } from '../typeSystem/equalable.js'
@@ -587,11 +587,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // "Property 'default' does not exist on type ..." TS error instead of
     // the confusing "Property 'default' is protected ..." that a
     // visibility-narrowed inherited method would produce.
-    pi(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    pi(): ValueSourceOfDataType<NNoTableOrViewRequired<DB>, DoubleType, 'required'>
     pi(): any {
         return __createStatic0('_pi', 'double', undefined, 'required', undefined)
     }
-    random(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    random(): ValueSourceOfDataType<NNoTableOrViewRequired<DB>, DoubleType, 'required'>
     random(): any {
         return __createStatic0('_random', 'double', undefined, 'required', undefined)
     }
@@ -1018,13 +1018,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
 
     // Agregate functions
-    countAll(): NumberValueSource<NNoTableOrViewRequired<DB> | NAggregate<DB>, 'required'> {
+    countAll(): ValueSourceOfDataType<NNoTableOrViewRequired<DB> | NAggregate<DB>, IntType, 'required'> {
         return __createAggregateFunction0('_countAll', 'int', undefined, 'required', undefined)
     }
-    count<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'required'> {
+    count<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSourceOfDataType<SOURCE | NAggregate<DB>, IntType, 'required'> {
         return __createAggregateFunction1('_count', value, 'int', undefined, 'required', undefined)
     }
-    countDistinct<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'required'> {
+    countDistinct<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSourceOfDataType<SOURCE | NAggregate<DB>, IntType, 'required'> {
         return __createAggregateFunction1('_countDistinct', value, 'int', undefined, 'required', undefined)
     }
     max<TYPE extends IAnyComparableValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
@@ -1069,12 +1069,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // emits a cast inside `_average` / `_averageDistinct` so the engine
     // also returns a fractional scalar — homogenising behaviour across
     // every dialect.
-    average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSourceOfDataType<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
     average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return __createAggregateFunction1('_average', value, 'double', undefined, 'optional', valuePrivate.__typeAdapter)
     }
-    averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | IStringDecimalValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomBigintValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any> | ICustomDecimalValueSource<SOURCE, any, any, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSourceOfDataType<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
     averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return __createAggregateFunction1('_averageDistinct', value, 'double', undefined, 'optional', valuePrivate.__typeAdapter)

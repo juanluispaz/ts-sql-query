@@ -2753,6 +2753,8 @@ type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal
     | 'enum' | 'custom' | 'customComparable'
 
 type BuiltInType = 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'
+/** The class of a data type: a built-in one, like `StringType`, or one the `of` of a family of custom types made */
+type DataTypeClass = { readonly type: string, readonly customType: CustomType | undefined }
 
 interface TypeAdapter {
     /** The type of the value in the database; set it with withSqlDataType */
@@ -2783,6 +2785,7 @@ interface TypeAdapterContext {
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType): void
     setRequestedType(customType: CustomType, type: string): void
+    setRequestedType(type: DataTypeClass): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the parameter */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2807,6 +2810,7 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType): void
     setRequestedType(customType: CustomType, type: string): void
+    setRequestedType(type: DataTypeClass): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the column of the result */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2820,6 +2824,7 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(type: BuiltInType): void
     setRequestedType(customType: CustomType, type: string): void
+    setRequestedType(type: DataTypeClass): void
     resetRequestedType(): void
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
     resetRequestedSqlDataType(): void

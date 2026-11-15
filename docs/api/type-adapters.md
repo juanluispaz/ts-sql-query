@@ -55,7 +55,7 @@ type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal
 
 A custom type is converted as the built-in type it is based on (see [Custom types](../configuration/data-types.md#custom-types)) unless its conversion is registered.
 
-`setRequestedType` takes a type by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
+`setRequestedType` takes a type as a column does, by its class, like `setRequestedType(StringType)` or `setRequestedType(ReleaseDayType)`, or by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
 
 What the requested type is in each transformation:
 
@@ -124,6 +124,7 @@ interface TypeAdapterContext {
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     setRequestedType(customType: CustomType, type: string): void
+    setRequestedType(type: DataTypeClass): void
     resetRequestedType(): void
     forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
@@ -145,6 +146,7 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     setRequestedType(customType: CustomType, type: string): void
+    setRequestedType(type: DataTypeClass): void
     resetRequestedType(): void
     readonly output: ProjectionOutput
     comparison: ProjectionComparison
@@ -155,6 +157,7 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     setRequestedType(customType: CustomType, type: string): void
+    setRequestedType(type: DataTypeClass): void
     resetRequestedType(): void
 }
 ```

@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { CustomLocalDateType, getQueryContext } from '../../../../../src/exports/v2/index.js'
+import { CustomLocalDateType, getQueryContext, StringType } from '../../../../../src/exports/v2/index.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
@@ -66,6 +66,31 @@ const tReleaseDayNamedLikeABuiltIn = new class TReleaseDayNamedLikeABuiltIn exte
     constructor() { super('project_release') }
 }()
 
+// The same adapter, requesting the string by the class of its data type
+const dayMonthYearByClass: TypeAdapter = {
+    transformValueFromDB(value, context, next) {
+        return dayMonthYear.transformValueFromDB(value, context, next)
+    },
+    transformValueToDB(value, context, next) {
+        if (value instanceof Date) {
+            context.setRequestedType(StringType)
+            const day = String(value.getUTCDate()).padStart(2, '0')
+            const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+            return next.transformValueToDB(day + '/' + month + '/' + value.getUTCFullYear(), context)
+        }
+        return next.transformValueToDB(value, context)
+    },
+    transformPlaceholder(placeholder, context, next) {
+        return dayMonthYear.transformPlaceholder!(placeholder, context, next)
+    },
+}
+
+const tReleaseDayAsTextByClass = new class TReleaseDayAsTextByClass extends Table<DBConnection, 'TReleaseDayAsTextByClass'> {
+    id         = this.primaryKey('id', 'int')
+    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), dayMonthYearByClass)
+    constructor() { super('project_release') }
+}()
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -87,6 +112,28 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual([{ id: 1 }])
         // The placeholder and the query runner see both types of the parameter
+        expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'customLocalDate', 'string', undefined]])
+        const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
+        expect([param?.originalType, param?.originalCustomType, param?.requestedType, param?.requestedCustomType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])
+    })
+
+    test('requested-type/a-type-requested-by-its-class', async () => {
+        // `setRequestedType(StringType)` requests what `setRequestedType('string')` requests: the same SQL, parameter,
+        // types of the parameter and rows as the test above
+        seenByThePlaceholder.length = 0
+        ctx.mockNext([{ id: 1 }])
+        const rows = await ctx.conn.selectFrom(tReleaseDayAsTextByClass)
+            .where(tReleaseDayAsTextByClass.releasedOn.equals(dayOf(2024, 1, 15)))
+            .select({ id: tReleaseDayAsTextByClass.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = substr(?1, 7, 4) || '-' || substr(?1, 4, 2) || '-' || substr(?1, 1, 2)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "15/01/2024",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual([{ id: 1 }])
         expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'customLocalDate', 'string', undefined]])
         const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
         expect([param?.originalType, param?.originalCustomType, param?.requestedType, param?.requestedCustomType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])

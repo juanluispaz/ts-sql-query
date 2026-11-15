@@ -86,7 +86,13 @@ class AdapterContext implements TypeAdapterValueFromDBContext, TypeAdapterValueT
     }
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(typeOrCustomType: string, type?: string): void {
+    setRequestedType(type: { readonly type: string, readonly customType: CustomType | undefined }): void
+    setRequestedType(typeOrCustomType: string | { readonly type: string, readonly customType: CustomType | undefined }, type?: string): void {
+        if (typeof typeOrCustomType !== 'string') {
+            this.requestedType = typeOrCustomType.type
+            this.requestedCustomType = typeOrCustomType.customType
+            return
+        }
         this.requestedType = type ?? typeOrCustomType
         this.requestedCustomType = type !== undefined && isCustomType(typeOrCustomType) ? typeOrCustomType : undefined
     }

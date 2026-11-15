@@ -2,6 +2,7 @@ import type { CustomType, ProjectionComparison, ProjectionOutput, SqlDataType, T
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { QueryParamContextImpl, type QueryContextImpl } from './QueryContextImpl.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
+import type { AnyTypeClass } from '../typeSystem/base.js'
 
 /** Who gives the type a `transformProjection` requests for a value (the SQL builder) */
 export interface RequestedTypeOfProjection {
@@ -121,10 +122,14 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     }
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     setRequestedType(customType: CustomType, type: string): void
-    setRequestedType(typeOrCustomType: string, type?: string): void {
+    setRequestedType(type: AnyTypeClass): void
+    setRequestedType(typeOrCustomType: string | AnyTypeClass, type?: string): void {
         this.pendingProjection = undefined
         const state = this.state
-        if (type === undefined) {
+        if (typeof typeOrCustomType !== 'string') {
+            state.requestedType = typeOrCustomType.type
+            state.requestedCustomType = typeOrCustomType.customType
+        } else if (type === undefined) {
             state.requestedType = typeOrCustomType
             state.requestedCustomType = undefined
         } else {

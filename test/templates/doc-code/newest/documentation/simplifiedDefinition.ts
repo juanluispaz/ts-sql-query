@@ -26,6 +26,8 @@ type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
 type Argument<_T, _TYPE_NAME extends string> = any
+// The class of a data type: a built-in one, like `StringType`, or one the `of` of a family made
+type DataTypeClass = any
 // The classes of the custom data types, made by the `of` of each family
 type CustomIntType<_T, _TYPE_NAME extends string> = any
 type CustomBigintType<_T, _TYPE_NAME extends string> = any
@@ -54,6 +56,7 @@ void function (
     _qr: QueryRunner,
     _ojs: OuterJoinSource,
     _a: Argument<any, any>,
+    _dtc: DataTypeClass,
     _customIntType: CustomIntType<any, any>,
     _customBigintType: CustomBigintType<any, any>,
     _customDoubleType: CustomDoubleType<any, any>,

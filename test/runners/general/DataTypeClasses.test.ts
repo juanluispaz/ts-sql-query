@@ -1,0 +1,129 @@
+// The classes of the data types: the type guard `is` of each one, and a class given where a data type goes.
+
+import { describe, expect, test } from '../../lib/testRunner.js'
+import { assertType, type Exact } from '../../lib/assertType.js'
+import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
+import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
+import {
+    BigintType, BooleanType, CustomComparableType, CustomDecimalType, CustomIntType, DoubleType, EnumType, IntType,
+    LocalDateType, StringDecimalType, StringType, Table, UuidType,
+} from '../../../src/exports/v2/index.js'
+import { NumberType, NumericType, IntegerType, RealType, DecimalType } from '../../../src/typeSystem/numbers.js'
+import { ComparableType } from '../../../src/typeSystem/comparable.js'
+import { EqualableType } from '../../../src/typeSystem/equalable.js'
+import { NullableType } from '../../../src/typeSystem/nullable.js'
+import { UuidsType } from '../../../src/typeSystem/uuids.js'
+import { LocalDatesType } from '../../../src/typeSystem/localDates.js'
+import { AggregatedArrayType } from '../../../src/typeSystem/aggregatedArrays.js'
+import type { ValueSource } from '../../../src/typeSystem/base.js'
+
+type Money = number & { readonly __brand: 'Money' }
+type Status = 'open' | 'closed'
+
+const MoneyType = CustomIntType.of<Money, 'Money'>('Money')
+const OtherType = CustomIntType.of<number, 'Other'>('Other')
+const PriceType = CustomDecimalType.of<string, 'Price'>('Price')
+const StatusType = EnumType.of<Status, 'Status'>('Status')
+const VersionType = CustomComparableType.of<string, 'Version'>('Version')
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {}
+const conn = new DBConnection(new NoopQueryRunner())
+
+const tThing = new class TThing extends Table<DBConnection, 'TThing'> {
+    int = this.column('int', IntType)
+    double = this.column('double', DoubleType)
+    bigint = this.column('bigint', BigintType)
+    string = this.column('string', StringType)
+    boolean = this.column('boolean', BooleanType)
+    uuid = this.column('uuid', UuidType)
+    localDate = this.column('local_date', LocalDateType)
+    stringDecimal = this.column('string_decimal', StringDecimalType)
+    money = this.column('money', MoneyType)
+    price = this.column('price', PriceType)
+    status = this.column('status', StatusType)
+    version = this.column('version', VersionType)
+    constructor() { super('thing') }
+}()
+
+// A value of each data type, by its name
+const values: Record<string, unknown> = {
+    int: tThing.int, double: tThing.double, bigint: tThing.bigint, string: tThing.string, boolean: tThing.boolean,
+    uuid: tThing.uuid, localDate: tThing.localDate, stringDecimal: tThing.stringDecimal, money: tThing.money,
+    price: tThing.price, status: tThing.status, version: tThing.version,
+    aggregatedArray: conn.aggregateAsArrayOfOneColumn(tThing.int),
+    condition: tThing.int.equalsIfValue(1),
+    number: 5, text: 'text', null: null, undefined: undefined, object: {},
+}
+
+// The values each class says yes to
+function accepted(typeClass: { is(value: unknown): boolean }): string[] {
+    return Object.keys(values).filter(name => typeClass.is(values[name]))
+}
+
+describe('DataTypeClasses', () => {
+    test('is-of-a-class-with-a-type-says-yes-only-to-its-type', () => {
+        expect(accepted(IntType)).toEqual(['int'])
+        expect(accepted(DoubleType)).toEqual(['double'])
+        expect(accepted(BigintType)).toEqual(['bigint'])
+        expect(accepted(StringType)).toEqual(['string'])
+        expect(accepted(UuidType)).toEqual(['uuid'])
+        expect(accepted(LocalDateType)).toEqual(['localDate'])
+        expect(accepted(StringDecimalType)).toEqual(['stringDecimal'])
+        expect(accepted(AggregatedArrayType)).toEqual(['aggregatedArray'])
+    })
+
+    test('is-of-a-custom-type-says-yes-only-to-its-type-name', () => {
+        expect(accepted(MoneyType)).toEqual(['money'])
+        expect(accepted(OtherType)).toEqual([])
+        expect(accepted(PriceType)).toEqual(['price'])
+        expect(accepted(StatusType)).toEqual(['status'])
+        expect(accepted(VersionType)).toEqual(['version'])
+    })
+
+    test('is-of-a-family-says-yes-to-each-of-its-types', () => {
+        expect(accepted(CustomIntType)).toEqual(['money'])
+        expect(accepted(CustomDecimalType)).toEqual(['price'])
+        expect(accepted(EnumType)).toEqual(['status'])
+        expect(accepted(CustomComparableType)).toEqual(['version'])
+    })
+
+    test('is-of-a-group-says-yes-to-each-data-type-it-groups', () => {
+        expect(accepted(NumberType)).toEqual(['int', 'double'])
+        expect(accepted(NumericType)).toEqual(['bigint', 'stringDecimal', 'money', 'price'])
+        expect(accepted(IntegerType)).toEqual(['bigint', 'money'])
+        expect(accepted(RealType)).toEqual([])
+        expect(accepted(DecimalType)).toEqual(['stringDecimal', 'price'])
+        expect(accepted(UuidsType)).toEqual(['uuid'])
+        expect(accepted(LocalDatesType)).toEqual(['localDate'])
+        expect(accepted(ComparableType)).toEqual(['int', 'double', 'bigint', 'string', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'version'])
+        const equalable = ['int', 'double', 'bigint', 'string', 'boolean', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'status', 'version', 'condition']
+        expect(accepted(EqualableType)).toEqual(equalable)
+        expect(accepted(NullableType)).toEqual(equalable)
+    })
+
+    test('is-of-boolean-says-yes-to-a-condition-which-is-a-boolean-at-run-time', () => {
+        expect(accepted(BooleanType)).toEqual(['boolean', 'condition'])
+    })
+
+    test('is-narrows-to-a-value-source-of-its-data-type', () => {
+        const value: unknown = tThing.money
+        if (MoneyType.is(value)) {
+            assertType<Exact<typeof value, ValueSource<any, CustomIntType<Money, 'Money'>, any>>>()
+        }
+        if (IntType.is(value)) {
+            assertType<Exact<typeof value, ValueSource<any, IntType, any>>>()
+        }
+        if (NumberType.is(value)) {
+            assertType<Exact<typeof value, ValueSource<any, NumberType, any>>>()
+        }
+        expect(MoneyType.is(value)).toBe(true)
+    })
+
+    test('a-built-in-class-gives-the-type-its-name-gives', () => {
+        const byClass = conn.const(5, IntType)
+        const byName = conn.const(5, 'int')
+        assertType<Exact<typeof byClass, typeof byName>>()
+        expect(IntType.is(byClass)).toBe(true)
+        expect(IntType.is(byName)).toBe(true)
+    })
+})

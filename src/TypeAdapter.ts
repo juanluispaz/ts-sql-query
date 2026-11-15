@@ -2,6 +2,7 @@ import { oracleDateParam } from './utils/metadataSymbols.js'
 import type { ConnectionConfiguration, DatabaseType } from './queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
 import { __isLocalDateTime, __isLocalTime } from './typeSystem/dataTypes.js'
+import type { AnyTypeClass } from './typeSystem/base.js'
 
 /**
  * Which custom type a value is, the family of the class of its data type, like `'customInt'` for
@@ -76,6 +77,8 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
+    /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
+    setRequestedType(type: AnyTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -145,6 +148,8 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
+    /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
+    setRequestedType(type: AnyTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -185,6 +190,8 @@ export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
     /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
+    /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
+    setRequestedType(type: AnyTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**

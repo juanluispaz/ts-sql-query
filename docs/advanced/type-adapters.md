@@ -252,7 +252,7 @@ A value has two types in the context, so that what was declared and what is sent
 
 `originalType` and `requestedType` are the name of the type, like `'int'` or `'ReleaseDay'`; `originalCustomType` and `requestedCustomType` say which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), and are `undefined` for a built-in type.
 
-`setRequestedType` takes a type by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
+`setRequestedType` takes a type as a column does, by its class, like `setRequestedType(StringType)` or `setRequestedType(ReleaseDayType)`, or by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
 
 What the requested type is in each transformation:
 

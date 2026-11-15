@@ -1,9 +1,11 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray } from './dataTypes.js'
-import type { AnyType, BooleanOf, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
+import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType, __conditionTypeOf, __doubleTypeOf } from './valueSourceBase.js'
+import type { BooleanType } from './logical.js'
+import type { DoubleType, IntType, NumberType } from './number.js'
 import type { ColumnMarkersOf } from './valueSource.js'
-import type { numberTypes, operandTypeName } from '../utils/symbols.js'
+import type { operandTypeName } from '../utils/symbols.js'
 import { __sameTypeClassOf, __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource } from '../nodes/operations.js'
@@ -12,24 +14,17 @@ import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { __isDouble } from './dataTypes.js'
 import { OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 
-/** The data types of the group number (declared with `numberTypes` by NumberType) */
-export interface NumberTypes {
-    number: AnyType
-    int: AnyType
-    double: AnyType
-}
-
 /**
  * The data type of the value of a null replaced by a fallback: the data type of the value source, but a number widens
  * like in an operation (coalesce(<int>, <double>) is a double). OPERAND is the data type of the fallback, or
  * `'value'` for a value given as a JavaScript value (a number can be either an int or a double)
  */
 export type CoalesceTypeOf<X, OPERAND> =
-    TypeOf<X> extends { [numberTypes]: infer NUMBER extends NumberTypes } ? (
-        TypeOf<X> extends NUMBER['double'] ? NUMBER['double'] :
-        OPERAND extends NUMBER['double'] ? NUMBER['double'] :
-        OPERAND extends NUMBER['int'] ? TypeOf<X> :
-        NUMBER['number']
+    TypeOf<X> extends NumberType ? (
+        TypeOf<X> extends DoubleType ? DoubleType :
+        OPERAND extends DoubleType ? DoubleType :
+        OPERAND extends IntType ? TypeOf<X> :
+        NumberType
     ) : TypeOf<X>
 
 /** A data type whose value can be null */
@@ -39,12 +34,12 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         return !__isAggregatedArray(type, customType)
     }
 
-    isNull(): ValueSource<SourceOf<this>, BooleanOf<this>, 'required'>
+    isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {
         const vs = this as unknown as ValueSourceRoot
         return __newSqlOperationIsNullValueSource('_isNull', vs, __conditionTypeOf(vs), 'required', vs.__typeAdapter)
     }
-    isNotNull(): ValueSource<SourceOf<this>, BooleanOf<this>, 'required'>
+    isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNotNull(): any {
         const vs = this as unknown as ValueSourceRoot
         return __newSqlOperationIsNullValueSource('_isNotNull', vs, __conditionTypeOf(vs), 'required', vs.__typeAdapter)

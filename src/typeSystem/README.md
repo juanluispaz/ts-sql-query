@@ -25,13 +25,12 @@ Read this before changing anything here. The code is the reference; this file sa
   see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the
   classes. A method doesn't read those fields: it passes `this` to the functions of the nodes, which take it as a
   `DataTypeValueSource` (see the README of the nodes).
-- A method gives a value source of the same data type with `this.constructor`. A base doesn't import the data types
-  that extend it (see below), so the data types it gives are statics of the classes that can import them, the
-  reflection of their phantom members: the boolean and the condition of the comparisons in `static [logicalTypes]`
-  (`ComparableType`, `BooleanType`, `EnumType`, `CustomEqualableType`, read by `__conditionTypeOf` of
-  [`valueSourceBase.ts`](./valueSourceBase.ts)), the int of `sign` in `static [intType]`, and the int and the double of
-  the group number in `static [numberTypes]` (`__doubleTypeOf`). A family that can import a data type imports it
-  (`StringsType` the `IntType` of `length`).
+- A method gives a value source of the same data type with `this.constructor`. A base can't import at run time the
+  data types that extend it (see below), so the classes it gives are statics of the classes that can import them: the
+  boolean and the condition of the comparisons in `static [logicalTypes]` (`ComparableType`, `BooleanType`, `EnumType`,
+  `CustomEqualableType`, read by `__conditionTypeOf` of [`valueSourceBase.ts`](./valueSourceBase.ts)), the int of `sign`
+  in `static [intType]`, and the int and the double of the group number in `static [numberTypes]` (`__doubleTypeOf`).
+  A family that can import a data type imports it (`StringsType` the `IntType` of `length`).
 - A data type can say, in `static [computedType]`, the class a value computed from it gets, when it is not its own:
   the text of a uuid (`UuidTextType`, [`uuidText.ts`](./uuidText.ts), only for the run time: TypeScript sees a
   `StringType`) is still the uuid in SQL, and the SQL builder converts it where it meets another text. A method gives
@@ -160,19 +159,19 @@ relative, so a method of a base gives back the data type of the value source it 
 ```ts
 abstract asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
 abstract equals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE):
-    ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
 ```
 
-**No file depends on a file that depends on it, counting the types.** A base doesn't name a data type that extends it:
-the comparisons of `NullableType` and `EqualableType` give a `BooleanType`, which is an `EqualableType`, so they declare
-`BooleanOf<this>` and `IfValueSourceOf<this, ...>` (in [`base.ts`](./base.ts)), which read a member that each family
-declares as high as it can import those data types: `declare [logicalTypes]: { boolean: BooleanType, if: IfType }` in
-`ComparableType`, `BooleanType`, `EnumType` and `CustomEqualableType`. In the same way `NumericType.sign()` gives
-`IntOf<this>` (`[intType]`, declared by `BigintType`, the custom numbers and `DecimalsType`), and `CoalesceTypeOf` reads the
-data types of the group number from `[numberTypes]`, declared by `NumberType`. That is why the numbers are in several files:
-the bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript
-([`number.ts`](./number.ts): int, double and bigint, which name each other) and the exact decimals
-([`decimals.ts`](./decimals.ts)). A new family declares these members in its base, and the bases never import it.
+**No file depends at run time on a file that depends on it; for the types it may.** A cycle of imports at run time
+breaks depending on which module is loaded first: a class that extends one not yet evaluated throws a
+`ReferenceError`. An `import type` is erased from the JavaScript, so a cycle of types only is safe, and the types name
+the data types directly: the comparisons of `NullableType` and `EqualableType` give a `BooleanType` (an
+`EqualableType`) with `import type { BooleanType } from './logical.js'`, `NumericType.sign()` gives an `IntType`, and
+`CoalesceTypeOf` asks whether the data type is a `NumberType`. At run time a base never imports a data type that
+extends it: it reads the classes it needs from the statics above. That is why the numbers are in several files: the
+bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript
+([`number.ts`](./number.ts): int, double and bigint, which name each other at run time) and the exact decimals
+([`decimals.ts`](./decimals.ts)).
 
 **A family is named in plural, its data types in singular.** A class in plural is a family: the base that its data
 types extend, which has their shared methods and no type of its own (`UuidsType` for `UuidType` and `CustomUuidType`;

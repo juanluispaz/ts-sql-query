@@ -18,14 +18,13 @@ import { IntType, DoubleType } from './number.js'
  * double. Its data types are stringDecimal and the custom ones; a decimal of a library extends it
  */
 export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
-    /** The int its sign gives (NumericType can't import it) */
+    /** The int its sign gives (NumericType can't import it at run time) */
     static readonly [intType] = IntType
     /** Whether a type and a custom type are of an exact decimal: a stringDecimal or a customDecimal */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isExactDecimal(type, customType)
     }
 
-    declare [intType]: IntType
 
     exp(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     exp(): any {

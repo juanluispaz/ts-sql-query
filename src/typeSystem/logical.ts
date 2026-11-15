@@ -26,7 +26,6 @@ export abstract class BooleanType extends EqualableType<boolean> {
     static override readonly type = 'boolean'
     static override readonly customType = undefined
     declare [typeName]: 'type:boolean:logical:'
-    declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     declare [operandTypeName]: 'type:boolean:logical:'
 
     negate(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>

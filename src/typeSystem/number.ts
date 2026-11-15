@@ -42,7 +42,6 @@ export abstract class NumberType extends ComparableType<number> {
 
     declare [typeName]: `type:${string}:number:`
     declare [operandTypeName]: `type:${string}:number:`
-    declare [numberTypes]: { number: NumberType, int: IntType, double: DoubleType }
 
     /** The number as an int: a double is rounded (DoubleType), an int stays as it is */
     asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
@@ -210,11 +209,10 @@ export abstract class DoubleType extends NumberType {
 
 /** An integer number of 64 bits, a JavaScript bigint */
 export abstract class BigintType extends IntegersType<bigint> {
-    /** The int its sign gives (NumericType can't import it) */
+    /** The int its sign gives (NumericType can't import it at run time) */
     static readonly [intType] = IntType
     static override readonly type = 'bigint'
     static override readonly customType = undefined
-    declare [intType]: IntType
     declare [typeName]: 'type:bigint:'
     declare [operandTypeName]: 'type:bigint:'
 }

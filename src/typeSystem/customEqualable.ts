@@ -1,6 +1,5 @@
 import type { CustomTypeClass } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { IfType } from './logical.js'
 import { operandTypeName, typeName, logicalTypes } from '../utils/symbols.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
 
@@ -12,7 +11,6 @@ export abstract class CustomEqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
     static readonly [logicalTypes] = { boolean: BooleanType, condition: BooleanConditionType }
     static override readonly customType = 'custom'
-    declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     declare [typeName]: `type:${TYPE_NAME}:custom:`
     declare [operandTypeName]: `type:${TYPE_NAME}:custom:`
 

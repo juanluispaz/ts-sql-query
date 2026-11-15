@@ -2,7 +2,7 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBoolean } from './dataTypes.js'
 import type { IValueWithType, OptionalOf, SourceOf, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { IfType, IfValueSource } from './logical.js'
+import type { IfValueSource } from './logical.js'
 import type { MergeOptional } from './valueSource.js'
 import { comparableValueSource, operandTypeName, logicalTypes } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
@@ -27,7 +27,6 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableTyp
     }
 
     declare [comparableValueSource]: 'ComparableValueSource'
-    declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     lessThanIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, BooleanConditionType, getOptionalType2(this, value), getTypeAdapter2(this, value))

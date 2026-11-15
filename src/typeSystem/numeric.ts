@@ -1,7 +1,8 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isBigint, __isExactDecimal } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
-import type { INumberValue, IntOf, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
+import type { IntType } from './number.js'
+import type { INumberValue, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
 import { intType, type operandTypeName } from '../utils/symbols.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
@@ -35,7 +36,7 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
     round(): any {
         return __operation0(this, '_round', __typeClassOf(this))
     }
-    sign(): ValueSource<SourceOf<this>, IntOf<this>, OptionalOf<this>>
+    sign(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     sign(): any {
         return __operation0(this, '_sign', (this.constructor as any)[intType])
     }

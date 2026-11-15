@@ -2213,10 +2213,23 @@ export interface AllowWhenAggregateValueAsArrayValueSource extends AggregateValu
     __error: Error
 }
 
-/** The node of an aggregate as array guarded by `allowWhen`: the one of the aggregate, which throws its error when it is not allowed */
+/**
+ * The node of an aggregate as array guarded by `allowWhen`: the one of the aggregate, which throws its error when it is
+ * not allowed. As for any other value, the gate stays when its optionality changes, and another `allowWhen` that
+ * allows doesn't lift it; one that doesn't allow is checked first
+ */
 function allowWhenAggregateNode<VS extends AggregatedArrayValueSource>(node: NodeStrategy<VS>): NodeStrategy<VS> {
     return {
         ...node,
+        withOptionalType(vs, optionalType) {
+            return node.allowWhen!(node.withOptionalType!(vs, optionalType), vs.__allowed!, vs.__error!)
+        },
+        asRequiredInOptionalObject(vs) {
+            return node.allowWhen!(node.asRequiredInOptionalObject!(vs), vs.__allowed!, vs.__error!)
+        },
+        allowWhen(vs, allowed, error) {
+            return allowed ? node.allowWhen!(vs, vs.__allowed!, vs.__error!) : node.allowWhen!(vs, false, error)
+        },
         __toSql(vs, sqlBuilder, context, forceTypeCast) {
             if (!vs.__allowed) {
                 throw vs.__error

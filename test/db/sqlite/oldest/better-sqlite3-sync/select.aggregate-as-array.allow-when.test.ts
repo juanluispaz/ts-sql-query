@@ -1,20 +1,7 @@
-// `.allowWhen(...)` / `.disallowWhen(...)` on the four aggregate-as-array
-// value sources land in distinct subclasses
-//
-// `AggregateSelectValueSource.allowWhen` →
-// `AllowWhenAggregateSelectValueSource`.
-// `NullAggregateSelectValueSource.allowWhen` →
-// `NullAllowWhenAggregateSelectValueSource`.
-// `AggregateValueAsArrayValueSource.allowWhen` →
-// `AllowWhenAggregateValueAsArrayValueSource`.
-// `NullAggregateValueAsArrayValueSource.allowWhen` →
-// `NullAllowWhenAggregateValueAsArrayValueSource`.
-//
-// Each subclass's `__toSql` throws when `__allowed === false`; the
-// existing [`select.value-source.allow-when.test.ts`](./select.value-source.allow-when.test.ts)
-// only covers the plain `ValueSourceImpl.allowWhen`
-// and never reaches any of these four. The `Null*` variants are
-// reached by chaining `.onlyWhenOrNull(false)` BEFORE `.allowWhen(...)`.
+// `.allowWhen(...)` / `.disallowWhen(...)` on the aggregates as array: an aggregate (`aggregateAsArray`,
+// `aggregateAsArrayOfOneColumn`), a select used as an aggregated array (`forUseAsInlineAggregatedArrayValue`), and the
+// null that replaces one (`.onlyWhenOrNull(false)` BEFORE `.allowWhen(...)`). A disallowed one throws when the query is
+// built, also after its optionality changes or another `allowWhen` that allows it, as any other value does.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -29,11 +16,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('aggregate-as-array-allow-when-false-throws-on-build', async () => {
-        // `aggregateAsArray({...}).allowWhen(false, '...')` constructs
-        // an `AllowWhenAggregateSelectValueSource`. On build,
-        // `__toSql` checks `__allowed`, sees `false`, and throws the
-        // attached `TsSqlProcessingError`. The catch confirms the
-        // throw fires during `executeSelectOne`, not on construction.
+        // The throw fires when the query is built (`executeSelectOne`), not when the aggregate is made
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
         const query = connection.selectFrom(tProject)
@@ -61,9 +44,7 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-as-array-of-one-column-allow-when-false-throws-on-build', async () => {
-        // `aggregateAsArrayOfOneColumn(col).allowWhen(false, '...')`
-        // constructs an `AllowWhenAggregateValueAsArrayValueSource`.
-        // Same throw shape as the object aggregate.
+        // Same throw as the aggregate of objects
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
         const query = connection.selectFrom(tProject)
@@ -88,13 +69,59 @@ describe(ctx.label, () => {
         expect((thrown as Error).message).toContain('aggregate-of-one-column-gate-blocks')
     })
 
+    test('aggregate-as-array-allow-when-false-keeps-blocking-after-changing-its-optionality', async () => {
+        // Whether the array can be empty or absent changes, the gate stays
+        const connection = ctx.conn
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+        const gatedTitles = () => connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title).allowWhen(false, 'titles-gate-blocks')
+
+        const withEmptyArray = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .select({ id: tProject.id, titles: gatedTitles().useEmptyArrayForNoValue() })
+            .groupBy('id')
+        expect(isQueryAllowed(withEmptyArray)).toBe(false)
+        expect(() => withEmptyArray.query()).toThrow('titles-gate-blocks')
+
+        const optional = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .select({ id: tProject.id, titles: gatedTitles().asOptionalNonEmptyArray() })
+            .groupBy('id')
+        expect(isQueryAllowed(optional)).toBe(false)
+        expect(() => optional.query()).toThrow('titles-gate-blocks')
+
+        const inline = connection.selectFrom(tProject)
+            .select({
+                id: tProject.id,
+                issues: connection.subSelectUsing(tProject).from(tIssue)
+                    .where(tIssue.projectId.equals(tProject.id))
+                    .select({ title: tIssue.title })
+                    .forUseAsInlineAggregatedArrayValue()
+                    .allowWhen(false, 'inline-gate-blocks')
+                    .useEmptyArrayForNoValue(),
+            })
+        expect(isQueryAllowed(inline)).toBe(false)
+        expect(() => inline.query()).toThrow('inline-gate-blocks')
+    })
+
+    test('aggregate-as-array-allow-when-false-keeps-blocking-after-another-allow-when-true', async () => {
+        // A gate that allows doesn't lift an earlier one that blocks
+        const connection = ctx.conn
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+        const query = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .select({
+                id: tProject.id,
+                titles: connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title)
+                    .allowWhen(false, 'first-gate-blocks')
+                    .allowWhen(true, 'second-gate-allows'),
+            })
+            .groupBy('id')
+        expect(isQueryAllowed(query)).toBe(false)
+        expect(() => query.query()).toThrow('first-gate-blocks')
+    })
+
     test('null-aggregate-as-array-via-only-when-or-null-false-then-allow-when-false-throws', async () => {
-        // `.onlyWhenOrNull(false)` swaps the value source for
-        // `NullAggregateSelectValueSource`; chaining
-        // `.allowWhen(false, '...')` on THAT lands in
-        // `NullAllowWhenAggregateSelectValueSource`. Its `__toSql`
-        // throws on the disallowed path before reaching
-        // the parent `_asNullValue(...)`.
+        // `.onlyWhenOrNull(false)` replaces the aggregate by null; `.allowWhen(false, '...')` on that null still throws
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
         const query = connection.selectFrom(tProject)
@@ -122,8 +149,7 @@ describe(ctx.label, () => {
     })
 
     test('null-aggregate-as-array-of-one-column-via-only-when-or-null-false-then-allow-when-false-throws', async () => {
-        // Same shape as the object aggregate but for the one-column
-        // variant. Lands in `NullAllowWhenAggregateValueAsArrayValueSource`.
+        // Same shape as the object aggregate but for the one-column variant
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
         const query = connection.selectFrom(tProject)
@@ -152,8 +178,7 @@ describe(ctx.label, () => {
     test('aggregate-as-array-allow-when-true-emits-transparently', async () => {
         // Favorable counterpart: open gate ⇒ the wrapper is transparent
         // and the aggregate renders identically to the ungated case.
-        // The expected aggregated JSON shape pins that the surrounding
-        // `_inlineSelectAsValue` path runs unchanged.
+        // The expected aggregated JSON shape pins that the aggregate is written as without the gate.
         const expected = { id: 1, issues: [{ id: 1, title: 'Update hero copy' }, { id: 2, title: 'Redesign navbar' }] }
         ctx.mockNext(expected)
         const connection = ctx.conn

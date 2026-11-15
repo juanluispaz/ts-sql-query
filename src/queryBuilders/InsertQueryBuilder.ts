@@ -18,6 +18,7 @@ import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __conversionsOf, __classOf } from '../nodes/adaptedTypeClass.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -88,16 +89,11 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         value = null
                     }
                     const idColumnPrivate = __getColumnPrivate(idColumn)
-                    const typeAdapter = idColumnPrivate.__typeAdapter
                     let result
                     try {
                         // The id is read as it is: its SQL isn't converted
                         const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined)
-                        if (typeAdapter) {
-                            result = typeAdapter.transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
-                        } else {
-                            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, adapterContext)
-                        }
+                        result = __conversionsOf(__classOf(idColumnPrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
                     } catch(e) {
                         if (e instanceof TsSqlError) {
                             throw e
@@ -125,58 +121,32 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             } else {
                 result = this.__sqlBuilder._queryRunner.executeQuery('insertReturningMultipleLastInsertedId', this.__query, executionParams).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
-                    const typeAdapter = idColumnPrivate.__typeAdapter
+                    const conversions = __conversionsOf(__classOf(idColumnPrivate))
                     const idType = idColumnPrivate.__type
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
-                    if (typeAdapter) {
-                        const length = rows.length
-                        const output = new Array(length)
-                        for (let index = 0; index < length; index++) {
-                            const row = rows[index]
-                            let result
-                            try {
-                                result = typeAdapter.transformValueFromDB(row, this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined), defaultTypeAdapter)
-                            } catch(e) {
-                                if (e instanceof TsSqlError) {
-                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
-                                        e.errorReason.rowIndex = index
-                                    }
-                                    throw e
-                                } else {
-                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: idType, rowIndex: index }, e)
+                    const length = rows.length
+                    const output = new Array(length)
+                    for (let index = 0; index < length; index++) {
+                        const row = rows[index]
+                        let result
+                        try {
+                            result = conversions.__transformValueFromDB(row, this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined), defaultTypeAdapter)
+                        } catch(e) {
+                            if (e instanceof TsSqlError) {
+                                if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
+                                    e.errorReason.rowIndex = index
                                 }
+                                throw e
+                            } else {
+                                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: idType, rowIndex: index }, e)
                             }
-                            if (result === null || result === undefined) {
-                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
-                            }
-                            output[index] = result
                         }
-                        return output
-                    } else {
-                        const length = rows.length
-                        const output = new Array(length)
-                        for (let index = 0; index < length; index++) {
-                            const row = rows[index]
-                            let result
-                            try {
-                                result = defaultTypeAdapter.transformValueFromDB(row, this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined))
-                            } catch(e) {
-                                if (e instanceof TsSqlError) {
-                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
-                                        e.errorReason.rowIndex = index
-                                    }
-                                    throw e
-                                } else {
-                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: row, typeName: idType, rowIndex: index }, e)
-                                }
-                            }
-                            if (result === null || result === undefined) {
-                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
-                            }
-                            output[index] = result
+                        if (result === null || result === undefined) {
+                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                         }
-                        return output
+                        output[index] = result
                     }
+                    return output
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })

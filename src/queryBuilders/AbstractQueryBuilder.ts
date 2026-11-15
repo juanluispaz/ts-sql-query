@@ -12,6 +12,7 @@ import type { ProjectionOutput } from '../TypeAdapter.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
+import { __conversionsOf, __classOf } from '../nodes/adaptedTypeClass.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -76,7 +77,6 @@ export class AbstractQueryBuilder {
      */
     __transformValueFromDB(valueSource: AnyValueSource, value: any, output: ProjectionOutput | undefined, column?: string, index?: number, count?: boolean) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const typeAdapter = valueSourcePrivate.__typeAdapter
         if (valueSource instanceof UuidTextType && typeof value === 'string' && this.__sqlBuilder._lowerCaseUuidTextReceived()) {
             // The text of a uuid, which the database gives in upper case
             value = value.toLowerCase()
@@ -84,11 +84,7 @@ export class AbstractQueryBuilder {
         let result
         try {
             const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(valueSource, output)
-            if (typeAdapter) {
-                result = typeAdapter.transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
-            } else {
-                result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, adapterContext)
-            }
+            result = __conversionsOf(__classOf(valueSourcePrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
         } catch(e) {
             if (e instanceof TsSqlError) {
                 if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {

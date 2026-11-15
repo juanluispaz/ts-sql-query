@@ -98,6 +98,11 @@ A few methods of a value source depend on its node and not only on its data type
   ([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)). A creation receives the class of the data type and the adapter,
   and makes the value source of that subclass (`__adaptedTypeClassOf`); `__typeClassOf` and `__sameTypeClassOf` give
   the class without the adapter;
+- the conversions of the values of its data type, statics of the class (`__transformValueFromDB`, `__transformValueToDB`,
+  `__transformPlaceholder`, `__transformProjection`, `DataTypeClassConversions`): `ValueSourceRoot` applies the ones
+  of the connection, and the subclass with a type adapter calls the adapter with them as `next`. The SQL builder and
+  the query builders convert a value through its class (`__conversionsOf`), so it goes through the connection, then
+  its data type, then its type adapter;
 - the delegation of each method of the node to `__node`;
 - `isConstValue`, `getConstValue`, `allowWhen` and `disallowWhen`, which every value source has;
 - the functions of the methods two families of data types declare (`__asRequiredInOptionalObjectOf`,
@@ -151,7 +156,7 @@ and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps onl
 | [`NodeStrategy.ts`](./NodeStrategy.ts) | `NodeStrategy`, `NodeValueSource` (a value source as its node sees it), `DataTypeValueSource` (a value source as a method of its class passes it) and `valueSourceNode` |
 | [`valueSourceRoot.ts`](./valueSourceRoot.ts) | `ValueSourceRoot`, and the functions of the methods two families share |
 | [`dataTypeClassOf.ts`](./dataTypeClassOf.ts) | the class of the data type of a value source, and how a class creates one |
-| [`adaptedTypeClass.ts`](./adaptedTypeClass.ts) | the subclass of the class of a data type that carries a type adapter, kept in the adapter |
+| [`adaptedTypeClass.ts`](./adaptedTypeClass.ts) | the subclass of the class of a data type that carries a type adapter, kept in the adapter, and the conversions of the values of a class |
 | [`operands.ts`](./operands.ts) | the optionality and the type adapter of an operation from those of its operands |
 | [`constants.ts`](./constants.ts) | a constant, the functions without operands (`currentDate`, `true`, `exists`, ...), a sequence, a null |
 | [`operations.ts`](./operations.ts) | the functions and the operators of a value source with zero, one or two operands, `in`, `collate`, `isNull`, `valueWhenNull`, the no-op of `asOptional`, `__operation0` / `__operation1` (an operation of the receiver with the class of its result) |

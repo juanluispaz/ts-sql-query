@@ -30,7 +30,7 @@ import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSyst
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __conversionsOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __dataTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 
@@ -469,12 +469,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             adapterContext.prepareParam(undefined, undefined, forceTypeCast, typeClass.type, typeClass.customType, __typeAdapterOf(typeClass)?.sqlDataType)
         }
         try {
-            const typeAdapter = __typeAdapterOf(typeClass)
-            if (typeAdapter) {
-                return typeAdapter.transformValueToDB(value, adapterContext, this._defaultTypeAdapter)
-            } else {
-                return this._defaultTypeAdapter.transformValueToDB(value, adapterContext)
-            }
+            return __conversionsOf(typeClass).__transformValueToDB(value, adapterContext, this._defaultTypeAdapter)
         } catch (e) {
             // The value would be the next parameter: an invalid one tells which of them it is
             if (context && e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE' && e.errorReason.paramIndex === undefined) {
@@ -550,12 +545,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // forceTypeCast
         let placeholder = this._queryRunner.addParam(context.params, value)
         adapterContext.valueSentToDB = value
-        const typeAdapter = __typeAdapterOf(typeClass)
-        if (typeAdapter && typeAdapter.transformPlaceholder) {
-            placeholder = typeAdapter.transformPlaceholder(placeholder, adapterContext, this._defaultTypeAdapter)
-        } else {
-            placeholder = this._defaultTypeAdapter.transformPlaceholder(placeholder, adapterContext)
-        }
+        placeholder = __conversionsOf(typeClass).__transformPlaceholder(placeholder, adapterContext, this._defaultTypeAdapter)
         adapterContext.clearParam()
         return placeholder
     }
@@ -685,11 +675,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const adapterContext = this._typeAdapterContextOf(undefined)
         const valueSourcePrivate = __getValueSourcePrivate(value)
         adapterContext.prepareProjection(valueSourcePrivate.__type, valueSourcePrivate.__customType, valueSourcePrivate.__typeAdapter?.sqlDataType, output, context?.queryContext)
-        const typeAdapter = valueSourcePrivate.__typeAdapter
-        if (typeAdapter && typeAdapter.transformProjection) {
-            return typeAdapter.transformProjection(sql, adapterContext, this._defaultTypeAdapter)
-        }
-        return this._defaultTypeAdapter.transformProjection(sql, adapterContext)
+        return __conversionsOf(__classOf(valueSourcePrivate)).__transformProjection(sql, adapterContext, this._defaultTypeAdapter)
     }
     /**
      * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnProjection`),
@@ -4035,12 +4021,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         adapterContext.prepareParam(undefined, undefined, false, typeClass.type, typeClass.customType, __typeAdapterOf(typeClass)?.sqlDataType)
         adapterContext.valueSentToDB = null
         let result
-        const typeAdapter = __typeAdapterOf(typeClass)
-        if (typeAdapter && typeAdapter.transformPlaceholder) {
-            result = typeAdapter.transformPlaceholder('null', adapterContext, this._defaultTypeAdapter)
-        } else {
-            result = this._defaultTypeAdapter.transformPlaceholder('null', adapterContext)
-        }
+        result = __conversionsOf(typeClass).__transformPlaceholder('null', adapterContext, this._defaultTypeAdapter)
         adapterContext.clearParam()
         return result
     }

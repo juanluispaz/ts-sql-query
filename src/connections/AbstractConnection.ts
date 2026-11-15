@@ -54,6 +54,7 @@ import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
 // Registers the data types of the library (the only module with side effects)
 import '../typeSystem/registerDataTypes.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
+import { __conversionsOf, __classOf } from '../nodes/adaptedTypeClass.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -687,11 +688,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 let result
                 try {
                     const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(functionCall, 'resultColumn')
-                    if (adapter) {
-                        result = adapter.transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
-                    } else {
-                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, adapterContext)
-                    }
+                    result = __conversionsOf(__classOf(functionCall)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._defaultTypeAdapter)
                 } catch(e) {
                     if (e instanceof TsSqlError) {
                         throw e

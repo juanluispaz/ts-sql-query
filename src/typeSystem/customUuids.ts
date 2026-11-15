@@ -1,3 +1,5 @@
+import type { SqlDataType } from '../TypeAdapter.js'
+import { uuidSqlDataType } from './uuids.js'
 import type { CustomTypeClass } from './base.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import { UuidsType } from './uuids.js'
@@ -8,6 +10,7 @@ const customUuidClasses = new Map<string, CustomTypeClass<CustomUuidType<any, an
 /** A uuid of a type of the user, of its type name */
 export abstract class CustomUuidType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends UuidsType<VALUE_TYPE> {
     static override readonly customType = 'customUuid'
+    static override readonly sqlDataType: SqlDataType = uuidSqlDataType
     declare [typeName]: `type:${TYPE_NAME}:customUuid:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customUuid:`
 

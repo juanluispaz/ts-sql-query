@@ -1,4 +1,4 @@
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 import { __isString } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
@@ -19,6 +19,9 @@ import { __keptClassOf, __adaptedTypeClassOf, __computedClassOf } from '../nodes
 export type IStringValue = IValueWithType<'type:string:'>
 
 /** The family of the texts: what every text offers */
+/** The type in the database of a text */
+export const stringSqlDataType: SqlDataType = { family: 'character string', typeDefault: true }
+
 export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
     /** Whether a type and a custom type are of a text */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
@@ -343,6 +346,7 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
 export abstract class StringType extends StringsType<string> {
     static override readonly type = 'string'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = stringSqlDataType
     declare [typeName]: 'type:string:'
     declare [operandTypeName]: 'type:string:'
 }

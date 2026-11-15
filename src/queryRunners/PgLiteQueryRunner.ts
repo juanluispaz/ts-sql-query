@@ -78,7 +78,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
             let oid = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
             if (oid === undefined && (param?.forceTypeCast || zoned)) {
                 // The oid of its SQL data type, when it has a fixed one, or the one of its type
-                oid = (zoned ? undefined : postgreSqlParamTypeOfSqlDataType(params, i)?.oid) ?? postgreSqlParamType(type, param?.requestedType?.customType, params[i], zoned)?.oid
+                oid = (zoned ? undefined : postgreSqlParamTypeOfSqlDataType(params, i)?.oid) ?? postgreSqlParamType(param?.requestedType, params[i], zoned)?.oid
             }
             if (oid !== undefined) {
                 if (!paramTypes) {

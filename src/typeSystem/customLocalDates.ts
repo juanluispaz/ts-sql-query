@@ -1,3 +1,5 @@
+import type { SqlDataType } from '../TypeAdapter.js'
+import { localDateSqlDataType, localTimeSqlDataType, localDateTimeSqlDataType } from './localDates.js'
 import type { CustomTypeClass } from './base.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
@@ -14,6 +16,7 @@ const customLocalDateTimeClasses = new Map<string, CustomTypeClass<CustomLocalDa
 /** A date without a zone of a type of the user, of its type name */
 export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDatesType<VALUE_TYPE> {
     static override readonly customType = 'customLocalDate'
+    static override readonly sqlDataType: SqlDataType = localDateSqlDataType
     declare [typeName]: `type:${TYPE_NAME}:customLocalDate:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDate:`
 
@@ -34,6 +37,7 @@ export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
 /** A time of the day without a zone of a type of the user, of its type name */
 export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalTimesType<VALUE_TYPE> {
     static override readonly customType = 'customLocalTime'
+    static override readonly sqlDataType: SqlDataType = localTimeSqlDataType
     declare [typeName]: `type:${TYPE_NAME}:customLocalTime:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalTime:`
 
@@ -54,6 +58,7 @@ export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
 /** A date and a time of the day without a zone of a type of the user, of its type name */
 export abstract class CustomLocalDateTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDateTimesType<VALUE_TYPE> {
     static override readonly customType = 'customLocalDateTime'
+    static override readonly sqlDataType: SqlDataType = localDateTimeSqlDataType
     declare [typeName]: `type:${TYPE_NAME}:customLocalDateTime:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDateTime:`
 

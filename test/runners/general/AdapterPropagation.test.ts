@@ -1,12 +1,12 @@
 // What a computed value keeps of the type adapter of its column: the SQL data type of the column stays only with a
-// value of the column (a comparison, a fallback of the column's values); a computed value has none, and a number or a
-// text given to a computation doesn't take it.
+// value of the column (a comparison, a fallback of the column's values); a computed value has the one of its data type,
+// and a number or a text given to a computation doesn't take the one of the column.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import { IntType, StringType, Table, withSqlDataType } from '../../../src/exports/v2/index.js'
+import { DoubleType, IntType, StringType, Table, withSqlDataType } from '../../../src/exports/v2/index.js'
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {}
 
@@ -39,7 +39,7 @@ describe('AdapterPropagation', () => {
         // Sent as a double, not with the type of the column (`int2`), which would lose the fraction
         expect(lastQuery).toBe('select small + $1::float8 as v from thing')
         expect(lastParams).toEqual([1.5])
-        expect(sqlDataTypes()).toEqual({ params: [undefined], result: [undefined] })
+        expect(sqlDataTypes()).toEqual({ params: [DoubleType.sqlDataType], result: [DoubleType.sqlDataType] })
     })
 
     test('a-value-compared-with-a-column-takes-the-type-of-the-column', async () => {
@@ -53,14 +53,14 @@ describe('AdapterPropagation', () => {
     test('a-text-computed-from-a-column-and-the-text-given-to-it-have-no-type-of-the-column', async () => {
         await conn.selectFrom(tThing).select({ v: tThing.code.concat('abcdef') }).executeSelectMany()
         expect(lastQuery).toBe('select code || $1 as v from thing')
-        expect(sqlDataTypes()).toEqual({ params: [undefined], result: [undefined] })
+        expect(sqlDataTypes()).toEqual({ params: [StringType.sqlDataType], result: [StringType.sqlDataType] })
     })
 
     test('a-fallback-of-another-column-keeps-no-type-of-a-column', async () => {
         await conn.selectFrom(tThing).select({ v: tThing.code.valueWhenNull(tThing.name), w: tThing.code.valueWhenNull('zz') }).executeSelectMany()
         expect(sqlDataTypes()).toEqual({
             params: [{ family: 'character string', length: 3, fixed: true }],
-            result: [undefined, { family: 'character string', length: 3, fixed: true }],
+            result: [StringType.sqlDataType, { family: 'character string', length: 3, fixed: true }],
         })
     })
 })

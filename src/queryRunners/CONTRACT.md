@@ -301,17 +301,32 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 
 ### 2.6 The SQL data type of a parameter
 
-A type adapter can say the type of its value in the database (`sqlDataType`, set with `withSqlDataType`): a family
-(`'exact numeric'`, `'character string'`, `'datetime'`, …) with the properties that refine it (precision, scale,
-length, `national`, fractional seconds, …) and, optionally, the name of the type in each database (`native`). The
-parameters converted with that adapter carry it in the context of the query, as the types: the original one
-(`originalSqlDataType`, the one of the adapter) and the requested one (`requestedSqlDataType`, the original one unless
-the adapter requested another with `setRequestedSqlDataType`, like for a value it converts to another type), which the
-runners use. The parameters that carry it: the value of the column in an insert or an update, and a value compared with
-the column (`equals`, `in`, `between`, …), which takes the adapter of the column; also the OUT params of a `returning`
-of that column. A constant gets it only from
-an adapter of its own. It describes the column: a runner uses it only when the requested type of the parameter is of
-the same family (an adapter that sends a date as a text doesn't make the text a date).
+Every parameter and every column of the result carries the type of its value in the database, its SQL data type: a
+family (`'exact numeric'`, `'character string'`, `'datetime'`, …) with the properties that refine it (precision, scale,
+length, `national`, fractional seconds, `bytes` of an integer, …) and, optionally, the name of the type in each
+database (`native`). It is the one a type adapter says (`sqlDataType`, set with `withSqlDataType`): the one of the
+column, for the value of the column in an insert or an update, a value compared with the column (`equals`, `in`,
+`between`, …) and the OUT params of a `returning` of that column. Otherwise it is the one of the data type of the
+value (the static `sqlDataType` of its class), marked with `typeDefault`: an integer of 4 bytes for an `int`, an exact
+number without precision for a decimal, a text, a date, …; none for an `enum`, a `custom` or a `customComparable`,
+whose values only the user knows. The context of the query has two, as the types: the original one
+(`originalSqlDataType`) and the requested one (`requestedSqlDataType`). When an adapter requests another type, the
+requested one is the original one if it describes the type requested (the same family), and otherwise the one of the
+type requested: a date sent as a text has the one of a text. An adapter requests another with
+`setRequestedSqlDataType`.
+
+**The runners decide by the SQL data type of the type requested**, never by knowing a data type: the type of the
+driver a value is bound with and the cast of its placeholder (an integer of up to 4 bytes is an `int4`, an `Int`, a
+`NUMBER`; one of 8 an `int8`, a `BigInt`; another exact number a `numeric`, a text, a `NUMBER`; a floating point
+number a `float8`, a `Float`; a date, a time or a timestamp the type of the database of its fields), the form of a
+date given to the driver, the check and the cast of an exact number sent as its text, and which columns of the result
+are fetched as text (an exact number that isn't an integer of up to 4 bytes, on Oracle). A class of the user that
+says its own SQL data type is sent and read by it. A value without a SQL data type (an `enum`, a `custom`, a value of
+SQL written by hand) is bound by its JavaScript value. What only the SQL data type of the column says, more precise
+than the one of the type (the length of a text, a large object, a `datetime` of SQL Server, a JSON, the native name
+of a PostgreSQL type), is used only when it describes the requested type (an adapter that sends a date as a text
+doesn't make the text a date); the one of a type is written as the runner writes that type (`$1::int4`, not
+`$1::integer`).
 
 The rule that keeps the meaning: **a SQL data type never narrows a value.** A cast or a bind type takes the type of
 the column only when the value fits in it; otherwise the runner does what it does without it.

@@ -106,7 +106,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
                 if ((ofSqlDataType === 114 || ofSqlDataType === 3802) && typeof value === 'string') {
                     ofSqlDataType = undefined
                 }
-                const oid = ofSqlDataType ?? postgreSqlParamType(type, param?.requestedType?.customType, value, zoned)?.oid
+                const oid = ofSqlDataType ?? postgreSqlParamType(param?.requestedType, value, zoned)?.oid
                 if (oid !== undefined) {
                     typed = sql.typed(value, oid)
                 }

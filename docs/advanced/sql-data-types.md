@@ -107,6 +107,28 @@ Like the type of a value, the SQL data type is two in the context of each transf
 
 Every family also takes `domain`, the name of the domain the column is declared with (the family is the type the domain is over), and `native`, the name of the type in each database, as it's written there (`{ sqlServer: 'datetime2(3)', oracle: 'TIMESTAMP(3)' }`): the connection of a database uses its own as it is; one without it works from the family.
 
+## The SQL data type of a data type
+
+The class of a data type says the SQL data type of its values when nothing more precise is known, in its static `sqlDataType`. A value without the SQL data type of a column has the one of its data type: a constant, a computed value like `price.add(1)` or `name.concat('!')`, and the value of a column whose type adapter says none. The query runners send and read a value by it, so a SQL data type is always there for the values of the types the library knows:
+
+| Data type | Its SQL data type |
+|---|---|
+| `boolean` | `{ family: 'boolean' }` |
+| `int`, `customInt` | `{ family: 'exact numeric', scale: 0, bytes: 4 }` |
+| `bigint`, `customBigint` | `{ family: 'exact numeric', scale: 0, bytes: 8 }` |
+| `double`, `customDouble` | `{ family: 'approximate numeric', precision: 53 }` |
+| `stringDecimal`, `customDecimal` | `{ family: 'exact numeric' }` |
+| `string` | `{ family: 'character string' }` |
+| `uuid`, `customUuid` | `{ family: 'uuid' }` |
+| `localDate`, `customLocalDate` | `{ family: 'datetime', fields: 'date' }` |
+| `localTime`, `customLocalTime` | `{ family: 'datetime', fields: 'time' }` |
+| `localDateTime`, `customLocalDateTime` | `{ family: 'datetime', fields: 'timestamp' }` |
+| `enum`, `custom`, `customComparable` | none: only you know what the value is, and it's sent as its value in JavaScript |
+
+The one of a data type has `typeDefault: true`, so a query runner of yours can tell it from the one of a column; the library sets it, on a copy when the class gives its own without it. A class that extends a data type can give its own, like `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }` for an integer of 30 digits: the query runners send and read its values by it without knowing the class.
+
+When a type adapter requests another type for the value (`setRequestedType`), the SQL data type requested is the one of the column when it describes the type requested, and otherwise the one of the type requested: a date sent as its text has the SQL data type of a text. `setRequestedSqlDataType` after it requests another one.
+
 ## What the library does with it
 
 | Database | With the SQL data type of the column |
@@ -115,6 +137,8 @@ Every family also takes `domain`, the name of the domain the column is declared 
 | Oracle | The `returning` of a `character string` that is a `largeObject` (a `CLOB`, an `NCLOB` with `national`) is received whole, without declaring the type in `typesByName` (without it, a text longer than 4000 bytes is rejected by Oracle, ORA-22835); one of a known `length` is received in a buffer of that length. An object of a `JSON` column (`{ family: 'document', format: 'json' }`), the value of a `custom` type of yours, is sent as a JSON; without it, the driver rejects an object |
 | PostgreSQL | Where PostgreSQL needs the type of a parameter (a constant selected on its own, a value in a `coalesce`, a fragment), it gets the type of its SQL data type, without the precision or the length that would round or cut it (`numeric(18, 4)` is a `numeric`): also a type the library doesn't know, like a `jsonb`, an `inet` or an enum of the database (`{ family: 'enumeration', name: 'mood' }`). `pg` and Bun SQL write it as a cast (`$1::jsonb`); postgres.js and PGlite send the parameter with the oid of the type when it has a fixed one |
 | MariaDB, MySQL, SQLite | Nothing yet: the query runner receives it, so a query runner of yours can read it in [the context of the query](query-execution-metadata.md) (`originalSqlDataType` and `requestedSqlDataType` of each parameter and of each column of the result) |
+
+With the SQL data type of the data type of a value, the query runners choose the type each value is sent with, where the driver or the database needs one, and how a column of the result is read: a boolean, a number, a text, a uuid, a date or a time goes with the type of the database of its family (an integer of up to 4 bytes as an `int4`, an `Int` or a `NUMBER`, one of 8 as an `int8`, a `BigInt` or a `NUMBER`, another exact number as a `numeric`, a text or a `NUMBER`). An exact number sent as its text, like a decimal, is cast to a decimal of its digits on MySQL, MariaDB and SQL Server, and checked against the widest decimal of the database. An exact number that isn't an integer of up to 4 bytes is read as its text on Oracle, so it keeps every digit, and one that isn't an integer of a fixed number of bytes is written as its text in a column of the result on SQL Server.
 
 A type declared in `typesByName` of a query runner wins over the SQL data type. A SQL data type never cuts a value: a value is sent with the type of the column only where it fits in it.
 

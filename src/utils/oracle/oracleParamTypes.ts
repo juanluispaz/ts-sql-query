@@ -1,21 +1,21 @@
-import type { CustomType } from '../../TypeAdapter.js'
+import type { DataTypeClass } from '../../TypeAdapter.js'
 import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
-import { __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime } from '../../typeSystem/dataTypes.js'
+import { __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
  * Checks a parameter on Oracle, for every query runner of it: the number of the database keeps 38 significant
- * digits, so a customDecimal with more, which would be rounded in a computation without an error and that no column
+ * digits, so an exact number sent as its text (a stringDecimal, a customDecimal) with more, which would be rounded in a computation without an error and that no column
  * can hold, is rejected. Call it before adding the parameter at that index.
  */
-export function checkOracleParam(index: number, value: unknown, type: string, customType: CustomType | undefined): void {
-    if (!__isExactDecimal(type, customType)) {
+export function checkOracleParam(index: number, value: unknown, requestedType: DataTypeClass | undefined): void {
+    if (__typeSqlDataTypeOf(requestedType)?.family !== 'exact numeric') {
         return
     }
     const digits = customDecimalDigitsOf(value)
     if (digits && digits.significantDigits > 38) {
-        rejectCustomDecimalParam(value, type, index, 'a number of 38 significant digits')
+        rejectCustomDecimalParam(value, requestedType?.type ?? '', index, 'a number of 38 significant digits')
     }
 }
 
@@ -45,15 +45,16 @@ class OracleUtcDigitsDate extends Date {
  * Date goes as it is; otherwise a copy whose local getters are the UTC ones. Undefined for any other value, which is
  * bound as it is. Called when the query is executed: the params of the query don't change.
  */
-export function oracleTemporalBind(value: unknown, type: string | undefined, customType: CustomType | undefined, processInUtc: boolean, ofDate: boolean): { val: Date, type: 'date' | 'timestamp' } | undefined {
-    if (!(value instanceof Date) || isNaN(value.getTime()) || type === undefined) {
+export function oracleTemporalBind(value: unknown, requestedType: DataTypeClass | undefined, processInUtc: boolean, ofDate: boolean): { val: Date, type: 'date' | 'timestamp' } | undefined {
+    if (!(value instanceof Date) || isNaN(value.getTime())) {
         return undefined
     }
-    if (__isLocalDate(type, customType)) {
+    const fields = __temporalFieldsOf(requestedType)
+    if (fields === 'date') {
         const day = Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate())
         return { val: processInUtc ? new Date(day) : new OracleUtcDigitsDate(day), type: 'date' }
     }
-    if (__isLocalTime(type, customType) || __isLocalDateTime(type, customType)) {
+    if (fields === 'time' || fields === 'timestamp') {
         // Of a DATE (oracleDateParam of metadataSymbols.ts), a value of whole seconds is a DATE, which the column compares with as it
         // is; one with a fraction stays a TIMESTAMP, which keeps it (10:00:00.500 is after a DATE of 10:00:00)
         return { val: processInUtc ? value : new OracleUtcDigitsDate(value.getTime()), type: ofDate && value.getUTCMilliseconds() === 0 ? 'date' : 'timestamp' }
@@ -83,7 +84,7 @@ export function oraclePlaceholder(placeholder: string, params: any[], index: num
     const param = existingParamContextOf(params, index)
     const ofDate = param?.getMetadata(oracleDateParam) === true && value.getUTCMilliseconds() === 0
     const cast = 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
-    if (__isLocalTime(param?.requestedType?.type, param?.requestedType?.customType)) {
+    if (__temporalFieldsOf(param?.requestedType) === 'time') {
         // A localTime is kept on 1970-01-01, as in UTC: the time of the day of the wall clock, also as the value of a
         // column, so a time after midnight in the zone of the database isn't kept on another day
         return (ofDate ? "date '1970-01-01'" : "timestamp '1970-01-01 00:00:00'") + ' + (' + cast + ' - trunc(' + cast + '))'

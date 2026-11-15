@@ -24,7 +24,9 @@ Read this before changing anything here. The code is the reference; this file sa
   adapter (`transformValueFromDB`, `transformValueToDB`, `transformPlaceholder`, `transformProjection`), in `BaseType`:
   by default they call `next`, and a class overrides the ones it needs. They are a step of the chain of a conversion,
   after the type adapter of the value and before the connection (`NextTypeAdapter`, in
-  `src/internal/TypeAdapterContextImpl.ts`).
+  `src/internal/TypeAdapterContextImpl.ts`). Its static `sqlDataType` is the type in the database of its values when
+  the column doesn't say a more precise one: the query runners and the connections decide by it, never by knowing the
+  class (`__typeSqlDataTypeOf` and `__temporalFieldsOf` of [`dataTypes.ts`](./dataTypes.ts)).
 - **What every value source has at run time** (its fields, its node, `isConstValue`, `allowWhen`, ...) is
   `ValueSourceRoot`, in [`src/nodes/`](../nodes/README.md). `BaseType` extends it through a cast that TypeScript doesn't
   see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the
@@ -321,7 +323,9 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
 
 1. Its class in the file of its family (a family in plural, see above), extending the class that has the methods it
    shares, with its NType and
-   operand NType, its `static type` / `customType`, and its own methods with the result types the runtime gives.
+   operand NType, its `static type` / `customType`, its `static sqlDataType` (the type in the database of its values,
+   by which the query runners send and read them; a custom family takes the one of the built-in type it is based on),
+   and its own methods with the result types the runtime gives.
 2. A custom one: its static `of`. A class that groups data types without a type of its own: its `__isOfGroup`.
 3. A built-in one: its entry in each map of `builtInDataTypes.ts`.
 4. A built-in one: its registration in `registerDataTypes.ts`; a new family of custom data types: its family there.

@@ -1,3 +1,4 @@
+import type { SqlDataType } from '../TypeAdapter.js'
 import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType, type OptionalOf, type SourceOf, type ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { MergeOptional, OptionalType } from './valueSource.js'
@@ -21,10 +22,14 @@ import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.j
 export type IBooleanValue = IValueWithType<'type:boolean:logical:'>
 
 /** A boolean value */
+/** The type in the database of a boolean */
+export const booleanSqlDataType: SqlDataType = { family: 'boolean', typeDefault: true }
+
 export abstract class BooleanType extends EqualableType<boolean> {
     /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
     static override readonly type = 'boolean'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = booleanSqlDataType
     declare [typeName]: 'type:boolean:logical:'
     declare [operandTypeName]: 'type:boolean:logical:'
 

@@ -12,7 +12,7 @@ import { NoExecutionQueryRunner } from '../../../src/queryRunners/NoExecutionQue
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { CustomBooleanTypeAdapter, withSqlDataType, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../src/TypeAdapter.js'
 import { reasonOf } from '../lib/runnerContract.js'
-import { CustomDecimalType } from '../../../src/exports/v2/index.js'
+import { BooleanType, CustomDecimalType, IntType, StringType } from '../../../src/exports/v2/index.js'
 
 const price: SqlDataType = { family: 'exact numeric', precision: 18, scale: 4 }
 const code: SqlDataType = { family: 'character string', length: 20, national: false }
@@ -112,20 +112,21 @@ describe('the SQL data type in the context of the query', () => {
 
     test('the-value-of-a-column-in-an-insert', async () => {
         const context = await contextOf(conn => conn.insertInto(tProduct).set({ id: 1, price: '1.5', code: 'A', name: 'n' }).executeInsert())
-        expect(context.params).toEqual([undefined, price, code, undefined])
+        // A value without a SQL data type of its column has the one of its data type
+        expect(context.params).toEqual([IntType.sqlDataType, price, code, StringType.sqlDataType])
     })
 
     test('a-value-compared-with-a-column', async () => {
         const context = await contextOf(conn => conn.selectFrom(tProduct)
             .where(tProduct.price.equals('2.25')).and(tProduct.code.in(['A', 'B'])).and(tProduct.name.equals('x'))
             .select({ id: tProduct.id, price: tProduct.price, code: tProduct.code }).executeSelectMany())
-        expect(context.params).toEqual([price, code, code, undefined])
-        expect(context.columns).toEqual([undefined, price, code])
+        expect(context.params).toEqual([price, code, code, StringType.sqlDataType])
+        expect(context.columns).toEqual([IntType.sqlDataType, price, code])
     })
 
-    test('a-constant-without-an-adapter-says-none', async () => {
+    test('a-constant-without-an-adapter-has-the-one-of-its-data-type', async () => {
         const context = await contextOf(conn => conn.selectFromNoTable().select({ v: conn.const('1.5', CustomDecimalType.of<string, 'Price'>('Price')) }).executeSelectMany())
-        expect(context.params).toEqual([undefined])
+        expect(context.params).toEqual([CustomDecimalType.sqlDataType])
     })
 })
 
@@ -219,12 +220,12 @@ describe('the conversion of the types in the configuration of the connection', (
             return []
         }))
         await conn.selectFrom(tProduct).where(tProduct.price.equals('2.25')).and(tProduct.code.equals('A')).and(tProduct.name.equals('x')).select({ id: tProduct.id }).executeSelectMany()
-        expect(natives).toEqual(['numeric(18, 4)', 'character varying(20)', undefined])
+        expect(natives).toEqual(['numeric(18, 4)', 'character varying(20)', 'text'])
     })
 })
 
 describe('a custom boolean column projected by a with', () => {
-    test('the-column-of-the-with-is-a-boolean-without-the-adapter-nor-its-sql-data-type', async () => {
+    test('the-column-of-the-with-is-a-boolean-without-the-adapter-nor-its-sql-data-type-of-the-column', async () => {
         const yesNo = withSqlDataType({ family: 'character string', length: 1, fixed: true }, new CustomBooleanTypeAdapter('Y', 'N'))
         class TFlag extends Table<DBConnection, 'TFlag'> {
             id = this.column('id', 'int')
@@ -244,6 +245,6 @@ describe('a custom boolean column projected by a with', () => {
         // The with already writes the boolean of the database: the column of the with is that boolean
         expect(lastQuery).toBe("with flags as (select id as id, (active = 'Y') as active from flag) select active as active from flags")
         expect(rows).toEqual([{ active: true }])
-        expect(getQueryContext(lastQuery, lastParams).resultColumns?.[0]?.originalSqlDataType).toBeUndefined()
+        expect(getQueryContext(lastQuery, lastParams).resultColumns?.[0]?.originalSqlDataType).toEqual(BooleanType.sqlDataType)
     })
 })

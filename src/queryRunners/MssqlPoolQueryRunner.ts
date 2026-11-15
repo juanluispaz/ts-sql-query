@@ -6,7 +6,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSq
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isSqlDataTypeOf, __isString, __isUuid } from '../typeSystem/dataTypes.js'
+import { __isSqlDataTypeOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
@@ -92,7 +92,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         }
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, this.getInputType(params, i), params[i])
+            const type = this.getInputType(params, i)
+            req.input('' + i, type, driverValueOf(type, params[i]))
         }
         return req.query(query).then((result) => {
             if (!result.recordset) {
@@ -108,7 +109,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         }
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, this.getInputType(params, i), params[i])
+            const type = this.getInputType(params, i)
+            req.input('' + i, type, driverValueOf(type, params[i]))
         }
         return req.query(query).then((result) => {
             return result.rowsAffected[0]!
@@ -335,47 +337,45 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
      * The type of mssql the parameter at the index is bound with, from the type requested for it and its SQL data type
      */
     protected getType(params: any[], index: number): ISqlTypeFactory {
-        // The requested type of the parameter decides the type it is bound with; a parameter added without one, like
-        // one of a query written by hand, gets a type inferred from its value
+        // The requested type of the parameter decides the type it is bound with, by the SQL data type of the type; a
+        // parameter added without one, like one of a query written by hand, gets a type inferred from its value
         const param = existingParamContextOf(params, index)
-        const type = param?.requestedType?.type
-        const customType = param?.requestedType?.customType
-        if (!type && !customType) {
+        const requestedType = param?.requestedType
+        if (!requestedType?.type && !requestedType?.customType) {
             return this.inferType(params[index])
         }
-        if (__isBoolean(type, customType)) {
-            return TYPES.Bit
+        const sqlDataType = __typeSqlDataTypeOf(requestedType)
+        switch (sqlDataType?.family) {
+            case 'boolean':
+                return TYPES.Bit
+            case 'exact numeric':
+                if (sqlDataType.scale === 0 && sqlDataType.bytes !== undefined) {
+                    return sqlDataType.bytes <= 4 ? TYPES.Int : TYPES.BigInt
+                }
+                // TYPES.Decimal converts the value to a JavaScript number before sending it, which loses digits
+                return TYPES.NVarChar
+            case 'approximate numeric':
+                return TYPES.Float
+            case 'character string':
+                return TYPES.NVarChar
+            case 'uuid':
+                return TYPES.UniqueIdentifier
+            case 'datetime':
+                if (sqlDataType.fields === 'date') {
+                    return TYPES.Date
+                }
+                if (sqlDataType.fields === 'time') {
+                    return TYPES.Time
+                }
+                if (sqlDataType.fields === 'timestamp') {
+                    return TYPES.DateTime2
+                }
+                break
+            default:
         }
-        if (__isInt(type, customType)) {
-            return TYPES.Int
-        }
-        if (__isBigint(type, customType)) {
-            return TYPES.BigInt
-        }
-        if (__isDouble(type, customType)) {
-            return TYPES.Float
-        }
-        if (__isExactDecimal(type, customType)) {
-            // TYPES.Decimal converts the value to a JavaScript number before sending it, which loses digits
-            return TYPES.NVarChar
-        }
-        if (__isString(type, customType)) {
-            return TYPES.NVarChar
-        }
-        if (__isUuid(type, customType)) {
-            return TYPES.UniqueIdentifier
-        }
-        if (__isLocalDate(type, customType)) {
-            return TYPES.Date
-        }
-        if (__isLocalTime(type, customType)) {
-            return TYPES.Time
-        }
-        if (__isLocalDateTime(type, customType)) {
-            return TYPES.DateTime2
-        }
-        // Any other type is a custom one (an enum, a custom or a customComparable): what it holds is only known by the
-        // user. A text goes as text, whatever it looks like: '1.2' on a text column can't be sent as a number.
+        // Any other type is one without a SQL data type (an enum, a custom or a customComparable): what it holds is
+        // only known by the user. A text goes as text, whatever it looks like: '1.2' on a text column can't be sent as
+        // a number.
         return this.inferCustomType(params[index])
     }
 
@@ -452,4 +452,16 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         }
         return TYPES.VarBinary
     }
+}
+
+/**
+ * The value the driver receives for a parameter bound with that type: a number or a bigint bound as a text (an exact
+ * number that isn't an integer of a fixed size, see getType) goes as its text, which the driver requires and which
+ * keeps every digit. Made when the query is executed: the params of the query keep the value the connection handed
+ */
+function driverValueOf(type: ISqlType, value: unknown): unknown {
+    if ((typeof value === 'bigint' || typeof value === 'number') && type.type === TYPES.NVarChar) {
+        return String(value)
+    }
+    return value
 }

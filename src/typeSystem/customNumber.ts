@@ -1,3 +1,6 @@
+import type { SqlDataType } from '../TypeAdapter.js'
+import { intSqlDataType, doubleSqlDataType } from './number.js'
+import { bigintSqlDataType } from './bigint.js'
 import type { CustomTypeClass } from './base.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import { IntegersType, RealsType } from './numeric.js'
@@ -14,6 +17,7 @@ const customDoubleClasses = new Map<string, CustomTypeClass<CustomDoubleType<any
 /** An integer number of a type of the user, of its type name */
 export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
     static override readonly customType = 'customInt'
+    static override readonly sqlDataType: SqlDataType = intSqlDataType
     declare [typeName]: `type:${TYPE_NAME}:customInt:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
 
@@ -34,6 +38,7 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
 /** An integer number of 64 bits of a type of the user, of its type name */
 export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
     static override readonly customType = 'customBigint'
+    static override readonly sqlDataType: SqlDataType = bigintSqlDataType
     declare [typeName]: `type:${TYPE_NAME}:customBigint:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customBigint:`
 
@@ -54,6 +59,7 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
 /** A floating point number of a type of the user, of its type name */
 export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends RealsType<VALUE_TYPE> {
     static override readonly customType = 'customDouble'
+    static override readonly sqlDataType: SqlDataType = doubleSqlDataType
     declare [typeName]: `type:${TYPE_NAME}:customDouble:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`
 

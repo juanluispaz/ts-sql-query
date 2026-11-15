@@ -74,8 +74,12 @@ interface SqlDataTypeCommon {
     readonly native?: SqlDataTypeNative | undefined
     /** The name of the domain the type is defined by; the family is the type the domain is over */
     readonly domain?: string | undefined
+    /** Whether it is the one of a data type (its class), not of a column; the library sets it */
+    readonly typeDefault?: boolean | undefined
 }
 ```
+
+The class of each data type has its own in its static `sqlDataType` (`IntType.sqlDataType`), the one of a value without the SQL data type of a column: see [The SQL data type of a data type](../advanced/sql-data-types.md#the-sql-data-type-of-a-data-type).
 
 ## The families
 
@@ -219,9 +223,12 @@ As the type of a value, the SQL data type is two in the context of each transfor
 ```typescript
 interface TypeAdapterContext {
     // ... the original and the requested type (see the Type adapters API)
-    /** The one the type adapter says (withSqlDataType); it never changes */
+    /** The one the type adapter says (withSqlDataType), or the one of the data type; it never changes */
     readonly originalSqlDataType: SqlDataType | undefined
-    /** The one requested for the value; by default the original one */
+    /**
+     * The one requested for the value; by default the original one. When another type is requested
+     * (setRequestedType), the original one if it describes that type, or the one of that type
+     */
     readonly requestedSqlDataType: SqlDataType | undefined
 }
 
@@ -236,4 +243,4 @@ interface TypeAdapterRequestedSqlDataType {
 
 ## In the context of a query
 
-A query runner of yours reads it with [`getQueryContext`](../advanced/query-execution-metadata.md): `originalSqlDataType` and `requestedSqlDataType` of each parameter (`QueryParamContext`) and of each column of the result (`QueryResultColumn`), when its type adapter says one. The query runners of the library use the requested one. The configuration of the connection in that context, `connectionConfiguration`, has `sqlDataTypeFrom` and `nativeSqlDataTypeOf` of the connection, so a query runner or a type adapter (`context.connectionConfiguration`) can turn a SQL data type into the name of the type in the database of the query, built once.
+A query runner of yours reads it with [`getQueryContext`](../advanced/query-execution-metadata.md): `originalSqlDataType` and `requestedSqlDataType` of each parameter (`QueryParamContext`) and of each column of the result (`QueryResultColumn`): the one its type adapter says, or the one of its data type (see [The SQL data type of a data type](../advanced/sql-data-types.md#the-sql-data-type-of-a-data-type)), marked with `typeDefault: true`; none for a value of an `enum`, a `custom` or a `customComparable` without one of its column. The query runners of the library use the requested one. The configuration of the connection in that context, `connectionConfiguration`, has `sqlDataTypeFrom` and `nativeSqlDataTypeOf` of the connection, so a query runner or a type adapter (`context.connectionConfiguration`) can turn a SQL data type into the name of the type in the database of the query, built once.

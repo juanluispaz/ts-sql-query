@@ -1,4 +1,4 @@
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { BigintType } from './bigint.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
@@ -32,6 +32,12 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
     NumberType
 
 /** The int and the double, the numbers of JavaScript */
+/** The type in the database of an int: an integer of 4 bytes */
+export const intSqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 4, typeDefault: true }
+
+/** The type in the database of a double: a floating point number of double precision */
+export const doubleSqlDataType: SqlDataType = { family: 'approximate numeric', precision: 53, typeDefault: true }
+
 export abstract class NumberType extends ComparableType<number> {
     /** Whether a type and a custom type are of the group number: an int or a double */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
@@ -186,6 +192,7 @@ export abstract class NumberType extends ComparableType<number> {
 export abstract class IntType extends NumberType {
     static override readonly type = 'int'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = intSqlDataType
     declare [typeName]: 'type:int:number:'
 
     /** An int is already an int */
@@ -211,6 +218,7 @@ export abstract class IntType extends NumberType {
 export abstract class DoubleType extends NumberType {
     static override readonly type = 'double'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = doubleSqlDataType
     declare [typeName]: 'type:double:number:'
 }
 

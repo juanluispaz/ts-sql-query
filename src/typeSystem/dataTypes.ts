@@ -1,4 +1,4 @@
-import type { CustomType, SqlDataType } from '../TypeAdapter.js'
+import type { CustomType, DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 
 // Questions about the data type of a value, asked with its type and its custom type: a custom type decides when the
 // value has one (a `customLocalDate` named 'ReleaseDay' is a localDate, a `customInt` named 'localDate' is an int); a
@@ -117,4 +117,52 @@ export function __isSqlDataTypeOf(sqlDataType: SqlDataType, type: string | undef
         return family !== 'boolean' && family !== 'exact numeric' && family !== 'approximate numeric' && family !== 'datetime' && family !== 'binary string'
     }
     return !__isAggregatedArray(type, customType)
+}
+
+/** Where the SQL data type of a class keeps, hidden, its copy marked as the default of the data type */
+const typeDefaultCopyKey: unique symbol = Symbol('typeDefaultSqlDataType')
+
+/**
+ * The SQL data type a data type gives its values when nothing more precise is known: the `sqlDataType` of its class,
+ * marked as the default of the type (`typeDefault`); the one a user writes without the mark is copied once, and the
+ * copy kept hidden in it
+ */
+export function __typeSqlDataTypeOf(typeClass: DataTypeClass | undefined): SqlDataType | undefined {
+    const sqlDataType = typeClass?.sqlDataType
+    if (sqlDataType === undefined || sqlDataType.typeDefault) {
+        return sqlDataType
+    }
+    const holder = sqlDataType as { [typeDefaultCopyKey]?: SqlDataType | undefined }
+    const kept = holder[typeDefaultCopyKey]
+    if (kept !== undefined) {
+        return kept
+    }
+    const marked: SqlDataType = { ...sqlDataType, typeDefault: true }
+    if (Object.isExtensible(sqlDataType)) {
+        Object.defineProperty(sqlDataType, typeDefaultCopyKey, { value: marked })
+    }
+    return marked
+}
+
+/**
+ * The SQL data type requested for a value when another type is requested for it: the one of its column, when it
+ * describes the type requested, or the default of the type requested
+ */
+export function __requestedSqlDataTypeOf(originalSqlDataType: SqlDataType | undefined, requestedType: DataTypeClass): SqlDataType | undefined {
+    if (originalSqlDataType !== undefined && !originalSqlDataType.typeDefault && __isSqlDataTypeOf(originalSqlDataType, requestedType.type, requestedType.customType)) {
+        return originalSqlDataType
+    }
+    return __typeSqlDataTypeOf(requestedType)
+}
+
+/**
+ * The fields of the date or time of a data type, by the SQL data type of its class: `'date'` for a localDate,
+ * `'time'` for a localTime, `'timestamp'` for a localDateTime; undefined for any other
+ */
+export function __temporalFieldsOf(typeClass: DataTypeClass | undefined): 'date' | 'time' | 'timestamp' | undefined {
+    const sqlDataType = typeClass?.sqlDataType
+    if (sqlDataType === undefined || sqlDataType.family !== 'datetime' || sqlDataType.fields === 'year') {
+        return undefined
+    }
+    return sqlDataType.fields
 }

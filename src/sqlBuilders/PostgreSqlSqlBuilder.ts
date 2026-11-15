@@ -402,7 +402,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // A null of a type PostgreSQL knows is a parameter that carries its type, written as a cast or sent with it by
         // the query runner: a bare null has none where the position gives it none (a row of a union, a Values row, a
         // case). A null of any other type stays a literal null, that PostgreSQL resolves as text where it can't infer it.
-        if (postgreSqlParamType(typeClass.type, typeClass.customType, null)) {
+        if (postgreSqlParamType(typeClass, null)) {
             const sent = this._transformParamToDB(null, typeClass, context, true)
             return this._appendParam(sent, context, typeClass, true)
         }

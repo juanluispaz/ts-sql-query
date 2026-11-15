@@ -1,4 +1,4 @@
-import type { CustomType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, valueSourceType, valueType } from '../utils/symbols.js'
@@ -30,6 +30,11 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime
     declare static readonly type: string | undefined
     /** The custom type of a custom data type; undefined for a built-in data type */
     declare static readonly customType: CustomType | undefined
+    /**
+     * The type in the database of the values of the data type, when the column doesn't say a more precise one: the
+     * query runners send and read a value by it. Undefined for a data type whose values only the user knows
+     */
+    declare static readonly sqlDataType: SqlDataType | undefined
 
     /*
      * The conversions of the values of the data type, with the names and the parameters of the methods of a type

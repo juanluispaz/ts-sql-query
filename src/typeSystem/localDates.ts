@@ -1,4 +1,4 @@
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, ValueSource } from './base.js'
@@ -19,6 +19,11 @@ function datePartOf(valueSource: DataTypeValueSource, operation: keyof SqlFuncti
 }
 
 /** A date without a zone */
+/** The types in the database of a localDate, a localTime and a localDateTime */
+export const localDateSqlDataType: SqlDataType = { family: 'datetime', fields: 'date', typeDefault: true }
+export const localTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'time', typeDefault: true }
+export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'timestamp', typeDefault: true }
+
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
     /** Whether a type and a custom type are of a localDate or a customLocalDate */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
@@ -117,6 +122,7 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE> extends Comparab
 export abstract class LocalDateType extends LocalDatesType<Date> {
     static override readonly type = 'localDate'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = localDateSqlDataType
     declare [typeName]: 'type:localDate:'
     declare [operandTypeName]: 'type:localDate:'
 }
@@ -125,6 +131,7 @@ export abstract class LocalDateType extends LocalDatesType<Date> {
 export abstract class LocalTimeType extends LocalTimesType<Date> {
     static override readonly type = 'localTime'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = localTimeSqlDataType
     declare [typeName]: 'type:localTime:'
     declare [operandTypeName]: 'type:localTime:'
 }
@@ -133,6 +140,7 @@ export abstract class LocalTimeType extends LocalTimesType<Date> {
 export abstract class LocalDateTimeType extends LocalDateTimesType<Date> {
     static override readonly type = 'localDateTime'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = localDateTimeSqlDataType
     declare [typeName]: 'type:localDateTime:'
     declare [operandTypeName]: 'type:localDateTime:'
 }

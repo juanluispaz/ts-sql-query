@@ -1,4 +1,4 @@
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 import { __isExactDecimal } from './dataTypes.js'
 import { NumericType } from './numeric.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
@@ -18,6 +18,9 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
  * The family of the exact decimal numbers: the value keeps every digit; a computation that can't be exact gives a
  * double. Its data types are stringDecimal and the custom ones; a decimal of a library extends it
  */
+/** The type in the database of an exact decimal: a number with every digit, of any precision and scale */
+export const decimalSqlDataType: SqlDataType = { family: 'exact numeric', typeDefault: true }
+
 export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     /** Whether a type and a custom type are of an exact decimal: a stringDecimal or a customDecimal */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
@@ -99,6 +102,7 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VA
 export abstract class StringDecimalType extends DecimalsType<string> {
     static override readonly type = 'stringDecimal'
     static override readonly customType = undefined
+    static override readonly sqlDataType: SqlDataType = decimalSqlDataType
     declare [typeName]: 'type:stringDecimal:'
     declare [operandTypeName]: 'type:stringDecimal:'
 }

@@ -2,8 +2,8 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, ValueSource } from './base.js'
-import type { IntType } from './number.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
+import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
+import { IntType } from './number.js'
 
 /*
  * The dates and times without a zone: a date (localDate), a time of the day (localTime), and both (localDateTime).
@@ -12,6 +12,8 @@ import { operandTypeName, typeName } from '../utils/symbols.js'
 
 /** A date without a zone */
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType }
     /** Whether a type and a custom type are of a localDate or a customLocalDate */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isLocalDate(type, customType)
@@ -25,6 +27,8 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableTy
 
 /** A time of the day without a zone */
 export abstract class LocalTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType }
     /** Whether a type and a custom type are of a localTime or a customLocalTime */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isLocalTime(type, customType)
@@ -38,6 +42,8 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE> extends ComparableTy
 
 /** A date and a time of the day without a zone */
 export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType }
     /** Whether a type and a custom type are of a localDateTime or a customLocalDateTime */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isLocalDateTime(type, customType)

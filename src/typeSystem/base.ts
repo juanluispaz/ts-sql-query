@@ -4,7 +4,7 @@ import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, valueSourceType, valueType } from '../utils/symbols.js'
 import type { intType, logicalTypes } from '../utils/symbols.js'
 import type { OptionalType, TypedValueSource } from './valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
+import { ValueSourceImpl } from '../internal/ValueSourceImpl.js'
 
 /*
  * The data type of a value source is a class: its type (its methods, the type of its value and its name for TypeScript,
@@ -18,8 +18,15 @@ import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
  * A value source is its data type plus what places it in a query: its source and its optionality.
  */
 
+/**
+ * While the methods of the value sources still live in ValueSourceImpl, the classes of the data types extend it at run
+ * time, so a value source is an instance of the class of its data type and has those methods. TypeScript sees nothing
+ * of it: the methods are those the classes declare
+ */
+const ValueSourceRuntime = ValueSourceImpl as unknown as abstract new () => object
+
 /** The root of every data type */
-export abstract class BaseType</*in|out*/ VALUE_TYPE> {
+export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime {
     /** The type the library knows the data type by at run time (the type name of a custom data type) */
     declare static readonly type: string | undefined
     /** The custom type of a custom data type; undefined for a built-in data type */
@@ -33,44 +40,6 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> {
 }
 
 export type AnyType = BaseType<any>
-
-/** The root of the data types of the value sources (a condition is not one) */
-export abstract class ValueSourceBaseType</*in|out*/ VALUE_TYPE> extends BaseType<VALUE_TYPE> {
-    /**
-     * Whether the value is a value source of this data type or of one that extends it (`NumberType.is` answers yes to
-     * an int and to a double). At run time a value source knows only its type and its custom type: a condition is a
-     * boolean there, and the two data types of an aggregated array are one
-     */
-    static is<TYPE extends AnyType>(this: { readonly prototype: TYPE }, value: any): value is ValueSource<any, TYPE, any> {
-        if (!isValueSource(value)) {
-            return false
-        }
-        const valueSource = __getValueSourcePrivate(value)
-        const typeClass = this as unknown as typeof ValueSourceBaseType
-        if (typeClass.type !== undefined) {
-            return valueSource.__type === typeClass.type && valueSource.__customType === typeClass.customType
-        }
-        if (typeClass.customType !== undefined) {
-            return valueSource.__customType === typeClass.customType
-        }
-        return typeClass.__isOfGroup(valueSource.__type, valueSource.__customType)
-    }
-
-    /**
-     * Whether a type and a custom type are of this class, for a class without a type of its own (the data types it
-     * groups): any value source here
-     */
-    protected static __isOfGroup(_type: string, _customType: CustomType | undefined): boolean {
-        return true
-    }
-
-    abstract isConstValue(): boolean
-    abstract getConstValue(): VALUE_TYPE
-    abstract allowWhen(when: boolean, errorMessage: string): this
-    abstract allowWhen(when: boolean, error: Error): this
-    abstract disallowWhen(when: boolean, errorMessage: string): this
-    abstract disallowWhen(when: boolean, error: Error): this
-}
 
 /** A class of a data type, as the methods that take a data type receive it */
 export interface TypeClass</*in|out*/ TYPE extends AnyType> {

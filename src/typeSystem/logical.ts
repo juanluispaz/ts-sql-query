@@ -2,8 +2,7 @@ import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType
 import { EqualableType } from './equalable.js'
 import type { MergeOptional, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
-import type { logicalTypes } from '../utils/symbols.js'
+import { operandTypeName, typeName, logicalTypes } from '../utils/symbols.js'
 
 /*
  * The logical data types: the boolean value, and the two conditions (`if`, `alwaysIf`). They share the group
@@ -16,6 +15,8 @@ export type IBooleanValue = IValueWithType<'type:boolean:logical:'>
 
 /** A boolean value */
 export abstract class BooleanType extends EqualableType<boolean> {
+    /** The boolean the comparisons give (the classes of the bases can't import it) */
+    static readonly [logicalTypes] = { boolean: BooleanType }
     static override readonly type = 'boolean'
     static override readonly customType = undefined
     declare [typeName]: 'type:boolean:logical:'

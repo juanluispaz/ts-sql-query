@@ -39,6 +39,9 @@ export const comparableValueSource: unique symbol = Symbol('comparableValueSourc
 export const logicalTypes: unique symbol = Symbol('logicalTypes')
 export const numberTypes: unique symbol = Symbol('numberTypes')
 export const intType: unique symbol = Symbol('intType')
+// While the methods of a family still live in ValueSourceImpl: the built-in data types they give, in a static of the
+// family (the int of `length`, the double of `sqrt`, ...). It goes away when the methods move into the family
+export const runtimeTypes: unique symbol = Symbol('runtimeTypes')
 export const booleanValueSource: unique symbol = Symbol('booleanValueSource')
 export const ifValueSource: unique symbol = Symbol('ifValueSource')
 export const anyBooleanValueSource: unique symbol = Symbol('anyBooleanValueSource')

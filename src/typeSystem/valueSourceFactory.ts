@@ -3,7 +3,10 @@ import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { AggregateSelectValueSource, AggregateValueAsArrayValueSource, AllowWhenAggregateValueAsArrayValueSource, type FragmentValueSource, type InlineSelectData, type InlineSelectValueSource, type SqlOperation1ValueSource, type SqlOperation1ValueSourceIfValueOrIgnore, type SqlOperationConstValueSource, type SqlOperationValueSourceIfValueAlwaysNoop, TableOrViewRawFragmentValueSource, ValueSourceImpl, __newAggregateFunctions0ValueSource, __newAggregateFunctions1ValueSource, __newAggregateFunctions1or2ValueSource, __newFragmentValueSource, __newFunctionCallValueSource, __newInlineSelectValueSource, __newSequenceValueSource, __newSqlOperationConstValueSource, __newSqlOperationStatic0ValueSource, __newSqlOperationStatic1ValueSource, __newSqlOperationStaticBooleanValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop, __newValueSourceFromBuilder, fragmentValueSourceNode, inlineSelectValueSourceNode, sqlOperation1ValueSourceIfValueOrIgnoreNode, sqlOperation1ValueSourceNode, sqlOperationConstValueSourceNode, sqlOperationValueSourceIfValueAlwaysNoopNode } from '../internal/ValueSourceImpl.js'
-import { DBColumnImpl, createColumnsFrom } from '../internal/DBColumnImpl.js'
+import { __newDBColumn, createColumnsFrom } from '../internal/DBColumnImpl.js'
+import { __dataTypeClassOf } from './dataTypeClasses.js'
+import { BooleanType } from './logical.js'
+import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from './valueSource.js'
 
@@ -14,43 +17,43 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 export { createColumnsFrom }
 
 export function __createDBColumn(table: AnyTableOrView, name: string, type: string, customType: CustomType | undefined, typeAdapter: TypeAdapter | undefined): any {
-    return new DBColumnImpl(table, name, type, customType, typeAdapter)
+    return __newDBColumn(__dataTypeClassOf(type, customType), table, name, typeAdapter)
 }
 
 export function __createValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newValueSourceFromBuilder(builder, fragmentBuilder, type, customType, optionalType, typeAdapter)
+    return __newValueSourceFromBuilder(builder, fragmentBuilder, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createConst(value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSqlOperationConstValueSource(value, type, customType, optionalType, typeAdapter)
+    return __newSqlOperationConstValueSource(value, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createStatic0(operation: keyof SqlOperationStatic0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSqlOperationStatic0ValueSource(operation, type, customType, optionalType, typeAdapter)
+    return __newSqlOperationStatic0ValueSource(operation, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createStatic1(operation: keyof SqlOperationStatic1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSqlOperationStatic1ValueSource(operation, value, type, customType, optionalType, typeAdapter)
+    return __newSqlOperationStatic1ValueSource(operation, value, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createStaticBoolean(operation: '_true' | '_false'): any {
-    return __newSqlOperationStaticBooleanValueSource(operation)
+    return __newSqlOperationStaticBooleanValueSource(operation, BooleanType)
 }
 
 export function __createIfValueAlwaysNoop(optionalType: OptionalType): any {
-    return __newSqlOperationValueSourceIfValueAlwaysNoop(optionalType)
+    return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanType, optionalType)
 }
 
 export function __createAggregateFunction0(operation: keyof AggregateFunctions0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newAggregateFunctions0ValueSource(operation, type, customType, optionalType, typeAdapter)
+    return __newAggregateFunctions0ValueSource(operation, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createAggregateFunction1(operation: keyof AggregateFunctions1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newAggregateFunctions1ValueSource(operation, value, type, customType, optionalType, typeAdapter)
+    return __newAggregateFunctions1ValueSource(operation, value, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createAggregateFunction1or2(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newAggregateFunctions1or2ValueSource(operation, separator, value, type, customType, optionalType, typeAdapter)
+    return __newAggregateFunctions1or2ValueSource(operation, separator, value, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createAggregateValueAsArray(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean): any {
@@ -62,15 +65,18 @@ export function __createAggregateSelect(selectData: InlineSelectData, aggregated
 }
 
 export function __createInlineSelect(selectData: InlineSelectData, required: boolean): any {
-    return __newInlineSelectValueSource(selectData, required)
+    // The data type of its one column (any other select is rejected when it is built)
+    const result = selectData.__oneColumn ? selectData.__columns['result'] : undefined
+    const resultPrivate = result && isValueSource(result) ? __getValueSourcePrivate(result) : undefined
+    return __newInlineSelectValueSource(selectData, required, resultPrivate ? __dataTypeClassOf(resultPrivate.__type, resultPrivate.__customType) : BooleanType)
 }
 
 export function __createFunctionCall(functionName: string, functionParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newFunctionCallValueSource(functionName, functionParams, type, customType, optionalType, typeAdapter)
+    return __newFunctionCallValueSource(functionName, functionParams, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createFragment(sql: TemplateStringsArray, sqlParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate: boolean | undefined): any {
-    return __newFragmentValueSource(sql, sqlParams, type, customType, optionalType, typeAdapter, isAggregate)
+    return __newFragmentValueSource(sql, sqlParams, __dataTypeClassOf(type, customType), optionalType, typeAdapter, isAggregate)
 }
 
 export function __createTableOrViewRawFragment(tableOrView: AnyTableOrView, operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'): any {
@@ -78,7 +84,7 @@ export function __createTableOrViewRawFragment(tableOrView: AnyTableOrView, oper
 }
 
 export function __createSequence(operation: keyof SqlSequenceOperation, sequenceName: string, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSequenceValueSource(operation, sequenceName, type, customType, optionalType, typeAdapter)
+    return __newSequenceValueSource(operation, sequenceName, __dataTypeClassOf(type, customType), optionalType, typeAdapter)
 }
 
 export function __createRawFragment(template: TemplateStringsArray, params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): any {

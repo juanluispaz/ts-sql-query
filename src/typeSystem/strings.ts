@@ -4,15 +4,17 @@ import { ComparableType } from './comparable.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { BooleanType, IfValueSource } from './logical.js'
 import type { INumberValue } from './base.js'
-import type { IntType } from './number.js'
 import type { MergeOptional, MergeRequired } from './valueSource.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
+import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
+import { IntType } from './number.js'
 
 /** What a position that takes a text accepts */
 export type IStringValue = IValueWithType<'type:string:'>
 
 /** The family of the texts: what every text offers */
 export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType }
     /** Whether a type and a custom type are of a text */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isString(type, customType)

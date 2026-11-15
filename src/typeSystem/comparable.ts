@@ -2,12 +2,12 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBoolean } from './dataTypes.js'
 import type { IValueWithType, OptionalOf, SourceOf, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { BooleanType, IfType, IfValueSource } from './logical.js'
+import type { IfType, IfValueSource } from './logical.js'
 import type { MergeOptional } from './valueSource.js'
-import { comparableValueSource, operandTypeName } from '../utils/symbols.js'
-import type { logicalTypes } from '../utils/symbols.js'
+import { comparableValueSource, operandTypeName, logicalTypes } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { TypedValueSource } from './valueSource.js'
+import { BooleanType } from './logical.js'
 
 /** What a position that takes a value source of any data type with an order accepts (max, min) */
 export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> extends TypedValueSource<SOURCE, any, any> {
@@ -16,6 +16,8 @@ export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> ex
 
 /** A data type whose values have an order */
 export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableType<VALUE_TYPE> {
+    /** The boolean the comparisons give (the classes of the bases can't import it) */
+    static readonly [logicalTypes] = { boolean: BooleanType }
     /** Whether a type and a custom type are of a comparable data type: every one but a boolean, an enum, a custom and an aggregated array */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return !__isBoolean(type, customType) && !__isAggregatedArray(type, customType) && customType !== 'enum' && customType !== 'custom'

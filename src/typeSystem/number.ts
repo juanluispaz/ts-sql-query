@@ -3,7 +3,7 @@ import { ComparableType } from './comparable.js'
 import { IntegersType } from './numeric.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
+import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
 import type { intType, numberTypes } from '../utils/symbols.js'
 
 /*
@@ -26,6 +26,8 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
 
 /** The int and the double, the numbers of JavaScript */
 export abstract class NumberType extends ComparableType<number> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static get [runtimeTypes]() { return numberRuntimeTypes }
     /** Whether a type and a custom type are of the group number: an int or a double */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return customType === undefined && (type === 'int' || type === 'double')
@@ -95,9 +97,14 @@ export abstract class DoubleType extends NumberType {
 
 /** An integer number of 64 bits, a JavaScript bigint */
 export abstract class BigintType extends IntegersType<bigint> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static get [runtimeTypes]() { return numberRuntimeTypes }
     static override readonly type = 'bigint'
     static override readonly customType = undefined
     declare [intType]: IntType
     declare [typeName]: 'type:bigint:'
     declare [operandTypeName]: 'type:bigint:'
 }
+
+// After the classes it names, which extend NumberType: read by the getters of [runtimeTypes]
+const numberRuntimeTypes = { int: IntType, double: DoubleType, bigint: BigintType }

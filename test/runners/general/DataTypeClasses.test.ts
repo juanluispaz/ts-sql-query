@@ -133,6 +133,23 @@ describe('DataTypeClasses', () => {
         expect(CustomBigintType.of<bigint, 'Money'>('Money').customType).toBe('customBigint')
     })
 
+    test('a-value-source-is-an-instance-of-the-class-of-its-data-type', () => {
+        expect(tThing.money).toBeInstanceOf(MoneyType)
+        expect(tThing.money).toBeInstanceOf(CustomIntType)
+        expect(tThing.int).toBeInstanceOf(IntType)
+        expect(tThing.int).toBeInstanceOf(NumberType)
+        expect(tThing.int).not.toBeInstanceOf(DoubleType)
+        expect(conn.const(5, 'int')).toBeInstanceOf(IntType)
+        expect(tThing.money.add(tThing.money)).toBeInstanceOf(MoneyType)
+        expect(tThing.int.add(0.5)).toBeInstanceOf(DoubleType)
+        expect(tThing.string.length()).toBeInstanceOf(IntType)
+        expect(tThing.int.equals(1)).toBeInstanceOf(BooleanType)
+        expect(tThing.status.equals('open')).toBeInstanceOf(BooleanType)
+        expect(tThing.uuid.asString()).toBeInstanceOf(StringType)
+        expect(tThing.stringDecimal.sqrt()).toBeInstanceOf(DoubleType)
+        expect(tThing.version.valueWhenNull('1')).toBeInstanceOf(VersionType)
+    })
+
     test('a-built-in-class-gives-the-type-its-name-gives', () => {
         const byClass = conn.const(5, IntType)
         const byName = conn.const(5, 'int')

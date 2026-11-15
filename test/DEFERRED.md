@@ -6,6 +6,19 @@ Bugs found and left for later go in [`BUGS.md`](./BUGS.md), not here.
 
 Each entry says what it is, why it waits, and what is already known.
 
+## A data type name the library doesn't know, at run time
+
+- **What:** decide what happens when a method that takes a data type gets, at run
+  time, a name that is not a built-in data type (`column('x', 'integer')` from
+  JavaScript, or a value cast to `any`): today the value source is created from
+  the class of its data type, which `src/typeSystem/dataTypeClasses.ts` gives,
+  and an unknown name throws an `INTERNAL` error there, without saying it is the
+  user's name.
+- **Why deferred:** the maintainer will decide it with the rest of the runtime of
+  the type system; TypeScript already rejects the name.
+- **Known:** before the classes, the name travelled as a string to the SQL and
+  the type adapters.
+
 ## Explicit divisions on exact numbers
 
 - **What:** two divisions whose name says what happens when the query is

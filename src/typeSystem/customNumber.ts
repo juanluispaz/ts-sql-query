@@ -1,8 +1,8 @@
 import type { CustomTypeClass } from './base.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
+import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
 import type { intType } from '../utils/symbols.js'
 import { IntegersType, RealsType } from './numeric.js'
-import type { IntType } from './number.js'
+import { IntType, DoubleType, BigintType } from './number.js'
 
 /** The class `CustomIntType.of` made for each type name */
 const customIntClasses = new Map<string, CustomTypeClass<CustomIntType<any, any>>>()
@@ -15,6 +15,8 @@ const customDoubleClasses = new Map<string, CustomTypeClass<CustomDoubleType<any
 
 /** An integer number of a type of the user, of its type name */
 export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType, double: DoubleType, bigint: BigintType }
     static override readonly customType = 'customInt'
     declare [intType]: IntType
     declare [typeName]: `type:${TYPE_NAME}:customInt:`
@@ -36,6 +38,8 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
 
 /** An integer number of 64 bits of a type of the user, of its type name */
 export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType, double: DoubleType, bigint: BigintType }
     static override readonly customType = 'customBigint'
     declare [intType]: IntType
     declare [typeName]: `type:${TYPE_NAME}:customBigint:`
@@ -57,6 +61,8 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
 
 /** A floating point number of a type of the user, of its type name */
 export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends RealsType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType, double: DoubleType, bigint: BigintType }
     static override readonly customType = 'customDouble'
     declare [intType]: IntType
     declare [typeName]: `type:${TYPE_NAME}:customDouble:`

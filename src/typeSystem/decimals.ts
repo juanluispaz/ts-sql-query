@@ -2,10 +2,10 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isExactDecimal } from './dataTypes.js'
 import { NumericType } from './numeric.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
-import type { DoubleType, IntType } from './number.js'
 import type { MergeOptional } from './valueSource.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
+import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
 import type { intType } from '../utils/symbols.js'
+import { IntType, DoubleType, BigintType } from './number.js'
 
 /*
  * The exact decimal numbers: their value keeps every digit (the library sends and reads it as its text); what can't be
@@ -17,6 +17,8 @@ import type { intType } from '../utils/symbols.js'
  * double. Its data types are stringDecimal and the custom ones; a decimal of a library extends it
  */
 export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
+    static readonly [runtimeTypes] = { int: IntType, double: DoubleType, bigint: BigintType }
     /** Whether a type and a custom type are of an exact decimal: a stringDecimal or a customDecimal */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isExactDecimal(type, customType)

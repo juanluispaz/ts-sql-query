@@ -6,29 +6,42 @@ one module through which the rest of the library builds and recognises the value
 
 Read this before changing anything here. The code is the reference; this file says why it is shaped the way it is.
 
-## The two halves: types here, runtime elsewhere
+## The two halves: the types and the runtime
 
-- **The types** are the classes of this folder. They are `abstract` and are never instantiated: their methods are
-  `abstract` declarations, and they exist so TypeScript knows what a value source can do.
-- **The runtime** is `src/internal/ValueSourceImpl.ts` (and `DBColumnImpl.ts`, `RawFragmentImpl.ts`). Nothing outside
-  [`valueSourceFactory.ts`](./valueSourceFactory.ts) imports them: it builds the value sources (`__create*`) and
-  recognises them (`__is*`). Its `__create*` functions return `any`, because the runtime is not typed by the data type:
-  the code that calls them declares what it builds.
-- A value source of the runtime has two axes apart. Its **methods** are those of `ValueSourceImpl`. Its **node** (how
-  it is written and what it reaches in the tree: a constant, a function of a value source, a fragment, a column, ...) is
-  `__node`, a `NodeStrategy`: one object for each kind of node, shared and without state, which receives the value
-  source; the value source has the fields of its node (`__operation`, `__valueSource`, `__value`, ...). Each kind has
-  its interface (`SqlOperation0ValueSource`), its strategy (`sqlOperation0ValueSourceNode`) and the function that builds
-  it (`__newSqlOperation0ValueSource`); `__is*` asks for the node. The aggregated arrays and the raw fragments of a table
-  are still classes of their own.
-- At run time a value source knows its data type by two strings, `__type` and `__customType` (for a custom data type,
-  `__type` is its type name and `__customType` its family, e.g. `'Money'` / `'customInt'`). The questions about them
-  (`__isInt`, `__isLocalDate`, `__isExactDecimal`, ...) are in [`dataTypes.ts`](./dataTypes.ts). **Nothing at run time
-  reads the NType** below: it exists only for TypeScript.
-
-The runtime is being moved into these classes (methods with bodies instead of `abstract`), behind
-`valueSourceFactory.ts`, in phases: first the nodes as strategies (done), then the methods of each family into its
-class, so that a value source is an instance of the class of its data type, and finally `ValueSourceImpl` is removed.
+- **The types** are the classes of this folder. They are `abstract`: their methods are `abstract` declarations (for
+  now), and TypeScript knows from them what a value source can do.
+- **A value source is an instance of the class of its data type**: `column('price', MoneyType)` is a `MoneyType`,
+  `int.add(0.5)` a `DoubleType`, a comparison a `BooleanType` (a condition too). The library creates it with
+  `new typeClass(...)` (the `abstract` is only for TypeScript), and its constructor fills `__type` and `__customType`
+  from the statics `type` and `customType` of the class: the run time knows a data type by those two strings (for a
+  custom data type, `__type` is its type name and `__customType` its family, e.g. `'Money'` / `'customInt'`). The
+  questions about them (`__isInt`, `__isLocalDate`, `__isExactDecimal`, ...) are in [`dataTypes.ts`](./dataTypes.ts).
+  **Nothing at run time reads the NType** below: it exists only for TypeScript.
+- **The methods are still in `src/internal/ValueSourceImpl.ts`**, while they move into the classes family by family:
+  `BaseType` extends `ValueSourceImpl` at run time through a cast that TypeScript doesn't see
+  (`ValueSourceImpl as unknown as abstract new () => object`), so an instance has those methods and the types and the
+  `.d.ts` are only those of the classes. When the last family has moved, the root of `ValueSourceImpl` (its fields and
+  the delegation to the node) goes into `ValueSourceBaseType` ([`valueSourceBase.ts`](./valueSourceBase.ts)) and
+  `ValueSourceImpl` is removed.
+- A method gives a value source of the same data type with `this.constructor`. A base doesn't import the data types
+  that extend it (see below), so the data types it gives are statics of the classes that can import them: the
+  boolean of the comparisons in `static [logicalTypes]` (`ComparableType`, `BooleanType`, `EnumType`,
+  `CustomEqualableType`), and, only while the methods live in `ValueSourceImpl`, the int, double, bigint or string a
+  family gives in `static [runtimeTypes]` (the int of `length` in `StringsType`, the double of `sqrt` in the numbers,
+  ...), which goes away when the family imports them in its own methods.
+- A value source has two axes apart: its data type (its class) and its **node**: how it is written and what it
+  reaches in the tree (a constant, a function of a value source, a fragment, a column, ...), `__node`, a
+  `NodeStrategy`: one object for each kind of node, shared and without state, which receives the value source; the
+  value source has the fields of its node (`__operation`, `__valueSource`, `__value`, ...). Each kind has its interface
+  (`SqlOperation0ValueSource`), its strategy (`sqlOperation0ValueSourceNode`) and the function that creates it from the
+  class of its data type (`__newSqlOperation0ValueSource`). A column is a value source of its data type with the node
+  of a column (`src/internal/DBColumnImpl.ts`). The aggregated arrays and the raw fragments of a table are still
+  classes of their own.
+- Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) creates them: it creates the value sources
+  (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the runtime is not
+  typed by the data type: the code that calls them declares what it creates. The class of a type and a custom type is
+  given by [`dataTypeClasses.ts`](./dataTypeClasses.ts): the built-in data types by their name, the custom ones with
+  the `of` of their family. No class of a data type imports it.
 
 ## The NType: the name of a data type for TypeScript
 
@@ -78,7 +91,7 @@ can't be a column or be projected, and it has a value a boolean doesn't have, th
 
 ```
 BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static type/customType
-├── ValueSourceBaseType<VALUE_TYPE>          isConstValue, getConstValue, allowWhen, disallowWhen
+├── ValueSourceBaseType<VALUE_TYPE>          isConstValue, getConstValue, allowWhen, disallowWhen, is   (valueSourceBase.ts)
 │   ├── NullableType<VALUE_TYPE>             isNull, valueWhenNull, asOptional, onlyWhenOrNull, ...
 │   │   └── EqualableType<VALUE_TYPE>        equals, is, in, inN, ... (and their *IfValue forms)
 │   │       ├── BooleanType                  negate, and, or, onlyWhen, ...                          (logical.ts)
@@ -257,5 +270,6 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
    operand NType, its `static type` / `customType`, and its own methods with the result types the runtime gives.
 2. A custom one: its static `of`. A class that groups data types without a type of its own: its `__isOfGroup`.
 3. A built-in one: its entry in each map of `builtInDataTypes.ts`.
-4. Its questions in `dataTypes.ts` and its handling in the runtime, as for any data type of the library.
-5. Its cases in the probe, and its tests in the matrix.
+4. A built-in one: its class in `dataTypeClasses.ts`; a new family of custom data types: its family there.
+5. Its questions in `dataTypes.ts` and its handling in the runtime, as for any data type of the library.
+6. Its cases in the probe, and its tests in the matrix.

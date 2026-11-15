@@ -1,14 +1,16 @@
 import type { CustomTypeClass } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { BooleanType, IfType } from './logical.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
-import type { logicalTypes } from '../utils/symbols.js'
+import type { IfType } from './logical.js'
+import { operandTypeName, typeName, logicalTypes } from '../utils/symbols.js'
+import { BooleanType } from './logical.js'
 
 /** The class `EnumType.of` made for each type name */
 const enumClasses = new Map<string, CustomTypeClass<EnumType<any, any>>>()
 
 /** A value of an enumeration of the user, of its type name */
 export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE> {
+    /** The boolean the comparisons give (the classes of the bases can't import it) */
+    static readonly [logicalTypes] = { boolean: BooleanType }
     static override readonly customType = 'enum'
     declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     declare [typeName]: `type:${TYPE_NAME}:enum:`

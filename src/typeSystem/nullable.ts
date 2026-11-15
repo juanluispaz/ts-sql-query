@@ -1,6 +1,7 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray } from './dataTypes.js'
-import { ValueSourceBaseType, type AnyType, type BooleanOf, type IValueWithType, type OptionalOf, type SourceOf, type TypeOf, type ValueSource } from './base.js'
+import type { AnyType, BooleanOf, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
+import { ValueSourceBaseType } from './valueSourceBase.js'
 import type { ColumnMarkersOf } from './valueSource.js'
 import type { numberTypes, operandTypeName } from '../utils/symbols.js'
 

@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, ToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
-import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { valueType as valueType_, optionalType as optionalType_, typeName, isValueSourceObject, source } from '../utils/symbols.js'
@@ -46,20 +46,6 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
             this.__aggregatedArrayMode = aggregatedArrayMode
             this.__aggreagtedProjectingOptionalValuesAsNullable = aggregatedProjectingOptionalValuesAsNullable
         }
-    }
-    // The conversions of the values of the data type (DataTypeClassConversions of adaptedTypeClass.ts): the ones of the
-    // connection, which a class with a type adapter wraps with its adapter
-    static __transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueFromDB(value, context)
-    }
-    static __transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        return next.transformValueToDB(value, context)
-    }
-    static __transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-        return next.transformPlaceholder(placeholder, context)
-    }
-    static __transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-        return next.transformProjection(sql, context)
     }
     /** The type adapter of this value source: the one of its class (see adaptedTypeClass.ts) */
     get __typeAdapter(): TypeAdapter | undefined {

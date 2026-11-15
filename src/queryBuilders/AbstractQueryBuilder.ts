@@ -12,7 +12,7 @@ import type { ProjectionOutput } from '../TypeAdapter.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __conversionsOf, __classOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -84,7 +84,7 @@ export class AbstractQueryBuilder {
         let result
         try {
             const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(valueSource, output)
-            result = __conversionsOf(__classOf(valueSourcePrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._nextTypeAdapter)
+            result = this.__sqlBuilder._nextTypeAdapter.transformValueFromDB(value, adapterContext)
         } catch(e) {
             if (e instanceof TsSqlError) {
                 if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {

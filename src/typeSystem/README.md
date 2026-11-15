@@ -20,6 +20,11 @@ Read this before changing anything here. The code is the reference; this file sa
   custom data type, `__type` is its type name and `__customType` its family, e.g. `'Money'` / `'customInt'`). The
   questions about them (`__isInt`, `__isLocalDate`, `__isExactDecimal`, ...) are in [`dataTypes.ts`](./dataTypes.ts).
   **Nothing at run time reads the NType** below: it exists only for TypeScript.
+- **The conversions of the values of a data type** are statics of its class, with the names and parameters of a type
+  adapter (`transformValueFromDB`, `transformValueToDB`, `transformPlaceholder`, `transformProjection`), in `BaseType`:
+  by default they call `next`, and a class overrides the ones it needs. They are a step of the chain of a conversion,
+  after the type adapter of the value and before the connection (`NextTypeAdapter`, in
+  `src/internal/TypeAdapterContextImpl.ts`).
 - **What every value source has at run time** (its fields, its node, `isConstValue`, `allowWhen`, ...) is
   `ValueSourceRoot`, in [`src/nodes/`](../nodes/README.md). `BaseType` extends it through a cast that TypeScript doesn't
   see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the
@@ -138,7 +143,7 @@ can't be a column or be projected, and it has a value a boolean doesn't have, th
 ## The classes
 
 ```
-BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static type/customType
+BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static type/customType, the conversions
 ├── ValueSourceBaseType<VALUE_TYPE>          isConstValue, getConstValue, allowWhen, disallowWhen, is   (valueSourceBase.ts)
 │   ├── NullableType<VALUE_TYPE>             isNull, valueWhenNull, asOptional, onlyWhenOrNull, ...
 │   │   └── EqualableType<VALUE_TYPE>        equals, is, in, inN, ... (and their *IfValue forms)

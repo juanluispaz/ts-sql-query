@@ -1,4 +1,4 @@
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, valueSourceType, valueType } from '../utils/symbols.js'
@@ -30,6 +30,31 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime
     declare static readonly type: string | undefined
     /** The custom type of a custom data type; undefined for a built-in data type */
     declare static readonly customType: CustomType | undefined
+
+    /*
+     * The conversions of the values of the data type, with the names and the parameters of the methods of a type
+     * adapter. A value goes to the database through the type adapter of the value, then these, then the connection
+     * (`next`); a value read comes back the other way round. By default they convert nothing and pass the value to
+     * `next`; a class of a data type overrides the ones it needs (a class of an integer that the database gives as a
+     * bigint: `context.setRequestedType('bigint')` in `transformProjection`)
+     */
+
+    /** Converts a value read from the database; `next.transformValueFromDB(...)` applies the conversion of the connection */
+    static transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
+    }
+    /** Converts a value before it is sent to the database; `next.transformValueToDB(...)` applies the conversion of the connection */
+    static transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, context)
+    }
+    /** The placeholder of the parameter, as the query runner wrote it, with the cast when there is one */
+    static transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
+        return next.transformPlaceholder(placeholder, context)
+    }
+    /** The SQL of a value as it leaves the database, the pair of `transformValueFromDB` (see `TypeAdapter.transformProjection`) */
+    static transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        return next.transformProjection(sql, context)
+    }
 
     declare [valueType]: VALUE_TYPE
     /** The NType of the data type */

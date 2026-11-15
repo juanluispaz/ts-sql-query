@@ -30,7 +30,7 @@ import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSyst
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __conversionsOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
@@ -472,7 +472,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             adapterContext.prepareParam(undefined, undefined, forceTypeCast, typeClass, __sqlDataTypeOf(typeClass))
         }
         try {
-            return __conversionsOf(typeClass).__transformValueToDB(value, adapterContext, this._nextTypeAdapter)
+            return this._nextTypeAdapter.transformValueToDB(value, adapterContext)
         } catch (e) {
             // The value would be the next parameter: an invalid one tells which of them it is
             if (context && e instanceof TsSqlError && e.errorReason.reason === 'INVALID_VALUE_TO_SEND_TO_DATABASE' && e.errorReason.paramIndex === undefined) {
@@ -548,8 +548,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // forceTypeCast
         let placeholder = this._queryRunner.addParam(context.params, value)
         adapterContext.valueSentToDB = value
-        adapterContext.startPlaceholder()
-        placeholder = __conversionsOf(typeClass).__transformPlaceholder(placeholder, adapterContext, this._nextTypeAdapter)
+        adapterContext.startPlaceholder(typeClass)
+        placeholder = this._nextTypeAdapter.transformPlaceholder(placeholder, adapterContext)
         adapterContext.clearParam()
         return placeholder
     }
@@ -678,7 +678,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const adapterContext = this._typeAdapterContextOf(undefined)
         const valueSourcePrivate = __getValueSourcePrivate(value)
         adapterContext.prepareProjection(__classOf(valueSourcePrivate), __sqlDataTypeOf(__classOf(valueSourcePrivate)), output, context?.queryContext)
-        return __conversionsOf(__classOf(valueSourcePrivate)).__transformProjection(sql, adapterContext, this._nextTypeAdapter)
+        return this._nextTypeAdapter.transformProjection(sql, adapterContext)
     }
     /**
      * The outermost query must be wrapped in a select that converts its columns (`_appendResultColumnProjection`),
@@ -4024,7 +4024,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         adapterContext.prepareParam(undefined, undefined, false, typeClass, __sqlDataTypeOf(typeClass))
         adapterContext.valueSentToDB = null
         let result
-        result = __conversionsOf(typeClass).__transformPlaceholder('null', adapterContext, this._nextTypeAdapter)
+        result = this._nextTypeAdapter.transformPlaceholder('null', adapterContext)
         adapterContext.clearParam()
         return result
     }

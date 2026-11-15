@@ -67,10 +67,11 @@ the other databases.
 
 ### Sending
 
-1. Each value is converted by its type adapter, if any, which receives the connection as `next`; otherwise by the
-   connection's `transformValueToDB`. Both receive the context of the type adapters, pointed at the parameter being
-   prepared, with the `forceTypeCast` of the position: true where the position gives the database no type. What the
-   adapter or the connection writes there applies to that parameter: `forceTypeCast`, the requested type
+1. Each value is converted by its type adapter, if any, then by the class of its data type, then by the type adapter
+   of a type requested with one, and then by the connection's `transformValueToDB`, each step calling the next one
+   (`next`). They receive the context of the type adapters, pointed at the parameter being
+   prepared, with the `forceTypeCast` of the position: true where the position gives the database no type. What a
+   step writes there applies to that parameter: `forceTypeCast`, the requested type
    (`setRequestedType`) and its metadata (`setMetadata`), which the runner reads at execution (§4). The connection
    marks there what it knows of a parameter: a value of a database outside UTC (§7.3); `OracleDateAsTimestampTypeAdapter`
    marks a value of an Oracle `DATE` column (§2.4). A value converted only to look at it (to know whether a number is
@@ -132,8 +133,8 @@ the other databases.
 3. An aggregated array arriving as text is parsed keeping every JSON number as its source text; a value that is
    already an array (a driver that decoded the JSON) is used as it is. Each leaf then goes through
    `transformValueFromDB` of its type (of its type adapter, which receives the text of a converted leaf).
-4. Each value goes through its type adapter (with the connection as `next`) or the connection's
-   `transformValueFromDB`; an error that isn't of the library becomes `INVALID_VALUE_RECEIVED_FROM_DATABASE`. Its
+4. Each value goes through the same chain, the other way round: the connection's `transformValueFromDB`, the type
+   adapter of a requested type, the class of its data type and its type adapter; an error that isn't of the library becomes `INVALID_VALUE_RECEIVED_FROM_DATABASE`. Its
    context has the requested type of the value as it leaves the database (the one its `transformProjection`
    requests), which an adapter that converts the value to another type changes before calling `next`.
 

@@ -18,7 +18,7 @@ To learn how to write a type adapter, where it goes and when to choose one, see 
 
     The `CustomBooleanTypeAdapter` lets you define custom values to represent booleans when they don’t match the database's default boolean format. For example, a column might store `'yes'` for true and `'no'` for false instead of using standard boolean types. See [Custom booleans values](../advanced/custom-booleans-values.md) for more information.
 
-A type adapter has four transformations. Each one receives what it transforms and, before `next`, a context: what it is working on, where it says what else the library must know. `next` is the conversion of the library, the connection, and receives the same context.
+A type adapter has four transformations. Each one receives what it transforms and, before `next`, a context: what it is working on, where it says what else the library must know. `next` is the rest of the chain, the conversion of the library: the [conversion of the class of the data type](#the-conversion-of-the-class-of-a-data-type) and then the connection; it receives the same context.
 
 ```typescript
 interface TypeAdapter {
@@ -62,7 +62,7 @@ A custom type is converted as the built-in type it is based on (see [Custom type
 
 Compare the type with its class, `context.requestedType === ReleaseDayType` (`of` gives the same class for the same name), or its name, `context.requestedType.type === 'ReleaseDay'`. A comparison with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile.
 
-`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter when this one calls `next`, and then through the conversion of the library: once, and not the adapter already converting the value.
+`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter just before the conversion of the connection, whoever requested it: once, and not the adapter already converting the value.
 
 What the requested type is in each transformation:
 
@@ -74,6 +74,30 @@ What the requested type is in each transformation:
 | `transformValueFromDB` | the type of the value received: the one `transformProjection` requested | yes, for what it gives `next` |
 
 See [The original and the requested type](../advanced/type-adapters.md#the-original-and-the-requested-type) for an adapter that sends a date as its text, with its query and its SQL.
+
+## The conversion of the class of a data type
+
+The class of a data type converts the values of its type too, with the same four transformations as statics of the class, which by default convert nothing and call `next`:
+
+```typescript
+abstract class BaseType {
+    static transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
+    static transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
+    static transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
+    static transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
+}
+```
+
+A class that extends a data type overrides the ones it needs, with `static override`; a transformation of another shape doesn't compile. The conversion of a value is a chain, and each step calls `next` with what it gives the next one:
+
+| Step | Sending a value | Reading a value |
+|---|---|---|
+| 1 | the type adapter of the value (of its column, or given to `const`, `arg`, ...) | the connection |
+| 2 | the class of its data type | the type adapter of the requested type |
+| 3 | the type adapter of the type requested with one (`setRequestedType(type, adapter)`) | the class of its data type |
+| 4 | the connection | the type adapter of the value |
+
+A step without the transformation is skipped (`transformPlaceholder` and `transformProjection` are optional in a type adapter). A step that calls `next` twice goes through the rest of the chain twice. The type adapter of a requested type goes just before the connection whoever requested it, so the class of the data type always works with the values of its type; the class of a requested type converts nothing: the type adapter that requests it is the one that gives `next` a value of that type.
 
 ## What each context has
 

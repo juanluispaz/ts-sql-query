@@ -18,7 +18,7 @@ import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
-import { __conversionsOf, __classOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf } from '../nodes/adaptedTypeClass.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -93,7 +93,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     try {
                         // The id is read as it is: its SQL isn't converted
                         const adapterContext = this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined)
-                        result = __conversionsOf(__classOf(idColumnPrivate)).__transformValueFromDB(value, adapterContext, this.__sqlBuilder._nextTypeAdapter)
+                        result = this.__sqlBuilder._nextTypeAdapter.transformValueFromDB(value, adapterContext)
                     } catch(e) {
                         if (e instanceof TsSqlError) {
                             throw e
@@ -121,7 +121,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             } else {
                 result = this.__sqlBuilder._queryRunner.executeQuery('insertReturningMultipleLastInsertedId', this.__query, executionParams).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
-                    const conversions = __conversionsOf(__classOf(idColumnPrivate))
                     const idType = idColumnPrivate.__type
                     const defaultTypeAdapter = this.__sqlBuilder._nextTypeAdapter
                     const length = rows.length
@@ -130,7 +129,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         const row = rows[index]
                         let result
                         try {
-                            result = conversions.__transformValueFromDB(row, this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined), defaultTypeAdapter)
+                            result = defaultTypeAdapter.transformValueFromDB(row, this.__sqlBuilder._prepareTypeAdapterReadContext(idColumn, undefined))
                         } catch(e) {
                             if (e instanceof TsSqlError) {
                                 if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {

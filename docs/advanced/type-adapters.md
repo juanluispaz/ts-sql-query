@@ -6,10 +6,11 @@ search:
 
 A type adapter changes how a value is converted on its way to the database and back: the value sent, the SQL of its parameter, and the SQL of the value as it leaves the database. Use one when the conversion of the library for the [data type](../configuration/data-types.md) of a column isn't the one you need: a value of your own type the library doesn't know, like an RGB colour kept as bytes, a custom type whose values aren't those of the type it is based on, like a decimal kept as text, or a value the database must give in another form, like a date as its text.
 
-The conversion goes in one of two places:
+The conversion goes in one of three places:
 
 - In a column, as the last argument of its definition: a [type adapter of a column](#the-type-adapter-of-a-column) applies only to that column.
-- In the connection, overriding its transformations: [a conversion for every column of a type](#a-conversion-for-every-column-of-a-type) applies everywhere that type is used, and it's the `next` the type adapters of the columns call.
+- In the class of a data type, overriding its transformations, statics with the same names: they apply to every value of that type, after the type adapter of the value (see [The conversion of the class of a data type](../api/type-adapters.md#the-conversion-of-the-class-of-a-data-type)).
+- In the connection, overriding its transformations: [a conversion for every column of a type](#a-conversion-for-every-column-of-a-type) applies everywhere that type is used, and it's the last step of the chain, the `next` of the others.
 
 Every transformation receives what it converts and a context with the type of the value, the original one and the one requested for it (see [The original and the requested type](#the-original-and-the-requested-type)). The signatures and every property of the contexts are in the [Type adapters API](../api/type-adapters.md). A type adapter can also keep, for the query runner, what it knows of a parameter or of the whole query: see [Metadata of a query and its parameters](metadata.md).
 
@@ -254,7 +255,7 @@ A value has two types in the context, so that what was declared and what is sent
 
 Compare the requested type with the class, `context.requestedType === ReleaseDayType`, or its name with `type`, `context.requestedType.type === 'ReleaseDay'`. `of` gives the same class each time it's called with the same name, so both say the same. A comparison of the type with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile: the type is a class, not its name.
 
-`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter when this one calls `next`, and then through the conversion of the library: once, and not the adapter already converting the value.
+`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter just before the conversion of the connection, whoever requested it: once, and not the adapter already converting the value.
 
 What the requested type is in each transformation:
 

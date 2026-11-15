@@ -25,6 +25,7 @@ import type { LocalDateTimeType, LocalDateType } from '../typeSystem/localDates.
 import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
 import type { EnumType } from '../typeSystem/enum.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
+import type { DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 function assertType<T extends true>(_value?: T): void {}
@@ -299,3 +300,24 @@ assertType<Equal<TypeOf<typeof moneyConst>, CustomIntType<Money, 'Money'>>>()
 // @ts-expect-error the value of a constant is of the type of its data type
 probeConnection.const(5, MoneyType)
 assertType<Equal<typeof probeConnection.moneyArg, Argument<CustomIntType<Money, 'Money'>, 'optional', 'combined'>>>()
+
+// The conversions of the values of a data type: statics of its class, with the names and parameters of a type
+// adapter; a class of the user overrides the ones it needs, and a signature of another shape is rejected
+abstract class ProbeConvertedIntType extends CustomIntTypeClass<number, 'ProbeConverted'> {
+    static override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
+    }
+    static override transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
+        context.setRequestedType('bigint')
+        return next.transformProjection(sql, context)
+    }
+}
+assertType<Equal<typeof ProbeConvertedIntType.transformValueToDB, (value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter) => unknown>>()
+assertType<Equal<typeof ProbeConvertedIntType.transformPlaceholder, (placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter) => string>>()
+// @ts-expect-error a placeholder is a text
+abstract class ProbeWrongConversionType extends CustomIntTypeClass<number, 'ProbeConverted'> {
+    static override transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): number {
+        return next.transformPlaceholder(placeholder, context).length
+    }
+}
+void ProbeWrongConversionType

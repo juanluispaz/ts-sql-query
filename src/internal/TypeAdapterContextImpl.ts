@@ -39,11 +39,14 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     /** The context of the query of what is processed, where the metadata of the query goes; none to discard it */
     private queryContext: QueryContextImpl | undefined
 
-    /** The type adapter of the type requested with one (setRequestedType), and whether `next` applied it already */
-    private requestedTypeAdapter: TypeAdapter | undefined = undefined
-    private requestedTypeAdapterApplied = false
-    /** The type adapter of the original type, which is already in the chain */
-    private originalTypeAdapter: TypeAdapter | undefined = undefined
+    /**
+     * The chain of the conversion of a value (see NextTypeAdapter): the class it is converted with, its type adapter,
+     * the type adapter of the type requested with one (setRequestedType), and the step of the chain being applied
+     */
+    conversionClass: DataTypeConversions | undefined = undefined
+    conversionTypeAdapter: TypeAdapter | undefined = undefined
+    requestedTypeAdapter: TypeAdapter | undefined = undefined
+    conversionStep: ConversionStep = conversionStepTypeAdapter
 
     valueSentToDB: unknown = undefined
     output: ProjectionOutput = 'resultColumn'
@@ -110,22 +113,19 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     }
 
     private startConversion(originalType: DataTypeClass): void {
-        this.originalTypeAdapter = __typeAdapterOf(originalType)
+        this.conversionClass = originalType as unknown as DataTypeConversions
+        this.conversionTypeAdapter = __typeAdapterOf(originalType)
         this.requestedTypeAdapter = undefined
-        this.requestedTypeAdapterApplied = false
+        this.conversionStep = conversionStepTypeAdapter
     }
-    /** The type adapter of the requested type that `next` applies: once, and never the one already in the chain */
-    takeRequestedTypeAdapter(): TypeAdapter | undefined {
-        const typeAdapter = this.requestedTypeAdapter
-        if (!typeAdapter || this.requestedTypeAdapterApplied || typeAdapter === this.originalTypeAdapter) {
-            return undefined
-        }
-        this.requestedTypeAdapterApplied = true
-        return typeAdapter
-    }
-    /** The placeholder of the parameter goes through the type adapter of the type requested for its value again */
-    startPlaceholder(): void {
-        this.requestedTypeAdapterApplied = false
+    /**
+     * The placeholder of the parameter, of a value of that type, goes through the whole chain again, with the type
+     * adapter of the type requested for its value
+     */
+    startPlaceholder(typeClass: DataTypeClass): void {
+        this.conversionClass = typeClass as unknown as DataTypeConversions
+        this.conversionTypeAdapter = __typeAdapterOf(typeClass)
+        this.conversionStep = conversionStepTypeAdapter
     }
 
     private resolvePendingProjection(): void {
@@ -199,9 +199,31 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     }
 }
 
+/** The conversions of the values of a class of a data type: its statics, as BaseType declares them */
+export interface DataTypeConversions {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
+    transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
+    transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
+}
+
+/** The steps of the chain of a conversion, in the order a value goes to the database */
+type ConversionStep = 0 | 1 | 2 | 3
+/** The type adapter of the value */
+const conversionStepTypeAdapter = 0
+/** The conversion of its data type, the statics of its class */
+const conversionStepDataType = 1
+/** The type adapter of the type requested with one (setRequestedType), unless it is the one of the value */
+const conversionStepRequestedTypeAdapter = 2
+/** The conversion of the connection */
+const conversionStepConnection = 3
+
 /**
- * The `next` a type adapter receives: the type adapter of the type requested with one, if the chain hasn't applied it
- * yet, and then the connection. One for each connection; it keeps nothing of a conversion (the context does)
+ * The `next` of the conversion of a value, and where it starts: the type adapter of the value, then the conversion of
+ * its data type (the statics of its class), then the type adapter of the type requested with one, and then the
+ * connection; a value read goes through them the other way round, each one calling `next` with what it received.
+ * One for each connection; it keeps nothing of a conversion: the context has the step being applied, and each call
+ * gives it back as it found it, so a step that calls `next` twice goes through the rest of the chain twice
  */
 export class NextTypeAdapter implements DefaultTypeAdapter {
     private readonly connection: DefaultTypeAdapter
@@ -211,35 +233,93 @@ export class NextTypeAdapter implements DefaultTypeAdapter {
     }
 
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        const typeAdapter = requestedTypeAdapterOf(context)
-        if (typeAdapter) {
-            return typeAdapter.transformValueFromDB(value, context, this)
+        if (!(context instanceof TypeAdapterContextImpl)) {
+            return this.connection.transformValueFromDB(value, context)
         }
-        return this.connection.transformValueFromDB(value, context)
+        const step = context.conversionStep
+        let result
+        if (step < conversionStepDataType && context.conversionTypeAdapter) {
+            context.conversionStep = conversionStepDataType
+            result = context.conversionTypeAdapter.transformValueFromDB(value, context, this)
+        } else if (step < conversionStepRequestedTypeAdapter) {
+            context.conversionStep = conversionStepRequestedTypeAdapter
+            result = context.conversionClass!.transformValueFromDB(value, context, this)
+        } else if (step < conversionStepConnection && requestedTypeAdapterOf(context)) {
+            context.conversionStep = conversionStepConnection
+            result = context.requestedTypeAdapter!.transformValueFromDB(value, context, this)
+        } else {
+            return this.connection.transformValueFromDB(value, context)
+        }
+        context.conversionStep = step
+        return result
     }
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const typeAdapter = requestedTypeAdapterOf(context)
-        if (typeAdapter) {
-            return typeAdapter.transformValueToDB(value, context, this)
+        if (!(context instanceof TypeAdapterContextImpl)) {
+            return this.connection.transformValueToDB(value, context)
         }
-        return this.connection.transformValueToDB(value, context)
+        const step = context.conversionStep
+        let result
+        if (step < conversionStepDataType && context.conversionTypeAdapter) {
+            context.conversionStep = conversionStepDataType
+            result = context.conversionTypeAdapter.transformValueToDB(value, context, this)
+        } else if (step < conversionStepRequestedTypeAdapter) {
+            context.conversionStep = conversionStepRequestedTypeAdapter
+            result = context.conversionClass!.transformValueToDB(value, context, this)
+        } else if (step < conversionStepConnection && requestedTypeAdapterOf(context)) {
+            context.conversionStep = conversionStepConnection
+            result = context.requestedTypeAdapter!.transformValueToDB(value, context, this)
+        } else {
+            return this.connection.transformValueToDB(value, context)
+        }
+        context.conversionStep = step
+        return result
     }
     transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext): string {
-        const typeAdapter = requestedTypeAdapterOf(context)
-        if (typeAdapter?.transformPlaceholder) {
-            return typeAdapter.transformPlaceholder(placeholder, context, this)
+        if (!(context instanceof TypeAdapterContextImpl)) {
+            return this.connection.transformPlaceholder(placeholder, context)
         }
-        return this.connection.transformPlaceholder(placeholder, context)
+        const step = context.conversionStep
+        let result
+        if (step < conversionStepDataType && context.conversionTypeAdapter?.transformPlaceholder) {
+            context.conversionStep = conversionStepDataType
+            result = context.conversionTypeAdapter.transformPlaceholder(placeholder, context, this)
+        } else if (step < conversionStepRequestedTypeAdapter) {
+            context.conversionStep = conversionStepRequestedTypeAdapter
+            result = context.conversionClass!.transformPlaceholder(placeholder, context, this)
+        } else if (step < conversionStepConnection && requestedTypeAdapterOf(context)?.transformPlaceholder) {
+            context.conversionStep = conversionStepConnection
+            result = context.requestedTypeAdapter!.transformPlaceholder!(placeholder, context, this)
+        } else {
+            return this.connection.transformPlaceholder(placeholder, context)
+        }
+        context.conversionStep = step
+        return result
     }
     transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        const typeAdapter = requestedTypeAdapterOf(context)
-        if (typeAdapter?.transformProjection) {
-            return typeAdapter.transformProjection(sql, context, this)
+        if (!(context instanceof TypeAdapterContextImpl)) {
+            return this.connection.transformProjection(sql, context)
         }
-        return this.connection.transformProjection(sql, context)
+        const step = context.conversionStep
+        let result
+        if (step < conversionStepDataType && context.conversionTypeAdapter?.transformProjection) {
+            context.conversionStep = conversionStepDataType
+            result = context.conversionTypeAdapter.transformProjection(sql, context, this)
+        } else if (step < conversionStepRequestedTypeAdapter) {
+            context.conversionStep = conversionStepRequestedTypeAdapter
+            result = context.conversionClass!.transformProjection(sql, context, this)
+        } else if (step < conversionStepConnection && requestedTypeAdapterOf(context)?.transformProjection) {
+            context.conversionStep = conversionStepConnection
+            result = context.requestedTypeAdapter!.transformProjection!(sql, context, this)
+        } else {
+            return this.connection.transformProjection(sql, context)
+        }
+        context.conversionStep = step
+        return result
     }
 }
 
-function requestedTypeAdapterOf(context: unknown): TypeAdapter | undefined {
-    return context instanceof TypeAdapterContextImpl ? context.takeRequestedTypeAdapter() : undefined
+/** The type adapter of the type requested with one, unless it is the one of the value, which is already in the chain */
+function requestedTypeAdapterOf(context: TypeAdapterContextImpl): TypeAdapter | undefined {
+    const typeAdapter = context.requestedTypeAdapter
+    return typeAdapter === context.conversionTypeAdapter ? undefined : typeAdapter
 }

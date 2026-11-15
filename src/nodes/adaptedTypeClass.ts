@@ -1,4 +1,4 @@
-import type { DataTypeClass, DefaultTypeAdapter, SqlDataType, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { DataTypeClass, SqlDataType, TypeAdapter } from '../TypeAdapter.js'
 
 // The type adapter of a value source is part of its class: a value source with a type adapter is an instance of a
 // subclass of the class of its data type that carries the adapter. That subclass is created once for each class and
@@ -17,23 +17,6 @@ const classIdKey: unique symbol = Symbol('dataTypeClassId')
 const adaptedClassesKey: unique symbol = Symbol('adaptedClasses')
 
 let lastClassId = 0
-
-/**
- * The conversions of the values of a data type, the ones of a type adapter: every class of a data type has them, from
- * ValueSourceRoot, where they apply the conversion of the connection (`next`); the class with a type adapter calls the
- * adapter. So a value goes through the connection, then its data type, then its type adapter
- */
-export interface DataTypeClassConversions {
-    __transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
-    __transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
-    __transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
-    __transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string
-}
-
-/** The conversions of the values of a class of a data type */
-export function __conversionsOf(typeClass: DataTypeClass): DataTypeClassConversions {
-    return typeClass as unknown as DataTypeClassConversions
-}
 
 interface AdaptableClass {
     [typeAdapterOfClass]?: TypeAdapter | undefined
@@ -89,27 +72,9 @@ export function __adaptedTypeClassOf(typeClass: DataTypeClass, typeAdapter: Type
 }
 
 function createAdaptedClass(base: DataTypeClass, typeAdapter: TypeAdapter, withSqlDataType: boolean): DataTypeClass {
-    const Base = base as unknown as (abstract new () => object) & DataTypeClassConversions
-    const adapted = class extends Base {
-        static override __transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-            return typeAdapter.transformValueFromDB(value, context, next)
-        }
-        static override __transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-            return typeAdapter.transformValueToDB(value, context, next)
-        }
-        static override __transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string {
-            if (typeAdapter.transformPlaceholder) {
-                return typeAdapter.transformPlaceholder(placeholder, context, next)
-            }
-            return super.__transformPlaceholder(placeholder, context, next)
-        }
-        static override __transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
-            if (typeAdapter.transformProjection) {
-                return typeAdapter.transformProjection(sql, context, next)
-            }
-            return super.__transformProjection(sql, context, next)
-        }
-    } as unknown as AdaptableClass
+    // It only carries the adapter: the chain of the conversions applies it (NextTypeAdapter)
+    const Base = base as unknown as abstract new () => object
+    const adapted = class extends Base {} as unknown as AdaptableClass
     Object.defineProperty(adapted, 'name', { value: (base as unknown as { name: string }).name })
     Object.defineProperty(adapted, typeAdapterOfClass, { value: typeAdapter })
     Object.defineProperty(adapted, unadaptedClass, { value: base })

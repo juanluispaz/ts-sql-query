@@ -97,12 +97,10 @@ A few methods of a value source depend on its node and not only on its data type
   subclass of the class of its data type that carries the adapter, created once for each class and adapter
   ([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)). A creation receives only that class, already carrying its
   adapter: its caller builds it with `__adaptedTypeClassOf(<class of the data type>, <adapter>)`; `__typeClassOf` and
-  `__sameTypeClassOf` give the class without the adapter;
-- the conversions of the values of its data type, statics of the class (`__transformValueFromDB`, `__transformValueToDB`,
-  `__transformPlaceholder`, `__transformProjection`, `DataTypeClassConversions`): `ValueSourceRoot` applies the ones
-  of the connection, and the subclass with a type adapter calls the adapter with them as `next`. The SQL builder and
-  the query builders convert a value through its class (`__conversionsOf`), so it goes through the connection, then
-  its data type, then its type adapter;
+  `__sameTypeClassOf` give the class without the adapter. The subclass only carries the adapter: the conversions of a
+  value (the type adapter, then the statics of the class of its data type, `transformValueToDB`, ..., in `BaseType`,
+  then the type adapter of a requested type, then the connection) are the chain of `NextTypeAdapter`
+  (`src/internal/TypeAdapterContextImpl.ts`), where the SQL builder and the query builders start them;
 - the delegation of each method of the node to `__node`;
 - `isConstValue`, `getConstValue`, `allowWhen` and `disallowWhen`, which every value source has;
 - the functions of the methods two families of data types declare (`__asRequiredInOptionalObjectOf`,

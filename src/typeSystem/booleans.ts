@@ -1,10 +1,9 @@
-import { BaseType, type ILogicalValue, type IValueWithType, type OptionalOf, type SourceOf, type ValueSource } from './base.js'
+import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType, type OptionalOf, type SourceOf, type ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { MergeOptional, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
-import type { HasSource } from '../utils/ITableOrView.js'
-import type { optionalType, valueSourceType, valueType } from '../utils/symbols.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
+import type { logicalTypes } from '../utils/symbols.js'
 
 /*
  * The logical data types: the boolean value, and the two conditions (`if`, `alwaysIf`). They share the group
@@ -20,6 +19,7 @@ export abstract class BooleanType extends EqualableType<boolean> {
     static override readonly type = 'boolean'
     static override readonly customType = undefined
     declare [typeName]: 'type:boolean:logical:'
+    declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     declare [operandTypeName]: 'type:boolean:logical:'
 
     abstract negate(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
@@ -29,13 +29,6 @@ export abstract class BooleanType extends EqualableType<boolean> {
     abstract or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     abstract onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
     abstract ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
-}
-
-/** What a condition adds to its data type: its source and its optionality */
-export interface ConditionOfType</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE extends ConditionType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends HasSource<SOURCE> {
-    [valueType]: boolean
-    [optionalType]: OPTIONAL_TYPE
-    [valueSourceType]: TYPE
 }
 
 /** The root of the conditions */

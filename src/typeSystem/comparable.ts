@@ -2,9 +2,10 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBoolean } from './dataTypes.js'
 import type { IValueWithType, OptionalOf, SourceOf, CustomTypeClass, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { BooleanType, IfValueSource } from './booleans.js'
+import type { BooleanType, IfType, IfValueSource } from './booleans.js'
 import type { MergeOptional } from './valueSource.js'
 import { comparableValueSource, operandTypeName, typeName } from '../utils/symbols.js'
+import type { logicalTypes } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { TypedValueSource } from './valueSource.js'
 
@@ -21,6 +22,7 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableTyp
     }
 
     declare [comparableValueSource]: 'ComparableValueSource'
+    declare [logicalTypes]: { boolean: BooleanType, if: IfType }
     abstract lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     abstract lessThan(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     abstract lessThan<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>

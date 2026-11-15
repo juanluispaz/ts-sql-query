@@ -2,6 +2,7 @@ import type { CustomType } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, valueSourceType, valueType } from '../utils/symbols.js'
+import type { intType, logicalTypes } from '../utils/symbols.js'
 import type { OptionalType, TypedValueSource } from './valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 
@@ -140,6 +141,35 @@ export interface ILogicalValue extends ILogicalValueSource<any, any> {
 export interface IConditionValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ILogicalValueSource<SOURCE, OPTIONAL_TYPE> {
     [typeName]: 'type:if:logical:' | 'type:alwaysIf:logical:'
 }
+
+/** What a position that takes an int or a double accepts */
+export type INumberValue = IValueWithType<`type:${string}:number:`>
+
+/** What a condition adds to its data type: its source and its optionality */
+export interface ConditionOfType</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends HasSource<SOURCE> {
+    [valueType]: boolean
+    [optionalType]: OPTIONAL_TYPE
+    [valueSourceType]: TYPE
+}
+
+/*
+ * A base doesn't name a data type that extends it (a comparison of NullableType gives a BooleanType, which is a
+ * NullableType): the file of the base would depend on the file of that data type, which depends on the base. The base
+ * reads it from `this` instead, from a member each family declares, as high as it can import that data type.
+ */
+
+/** The data types a family gives in its comparisons: the boolean and the condition (declared with `logicalTypes`) */
+export interface LogicalTypes {
+    boolean: AnyType
+    if: AnyType
+}
+/** The boolean data type of the comparisons of X */
+export type BooleanOf<X> = X extends { [logicalTypes]: { boolean: infer BOOLEAN extends AnyType } } ? BOOLEAN : never
+/** The condition of the comparisons *IfValue of X, of the source and optionality given */
+export type IfValueSourceOf<X, SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> =
+    X extends { [logicalTypes]: { if: infer IF extends AnyType } } ? IF & ConditionOfType<SOURCE, IF, OPTIONAL_TYPE> : never
+/** The int of X, for a family of numbers that names it in its bases (declared with `intType`) */
+export type IntOf<X> = X extends { [intType]: infer INT extends AnyType } ? INT : never
 
 // Each reader answers any for any (a conditional over any would give the union of its branches): an argument of type any
 // keeps giving any, as with an indexed access

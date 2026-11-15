@@ -1,16 +1,28 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray } from './dataTypes.js'
-import { ValueSourceBaseType, type IValueWithType, type OptionalOf, type SourceOf, type TypeOf, type ValueSource } from './base.js'
-import type { BooleanType } from './booleans.js'
+import { ValueSourceBaseType, type AnyType, type BooleanOf, type IValueWithType, type OptionalOf, type SourceOf, type TypeOf, type ValueSource } from './base.js'
 import type { ColumnMarkersOf } from './valueSource.js'
-import type { operandTypeName } from '../utils/symbols.js'
-import type { NumberType, PromotedNumberType } from './numbers.js'
+import type { numberTypes, operandTypeName } from '../utils/symbols.js'
+
+/** The data types of the group number (declared with `numberTypes` by NumberType) */
+export interface NumberTypes {
+    number: AnyType
+    int: AnyType
+    double: AnyType
+}
 
 /**
  * The data type of the value of a null replaced by a fallback: the data type of the value source, but a number widens
- * like in an operation (coalesce(<int>, <double>) is a double)
+ * like in an operation (coalesce(<int>, <double>) is a double). OPERAND is the data type of the fallback, or
+ * `'value'` for a value given as a JavaScript value (a number can be either an int or a double)
  */
-export type CoalesceTypeOf<X, OPERAND> = TypeOf<X> extends NumberType ? PromotedNumberType<TypeOf<X>, OPERAND> : TypeOf<X>
+export type CoalesceTypeOf<X, OPERAND> =
+    TypeOf<X> extends { [numberTypes]: infer NUMBER extends NumberTypes } ? (
+        TypeOf<X> extends NUMBER['double'] ? NUMBER['double'] :
+        OPERAND extends NUMBER['double'] ? NUMBER['double'] :
+        OPERAND extends NUMBER['int'] ? TypeOf<X> :
+        NUMBER['number']
+    ) : TypeOf<X>
 
 /** A data type whose value can be null */
 export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
@@ -19,9 +31,9 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         return !__isAggregatedArray(type, customType)
     }
 
-    abstract isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
-    abstract isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
-    abstract valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, NumberType>, 'required'>
+    abstract isNull(): ValueSource<SourceOf<this>, BooleanOf<this>, 'required'>
+    abstract isNotNull(): ValueSource<SourceOf<this>, BooleanOf<this>, 'required'>
+    abstract valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
     abstract valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, TypeOf<VALUE>>, OptionalOf<VALUE>>
     abstract nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     abstract nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, 'optional'>

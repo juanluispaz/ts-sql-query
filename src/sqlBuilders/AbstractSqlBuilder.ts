@@ -28,7 +28,7 @@ import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSour
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/booleans.js'
-import type { CustomEqualableType } from '../typeSystem/equalable.js'
+import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed

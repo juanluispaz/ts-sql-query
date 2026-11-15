@@ -1,7 +1,8 @@
 import { ComparableType } from './comparable.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { BooleanType, IfValueSource } from './booleans.js'
-import type { INumberValue, IntType } from './numbers.js'
+import type { INumberValue } from './base.js'
+import type { IntType } from './number.js'
 import type { MergeOptional, MergeRequired } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 

@@ -8,7 +8,7 @@ import type { ResultObjectValues } from '../complexProjections/resultWithOptiona
 import type { ColumnsForCompound } from '../complexProjections/compound.js'
 import type { ColumnsForWithView } from '../complexProjections/asWithView.js'
 import type { ValueSource } from '../typeSystem/base.js'
-import type { IntType } from '../typeSystem/numbers.js'
+import type { IntType } from '../typeSystem/number.js'
 import type { AnyValueSource, IExecutableSelectQuery, ValueSourceOf, ValueSourceValueTypeForResult, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, RemapIValueSourceType, RemapValueSourceType, RemapValueSourceTypeWithOptionalType } from '../typeSystem/base.js'

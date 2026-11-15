@@ -8,7 +8,9 @@ import {
     BigintType, BooleanType, CustomComparableType, CustomDecimalType, CustomIntType, DoubleType, EnumType, IntType,
     LocalDateType, StringDecimalType, StringType, Table, UuidType,
 } from '../../../src/exports/v2/index.js'
-import { NumberType, NumericType, IntegerType, RealType, DecimalType } from '../../../src/typeSystem/numbers.js'
+import { NumberType } from '../../../src/typeSystem/number.js'
+import { NumericType, IntegerType, RealType } from '../../../src/typeSystem/numeric.js'
+import { DecimalType } from '../../../src/typeSystem/decimal.js'
 import { ComparableType } from '../../../src/typeSystem/comparable.js'
 import { EqualableType } from '../../../src/typeSystem/equalable.js'
 import { NullableType } from '../../../src/typeSystem/nullable.js'

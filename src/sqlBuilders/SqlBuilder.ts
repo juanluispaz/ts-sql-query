@@ -19,7 +19,7 @@ import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSourc
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { IValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/booleans.js'
-import type { NumberType } from '../typeSystem/numbers.js'
+import type { NumberType } from '../typeSystem/number.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }

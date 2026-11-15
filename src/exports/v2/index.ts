@@ -21,6 +21,7 @@ export {
     CustomBooleanTypeAdapter,
     ForceTypeCast,
     type CustomType,
+    type DataTypeClass,
     type DefaultTypeAdapter,
     type ProjectionComparison,
     type ProjectionOutput,
@@ -68,13 +69,16 @@ export {
 export {
     BigintType,
     CustomBigintType,
-    CustomDecimalType,
     CustomDoubleType,
     CustomIntType,
     DoubleType,
     IntType,
+} from '../../typeSystem/number.js'
+
+export {
+    CustomDecimalType,
     StringDecimalType,
-} from '../../typeSystem/numbers.js'
+} from '../../typeSystem/decimal.js'
 
 export {
     StringType,
@@ -97,7 +101,7 @@ export {
 export {
     CustomEqualableType,
     EnumType,
-} from '../../typeSystem/equalable.js'
+} from '../../typeSystem/customEqualable.js'
 
 export {
     CustomComparableType,

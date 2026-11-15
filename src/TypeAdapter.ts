@@ -2,7 +2,6 @@ import { oracleDateParam } from './utils/metadataSymbols.js'
 import type { ConnectionConfiguration, DatabaseType } from './queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
 import { __isLocalDateTime, __isLocalTime } from './typeSystem/dataTypes.js'
-import type { AnyTypeClass } from './typeSystem/base.js'
 
 /**
  * Which custom type a value is, the family of the class of its data type, like `'customInt'` for
@@ -35,6 +34,12 @@ export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
  * like the value (two different values can give the same SQL, or two equal values different SQL).
  */
 export type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
+
+/** What a type adapter reads of the class of a data type (`StringType`, a class an `of` made): its type and custom type */
+export interface DataTypeClass {
+    readonly type: string
+    readonly customType: CustomType | undefined
+}
 
 /**
  * What a method of a type adapter receives of the value it works on and of the query. A value has two types:
@@ -78,7 +83,7 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
     /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
-    setRequestedType(type: AnyTypeClass): void
+    setRequestedType(type: DataTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -149,7 +154,7 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
     /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
-    setRequestedType(type: AnyTypeClass): void
+    setRequestedType(type: DataTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -191,7 +196,7 @@ export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the type of a class of a data type: `setRequestedType(StringType)`, `setRequestedType(ReleaseDayType)` */
-    setRequestedType(type: AnyTypeClass): void
+    setRequestedType(type: DataTypeClass): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**

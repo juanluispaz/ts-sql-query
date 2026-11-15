@@ -2,7 +2,7 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, CustomTypeClass, ValueSource } from './base.js'
-import type { IntType } from './numbers.js'
+import type { IntType } from './number.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 
 /*

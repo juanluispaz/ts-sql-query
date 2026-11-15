@@ -82,13 +82,13 @@ BaseType<VALUE_TYPE>                         the NType, the operand NType, the t
 │   ├── NullableType<VALUE_TYPE>             isNull, valueWhenNull, asOptional, onlyWhenOrNull, ...
 │   │   └── EqualableType<VALUE_TYPE>        equals, is, in, inN, ... (and their *IfValue forms)
 │   │       ├── BooleanType                  negate, and, or, onlyWhen, ...
-│   │       ├── EnumType<T, NAME>, CustomEqualableType<T, NAME>
+│   │       ├── EnumType<T, NAME>, CustomEqualableType<T, NAME>   (customEqualable.ts)
 │   │       └── ComparableType<VALUE_TYPE>   lessThan, between, ...
-│   │           ├── NumberType               the group number: IntType, DoubleType
-│   │           ├── NumericType<V>           the numbers that work only with themselves: abs, add, multiply, ...
-│   │           │   ├── IntegerType<V>       BigintType, CustomIntType, CustomBigintType
-│   │           │   ├── RealType<V>          its floating point functions keep the data type: CustomDoubleType
-│   │           │   └── DecimalType<V>       exact; what can't be exact gives a double: StringDecimalType, CustomDecimalType
+│   │           ├── NumberType               the group number: IntType, DoubleType                         (number.ts)
+│   │           ├── NumericType<V>           the numbers that work only with themselves: abs, add, multiply, ... (numeric.ts)
+│   │           │   ├── IntegerType<V>       BigintType, CustomIntType, CustomBigintType                    (number.ts)
+│   │           │   ├── RealType<V>          its floating point functions keep the data type: CustomDoubleType (number.ts)
+│   │           │   └── DecimalType<V>       exact; what can't be exact gives a double: StringDecimalType, CustomDecimalType (decimal.ts)
 │   │           ├── StringType
 │   │           ├── UuidsType<V>             UuidType, CustomUuidType
 │   │           ├── LocalDatesType / LocalTimesType / LocalDateTimesType and their leaves and custom ones
@@ -103,8 +103,19 @@ relative, so a method of a base gives back the data type of the value source it 
 ```ts
 abstract asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
 abstract equals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE):
-    ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
 ```
+
+**No file depends on a file that depends on it, counting the types.** A base doesn't name a data type that extends it:
+the comparisons of `NullableType` and `EqualableType` give a `BooleanType`, which is an `EqualableType`, so they declare
+`BooleanOf<this>` and `IfValueSourceOf<this, ...>` (in [`base.ts`](./base.ts)), which read a member that each family
+declares as high as it can import those data types: `declare [logicalTypes]: { boolean: BooleanType, if: IfType }` in
+`ComparableType`, `BooleanType`, `EnumType` and `CustomEqualableType`. In the same way `NumericType.sign()` gives
+`IntOf<this>` (`[intType]`, declared by `BigintType`, the custom numbers and `DecimalType`), and `CoalesceTypeOf` reads the
+data types of the group number from `[numberTypes]`, declared by `NumberType`. That is why the numbers are three files:
+the bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript and the custom ones
+([`number.ts`](./number.ts)), and the exact decimals ([`decimal.ts`](./decimal.ts)). A new family declares these members
+in its base, and the bases never import it.
 
 Each method declares the data type **the runtime gives** for its result (read it in `ValueSourceImpl.ts` before
 declaring it): a getter of a date gives `IntType`, `asString()` of a uuid gives `StringType`, `length()` gives
@@ -115,11 +126,12 @@ result, the base declares it through a type that asks the data type, like `Coale
 
 `int` and `double` are the numbers of JavaScript and work together, in the group `number`: an `int` position takes a
 `double` and an operation of both gives a `double`. The rule is `PromotedNumberType<RECEIVER, OPERAND>` in
-[`numbers.ts`](./numbers.ts): a `double` if any of them is a `double`, an `int` if both are, and `NumberType` (the data
+[`number.ts`](./number.ts): a `double` if any of them is a `double`, an `int` if both are, and `NumberType` (the data
 type of both) when one of them can be either. A number given as a value (`intColumn.add(1)`) gives `NumberType`:
 `1` and `0.5` are both `number` for TypeScript, and the runtime decides with the value (`Number.isInteger`).
-`valueWhenNull` widens the same way: `NullableType` declares its result as `CoalesceTypeOf<this, OPERAND>`, which is
-`PromotedNumberType` for a number and the data type of the value source for any other.
+`valueWhenNull` widens the same way: `NullableType` declares its result as `CoalesceTypeOf<this, OPERAND>` (`OPERAND` is
+`'value'` for a JavaScript value), which promotes like `PromotedNumberType` for a number of the group and is the data
+type of the value source for any other.
 
 The other numbers (`bigint`, `stringDecimal`, the custom ones) work only with themselves. An exact number (an integer
 or a decimal) has no `divide`, which wouldn't give an exact value (see `test/DEFERRED.md`); an exact decimal gives a

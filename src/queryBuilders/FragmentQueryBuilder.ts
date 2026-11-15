@@ -5,6 +5,7 @@ import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __mergeOptional, isValueSource } from '../typeSystem/valueSource.js'
 import { Argument } from '../typeSystem/arguments.js'
+import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 export class FragmentQueryBuilder {
     __typeClass: DataTypeClass
@@ -42,7 +43,7 @@ export class FragmentFunctionBuilder {
                     newArgs.push(arg)
                 } else {
                     const definition = this.definitions[i]!
-                    const newArg = __createConst(arg, definition.typeClass, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, __adaptedTypeClassOf(definition.typeClass, definition.adapter), definition.optionalType)
                     newArgs.push(newArg)
                 }
             }
@@ -87,7 +88,7 @@ export class FragmentFunctionBuilderIfValue {
                             noValue = true
                         }
                     }
-                    const newArg = __createConst(arg, definition.typeClass, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, __adaptedTypeClassOf(definition.typeClass, definition.adapter), definition.optionalType)
                     newArgs.push(newArg)
                 }
             }
@@ -135,7 +136,7 @@ export class FragmentFunctionBuilderMaybeOptional {
                         argOptionalType = 'optional'
                     }
                     const definition = this.definitions[i]!
-                    const newArg = __createConst(arg, definition.typeClass, definition.optionalType, definition.adapter)
+                    const newArg = __createConst(arg, __adaptedTypeClassOf(definition.typeClass, definition.adapter), definition.optionalType)
                     newArgs.push(newArg)
                 }
                 optionalType = __mergeOptional(optionalType, argOptionalType)

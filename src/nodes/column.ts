@@ -1,7 +1,6 @@
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { __ColumnPrivate } from '../utils/Column.js'
-import type { TypeAdapter } from '../TypeAdapter.js'
 import { valueSourceNode, type NodeStrategy } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { type ValueSourceRoot } from './valueSourceRoot.js'
@@ -54,8 +53,8 @@ export const dbColumnNode: NodeStrategy<DBColumnValueSource> = {
 }
 
 /** A column of a table, a view or values, of the data type of its class */
-export function __newDBColumn(typeClass: DataTypeClass, table: AnyTableOrView, name: string, typeAdapter: TypeAdapter | undefined): DBColumnValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)('required') as DBColumnValueSource
+export function __newDBColumn(typeClass: DataTypeClass, table: AnyTableOrView, name: string): DBColumnValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)('required') as DBColumnValueSource
     vs.__node = dbColumnNode
     vs.__name = name
     vs.__tableOrView = table

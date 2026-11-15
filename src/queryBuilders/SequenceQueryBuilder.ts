@@ -2,6 +2,7 @@ import type { Sequence } from '../expressions/sequence.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { __createSequence } from '../typeSystem/valueSourceFactory.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
+import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 export class SequenceQueryBuilder implements Sequence<any> {
     __sequenceName: string
@@ -14,9 +15,9 @@ export class SequenceQueryBuilder implements Sequence<any> {
         this.__typeAdapter = typeAdapter
     }
     nextValue(): any {
-        return __createSequence('_nextSequenceValue', this.__sequenceName, this.__typeClass, 'required', this.__typeAdapter) as any
+        return __createSequence('_nextSequenceValue', this.__sequenceName, __adaptedTypeClassOf(this.__typeClass, this.__typeAdapter), 'required') as any
     }
     currentValue(): any {
-        return __createSequence('_currentSequenceValue', this.__sequenceName, this.__typeClass, 'required', this.__typeAdapter) as any
+        return __createSequence('_currentSequenceValue', this.__sequenceName, __adaptedTypeClassOf(this.__typeClass, this.__typeAdapter), 'required') as any
     }
 }

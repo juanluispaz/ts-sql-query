@@ -8,6 +8,7 @@ import { proxyTypeAdapterFor } from './ProxyTypeAdapter.js'
 import type { OptionalType } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { __newDBColumn, type DBColumnValueSource } from '../nodes/column.js'
+import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 // The optionality of a column of a with view, as its type says (see OptionalTypeForWith in
 // complexProjections/asWithView.ts): outside the query that builds it, a value is required or optional. Keeping
@@ -31,7 +32,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
                 // Avoid treat the column as a custom boolean
                 typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
-            const withColumn = __newDBColumn(__projectedTypeClassOf(columnPrivate), table, property, typeAdapter)
+            const withColumn = __newDBColumn(__adaptedTypeClassOf(__projectedTypeClassOf(columnPrivate), typeAdapter), table, property)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {
@@ -63,7 +64,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
                 // Avoid treat the column as a custom boolean
                 typeAdapter = proxyTypeAdapterFor(typeAdapter)
             }
-            const withColumn = __newDBColumn(__projectedTypeClassOf(columnPrivate), table, prefix + property, typeAdapter)
+            const withColumn = __newDBColumn(__adaptedTypeClassOf(__projectedTypeClassOf(columnPrivate), typeAdapter), table, prefix + property)
             if (forWithView) {
                 withColumnOptionalType(withColumn, columnPrivate.__optionalType)
             } else {

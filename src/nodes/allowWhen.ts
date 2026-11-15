@@ -4,6 +4,7 @@ import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrVie
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
 import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import type { __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
@@ -88,7 +89,7 @@ export const allowWhenValueSourceNode: NodeStrategy<AllowWhenValueSource> = {
     },
 }
 
-export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueSource: NodeValueSource): AllowWhenValueSource {
+export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueSource: NodeValueSource, typeClass: DataTypeClass): AllowWhenValueSource {
     // Carry the wrapped source's aggregated-array descriptor forward: the
     // result projector reads `__aggregatedArrayColumns` / `__aggregatedArrayMode`
     // / `__aggreagtedProjectingOptionalValuesAsNullable` directly off the value
@@ -96,7 +97,7 @@ export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueS
     // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
     // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
     // is mishandled at read time.
-    const vs = new (__adaptedTypeClassOf(__sameTypeClassOf(valueSource), valueSource.__typeAdapter) as unknown as ValueSourceConstructor)(valueSource.__optionalType, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(valueSource.__optionalType, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
     vs.__node = allowWhenValueSourceNode
     vs.__valueSource = valueSource
     vs.__error = error

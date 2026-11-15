@@ -1,6 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, HasOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 } from '../sqlBuilders/SqlBuilder.js'
-import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
@@ -24,8 +23,8 @@ export const aggregateFunctions0ValueSourceNode: NodeStrategy<AggregateFunctions
     },
 }
 
-export function __newAggregateFunctions0ValueSource(operation: keyof AggregateFunctions0, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): AggregateFunctions0ValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as AggregateFunctions0ValueSource
+export function __newAggregateFunctions0ValueSource(operation: keyof AggregateFunctions0, typeClass: DataTypeClass, optionalType: OptionalType): AggregateFunctions0ValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as AggregateFunctions0ValueSource
     vs.__node = aggregateFunctions0ValueSourceNode
 
     vs.__operation = operation
@@ -63,8 +62,8 @@ export const aggregateFunctions1ValueSourceNode: NodeStrategy<AggregateFunctions
     },
 }
 
-export function __newAggregateFunctions1ValueSource(operation: keyof AggregateFunctions1, value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): AggregateFunctions1ValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as AggregateFunctions1ValueSource
+export function __newAggregateFunctions1ValueSource(operation: keyof AggregateFunctions1, value: any, typeClass: DataTypeClass, optionalType: OptionalType): AggregateFunctions1ValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as AggregateFunctions1ValueSource
     vs.__node = aggregateFunctions1ValueSourceNode
 
     vs.__operation = operation
@@ -104,8 +103,8 @@ export const aggregateFunctions1or2ValueSourceNode: NodeStrategy<AggregateFuncti
     },
 }
 
-export function __newAggregateFunctions1or2ValueSource(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): AggregateFunctions1or2ValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as AggregateFunctions1or2ValueSource
+export function __newAggregateFunctions1or2ValueSource(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, typeClass: DataTypeClass, optionalType: OptionalType): AggregateFunctions1or2ValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as AggregateFunctions1or2ValueSource
     vs.__node = aggregateFunctions1or2ValueSourceNode
 
     vs.__operation = operation

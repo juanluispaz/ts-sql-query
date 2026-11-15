@@ -25,6 +25,7 @@ import type { FragmentExpression } from './typeSystem/fragments.js'
 import { __dataTypeClassFrom } from './typeSystem/dataTypeClasses.js'
 // Registers the data types of the library (the only module with side effects)
 import './typeSystem/registerDataTypes.js'
+import { __adaptedTypeClassOf } from './nodes/adaptedTypeClass.js'
 
 class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -80,13 +81,13 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         // provided rows, so it must carry the writable-column marker (like a
         // table column, not a read-only view column). `__asColumn()` sets it,
         // matching `optionalColumn` below. See `Column.ts` for the model.
-        return __asColumn(__createDBColumn(this, '', __dataTypeClassFrom(type), adapter))
+        return __asColumn(__createDBColumn(this, '', __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter)))
     }
 
     protected optionalColumn<TYPE extends BuiltInDataType>(type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE] & Column
     protected optionalColumn<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'> & Column
     protected optionalColumn(type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
-        return __asOptionalColumn(__createDBColumn(this, '', __dataTypeClassFrom(type), adapter))
+        return __asOptionalColumn(__createDBColumn(this, '', __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter)))
     }
 
     protected virtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]

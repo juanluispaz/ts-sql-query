@@ -21,6 +21,7 @@ import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } fr
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
 import type { StringType } from '../typeSystem/strings.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
+import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
     /**
@@ -170,12 +171,12 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'sqlite', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'sqlite', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'sqlite', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: IValueSource<any, StringType, any>): ValueSource<any, StringType, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', undefined, value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1or2('_stringConcatDistinct', undefined, value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')
     }
 
     anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'sqlite', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'sqlite', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'sqlite', NAME>>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_anyValue', value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)) as any
+        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')) as any
     }
 
     /**

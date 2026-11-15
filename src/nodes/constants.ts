@@ -1,6 +1,5 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, HasOperation, SqlSequenceOperation } from '../sqlBuilders/SqlBuilder.js'
-import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
@@ -25,8 +24,8 @@ export const sqlOperationStatic0ValueSourceNode: NodeStrategy<SqlOperationStatic
     },
 }
 
-export function __newSqlOperationStatic0ValueSource(operation: keyof SqlOperationStatic0, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationStatic0ValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as SqlOperationStatic0ValueSource
+export function __newSqlOperationStatic0ValueSource(operation: keyof SqlOperationStatic0, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationStatic0ValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationStatic0ValueSource
     vs.__node = sqlOperationStatic0ValueSourceNode
 
     vs.__operation = operation
@@ -52,7 +51,7 @@ export const sqlOperationStaticBooleanValueSourceNode: NodeStrategy<SqlOperation
 }
 
 export function __newSqlOperationStaticBooleanValueSource(operation: '_true' | '_false', typeClass: DataTypeClass): SqlOperationStaticBooleanValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, undefined) as unknown as ValueSourceConstructor)('required') as SqlOperationStaticBooleanValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)('required') as SqlOperationStaticBooleanValueSource
     vs.__node = sqlOperationStaticBooleanValueSourceNode
 
     vs.__operation = operation
@@ -92,8 +91,8 @@ export const sqlOperationStatic1ValueSourceNode: NodeStrategy<SqlOperationStatic
     },
 }
 
-export function __newSqlOperationStatic1ValueSource(operation: keyof SqlOperationStatic1, value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationStatic1ValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as SqlOperationStatic1ValueSource
+export function __newSqlOperationStatic1ValueSource(operation: keyof SqlOperationStatic1, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationStatic1ValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationStatic1ValueSource
     vs.__node = sqlOperationStatic1ValueSourceNode
 
     vs.__operation = operation
@@ -151,8 +150,8 @@ export const sqlOperationConstValueSourceNode: NodeStrategy<SqlOperationConstVal
     },
 }
 
-export function __newSqlOperationConstValueSource(value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationConstValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as SqlOperationConstValueSource
+export function __newSqlOperationConstValueSource(value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationConstValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationConstValueSource
     vs.__node = sqlOperationConstValueSourceNode
 
     vs.__operation = '_const'
@@ -172,8 +171,8 @@ export const sequenceValueSourceNode: NodeStrategy<SequenceValueSource> = {
     },
 }
 
-export function __newSequenceValueSource(operation: keyof SqlSequenceOperation, sequenceName: string, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SequenceValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as SequenceValueSource
+export function __newSequenceValueSource(operation: keyof SqlSequenceOperation, sequenceName: string, typeClass: DataTypeClass, optionalType: OptionalType): SequenceValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SequenceValueSource
     vs.__node = sequenceValueSourceNode
 
     vs.__operation = operation
@@ -195,8 +194,8 @@ export const nullValueSourceNode: NodeStrategy<NullValueSource> = {
     },
 }
 
-export function __newNullValueSource(typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): NullValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as NullValueSource
+export function __newNullValueSource(typeClass: DataTypeClass, optionalType: OptionalType): NullValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as NullValueSource
     vs.__node = nullValueSourceNode
     vs.__operation = '_asNullValue'
     return vs

@@ -17,6 +17,7 @@ import type { FragmentExpression } from './typeSystem/fragments.js'
 import { __dataTypeClassFrom } from './typeSystem/dataTypeClasses.js'
 // Registers the data types of the library (the only module with side effects)
 import './typeSystem/registerDataTypes.js'
+import { __adaptedTypeClassOf } from './nodes/adaptedTypeClass.js'
 
 class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -59,13 +60,13 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected column<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]
     protected column<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'required'>
     protected column(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
-        return __createDBColumn(this, name, __dataTypeClassFrom(type), adapter)
+        return __createDBColumn(this, name, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter))
     }
 
     protected optionalColumn<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE]
     protected optionalColumn<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'>
     protected optionalColumn(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
-        return __asOptional(__createDBColumn(this, name, __dataTypeClassFrom(type), adapter))
+        return __asOptional(__createDBColumn(this, name, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter)))
     }
 
     protected virtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]

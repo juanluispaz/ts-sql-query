@@ -2666,7 +2666,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             addedColumns.push(columnName)
             columnsForInsert[columnName] = column
-            const sequenceValue = __createSequence('_nextSequenceValue', columnPrivate.__sequenceName, __typeClassOf(columnPrivate), 'required', columnPrivate.__typeAdapter)
+            const sequenceValue = __createSequence('_nextSequenceValue', columnPrivate.__sequenceName, __adaptedTypeClassOf(__typeClassOf(columnPrivate), columnPrivate.__typeAdapter), 'required')
             selectColumns[columnName] = sequenceValue
             flatSelectColumns[columnName] = sequenceValue
         }

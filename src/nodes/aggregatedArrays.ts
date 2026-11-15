@@ -85,7 +85,7 @@ function nullAggregateToSql(vs: AggregatedArrayValueSource, sqlBuilder: SqlBuild
 }
 
 function newAggregateSelect(node: NodeStrategy<AggregateSelectValueSource>, typeClass: DataTypeClass, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateSelectValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, undefined) as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateSelectValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateSelectValueSource
     vs.__node = node
     vs.__operation = '_inlineSelectAsValue'
     vs.__selectData = selectData
@@ -173,7 +173,7 @@ export function __newAggregateSelectValueSource(typeClass: DataTypeClass, select
 }
 
 function newAggregateValueAsArray(node: NodeStrategy<AggregateValueAsArrayValueSource>, typeClass: DataTypeClass, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateValueAsArrayValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, undefined) as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateValueAsArrayValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateValueAsArrayValueSource
     vs.__node = node
     vs.__operation = '_aggregateValueAsArray'
     vs.__aggregatedArrayDistinct = distinct

@@ -19,6 +19,7 @@ import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } fr
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
 import type { StringType } from '../typeSystem/strings.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
+import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'noopDB', NAME>> {
 
@@ -37,12 +38,12 @@ export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends A
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')
     }
 
     anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'noopDB', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_anyValue', value, __typeClassOf(valuePrivate), 'optional', valuePrivate.__typeAdapter)) as any
+        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')) as any
     }
 
     default(): Default {

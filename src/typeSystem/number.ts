@@ -11,6 +11,7 @@ import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 import type { DataTypeValueSource } from '../nodes/NodeStrategy.js'
 import type { SqlOperation1 } from '../sqlBuilders/SqlBuilder.js'
 import { isValueSource } from './valueSource.js'
+import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 /*
  * The numbers of JavaScript and the custom ones of them. int and double are the numbers of JavaScript and work
@@ -49,7 +50,7 @@ export abstract class NumberType extends ComparableType<number> {
     asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     asDouble(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, DoubleType, vs.__optionalType, vs.__typeAdapter)
+        return __newNoopValueSource(vs, __adaptedTypeClassOf(DoubleType, vs.__typeAdapter), vs.__optionalType)
     }
     /** The number as a bigint: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
     asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
@@ -191,7 +192,7 @@ export abstract class IntType extends NumberType {
     override asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     override asInt(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, IntType, vs.__optionalType, vs.__typeAdapter)
+        return __newNoopValueSource(vs, __adaptedTypeClassOf(IntType, vs.__typeAdapter), vs.__optionalType)
     }
     /** An int is converted to a double */
     override asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
@@ -202,7 +203,7 @@ export abstract class IntType extends NumberType {
     override asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
     override asBigint(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newNoopValueSource(vs, BigintType, vs.__optionalType, vs.__typeAdapter)
+        return __newNoopValueSource(vs, __adaptedTypeClassOf(BigintType, vs.__typeAdapter), vs.__optionalType)
     }
 }
 
@@ -224,7 +225,7 @@ function promotedNumberOperation(valueSource: DataTypeValueSource, value: any, o
         return __operation1(vs, operation, value, DoubleType)
     }
     if (isValueSource(value) ? value instanceof IntType : Number.isInteger(value)) {
-        return __newSqlOperation1ValueSource(operation, vs, value, IntType, getOptionalType2(vs, value), vs.__typeAdapter)
+        return __newSqlOperation1ValueSource(operation, vs, value, __adaptedTypeClassOf(IntType, vs.__typeAdapter), getOptionalType2(vs, value))
     }
-    return __newSqlOperation1ValueSource(operation, vs, value, DoubleType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
+    return __newSqlOperation1ValueSource(operation, vs, value, __adaptedTypeClassOf(DoubleType, getTypeAdapter2(vs, value)), getOptionalType2(vs, value))
 }

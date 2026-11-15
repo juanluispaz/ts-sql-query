@@ -1,7 +1,6 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, SqlFragmentOperation } from '../sqlBuilders/SqlBuilder.js'
 import { hasToSql } from '../sqlBuilders/SqlBuilder.js'
-import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
@@ -98,8 +97,8 @@ export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
     },
 }
 
-export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate?: boolean): FragmentValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as FragmentValueSource
+export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, isAggregate?: boolean): FragmentValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as FragmentValueSource
     vs.__node = fragmentValueSourceNode
     vs.__operation = '_fragment' // Needed to detect if parenthesis is required
 
@@ -127,8 +126,8 @@ export const functionCallValueSourceNode: NodeStrategy<FunctionCallValueSource> 
     },
 }
 
-export function __newFunctionCallValueSource(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): FunctionCallValueSource {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as FunctionCallValueSource
+export function __newFunctionCallValueSource(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): FunctionCallValueSource {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as FunctionCallValueSource
     vs.__node = functionCallValueSourceNode
 
     vs.__functionName = functionName
@@ -186,8 +185,8 @@ export const valueSourceFromBuilderNode: NodeStrategy<ValueSourceFromBuilder> = 
     },
 }
 
-export function __newValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): ValueSourceFromBuilder {
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType) as ValueSourceFromBuilder
+export function __newValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, typeClass: DataTypeClass, optionalType: OptionalType): ValueSourceFromBuilder {
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as ValueSourceFromBuilder
     vs.__node = valueSourceFromBuilderNode
     vs.__builder = builder
     vs.__fragmentBuilder = fragmentBuilder

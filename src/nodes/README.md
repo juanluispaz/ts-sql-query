@@ -44,7 +44,7 @@ Each kind of node has three things, side by side in its file:
 |---|---|---|
 | Its interface | `SqlOperation0ValueSource` | the fields of the node, on a `NodeValueSource` |
 | Its strategy | `sqlOperation0ValueSourceNode` | how it is written and what it reaches |
-| Its creation | `__newSqlOperation0ValueSource(operation, valueSource, typeClass, optionalType, typeAdapter)` | creates the value source with `new` of the class of `typeClass` with `typeAdapter` (see below), sets its node and its fields |
+| Its creation | `__newSqlOperation0ValueSource(operation, valueSource, typeClass, optionalType)` | creates the value source with `new` of `typeClass`, the class of the result with its type adapter (see below), sets its node and its fields |
 
 A creation receives **the class of the data type** of the value source it creates, never a name: the method of the
 class that calls it decides it (its own class, the boolean of a comparison, the int of `length`, ...), and
@@ -95,9 +95,9 @@ A few methods of a value source depend on its node and not only on its data type
   aggregated array, and `__node`;
 - its type adapter, `__typeAdapter`, read from its class: a value source with a type adapter is an instance of a
   subclass of the class of its data type that carries the adapter, created once for each class and adapter
-  ([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)). A creation receives the class of the data type and the adapter,
-  and makes the value source of that subclass (`__adaptedTypeClassOf`); `__typeClassOf` and `__sameTypeClassOf` give
-  the class without the adapter;
+  ([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)). A creation receives only that class, already carrying its
+  adapter: its caller builds it with `__adaptedTypeClassOf(<class of the data type>, <adapter>)`; `__typeClassOf` and
+  `__sameTypeClassOf` give the class without the adapter;
 - the conversions of the values of its data type, statics of the class (`__transformValueFromDB`, `__transformValueToDB`,
   `__transformPlaceholder`, `__transformProjection`, `DataTypeClassConversions`): `ValueSourceRoot` applies the ones
   of the connection, and the subclass with a type adapter calls the adapter with them as `next`. The SQL builder and
@@ -118,12 +118,12 @@ A method of a class doesn't see the fields of the run time, so it passes `this` 
 take it as a **`DataTypeValueSource`** ([`NodeStrategy.ts`](./NodeStrategy.ts)): the value source as a method of a data
 type class passes it. It requires only the NType (`[typeName]`), the member `BaseType` declares for TypeScript, so
 `this` of any class of a data type fits and a plain object doesn't; the function casts it once to `NodeValueSource`
-where it reads a field. The class says the operation, its operands and the class of the result; the functions of the
-nodes combine the optionality and the type adapter:
+where it reads a field. The class says the operation, its operands and the class of the result, with the type adapter
+the functions of the nodes combine (`__adaptedTypeClassOf`), and its optionality:
 
 ```ts
 concat(value: any): any {
-    return __newSqlOperation1ValueSource('_concat', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
+    return __newSqlOperation1ValueSource('_concat', this, value, __adaptedTypeClassOf(__typeClassOf(this), getTypeAdapter2(this, value)), getOptionalType2(this, value))
 }
 ```
 

@@ -1,12 +1,9 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, HasOperation, SelectData } from '../sqlBuilders/SqlBuilder.js'
-import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { isSelectQueryObject } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
-import { proxyTypeAdapterFor } from '../internal/ProxyTypeAdapter.js'
-import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
@@ -55,8 +52,8 @@ export const inlineSelectValueSourceNode: NodeStrategy<InlineSelectValueSource> 
 }
 
 export function __newInlineSelectValueSource(selectData: InlineSelectData, required: boolean, typeClass: DataTypeClass): InlineSelectValueSource {
-    const [optionalType, typeAdapter, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable] = valueSourceInitializationForInlineSelect(selectData, required)
-    const vs = new (__adaptedTypeClassOf(typeClass, typeAdapter) as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as InlineSelectValueSource
+    const [optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable] = valueSourceInitializationForInlineSelect(selectData, required)
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as InlineSelectValueSource
     vs.__node = inlineSelectValueSourceNode
     vs.__operation = '_inlineSelectAsValue'
 
@@ -103,12 +100,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'Result column for a select one column not found')
         }
         const valueSourcePrivate = __getValueSourcePrivate(result)
-        let typeAdapter = valueSourcePrivate.__typeAdapter
-        if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-            // Avoid treat the column as a custom boolean
-            typeAdapter = proxyTypeAdapterFor(typeAdapter)
-        }
-        return [required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
+        return [required ? 'required' : 'optional', valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
     } else {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline select')
     }

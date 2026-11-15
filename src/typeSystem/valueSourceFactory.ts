@@ -1,6 +1,8 @@
 import type { AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlOperationStatic0, SqlOperationStatic1, SqlSequenceOperation } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import type { DataTypeClass, TypeAdapter } from '../TypeAdapter.js'
+import { type DataTypeClass, type TypeAdapter, CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+import { proxyTypeAdapterFor } from '../internal/ProxyTypeAdapter.js'
+import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { __newAggregateFunctions0ValueSource, __newAggregateFunctions1ValueSource, __newAggregateFunctions1or2ValueSource } from '../nodes/aggregateFunctions.js'
@@ -33,24 +35,24 @@ function conditionIfBoolean(typeClass: DataTypeClass): DataTypeClass {
     return typeClass === BooleanType ? BooleanConditionType : typeClass
 }
 
-export function __createDBColumn(table: AnyTableOrView, name: string, typeClass: DataTypeClass, typeAdapter: TypeAdapter | undefined): any {
-    return __newDBColumn(typeClass, table, name, typeAdapter)
+export function __createDBColumn(table: AnyTableOrView, name: string, typeClass: DataTypeClass): any {
+    return __newDBColumn(typeClass, table, name)
 }
 
 export function __createValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newValueSourceFromBuilder(builder, fragmentBuilder, conditionIfBoolean(typeClass), optionalType, typeAdapter)
+    return __newValueSourceFromBuilder(builder, fragmentBuilder, __adaptedTypeClassOf(conditionIfBoolean(typeClass), typeAdapter), optionalType)
 }
 
-export function __createConst(value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSqlOperationConstValueSource(value, typeClass, optionalType, typeAdapter)
+export function __createConst(value: any, typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newSqlOperationConstValueSource(value, typeClass, optionalType)
 }
 
-export function __createStatic0(operation: keyof SqlOperationStatic0, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSqlOperationStatic0ValueSource(operation, typeClass, optionalType, typeAdapter)
+export function __createStatic0(operation: keyof SqlOperationStatic0, typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newSqlOperationStatic0ValueSource(operation, typeClass, optionalType)
 }
 
-export function __createStatic1(operation: keyof SqlOperationStatic1, value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSqlOperationStatic1ValueSource(operation, value, typeClass, optionalType, typeAdapter)
+export function __createStatic1(operation: keyof SqlOperationStatic1, value: any, typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newSqlOperationStatic1ValueSource(operation, value, typeClass, optionalType)
 }
 
 export function __createStaticBoolean(operation: '_true' | '_false'): any {
@@ -61,16 +63,16 @@ export function __createIfValueAlwaysNoop(optionalType: OptionalType): any {
     return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanConditionType, optionalType)
 }
 
-export function __createAggregateFunction0(operation: keyof AggregateFunctions0, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newAggregateFunctions0ValueSource(operation, typeClass, optionalType, typeAdapter)
+export function __createAggregateFunction0(operation: keyof AggregateFunctions0, typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newAggregateFunctions0ValueSource(operation, typeClass, optionalType)
 }
 
-export function __createAggregateFunction1(operation: keyof AggregateFunctions1, value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newAggregateFunctions1ValueSource(operation, value, typeClass, optionalType, typeAdapter)
+export function __createAggregateFunction1(operation: keyof AggregateFunctions1, value: any, typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newAggregateFunctions1ValueSource(operation, value, typeClass, optionalType)
 }
 
-export function __createAggregateFunction1or2(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newAggregateFunctions1or2ValueSource(operation, separator, value, typeClass, optionalType, typeAdapter)
+export function __createAggregateFunction1or2(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newAggregateFunctions1or2ValueSource(operation, separator, value, typeClass, optionalType)
 }
 
 export function __createAggregateValueAsArray(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean): any {
@@ -85,23 +87,28 @@ export function __createInlineSelect(selectData: InlineSelectData, required: boo
     // The data type of its one column (any other select is rejected when it is built)
     const result = selectData.__oneColumn ? selectData.__columns['result'] : undefined
     const resultPrivate = result && isValueSource(result) ? __getValueSourcePrivate(result) : undefined
-    return __newInlineSelectValueSource(selectData, required, resultPrivate ? __projectedTypeClassOf(resultPrivate) : BooleanType)
+    let typeAdapter = resultPrivate?.__typeAdapter
+    if (typeAdapter instanceof CustomBooleanTypeAdapter) {
+        // Avoid treat the column as a custom boolean
+        typeAdapter = proxyTypeAdapterFor(typeAdapter)
+    }
+    return __newInlineSelectValueSource(selectData, required, __adaptedTypeClassOf(resultPrivate ? __projectedTypeClassOf(resultPrivate) : BooleanType, typeAdapter))
 }
 
-export function __createFunctionCall(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newFunctionCallValueSource(functionName, functionParams, typeClass, optionalType, typeAdapter)
+export function __createFunctionCall(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newFunctionCallValueSource(functionName, functionParams, typeClass, optionalType)
 }
 
 export function __createFragment(sql: TemplateStringsArray, sqlParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate: boolean | undefined): any {
-    return __newFragmentValueSource(sql, sqlParams, conditionIfBoolean(typeClass), optionalType, typeAdapter, isAggregate)
+    return __newFragmentValueSource(sql, sqlParams, __adaptedTypeClassOf(conditionIfBoolean(typeClass), typeAdapter), optionalType, isAggregate)
 }
 
 export function __createTableOrViewRawFragment(tableOrView: AnyTableOrView, operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'): any {
     return new TableOrViewRawFragmentValueSource(tableOrView, operation)
 }
 
-export function __createSequence(operation: keyof SqlSequenceOperation, sequenceName: string, typeClass: DataTypeClass, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): any {
-    return __newSequenceValueSource(operation, sequenceName, typeClass, optionalType, typeAdapter)
+export function __createSequence(operation: keyof SqlSequenceOperation, sequenceName: string, typeClass: DataTypeClass, optionalType: OptionalType): any {
+    return __newSequenceValueSource(operation, sequenceName, typeClass, optionalType)
 }
 
 export function __createRawFragment(template: TemplateStringsArray, params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): any {

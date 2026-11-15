@@ -19,7 +19,8 @@ import { PostgreSqlConnection } from '../connections/PostgreSqlConnection.js'
 import type { StringType } from '../typeSystem/strings.js'
 import type { UuidType } from '../typeSystem/uuids.js'
 import type { LocalDateTimeType, LocalDateType } from '../typeSystem/localDates.js'
-import type { CustomEqualableType, EnumType } from '../typeSystem/customEqualable.js'
+import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
+import type { EnumType } from '../typeSystem/enum.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false

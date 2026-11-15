@@ -100,8 +100,11 @@ export {
 
 export {
     CustomEqualableType,
-    EnumType,
 } from '../../typeSystem/customEqualable.js'
+
+export {
+    EnumType,
+} from '../../typeSystem/enum.js'
 
 export {
     CustomComparableType,

@@ -59,6 +59,27 @@ export interface ValueSourceOfType</*in|out*/ SOURCE extends NSource, /*in|out*/
 /** A value source: its data type, with its source and its optionality */
 export type ValueSource<SOURCE extends NSource, TYPE extends AnyType, OPTIONAL_TYPE extends OptionalType> = TYPE & ValueSourceOfType<SOURCE, TYPE, OPTIONAL_TYPE>
 
+/** What a position that takes a value source of the data type accepts: its source, its optionality and the NType of an operand of the data type (an int takes a double), no methods */
+export interface IValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends TypedValueSource<SOURCE, any, OPTIONAL_TYPE> {
+    [typeName]: TYPE[typeof operandTypeName]
+}
+
+/** The value source of the same data type and optionality with another source (a column of an alias, of a with, ...) */
+export type RemapValueSourceType<SOURCE extends NSource, VALUE_SOURCE> =
+    VALUE_SOURCE extends ValueSourceOfType<any, infer TYPE, infer OPTIONAL_TYPE> ? ValueSource<SOURCE, TYPE, OPTIONAL_TYPE> : never
+
+/** The value source of the same data type with another source and another optionality */
+export type RemapValueSourceTypeWithOptionalType<SOURCE extends NSource, VALUE_SOURCE, OPTIONAL_TYPE extends OptionalType> =
+    VALUE_SOURCE extends ValueSourceOfType<any, infer TYPE, any> ? ValueSource<SOURCE, TYPE, OPTIONAL_TYPE> : never
+
+/** What a position that takes a value source of the same data type and optionality with another source accepts */
+export type RemapIValueSourceType<SOURCE extends NSource, VALUE_SOURCE> =
+    VALUE_SOURCE extends ValueSourceOfType<any, infer TYPE, infer OPTIONAL_TYPE> ? IValueSource<SOURCE, TYPE, OPTIONAL_TYPE> : never
+
+/** What a position that takes a value source of the same data type with another source and optionality accepts */
+export type RemapIValueSourceTypeWithOptionalType<SOURCE extends NSource, VALUE_SOURCE, OPTIONAL_TYPE extends OptionalType> =
+    VALUE_SOURCE extends ValueSourceOfType<any, infer TYPE, any> ? IValueSource<SOURCE, TYPE, OPTIONAL_TYPE> : never
+
 /** What a position that takes a value source with the given operand NType accepts */
 export interface IValueWithType</*in|out*/ OPERAND_TYPE_NAME extends string> extends TypedValueSource<any, any, any> {
     [typeName]: OPERAND_TYPE_NAME

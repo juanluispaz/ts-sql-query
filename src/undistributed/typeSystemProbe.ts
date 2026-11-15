@@ -2,7 +2,9 @@
 // current one. Nothing runs here.
 
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
-import type { ValueSource } from '../typeSystem/base.js'
+import type { RemapIValueSourceType, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
+import type { Argument, ArgForFn, MapArgumentToValueSource, TypeOfArgument } from '../typeSystem/arguments.js'
+import type { FragmentExpression } from '../typeSystem/fragments.js'
 import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSystem/booleans.js'
 import type { BigintType, CustomDecimalType, CustomDoubleType, CustomIntType, DoubleType, IntType, NumberType, StringDecimalType } from '../typeSystem/numbers.js'
 import { CustomDecimalType as CustomDecimalTypeClass } from '../typeSystem/numbers.js'
@@ -203,3 +205,33 @@ const emptyForNoValue = anArray.useEmptyArrayForNoValue()
 assertType<Equal<typeof emptyForNoValue, ValueSource<'s1/', AggregatedArrayProjectableAsNullableType<{ a?: number }[], { a: number | null }[]>, 'required'>>>()
 const asNullable = anArray.projectingOptionalValuesAsNullable()
 assertType<Equal<typeof asNullable, ValueSource<'s1/', AggregatedArrayType<{ a: number | null }[]>, 'optional'>>>()
+
+// Another source for a value source (a column of an alias, of a with, ...)
+assertType<Equal<RemapValueSourceType<'x/', typeof anInt>, ValueSource<'x/', IntType, 'required'>>>()
+assertType<Equal<RemapValueSourceTypeWithOptionalType<'x/', typeof aMoney, 'optional'>, ValueSource<'x/', CustomIntType<Money, 'Money'>, 'optional'>>>()
+const intInput: RemapIValueSourceType<'s2/', typeof anInt> = aDouble.asRequiredInOptionalObject() as unknown as ValueSource<'s2/', DoubleType, 'required'>
+void intInput
+// @ts-expect-error a text is not what an int position accepts
+const notAnIntInput: RemapIValueSourceType<'s1/', typeof anInt> = aString
+void notAnIntInput
+
+// The arguments of a fragment
+type IntArg = Argument<IntType, 'required', 'combined'>
+type OptionalMoneyArg = Argument<CustomIntType<Money, 'Money'>, 'optional', 'combined'>
+type ValueArg = Argument<StringType, 'required', 'value'>
+assertType<Equal<TypeOfArgument<IntArg>, number>>()
+assertType<Equal<TypeOfArgument<OptionalMoneyArg>, Money | null | undefined>>()
+assertType<Equal<MapArgumentToValueSource<'n/', IntArg>, ValueSource<'n/', IntType, 'required'>>>()
+assertType<Equal<ArgForFn<'s1/', ValueArg>, never>>()
+const moneyForArg: ArgForFn<'s2/', OptionalMoneyArg> = otherMoney
+void moneyForArg
+// @ts-expect-error a value argument of another type name
+const otherForArg: ArgForFn<'s1/', OptionalMoneyArg> = anOther
+void otherForArg
+
+// A fragment of a data type
+declare const intFragment: FragmentExpression<'n/', IntType, 'optional'>
+const fragmentValue = intFragment.sql`${aString} + 1` as unknown
+void fragmentValue
+const fragmentOfOne = intFragment.sql(null as unknown as TemplateStringsArray, aString)
+assertType<Equal<typeof fragmentOfOne, ValueSource<'s1/', IntType, 'optional'>>>()

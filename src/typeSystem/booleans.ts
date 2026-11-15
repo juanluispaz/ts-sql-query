@@ -83,3 +83,8 @@ export abstract class AlwaysIfType extends ConditionType {
 
 export type IfValueSource<SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> = IfType & ConditionOfType<SOURCE, IfType, OPTIONAL_TYPE>
 export type AlwaysIfValueSource<SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> = AlwaysIfType & ConditionOfType<SOURCE, AlwaysIfType, OPTIONAL_TYPE>
+
+/** A condition, or a boolean value, used as a condition that always applies (the where of a query, the on of a join) */
+export function asAlwaysIfValueSource<VALUE extends ILogicalValue>(valueSource: VALUE): AlwaysIfValueSource<SourceOf<VALUE>, OptionalOf<VALUE>> {
+    return valueSource as any
+}

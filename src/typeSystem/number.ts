@@ -4,7 +4,10 @@ import { IntegersType } from './numeric.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
 import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
-import type { intType, numberTypes } from '../utils/symbols.js'
+import { intType, type numberTypes } from '../utils/symbols.js'
+import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1, __typeClassOf, getOptionalType2, getTypeAdapter2, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import type { SqlOperation1 } from '../sqlBuilders/SqlBuilder.js'
+import { isValueSource } from './valueSource.js'
 
 /*
  * The numbers of JavaScript and the custom ones of them. int and double are the numbers of JavaScript and work
@@ -37,48 +40,145 @@ export abstract class NumberType extends ComparableType<number> {
     declare [operandTypeName]: `type:${string}:number:`
     declare [numberTypes]: { number: NumberType, int: IntType, double: DoubleType }
 
-    abstract asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>> // Maybe unsafe cast, the value is rounded when it is necessary
-    abstract asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>> // Maybe unsafe cast, the value is rounded when it is necessary
-    abstract abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    abstract ceil(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract floor(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract round(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract exp(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract ln(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract log10(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract sqrt(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract cbrt(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract sign(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract acos(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract asin(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract atan(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract cos(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract cot(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract sin(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract tan(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract power(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract power<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract logn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract logn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract roundn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract minValue(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
-    abstract minValue<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract maxValue(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
-    abstract maxValue<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract add(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
-    abstract add<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract subtract(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
-    abstract subtract<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract multiply(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
-    abstract multiply<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract divide(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract divide<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract modulo(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
-    abstract modulo<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract atan2(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    abstract atan2<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    /** The number as an int: a double is rounded (DoubleType), an int stays as it is */
+    asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    asInt(): any {
+        const vs = this as unknown as ValueSourceImpl
+        return __newNoopValueSource(vs, IntType, vs.__optionalType, vs.__typeAdapter)
+    }
+    asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    asDouble(): any {
+        return __operation0(this, '_asDouble', DoubleType)
+    }
+    /** The number as a bigint: a double is rounded (DoubleType), an int stays as it is */
+    asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
+    asBigint(): any {
+        const vs = this as unknown as ValueSourceImpl
+        return __newNoopValueSource(vs, BigintType, vs.__optionalType, vs.__typeAdapter)
+    }
+    abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    abs(): any {
+        return __operation0(this, '_abs', __typeClassOf(this))
+    }
+    ceil(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    ceil(): any {
+        return __operation0(this, '_ceil', IntType)
+    }
+    floor(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    floor(): any {
+        return __operation0(this, '_floor', IntType)
+    }
+    round(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    round(): any {
+        return __operation0(this, '_round', IntType)
+    }
+    exp(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    exp(): any {
+        return __operation0(this, '_exp', DoubleType)
+    }
+    ln(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    ln(): any {
+        return __operation0(this, '_ln', DoubleType)
+    }
+    log10(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    log10(): any {
+        return __operation0(this, '_log10', DoubleType)
+    }
+    sqrt(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    sqrt(): any {
+        return __operation0(this, '_sqrt', DoubleType)
+    }
+    cbrt(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    cbrt(): any {
+        return __operation0(this, '_cbrt', DoubleType)
+    }
+    sign(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    sign(): any {
+        return __operation0(this, '_sign', IntType)
+    }
+    acos(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    acos(): any {
+        return __operation0(this, '_acos', DoubleType)
+    }
+    asin(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    asin(): any {
+        return __operation0(this, '_asin', DoubleType)
+    }
+    atan(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    atan(): any {
+        return __operation0(this, '_atan', DoubleType)
+    }
+    cos(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    cos(): any {
+        return __operation0(this, '_cos', DoubleType)
+    }
+    cot(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    cot(): any {
+        return __operation0(this, '_cot', DoubleType)
+    }
+    sin(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    sin(): any {
+        return __operation0(this, '_sin', DoubleType)
+    }
+    tan(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    tan(): any {
+        return __operation0(this, '_tan', DoubleType)
+    }
+    power(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    power<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    power(value: any): any {
+        return __operation1(this, '_power', value, DoubleType)
+    }
+    logn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    logn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    logn(value: any): any {
+        return __operation1(this, '_logn', value, DoubleType)
+    }
+    roundn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    roundn(value: any): any {
+        return __operation1(this, '_roundn', value, DoubleType)
+    }
+    minValue(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
+    minValue<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    minValue(value: any): any {
+        return promotedNumberOperation(this, value, '_maximumBetweenTwoValues')
+    }
+    maxValue(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
+    maxValue<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    maxValue(value: any): any {
+        return promotedNumberOperation(this, value, '_minimumBetweenTwoValues')
+    }
+    add(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
+    add<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    add(value: any): any {
+        return promotedNumberOperation(this, value, '_add')
+    }
+    subtract(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
+    subtract<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    subtract(value: any): any {
+        return promotedNumberOperation(this, value, '_subtract')
+    }
+    multiply(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
+    multiply<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    multiply(value: any): any {
+        return promotedNumberOperation(this, value, '_multiply')
+    }
+    divide(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    divide<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    divide(value: any): any {
+        return __operation1(this, '_divide', value, DoubleType)
+    }
+    modulo(value: number): ValueSource<SourceOf<this>, PromotedNumberType<TypeOf<this>, NumberType>, OptionalOf<this>>
+    modulo<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<TypeOf<this>, TypeOf<VALUE>>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    modulo(value: any): any {
+        return promotedNumberOperation(this, value, '_modulo')
+    }
+    atan2(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    atan2<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    atan2(value: any): any {
+        return __operation1(this, '_atan2', value, DoubleType)
+    }
 }
 
 /** An integer number, a JavaScript number */
@@ -93,12 +193,21 @@ export abstract class DoubleType extends NumberType {
     static override readonly type = 'double'
     static override readonly customType = undefined
     declare [typeName]: 'type:double:number:'
+
+    /** A double is rounded */
+    override asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>> {
+        return __operation0(this, '_asInt', IntType)
+    }
+    /** A double is rounded */
+    override asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>> {
+        return __operation0(this, '_asBigint', BigintType)
+    }
 }
 
 /** An integer number of 64 bits, a JavaScript bigint */
 export abstract class BigintType extends IntegersType<bigint> {
-    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
-    static get [runtimeTypes]() { return numberRuntimeTypes }
+    /** The int its sign gives (NumericType can't import it) */
+    static readonly [intType] = IntType
     static override readonly type = 'bigint'
     static override readonly customType = undefined
     declare [intType]: IntType
@@ -106,5 +215,22 @@ export abstract class BigintType extends IntegersType<bigint> {
     declare [operandTypeName]: 'type:bigint:'
 }
 
-// After the classes it names, which extend NumberType: read by the getters of [runtimeTypes]
-const numberRuntimeTypes = { int: IntType, double: DoubleType, bigint: BigintType }
+// After the class it names, which extends NumberType: read by the getter of [runtimeTypes] (the double valueWhenNull
+// gives to an int with a double, while it lives in ValueSourceImpl)
+const numberRuntimeTypes = { double: DoubleType }
+
+/**
+ * An operation of an int or a double with another number (add, minValue, ...): a double with a double; an int with an
+ * int, a double with a double. A number given as a value is an int when it is an integer (TypeScript can't tell 2 from
+ * 2.5: the value decides it)
+ */
+function promotedNumberOperation(valueSource: object, value: any, operation: keyof SqlOperation1): any {
+    const vs = valueSource as ValueSourceImpl
+    if (vs instanceof DoubleType) {
+        return __operation1(vs, operation, value, DoubleType)
+    }
+    if (isValueSource(value) ? value instanceof IntType : Number.isInteger(value)) {
+        return __newSqlOperation1ValueSource(operation, vs, value, IntType, getOptionalType2(vs, value), vs.__typeAdapter)
+    }
+    return __newSqlOperation1ValueSource(operation, vs, value, DoubleType, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
+}

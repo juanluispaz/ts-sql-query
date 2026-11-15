@@ -75,13 +75,13 @@ export type ValueSourceConstructor = new (optionalType: OptionalType, typeAdapte
  * The class of the data type of a value source computed from this one: its own class, or the one its class says in
  * `static [computedType]` (the text of a uuid gives a text)
  */
-export function __typeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
+export function __typeClassOf(valueSource: object): DataTypeClass {
     const typeClass = __sameTypeClassOf(valueSource) as any
     return typeClass[computedType] ?? typeClass
 }
 
 /** The class of the data type of a value source, for a value source that keeps its SQL (`allowWhen`, `asOptional`, ...) */
-export function __sameTypeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
+export function __sameTypeClassOf(valueSource: object): DataTypeClass {
     if (valueSource instanceof ValueSourceImpl) {
         return valueSource.constructor as unknown as DataTypeClass
     }
@@ -397,141 +397,7 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     }
     // String
     // Number functions
-    asDouble(): any {
-        return __newSqlOperation0ValueSource('_asDouble', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-    }
-    asInt(): any { // test function
-        if (this.__customType === undefined && this.__type === 'double') {
-            // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return __newSqlOperation0ValueSource('_asInt', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-        }
-        return __newNoopValueSource(this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    asBigint(): any {
-        if (this.__customType === undefined && this.__type === 'double') {
-            // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return __newSqlOperation0ValueSource('_asBigint', this, __builtInTypeOf(this, 'bigint'), this.__optionalType, this.__typeAdapter)
-        }
-        return __newNoopValueSource(this, __builtInTypeOf(this, 'bigint'), this.__optionalType, this.__typeAdapter)
-    }
-    abs(): any {
-        return __newSqlOperation0ValueSource('_abs', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
-    ceil(): any {
-        if (this.__customType === undefined && this.__type === 'bigint') {
-            return __newSqlOperation0ValueSource('_ceil', this, __builtInTypeOf(this, 'bigint'), this.__optionalType, this.__typeAdapter)
-        } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return __newSqlOperation0ValueSource('_ceil', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_ceil', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    floor(): any {
-        if (this.__customType === undefined && this.__type === 'bigint') {
-            return __newSqlOperation0ValueSource('_floor', this, __builtInTypeOf(this, 'bigint'), this.__optionalType, this.__typeAdapter)
-        } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return __newSqlOperation0ValueSource('_floor', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_floor', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    round(): any {
-        if (this.__customType === undefined && this.__type === 'bigint') {
-            return __newSqlOperation0ValueSource('_round', this, __builtInTypeOf(this, 'bigint'), this.__optionalType, this.__typeAdapter)
-        } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return __newSqlOperation0ValueSource('_round', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_round', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    exp(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_exp', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_exp', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    ln(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_ln', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_ln', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    log10(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_log10', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_log10', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    sqrt(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_sqrt', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_sqrt', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    cbrt(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_cbrt', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_cbrt', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    sign(): any {
-        return __newSqlOperation0ValueSource('_sign', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
     // Trigonometric Functions
-    acos(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_acos', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_acos', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    asin(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_asin', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_asin', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    atan(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_atan', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_atan', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    cos(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_cos', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_cos', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    cot(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_cot', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_cot', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    sin(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_sin', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_sin', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
-    tan(): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation0ValueSource('_tan', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-        } else {
-            return __newSqlOperation0ValueSource('_tan', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
-        }
-    }
     // Date & Time Functions
     // SqlFunction1
     valueWhenNull(value: any): any {
@@ -580,68 +446,9 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return condition(__newSqlOperation1ValueSource('_or', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     // Trigonometric Functions
-    atan2(value: any): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation1ValueSource('_atan2', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        } else {
-            return __newSqlOperation1ValueSource('_atan2', this, value, __builtInTypeOf(this, 'double'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        }
-    }
     // String Functions
     // Number
-    power(value: any): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation1ValueSource('_power', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        } else {
-            return __newSqlOperation1ValueSource('_power', this, value, __builtInTypeOf(this, 'double'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        }
-    }
-    logn(value: any): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation1ValueSource('_logn', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        } else {
-            return __newSqlOperation1ValueSource('_logn', this, value, __builtInTypeOf(this, 'double'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        }
-    }
-    roundn(value: any): any {
-        if (this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return __newSqlOperation1ValueSource('_roundn', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        } else {
-            return __newSqlOperation1ValueSource('_roundn', this, value, __builtInTypeOf(this, 'double'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        }
-    }
-    /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
-     */
-    minValue(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_maximumBetweenTwoValues')
-    }
-    /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
-     */
-    maxValue(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_minimumBetweenTwoValues')
-    }
     // Number operators
-    add(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_add')
-    }
-    subtract(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_subtract')
-    }
-    multiply(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_multiply')
-    }
-    divide(value: any): any {
-        if (this.__customType === 'customDouble') {
-            return __newSqlOperation1ValueSource('_divide', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        } else {
-            return __newSqlOperation1ValueSource('_divide', this, value, __builtInTypeOf(this, 'double'), getOptionalType2(this, value), getTypeAdapter2(this, value))
-        }
-    }
-    modulo(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_modulo')
-    }
     // SqlFunction2
     // The marks of a column of a table, a view or values (a value source with the node of a column, DBColumnImpl.ts)
     __asColumn(this: __ColumnPrivate): any {
@@ -2389,24 +2196,17 @@ export function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter
     return undefined
 }
 
-function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
-    if ((thiz.__customType === undefined && thiz.__type === 'double') || (thiz.__customType === undefined && thiz.__type === 'bigint') || thiz.__customType === 'customInt' || thiz.__customType === 'customBigint' || thiz.__customType === 'customDouble' || __isExactDecimal(thiz.__type, thiz.__customType)) {
-        return __newSqlOperation1ValueSource(operation, thiz, value, __typeClassOf(thiz), getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
-    } else {
-        if (isValueSource(value)) {
-            const valuePrivate = __getValueSourcePrivate(value)
-            if (valuePrivate.__customType === undefined && valuePrivate.__type === 'int') {
-                return __newSqlOperation1ValueSource(operation, thiz, value, __builtInTypeOf(thiz, 'int'), getOptionalType2(thiz, value), thiz.__typeAdapter)
-            } else {
-                return __newSqlOperation1ValueSource(operation, thiz, value, __builtInTypeOf(thiz, 'double'), getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
-            }
-        }
-        if (Number.isInteger(value)) {
-            return __newSqlOperation1ValueSource(operation, thiz, value, __builtInTypeOf(thiz, 'int'), getOptionalType2(thiz, value), thiz.__typeAdapter)
-        } else {
-            return __newSqlOperation1ValueSource(operation, thiz, value, __builtInTypeOf(thiz, 'double'), getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
-        }
-    }
+
+/** An operation of the value source alone, whose result is of the data type of the class given */
+export function __operation0(valueSource: object, operation: keyof SqlFunction0 | keyof SqlBoolean0, typeClass: DataTypeClass): any {
+    const vs = valueSource as ValueSourceImpl
+    return __newSqlOperation0ValueSource(operation, vs, typeClass, vs.__optionalType, vs.__typeAdapter)
+}
+
+/** An operation of the value source with a value, whose result is of the data type of the class given */
+export function __operation1(valueSource: object, operation: keyof SqlOperation1, value: any, typeClass: DataTypeClass): any {
+    const vs = valueSource as ValueSourceImpl
+    return __newSqlOperation1ValueSource(operation, vs, value, typeClass, getOptionalType2(vs, value), getTypeAdapter2(vs, value))
 }
 
 export function condition(valueSource: ValueSourceImpl): ValueSourceImpl {

@@ -27,10 +27,10 @@ export class FragmentQueryBuilder {
 }
 
 export class FragmentFunctionBuilder {
-    definitions: Argument<any, any, any, any>[]
+    definitions: Argument<any, any, any>[]
     isAggregate: boolean
 
-    constructor(definitions: Argument<any, any, any, any>[], isAggregate: boolean = false) {
+    constructor(definitions: Argument<any, any, any>[], isAggregate: boolean = false) {
         this.definitions = definitions
         this.isAggregate = isAggregate
     }
@@ -62,11 +62,11 @@ export interface SqlBuilderSource {
 }
 
 export class FragmentFunctionBuilderIfValue {
-    definitions: Argument<any, any, any, any>[]
+    definitions: Argument<any, any, any>[]
     sqlBuilderSource: SqlBuilderSource
     isAggregate: boolean
 
-    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any, any>[], isAggregate: boolean = false) {
+    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any>[], isAggregate: boolean = false) {
         this.sqlBuilderSource = sqlBuilderSource
         this.definitions = definitions
         this.isAggregate = isAggregate
@@ -110,11 +110,11 @@ export class FragmentFunctionBuilderIfValue {
 }
 
 export class FragmentFunctionBuilderMaybeOptional {
-    definitions: Argument<any, any, any, any>[]
+    definitions: Argument<any, any, any>[]
     sqlBuilderSource: SqlBuilderSource
     isAggregate: boolean
 
-    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any, any>[], isAggregate: boolean = false) {
+    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any>[], isAggregate: boolean = false) {
         this.sqlBuilderSource = sqlBuilderSource
         this.definitions = definitions
         this.isAggregate = isAggregate

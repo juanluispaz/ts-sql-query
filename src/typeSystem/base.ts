@@ -59,10 +59,17 @@ export interface ValueSourceOfType</*in|out*/ SOURCE extends NSource, /*in|out*/
 /** A value source: its data type, with its source and its optionality */
 export type ValueSource<SOURCE extends NSource, TYPE extends AnyType, OPTIONAL_TYPE extends OptionalType> = TYPE & ValueSourceOfType<SOURCE, TYPE, OPTIONAL_TYPE>
 
-/** What a position that takes a value source of the data type accepts: its source, its optionality and the NType of an operand of the data type (an int takes a double), no methods */
-export interface IValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends TypedValueSource<SOURCE, any, OPTIONAL_TYPE> {
-    [typeName]: TYPE[typeof operandTypeName]
+/**
+ * What a position that takes a value source of an operand NType accepts: its source, its optionality and that NType, no
+ * methods. Generic in the NType and not in the data type, so two data types of the same operand NType (int and double)
+ * are the same input for TypeScript
+ */
+export interface IValueSourceOfOperand</*in|out*/ SOURCE extends NSource, /*in|out*/ OPERAND_TYPE_NAME extends string, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends TypedValueSource<SOURCE, any, OPTIONAL_TYPE> {
+    [typeName]: OPERAND_TYPE_NAME
 }
+
+/** What a position that takes a value source of the data type accepts (an int position takes a double) */
+export type IValueSource<SOURCE extends NSource, TYPE extends AnyType, OPTIONAL_TYPE extends OptionalType> = IValueSourceOfOperand<SOURCE, TYPE[typeof operandTypeName], OPTIONAL_TYPE>
 
 /** The value source of the same data type and optionality with another source (a column of an alias, of a with, ...) */
 export type RemapValueSourceType<SOURCE extends NSource, VALUE_SOURCE> =
@@ -85,14 +92,25 @@ export interface IValueWithType</*in|out*/ OPERAND_TYPE_NAME extends string> ext
     [typeName]: OPERAND_TYPE_NAME
 }
 
-/** What a position that takes a condition or a boolean value accepts (and, or) */
-export interface ILogicalValue extends HasSource<any> {
+/** What a position that takes a condition or a boolean value, of the source and optionality given, accepts */
+export interface ILogicalValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends HasSource<SOURCE> {
     [typeName]: `type:${string}:logical:`
-    [optionalType]: any
+    [optionalType]: OPTIONAL_TYPE
 }
 
-export type SourceOf<X> = X extends { [source]: infer SOURCE extends NSource } ? SOURCE : never
-export type OptionalOf<X> = X extends { [optionalType]: infer OPTIONAL_TYPE extends OptionalType } ? OPTIONAL_TYPE : never
+/** What a position that takes a condition or a boolean value accepts (and, or) */
+export interface ILogicalValue extends ILogicalValueSource<any, any> {
+}
+
+/** What a position that takes a condition, of the source and optionality given, accepts */
+export interface IConditionValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends ILogicalValueSource<SOURCE, OPTIONAL_TYPE> {
+    [typeName]: 'type:if:logical:' | 'type:alwaysIf:logical:'
+}
+
+// Each reader answers any for any (a conditional over any would give the union of its branches): an argument of type any
+// keeps giving any, as with an indexed access
+export type SourceOf<X> = 0 extends (1 & X) ? any : X extends { [source]: infer SOURCE extends NSource } ? SOURCE : never
+export type OptionalOf<X> = 0 extends (1 & X) ? any : X extends { [optionalType]: infer OPTIONAL_TYPE extends OptionalType } ? OPTIONAL_TYPE : never
 /** The data type of a value source (or the data type itself) */
-export type TypeOf<X> = X extends { [valueSourceType]: infer TYPE extends AnyType } ? TYPE : X
-export type ValueTypeOf<X> = X extends { [valueType]: infer VALUE_TYPE } ? VALUE_TYPE : never
+export type TypeOf<X> = 0 extends (1 & X) ? any : X extends { [valueSourceType]: infer TYPE extends AnyType } ? TYPE : X
+export type ValueTypeOf<X> = 0 extends (1 & X) ? any : X extends { [valueType]: infer VALUE_TYPE } ? VALUE_TYPE : never

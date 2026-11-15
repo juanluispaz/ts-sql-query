@@ -2,10 +2,18 @@ import type { IValueWithType, OptionalOf, SourceOf, TypeClass, ValueSource } fro
 import { EqualableType } from './equalable.js'
 import type { BooleanType, IfValueSource } from './booleans.js'
 import type { MergeOptional } from './valueSource.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
+import { comparableValueSource, operandTypeName, typeName } from '../utils/symbols.js'
+import type { NSource } from '../utils/sourceName.js'
+import type { TypedValueSource } from './valueSource.js'
+
+/** What a position that takes a value source of any data type with an order accepts (max, min) */
+export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> extends TypedValueSource<SOURCE, any, any> {
+    [comparableValueSource]: 'ComparableValueSource'
+}
 
 /** A data type whose values have an order */
 export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableType<VALUE_TYPE> {
+    declare [comparableValueSource]: 'ComparableValueSource'
     abstract lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     abstract lessThan(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     abstract lessThan<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>

@@ -1,6 +1,6 @@
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { EqualableValueSource, ComparableValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
+import type { EqualableValueSource, EnumValueSource, ComparableValueSource, CustomIntValueSource, CustomBigintValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomDecimalValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { Sequence } from '../expressions/sequence.js'
 import { AbstractConnection } from './AbstractConnection.js'
@@ -24,7 +24,7 @@ export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> exte
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalDateValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalTimeValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalDateTimeValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
-    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EnumValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<ComparableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Sequence<any> {

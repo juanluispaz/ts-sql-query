@@ -1,6 +1,6 @@
 import type { DataToProjectOf, DataToProjectOfAny, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { UsableKeyOf } from '../utils/objectUtils.js'
-import type { BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, IStringDecimalValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource } from './values.js'
+import type { BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomDecimalValueSource, IStringDecimalValueSource, ICustomIntValueSource, ICustomBigintValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, IEnumValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource } from './values.js'
 import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource.js'
 
 export interface Filter {
@@ -210,8 +210,8 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends ICustomLocalTimeValueSource<any, any, any, any> ? CustomLocalTimeFilter<T> :
         TYPE extends ICustomLocalDateTimeValueSource<any, any, any, any> ? CustomLocalDateTimeFilter<T> :
         TYPE extends IComparableValueSource<any, any, any, any> ? ComparableFilter<T> :
+        TYPE extends IEnumValueSource<any, any, any, any> ? EqualableFilter<T> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableFilter<T> :
-        TYPE extends INullableValueSource<any, any, any, any> ? NullableFilter :
         TYPE extends IAggregatedArrayValueSource<any, any, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
         Filter
     ) : never

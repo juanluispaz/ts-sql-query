@@ -235,3 +235,8 @@ const fragmentValue = intFragment.sql`${aString} + 1` as unknown
 void fragmentValue
 const fragmentOfOne = intFragment.sql(null as unknown as TemplateStringsArray, aString)
 assertType<Equal<typeof fragmentOfOne, ValueSource<'s1/', IntType, 'optional'>>>()
+
+// An argument of type any
+const equalsAny = aString.equals(5 as any)
+const equalsAnyIsUsable: ValueSource<'s1/', BooleanType, 'required'> = equalsAny
+void equalsAnyIsUsable

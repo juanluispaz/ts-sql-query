@@ -24,7 +24,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
         this.extension = extension
     }
 
-    withValues(filter: DynamicFilter<any, any>): BooleanValueSource<any, any> {
+    withValues(filter: DynamicFilter<any, any>): any {
         // The definition is walked as the columns it holds, nested objects included
         return this.processFilter(filter, this.definition as QueryColumns, this.extension, '')
     }

@@ -37,7 +37,7 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
 }
 
 /** An integer number that works only with itself (bigint, customInt, customBigint) */
-export abstract class IntegerType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+export abstract class IntegersType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     /** Whether a type and a custom type are of an integer number that works only with itself: a bigint, a customInt or a customBigint */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isBigint(type, customType) || customType === 'customInt'
@@ -46,7 +46,7 @@ export abstract class IntegerType</*in|out*/ VALUE_TYPE> extends NumericType<VAL
 }
 
 /** A floating point number that works only with itself (customDouble): its floating point functions keep its data type */
-export abstract class RealType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+export abstract class RealsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     /** Whether a type and a custom type are of a floating point number that works only with itself: a customDouble */
     protected static override __isOfGroup(_type: string, customType: CustomType | undefined): boolean {
         return customType === 'customDouble'

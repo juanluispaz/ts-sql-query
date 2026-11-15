@@ -1,6 +1,8 @@
+import type { CustomType } from '../TypeAdapter.js'
+import { __isString } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
-import type { BooleanType, IfValueSource } from './booleans.js'
+import type { BooleanType, IfValueSource } from './logical.js'
 import type { INumberValue } from './base.js'
 import type { IntType } from './number.js'
 import type { MergeOptional, MergeRequired } from './valueSource.js'
@@ -9,12 +11,12 @@ import { operandTypeName, typeName } from '../utils/symbols.js'
 /** What a position that takes a text accepts */
 export type IStringValue = IValueWithType<'type:string:'>
 
-/** A text */
-export abstract class StringType extends ComparableType<string> {
-    static override readonly type = 'string'
-    static override readonly customType = undefined
-    declare [typeName]: 'type:string:'
-    declare [operandTypeName]: 'type:string:'
+/** The family of the texts: what every text offers */
+export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a text */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isString(type, customType)
+    }
 
     // SqlComparator 1
     abstract equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
@@ -153,4 +155,12 @@ export abstract class StringType extends ComparableType<string> {
     abstract replaceAllInsensitive<VALUE extends IStringValue>(findString: VALUE, replaceWith: string): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     abstract replaceAllInsensitive<VALUE extends IStringValue, VALUE2 extends IStringValue>(findString: VALUE, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, TypeOf<this>, MergeOptional<MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>, OptionalOf<VALUE2>>>
     // Redefined methods
+}
+
+/** A text, a JavaScript string */
+export abstract class StringType extends StringsType<string> {
+    static override readonly type = 'string'
+    static override readonly customType = undefined
+    declare [typeName]: 'type:string:'
+    declare [operandTypeName]: 'type:string:'
 }

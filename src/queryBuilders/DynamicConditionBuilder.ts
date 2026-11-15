@@ -4,7 +4,7 @@ import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import type { ValueSource } from '../typeSystem/base.js'
-import type { BooleanType } from '../typeSystem/booleans.js'
+import type { BooleanType } from '../typeSystem/logical.js'
 
 // Joins an accumulated nested-filter path prefix with the next key using a dot
 // separator, matching the `column + '.' + key` form used deeper in the builder.

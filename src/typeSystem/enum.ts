@@ -1,6 +1,6 @@
 import type { CustomTypeClass } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { BooleanType, IfType } from './booleans.js'
+import type { BooleanType, IfType } from './logical.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import type { logicalTypes } from '../utils/symbols.js'
 

@@ -18,7 +18,7 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { IValueSource } from '../typeSystem/base.js'
-import type { AlwaysIfValueSource } from '../typeSystem/booleans.js'
+import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import type { NumberType } from '../typeSystem/number.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }

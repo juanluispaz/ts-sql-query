@@ -44,7 +44,7 @@ import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } fr
 import { Argument } from '../typeSystem/arguments.js'
 import type { AnyTypeClass, IValueSource, RemapValueSourceTypeWithOptionalType, TypeClass, ValueSource, ValueTypeOf } from '../typeSystem/base.js'
 import type { NullableType } from '../typeSystem/nullable.js'
-import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSystem/booleans.js'
+import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSystem/logical.js'
 import type { FragmentExpression } from '../typeSystem/fragments.js'
 import type { LocalDateTimeType, LocalDateType, LocalTimeType } from '../typeSystem/localDates.js'
 import type { BigintType, NumberType } from '../typeSystem/number.js'

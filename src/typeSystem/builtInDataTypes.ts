@@ -1,6 +1,6 @@
 import type { NSource } from '../utils/sourceName.js'
 import type { OptionalType } from './valueSource.js'
-import type { BooleanType } from './booleans.js'
+import type { BooleanType } from './logical.js'
 import type { BigintType, DoubleType, IntType } from './number.js'
 import type { StringDecimalType } from './decimals.js'
 import type { StringType } from './strings.js'

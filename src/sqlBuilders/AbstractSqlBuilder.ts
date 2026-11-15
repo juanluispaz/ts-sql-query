@@ -27,7 +27,7 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSource, __isStringValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
-import type { BooleanType } from '../typeSystem/booleans.js'
+import type { BooleanType } from '../typeSystem/logical.js'
 import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */

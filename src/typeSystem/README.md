@@ -70,7 +70,7 @@ type ValueSource<SOURCE, TYPE, OPTIONAL_TYPE> = TYPE & ValueSourceOfType<SOURCE,
   gives the union of its branches, so without that an argument of type `any` would give a source `string` and an
   optionality that is the union of all of them, and stop fitting anywhere.
 
-A **condition** (`IfValueSource`, `AlwaysIfValueSource`, in [`booleans.ts`](./booleans.ts)) is its data type plus
+A **condition** (`IfValueSource`, `AlwaysIfValueSource`, in [`logical.ts`](./logical.ts)) is its data type plus
 `ConditionOfType`: it has a source and an optionality but **is not a value source** (no `isValueSourceObject` brand). It
 can't be a column or be projected, and it has a value a boolean doesn't have, the neutral (no condition).
 
@@ -81,20 +81,20 @@ BaseType<VALUE_TYPE>                         the NType, the operand NType, the t
 ├── ValueSourceBaseType<VALUE_TYPE>          isConstValue, getConstValue, allowWhen, disallowWhen
 │   ├── NullableType<VALUE_TYPE>             isNull, valueWhenNull, asOptional, onlyWhenOrNull, ...
 │   │   └── EqualableType<VALUE_TYPE>        equals, is, in, inN, ... (and their *IfValue forms)
-│   │       ├── BooleanType                  negate, and, or, onlyWhen, ...
+│   │       ├── BooleanType                  negate, and, or, onlyWhen, ...                          (logical.ts)
 │   │       ├── EnumType<T, NAME> (enum.ts), CustomEqualableType<T, NAME> (customEqualable.ts)
 │   │       └── ComparableType<VALUE_TYPE>   lessThan, between, ...
 │   │           ├── NumberType               the group number: IntType, DoubleType                         (number.ts)
 │   │           ├── NumericType<V>           the numbers that work only with themselves: abs, add, multiply, ... (numeric.ts)
-│   │           │   ├── IntegerType<V>       BigintType (number.ts), CustomIntType, CustomBigintType (customNumber.ts)
-│   │           │   ├── RealType<V>          its floating point functions keep the data type: CustomDoubleType (customNumber.ts)
-│   │           │   └── DecimalsType<V>       exact; what can't be exact gives a double: StringDecimalType (decimals.ts), CustomDecimalType (customDecimals.ts)
-│   │           ├── StringType
+│   │           │   ├── IntegersType<V>      BigintType (number.ts), CustomIntType, CustomBigintType (customNumber.ts)
+│   │           │   ├── RealsType<V>         its floating point functions keep the data type: CustomDoubleType (customNumber.ts)
+│   │           │   └── DecimalsType<V>      exact; what can't be exact gives a double: StringDecimalType (decimals.ts), CustomDecimalType (customDecimals.ts)
+│   │           ├── StringsType<V>           StringType
 │   │           ├── UuidsType<V>             UuidType, CustomUuidType
 │   │           ├── LocalDatesType / LocalTimesType / LocalDateTimesType and their leaves and custom ones
 │   │           └── CustomComparableType<T, NAME>
-│   └── AggregatedArrayType<V>               useEmptyArrayForNoValue, ...; AggregatedArrayProjectableAsNullableType
-└── ConditionType                            IfType, AlwaysIfType
+│   └── AggregatedArraysType<V>              useEmptyArrayForNoValue, ...: AggregatedArrayType, AggregatedArrayProjectableAsNullableType
+└── ConditionType                            IfType, AlwaysIfType                                    (logical.ts)
 ```
 
 A method that applies to several data types is declared once, in the class they share. The methods are `this`
@@ -123,7 +123,8 @@ types extend, which has their shared methods and no type of its own (`UuidsType`
 `CustomDecimalType` and, tomorrow, the `Decimal` of JavaScript once it is standard, or the decimal of a library). A class
 in singular is a data type with a value: a built-in one (`UuidType`, `IntType`) or a custom one. A file in plural has a
 family and the built-in data types of it (`uuids.ts`, `localDates.ts`, `decimals.ts`); a file in singular has one data
-type, a group or the tiers (`enum.ts`; `number.ts`, the group number; `numeric.ts`, `comparable.ts`, ...). A new kind of
+type, a group or the tiers (`enum.ts`; `number.ts`, the group number; `logical.ts`, the group logical: the boolean and
+the conditions; `numeric.ts`, `comparable.ts`, ...). A new kind of
 values (the temporal types, the spatial ones, a decimal library) starts with its family in plural, so the custom ones
 and the ones that come later extend it.
 

@@ -4,7 +4,7 @@ import type { MergeOptionalUnion, OptionalType, OptionalTypeOfValue, TypedValueS
 
 import type { ArgBaseTypeForFn, ArgForBuilderIfValue, ArgForFn, MapArgumentToValueSource, TypeOfArgument } from '../typeSystem/arguments.js'
 import type { ILogicalValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType } from '../typeSystem/base.js'
-import type { IfValueSource } from '../typeSystem/booleans.js'
+import type { IfValueSource } from '../typeSystem/logical.js'
 
 
 export interface FragmentBuilder0</*in|out*/ NO_SOURCE extends NSource, /*in|out*/ EXTRA_SOURCE extends NSource = never> {

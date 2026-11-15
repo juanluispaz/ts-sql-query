@@ -16,8 +16,8 @@ import type { RawFragment } from '../utils/RawFragment.js'
 import type { AnyValueSource, IExecutableSelectQuery } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { ILogicalValueSource } from '../typeSystem/base.js'
-import type { AlwaysIfValueSource } from '../typeSystem/booleans.js'
-import { asAlwaysIfValueSource } from '../typeSystem/booleans.js'
+import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
+import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 

@@ -9,14 +9,15 @@ import {
     LocalDateType, StringDecimalType, StringType, Table, UuidType,
 } from '../../../src/exports/v2/index.js'
 import { NumberType } from '../../../src/typeSystem/number.js'
-import { NumericType, IntegerType, RealType } from '../../../src/typeSystem/numeric.js'
+import { NumericType, IntegersType, RealsType } from '../../../src/typeSystem/numeric.js'
 import { DecimalsType } from '../../../src/typeSystem/decimals.js'
 import { ComparableType } from '../../../src/typeSystem/comparable.js'
 import { EqualableType } from '../../../src/typeSystem/equalable.js'
 import { NullableType } from '../../../src/typeSystem/nullable.js'
 import { UuidsType } from '../../../src/typeSystem/uuids.js'
+import { StringsType } from '../../../src/typeSystem/strings.js'
 import { LocalDatesType } from '../../../src/typeSystem/localDates.js'
-import { AggregatedArrayType } from '../../../src/typeSystem/aggregatedArrays.js'
+import { AggregatedArraysType, AggregatedArrayType } from '../../../src/typeSystem/aggregatedArrays.js'
 import type { ValueSource } from '../../../src/typeSystem/base.js'
 
 type Money = number & { readonly __brand: 'Money' }
@@ -92,10 +93,12 @@ describe('DataTypeClasses', () => {
     test('is-of-a-group-says-yes-to-each-data-type-it-groups', () => {
         expect(accepted(NumberType)).toEqual(['int', 'double'])
         expect(accepted(NumericType)).toEqual(['bigint', 'stringDecimal', 'money', 'price'])
-        expect(accepted(IntegerType)).toEqual(['bigint', 'money'])
-        expect(accepted(RealType)).toEqual([])
+        expect(accepted(IntegersType)).toEqual(['bigint', 'money'])
+        expect(accepted(RealsType)).toEqual([])
         expect(accepted(DecimalsType)).toEqual(['stringDecimal', 'price'])
         expect(accepted(UuidsType)).toEqual(['uuid'])
+        expect(accepted(StringsType)).toEqual(['string'])
+        expect(accepted(AggregatedArraysType)).toEqual(['aggregatedArray'])
         expect(accepted(LocalDatesType)).toEqual(['localDate'])
         expect(accepted(ComparableType)).toEqual(['int', 'double', 'bigint', 'string', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'version'])
         const equalable = ['int', 'double', 'bigint', 'string', 'boolean', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'status', 'version', 'condition']

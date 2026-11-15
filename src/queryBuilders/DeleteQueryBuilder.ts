@@ -11,8 +11,8 @@ import type { DBColumn } from '../utils/Column.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { ILogicalValueSource } from '../typeSystem/base.js'
-import type { AlwaysIfValueSource } from '../typeSystem/booleans.js'
-import { asAlwaysIfValueSource } from '../typeSystem/booleans.js'
+import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
+import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 
 export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
     [source]: any

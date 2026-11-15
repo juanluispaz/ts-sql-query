@@ -1,5 +1,5 @@
 import type { AnyType, ConditionOfType, IValueSource, RemapValueSourceType, ValueSource, ValueTypeOf } from './base.js'
-import type { IfType, IfValueSource } from './booleans.js'
+import type { IfType, IfValueSource } from './logical.js'
 import type { OptionalValueType } from './valueSource.js'
 import type { CustomType, TypeAdapter } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'

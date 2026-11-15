@@ -64,7 +64,7 @@ export {
 
 export {
     BooleanType,
-} from '../../typeSystem/booleans.js'
+} from '../../typeSystem/logical.js'
 
 export {
     BigintType,

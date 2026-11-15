@@ -12,7 +12,7 @@ import type { IntType } from '../typeSystem/number.js'
 import type { AnyValueSource, IExecutableSelectQuery, ValueSourceOf, ValueSourceValueTypeForResult, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, RemapIValueSourceType, RemapValueSourceType, RemapValueSourceTypeWithOptionalType } from '../typeSystem/base.js'
-import type { BooleanType } from '../typeSystem/booleans.js'
+import type { BooleanType } from '../typeSystem/logical.js'
 
 export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                           'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 

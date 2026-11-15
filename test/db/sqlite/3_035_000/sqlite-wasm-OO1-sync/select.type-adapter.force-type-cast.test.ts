@@ -22,6 +22,7 @@ import { DBConnection, tProject, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { CustomDoubleType, CustomIntType } from '../../../../../src/exports/v2/index.js'
 
 // A single ForceTypeCast instance is stateless (it only flips the
 // force-cast flag), so the same adapter can back every column.
@@ -39,8 +40,8 @@ const tProjectForcedCast = new class TProjectForcedCast extends Table<DBConnecti
 const tIssueForcedCast = new class TIssueForcedCast extends Table<DBConnection, 'TIssueForcedCast'> {
     id             = this.column('id', 'int')
     title          = this.column('title', 'string')
-    viewCount      = this.column<number, 'ViewCount'>('view_count', 'customInt', 'ViewCount', forceCast)
-    estimatedHours = this.optionalColumn<number, 'EstimatedHours'>('estimated_hours', 'customDouble', 'EstimatedHours', forceCast)
+    viewCount      = this.column('view_count', CustomIntType.of<number, 'ViewCount'>('ViewCount'), forceCast)
+    estimatedHours = this.optionalColumn('estimated_hours', CustomDoubleType.of<number, 'EstimatedHours'>('EstimatedHours'), forceCast)
     constructor() { super('issue') }
 }()
 

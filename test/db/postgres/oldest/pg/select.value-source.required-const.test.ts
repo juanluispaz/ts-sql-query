@@ -19,6 +19,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { type ReleaseChannel, type WorklogActivity, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomBigintType, CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalTimeType, CustomUuidType, EnumType } from '../../../../../src/exports/v2/index.js'
 
 const UUID_V = '0a8f9c1e-1111-4222-8333-444455556666'
 
@@ -75,9 +76,9 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFromNoTable()
             .select({
                 u:  ctx.conn.const(UUID_V, 'uuid'),
-                e:  ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity'),
-                c:  ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel'),
-                cc: ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver'),
+                e:  ctx.conn.const('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity')),
+                c:  ctx.conn.const('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel')),
+                cc: ctx.conn.const('1.2.0', CustomComparableType.of<string, 'Semver'>('Semver')),
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::uuid as u, $2 as e, $3 as c, $4 as cc"`)
@@ -101,9 +102,9 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const row = await ctx.conn.selectFromNoTable()
             .select({
-                ci: ctx.conn.const<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag'),
-                cd: ctx.conn.const<number, 'Money'>(1.5, 'customDouble', 'Money'),
-                cu: ctx.conn.const<string, 'SigningKey'>(UUID_V, 'customUuid', 'SigningKey'),
+                ci: ctx.conn.const(7, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag')),
+                cd: ctx.conn.const(1.5, CustomDoubleType.of<number, 'Money'>('Money')),
+                cu: ctx.conn.const(UUID_V, CustomUuidType.of<string, 'SigningKey'>('SigningKey')),
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as ci, $2::float8 as cd, $3::uuid as cu"`)
@@ -131,8 +132,8 @@ describe(ctx.label, () => {
             .select({
                 lt:   ctx.conn.const(lt, 'localTime'),
                 ldt:  ctx.conn.const(ldt, 'localDateTime'),
-                clt:  ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock'),
-                cldt: ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp'),
+                clt:  ctx.conn.const(lt, CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock')),
+                cldt: ctx.conn.const(ldt, CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp')),
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as lt, $2::timestamp as ldt, $3::time as clt, $4::timestamp as cldt"`)
@@ -201,7 +202,7 @@ describe(ctx.label, () => {
         const pos = 9_999_999_999n as AuditPosition
         ctx.mockNext('9999999999')
         const result = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<AuditPosition, 'AuditPosition'>(pos, 'customBigint', 'AuditPosition'))
+            .selectOneColumn(ctx.conn.const(pos, CustomBigintType.of<AuditPosition, 'AuditPosition'>('AuditPosition')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int8 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

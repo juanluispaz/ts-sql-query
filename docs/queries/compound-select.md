@@ -34,17 +34,19 @@ These are the results when the first select returns the rows `1, 2, 2, 2, 3` and
 All the customers and all the companies in a single list. A customer and a company can have the same id and the same name, but the `type` column makes them different rows, so `unionAll` is enough:
 
 ```ts
+const CustomerOrCompanyType = EnumType.of<'customer' | 'company', 'customerOrCompany'>('customerOrCompany');
+
 const allDataWithName = connection.selectFrom(tCustomer)
     .select({
         id: tCustomer.id,
         name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
-        type: connection.const<'customer' | 'company', 'customerOrCompany'>('customer', 'enum', 'customerOrCompany')
+        type: connection.const('customer', CustomerOrCompanyType)
     }).unionAll(
         connection.selectFrom(tCompany)
         .select({
             id: tCompany.id,
             name: tCompany.name,
-            type: connection.const<'customer' | 'company', 'customerOrCompany'>('company', 'enum', 'customerOrCompany')
+            type: connection.const('company', CustomerOrCompanyType)
         })
     ).executeSelectMany();
 ```

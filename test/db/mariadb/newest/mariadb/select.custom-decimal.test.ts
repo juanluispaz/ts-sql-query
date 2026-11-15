@@ -10,13 +10,14 @@ import { TsSqlError, type TsSqlErrorReason } from '../../../../../src/TsSqlError
 import type { CustomDecimalFilter, DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomDecimalType } from '../../../../../src/exports/v2/index.js'
 
 type Amount = string & { readonly __brand: 'Amount' }
 
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id     = this.primaryKey('id', 'int')
-    amount = this.optionalColumn<Amount, 'Amount'>('amount', 'customDecimal', 'Amount')
-    price  = this.optionalColumn<Amount, 'Amount'>('price', 'customDecimal', 'Amount')
+    amount = this.optionalColumn('amount', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
+    price  = this.optionalColumn('price', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
     constructor() { super('exact_amount') }
 }()
 
@@ -348,8 +349,8 @@ describe(ctx.label, () => {
         const outcomes: (Amount | number | TsSqlErrorReason | { reason: string, errorType: string | undefined } | undefined)[] = []
         await ctx.withRollback(async () => {
             for (const query of [
-                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, 'customDecimal', 'Amount')).executeSelectOne(),
-                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, 'customDecimal', 'Amount').add('0.5' as Amount)).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, CustomDecimalType.of<typeof wide, 'Amount'>('Amount'))).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, CustomDecimalType.of<typeof wide, 'Amount'>('Amount')).add('0.5' as Amount)).executeSelectOne(),
                 () => ctx.conn.insertInto(tExactAmount).set({ id: 6, amount: wide }).executeInsert(),
             ]) {
                 try {
@@ -504,7 +505,7 @@ describe(ctx.label, () => {
         let withExponent: unknown
         try {
             await ctx.conn.selectFromNoTable()
-                .select({ value: ctx.conn.fragmentWithType<Amount, 'Amount'>('customDecimal', 'Amount', 'required').sql`'1e3'` })
+                .select({ value: ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'required').sql`'1e3'` })
                 .executeSelectOne()
         } catch (e) {
             withExponent = e
@@ -512,7 +513,7 @@ describe(ctx.label, () => {
         let aNumber: unknown
         try {
             await ctx.conn.selectFromNoTable()
-                .select({ value: ctx.conn.fragmentWithType<Amount, 'Amount'>('customDecimal', 'Amount', 'required').sql`1.5e0` })
+                .select({ value: ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'required').sql`1.5e0` })
                 .executeSelectOne()
         } catch (e) {
             aNumber = e

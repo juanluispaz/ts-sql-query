@@ -10,6 +10,7 @@ import { tCountry, tIssueWorklog, tProjectRelease, tProjectReview, tReleaseDraft
 import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
+import { CustomComparableType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -24,7 +25,7 @@ describe(ctx.label, () => {
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
             const updated = sync(ctx.conn.update(tProjectRelease)
-                .set({ version: ctx.conn.const('1.2.1', 'customComparable', 'Semver') })
+                .set({ version: ctx.conn.const('1.2.1', CustomComparableType.of<string, 'Semver'>('Semver')) })
                 .where(tProjectRelease.id.equals(1))
                 .executeUpdate())
 

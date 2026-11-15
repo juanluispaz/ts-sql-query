@@ -37,6 +37,7 @@ import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue, tIssueWorklog, tProject, tProjectRelease } from '../../domain/connection.js'
 import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomDoubleType, CustomIntType } from '../../../../../src/exports/v2/index.js'
 
 const selectFields = {
     id:             tIssue.id,
@@ -1103,7 +1104,7 @@ describe(ctx.label, () => {
         // const value source stands in as the dynamicConditionFor field. The filter
         // carries an explicit `DynamicCondition<...>` column-type (not an inline
         // literal) so the comparable operators are checked against that column-type.
-        const amount = ctx.conn.const(5, 'customDouble', 'Money')
+        const amount = ctx.conn.const(5, CustomDoubleType.of<number, 'Money'>('Money'))
         type AmountFilter = DynamicCondition<{ id: 'int', amount: ['customDouble', number] }>
         const filter: AmountFilter = { amount: { greaterThan: 3, lessThan: 9 } }
         ctx.mockNext([])
@@ -1194,7 +1195,7 @@ describe(ctx.label, () => {
         // value source stands in as the dynamicConditionFor field. The filter
         // carries an explicit `DynamicCondition<...>` column-type (not an inline
         // literal).
-        const tag = ctx.conn.const(5, 'customInt', 'ReleaseTag')
+        const tag = ctx.conn.const(5, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag'))
         type TagFilter = DynamicCondition<{ id: 'int', tag: ['customInt', number] }>
         const filter: TagFilter = { tag: { greaterThan: 3, lessThan: 9 } }
 

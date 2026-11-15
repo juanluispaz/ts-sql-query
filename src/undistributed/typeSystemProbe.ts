@@ -12,6 +12,8 @@ import { CustomIntType as CustomIntTypeClass } from '../typeSystem/numbers.js'
 import { IntType as IntTypeClass, NumberType as NumberTypeClass } from '../typeSystem/numbers.js'
 import { IfType as IfTypeClass } from '../typeSystem/booleans.js'
 import { Table } from '../Table.js'
+import type { Column } from '../utils/Column.js'
+import type { OptionalOf, SourceOf, TypeOf } from '../typeSystem/base.js'
 import { PostgreSqlConnection } from '../connections/PostgreSqlConnection.js'
 import type { StringType } from '../typeSystem/strings.js'
 import type { UuidType } from '../typeSystem/uuids.js'
@@ -262,14 +264,13 @@ if (MoneyType.is(anything)) {
 // @ts-expect-error
 IfTypeClass.is(anything)
 
-// A method that takes a data type takes its class too, with the same result as by its names
+// A method that takes a data type takes its class too; a built-in one gives the same as by its name
 class ProbeConnection extends PostgreSqlConnection<'ProbeConnection'> {
     moneyArg = this.arg(MoneyType, 'optional')
 }
 declare const probeConnection: ProbeConnection
 class ProbeTable extends Table<ProbeConnection, 'ProbeTable'> {
     byClass = this.column('amount', MoneyType)
-    byNames = this.column<Money, 'Money'>('amount', 'customInt', 'Money')
     builtInByClass = this.optionalColumn('id', IntTypeClass)
     builtInByName = this.optionalColumn('id', 'int')
     // @ts-expect-error a class that groups data types has no type of its own
@@ -281,11 +282,15 @@ class ProbeTable extends Table<ProbeConnection, 'ProbeTable'> {
     }
 }
 declare const probeTable: ProbeTable
-assertType<Equal<typeof probeTable.byClass, typeof probeTable.byNames>>()
+assertType<Equal<SourceOf<typeof probeTable.byClass>, SourceOf<typeof probeTable.builtInByName>>>()
+assertType<Equal<TypeOf<typeof probeTable.byClass>, CustomIntType<Money, 'Money'>>>()
+assertType<Equal<OptionalOf<typeof probeTable.byClass>, 'required'>>()
+assertType<typeof probeTable.byClass extends Column ? true : false>()
 assertType<Equal<typeof probeTable.builtInByClass, typeof probeTable.builtInByName>>()
 const moneyConst = probeConnection.const(5 as Money, MoneyType)
-const moneyConstByNames = probeConnection.const<Money, 'Money'>(5 as Money, 'customInt', 'Money')
-assertType<Equal<typeof moneyConst, typeof moneyConstByNames>>()
+const intConst = probeConnection.const(5, 'int')
+assertType<Equal<SourceOf<typeof moneyConst>, SourceOf<typeof intConst>>>()
+assertType<Equal<TypeOf<typeof moneyConst>, CustomIntType<Money, 'Money'>>>()
 // @ts-expect-error the value of a constant is of the type of its data type
 probeConnection.const(5, MoneyType)
 assertType<Equal<typeof probeConnection.moneyArg, Argument<CustomIntType<Money, 'Money'>, 'optional', 'combined'>>>()

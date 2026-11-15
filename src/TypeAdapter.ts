@@ -4,8 +4,8 @@ import { TsSqlProcessingError } from './TsSqlError.js'
 import { __isLocalDateTime, __isLocalTime } from './typeSystem/dataTypes.js'
 
 /**
- * Which custom type a value is, the first argument of its column when it is a custom one, like `'customInt'` in
- * `column('id', 'customInt', 'MyIntTypeName')`: a custom type is converted as the built-in type it is based on
+ * Which custom type a value is, the family of the class of its data type, like `'customInt'` for
+ * `column('id', CustomIntType.of<MyInt, 'MyIntTypeName'>('MyIntTypeName'))`: a custom type is converted as the built-in type it is based on
  * (`customInt` as an `int`) unless its conversion is registered; an `enum`, a `custom` or a `customComparable` is sent
  * and received as it comes.
  */
@@ -37,7 +37,7 @@ export type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'no
 
 /**
  * What a method of a type adapter receives of the value it works on and of the query. A value has two types:
- * - the original type, the one declared in the library (`column('day', 'customLocalDate', 'ReleaseDay')`,
+ * - the original type, the one declared in the library (`column('day', ReleaseDayType)`,
  *   `const(1, 'int')`), which never changes;
  * - the requested type, the one the value is communicated to the query runner and the database with: by default the
  *   original one. A type adapter can request another (`setRequestedType`), and the next one in the chain, and the
@@ -74,7 +74,7 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
      * library decide by it. It can be called again
      */
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    /** Requests a custom type, as a column declares it: `setRequestedType('customLocalDate', 'ReleaseDay')` */
+    /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the original type again */
     resetRequestedType(): void
@@ -143,7 +143,7 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
      * library decide by it. It can be called again
      */
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    /** Requests a custom type, as a column declares it: `setRequestedType('customLocalDate', 'ReleaseDay')` */
+    /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the original type again */
     resetRequestedType(): void
@@ -183,7 +183,7 @@ export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
      * library decide by it. It can be called again
      */
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'): void
-    /** Requests a custom type, as a column declares it: `setRequestedType('customLocalDate', 'ReleaseDay')` */
+    /** Requests a custom type, by its custom type and its type name: `setRequestedType('customLocalDate', 'ReleaseDay')` */
     setRequestedType(customType: CustomType, type: string): void
     /** Requests the original type again */
     resetRequestedType(): void

@@ -136,14 +136,35 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
-**A custom type with only one generic argument.** It was deprecated in v1.69.0. The type name is the second generic argument, the same text as the type name you pass to the method. This applies to columns, constants, fragments, arguments, function results and sequences:
+**A custom type is a class.** A custom type isn't given by its names any more (`'custom', 'RgbColor'`): it is a class, made once with the `of` of its family, with your TypeScript type and its type name as generic arguments and the type name as its argument, and given where the names went. This applies to columns, constants, fragments, arguments, function results and sequences. The form with one generic argument, deprecated in v1.69.0, is gone with it:
 
 ```typescriptreact
+import { CustomEqualableType } from 'ts-sql-query'
+
 // v1
 this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
-// v2
 this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
+// v2
+const RgbColorType = CustomEqualableType.of<RgbColor, 'RgbColor'>('RgbColor')
+this.column('ColumnName', RgbColorType)
 ```
+
+The family of each custom type, all of them exported by `ts-sql-query`:
+
+| v1 | v2 |
+|---|---|
+| `'customInt', 'Name'` | `CustomIntType.of<T, 'Name'>('Name')` |
+| `'customBigint', 'Name'` | `CustomBigintType.of<T, 'Name'>('Name')` |
+| `'customDouble', 'Name'` | `CustomDoubleType.of<T, 'Name'>('Name')` |
+| `'customUuid', 'Name'` | `CustomUuidType.of<T, 'Name'>('Name')` |
+| `'customLocalDate', 'Name'` | `CustomLocalDateType.of<T, 'Name'>('Name')` |
+| `'customLocalTime', 'Name'` | `CustomLocalTimeType.of<T, 'Name'>('Name')` |
+| `'customLocalDateTime', 'Name'` | `CustomLocalDateTimeType.of<T, 'Name'>('Name')` |
+| `'enum', 'Name'` | `EnumType.of<T, 'Name'>('Name')` |
+| `'custom', 'Name'` | `CustomEqualableType.of<T, 'Name'>('Name')` |
+| `'customComparable', 'Name'` | `CustomComparableType.of<T, 'Name'>('Name')` |
+
+A type adapter still receives the custom type by its name, `'custom'` for a `CustomEqualableType`, and the type name, `'RgbColor'`.
 
 **A select with an aggregate and a column of a table, without a group by.** SQLite and MariaDB ran it, with the value of any row of the group; the other databases rejected it. Group by the column, or take any value of the group with [`anyValue`](../../queries/aggregate-and-group-by.md#any-value-of-the-group) if it is the same in the whole group:
 

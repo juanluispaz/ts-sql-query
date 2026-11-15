@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tProjectRelease, tIssueWorklog, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomComparableType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -142,7 +143,7 @@ describe(ctx.label, () => {
                         .where(tProjectRelease.id.equals(1))
                         .select({
                             projectId:   tProjectRelease.projectId,
-                            version:     ctx.conn.const('9.9.9', 'customComparable', 'Semver'),
+                            version:     ctx.conn.const('9.9.9', CustomComparableType.of<string, 'Semver'>('Semver')),
                             channel:     tProjectRelease.channel,
                             signingKey:  tProjectRelease.signingKey,
                             releasedOn:  tProjectRelease.releasedOn,

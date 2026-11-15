@@ -149,9 +149,19 @@ const MoneyType = CustomIntType.of<Money, 'Money'>('Money')   // type 'Money', c
 ```
 
 One static per family, because a single generic factory (`customType<Money, 'Money'>('customInt', 'Money')`) can't
-know the family: when generic arguments are given explicitly, TypeScript doesn't infer the others. For the same
-reason the methods that take a custom data type by its names (`column<Money, 'Money'>('amount', 'customInt', 'Money')`)
-keep one overload per family.
+know the family: when generic arguments are given explicitly, TypeScript doesn't infer the others. `of` gives a
+`CustomTypeClass` (a `TypeClass` with the type guard), and the users and the documentation give the class wherever a
+data type goes; a custom data type is not taken by its names (`'customInt', 'Money'`).
+
+## The data types by their classes
+
+The methods that take a data type (`column`, `const`, `arg`, `fragmentWithType`, `executeFunction`, `sequence`, ...) have
+one overload that takes a `TypeClass<TYPE>`, for any class with a type of its own: a built-in one (`IntType`) or one an
+`of` made. It gives `ValueSource<SOURCE, TYPE, OPTIONAL_TYPE>` and their implementation reads `type` and `customType` of the
+class. The class is the only way to give a custom data type. A class without a type of its own (a group such as
+`NumberType`, or a family such as `CustomIntType`) is rejected when compiling: `BaseType` declares its static `type` as
+`string | undefined`, a class with a type narrows it, and `TypeClass` requires a `string`. `TypeClass` has no `is`:
+TypeScript infers the data type from `prototype`, and a generic `is` there would make the inference fail.
 
 ## The type guard: `is`
 

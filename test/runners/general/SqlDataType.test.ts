@@ -13,6 +13,7 @@ import { proxyTypeAdapterFor } from '../../../src/internal/ProxyTypeAdapter.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { CustomBooleanTypeAdapter, withSqlDataType, type DefaultTypeAdapter, type SqlDataType, type TypeAdapter, type TypeAdapterProjectionContext, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../src/TypeAdapter.js'
 import { reasonOf } from '../lib/runnerContract.js'
+import { CustomDecimalType } from '../../../src/exports/v2/index.js'
 
 const price: SqlDataType = { family: 'exact numeric', precision: 18, scale: 4 }
 const code: SqlDataType = { family: 'character string', length: 20, national: false }
@@ -21,7 +22,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 
 class TProduct extends Table<DBConnection, 'TProduct'> {
     id = this.primaryKey('id', 'int')
-    price = this.column<string, 'Price'>('price', 'customDecimal', 'Price', withSqlDataType(price))
+    price = this.column('price', CustomDecimalType.of<string, 'Price'>('Price'), withSqlDataType(price))
     code = this.column('code', 'string', withSqlDataType(code))
     name = this.column('name', 'string')
     constructor() {
@@ -124,7 +125,7 @@ describe('the SQL data type in the context of the query', () => {
     })
 
     test('a-constant-without-an-adapter-says-none', async () => {
-        const context = await contextOf(conn => conn.selectFromNoTable().select({ v: conn.const('1.5', 'customDecimal', 'Price') }).executeSelectMany())
+        const context = await contextOf(conn => conn.selectFromNoTable().select({ v: conn.const('1.5', CustomDecimalType.of<string, 'Price'>('Price')) }).executeSelectMany())
         expect(context.params).toEqual([undefined])
     })
 })

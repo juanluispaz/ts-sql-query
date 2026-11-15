@@ -16,18 +16,12 @@ import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
 import type { QueryColumns } from './sqlBuilders/SqlBuilder.js'
 import { isUsableValue } from './sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
-import type { CustomType } from './TypeAdapter.js'
 import type { AnyValueSource } from './typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from './typeSystem/valueSource.js'
 import type { BuiltInDataType, BuiltInDataTypeValueSources, BuiltInDataTypeInputs, BuiltInDataTypeFragments } from './typeSystem/builtInDataTypes.js'
 import type { AnyTypeClass, IValueSource, TypeClass, ValueSource } from './typeSystem/base.js'
 import type { NullableType } from './typeSystem/nullable.js'
-import type { CustomComparableType } from './typeSystem/comparable.js'
-import type { CustomEqualableType, EnumType } from './typeSystem/equalable.js'
 import type { FragmentExpression } from './typeSystem/fragments.js'
-import type { CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType } from './typeSystem/localDates.js'
-import type { CustomBigintType, CustomDecimalType, CustomDoubleType, CustomIntType } from './typeSystem/numbers.js'
-import type { CustomUuidType } from './typeSystem/uuids.js'
 
 class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -78,104 +72,46 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
 
     protected column<TYPE extends BuiltInDataType>(type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE] & Column
     protected column<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDecimalType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomUuidType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalTimeType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateTimeType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'required'> & Column
-    protected column(type: string | AnyTypeClass, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected column(type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         // A `Values` view is writable: each real column receives a value in the
         // provided rows, so it must carry the writable-column marker (like a
         // table column, not a read-only view column). `__asColumn()` sets it,
         // matching `optionalColumn` below. See `Column.ts` for the model.
         if (typeof type !== 'string') {
-            return (__createDBColumn(this, '', type.type, type.customType, adapter as TypeAdapter | undefined)).__asColumn()
-        }
-        if (typeof adapter === 'string') {
-            return (__createDBColumn(this, '', adapter, type as CustomType, adapter2)).__asColumn()
+            return (__createDBColumn(this, '', type.type, type.customType, adapter)).__asColumn()
         }
         return (__createDBColumn(this, '', type, undefined, adapter)).__asColumn()
     }
 
     protected optionalColumn<TYPE extends BuiltInDataType>(type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE] & Column
     protected optionalColumn<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDecimalType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomUuidType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalTimeType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateTimeType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'optional'> & Column
-    protected optionalColumn(type: string | AnyTypeClass, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalColumn(type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof type !== 'string') {
-            return (__createDBColumn(this, '', type.type, type.customType, adapter as TypeAdapter | undefined)).__asOptionalColumn()
-        }
-        if (typeof adapter === 'string') {
-            return (__createDBColumn(this, '', adapter, type as CustomType, adapter2)).__asOptionalColumn()
+            return (__createDBColumn(this, '', type.type, type.customType, adapter)).__asOptionalColumn()
         }
         return (__createDBColumn(this, '', type, undefined, adapter)).__asOptionalColumn()
     }
 
     protected virtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]
     protected virtualColumnFromFragment<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, TYPE, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, TYPE, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomIntType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomIntType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomDecimalType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomDecimalType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDecimalType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomUuidType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomUuidType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomUuidType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomLocalDateType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomLocalDateType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomLocalTimeType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomLocalTimeType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalTimeType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomLocalDateTimeType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomLocalDateTimeType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateTimeType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, EnumType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, EnumType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment(type: string | AnyTypeClass, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected virtualColumnFromFragment(type: string | AnyTypeClass, fn: (fragment: any) => AnyValueSource, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof type !== 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(type.type, type.customType, 'required', arg2 as TypeAdapter | undefined)
-            return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type.type, type.customType, 'required', arg2 as TypeAdapter | undefined)
+            const fragmentBuilder =  new FragmentQueryBuilder(type.type, type.customType, 'required', adapter)
+            return __createValueSourceFromBuilder(fn, fragmentBuilder, type.type, type.customType, 'required', adapter)
         }
-        if (typeof arg1 === 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'required', arg3)
-            return __createValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'required', arg3)
-        }
-        const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'required', arg2 as TypeAdapter | undefined)
-        return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'required', arg2 as TypeAdapter | undefined)
+        const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'required', adapter)
+        return __createValueSourceFromBuilder(fn, fragmentBuilder, type, undefined, 'required', adapter)
     }
 
     protected optionalVirtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE]
     protected optionalVirtualColumnFromFragment<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, TYPE, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, TYPE, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomIntType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomIntType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomDecimalType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomDecimalType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDecimalType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomUuidType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomUuidType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomUuidType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomLocalDateType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomLocalDateType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomLocalTimeType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomLocalTimeType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalTimeType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomLocalDateTimeType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomLocalDateTimeType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomLocalDateTimeType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, EnumType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, EnumType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: string | AnyTypeClass, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalVirtualColumnFromFragment(type: string | AnyTypeClass, fn: (fragment: any) => AnyValueSource, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof type !== 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(type.type, type.customType, 'optional', arg2 as TypeAdapter | undefined)
-            return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type.type, type.customType, 'optional', arg2 as TypeAdapter | undefined)
+            const fragmentBuilder =  new FragmentQueryBuilder(type.type, type.customType, 'optional', adapter)
+            return __createValueSourceFromBuilder(fn, fragmentBuilder, type.type, type.customType, 'optional', adapter)
         }
-        if (typeof arg1 === 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'optional', arg3)
-            return __createValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'optional', arg3)
-        }
-        const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'optional', arg2 as TypeAdapter | undefined)
-        return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, undefined, 'optional', arg2 as TypeAdapter | undefined)
+        const fragmentBuilder =  new FragmentQueryBuilder(type, undefined, 'optional', adapter)
+        return __createValueSourceFromBuilder(fn, fragmentBuilder, type, undefined, 'optional', adapter)
     }
 
     // @ts-ignore

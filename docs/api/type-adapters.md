@@ -41,10 +41,10 @@ type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
 A value has two types in the context, so that what was declared and what is sent or read never get confused:
 
-- The **original type**, `originalType` and `originalCustomType`: the one declared in the library, like `column('released_on', 'customLocalDate', 'ReleaseDay')` or `const(1, 'int')`. It never changes.
+- The **original type**, `originalType` and `originalCustomType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
 - The **requested type**, `requestedType` and `requestedCustomType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
-`originalType` and `requestedType` are the name of the type, like `'int'` or `'ReleaseDay'`. `originalCustomType` and `requestedCustomType` say which custom type it is, as a column declares it, and are `undefined` for a built-in type:
+`originalType` and `requestedType` are the name of the type, like `'int'` or `'ReleaseDay'`. `originalCustomType` and `requestedCustomType` say which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), and are `undefined` for a built-in type:
 
 ```typescript
 type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal'
@@ -55,7 +55,7 @@ type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal
 
 A custom type is converted as the built-in type it is based on (see [Custom types](../configuration/data-types.md#custom-types)) unless its conversion is registered.
 
-`setRequestedType` takes a type as a column does: a built-in one by its name, like `setRequestedType('string')`, and a custom one with which custom type it is, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
+`setRequestedType` takes a type by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
 
 What the requested type is in each transformation:
 

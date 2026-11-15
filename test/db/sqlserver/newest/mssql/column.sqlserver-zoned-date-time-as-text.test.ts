@@ -15,6 +15,7 @@ import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, Ty
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomComparableType } from '../../../../../src/exports/v2/index.js'
 
 // A date and time with the offset it was written with, as text, like '2024-07-01T10:30:15.1234567+09:00'
 type ZonedDateTime = string
@@ -59,8 +60,8 @@ function instantOf(text: ZonedDateTime): number {
 
 const tFlightLeg = new class TFlightLeg extends Table<DBConnection, 'TFlightLeg'> {
     id        = this.primaryKey('id', 'int')
-    departsAt = this.column<ZonedDateTime, 'ZonedDateTime'>('departs_at', 'customComparable', 'ZonedDateTime', zonedDateTimeAsText)
-    arrivesAt = this.optionalColumn<ZonedDateTime, 'ZonedDateTime'>('arrives_at', 'customComparable', 'ZonedDateTime', zonedDateTimeAsText)
+    departsAt = this.column('departs_at', CustomComparableType.of<ZonedDateTime, 'ZonedDateTime'>('ZonedDateTime'), zonedDateTimeAsText)
+    arrivesAt = this.optionalColumn('arrives_at', CustomComparableType.of<ZonedDateTime, 'ZonedDateTime'>('ZonedDateTime'), zonedDateTimeAsText)
     constructor() { super('flight_leg') }
 }()
 

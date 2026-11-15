@@ -22,17 +22,17 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `localDate`                     | `Date`               | Date without time                                                 |
 | `localTime`                     | `Date`               | Time without date                                                 |
 | `localDateTime`                 | `Date`               | Date with time                                                    |
-| `customInt`                     | *custom*             | Your type, with the operations of `int`                           |
-| `customBigint`                  | *custom*             | Your type, with the operations of `bigint`                        |
-| `customDouble`                  | *custom*             | Your type, with the operations of `double`                        |
-| `customDecimal`                 | *custom*             | Your type: an exact decimal number, sent and read as its text      |
-| `customUuid`                    | *custom*             | Your type, with the operations of `uuid`                          |
-| `customLocalDate`               | *custom*             | Your type, with the operations of `localDate`                     |
-| `customLocalTime`               | *custom*             | Your type, with the operations of `localTime`                     |
-| `customLocalDateTime`           | *custom*             | Your type, with the operations of `localDateTime`                 |
-| `enum`                          | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
-| `custom`                        | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
-| `customComparable`              | *custom*             | Your type: also can be ordered, like `lessThan` and `between`     |
+| `CustomIntType.of(...)`         | *custom*             | Your type, with the operations of `int`                           |
+| `CustomBigintType.of(...)`      | *custom*             | Your type, with the operations of `bigint`                        |
+| `CustomDoubleType.of(...)`      | *custom*             | Your type, with the operations of `double`                        |
+| `CustomDecimalType.of(...)`     | *custom*             | Your type: an exact decimal number, sent and read as its text      |
+| `CustomUuidType.of(...)`        | *custom*             | Your type, with the operations of `uuid`                          |
+| `CustomLocalDateType.of(...)`   | *custom*             | Your type, with the operations of `localDate`                     |
+| `CustomLocalTimeType.of(...)`   | *custom*             | Your type, with the operations of `localTime`                     |
+| `CustomLocalDateTimeType.of(...)`| *custom*             | Your type, with the operations of `localDateTime`                 |
+| `EnumType.of(...)`              | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
+| `CustomEqualableType.of(...)`   | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
+| `CustomComparableType.of(...)`  | *custom*             | Your type: also can be ordered, like `lessThan` and `between`     |
 
 A column is defined with these types as follows, and each method of [Kinds of columns](mapping.md#kinds-of-columns) takes them in the same way:
 
@@ -47,20 +47,33 @@ this.column('ColumnName', 'stringDecimal')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
-this.column<MyIntType, 'MyIntTypeName'>('ColumnName', 'customInt', 'MyIntTypeName')
-this.column<MyBigintType, 'MyBigintTypeName'>('ColumnName', 'customBigint', 'MyBigintTypeName')
-this.column<MyDoubleType, 'MyDoubleTypeName'>('ColumnName', 'customDouble', 'MyDoubleTypeName')
-this.column<MyDecimalType, 'MyDecimalTypeName'>('ColumnName', 'customDecimal', 'MyDecimalTypeName')
-this.column<MyUuidType, 'MyUuidTypeName'>('ColumnName', 'customUuid', 'MyUuidTypeName')
-this.column<MyDateType, 'MyDateTypeName'>('ColumnName', 'customLocalDate', 'MyDateTypeName')
-this.column<MyTimeType, 'MyTimeTypeName'>('ColumnName', 'customLocalTime', 'MyTimeTypeName')
-this.column<MyDateTimeType, 'MyDateTimeTypeName'>('ColumnName', 'customLocalDateTime', 'MyDateTimeTypeName')
-this.column<MyEnumType, 'MyEnumTypeName'>('ColumnName', 'enum', 'MyEnumTypeName')
-this.column<MyCustomType, 'MyCustomTypeName'>('ColumnName', 'custom', 'MyCustomTypeName')
-this.column<MyCustomComparableType, 'MyCustomComparableTypeName'>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
+this.column('ColumnName', MyIntDataType)
+this.column('ColumnName', MyBigintDataType)
+this.column('ColumnName', MyDoubleDataType)
+this.column('ColumnName', MyDecimalDataType)
+this.column('ColumnName', MyUuidDataType)
+this.column('ColumnName', MyDateDataType)
+this.column('ColumnName', MyTimeDataType)
+this.column('ColumnName', MyDateTimeDataType)
+this.column('ColumnName', MyEnumDataType)
+this.column('ColumnName', MyCustomDataType)
+this.column('ColumnName', MyCustomComparableDataType)
 ```
 
-A custom type takes two generic arguments: your TypeScript type, and its type name, the same text you pass after the type of the column. The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name.
+A custom type is a class, made once with the `of` of its family and used wherever a value of that type goes: in each column, [constant](../queries/basic-query-structure.md), [SQL fragment](../queries/sql-fragments.md) and argument of a fragment. `of` takes two generic arguments, your TypeScript type and its type name, and the type name again as its argument:
+
+```typescriptreact
+import { CustomIntType, EnumType } from 'ts-sql-query'
+
+const MyIntDataType = CustomIntType.of<MyIntType, 'MyIntTypeName'>('MyIntTypeName')
+const MyEnumDataType = EnumType.of<MyEnumType, 'MyEnumTypeName'>('MyEnumTypeName')
+```
+
+The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name. Two classes with the same type name and different TypeScript types are a mistake that nothing detects: give each type a name of its own.
+
+The built-in types have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families of the custom types. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
+
+Each of these classes has a type guard, `is`, that says whether a value is a value source of its type, like a column or an expression: `MyIntDataType.is(value)`. A class with more than one type, like a family, says yes to any of its types: `CustomIntType.is(value)` is true for every `customInt`. A condition made by an `*IfValue` method is a `boolean` there.
 
 !!! tip "Generating UUIDs"
 
@@ -80,7 +93,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
 | A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
-| The same, with your own type for it, like the one of a decimal library | `customDecimal` | Your type, with a [conversion](#custom-types) from and to the text of the number. |
+| The same, with your own type for it, like the one of a decimal library | `CustomDecimalType` | `customDecimal` | Your type, with a [conversion](#custom-types) from and to the text of the number. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
@@ -95,19 +108,19 @@ On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#
 
 ## Custom types
 
-A custom type (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` and `customComparable`) gives a column your own TypeScript type, and its name (the last argument of the column, like `'Cents'`) identifies it. The first argument of the column is which custom type it is, a `CustomType`: it says which operations the column offers in a query, and how its values are converted.
+A custom type gives a column your own TypeScript type, and its type name (the one given to `of`, like `'Cents'`) identifies it. The family whose `of` made it is which custom type it is, a `CustomType` (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` or `customComparable`): it says which operations the column offers in a query, and how its values are converted. A [type adapter](../advanced/type-adapters.md) receives it by that name.
 
-| Custom type | Its values are converted as |
-|---|---|
-| `customInt` | `int` |
-| `customBigint` | `bigint` |
-| `customDouble` | `double` |
+| Family | Custom type | Its values are converted as |
+|---|---|---|
+| `CustomIntType` | `customInt` | `int` |
+| `CustomBigintType` | `customBigint` | `bigint` |
+| `CustomDoubleType` | `customDouble` | `double` |
 | `customDecimal` | A decimal number as text: see [Exact decimals](#exact-decimals) |
-| `customUuid` | `uuid` |
-| `customLocalDate` | `localDate` |
-| `customLocalTime` | `localTime` |
-| `customLocalDateTime` | `localDateTime` |
-| `enum`, `custom` and `customComparable` | Not converted: the value is returned as it comes |
+| `CustomUuidType` | `customUuid` | `uuid` |
+| `CustomLocalDateType` | `customLocalDate` | `localDate` |
+| `CustomLocalTimeType` | `customLocalTime` | `localTime` |
+| `CustomLocalDateTimeType` | `customLocalDateTime` | `localDateTime` |
+| `EnumType`, `CustomEqualableType` and `CustomComparableType` | `enum`, `custom` and `customComparable` | Not converted: the value is returned as it comes |
 
 The custom type decides, whatever the name you give it: a `customLocalDate` named `'localDateTime'` is converted as a `localDate`.
 
@@ -116,7 +129,9 @@ So an int with a TypeScript brand needs nothing else; its values are checked and
 ```typescriptreact
 type Cents = number & { readonly __brand: 'Cents' }
 
-costCents = this.column<Cents, 'Cents'>('cost_cents', 'customInt', 'Cents')
+const CentsType = CustomIntType.of<Cents, 'Cents'>('Cents')
+
+costCents = this.column('cost_cents', CentsType)
 ```
 
 !!! important
@@ -136,7 +151,8 @@ JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc3
 amount = this.optionalColumn('amount', 'stringDecimal')
 
 type Amount = string & { readonly __brand: 'Amount' }
-price = this.optionalColumn<Amount, 'Amount'>('price', 'customDecimal', 'Amount')
+const AmountType = CustomDecimalType.of<Amount, 'Amount'>('Amount')
+price = this.optionalColumn('price', AmountType)
 ```
 
 A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, and a `customDecimal` only with values of its own type, so the two don't mix.

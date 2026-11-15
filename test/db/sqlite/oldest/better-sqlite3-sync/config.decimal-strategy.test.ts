@@ -22,13 +22,14 @@ import type { SqliteDecimalStrategy } from '../../../../../src/connections/Sqlit
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
+import { CustomDecimalType } from '../../../../../src/exports/v2/index.js'
 
 type Amount = string & { readonly __brand: 'Amount' }
 
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id     = this.primaryKey('id', 'int')
-    amount = this.optionalColumn<Amount, 'Amount'>('amount', 'customDecimal', 'Amount')
-    price  = this.optionalColumn<Amount, 'Amount'>('price', 'customDecimal', 'Amount')
+    amount = this.optionalColumn('amount', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
+    price  = this.optionalColumn('price', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
     constructor() { super('exact_amount') }
 }()
 

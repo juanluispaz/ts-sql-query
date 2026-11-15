@@ -9,6 +9,7 @@ import { withSqlDataType } from '../../../src/TypeAdapter.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
+import { CustomEqualableType } from '../../../src/exports/v2/index.js'
 
 class DBConnection extends OracleConnection<'DBConnection'> { }
 class TNote extends Table<DBConnection, 'TNote'> {
@@ -23,7 +24,7 @@ class TNote extends Table<DBConnection, 'TNote'> {
 const tNote = new TNote()
 class TDocument extends Table<DBConnection, 'TDocument'> {
     id = this.primaryKey('id', 'int')
-    doc = this.optionalColumn<{ a: number }, 'Doc'>('doc', 'custom', 'Doc', withSqlDataType({ family: 'document', format: 'json' }))
+    doc = this.optionalColumn('doc', CustomEqualableType.of<{ a: number }, 'Doc'>('Doc'), withSqlDataType({ family: 'document', format: 'json' }))
     constructor() {
         super('rt_sql_type_document')
     }

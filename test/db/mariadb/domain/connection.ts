@@ -8,6 +8,7 @@ import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { Table } from '../../../../src/Table.js'
 import { View } from '../../../../src/View.js'
 import { CustomBooleanTypeAdapter, type TypeAdapter, type TypeAdapterValueFromDBContext } from '../../../../src/TypeAdapter.js'
+import { CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType, EnumType } from '../../../../src/exports/v2/index.js'
 
 const verifiedAdapter  = new CustomBooleanTypeAdapter('Y', 'N')
 // A trailing TypeAdapter for virtualColumnFromFragment that brackets the read
@@ -265,17 +266,17 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         ], 'localDateTime', 'optional')
     }
     callEstimatedTotal(projectId: number): Promise<Money> {
-        return this.executeFunction<Money, 'Money'>('estimated_total', [
+        return this.executeFunction('estimated_total', [
             this.const(projectId, 'int'),
-        ], 'customDouble', 'Money', 'required')
+        ], CustomDoubleType.of<Money, 'Money'>('Money'), 'required')
     }
     // A customDouble executeFunction wrapper with a trailing TypeAdapter:
     // plusOffsetAdapter shifts the numeric result so the adapter's effect is
     // observable. Reuses estimated_total.
     callEstimatedTotalOffset(projectId: number): Promise<Money> {
-        return this.executeFunction<Money, 'Money'>('estimated_total', [
+        return this.executeFunction('estimated_total', [
             this.const(projectId, 'int'),
-        ], 'customDouble', 'Money', 'required', plusOffsetAdapter)
+        ], CustomDoubleType.of<Money, 'Money'>('Money'), 'required', plusOffsetAdapter)
     }
 
     // The req/opt counterparts of the return-type functions above — reuse the
@@ -296,9 +297,9 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         ], 'localDateTime', 'required')
     }
     callEstimatedTotalOptional(projectId: number): Promise<Money | null> {
-        return this.executeFunction<Money, 'Money'>('estimated_total', [
+        return this.executeFunction('estimated_total', [
             this.const(projectId, 'int'),
-        ], 'customDouble', 'Money', 'optional')
+        ], CustomDoubleType.of<Money, 'Money'>('Money'), 'optional')
     }
 
     // executeFunction return-kind fan-out: one required + one optional wrapper
@@ -339,52 +340,52 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('ret_clock', [this.const(id, 'int')], 'localTime', 'optional')
     }
     callRetEnum(id: number): Promise<WorklogActivity> {
-        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'required')
+        return this.executeFunction('ret_activity', [this.const(id, 'int')], EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'required')
     }
     callRetEnumOptional(id: number): Promise<WorklogActivity | null> {
-        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'optional')
+        return this.executeFunction('ret_activity', [this.const(id, 'int')], EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional')
     }
     callRetCustom(id: number): Promise<ReleaseChannel> {
-        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'required')
+        return this.executeFunction('ret_channel', [this.const(id, 'int')], CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'required')
     }
     callRetCustomOptional(id: number): Promise<ReleaseChannel | null> {
-        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'optional')
+        return this.executeFunction('ret_channel', [this.const(id, 'int')], CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional')
     }
     callRetCustomComparable(id: number): Promise<string> {
-        return this.executeFunction<string, 'Semver'>('ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'required')
+        return this.executeFunction('ret_semver', [this.const(id, 'int')], CustomComparableType.of<string, 'Semver'>('Semver'), 'required')
     }
     callRetCustomComparableOptional(id: number): Promise<string | null> {
-        return this.executeFunction<string, 'Semver'>('ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'optional')
+        return this.executeFunction('ret_semver', [this.const(id, 'int')], CustomComparableType.of<string, 'Semver'>('Semver'), 'optional')
     }
     callRetCustomInt(id: number): Promise<number> {
-        return this.executeFunction<number, 'Cents'>('count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'required')
+        return this.executeFunction('count_open_issues', [this.const(id, 'int')], CustomIntType.of<number, 'Cents'>('Cents'), 'required')
     }
     callRetCustomIntOptional(id: number): Promise<number | null> {
-        return this.executeFunction<number, 'Cents'>('count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'optional')
+        return this.executeFunction('count_open_issues', [this.const(id, 'int')], CustomIntType.of<number, 'Cents'>('Cents'), 'optional')
     }
     callRetCustomUuid(id: number): Promise<string> {
-        return this.executeFunction<string, 'SigningKey'>('ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'required')
+        return this.executeFunction('ret_uuid', [this.const(id, 'int')], CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'required')
     }
     callRetCustomUuidOptional(id: number): Promise<string | null> {
-        return this.executeFunction<string, 'SigningKey'>('ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'optional')
+        return this.executeFunction('ret_uuid', [this.const(id, 'int')], CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'optional')
     }
     callRetCustomLocalDate(id: number): Promise<Date> {
-        return this.executeFunction<Date, 'ReleaseDay'>('ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'required')
+        return this.executeFunction('ret_day', [this.const(id, 'int')], CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required')
     }
     callRetCustomLocalDateOptional(id: number): Promise<Date | null> {
-        return this.executeFunction<Date, 'ReleaseDay'>('ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'optional')
+        return this.executeFunction('ret_day', [this.const(id, 'int')], CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'optional')
     }
     callRetCustomLocalTime(id: number): Promise<Date> {
-        return this.executeFunction<Date, 'CutoffClock'>('ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'required')
+        return this.executeFunction('ret_clock', [this.const(id, 'int')], CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required')
     }
     callRetCustomLocalTimeOptional(id: number): Promise<Date | null> {
-        return this.executeFunction<Date, 'CutoffClock'>('ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'optional')
+        return this.executeFunction('ret_clock', [this.const(id, 'int')], CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'optional')
     }
     callRetCustomLocalDateTime(id: number): Promise<Date> {
-        return this.executeFunction<Date, 'SignOffStamp'>('latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'required')
+        return this.executeFunction('latest_issue_at', [this.const(id, 'int')], CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'required')
     }
     callRetCustomLocalDateTimeOptional(id: number): Promise<Date | null> {
-        return this.executeFunction<Date, 'SignOffStamp'>('latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'optional')
+        return this.executeFunction('latest_issue_at', [this.const(id, 'int')], CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'optional')
     }
 
     // executeFunction return-kind × {required, optional} × {no-adapter, trailing
@@ -527,128 +528,128 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
 
     // enum (cm_str, WorklogActivity)
     callCmEnum(): Promise<WorklogActivity> {
-        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('cm_str', [], 'enum', 'WorklogActivity', 'required')
+        return this.executeFunction('cm_str', [], EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'required')
     }
     callCmEnumOpt(): Promise<WorklogActivity | null> {
-        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('cm_str', [], 'enum', 'WorklogActivity', 'optional')
+        return this.executeFunction('cm_str', [], EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional')
     }
     callCmEnumAdapter(): Promise<WorklogActivity> {
-        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('cm_str', [], 'enum', 'WorklogActivity', 'required', bracketAdapter)
+        return this.executeFunction('cm_str', [], EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'required', bracketAdapter)
     }
     callCmEnumOptAdapter(): Promise<WorklogActivity | null> {
-        return this.executeFunction<WorklogActivity, 'WorklogActivity'>('cm_str', [], 'enum', 'WorklogActivity', 'optional', bracketAdapter)
+        return this.executeFunction('cm_str', [], EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional', bracketAdapter)
     }
 
     // custom (cm_str, ReleaseChannel)
     callCmCustom(): Promise<ReleaseChannel> {
-        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('cm_str', [], 'custom', 'ReleaseChannel', 'required')
+        return this.executeFunction('cm_str', [], CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'required')
     }
     callCmCustomOpt(): Promise<ReleaseChannel | null> {
-        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('cm_str', [], 'custom', 'ReleaseChannel', 'optional')
+        return this.executeFunction('cm_str', [], CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional')
     }
     callCmCustomAdapter(): Promise<ReleaseChannel> {
-        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('cm_str', [], 'custom', 'ReleaseChannel', 'required', bracketAdapter)
+        return this.executeFunction('cm_str', [], CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'required', bracketAdapter)
     }
     callCmCustomOptAdapter(): Promise<ReleaseChannel | null> {
-        return this.executeFunction<ReleaseChannel, 'ReleaseChannel'>('cm_str', [], 'custom', 'ReleaseChannel', 'optional', bracketAdapter)
+        return this.executeFunction('cm_str', [], CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional', bracketAdapter)
     }
 
     // customComparable (cm_str, Semver)
     callCmCustomComparable(): Promise<string> {
-        return this.executeFunction<string, 'Semver'>('cm_str', [], 'customComparable', 'Semver', 'required')
+        return this.executeFunction('cm_str', [], CustomComparableType.of<string, 'Semver'>('Semver'), 'required')
     }
     callCmCustomComparableOpt(): Promise<string | null> {
-        return this.executeFunction<string, 'Semver'>('cm_str', [], 'customComparable', 'Semver', 'optional')
+        return this.executeFunction('cm_str', [], CustomComparableType.of<string, 'Semver'>('Semver'), 'optional')
     }
     callCmCustomComparableAdapter(): Promise<string> {
-        return this.executeFunction<string, 'Semver'>('cm_str', [], 'customComparable', 'Semver', 'required', bracketAdapter)
+        return this.executeFunction('cm_str', [], CustomComparableType.of<string, 'Semver'>('Semver'), 'required', bracketAdapter)
     }
     callCmCustomComparableOptAdapter(): Promise<string | null> {
-        return this.executeFunction<string, 'Semver'>('cm_str', [], 'customComparable', 'Semver', 'optional', bracketAdapter)
+        return this.executeFunction('cm_str', [], CustomComparableType.of<string, 'Semver'>('Semver'), 'optional', bracketAdapter)
     }
 
     // customInt (cm_int, Cents)
     callCmCustomInt(): Promise<number> {
-        return this.executeFunction<number, 'Cents'>('cm_int', [], 'customInt', 'Cents', 'required')
+        return this.executeFunction('cm_int', [], CustomIntType.of<number, 'Cents'>('Cents'), 'required')
     }
     callCmCustomIntOpt(): Promise<number | null> {
-        return this.executeFunction<number, 'Cents'>('cm_int', [], 'customInt', 'Cents', 'optional')
+        return this.executeFunction('cm_int', [], CustomIntType.of<number, 'Cents'>('Cents'), 'optional')
     }
     callCmCustomIntAdapter(): Promise<number> {
-        return this.executeFunction<number, 'Cents'>('cm_int', [], 'customInt', 'Cents', 'required', fnNumberTimesTen)
+        return this.executeFunction('cm_int', [], CustomIntType.of<number, 'Cents'>('Cents'), 'required', fnNumberTimesTen)
     }
     callCmCustomIntOptAdapter(): Promise<number | null> {
-        return this.executeFunction<number, 'Cents'>('cm_int', [], 'customInt', 'Cents', 'optional', fnNumberTimesTen)
+        return this.executeFunction('cm_int', [], CustomIntType.of<number, 'Cents'>('Cents'), 'optional', fnNumberTimesTen)
     }
 
     // customUuid (cm_uuid, SigningKey)
     callCmCustomUuid(): Promise<string> {
-        return this.executeFunction<string, 'SigningKey'>('cm_uuid', [], 'customUuid', 'SigningKey', 'required')
+        return this.executeFunction('cm_uuid', [], CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'required')
     }
     callCmCustomUuidOpt(): Promise<string | null> {
-        return this.executeFunction<string, 'SigningKey'>('cm_uuid', [], 'customUuid', 'SigningKey', 'optional')
+        return this.executeFunction('cm_uuid', [], CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'optional')
     }
     callCmCustomUuidAdapter(): Promise<string> {
-        return this.executeFunction<string, 'SigningKey'>('cm_uuid', [], 'customUuid', 'SigningKey', 'required', fnUuidBracket)
+        return this.executeFunction('cm_uuid', [], CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'required', fnUuidBracket)
     }
     callCmCustomUuidOptAdapter(): Promise<string | null> {
-        return this.executeFunction<string, 'SigningKey'>('cm_uuid', [], 'customUuid', 'SigningKey', 'optional', fnUuidBracket)
+        return this.executeFunction('cm_uuid', [], CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'optional', fnUuidBracket)
     }
 
     // customDouble (cm_double, Money)
     callCmCustomDouble(): Promise<number> {
-        return this.executeFunction<number, 'Money'>('cm_double', [], 'customDouble', 'Money', 'required')
+        return this.executeFunction('cm_double', [], CustomDoubleType.of<number, 'Money'>('Money'), 'required')
     }
     callCmCustomDoubleOpt(): Promise<number | null> {
-        return this.executeFunction<number, 'Money'>('cm_double', [], 'customDouble', 'Money', 'optional')
+        return this.executeFunction('cm_double', [], CustomDoubleType.of<number, 'Money'>('Money'), 'optional')
     }
     callCmCustomDoubleAdapter(): Promise<number> {
-        return this.executeFunction<number, 'Money'>('cm_double', [], 'customDouble', 'Money', 'required', fnNumberTimesTen)
+        return this.executeFunction('cm_double', [], CustomDoubleType.of<number, 'Money'>('Money'), 'required', fnNumberTimesTen)
     }
     callCmCustomDoubleOptAdapter(): Promise<number | null> {
-        return this.executeFunction<number, 'Money'>('cm_double', [], 'customDouble', 'Money', 'optional', fnNumberTimesTen)
+        return this.executeFunction('cm_double', [], CustomDoubleType.of<number, 'Money'>('Money'), 'optional', fnNumberTimesTen)
     }
 
     // customLocalDate (cm_date, ReleaseDay)
     callCmCustomLocalDate(): Promise<Date> {
-        return this.executeFunction<Date, 'ReleaseDay'>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'required')
+        return this.executeFunction('cm_date', [], CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required')
     }
     callCmCustomLocalDateOpt(): Promise<Date | null> {
-        return this.executeFunction<Date, 'ReleaseDay'>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional')
+        return this.executeFunction('cm_date', [], CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'optional')
     }
     callCmCustomLocalDateAdapter(): Promise<Date> {
-        return this.executeFunction<Date, 'ReleaseDay'>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'required', shiftHourAdapter)
+        return this.executeFunction('cm_date', [], CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required', shiftHourAdapter)
     }
     callCmCustomLocalDateOptAdapter(): Promise<Date | null> {
-        return this.executeFunction<Date, 'ReleaseDay'>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional', shiftHourAdapter)
+        return this.executeFunction('cm_date', [], CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'optional', shiftHourAdapter)
     }
 
     // customLocalTime (cm_time, CutoffClock)
     callCmCustomLocalTime(): Promise<Date> {
-        return this.executeFunction<Date, 'CutoffClock'>('cm_time', [], 'customLocalTime', 'CutoffClock', 'required')
+        return this.executeFunction('cm_time', [], CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required')
     }
     callCmCustomLocalTimeOpt(): Promise<Date | null> {
-        return this.executeFunction<Date, 'CutoffClock'>('cm_time', [], 'customLocalTime', 'CutoffClock', 'optional')
+        return this.executeFunction('cm_time', [], CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'optional')
     }
     callCmCustomLocalTimeAdapter(): Promise<Date> {
-        return this.executeFunction<Date, 'CutoffClock'>('cm_time', [], 'customLocalTime', 'CutoffClock', 'required', shiftHourAdapter)
+        return this.executeFunction('cm_time', [], CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required', shiftHourAdapter)
     }
     callCmCustomLocalTimeOptAdapter(): Promise<Date | null> {
-        return this.executeFunction<Date, 'CutoffClock'>('cm_time', [], 'customLocalTime', 'CutoffClock', 'optional', shiftHourAdapter)
+        return this.executeFunction('cm_time', [], CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'optional', shiftHourAdapter)
     }
 
     // customLocalDateTime (cm_datetime, SignOffStamp)
     callCmCustomLocalDateTime(): Promise<Date> {
-        return this.executeFunction<Date, 'SignOffStamp'>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required')
+        return this.executeFunction('cm_datetime', [], CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'required')
     }
     callCmCustomLocalDateTimeOpt(): Promise<Date | null> {
-        return this.executeFunction<Date, 'SignOffStamp'>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional')
+        return this.executeFunction('cm_datetime', [], CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'optional')
     }
     callCmCustomLocalDateTimeAdapter(): Promise<Date> {
-        return this.executeFunction<Date, 'SignOffStamp'>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required', shiftHourAdapter)
+        return this.executeFunction('cm_datetime', [], CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'required', shiftHourAdapter)
     }
     callCmCustomLocalDateTimeOptAdapter(): Promise<Date | null> {
-        return this.executeFunction<Date, 'SignOffStamp'>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional', shiftHourAdapter)
+        return this.executeFunction('cm_datetime', [], CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'optional', shiftHourAdapter)
     }
 
     // Reusable typed SQL fragments — exercised by
@@ -827,16 +828,16 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         this.arg('double', 'optional'), this.valueArg('double', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     customComparableEq = this.buildFragmentWithArgsIfValue(
-        this.arg<string, 'Semver'>('customComparable', 'Semver', 'optional'), this.valueArg<string, 'Semver'>('customComparable', 'Semver', 'optional')
+        this.arg(CustomComparableType.of<string, 'Semver'>('Semver'), 'optional'), this.valueArg(CustomComparableType.of<string, 'Semver'>('Semver'), 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     customEq = this.buildFragmentWithArgsIfValue(
-        this.arg<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional'), this.valueArg<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional')
+        this.arg(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional'), this.valueArg(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     enumEq = this.buildFragmentWithArgsIfValue(
-        this.arg<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional'), this.valueArg<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional')
+        this.arg(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional'), this.valueArg(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     customUuidEq = this.buildFragmentWithArgsIfValue(
-        this.arg<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional'), this.valueArg<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional')
+        this.arg(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'optional'), this.valueArg(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     // boolean arm — combined in a LOGICAL (condition) context with `or` so the
     // library's boolean emulation renders each operand as a predicate
@@ -862,7 +863,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         this.arg('localDateTime', 'optional'), this.valueArg('localDateTime', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     customDoubleEq = this.buildFragmentWithArgsIfValue(
-        this.arg<number, 'Money'>('customDouble', 'Money', 'optional'), this.valueArg<number, 'Money'>('customDouble', 'Money', 'optional')
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'optional'), this.valueArg(CustomDoubleType.of<number, 'Money'>('Money'), 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     // bigint / uuid arg + valueArg arms — `${col} = ${value}` in a column
     // context (the arg binds a typed column at the call site, so the SQL stays
@@ -898,18 +899,18 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // (marshalled to double via baseTypeForCustom); the value type is a plain
     // number, so nextValue()/currentValue() surface a `number` result.
     doubleSeq = this.sequence('issue_id_seq', 'double')
-    customDoubleSeq = this.sequence<number, 'Money'>('audit_tag_seq', 'customDouble', 'Money')
+    customDoubleSeq = this.sequence('audit_tag_seq', CustomDoubleType.of<number, 'Money'>('Money'))
 
     // A sequence whose value type is a branded customInt (ReleaseTag)
     // rather than the plain int / bigint of issueIdSeq / auditTagSeq — the
     // value-type fan-out of sequence(...). The release_tag_seq DDL lives in
     // this dialect's domain/schema.sql.
-    releaseTagSeq = this.sequence<ReleaseTag, 'ReleaseTag'>('release_tag_seq', 'customInt', 'ReleaseTag')
+    releaseTagSeq = this.sequence('release_tag_seq', CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
 
     // A CUSTOM-kind (customInt / ReleaseTag) sequence carrying a trailing
     // TypeAdapter (plusOffsetAdapter, read +1000). Reuses release_tag_seq; the
     // emitted SQL is identical to releaseTagSeq, only the read value is shifted.
-    releaseTagSeqOffset = this.sequence<ReleaseTag, 'ReleaseTag'>('release_tag_seq', 'customInt', 'ReleaseTag', plusOffsetAdapter)
+    releaseTagSeqOffset = this.sequence('release_tag_seq', CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'), plusOffsetAdapter)
 
     // A fragment whose `valueArg` carries a value-scaling TypeAdapter
     // (scaledTenthAdapter, x10 on the write path), so the bound placeholder
@@ -935,11 +936,11 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // ('Cents', marshalled to int) literal
     // through the adapter's write path (x10), so passing 1 binds the scaled 10.
     scaledCustomArgFragment = this.buildFragmentWithArgs(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledTenthAdapter)
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledTenthAdapter)
     ).as((v) => this.fragmentWithType('int', 'required').sql`${v}`)
     scaledCustomThresholdFragment = this.buildFragmentWithArgsIfValue(
         this.arg('int', 'required'),
-        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledTenthAdapter)
+        this.valueArg(CustomIntType.of<number, 'Cents'>('Cents'), 'optional', scaledTenthAdapter)
     ).as((col, v) => this.fragmentWithType('boolean', 'required').sql`${col} > ${v}`)
 
     // Table/view customizations — `createTableOrViewCustomization`
@@ -1002,7 +1003,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // 'ReleaseTag') together with the `scaledByTypeName` adapter, so a derivation
     // applied to `nextValue()` / `currentValue()` records the data type the
     // sequence reference itself carries. Reuses release_tag_seq.
-    derivedTagSeq = this.sequence<number, 'ReleaseTag'>('release_tag_seq', 'customInt', 'ReleaseTag', scaledByTypeName)
+    derivedTagSeq = this.sequence('release_tag_seq', CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag'), scaledByTypeName)
 
     // Fragment-builder arguments declared with a CUSTOM data type. Each body
     // applies a DERIVED operation to the argument, so the argument's own data type
@@ -1014,52 +1015,52 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // SAME custom data type, bound to a column at the call site, so every
     // placeholder sits next to a typed operand and the emitted SQL stays portable.
     derivedArgCents = this.buildFragmentWithArgs(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required')
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName),
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required')
     ).as((v, col) => this.fragmentWithType('int', 'required').sql`${v.add(col).add(9)}`)
     derivedArgMoney = this.buildFragmentWithArgs(
-        this.arg<number, 'Money'>('customDouble', 'Money', 'required', scaledByTypeName),
-        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName),
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'required')
     ).as((v, col) => this.fragmentWithType('double', 'required').sql`${v.add(col).add(9)}`)
     // The same declarations, but the fragment returns the DERIVED value source
     // itself instead of wrapping it in a `fragmentWithType`, so the argument's data
     // type also governs how the result is read back.
     derivedArgCentsRead = this.buildFragmentWithArgs(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required')
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName),
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required')
     ).as((v, col) => v.add(col))
     derivedArgMoneyRead = this.buildFragmentWithArgs(
-        this.arg<number, 'Money'>('customDouble', 'Money', 'required', scaledByTypeName),
-        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName),
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'required')
     ).as((v, col) => v.add(col))
     // The maybe-optional counterpart.
     derivedMaybeOptionalArgCents = this.buildFragmentWithMaybeOptionalArgs(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledByTypeName),
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'optional')
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'optional', scaledByTypeName),
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'optional')
     ).as((v, col) => this.fragmentWithType('int', 'optional').sql`${v.add(col).add(9)}`)
     // Inside an if-value builder the fragment is a predicate, so the extra
     // operand's marshalling is what records the argument's data type.
     derivedArgCentsIfValue = this.buildFragmentWithArgsIfValue(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required'),
-        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional')
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName),
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required'),
+        this.valueArg(CustomIntType.of<number, 'Cents'>('Cents'), 'optional')
     ).as((v, col, limit) => v.add(col).add(9).greaterThan(limit))
     derivedValueArgCentsIfValue = this.buildFragmentWithArgsIfValue(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required'),
-        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledByTypeName)
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required'),
+        this.valueArg(CustomIntType.of<number, 'Cents'>('Cents'), 'optional', scaledByTypeName)
     ).as((col, v) => v.add(col).add(9).greaterThan(col.multiply(20)))
     // The aggregate fragment builders over the same declarations.
     derivedAggArgCents = this.buildAggregateFragmentWithArgs(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledByTypeName),
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required')
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName),
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required')
     ).as((v, col) => this.aggregateFragmentWithType('int', 'required').sql`sum(${v.add(col).add(9)})`)
     derivedAggMaybeOptionalArgMoney = this.buildAggregateFragmentWithMaybeOptionalArgs(
-        this.arg<number, 'Money'>('customDouble', 'Money', 'optional', scaledByTypeName),
-        this.arg<number, 'Money'>('customDouble', 'Money', 'optional')
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'optional', scaledByTypeName),
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'optional')
     ).as((v, col) => this.aggregateFragmentWithType('double', 'optional').sql`sum(${v.add(col).add(9)})`)
     derivedAggValueArgCentsIfValue = this.buildAggregateFragmentWithArgsIfValue(
-        this.arg<number, 'Cents'>('customInt', 'Cents', 'required'),
-        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledByTypeName)
+        this.arg(CustomIntType.of<number, 'Cents'>('Cents'), 'required'),
+        this.valueArg(CustomIntType.of<number, 'Cents'>('Cents'), 'optional', scaledByTypeName)
     ).as((col, v) => this.aggregateFragmentWithType('boolean', 'required').sql`sum(${v.add(col).add(9)}) > sum(${col}) * 20`)
 
     // Custom-typed arguments WITHOUT an adapter: what observes the argument's own
@@ -1068,13 +1069,13 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // a value transform. Both operands of the modulo are placeholders the dialect
     // casts for itself, so the emitted SQL stays portable.
     derivedArgMoneyModulo = this.buildFragmentWithArgs(
-        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'required')
     ).as((v) => v.modulo(2))
     derivedAggArgMoneyModulo = this.buildAggregateFragmentWithArgs(
-        this.arg<number, 'Money'>('customDouble', 'Money', 'required')
+        this.arg(CustomDoubleType.of<number, 'Money'>('Money'), 'required')
     ).as((v) => this.aggregateFragmentWithType('double', 'required').sql`sum(${v.modulo(2)})`)
     derivedValueArgMoneyModuloIfValue = this.buildFragmentWithArgsIfValue(
-        this.valueArg<number, 'Money'>('customDouble', 'Money', 'optional')
+        this.valueArg(CustomDoubleType.of<number, 'Money'>('Money'), 'optional')
     ).as((v) => v.modulo(2).lessThan(10))
 }
 
@@ -1186,12 +1187,12 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     // The amount billed for the worklog — a branded customDouble ('Money',
     // marshalled to double). invoiced is a boolean stored as int 1/0 via the
     // NUMERIC CustomBooleanTypeAdapter overload.
-    billedAmount = this.columnWithDefaultValue<number, 'Money'>('billed_amount', 'customDouble', 'Money')
+    billedAmount = this.columnWithDefaultValue('billed_amount', CustomDoubleType.of<number, 'Money'>('Money'))
     invoiced     = this.columnWithDefaultValue('invoiced', 'boolean', invoicedAdapter)
     // The internal cost of the worklog in integer cents — a branded
     // customInt ('Cents', marshalled to int).
-    costCents    = this.columnWithDefaultValue<number, 'Cents'>('cost_cents', 'customInt', 'Cents')
-    activity   = this.column<WorklogActivity, 'WorklogActivity'>('activity', 'enum', 'WorklogActivity')
+    costCents    = this.columnWithDefaultValue('cost_cents', CustomIntType.of<number, 'Cents'>('Cents'))
+    activity   = this.column('activity', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     // optionalVirtualColumnFromFragment on a Table (the optional
     // sibling of the required virtual column; no DB column — computed inline).
     activityUpper  = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.activity})`)
@@ -1203,15 +1204,15 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     // int): worklog id * 100. `centsFromIdOptional` is its optional sibling.
     // `activityCustomKind` is a string-backed custom kind (enum 'WorklogActivity').
     // `centsFromIdTagged` carries a trailing TypeAdapter (plusOffsetAdapter, read +1000).
-    centsFromId         = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`)
-    centsFromIdOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`)
-    activityCustomKind  = this.virtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (fragment) => fragment.sql`lower(${this.activity})`)
-    centsFromIdTagged   = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
+    centsFromId         = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.id} * 100`)
+    centsFromIdOptional = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.id} * 100`)
+    activityCustomKind  = this.virtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (fragment) => fragment.sql`lower(${this.activity})`)
+    centsFromIdTagged   = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
     // The optional × custom-kind × trailing-adapter triple: an OPTIONAL branded
     // customInt ('Cents', marshalled to int) virtual column (`id * 100`) carrying a
     // trailing TypeAdapter (plusOffsetAdapter, read +1000) — the optional sibling of
     // centsFromIdTagged and the adapter-bearing sibling of centsFromIdOptional.
-    centsFromIdOptionalTagged = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
+    centsFromIdOptionalTagged = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
     // optionalComputedColumn — a NULLABLE DB-computed column,
     // excluded from the writable shape (the required sibling is
     // project_release.notes). The DB computes it from minutes + activity.
@@ -1241,8 +1242,8 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     localTimeVirtualOptional = this.optionalVirtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.startedAt}`)
     intVirtual               = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id} + 1`)
     intVirtualOptional       = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.minutes}`)
-    customDoubleVirtual         = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.billedAmount}`)
-    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.billedAmount}`)
+    customDoubleVirtual         = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.billedAmount}`)
+    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.billedAmount}`)
     constructor() { super('issue_worklog') }
 }()
 
@@ -1255,12 +1256,12 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
 export const tProjectRelease = new class TProjectRelease extends Table<DBConnection, 'TProjectRelease'> {
     id          = this.autogeneratedPrimaryKey('id', 'int')
     projectId   = this.column('project_id', 'int')
-    version     = this.column<string, 'Semver'>('version', 'customComparable', 'Semver')
-    channel     = this.column<ReleaseChannel, 'ReleaseChannel'>('channel', 'custom', 'ReleaseChannel')
-    signingKey  = this.optionalColumn<string, 'SigningKey'>('signing_key', 'customUuid', 'SigningKey')
-    releasedOn  = this.column<Date, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay')
-    cutoffTime  = this.column<Date, 'CutoffClock'>('cutoff_time', 'customLocalTime', 'CutoffClock')
-    signedOffAt = this.optionalColumn<Date, 'SignOffStamp'>('signed_off_at', 'customLocalDateTime', 'SignOffStamp')
+    version     = this.column('version', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel     = this.column('channel', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    signingKey  = this.optionalColumn('signing_key', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    releasedOn  = this.column('released_on', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffTime  = this.column('cutoff_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signedOffAt = this.optionalColumn('signed_off_at', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
     notes       = this.computedColumn('notes', 'string')
     versionTag  = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.channel})`)
     // A REQUIRED-on-read customLocalDateTime column (branded
@@ -1270,24 +1271,24 @@ export const tProjectRelease = new class TProjectRelease extends Table<DBConnect
     // undefined`). Declared columnWithDefaultValue (DB DEFAULT CURRENT_TIMESTAMP)
     // so it stays optional on INSERT — existing tProjectRelease INSERT tests that
     // don't enumerate it keep working. Added last to keep existing snapshots stable.
-    publishedAt = this.columnWithDefaultValue<Date, 'PublishStamp'>('published_at', 'customLocalDateTime', 'PublishStamp')
+    publishedAt = this.columnWithDefaultValue('published_at', CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp'))
     // Per-kind virtualColumnFromFragment fan-out on a writable Table
     // carrying custom-typed columns: the custom string/uuid/temporal kinds (and
     // the plain uuid / localDateTime kinds this table can source) that the
     // worklog fixture can't. required + optional; each references an existing
     // same-table typed column so the fragment SQL is portable.
-    customComparableVirtual         = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
-    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
-    customVirtual                   = this.virtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.channel}`)
-    customVirtualOptional           = this.optionalVirtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.channel}`)
-    customUuidVirtual               = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingKey}`)
-    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingKey}`)
-    customLocalDateVirtual          = this.virtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releasedOn}`)
-    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releasedOn}`)
-    customLocalTimeVirtual          = this.virtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffTime}`)
-    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffTime}`)
-    customLocalDateTimeVirtual         = this.virtualColumnFromFragment<Date, 'PublishStamp'>('customLocalDateTime', 'PublishStamp', (fragment) => fragment.sql`${this.publishedAt}`)
-    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.signedOffAt}`)
+    customComparableVirtual         = this.virtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.version}`)
+    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.version}`)
+    customVirtual                   = this.virtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (fragment) => fragment.sql`${this.channel}`)
+    customVirtualOptional           = this.optionalVirtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (fragment) => fragment.sql`${this.channel}`)
+    customUuidVirtual               = this.virtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.signingKey}`)
+    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.signingKey}`)
+    customLocalDateVirtual          = this.virtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.releasedOn}`)
+    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.releasedOn}`)
+    customLocalTimeVirtual          = this.virtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.cutoffTime}`)
+    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.cutoffTime}`)
+    customLocalDateTimeVirtual         = this.virtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp'), (fragment) => fragment.sql`${this.publishedAt}`)
+    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), (fragment) => fragment.sql`${this.signedOffAt}`)
     uuidVirtual                     = this.virtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingKey}`)
     uuidVirtualOptional             = this.optionalVirtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingKey}`)
     localDateTimeVirtual            = this.virtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.publishedAt}`)
@@ -1315,9 +1316,9 @@ export const tProjectReview = new class TProjectReview extends Table<DBConnectio
 export const vReleaseOverview = new class VReleaseOverview extends View<DBConnection, 'VReleaseOverview'> {
     id           = this.column('id', 'int')
     projectId    = this.column('project_id', 'int')
-    version      = this.column<string, 'Semver'>('version', 'customComparable', 'Semver')
-    releasedOn   = this.column<Date, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay')
-    signedOffAt  = this.optionalColumn<Date, 'SignOffStamp'>('signed_off_at', 'customLocalDateTime', 'SignOffStamp')
+    version      = this.column('version', CustomComparableType.of<string, 'Semver'>('Semver'))
+    releasedOn   = this.column('released_on', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    signedOffAt  = this.optionalColumn('signed_off_at', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
     projectName  = this.column('project_name', 'string')
     // An adapter-bearing VIEW column — `versionBracketed` carries the
     // trailing TypeAdapter `bracketAdapter` (read wraps the value in [...]). No
@@ -1327,7 +1328,7 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // A customLocalTime VIEW column — the View side of the
     // customLocalTime kind (Table side is tProjectRelease.cutoffTime). Maps the
     // release's cutoff_time through the view.
-    cutoffClock  = this.column<Date, 'CutoffClock'>('cutoff_clock', 'customLocalTime', 'CutoffClock')
+    cutoffClock  = this.column('cutoff_clock', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
     versionUpper = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
     // A View required virtualColumnFromFragment carrying a trailing
     // TypeAdapter (bracketAdapter, read wraps in [...]) — the View twin of the
@@ -1345,8 +1346,8 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     versionUpperTagged = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`, bracketAdapter)
     // Custom-kind virtualColumnFromFragment / optional on a VIEW: required + optional
     // branded customInt ('Cents', marshalled to int), computed as release id * 10.
-    centsFromId         = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 10`)
-    centsFromIdOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 10`)
+    centsFromId         = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.id} * 10`)
+    centsFromIdOptional = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.id} * 10`)
     // Per-kind PLAIN read marshalling on a View: boolean/bigint/double are backed by
     // project_release base columns; uuid reuses signing_key; localDate/localTime reuse
     // released_on/cutoff_time (also mapped as their custom-branded twins above); the
@@ -1357,18 +1358,18 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     signingUuid     = this.optionalColumn('signing_uuid', 'uuid')
     releaseDayPlain = this.column('release_day_plain', 'localDate')
     cutoffPlain     = this.column('cutoff_plain', 'localTime')
-    releaseOrdinal  = this.column<ReleaseTag, 'ReleaseTag'>('release_ordinal', 'customInt', 'ReleaseTag', plusOffsetAdapter)
+    releaseOrdinal  = this.column('release_ordinal', CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'), plusOffsetAdapter)
     // A nullable custom-kind (customInt / ReleaseTag) VIEW column carrying a
     // trailing TypeAdapter (plusOffsetAdapter, read +1000). The view computes it
     // as the release id when download_count is present, else NULL.
-    optionalReleaseOrdinal = this.optionalColumn<ReleaseTag, 'ReleaseTag'>('optional_release_ordinal', 'customInt', 'ReleaseTag', plusOffsetAdapter)
+    optionalReleaseOrdinal = this.optionalColumn('optional_release_ordinal', CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'), plusOffsetAdapter)
     // A REQUIRED plain localDateTime View column and its REQUIRED
     // customLocalDateTime ('PublishStamp') twin — both surface the release's
     // published_at through the view, so the required-on-read localDateTime getter
     // surface is observed on a View source (the optional archivedAt View getters
     // and the Table-side publishedAt are the other sides).
     publishStampPlain = this.column('published_stamp_plain', 'localDateTime')
-    publishStamp      = this.column<Date, 'PublishStamp'>('published_stamp', 'customLocalDateTime', 'PublishStamp')
+    publishStamp      = this.column('published_stamp', CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp'))
     // Per-kind virtualColumnFromFragment fan-out on a View source
     // (required + optional). The View exposes typed columns of every kind, so
     // each virtual column references a same-view column of the matching kind and
@@ -1389,18 +1390,18 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     localDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.signedOffAt}`)
     intVirtual               = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id} + 1`)
     intVirtualOptional       = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id}`)
-    customComparableVirtual         = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
-    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
-    customUuidVirtual               = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingUuid}`)
-    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingUuid}`)
-    customLocalDateVirtual          = this.virtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releaseDayPlain}`)
-    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releaseDayPlain}`)
-    customLocalTimeVirtual          = this.virtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffPlain}`)
-    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffPlain}`)
-    customLocalDateTimeVirtual         = this.virtualColumnFromFragment<Date, 'PublishStamp'>('customLocalDateTime', 'PublishStamp', (fragment) => fragment.sql`${this.publishStampPlain}`)
-    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.signedOffAt}`)
-    customDoubleVirtual         = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.avgRating}`)
-    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.avgRating}`)
+    customComparableVirtual         = this.virtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.version}`)
+    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.version}`)
+    customUuidVirtual               = this.virtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.signingUuid}`)
+    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.signingUuid}`)
+    customLocalDateVirtual          = this.virtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    customLocalTimeVirtual          = this.virtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.cutoffPlain}`)
+    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.cutoffPlain}`)
+    customLocalDateTimeVirtual         = this.virtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp'), (fragment) => fragment.sql`${this.publishStampPlain}`)
+    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), (fragment) => fragment.sql`${this.signedOffAt}`)
+    customDoubleVirtual         = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.avgRating}`)
+    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.avgRating}`)
     constructor() { super('release_overview') }
 }()
 
@@ -1438,7 +1439,7 @@ export const tWebhookEvent = new class TWebhookEvent extends Table<DBConnection,
     id        = this.autogeneratedPrimaryKey('id', 'bigint')
     issueId   = this.column('issue_id', 'int')
     // columnWithDefaultValue on an `enum` column (with a DB DEFAULT).
-    eventType = this.columnWithDefaultValue<WebhookEventType, 'WebhookEventType'>('event_type', 'enum', 'WebhookEventType')
+    eventType = this.columnWithDefaultValue('event_type', EnumType.of<WebhookEventType, 'WebhookEventType'>('WebhookEventType'))
     constructor() { super('webhook_event') }
 }()
 
@@ -1492,34 +1493,34 @@ export type ReleaseStage = 'draft' | 'candidate' | 'final'
 export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection, 'TReleaseDraft'> {
     id         = this.primaryKey('id', 'int')
     title      = this.column('title', 'string')
-    stage      = this.optionalColumn<ReleaseStage, 'ReleaseStage'>('stage', 'enum', 'ReleaseStage')
-    channel    = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('channel', 'custom', 'ReleaseChannel')
-    minVersion = this.optionalColumn<string, 'Semver'>('min_version', 'customComparable', 'Semver')
+    stage      = this.optionalColumn('stage', EnumType.of<ReleaseStage, 'ReleaseStage'>('ReleaseStage'))
+    channel    = this.optionalColumn('channel', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    minVersion = this.optionalColumn('min_version', CustomComparableType.of<string, 'Semver'>('Semver'))
     // Optional custom-kind columns (customDouble 'Money', customLocalDate
     // 'ReleaseDay', customLocalTime 'CutoffClock') so isNull / isNotNull reach a
     // realizable NULL branch on these kinds. Draft 2 leaves them NULL.
-    budget     = this.optionalColumn<number, 'Money'>('budget', 'customDouble', 'Money')
-    targetDay  = this.optionalColumn<Date, 'ReleaseDay'>('target_day', 'customLocalDate', 'ReleaseDay')
-    cutoff     = this.optionalColumn<Date, 'CutoffClock'>('cutoff', 'customLocalTime', 'CutoffClock')
+    budget     = this.optionalColumn('budget', CustomDoubleType.of<number, 'Money'>('Money'))
+    targetDay  = this.optionalColumn('target_day', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoff     = this.optionalColumn('cutoff', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
     // Trailing-TypeAdapter ([a2] slot) on Table columns of each remaining kind —
     // no other Table column factory carries a custom-kind trailing adapter. Each
     // is a columnWithDefaultValue reading its DB DEFAULT through the adapter, so
     // the adapter's read effect is observable: the numeric kinds scale/shift, the
     // string kinds bracket, the customLocalDateTime shifts +1h.
-    scaledCost      = this.columnWithDefaultValue<number, 'Cents'>('scaled_cost', 'customInt', 'Cents', scaledTenthAdapter)
-    shiftedAmount   = this.columnWithDefaultValue<number, 'Money'>('shifted_amount', 'customDouble', 'Money', plusOffsetAdapter)
-    bracketVersion  = this.columnWithDefaultValue<string, 'Semver'>('bracket_version', 'customComparable', 'Semver', bracketAdapter)
-    bracketChannel  = this.columnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('bracket_channel', 'custom', 'ReleaseChannel', bracketAdapter)
-    bracketActivity = this.columnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('bracket_activity', 'enum', 'WorklogActivity', bracketAdapter)
-    shiftedStamp    = this.columnWithDefaultValue<Date, 'PublishStamp'>('shifted_stamp', 'customLocalDateTime', 'PublishStamp', shiftHourAdapter)
+    scaledCost      = this.columnWithDefaultValue('scaled_cost', CustomIntType.of<number, 'Cents'>('Cents'), scaledTenthAdapter)
+    shiftedAmount   = this.columnWithDefaultValue('shifted_amount', CustomDoubleType.of<number, 'Money'>('Money'), plusOffsetAdapter)
+    bracketVersion  = this.columnWithDefaultValue('bracket_version', CustomComparableType.of<string, 'Semver'>('Semver'), bracketAdapter)
+    bracketChannel  = this.columnWithDefaultValue('bracket_channel', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), bracketAdapter)
+    bracketActivity = this.columnWithDefaultValue('bracket_activity', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), bracketAdapter)
+    shiftedStamp    = this.columnWithDefaultValue('shifted_stamp', CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp'), shiftHourAdapter)
     shiftedCount    = this.columnWithDefaultValue('shifted_count', 'bigint', plusThousandBigintAdapter)
     shiftedRating   = this.columnWithDefaultValue('shifted_rating', 'double', plusOffsetAdapter)
     // customUuid / customLocalDate / customLocalTime columns carrying a trailing
     // TypeAdapter, each reading its DB DEFAULT through the adapter (uuid bracketed;
     // date/time shifted +1h on read).
-    bracketSigningKey = this.columnWithDefaultValue<string, 'SigningKey'>('bracket_signing_key', 'customUuid', 'SigningKey', bracketAdapter)
-    shiftedReleaseDay = this.columnWithDefaultValue<Date, 'ReleaseDay'>('shifted_release_day', 'customLocalDate', 'ReleaseDay', shiftHourAdapter)
-    shiftedCutoff     = this.columnWithDefaultValue<Date, 'CutoffClock'>('shifted_cutoff', 'customLocalTime', 'CutoffClock', shiftHourAdapter)
+    bracketSigningKey = this.columnWithDefaultValue('bracket_signing_key', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), bracketAdapter)
+    shiftedReleaseDay = this.columnWithDefaultValue('shifted_release_day', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), shiftHourAdapter)
+    shiftedCutoff     = this.columnWithDefaultValue('shifted_cutoff', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), shiftHourAdapter)
     constructor() { super('release_draft') }
 }()
 
@@ -1546,15 +1547,15 @@ export const tColMatrixColumn = new class TColMatrixColumn extends Table<DBConne
     mTime       = this.column('m_time', 'localTime')
     mDatetime   = this.column('m_datetime', 'localDateTime')
     mStr        = this.column('m_str', 'string')
-    cents       = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    money       = this.column<number, 'Money'>('m_double', 'customDouble', 'Money')
-    signingKey  = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    semver      = this.column<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    channel     = this.column<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    releaseDay  = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signOff     = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    activity    = this.column<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    cents       = this.column('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    money       = this.column('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    signingKey  = this.column('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    semver      = this.column('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel     = this.column('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    releaseDay  = this.column('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock = this.column('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signOff     = this.column('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    activity    = this.column('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     constructor() { super('col_matrix') }
 }()
 
@@ -1571,15 +1572,15 @@ export const tColMatrixOptional = new class TColMatrixOptional extends Table<DBC
     mTime       = this.optionalColumn('m_time', 'localTime')
     mDatetime   = this.optionalColumn('m_datetime', 'localDateTime')
     mStr        = this.optionalColumn('m_str', 'string')
-    cents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    money       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
-    signingKey  = this.optionalColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    semver      = this.optionalColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    channel     = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    releaseDay  = this.optionalColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock = this.optionalColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signOff     = this.optionalColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    activity    = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    cents       = this.optionalColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    money       = this.optionalColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    signingKey  = this.optionalColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    semver      = this.optionalColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel     = this.optionalColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    releaseDay  = this.optionalColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock = this.optionalColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signOff     = this.optionalColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    activity    = this.optionalColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     constructor() { super('col_matrix') }
 }()
 
@@ -1595,15 +1596,15 @@ export const tColMatrixDefault = new class TColMatrixDefault extends Table<DBCon
     mTime       = this.columnWithDefaultValue('m_time', 'localTime')
     mDatetime   = this.columnWithDefaultValue('m_datetime', 'localDateTime')
     mStr        = this.columnWithDefaultValue('m_str', 'string')
-    cents       = this.columnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    money       = this.columnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money')
-    signingKey  = this.columnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    semver      = this.columnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    channel     = this.columnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    releaseDay  = this.columnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock = this.columnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signOff     = this.columnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    activity    = this.columnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    cents       = this.columnWithDefaultValue('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    money       = this.columnWithDefaultValue('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    signingKey  = this.columnWithDefaultValue('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    semver      = this.columnWithDefaultValue('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel     = this.columnWithDefaultValue('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    releaseDay  = this.columnWithDefaultValue('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock = this.columnWithDefaultValue('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signOff     = this.columnWithDefaultValue('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    activity    = this.columnWithDefaultValue('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     constructor() { super('col_matrix') }
 }()
 
@@ -1619,15 +1620,15 @@ export const tColMatrixOptionalDefault = new class TColMatrixOptionalDefault ext
     mTime       = this.optionalColumnWithDefaultValue('m_time', 'localTime')
     mDatetime   = this.optionalColumnWithDefaultValue('m_datetime', 'localDateTime')
     mStr        = this.optionalColumnWithDefaultValue('m_str', 'string')
-    cents       = this.optionalColumnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    money       = this.optionalColumnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money')
-    signingKey  = this.optionalColumnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    semver      = this.optionalColumnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    channel     = this.optionalColumnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    releaseDay  = this.optionalColumnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock = this.optionalColumnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signOff     = this.optionalColumnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    activity    = this.optionalColumnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    cents       = this.optionalColumnWithDefaultValue('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    money       = this.optionalColumnWithDefaultValue('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    signingKey  = this.optionalColumnWithDefaultValue('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    semver      = this.optionalColumnWithDefaultValue('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel     = this.optionalColumnWithDefaultValue('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    releaseDay  = this.optionalColumnWithDefaultValue('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock = this.optionalColumnWithDefaultValue('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signOff     = this.optionalColumnWithDefaultValue('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    activity    = this.optionalColumnWithDefaultValue('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     constructor() { super('col_matrix') }
 }()
 
@@ -1643,15 +1644,15 @@ export const tColMatrixComputed = new class TColMatrixComputed extends Table<DBC
     mTime       = this.computedColumn('m_time', 'localTime')
     mDatetime   = this.computedColumn('m_datetime', 'localDateTime')
     mStr        = this.computedColumn('m_str', 'string')
-    cents       = this.computedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    money       = this.computedColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
-    signingKey  = this.computedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    semver      = this.computedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    channel     = this.computedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    releaseDay  = this.computedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock = this.computedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signOff     = this.computedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    activity    = this.computedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    cents       = this.computedColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    money       = this.computedColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    signingKey  = this.computedColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    semver      = this.computedColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel     = this.computedColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    releaseDay  = this.computedColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock = this.computedColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signOff     = this.computedColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    activity    = this.computedColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     constructor() { super('col_matrix') }
 }()
 
@@ -1667,15 +1668,15 @@ export const tColMatrixOptionalComputed = new class TColMatrixOptionalComputed e
     mTime       = this.optionalComputedColumn('m_time', 'localTime')
     mDatetime   = this.optionalComputedColumn('m_datetime', 'localDateTime')
     mStr        = this.optionalComputedColumn('m_str', 'string')
-    cents       = this.optionalComputedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    money       = this.optionalComputedColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
-    signingKey  = this.optionalComputedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    semver      = this.optionalComputedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    channel     = this.optionalComputedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    releaseDay  = this.optionalComputedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock = this.optionalComputedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signOff     = this.optionalComputedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    activity    = this.optionalComputedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    cents       = this.optionalComputedColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    money       = this.optionalComputedColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    signingKey  = this.optionalComputedColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    semver      = this.optionalComputedColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel     = this.optionalComputedColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    releaseDay  = this.optionalComputedColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock = this.optionalComputedColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signOff     = this.optionalComputedColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    activity    = this.optionalComputedColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     constructor() { super('col_matrix') }
 }()
 
@@ -1704,15 +1705,15 @@ export const vColMatrix = new class VColMatrix extends View<DBConnection, 'VColM
     mTime        = this.column('m_time', 'localTime')
     mDatetime    = this.column('m_datetime', 'localDateTime')
     mStr         = this.column('m_str', 'string')
-    cents        = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    money        = this.column<number, 'Money'>('m_double', 'customDouble', 'Money')
-    signingKey   = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    semver       = this.column<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    channel      = this.column<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    releaseDay   = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock  = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signOff      = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    activity     = this.column<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    cents        = this.column('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    money        = this.column('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    signingKey   = this.column('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    semver       = this.column('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    channel      = this.column('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    releaseDay   = this.column('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock  = this.column('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signOff      = this.column('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    activity     = this.column('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     oInt         = this.optionalColumn('m_int', 'int')
     oBigint      = this.optionalColumn('m_bigint', 'bigint')
     oDouble      = this.optionalColumn('m_double', 'double')
@@ -1722,15 +1723,15 @@ export const vColMatrix = new class VColMatrix extends View<DBConnection, 'VColM
     oTime        = this.optionalColumn('m_time', 'localTime')
     oDatetime    = this.optionalColumn('m_datetime', 'localDateTime')
     oStr         = this.optionalColumn('m_str', 'string')
-    oCents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    oMoney       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
-    oSigningKey  = this.optionalColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
-    oSemver      = this.optionalColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
-    oChannel     = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
-    oReleaseDay  = this.optionalColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    oCutoffClock = this.optionalColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    oSignOff     = this.optionalColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    oActivity    = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    oCents       = this.optionalColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    oMoney       = this.optionalColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    oSigningKey  = this.optionalColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+    oSemver      = this.optionalColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'))
+    oChannel     = this.optionalColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+    oReleaseDay  = this.optionalColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    oCutoffClock = this.optionalColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    oSignOff     = this.optionalColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    oActivity    = this.optionalColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
     constructor() { super('col_matrix_view') }
 }()
 
@@ -1801,15 +1802,15 @@ export const tColMatrixColumnAdapter = new class TColMatrixColumnAdapter extends
     mTime       = this.column('m_time', 'localTime', colMatrixShiftHour)
     mDatetime   = this.column('m_datetime', 'localDateTime', colMatrixShiftHour)
     mStr        = this.column('m_str', 'string', colMatrixStringBracket)
-    cents       = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    money       = this.column<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    signingKey  = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    semver      = this.column<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    channel     = this.column<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    releaseDay  = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    cutoffClock = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    signOff     = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    activity    = this.column<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    cents       = this.column('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    money       = this.column('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    signingKey  = this.column('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    semver      = this.column('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    channel     = this.column('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    releaseDay  = this.column('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    cutoffClock = this.column('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    signOff     = this.column('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    activity    = this.column('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1825,15 +1826,15 @@ export const tColMatrixOptionalAdapter = new class TColMatrixOptionalAdapter ext
     mTime       = this.optionalColumn('m_time', 'localTime', colMatrixShiftHour)
     mDatetime   = this.optionalColumn('m_datetime', 'localDateTime', colMatrixShiftHour)
     mStr        = this.optionalColumn('m_str', 'string', colMatrixStringBracket)
-    cents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    money       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    signingKey  = this.optionalColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    semver      = this.optionalColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    channel     = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    releaseDay  = this.optionalColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    cutoffClock = this.optionalColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    signOff     = this.optionalColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    activity    = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    cents       = this.optionalColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    money       = this.optionalColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    signingKey  = this.optionalColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    semver      = this.optionalColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    channel     = this.optionalColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    releaseDay  = this.optionalColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    cutoffClock = this.optionalColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    signOff     = this.optionalColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    activity    = this.optionalColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1854,15 +1855,15 @@ export const vColMatrixAdapter = new class VColMatrixAdapter extends View<DBConn
     mTime        = this.column('m_time', 'localTime', colMatrixShiftHour)
     mDatetime    = this.column('m_datetime', 'localDateTime', colMatrixShiftHour)
     mStr         = this.column('m_str', 'string', colMatrixStringBracket)
-    cents        = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    money        = this.column<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    signingKey   = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    semver       = this.column<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    channel      = this.column<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    releaseDay   = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    cutoffClock  = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    signOff      = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    activity     = this.column<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    cents        = this.column('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    money        = this.column('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    signingKey   = this.column('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    semver       = this.column('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    channel      = this.column('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    releaseDay   = this.column('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    cutoffClock  = this.column('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    signOff      = this.column('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    activity     = this.column('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     oInt         = this.optionalColumn('m_int', 'int', colMatrixNumberX10)
     oBigint      = this.optionalColumn('m_bigint', 'bigint', colMatrixBigintX10)
     oDouble      = this.optionalColumn('m_double', 'double', colMatrixNumberX10)
@@ -1872,15 +1873,15 @@ export const vColMatrixAdapter = new class VColMatrixAdapter extends View<DBConn
     oTime        = this.optionalColumn('m_time', 'localTime', colMatrixShiftHour)
     oDatetime    = this.optionalColumn('m_datetime', 'localDateTime', colMatrixShiftHour)
     oStr         = this.optionalColumn('m_str', 'string', colMatrixStringBracket)
-    oCents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    oMoney       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    oSigningKey  = this.optionalColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    oSemver      = this.optionalColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    oChannel     = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    oReleaseDay  = this.optionalColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    oCutoffClock = this.optionalColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    oSignOff     = this.optionalColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    oActivity    = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    oCents       = this.optionalColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    oMoney       = this.optionalColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    oSigningKey  = this.optionalColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    oSemver      = this.optionalColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    oChannel     = this.optionalColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    oReleaseDay  = this.optionalColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    oCutoffClock = this.optionalColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    oSignOff     = this.optionalColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    oActivity    = this.optionalColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     constructor() { super('col_matrix_view') }
 }()
 
@@ -1911,15 +1912,15 @@ export const tColMatrixVirtualAdapter = new class TColMatrixVirtualAdapter exten
     mTime        = this.virtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     mDatetime    = this.virtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
     mStr         = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    cents        = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
-    money        = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
-    signingKey   = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
-    semver       = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    channel      = this.virtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    releaseDay   = this.virtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
-    cutoffClock  = this.virtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
-    signOff      = this.virtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    activity     = this.virtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    cents        = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
+    money        = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
+    signingKey   = this.virtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
+    semver       = this.virtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    channel      = this.virtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    releaseDay   = this.virtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
+    cutoffClock  = this.virtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
+    signOff      = this.virtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
+    activity     = this.virtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
     oInt         = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
     oBigint      = this.optionalVirtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.bBigint}`, colMatrixBigintX10)
     oDouble      = this.optionalVirtualColumnFromFragment('double', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
@@ -1929,15 +1930,15 @@ export const tColMatrixVirtualAdapter = new class TColMatrixVirtualAdapter exten
     oTime        = this.optionalVirtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     oDatetime    = this.optionalVirtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
     oStr         = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    oCents       = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
-    oMoney       = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
-    oSigningKey  = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
-    oSemver      = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    oChannel     = this.optionalVirtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    oReleaseDay  = this.optionalVirtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
-    oCutoffClock = this.optionalVirtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
-    oSignOff     = this.optionalVirtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    oActivity    = this.optionalVirtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oCents       = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
+    oMoney       = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
+    oSigningKey  = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
+    oSemver      = this.optionalVirtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oChannel     = this.optionalVirtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oReleaseDay  = this.optionalVirtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
+    oCutoffClock = this.optionalVirtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
+    oSignOff     = this.optionalVirtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
+    oActivity    = this.optionalVirtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1968,15 +1969,15 @@ export const vColMatrixVirtualAdapter = new class VColMatrixVirtualAdapter exten
     mTime        = this.virtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     mDatetime    = this.virtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
     mStr         = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    cents        = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
-    money        = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
-    signingKey   = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
-    semver       = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    channel      = this.virtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    releaseDay   = this.virtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
-    cutoffClock  = this.virtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
-    signOff      = this.virtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    activity     = this.virtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    cents        = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
+    money        = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
+    signingKey   = this.virtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
+    semver       = this.virtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    channel      = this.virtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    releaseDay   = this.virtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
+    cutoffClock  = this.virtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
+    signOff      = this.virtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
+    activity     = this.virtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
     oInt         = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
     oBigint      = this.optionalVirtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.bBigint}`, colMatrixBigintX10)
     oDouble      = this.optionalVirtualColumnFromFragment('double', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
@@ -1986,15 +1987,15 @@ export const vColMatrixVirtualAdapter = new class VColMatrixVirtualAdapter exten
     oTime        = this.optionalVirtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     oDatetime    = this.optionalVirtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
     oStr         = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    oCents       = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
-    oMoney       = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
-    oSigningKey  = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
-    oSemver      = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    oChannel     = this.optionalVirtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
-    oReleaseDay  = this.optionalVirtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
-    oCutoffClock = this.optionalVirtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
-    oSignOff     = this.optionalVirtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    oActivity    = this.optionalVirtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oCents       = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
+    oMoney       = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
+    oSigningKey  = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (fragment) => fragment.sql`${this.bUuid}`, colMatrixUuidBracket)
+    oSemver      = this.optionalVirtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oChannel     = this.optionalVirtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oReleaseDay  = this.optionalVirtualColumnFromFragment(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
+    oCutoffClock = this.optionalVirtualColumnFromFragment(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
+    oSignOff     = this.optionalVirtualColumnFromFragment(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
+    oActivity    = this.optionalVirtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
     constructor() { super('col_matrix_view') }
 }()
 
@@ -2009,15 +2010,15 @@ export const tColMatrixDefaultAdapter = new class TColMatrixDefaultAdapter exten
     mTime       = this.columnWithDefaultValue('m_time', 'localTime', colMatrixShiftHour)
     mDatetime   = this.columnWithDefaultValue('m_datetime', 'localDateTime', colMatrixShiftHour)
     mStr        = this.columnWithDefaultValue('m_str', 'string', colMatrixStringBracket)
-    cents       = this.columnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    money       = this.columnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    signingKey  = this.columnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    semver      = this.columnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    channel     = this.columnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    releaseDay  = this.columnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    cutoffClock = this.columnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    signOff     = this.columnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    activity    = this.columnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    cents       = this.columnWithDefaultValue('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    money       = this.columnWithDefaultValue('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    signingKey  = this.columnWithDefaultValue('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    semver      = this.columnWithDefaultValue('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    channel     = this.columnWithDefaultValue('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    releaseDay  = this.columnWithDefaultValue('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    cutoffClock = this.columnWithDefaultValue('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    signOff     = this.columnWithDefaultValue('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    activity    = this.columnWithDefaultValue('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -2033,15 +2034,15 @@ export const tColMatrixOptionalDefaultAdapter = new class TColMatrixOptionalDefa
     mTime       = this.optionalColumnWithDefaultValue('m_time', 'localTime', colMatrixShiftHour)
     mDatetime   = this.optionalColumnWithDefaultValue('m_datetime', 'localDateTime', colMatrixShiftHour)
     mStr        = this.optionalColumnWithDefaultValue('m_str', 'string', colMatrixStringBracket)
-    cents       = this.optionalColumnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    money       = this.optionalColumnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    signingKey  = this.optionalColumnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    semver      = this.optionalColumnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    channel     = this.optionalColumnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    releaseDay  = this.optionalColumnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    cutoffClock = this.optionalColumnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    signOff     = this.optionalColumnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    activity    = this.optionalColumnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    cents       = this.optionalColumnWithDefaultValue('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    money       = this.optionalColumnWithDefaultValue('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    signingKey  = this.optionalColumnWithDefaultValue('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    semver      = this.optionalColumnWithDefaultValue('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    channel     = this.optionalColumnWithDefaultValue('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    releaseDay  = this.optionalColumnWithDefaultValue('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    cutoffClock = this.optionalColumnWithDefaultValue('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    signOff     = this.optionalColumnWithDefaultValue('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    activity    = this.optionalColumnWithDefaultValue('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -2057,15 +2058,15 @@ export const tColMatrixComputedAdapter = new class TColMatrixComputedAdapter ext
     mTime       = this.computedColumn('m_time', 'localTime', colMatrixShiftHour)
     mDatetime   = this.computedColumn('m_datetime', 'localDateTime', colMatrixShiftHour)
     mStr        = this.computedColumn('m_str', 'string', colMatrixStringBracket)
-    cents       = this.computedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    money       = this.computedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    signingKey  = this.computedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    semver      = this.computedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    channel     = this.computedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    releaseDay  = this.computedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    cutoffClock = this.computedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    signOff     = this.computedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    activity    = this.computedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    cents       = this.computedColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    money       = this.computedColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    signingKey  = this.computedColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    semver      = this.computedColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    channel     = this.computedColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    releaseDay  = this.computedColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    cutoffClock = this.computedColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    signOff     = this.computedColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    activity    = this.computedColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -2081,15 +2082,15 @@ export const tColMatrixOptionalComputedAdapter = new class TColMatrixOptionalCom
     mTime       = this.optionalComputedColumn('m_time', 'localTime', colMatrixShiftHour)
     mDatetime   = this.optionalComputedColumn('m_datetime', 'localDateTime', colMatrixShiftHour)
     mStr        = this.optionalComputedColumn('m_str', 'string', colMatrixStringBracket)
-    cents       = this.optionalComputedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
-    money       = this.optionalComputedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
-    signingKey  = this.optionalComputedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
-    semver      = this.optionalComputedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
-    channel     = this.optionalComputedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
-    releaseDay  = this.optionalComputedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
-    cutoffClock = this.optionalComputedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
-    signOff     = this.optionalComputedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
-    activity    = this.optionalComputedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    cents       = this.optionalComputedColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), colMatrixNumberX10)
+    money       = this.optionalComputedColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), colMatrixNumberX10)
+    signingKey  = this.optionalComputedColumn('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'), colMatrixUuidBracket)
+    semver      = this.optionalComputedColumn('m_str', CustomComparableType.of<string, 'Semver'>('Semver'), colMatrixStringBracket)
+    channel     = this.optionalComputedColumn('m_str', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), colMatrixStringBracket)
+    releaseDay  = this.optionalComputedColumn('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), colMatrixShiftHour)
+    cutoffClock = this.optionalComputedColumn('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), colMatrixShiftHour)
+    signOff     = this.optionalComputedColumn('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), colMatrixShiftHour)
+    activity    = this.optionalComputedColumn('m_str', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -2107,23 +2108,23 @@ export const tDerivedColumn = new class TDerivedColumn extends Table<DBConnectio
     id          = this.primaryKey('id', 'int')
     plainInt    = this.column('m_int', 'int')
     plainDouble = this.column('m_double', 'double')
-    cents       = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    money       = this.column<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    cents       = this.column('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    money       = this.column('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
     // The temporal and uuid custom data types on the same factory. They carry no
     // adapter: what observes their data type is the dialect's own dispatch on it
     // (the date/time spelling and the uuid handling), not a value transform.
-    signOff     = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
-    releaseDay  = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
-    cutoffClock = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
-    signingKey  = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    signOff     = this.column('m_datetime', CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+    releaseDay  = this.column('m_date', CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+    cutoffClock = this.column('m_time', CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+    signingKey  = this.column('m_uuid', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
     // The adapter-free twins of `cents` / `money`, plus a `ReleaseTag` twin for the
     // sequence tests. They are the OPERANDS the derived-type tests pass to a
     // custom-typed fragment argument or to a sequence derivation: the operand has
     // to share the receiver's data type, and it must not bring an adapter of its
     // own, so the receiver's is the one that runs.
-    plainCents  = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents')
-    plainMoney  = this.column<number, 'Money'>('m_double', 'customDouble', 'Money')
-    releaseTag  = this.column<number, 'ReleaseTag'>('m_int', 'customInt', 'ReleaseTag')
+    plainCents  = this.column('m_int', CustomIntType.of<number, 'Cents'>('Cents'))
+    plainMoney  = this.column('m_double', CustomDoubleType.of<number, 'Money'>('Money'))
+    releaseTag  = this.column('m_int', CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag'))
     constructor() { super('col_matrix') }
 }()
 
@@ -2132,8 +2133,8 @@ export const tDerivedOptional = new class TDerivedOptional extends Table<DBConne
     id          = this.primaryKey('id', 'int')
     plainInt    = this.optionalColumn('m_int', 'int')
     plainDouble = this.optionalColumn('m_double', 'double')
-    cents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    money       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    cents       = this.optionalColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    money       = this.optionalColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
     constructor() { super('col_matrix') }
 }()
 
@@ -2142,8 +2143,8 @@ export const tDerivedDefault = new class TDerivedDefault extends Table<DBConnect
     id          = this.primaryKey('id', 'int')
     plainInt    = this.columnWithDefaultValue('m_int', 'int')
     plainDouble = this.columnWithDefaultValue('m_double', 'double')
-    cents       = this.columnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    money       = this.columnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    cents       = this.columnWithDefaultValue('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    money       = this.columnWithDefaultValue('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
     constructor() { super('col_matrix') }
 }()
 
@@ -2152,8 +2153,8 @@ export const tDerivedOptionalDefault = new class TDerivedOptionalDefault extends
     id          = this.primaryKey('id', 'int')
     plainInt    = this.optionalColumnWithDefaultValue('m_int', 'int')
     plainDouble = this.optionalColumnWithDefaultValue('m_double', 'double')
-    cents       = this.optionalColumnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    money       = this.optionalColumnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    cents       = this.optionalColumnWithDefaultValue('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    money       = this.optionalColumnWithDefaultValue('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
     constructor() { super('col_matrix') }
 }()
 
@@ -2162,8 +2163,8 @@ export const tDerivedComputed = new class TDerivedComputed extends Table<DBConne
     id          = this.primaryKey('id', 'int')
     plainInt    = this.computedColumn('m_int', 'int')
     plainDouble = this.computedColumn('m_double', 'double')
-    cents       = this.computedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    money       = this.computedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    cents       = this.computedColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    money       = this.computedColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
     constructor() { super('col_matrix') }
 }()
 
@@ -2172,15 +2173,15 @@ export const tDerivedOptionalComputed = new class TDerivedOptionalComputed exten
     id          = this.primaryKey('id', 'int')
     plainInt    = this.optionalComputedColumn('m_int', 'int')
     plainDouble = this.optionalComputedColumn('m_double', 'double')
-    cents       = this.optionalComputedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    money       = this.optionalComputedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
+    cents       = this.optionalComputedColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    money       = this.optionalComputedColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
     constructor() { super('col_matrix') }
 }()
 
 // `primaryKey(name, type, typeName, adapter)` — the caller-provided key itself
 // carries the custom data type.
 export const tDerivedPk = new class TDerivedPk extends Table<DBConnection, 'TDerivedPk'> {
-    centsPk     = this.primaryKey<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    centsPk     = this.primaryKey('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
     plainInt    = this.column('m_int', 'int')
     plainDouble = this.column('m_double', 'double')
     constructor() { super('col_matrix') }
@@ -2188,7 +2189,7 @@ export const tDerivedPk = new class TDerivedPk extends Table<DBConnection, 'TDer
 
 // `autogeneratedPrimaryKey(name, type, typeName, adapter)`.
 export const tDerivedAutogenPk = new class TDerivedAutogenPk extends Table<DBConnection, 'TDerivedAutogenPk'> {
-    centsPk     = this.autogeneratedPrimaryKey<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
+    centsPk     = this.autogeneratedPrimaryKey('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
     plainInt    = this.column('m_int', 'int')
     plainDouble = this.column('m_double', 'double')
     constructor() { super('col_matrix') }
@@ -2202,10 +2203,10 @@ export const tDerivedVirtual = new class TDerivedVirtual extends Table<DBConnect
     id          = this.primaryKey('id', 'int')
     bInt        = this.column('m_int', 'int')
     bDouble     = this.column('m_double', 'double')
-    cents       = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
-    money       = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
-    centsOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
-    moneyOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    cents       = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    money       = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    centsOptional = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    moneyOptional = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
     constructor() { super('col_matrix') }
 }()
 
@@ -2215,14 +2216,14 @@ export const vDerivedColumn = new class VDerivedColumn extends View<DBConnection
     id            = this.column('id', 'int')
     bInt          = this.column('m_int', 'int')
     bDouble       = this.column('m_double', 'double')
-    cents         = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    money         = this.column<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
-    centsOptional = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', scaledByTypeName)
-    moneyOptional = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money', scaledByTypeName)
-    centsVirtual  = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
-    moneyVirtual  = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
-    centsVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
-    moneyVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    cents         = this.column('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    money         = this.column('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
+    centsOptional = this.optionalColumn('m_int', CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+    moneyOptional = this.optionalColumn('m_double', CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
+    centsVirtual  = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    moneyVirtual  = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
+    centsVirtualOptional = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (fragment) => fragment.sql`${this.bInt}`, scaledByTypeName)
+    moneyVirtualOptional = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (fragment) => fragment.sql`${this.bDouble}`, scaledByTypeName)
     constructor() { super('col_matrix_view') }
 }()
 

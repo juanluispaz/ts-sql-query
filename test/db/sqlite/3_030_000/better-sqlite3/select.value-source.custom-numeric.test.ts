@@ -10,7 +10,7 @@
 //
 // Operand sources: bigint coverage comes from the read-only
 // `viewCount` column (seed default 0); customInt/customDouble come from
-// `const(v, 'customInt'|'customDouble', 'TypeName')`, which bind a plain
+// `const(v, CustomIntType.of(...))` or `const(v, CustomDoubleType.of(...))`, which bind a plain
 // number — EXCEPT the arithmetic-and-sign arms, which run over the real
 // `cost_cents` / `billed_amount` worklog columns (marshalled, so `col OP col`
 // stays resolvable and the results come back as clean numbers). The shared arithmetic dispatch
@@ -31,6 +31,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tIssueWorklog, tReleaseDraft, vReleaseOverview, type Money, type ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomDoubleType, CustomIntType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -66,7 +67,7 @@ describe(ctx.label, () => {
         // ceil/floor/round (the customInt||customDouble arm) and abs.
         // This SQLite build returns ceil/floor/round/abs of an integer as a
         // plain integer, so the value round-trips in both modes.
-        const score = ctx.conn.const(7, 'customInt', 'ScoreCount')
+        const score = ctx.conn.const(7, CustomIntType.of<number, 'ScoreCount'>('ScoreCount'))
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -130,7 +131,7 @@ describe(ctx.label, () => {
         // sqrt/cbrt/exp/ln/log10 over a customDouble operand keep the
         // customDouble type. exp/ln/log10 are platform-precision, so the
         // value is asserted only under the mock; SQL is pinned always.
-        const m = ctx.conn.const(4, 'customDouble', 'Meters')
+        const m = ctx.conn.const(4, CustomDoubleType.of<number, 'Meters'>('Meters'))
         const expected = [{
             id: 1,
             sq:  2,
@@ -181,7 +182,7 @@ describe(ctx.label, () => {
     // whole query throws "no such function: cot".
     /*
     test('custom-numeric/customdouble-trig', async () => {
-        const r = ctx.conn.const(0.5, 'customDouble', 'Ratio')
+        const r = ctx.conn.const(0.5, CustomDoubleType.of<number, 'Ratio'>('Ratio'))
         const expected = [{
             id: 1,
             ac: Math.acos(0.5), as: Math.asin(0.5), at: Math.atan(0.5),
@@ -224,8 +225,8 @@ describe(ctx.label, () => {
         // additional operand and route through a different dispatch arm.
         // This SQLite build provides log(b,x)/atan2/round(x,n), so the
         // query runs; at2 is floating-point, the others come back exact.
-        const v = ctx.conn.const(8, 'customDouble', 'Score')
-        const o = ctx.conn.const(2, 'customDouble', 'Score')
+        const v = ctx.conn.const(8, CustomDoubleType.of<number, 'Score'>('Score'))
+        const o = ctx.conn.const(2, CustomDoubleType.of<number, 'Score'>('Score'))
         const expected = [{ id: 1, p: 64, ln: 3, rn: 8, di: 4, at2: Math.atan2(8, 2) }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -368,7 +369,7 @@ describe(ctx.label, () => {
         // round(8, priority=2) = 8 > 7 → true. The comparison keeps the result
         // a boolean (a customDouble result leaks per-driver string/number, so
         // wrapping it in a predicate gives one cross-dialect value assertion).
-        const v = ctx.conn.const(8, 'customDouble', 'Score')
+        const v = ctx.conn.const(8, CustomDoubleType.of<number, 'Score'>('Score'))
         const expected = { id: 1, big: true }
         ctx.mockNext(expected)
         const row = await ctx.conn.selectFrom(tIssue)
@@ -575,8 +576,8 @@ describe(ctx.label, () => {
         // argument (same 'Score' brand as the receiver). round(8, 2) = 8 > 7 ->
         // true (wrapped in a predicate for one cross-dialect value, since a
         // customDouble result leaks per-driver).
-        const v = ctx.conn.const(8, 'customDouble', 'Score')
-        const prec = ctx.conn.const(2, 'customDouble', 'Score')
+        const v = ctx.conn.const(8, CustomDoubleType.of<number, 'Score'>('Score'))
+        const prec = ctx.conn.const(2, CustomDoubleType.of<number, 'Score'>('Score'))
         const expected = { id: 1, big: true }
         ctx.mockNext(expected)
         const row = await ctx.conn.selectFrom(tIssue)
@@ -654,8 +655,8 @@ describe(ctx.label, () => {
         // `ReleaseTag`/`Money`, `sign` returns `number`. Both brands are marshalled
         // (ReleaseTag→int, Money→double), so the results read back as clean numbers:
         // abs(5)=5, sign(5)=1, sqrt(4)=2, sign(4)=1.
-        const tag   = ctx.conn.const(5 as ReleaseTag, 'customInt', 'ReleaseTag')
-        const money = ctx.conn.const(4 as Money, 'customDouble', 'Money')
+        const tag   = ctx.conn.const(5 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
+        const money = ctx.conn.const(4 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, keepInt: 5, eraseInt: 1, keepDbl: 2, eraseDbl: 1 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -687,10 +688,10 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-add-with-branded-type-const-operand', async () => {
         // customDouble `add` with a branded TYPE const as the right operand
-        // (`billedAmount.add(const(2 as Money, 'customDouble', 'Money'))`).
+        // (`billedAmount.add(const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money')))`).
         // billed_amount ('Money'→double) is 200 for worklog 1, so 200 + 2 = 202
         // (clean number).
-        const money2 = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const money2 = ctx.conn.const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, cd: 202 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)
@@ -719,7 +720,7 @@ describe(ctx.label, () => {
         // view's optional_release_ordinal = release id (release 1 has download_count,
         // so it is present) and the column reads +1000 via plusOffsetAdapter, so the
         // emitted `optional_release_ordinal + $1` sums the RAW value.
-        const tag10 = ctx.conn.const(10 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const tag10 = ctx.conn.const(10 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, ord: 1011 }]
         ctx.mockNext([{ id: 1, ord: 11 }])
         const result = await ctx.conn.selectFrom(vReleaseOverview)
@@ -745,7 +746,7 @@ describe(ctx.label, () => {
         // ReleaseTag brand. Over the integer input 6 every result is a clean 6;
         // ReleaseTag is marshalled to int, so `round((...)::numeric)` reads back
         // as a number rather than the driver's raw string.
-        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const tag = ctx.conn.const(6 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, c: 6, f: 6, r: 6 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -779,7 +780,7 @@ describe(ctx.label, () => {
         // comparison is numeric. Over round(6)=6 with a branded operand:
         // minValue(10)=greatest(6,10)=10, maxValue(10)=least(6,10)=6. ReleaseTag is
         // marshalled to int → clean numbers.
-        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const tag = ctx.conn.const(6 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, mn: 10, mx: 6 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -812,7 +813,7 @@ describe(ctx.label, () => {
         // numeric so the operator resolves, without changing the value. Over
         // round(6)=6 with branded operands: add(4)=10, subtract(4)=2, multiply(2)=12,
         // modulo(4)=2. ReleaseTag is marshalled to int → clean integers.
-        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const tag = ctx.conn.const(6 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, a: 10, s: 2, mu: 12, mo: 2 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -849,7 +850,7 @@ describe(ctx.label, () => {
         // (coalesce), nullIfValue re-imposes `optional` (nullif). Over receiver 6:
         // coalesce(6, 0)=6 and nullif(6, 0)=6 (6≠0, so the optional leaf is
         // present). ReleaseTag is marshalled to int → clean numbers.
-        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const tag = ctx.conn.const(6 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, vwn: 6, niv: 6 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -880,7 +881,7 @@ describe(ctx.label, () => {
         // clean integers; exp/ln/log10/cbrt are irrational floats, so the real-DB
         // branch asserts with toBeCloseTo. Money is marshalled to double, so every
         // leaf reads back as a clean number.
-        const money = ctx.conn.const(4 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(4 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{
             id: 1,
             ab: 4, ce: 4, fl: 4, ro: 4,
@@ -941,8 +942,8 @@ describe(ctx.label, () => {
         // atan2(8, 2) is irrational. Money is marshalled to double, so each leaf
         // reads back as a clean number; the real-DB branch asserts with
         // toBeCloseTo.
-        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
-        const base  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(8 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
+        const base  = ctx.conn.const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, p: 64, lg: 3, at2: Math.atan2(8, 2) }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -983,8 +984,8 @@ describe(ctx.label, () => {
         // value-source-precision arm (`roundn(<Money const>)`). round(8, 2)=8 for
         // both. Money is marshalled to double, so each leaf reads back as a clean
         // number; the real-DB branch asserts with toBeCloseTo.
-        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
-        const prec  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(8 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
+        const prec  = ctx.conn.const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, rl: 8, rv: 8 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -1024,8 +1025,8 @@ describe(ctx.label, () => {
         // branded operand: add(2)=10, subtract(2)=6, multiply(2)=16. Money is
         // marshalled to double → clean numbers; the real-DB branch asserts with
         // toBeCloseTo.
-        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
-        const base  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(8 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
+        const base  = ctx.conn.const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, a: 10, s: 6, mu: 16 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -1070,7 +1071,7 @@ describe(ctx.label, () => {
         // minValue(10)=greatest(8,10)=10, maxValue(10)=least(8,10)=8. Money is
         // marshalled to double → clean numbers; the real-DB branch asserts with
         // toBeCloseTo.
-        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(8 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, mn: 10, mx: 8 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -1108,8 +1109,8 @@ describe(ctx.label, () => {
         // Over receiver 8 with a branded operand: divide(2)=4, modulo(2)=0. Money is
         // marshalled to double → clean numbers; the real-DB branch asserts with
         // toBeCloseTo.
-        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
-        const base  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(8 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
+        const base  = ctx.conn.const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, di: 4, mo: 0 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -1147,7 +1148,7 @@ describe(ctx.label, () => {
         // coalesce(8, 0)=8 and nullif(8, 0)=8 (8≠0, so the optional leaf is
         // present). Money is marshalled to double → clean numbers; the real-DB
         // branch asserts with toBeCloseTo.
-        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(8 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{ id: 1, vwn: 8, niv: 8 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -1185,7 +1186,7 @@ describe(ctx.label, () => {
         // brand. Over the input 0.5 (inside the trig domain) every result is an
         // irrational float, so the real-DB branch asserts with toBeCloseTo. Money
         // is marshalled to double → clean numbers.
-        const money = ctx.conn.const(0.5 as Money, 'customDouble', 'Money')
+        const money = ctx.conn.const(0.5 as Money, CustomDoubleType.of<Money, 'Money'>('Money'))
         const expected = [{
             id: 1,
             ac: Math.acos(0.5), as: Math.asin(0.5), at: Math.atan(0.5),
@@ -1239,8 +1240,8 @@ describe(ctx.label, () => {
         // receiver's optionality. The view maps both ordinals to release id; release 1
         // has a non-null download_count so `optionalReleaseOrdinal` is present, and both
         // ordinals are 1 → `optSub` = (1 - 1) + 1000 = 1000, `reqMul` = (1 * 2) + 1000 = 1002.
-        const one = ctx.conn.const(1 as ReleaseTag, 'customInt', 'ReleaseTag')
-        const two = ctx.conn.const(2 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const one = ctx.conn.const(1 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
+        const two = ctx.conn.const(2 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, optSub: 1000, reqMul: 1002 }]
         ctx.mockNext([{ id: 1, optSub: 0, reqMul: 2 }])
         const result = await ctx.conn.selectFrom(vReleaseOverview)

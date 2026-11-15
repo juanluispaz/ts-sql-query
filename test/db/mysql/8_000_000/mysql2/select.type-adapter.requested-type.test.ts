@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { getQueryContext } from '../../../../../src/exports/v2/index.js'
+import { CustomLocalDateType, getQueryContext } from '../../../../../src/exports/v2/index.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
@@ -54,7 +54,7 @@ const dayMonthYear: TypeAdapter = {
 
 const tReleaseDayAsText = new class TReleaseDayAsText extends Table<DBConnection, 'TReleaseDayAsText'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column<ReleaseDay, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay', dayMonthYear)
+    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), dayMonthYear)
     constructor() { super('project_release') }
 }()
 
@@ -62,7 +62,7 @@ const tReleaseDayAsText = new class TReleaseDayAsText extends Table<DBConnection
 // localDate
 const tReleaseDayNamedLikeABuiltIn = new class TReleaseDayNamedLikeABuiltIn extends Table<DBConnection, 'TReleaseDayNamedLikeABuiltIn'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column<ReleaseDay, 'localDateTime'>('released_on', 'customLocalDate', 'localDateTime')
+    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'localDateTime'>('localDateTime'))
     constructor() { super('project_release') }
 }()
 
@@ -98,7 +98,7 @@ describe(ctx.label, () => {
             .where(tReleaseDayAsText.id.equals(1))
             .select({
                 id: tReleaseDayAsText.id,
-                day: ctx.conn.const(dayOf(2024, 1, 15), 'customLocalDate', 'ReleaseDay', dayMonthYear),
+                day: ctx.conn.const(dayOf(2024, 1, 15), CustomLocalDateType.of<ReturnType<typeof dayOf>, 'ReleaseDay'>('ReleaseDay'), dayMonthYear),
             })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, str_to_date(?, '%d/%m/%Y') as day from project_release where id = ?"`)

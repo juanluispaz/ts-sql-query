@@ -12,6 +12,7 @@ import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, Ty
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomUuidType } from '../../../../../src/exports/v2/index.js'
 
 type IssueRef = string & { readonly __brand: 'IssueRef' }
 
@@ -37,7 +38,7 @@ const tIssueRef = new class TIssueRef extends Table<DBConnection, 'TIssueRef'> {
     id        = this.primaryKey('id', 'int')
     projectId = this.column('project_id', 'int')
     title     = this.column('title', 'string')
-    ref       = this.optionalColumn<IssueRef, 'IssueRef'>('external_ref', 'customUuid', 'IssueRef', upperUuid)
+    ref       = this.optionalColumn('external_ref', CustomUuidType.of<IssueRef, 'IssueRef'>('IssueRef'), upperUuid)
     constructor() { super('issue') }
 }()
 

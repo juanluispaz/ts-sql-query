@@ -26,6 +26,18 @@ type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
 type Argument<_T, _TYPE_NAME extends string> = any
+// The classes of the custom data types, made by the `of` of each family
+type CustomIntType<_T, _TYPE_NAME extends string> = any
+type CustomBigintType<_T, _TYPE_NAME extends string> = any
+type CustomDoubleType<_T, _TYPE_NAME extends string> = any
+type CustomDecimalType<_T, _TYPE_NAME extends string> = any
+type CustomUuidType<_T, _TYPE_NAME extends string> = any
+type CustomLocalDateType<_T, _TYPE_NAME extends string> = any
+type CustomLocalTimeType<_T, _TYPE_NAME extends string> = any
+type CustomLocalDateTimeType<_T, _TYPE_NAME extends string> = any
+type EnumType<_T, _TYPE_NAME extends string> = any
+type CustomEqualableType<_T, _TYPE_NAME extends string> = any
+type CustomComparableType<_T, _TYPE_NAME extends string> = any
 type DynamicFilter = any
 type Filterable = any
 type DynamicConditionExtension = any
@@ -42,6 +54,17 @@ void function (
     _qr: QueryRunner,
     _ojs: OuterJoinSource,
     _a: Argument<any, any>,
+    _customIntType: CustomIntType<any, any>,
+    _customBigintType: CustomBigintType<any, any>,
+    _customDoubleType: CustomDoubleType<any, any>,
+    _customDecimalType: CustomDecimalType<any, any>,
+    _customUuidType: CustomUuidType<any, any>,
+    _customLocalDateType: CustomLocalDateType<any, any>,
+    _customLocalTimeType: CustomLocalTimeType<any, any>,
+    _customLocalDateTimeType: CustomLocalDateTimeType<any, any>,
+    _enumType: EnumType<any, any>,
+    _customEqualableType: CustomEqualableType<any, any>,
+    _customComparableType: CustomComparableType<any, any>,
     _df: DynamicFilter,
     _f: Filterable,
     _dce: DynamicConditionExtension,

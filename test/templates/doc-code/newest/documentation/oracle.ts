@@ -27,6 +27,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
+import { CustomComparableType, CustomDecimalType, CustomLocalDateType, EnumType } from '../../../../../src/exports/v2/index.js'
 
 class DBConnection extends OracleConnection<'DBConnection'> { 
     // insensitiveCollation = 'acs'
@@ -162,8 +163,8 @@ const connection = new DBConnection(docCodeMock)
 // A decimal number kept exact as its text (docs/configuration/data-types.md, Exact decimals)
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id = this.primaryKey('id', 'int')
-    amount = this.optionalColumn<string, 'Amount'>('amount', 'customDecimal', 'Amount')
-    price = this.optionalColumn<string, 'Amount'>('price', 'customDecimal', 'Amount')
+    amount = this.optionalColumn('amount', CustomDecimalType.of<string, 'Amount'>('Amount'))
+    price = this.optionalColumn('price', CustomDecimalType.of<string, 'Amount'>('Amount'))
     constructor() {
         super('exact_amount')
     }
@@ -203,7 +204,7 @@ class ZonedDateTimeTypeAdapter implements TypeAdapter {
 }
 const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {
     id = this.primaryKey('id', 'int')
-    departsAt = this.column<ZonedDateTime, 'ZonedDateTime'>('departs_at', 'customComparable', 'ZonedDateTime', new ZonedDateTimeTypeAdapter())
+    departsAt = this.column('departs_at', CustomComparableType.of<ZonedDateTime, 'ZonedDateTime'>('ZonedDateTime'), new ZonedDateTimeTypeAdapter())
     constructor() {
         super('flight'); // table name in the database
     }
@@ -256,6 +257,8 @@ void function(_dp: DeepPick<any, string>, _do: DeepOmit<any, string>, _dpp: Deep
 void function(_dcfm: DynamicConditionForModel<any>, _obfm: OrderByForModel<any>) {}
 void fromRef
 
+void EnumType
+void CustomLocalDateType
 void function(
     _dpp: DynamicPickPaths<any>,
     _dc: DynamicCondition<any>,

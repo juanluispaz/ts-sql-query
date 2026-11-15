@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { DBConnection, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomDoubleType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -59,7 +60,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({
                 id:      tIssue.id,
-                amounts: old.aggregateAsArrayOfOneColumn(old.fragmentWithType<Amount, 'Amount'>('customDouble', 'Amount', 'required').sql`cast(12345678901234567890.1234567891 as decimal(38,10))`),
+                amounts: old.aggregateAsArrayOfOneColumn(old.fragmentWithType(CustomDoubleType.of<Amount, 'Amount'>('Amount'), 'required').sql`cast(12345678901234567890.1234567891 as decimal(38,10))`),
             })
             .groupBy('id')
             .executeSelectMany()

@@ -14,6 +14,7 @@ import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunn
 import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
+import { CustomDecimalType, CustomEqualableType, EnumType } from '../../../src/exports/v2/index.js'
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 
@@ -39,10 +40,10 @@ function describeSqlDataTypeParams(label: string, enabled: boolean, typesThePara
         test('a-constant-selected-gets-the-type-of-its-sql-data-type', async () => {
             const conn = new DBConnection(created!.runner)
             const query = conn.selectFromNoTable().select({
-                payload: conn.const('{"a": 1}', 'custom', 'Payload', payload),
-                address: conn.const('10.0.0.1', 'custom', 'Address', address),
-                mood: conn.const('happy', 'enum', 'Mood', mood),
-                price: conn.const('1.23456', 'customDecimal', 'Price', price),
+                payload: conn.const('{"a": 1}', CustomEqualableType.of<string, 'Payload'>('Payload'), payload),
+                address: conn.const('10.0.0.1', CustomEqualableType.of<string, 'Address'>('Address'), address),
+                mood: conn.const('happy', EnumType.of<string, 'Mood'>('Mood'), mood),
+                price: conn.const('1.23456', CustomDecimalType.of<string, 'Price'>('Price'), price),
             })
             expect(query.query()).toBe(typesTheParam
                 // Typed by the oid: the SQL has no cast

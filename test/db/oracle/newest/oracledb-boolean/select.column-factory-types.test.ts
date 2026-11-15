@@ -22,6 +22,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
 import type { ReleaseChannel, WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomComparableType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -113,7 +114,7 @@ describe(ctx.label, () => {
     })
 
     test('plain-enum-column-projects-as-the-enum-union', async () => {
-        // `column(name, 'enum', 'WorklogActivity')` — a plain (non-virtual)
+        // `column(name, EnumType.of('WorklogActivity'))` — a plain (non-virtual)
         // enum column. Projects as the enum value union.
         ctx.mockNext([
             { id: 1, activity: 'coding' },
@@ -222,7 +223,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-equality-only-column-projects-as-its-branded-type', async () => {
-        // `column(name, 'custom', 'ReleaseChannel')` → a TypeAdapter
+        // `column(name, CustomEqualableType.of('ReleaseChannel'))` → a TypeAdapter
         // backed EqualableValueSource carrying the branded `ReleaseChannel`
         // type; equality is the available operator. Release 1 channel
         // 'stable'.
@@ -243,7 +244,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-comparable-column-confers-ordering-operators', async () => {
-        // `column(name, 'customComparable', 'Semver')` → a
+        // `column(name, CustomComparableType.of('Semver'))` → a
         // ComparableValueSource: `lessThan` / `between` / `orderBy` are all
         // available at the column site (an `EqualableValueSource` could not
         // express them). Versions below 1.3.0: release 1 (1.2.0) and 3
@@ -371,7 +372,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .select({
                 id: tProjectRelease.id,
-                lt: ctx.conn.const<string, 'Semver'>('0.5.0', 'customComparable', 'Semver')
+                lt: ctx.conn.const('0.5.0', CustomComparableType.of<string, 'Semver'>('Semver'))
                     .lessThan(tProjectRelease.version),
             })
             .executeSelectMany()

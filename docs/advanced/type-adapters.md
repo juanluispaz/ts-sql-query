@@ -66,7 +66,9 @@ class RgbColorTypeAdapter implements TypeAdapter {
 And you can define the column as:
 
 ```typescriptreact
-this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapter())
+const RgbColorType = CustomEqualableType.of<RgbColor, 'RgbColor'>('RgbColor')
+
+this.column('ColumnName', RgbColorType, new RgbColorTypeAdapter())
 ```
 
 !!! important
@@ -147,7 +149,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 And you can define the column as:
 
 ```typescriptreact
-this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
+this.column('ColumnName', RgbColorType)
 ```
 
 The connection's `transformProjection` is overridden the same way, and says how its SQL compares in the same context. It's the `next` of the type adapters, so it converts every column of the type, unless the type adapter of the column writes its SQL without calling `next`. Call `super.transformProjection(...)` for the values it doesn't convert:
@@ -214,7 +216,7 @@ async function main() {
 }
 ```
 
-Then `connection.const<ExactDecimal, 'ExactDecimal'>(amount, 'customDouble', 'ExactDecimal')` selected on its own is written `select $1::numeric as result`, with the parameter `[ '12345678901234567890.123456789' ]`, and the result keeps every digit. `pg` and Bun SQL write the cast only where the query needs a type; compared with a `numeric` column, the column gives it. With postgres.js and PGlite, declare the oid of `numeric`, `typesByName: { ExactDecimal: 1700 }`: the parameter is sent as a `numeric` everywhere, and the SQL is `select $1 as result`.
+Then `connection.const(amount, CustomDoubleType.of<ExactDecimal, 'ExactDecimal'>('ExactDecimal'))` selected on its own is written `select $1::numeric as result`, with the parameter `[ '12345678901234567890.123456789' ]`, and the result keeps every digit. `pg` and Bun SQL write the cast only where the query needs a type; compared with a `numeric` column, the column gives it. With postgres.js and PGlite, declare the oid of `numeric`, `typesByName: { ExactDecimal: 1700 }`: the parameter is sent as a `numeric` everywhere, and the SQL is `select $1 as result`.
 
 On SQL Server, a `customDouble` is sent as a `float`, which loses digits too. Declare the type `nvarchar`: the text arrives with all its digits, and SQL Server converts it where a `decimal` is expected, like in an insert or a comparison with a `decimal` column:
 
@@ -245,12 +247,12 @@ async function main() {
 
 A value has two types in the context, so that what was declared and what is sent or read never get confused:
 
-- The **original type**, `originalType` and `originalCustomType`: the one declared in the library, like `column('released_on', 'customLocalDate', 'ReleaseDay')` or `const(1, 'int')`. It never changes.
+- The **original type**, `originalType` and `originalCustomType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
 - The **requested type**, `requestedType` and `requestedCustomType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
-`originalType` and `requestedType` are the name of the type, like `'int'` or `'ReleaseDay'`; `originalCustomType` and `requestedCustomType` say which custom type it is, as a column declares it, and are `undefined` for a built-in type.
+`originalType` and `requestedType` are the name of the type, like `'int'` or `'ReleaseDay'`; `originalCustomType` and `requestedCustomType` say which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), and are `undefined` for a built-in type.
 
-`setRequestedType` takes a type as a column does: a built-in one by its name, like `setRequestedType('string')`, and a custom one with which custom type it is, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
+`setRequestedType` takes a type by its names: a built-in one by its name, like `setRequestedType('string')`, and a custom one by its custom type and its type name, like `setRequestedType('customLocalDate', 'ReleaseDay')`.
 
 What the requested type is in each transformation:
 
@@ -289,7 +291,7 @@ const dayMonthYear: TypeAdapter = {
 
 const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
     id = this.primaryKey('id', 'int')
-    birthday = this.optionalColumn<Date, 'Birthday'>('birthday', 'customLocalDate', 'Birthday', dayMonthYear)
+    birthday = this.optionalColumn('birthday', CustomLocalDateType.of<Date, 'Birthday'>('Birthday'), dayMonthYear)
     constructor() {
         super('customer')
     }
@@ -363,7 +365,7 @@ class DayAsTextTypeAdapter implements TypeAdapter {
 
 const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
     id = this.primaryKey('id', 'int')
-    birthday = this.optionalColumn<Date, 'Birthday'>('birthday', 'customLocalDate', 'Birthday', new DayAsTextTypeAdapter())
+    birthday = this.optionalColumn('birthday', CustomLocalDateType.of<Date, 'Birthday'>('Birthday'), new DayAsTextTypeAdapter())
     companyId = this.column('company_id', 'int')
     constructor() {
         super('customer')

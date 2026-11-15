@@ -21,6 +21,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tIssueWorklog, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomDoubleType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -130,7 +131,7 @@ describe(ctx.label, () => {
         // customDouble value source built with the SAME 'Money' brand so the
         // value-source overload resolves. power(200, 2) = 40000, finite and
         // exact.
-        const exponent = ctx.conn.const(2, 'customDouble', 'Money')
+        const exponent = ctx.conn.const(2, CustomDoubleType.of<number, 'Money'>('Money'))
         const expected = [{ id: 1, p: 40000 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)

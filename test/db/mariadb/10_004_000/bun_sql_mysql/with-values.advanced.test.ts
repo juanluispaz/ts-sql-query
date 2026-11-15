@@ -35,6 +35,7 @@ import { Values } from '../../../../../src/Values.js'
 import { TsSqlProcessingError } from '../../../../../src/TsSqlError.js'
 import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomDoubleType, CustomIntType, CustomUuidType, EnumType } from '../../../../../src/exports/v2/index.js'
 
 class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
     id   = this.column('int')
@@ -55,20 +56,20 @@ type Money      = number & { readonly __brand: 'Money' }
 type OrderState = 'open' | 'paid' | 'void'
 
 class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
-    // `column<T>('customInt', 'IssueId')` reaches — the
+    // `column(CustomIntType.of<T, 'IssueId'>('IssueId'))` reaches — the
     // `typeof adapter === 'string'` branch of the column impl.
-    issueId  = this.column<IssueId, 'IssueId'>('customInt', 'IssueId')
-    // `optionalColumn<T>('customDouble', 'Money')` reaches —
+    issueId  = this.column(CustomIntType.of<IssueId, 'IssueId'>('IssueId'))
+    // `optionalColumn(CustomDoubleType.of<T, 'Money'>('Money'))` reaches —
     // the optional sibling of the same branch.
-    amount   = this.optionalColumn<Money, 'Money'>('customDouble', 'Money')
+    amount   = this.optionalColumn(CustomDoubleType.of<Money, 'Money'>('Money'))
     // `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
     // declare computed columns over the values row. They are NOT emitted
     // as VALUES tuple members; reading the field inlines the fragment SQL
     // wherever it's selected. The fragments are bare literals (no `${…}`
     // interpolation) — the canonical shape now that the overload
     // resolution accepts a no-table-required fragment source.
-    state     = this.virtualColumnFromFragment<OrderState, 'OrderState'>('enum', 'OrderState', fragment => fragment.sql`'open'`)
-    billingRef = this.optionalVirtualColumnFromFragment<string, 'BillingRef'>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
+    state     = this.virtualColumnFromFragment(EnumType.of<OrderState, 'OrderState'>('OrderState'), fragment => fragment.sql`'open'`)
+    billingRef = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'BillingRef'>('BillingRef'), fragment => fragment.sql`null`)
 }
 
 // the BASE-TYPE (non-custom) `optionalVirtualColumnFromFragment`
@@ -210,8 +211,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
 //     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
-//         // `column<T>('customInt', 'IssueId')` and
-//         // `optionalColumn<T>('customDouble', 'Money')` on the
+//         // `column(CustomIntType.of<T, 'IssueId'>('IssueId'))` and
+//         // `optionalColumn(CustomDoubleType.of<T, 'Money'>('Money'))` on the
 //         // `VIssueBilling` view above route through the
 //         // `typeof adapter === 'string'` branch — the only branch reached when the
 //         // user passes a typeName. The emitted VALUES tuple casts the placeholders for
@@ -252,7 +253,7 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
 //     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
-//         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
+//         // `virtualColumnFromFragment(EnumType.of<T, 'OrderState'>('OrderState'), fn)` reaches
 //         // the `typeof arg1 === 'string'` branch. The
 //         // column does NOT appear in the VALUES tuple; the fragment SQL
 //         // is inlined wherever `billing.state` is selected.
@@ -291,7 +292,7 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
 //     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
-//         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
+//         // `optionalVirtualColumnFromFragment(CustomUuidType.of<T, 'BillingRef'>('BillingRef'), fn)`
 //         // reaches. Same dispatch branch as the
 //         // required-virtual-column test above; the projection surfaces
 //         // `string | undefined`.
@@ -388,8 +389,8 @@ describe(ctx.label, () => {
 //         // has issues 101 and 102; the joined view only has 101, so 102's joined
 //         // leaf is absent.
 //         class VIssueBillingJoin extends Values<DBConnection, 'issueBillingJoin'> {
-//             issueId = this.column<IssueId, 'IssueId'>('customInt', 'IssueId')
-//             amount  = this.optionalColumn<Money, 'Money'>('customDouble', 'Money')
+//             issueId = this.column(CustomIntType.of<IssueId, 'IssueId'>('IssueId'))
+//             amount  = this.optionalColumn(CustomDoubleType.of<Money, 'Money'>('Money'))
 //         }
 //         const expected = [
 //             { base: 101 as IssueId, joined: 101 as IssueId },

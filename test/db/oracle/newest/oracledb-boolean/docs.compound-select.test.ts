@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { EnumType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -29,13 +30,13 @@ describe(ctx.label, () => {
             .select({
                 id:   tOrganization.id,
                 name: tOrganization.name,
-                kind: connection.const<'organization' | 'project', 'orgOrProject'>('organization', 'enum', 'orgOrProject'),
+                kind: connection.const('organization', EnumType.of<'organization' | 'project', 'orgOrProject'>('orgOrProject')),
             }).unionAll(
                 connection.selectFrom(tProject)
                 .select({
                     id:   tProject.id,
                     name: tProject.name,
-                    kind: connection.const<'organization' | 'project', 'orgOrProject'>('project', 'enum', 'orgOrProject'),
+                    kind: connection.const('project', EnumType.of<'organization' | 'project', 'orgOrProject'>('orgOrProject')),
                 }),
             ).executeSelectMany()
         // doc-end

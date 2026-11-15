@@ -14,6 +14,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssueWorklog, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomLocalDateType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -529,7 +530,7 @@ describe(ctx.label, () => {
         const d = new Date('2024-02-20T00:00:00Z')
         ctx.mockNext(2024)
         const year = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<Date, 'ReleaseDay'>(d, 'customLocalDate', 'ReleaseDay').getFullYear())
+            .selectOneColumn(ctx.conn.const(d, CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay')).getFullYear())
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1::date) as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

@@ -24,6 +24,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
+import { CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -144,7 +145,7 @@ describe(ctx.label, () => {
         const id = 42 as IssueId
         ctx.mockNext(id)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<IssueId, 'IssueId'>(id, 'customInt', 'IssueId'))
+            .selectOneColumn(ctx.conn.const(id, CustomIntType.of<IssueId, 'IssueId'>('IssueId')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -160,7 +161,7 @@ describe(ctx.label, () => {
         const amount = 19.99 as Money
         ctx.mockNext(amount)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<Money, 'Money'>(amount, 'customDouble', 'Money'))
+            .selectOneColumn(ctx.conn.const(amount, CustomDoubleType.of<Money, 'Money'>('Money')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::float8 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -178,7 +179,7 @@ describe(ctx.label, () => {
         const s = 'marketing-site' as Slug
         ctx.mockNext(s)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<Slug, 'Slug'>(s, 'custom', 'Slug'))
+            .selectOneColumn(ctx.conn.const(s, CustomEqualableType.of<Slug, 'Slug'>('Slug')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -194,7 +195,7 @@ describe(ctx.label, () => {
         const d = new Date('2024-02-20T00:00:00Z') as SettlementDate
         ctx.mockNext(d)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<SettlementDate, 'SettlementDate'>(d, 'customLocalDate', 'SettlementDate'))
+            .selectOneColumn(ctx.conn.const(d, CustomLocalDateType.of<SettlementDate, 'SettlementDate'>('SettlementDate')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -211,7 +212,7 @@ describe(ctx.label, () => {
         const v = '1.2.0' as SemVer
         ctx.mockNext(v)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<SemVer, 'SemVer'>(v, 'customComparable', 'SemVer'))
+            .selectOneColumn(ctx.conn.const(v, CustomComparableType.of<SemVer, 'SemVer'>('SemVer')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -227,7 +228,7 @@ describe(ctx.label, () => {
         const id = 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' as ReleaseId
         ctx.mockNext(id)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<ReleaseId, 'ReleaseId'>(id, 'customUuid', 'ReleaseId'))
+            .selectOneColumn(ctx.conn.const(id, CustomUuidType.of<ReleaseId, 'ReleaseId'>('ReleaseId')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::uuid as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -243,7 +244,7 @@ describe(ctx.label, () => {
         const t = new Date('1970-01-01T17:00:00Z') as CutoffClock
         ctx.mockNext(t)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<CutoffClock, 'CutoffClock'>(t, 'customLocalTime', 'CutoffClock'))
+            .selectOneColumn(ctx.conn.const(t, CustomLocalTimeType.of<CutoffClock, 'CutoffClock'>('CutoffClock')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -259,7 +260,7 @@ describe(ctx.label, () => {
         const ts = new Date('2024-01-14T12:30:00Z') as SignOffStamp
         ctx.mockNext(ts)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<SignOffStamp, 'SignOffStamp'>(ts, 'customLocalDateTime', 'SignOffStamp'))
+            .selectOneColumn(ctx.conn.const(ts, CustomLocalDateTimeType.of<SignOffStamp, 'SignOffStamp'>('SignOffStamp')))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

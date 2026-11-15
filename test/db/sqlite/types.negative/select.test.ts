@@ -12,6 +12,7 @@ import { test, expect } from '../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tProjectReview } from '../domain/connection.js'
+import { CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType } from '../../../../src/exports/v2/index.js'
 
 // `connection` is type-only — the function below is checked by tsc but
 // never invoked at runtime, so we don't need a real instance and don't
@@ -524,7 +525,7 @@ function _typeNegatives() {
     // @ts-expect-error enum is not ordered-comparable — no between
     void tIssueWorklog.activity.between('coding', 'review')
     // @ts-expect-error custom (branded union) is not ordered-comparable — no lessThan
-    void connection.const<string, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel').lessThan('beta')
+    void connection.const('stable', CustomEqualableType.of<string, 'ReleaseChannel'>('ReleaseChannel')).lessThan('beta')
 
     // Rule: equalsInsensitive / notEqualsInsensitive are string-only (case
     // folding is meaningless off a StringValueSource), so they must not exist on
@@ -545,35 +546,35 @@ function _typeNegatives() {
     // guard keeping distinct domains from mixing. One lock per branded
     // value-source class. Each `@ts-expect-error` sits on the `.equals(...)`
     // line because that is where the overload-mismatch error lands.
-    void connection.const<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag')
+    void connection.const(7, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag'))
         // @ts-expect-error customInt 'ReleaseTag' is not equals-comparable with customInt 'Cents'
-        .equals(connection.const<number, 'Cents'>(5, 'customInt', 'Cents'))
-    void connection.const<number, 'Money'>(1.5, 'customDouble', 'Money')
+        .equals(connection.const(5, CustomIntType.of<number, 'Cents'>('Cents')))
+    void connection.const(1.5, CustomDoubleType.of<number, 'Money'>('Money'))
         // @ts-expect-error customDouble 'Money' is not equals-comparable with customDouble 'Rate'
-        .equals(connection.const<number, 'Rate'>(2.5, 'customDouble', 'Rate'))
-    void connection.const<string, 'SigningKey'>('0a8f9c1e-1111-4222-8333-444455556666', 'customUuid', 'SigningKey')
+        .equals(connection.const(2.5, CustomDoubleType.of<number, 'Rate'>('Rate')))
+    void connection.const('0a8f9c1e-1111-4222-8333-444455556666', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
         // @ts-expect-error customUuid 'SigningKey' is not equals-comparable with customUuid 'SessionKey'
-        .equals(connection.const<string, 'SessionKey'>('0a8f9c1e-1111-4222-8333-444455556666', 'customUuid', 'SessionKey'))
-    void connection.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')
+        .equals(connection.const('0a8f9c1e-1111-4222-8333-444455556666', CustomUuidType.of<string, 'SessionKey'>('SessionKey')))
+    void connection.const('1.0.0', CustomComparableType.of<string, 'Semver'>('Semver'))
         // @ts-expect-error customComparable 'Semver' is not equals-comparable with customComparable 'Calver'
-        .equals(connection.const<string, 'Calver'>('2024.01', 'customComparable', 'Calver'))
-    void connection.const<string, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')
+        .equals(connection.const('2024.01', CustomComparableType.of<string, 'Calver'>('Calver')))
+    void connection.const('stable', CustomEqualableType.of<string, 'ReleaseChannel'>('ReleaseChannel'))
         // @ts-expect-error custom 'ReleaseChannel' is not equals-comparable with custom 'Tier'
-        .equals(connection.const<string, 'Tier'>('gold', 'custom', 'Tier'))
-    void connection.const<Date, 'ReleaseDay'>(new Date(), 'customLocalDate', 'ReleaseDay')
+        .equals(connection.const('gold', CustomEqualableType.of<string, 'Tier'>('Tier')))
+    void connection.const(new Date(), CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
         // @ts-expect-error customLocalDate 'ReleaseDay' is not equals-comparable with customLocalDate 'SprintDay'
-        .equals(connection.const<Date, 'SprintDay'>(new Date(), 'customLocalDate', 'SprintDay'))
-    void connection.const<Date, 'CutoffClock'>(new Date(), 'customLocalTime', 'CutoffClock')
+        .equals(connection.const(new Date(), CustomLocalDateType.of<Date, 'SprintDay'>('SprintDay')))
+    void connection.const(new Date(), CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
         // @ts-expect-error customLocalTime 'CutoffClock' is not equals-comparable with customLocalTime 'ShiftClock'
-        .equals(connection.const<Date, 'ShiftClock'>(new Date(), 'customLocalTime', 'ShiftClock'))
-    void connection.const<Date, 'SignOffStamp'>(new Date(), 'customLocalDateTime', 'SignOffStamp')
+        .equals(connection.const(new Date(), CustomLocalTimeType.of<Date, 'ShiftClock'>('ShiftClock')))
+    void connection.const(new Date(), CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
         // @ts-expect-error customLocalDateTime 'SignOffStamp' is not equals-comparable with customLocalDateTime 'PublishStamp'
-        .equals(connection.const<Date, 'PublishStamp'>(new Date(), 'customLocalDateTime', 'PublishStamp'))
+        .equals(connection.const(new Date(), CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp')))
 
     // Positive control: the SAME brand on the same kind IS equals-comparable and
     // must keep compiling — proves the brand lock is not over-broad.
-    void connection.const<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag')
-        .equals(connection.const<number, 'ReleaseTag'>(5, 'customInt', 'ReleaseTag'))
+    void connection.const(7, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag'))
+        .equals(connection.const(5, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag')))
     // Rule: a `subSelectUsing(...)`-scoped select keeps the correlated outer
     // table(s) in its REQUIRED set (they are supplied by the enclosing query, not
     // this select's own FROM), so it is a correlated SUB-select — the row

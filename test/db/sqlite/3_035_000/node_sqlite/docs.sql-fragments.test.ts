@@ -8,6 +8,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tAppUser, tProject, tOrganization, tIssue, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { EnumType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -327,7 +328,7 @@ describe(ctx.label, () => {
         const organizationsWithGroup = await connection.selectFrom(tOrganization)
             .select({
                 id:        tOrganization.id,
-                sizeGroup: connection.fragmentWithType<'first' | 'other', 'sizeGroup'>('enum', 'sizeGroup', 'required')
+                sizeGroup: connection.fragmentWithType(EnumType.of<'first' | 'other', 'sizeGroup'>('sizeGroup'), 'required')
                     .sql`case when ${tOrganization.id} = 1 then 'first' else 'other' end`,
             })
             .orderBy('id')

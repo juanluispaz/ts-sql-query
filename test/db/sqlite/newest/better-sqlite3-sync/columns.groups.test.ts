@@ -13,6 +13,7 @@ import { View } from '../../../../../src/View.js'
 import { type DBConnection, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
+import { CustomEqualableType } from '../../../../../src/exports/v2/index.js'
 
 const jsonAdapter: TypeAdapter = {
     transformValueFromDB(value, context, next) {
@@ -72,7 +73,7 @@ class TIssueWithObjectValue extends Table<DBConnection, 'TIssueWithObjectValue'>
     title = this.column('title', 'string')
     status = this.column('status', 'string')
     priority = this.column('priority', 'int')
-    body = this.optionalColumn<{ a: number }, 'jsonText'>('body', 'custom', 'jsonText', jsonAdapter)
+    body = this.optionalColumn('body', CustomEqualableType.of<{ a: number }, 'jsonText'>('jsonText'), jsonAdapter)
     constructor() { super('issue') }
 }
 const tObjectValue = new TIssueWithObjectValue()

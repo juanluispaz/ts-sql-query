@@ -7,13 +7,14 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
+import { CustomDecimalType, CustomEqualableType, CustomIntType } from '../../../../../src/exports/v2/index.js'
 
 type Units = number & { readonly __brand: 'Units' }
 
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id = this.primaryKey('id', 'int')
-    amount = this.optionalColumn<string, 'Amount'>('amount', 'customDecimal', 'Amount')
-    price = this.optionalColumn<string, 'Amount'>('price', 'customDecimal', 'Amount')
+    amount = this.optionalColumn('amount', CustomDecimalType.of<string, 'Amount'>('Amount'))
+    price = this.optionalColumn('price', CustomDecimalType.of<string, 'Amount'>('Amount'))
     constructor() {
         super('exact_amount')
     }
@@ -29,8 +30,8 @@ describe(ctx.label, () => {
         ctx.mockNext({ units: '42', tag: '42' })
         const row = sync(ctx.conn.selectFromNoTable()
             .select({
-                units: ctx.conn.fragmentWithType<Units, 'Units'>('customInt', 'Units', 'required').sql`'42'`,
-                tag: ctx.conn.fragmentWithType<string, 'Tag'>('custom', 'Tag', 'required').sql`'42'`,
+                units: ctx.conn.fragmentWithType(CustomIntType.of<Units, 'Units'>('Units'), 'required').sql`'42'`,
+                tag: ctx.conn.fragmentWithType(CustomEqualableType.of<string, 'Tag'>('Tag'), 'required').sql`'42'`,
             })
             .executeSelectOne())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select '42' as units, '42' as tag"`)

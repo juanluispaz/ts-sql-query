@@ -29,6 +29,7 @@ import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { tIssue } from '../../domain/connection.js'
 import type { WorklogActivity, ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalTimeType, CustomUuidType, EnumType } from '../../../../../src/exports/v2/index.js'
 
 const UUID_LOWER = '0a8f9c1e-1111-4222-8333-444455556666'
 
@@ -438,11 +439,11 @@ describe(ctx.label, () => {
     // `double` and the adapter's `* 10` read transform is observable.
 
     test('const/custom-double-adapter-transforms-read-value', async () => {
-        // `const(2.5, 'customDouble', 'Money', doubleTimesTen)`. Raw 2.5 read
+        // `const(2.5, CustomDoubleType.of<number, 'Money'>('Money'), doubleTimesTen)`. Raw 2.5 read
         // back as 25 through the adapter parked in the `adapter2` slot.
         ctx.mockNext(2.5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(2.5, 'customDouble', 'Money', doubleTimesTen))
+            .selectOneColumn(ctx.conn.const(2.5, CustomDoubleType.of<number, 'Money'>('Money'), doubleTimesTen))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -455,12 +456,12 @@ describe(ctx.label, () => {
     })
 
     test('optional-const/custom-double-adapter-transforms-read-value', async () => {
-        // `optionalConst(2.5, 'customDouble', 'Money', doubleTimesTen)` — same
+        // `optionalConst(2.5, CustomDoubleType.of<number, 'Money'>('Money'), doubleTimesTen)` — same
         // transform through the `adapter2` slot; the optional overload widens
         // the leaf to `number | null`.
         ctx.mockNext(2.5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.optionalConst(2.5, 'customDouble', 'Money', doubleTimesTen))
+            .selectOneColumn(ctx.conn.optionalConst(2.5, CustomDoubleType.of<number, 'Money'>('Money'), doubleTimesTen))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -478,7 +479,7 @@ describe(ctx.label, () => {
         // on the hot path but does not fabricate a value.
         ctx.mockNext(null)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.optionalConst<number, 'Money'>(null, 'customDouble', 'Money', doubleTimesTen))
+            .selectOneColumn(ctx.conn.optionalConst(null, CustomDoubleType.of<number, 'Money'>('Money'), doubleTimesTen))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -611,7 +612,7 @@ describe(ctx.label, () => {
     test('const/custom-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents', intTimesTen))
+            .selectOneColumn(ctx.conn.const(5, CustomIntType.of<number, 'Cents'>('Cents'), intTimesTen))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -626,7 +627,7 @@ describe(ctx.label, () => {
     test('optional-const/custom-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.optionalConst<number, 'Cents'>(5, 'customInt', 'Cents', intTimesTen))
+            .selectOneColumn(ctx.conn.optionalConst(5, CustomIntType.of<number, 'Cents'>('Cents'), intTimesTen))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -641,7 +642,7 @@ describe(ctx.label, () => {
     test('const/custom-uuid-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey', uuidBracket))
+            .selectOneColumn(ctx.conn.const(UUID_LOWER, CustomUuidType.of<string, 'SigningKey'>('SigningKey'), uuidBracket))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(uuid_to_raw(:0)) as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -656,7 +657,7 @@ describe(ctx.label, () => {
     test('optional-const/custom-uuid-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.optionalConst<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey', uuidBracket))
+            .selectOneColumn(ctx.conn.optionalConst(UUID_LOWER, CustomUuidType.of<string, 'SigningKey'>('SigningKey'), uuidBracket))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(uuid_to_raw(:0)) as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -770,7 +771,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/enum-adapter-transforms-read-value', async () => {
         ctx.mockNext('coding')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'required', stringBracket).sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'required', stringBracket).sql`${ctx.conn.const('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -785,7 +786,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/enum-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext('coding')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional', stringBracket).sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional', stringBracket).sql`${ctx.conn.const('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -800,7 +801,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Cents'>('customInt', 'Cents', 'required', intTimesTen).sql`${ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', intTimesTen).sql`${ctx.conn.const(5, CustomIntType.of<number, 'Cents'>('Cents'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -815,7 +816,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-int-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Cents'>('customInt', 'Cents', 'optional', intTimesTen).sql`${ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'optional', intTimesTen).sql`${ctx.conn.const(5, CustomIntType.of<number, 'Cents'>('Cents'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -830,7 +831,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-double-adapter-transforms-read-value', async () => {
         ctx.mockNext(2.5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'required', doubleTimesTen).sql`${ctx.conn.const<number, 'Money'>(2.5, 'customDouble', 'Money')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', doubleTimesTen).sql`${ctx.conn.const(2.5, CustomDoubleType.of<number, 'Money'>('Money'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -845,7 +846,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-double-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext(2.5)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'optional', doubleTimesTen).sql`${ctx.conn.const<number, 'Money'>(2.5, 'customDouble', 'Money')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'optional', doubleTimesTen).sql`${ctx.conn.const(2.5, CustomDoubleType.of<number, 'Money'>('Money'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -860,7 +861,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-comparable-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.0.0')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', stringBracket).sql`${ctx.conn.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'required', stringBracket).sql`${ctx.conn.const('1.0.0', CustomComparableType.of<string, 'Semver'>('Semver'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -875,7 +876,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-comparable-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.0.0')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'optional', stringBracket).sql`${ctx.conn.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'optional', stringBracket).sql`${ctx.conn.const('1.0.0', CustomComparableType.of<string, 'Semver'>('Semver'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -890,7 +891,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'required', stringBracket).sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'required', stringBracket).sql`${ctx.conn.const('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -905,7 +906,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional', stringBracket).sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional', stringBracket).sql`${ctx.conn.const('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -920,7 +921,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-uuid-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<string, 'SigningKey'>('customUuid', 'SigningKey', 'required', uuidBracket).sql`${ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'required', uuidBracket).sql`${ctx.conn.const(UUID_LOWER, CustomUuidType.of<string, 'SigningKey'>('SigningKey'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(uuid_to_raw(:0)) as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -935,7 +936,7 @@ describe(ctx.label, () => {
     test('fragment-with-type/custom-uuid-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional', uuidBracket).sql`${ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'optional', uuidBracket).sql`${ctx.conn.const(UUID_LOWER, CustomUuidType.of<string, 'SigningKey'>('SigningKey'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(uuid_to_raw(:0)) as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -951,7 +952,7 @@ describe(ctx.label, () => {
         const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         ctx.mockNext(lt)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'required', shiftHourFromDb).sql`${ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required', shiftHourFromDb).sql`${ctx.conn.const(lt, CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -967,7 +968,7 @@ describe(ctx.label, () => {
         const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         ctx.mockNext(lt)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'optional', shiftHourFromDb).sql`${ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'optional', shiftHourFromDb).sql`${ctx.conn.const(lt, CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -983,7 +984,7 @@ describe(ctx.label, () => {
         const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
         ctx.mockNext(ldt)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'required', shiftHourFromDb).sql`${ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'required', shiftHourFromDb).sql`${ctx.conn.const(ldt, CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -999,7 +1000,7 @@ describe(ctx.label, () => {
         const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
         ctx.mockNext(ldt)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'optional', shiftHourFromDb).sql`${ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp')}`)
+            .selectOneColumn(ctx.conn.fragmentWithType(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'optional', shiftHourFromDb).sql`${ctx.conn.const(ldt, CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))}`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -1035,7 +1036,7 @@ describe(ctx.label, () => {
     test('aggregate-fragment-with-type/custom-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(3)
         const v = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.aggregateFragmentWithType<number, 'Cents'>('customInt', 'Cents', 'required', intTimesTen).sql`max(${tIssue.priority})`)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', intTimesTen).sql`max(${tIssue.priority})`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -1046,7 +1047,7 @@ describe(ctx.label, () => {
     test('aggregate-fragment-with-type/custom-double-adapter-transforms-read-value', async () => {
         ctx.mockNext(3)
         const v = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.aggregateFragmentWithType<number, 'Money'>('customDouble', 'Money', 'required', doubleTimesTen).sql`max(${tIssue.priority})`)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', doubleTimesTen).sql`max(${tIssue.priority})`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -1069,7 +1070,7 @@ describe(ctx.label, () => {
     test('aggregate-fragment-with-type/enum-adapter-transforms-read-value', async () => {
         ctx.mockNext('coding')
         const v = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.aggregateFragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'required', stringBracket).sql`max(${tIssue.title})`)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'required', stringBracket).sql`max(${tIssue.title})`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -1081,7 +1082,7 @@ describe(ctx.label, () => {
     test('aggregate-fragment-with-type/custom-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.aggregateFragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'required', stringBracket).sql`max(${tIssue.title})`)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'required', stringBracket).sql`max(${tIssue.title})`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -1093,7 +1094,7 @@ describe(ctx.label, () => {
     test('aggregate-fragment-with-type/custom-comparable-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.0.0')
         const v = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.aggregateFragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', stringBracket).sql`max(${tIssue.title})`)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'required', stringBracket).sql`max(${tIssue.title})`)
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -1111,7 +1112,7 @@ describe(ctx.label, () => {
     test('const/enum-adapter-transforms-read-value', async () => {
         ctx.mockNext('coding')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity', stringBracket))
+            .selectOneColumn(ctx.conn.const('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), stringBracket))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -1126,7 +1127,7 @@ describe(ctx.label, () => {
     test('const/custom-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel', stringBracket))
+            .selectOneColumn(ctx.conn.const('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), stringBracket))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -1141,7 +1142,7 @@ describe(ctx.label, () => {
     test('const/custom-comparable-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.2.0')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver', stringBracket))
+            .selectOneColumn(ctx.conn.const('1.2.0', CustomComparableType.of<string, 'Semver'>('Semver'), stringBracket))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -1156,7 +1157,7 @@ describe(ctx.label, () => {
     test('optional-const/enum-adapter-transforms-read-value', async () => {
         ctx.mockNext('review')
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.optionalConst<WorklogActivity, 'WorklogActivity'>('review', 'enum', 'WorklogActivity', stringBracket))
+            .selectOneColumn(ctx.conn.optionalConst('review', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), stringBracket))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -1178,7 +1179,7 @@ describe(ctx.label, () => {
         const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         ctx.mockNext(lt)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock', shiftHourFromDb))
+            .selectOneColumn(ctx.conn.const(lt, CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), shiftHourFromDb))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -1199,7 +1200,7 @@ describe(ctx.label, () => {
         const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
         ctx.mockNext(ldt)
         const v = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp', shiftHourFromDb))
+            .selectOneColumn(ctx.conn.const(ldt, CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), shiftHourFromDb))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

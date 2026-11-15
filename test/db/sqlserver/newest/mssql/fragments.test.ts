@@ -18,6 +18,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tAppUser, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { CustomComparableType, CustomIntType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -268,7 +269,7 @@ describe(ctx.label, () => {
             .select({
                 u: connection.fragmentWithType('uuid', 'required')
                     .sql`coalesce(${tProjectRelease.signingKey}, ${tProjectRelease.signingKey})`,
-                v: connection.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required')
+                v: connection.fragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'required')
                     .sql`${tProjectRelease.version}`,
             })
             .executeSelectMany()
@@ -330,7 +331,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
-                n:  connection.fragmentWithType<number, 'IssueId'>('customInt', 'IssueId', 'required')
+                n:  connection.fragmentWithType(CustomIntType.of<number, 'IssueId'>('IssueId'), 'required')
                         .sql`${tIssue.priority}`.add(1),
             })
             .executeSelectMany()

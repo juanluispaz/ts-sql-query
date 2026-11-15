@@ -6,6 +6,24 @@ Bugs found and left for later go in [`BUGS.md`](./BUGS.md), not here.
 
 Each entry says what it is, why it waits, and what is already known.
 
+## Type system: the most precise SQL data type of a computed value
+
+- **What:** rules to choose the most precise SQL data type of a value computed
+  from columns with one (`int2 + int8` is `int8` on PostgreSQL, `sum(int2)` is
+  `int8`, a `concat` of two `varchar(10)` is a `varchar(20)`, the scale of a
+  product of two `numeric(10, 2)`), instead of leaving the computed value without
+  the SQL data type of its column.
+- **Why deferred:** the maintainer decided that a computed value of the same data
+  type keeps the conversions of the type adapter of its receiver but not the SQL
+  data type of the column (that type doesn't describe it), only where an SQL data
+  type is given; a value that is the value of one of its operands (`nullIfValue`,
+  `valueWhenNull`, `max`, `min`, `asOptional`, a select used as a value) keeps it.
+  Refining it is extra work for later.
+- **Known:** the research of the propagation of the type adapters (the maintainer
+  has the report) lists what the SQL data type of a result drives today: the cast
+  and the type of a parameter for the query runner, and the size of the out bind
+  of a `returning` on Oracle.
+
 ## Type system: the text of a uuid in an aggregate
 
 - **What:** check on the real engines that `max`, `min` and `anyValue` of the

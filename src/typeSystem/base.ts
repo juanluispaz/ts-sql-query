@@ -32,6 +32,16 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> {
 
 export type AnyType = BaseType<any>
 
+/** The root of the data types of the value sources (a condition is not one) */
+export abstract class ValueSourceBaseType</*in|out*/ VALUE_TYPE> extends BaseType<VALUE_TYPE> {
+    abstract isConstValue(): boolean
+    abstract getConstValue(): VALUE_TYPE
+    abstract allowWhen(when: boolean, errorMessage: string): this
+    abstract allowWhen(when: boolean, error: Error): this
+    abstract disallowWhen(when: boolean, errorMessage: string): this
+    abstract disallowWhen(when: boolean, error: Error): this
+}
+
 /** A class of a data type, as the methods that take a data type receive it */
 export interface TypeClass</*in|out*/ TYPE extends AnyType> {
     readonly prototype: TYPE

@@ -1,8 +1,8 @@
-import type { IValueWithType, OptionalOf, SourceOf, ValueSource } from './base.js'
+import type { IValueWithType, OptionalOf, SourceOf, TypeClass, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { BooleanType, IfValueSource } from './booleans.js'
 import type { MergeOptional } from './valueSource.js'
-import type { operandTypeName } from '../utils/symbols.js'
+import { operandTypeName, typeName } from '../utils/symbols.js'
 
 /** A data type whose values have an order */
 export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableType<VALUE_TYPE> {
@@ -26,4 +26,19 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableTyp
     abstract notBetween<VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE_TYPE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE2>>>
     abstract notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE_TYPE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     abstract notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>, VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, BooleanType, MergeOptional<MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>, OptionalOf<VALUE2>>>
+}
+
+/** A value of a type of the user that has an order, of its type name */
+export abstract class CustomComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE> {
+    static override readonly __customType = 'customComparable'
+    declare [typeName]: `type:${TYPE_NAME}:customComparable:`
+    declare [operandTypeName]: `type:${TYPE_NAME}:customComparable:`
+
+    /** The data type of a value of a type of the user that has an order, with its type name */
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomComparableType<VALUE_TYPE, TYPE_NAME>> {
+        abstract class CustomComparable extends CustomComparableType<VALUE_TYPE, TYPE_NAME> {
+            static override readonly __type = typeName
+        }
+        return CustomComparable
+    }
 }

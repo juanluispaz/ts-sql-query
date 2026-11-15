@@ -8,6 +8,10 @@ import type { BigintType, CustomDecimalType, CustomDoubleType, CustomIntType, Do
 import { CustomDecimalType as CustomDecimalTypeClass } from '../typeSystem/numbers.js'
 import { CustomIntType as CustomIntTypeClass } from '../typeSystem/numbers.js'
 import type { StringType } from '../typeSystem/strings.js'
+import type { UuidType } from '../typeSystem/uuids.js'
+import type { LocalDateTimeType, LocalDateType } from '../typeSystem/localDates.js'
+import type { CustomEqualableType, EnumType } from '../typeSystem/equalable.js'
+import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 function assertType<T extends true>(_value?: T): void {}
@@ -152,3 +156,50 @@ const ratioSqrt = aCustomDouble.sqrt()
 assertType<Equal<typeof ratioSqrt, ValueSource<'s1/', CustomDoubleType<number, 'Ratio'>, 'required'>>>()
 const PriceType = CustomDecimalTypeClass.of<string, 'Price'>('Price')
 assertType<Equal<typeof PriceType.prototype, CustomDecimalType<string, 'Price'>>>()
+
+// Texts
+declare const optionalString: ValueSource<'s2/', StringType, 'optional'>
+const concatenated = aString.concat(optionalString)
+assertType<Equal<typeof concatenated, ValueSource<'s1/' | 's2/', StringType, 'optional'>>>()
+const concatenatedIgnoringNull = optionalString.concatIgnoringNull(aString)
+assertType<Equal<typeof concatenatedIgnoringNull, ValueSource<'s2/' | 's1/', StringType, 'required'>>>()
+const stringLength = aString.length()
+assertType<Equal<typeof stringLength, ValueSource<'s1/', IntType, 'required'>>>()
+const substring = aString.substr(anInt, 2)
+assertType<Equal<typeof substring, ValueSource<'s1/', StringType, 'required'>>>()
+// @ts-expect-error a number is not a text
+aString.concat(anInt)
+// @ts-expect-error a bigint is not a position
+aString.substr(aBigint, 2)
+
+// Uuids and dates
+declare const aUuid: ValueSource<'s1/', UuidType, 'required'>
+declare const aDate: ValueSource<'s1/', LocalDateType, 'optional'>
+declare const aDateTime: ValueSource<'s1/', LocalDateTimeType, 'required'>
+const uuidText = aUuid.asString()
+assertType<Equal<typeof uuidText, ValueSource<'s1/', StringType, 'required'>>>()
+// @ts-expect-error a uuid is not a text
+aUuid.equals(aString)
+const year = aDate.getFullYear()
+assertType<Equal<typeof year, ValueSource<'s1/', IntType, 'optional'>>>()
+const time = aDateTime.getTime()
+assertType<Equal<typeof time, ValueSource<'s1/', IntType, 'required'>>>()
+// @ts-expect-error a date is not a date and time
+aDate.lessThan(aDateTime)
+
+// The enumerations and the other types of the user
+declare const aStatus: ValueSource<'s1/', EnumType<'a' | 'b', 'Status'>, 'required'>
+declare const customStatus: ValueSource<'s1/', CustomEqualableType<'a' | 'b', 'Status'>, 'required'>
+aStatus.equals('a')
+aStatus.in(['a', 'b'])
+// @ts-expect-error an enumeration is not a custom type of the same type name
+aStatus.equals(customStatus)
+// @ts-expect-error an enumeration has no order
+aStatus.lessThan('a')
+
+// Aggregated arrays
+declare const anArray: ValueSource<'s1/', AggregatedArrayProjectableAsNullableType<{ a?: number }[], { a: number | null }[]>, 'optional'>
+const emptyForNoValue = anArray.useEmptyArrayForNoValue()
+assertType<Equal<typeof emptyForNoValue, ValueSource<'s1/', AggregatedArrayProjectableAsNullableType<{ a?: number }[], { a: number | null }[]>, 'required'>>>()
+const asNullable = anArray.projectingOptionalValuesAsNullable()
+assertType<Equal<typeof asNullable, ValueSource<'s1/', AggregatedArrayType<{ a: number | null }[]>, 'optional'>>>()

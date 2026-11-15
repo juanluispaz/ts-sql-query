@@ -1,5 +1,5 @@
-// ts-sql-query: what works the same on every database: the tables, views and values, the connection types, the type
-// adapters, the errors, the dynamic queries, the helper types, and the query runners that need no driver
+// ts-sql-query: what works the same on every database: the tables, views and values, the connection types, the data
+// types, the type adapters, the errors, the dynamic queries, the helper types, and the query runners that need no driver
 
 export {
     type Connection,
@@ -60,6 +60,48 @@ export {
     type VectorSqlDataType,
     withSqlDataType,
 } from '../../TypeAdapter.js'
+
+export {
+    BooleanType,
+} from '../../typeSystem/booleans.js'
+
+export {
+    BigintType,
+    CustomBigintType,
+    CustomDecimalType,
+    CustomDoubleType,
+    CustomIntType,
+    DoubleType,
+    IntType,
+    StringDecimalType,
+} from '../../typeSystem/numbers.js'
+
+export {
+    StringType,
+} from '../../typeSystem/strings.js'
+
+export {
+    CustomUuidType,
+    UuidType,
+} from '../../typeSystem/uuids.js'
+
+export {
+    CustomLocalDateTimeType,
+    CustomLocalDateType,
+    CustomLocalTimeType,
+    LocalDateTimeType,
+    LocalDateType,
+    LocalTimeType,
+} from '../../typeSystem/localDates.js'
+
+export {
+    CustomEqualableType,
+    EnumType,
+} from '../../typeSystem/equalable.js'
+
+export {
+    CustomComparableType,
+} from '../../typeSystem/comparable.js'
 
 export {
     getQueryContext,

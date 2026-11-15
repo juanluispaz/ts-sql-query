@@ -80,11 +80,11 @@ export {
 
 export {
     StringDecimalType,
-} from '../../typeSystem/decimal.js'
+} from '../../typeSystem/decimals.js'
 
 export {
     CustomDecimalType,
-} from '../../typeSystem/customDecimal.js'
+} from '../../typeSystem/customDecimals.js'
 
 export {
     StringType,

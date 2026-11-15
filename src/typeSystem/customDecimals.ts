@@ -1,9 +1,9 @@
 import type { CustomTypeClass } from './base.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
-import { DecimalType } from './decimal.js'
+import { DecimalsType } from './decimals.js'
 
 /** An exact decimal number of a type of the user, of its type name */
-export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DecimalType<VALUE_TYPE> {
+export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DecimalsType<VALUE_TYPE> {
     static override readonly customType = 'customDecimal'
     declare [typeName]: `type:${TYPE_NAME}:customDecimal:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customDecimal:`

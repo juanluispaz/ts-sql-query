@@ -38,7 +38,7 @@ import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { BuiltInDataType, BuiltInDataTypes, BuiltInDataTypeValues, BuiltInDataTypeValueSources, BuiltInDataTypeFragments } from '../typeSystem/builtInDataTypes.js'
 import type { DoubleType, IntType } from '../typeSystem/number.js'
 import type { CustomBigintType, CustomDoubleType, CustomIntType } from '../typeSystem/customNumber.js'
-import type { CustomDecimalType } from '../typeSystem/customDecimal.js'
+import type { CustomDecimalType } from '../typeSystem/customDecimals.js'
 import type { IAnyComparableValueSource } from '../typeSystem/comparable.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import { Argument } from '../typeSystem/arguments.js'
@@ -48,7 +48,7 @@ import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSys
 import type { FragmentExpression } from '../typeSystem/fragments.js'
 import type { LocalDateTimeType, LocalDateType, LocalTimeType } from '../typeSystem/localDates.js'
 import type { BigintType, NumberType } from '../typeSystem/number.js'
-import type { StringDecimalType } from '../typeSystem/decimal.js'
+import type { StringDecimalType } from '../typeSystem/decimals.js'
 import type { StringType } from '../typeSystem/strings.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {

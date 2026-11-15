@@ -12,8 +12,11 @@ import type { intType } from '../utils/symbols.js'
  * exact gives a double.
  */
 
-/** An exact decimal number: its value keeps every digit; a computation that can't be exact gives a double */
-export abstract class DecimalType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+/**
+ * The family of the exact decimal numbers: the value keeps every digit; a computation that can't be exact gives a
+ * double. Its data types are stringDecimal and the custom ones; a decimal of a library extends it
+ */
+export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     /** Whether a type and a custom type are of an exact decimal: a stringDecimal or a customDecimal */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isExactDecimal(type, customType)
@@ -44,7 +47,7 @@ export abstract class DecimalType</*in|out*/ VALUE_TYPE> extends NumericType<VAL
 }
 
 /** An exact decimal number that the library delivers as its text, a JavaScript string */
-export abstract class StringDecimalType extends DecimalType<string> {
+export abstract class StringDecimalType extends DecimalsType<string> {
     static override readonly type = 'stringDecimal'
     static override readonly customType = undefined
     declare [typeName]: 'type:stringDecimal:'

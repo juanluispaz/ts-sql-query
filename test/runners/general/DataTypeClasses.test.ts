@@ -10,7 +10,7 @@ import {
 } from '../../../src/exports/v2/index.js'
 import { NumberType } from '../../../src/typeSystem/number.js'
 import { NumericType, IntegerType, RealType } from '../../../src/typeSystem/numeric.js'
-import { DecimalType } from '../../../src/typeSystem/decimal.js'
+import { DecimalsType } from '../../../src/typeSystem/decimals.js'
 import { ComparableType } from '../../../src/typeSystem/comparable.js'
 import { EqualableType } from '../../../src/typeSystem/equalable.js'
 import { NullableType } from '../../../src/typeSystem/nullable.js'
@@ -94,7 +94,7 @@ describe('DataTypeClasses', () => {
         expect(accepted(NumericType)).toEqual(['bigint', 'stringDecimal', 'money', 'price'])
         expect(accepted(IntegerType)).toEqual(['bigint', 'money'])
         expect(accepted(RealType)).toEqual([])
-        expect(accepted(DecimalType)).toEqual(['stringDecimal', 'price'])
+        expect(accepted(DecimalsType)).toEqual(['stringDecimal', 'price'])
         expect(accepted(UuidsType)).toEqual(['uuid'])
         expect(accepted(LocalDatesType)).toEqual(['localDate'])
         expect(accepted(ComparableType)).toEqual(['int', 'double', 'bigint', 'string', 'uuid', 'localDate', 'stringDecimal', 'money', 'price', 'version'])

@@ -7,7 +7,7 @@ import type { operandTypeName } from '../utils/symbols.js'
 
 /*
  * The numeric data types that work only with themselves (bigint, the exact decimals and the custom numbers), by what
- * they share: their bases. The numbers of JavaScript are in number.ts and the exact decimals in decimal.ts.
+ * they share: their bases. The numbers of JavaScript are in number.ts and the exact decimals in decimals.ts.
  */
 
 /** A numeric data type that works only with itself */

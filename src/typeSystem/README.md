@@ -88,7 +88,7 @@ BaseType<VALUE_TYPE>                         the NType, the operand NType, the t
 │   │           ├── NumericType<V>           the numbers that work only with themselves: abs, add, multiply, ... (numeric.ts)
 │   │           │   ├── IntegerType<V>       BigintType (number.ts), CustomIntType, CustomBigintType (customNumber.ts)
 │   │           │   ├── RealType<V>          its floating point functions keep the data type: CustomDoubleType (customNumber.ts)
-│   │           │   └── DecimalType<V>       exact; what can't be exact gives a double: StringDecimalType (decimal.ts), CustomDecimalType (customDecimal.ts)
+│   │           │   └── DecimalsType<V>       exact; what can't be exact gives a double: StringDecimalType (decimals.ts), CustomDecimalType (customDecimals.ts)
 │   │           ├── StringType
 │   │           ├── UuidsType<V>             UuidType, CustomUuidType
 │   │           ├── LocalDatesType / LocalTimesType / LocalDateTimesType and their leaves and custom ones
@@ -111,14 +111,14 @@ the comparisons of `NullableType` and `EqualableType` give a `BooleanType`, whic
 `BooleanOf<this>` and `IfValueSourceOf<this, ...>` (in [`base.ts`](./base.ts)), which read a member that each family
 declares as high as it can import those data types: `declare [logicalTypes]: { boolean: BooleanType, if: IfType }` in
 `ComparableType`, `BooleanType`, `EnumType` and `CustomEqualableType`. In the same way `NumericType.sign()` gives
-`IntOf<this>` (`[intType]`, declared by `BigintType`, the custom numbers and `DecimalType`), and `CoalesceTypeOf` reads the
+`IntOf<this>` (`[intType]`, declared by `BigintType`, the custom numbers and `DecimalsType`), and `CoalesceTypeOf` reads the
 data types of the group number from `[numberTypes]`, declared by `NumberType`. That is why the numbers are in several files:
 the bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript
 ([`number.ts`](./number.ts): int, double and bigint, which name each other) and the exact decimals
-([`decimal.ts`](./decimal.ts)). A new family declares these members in its base, and the bases never import it.
+([`decimals.ts`](./decimals.ts)). A new family declares these members in its base, and the bases never import it.
 
 **The custom data types of a family are in a file of their own**, next to the file of the family they extend:
-`customNumber.ts` (customInt, customBigint, customDouble), `customDecimal.ts`, `customUuids.ts`, `customLocalDates.ts`,
+`customNumber.ts` (customInt, customBigint, customDouble), `customDecimals.ts`, `customUuids.ts`, `customLocalDates.ts`,
 `customComparable.ts` and `customEqualable.ts`; `enum.ts` has the enumerations. A file of a family never imports its
 custom file.
 

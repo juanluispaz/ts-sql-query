@@ -12,7 +12,8 @@ import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
 import type { CustomType } from './TypeAdapter.js'
 import type { AnyValueSource } from './typeSystem/valueSource.js'
 import type { BuiltInDataType, BuiltInDataTypeValueSources, BuiltInDataTypeInputs, BuiltInDataTypeFragments } from './typeSystem/builtInDataTypes.js'
-import type { IValueSource, ValueSource } from './typeSystem/base.js'
+import type { AnyTypeClass, IValueSource, TypeClass, ValueSource } from './typeSystem/base.js'
+import type { NullableType } from './typeSystem/nullable.js'
 import type { CustomComparableType } from './typeSystem/comparable.js'
 import type { CustomEqualableType, EnumType } from './typeSystem/equalable.js'
 import type { FragmentExpression } from './typeSystem/fragments.js'
@@ -59,6 +60,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     }
 
     protected column<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]
+    protected column<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'required'>
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'required'>
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'required'>
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'required'>
@@ -70,7 +72,10 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected column<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'required'>
     protected column<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'>
     protected column<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'required'>
-    protected column(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected column(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+        if (typeof type !== 'string') {
+            return __createDBColumn(this, name, type.type, type.customType, adapter as TypeAdapter | undefined)
+        }
         if (typeof adapter === 'string') {
             return __createDBColumn(this, name, adapter, type as CustomType, adapter2)
         }
@@ -78,6 +83,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     }
 
     protected optionalColumn<TYPE extends BuiltInDataType>(name: string, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE]
+    protected optionalColumn<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'>
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'optional'>
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'optional'>
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'optional'>
@@ -89,7 +95,10 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'optional'>
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'>
     protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'optional'>
-    protected optionalColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalColumn(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+        if (typeof type !== 'string') {
+            return (__createDBColumn(this, name, type.type, type.customType, adapter as TypeAdapter | undefined)).__asOptional()
+        }
         if (typeof adapter === 'string') {
             return (__createDBColumn(this, name, adapter, type as CustomType, adapter2)).__asOptional()
         }
@@ -97,6 +106,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     }
 
     protected virtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'required'>[TYPE]
+    protected virtualColumnFromFragment<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, TYPE, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, TYPE, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomIntType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomIntType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'required'>
@@ -108,7 +118,11 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, EnumType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, EnumType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'>
     protected virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'required'>
-    protected virtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected virtualColumnFromFragment(type: string | AnyTypeClass, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+        if (typeof type !== 'string') {
+            const fragmentBuilder =  new FragmentQueryBuilder(type.type, type.customType, 'required', arg2 as TypeAdapter | undefined)
+            return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type.type, type.customType, 'required', arg2 as TypeAdapter | undefined)
+        }
         if (typeof arg1 === 'string') {
             const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'required', arg3)
             return __createValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'required', arg3)
@@ -118,6 +132,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     }
 
     protected optionalVirtualColumnFromFragment<TYPE extends BuiltInDataType>(type: TYPE, fn: (fragment: BuiltInDataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>[TYPE]) => BuiltInDataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>[TYPE], adapter?: TypeAdapter): BuiltInDataTypeValueSources<SOURCE, 'optional'>[TYPE]
+    protected optionalVirtualColumnFromFragment<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, TYPE, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, TYPE, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomIntType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomIntType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomIntType<T, TYPE_NAME>, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomBigintType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomBigintType<T, TYPE_NAME>, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomDoubleType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomDoubleType<T, TYPE_NAME>, 'optional'>
@@ -129,7 +144,11 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, EnumType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, EnumType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, EnumType<T, TYPE_NAME>, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomEqualableType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'>
     protected optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, CustomComparableType<T, TYPE_NAME>, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, CustomComparableType<T, TYPE_NAME>, 'optional'>
-    protected optionalVirtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalVirtualColumnFromFragment(type: string | AnyTypeClass, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* ValueSource<SOURCE, CustomEqualableType<T, TYPE_NAME>, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+        if (typeof type !== 'string') {
+            const fragmentBuilder =  new FragmentQueryBuilder(type.type, type.customType, 'optional', arg2 as TypeAdapter | undefined)
+            return __createValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type.type, type.customType, 'optional', arg2 as TypeAdapter | undefined)
+        }
         if (typeof arg1 === 'string') {
             const fragmentBuilder =  new FragmentQueryBuilder(arg1, type as CustomType, 'optional', arg3)
             return __createValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, type as CustomType, 'optional', arg3)

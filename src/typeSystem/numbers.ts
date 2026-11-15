@@ -1,7 +1,7 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isBigint, __isExactDecimal } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
-import type { IValueWithType, OptionalOf, SourceOf, TypeClass, TypeOf, ValueSource } from './base.js'
+import type { IValueWithType, OptionalOf, SourceOf, CustomTypeClass, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 
@@ -144,7 +144,7 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
 
     /** The data type of an integer number of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomInt extends CustomIntType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }
@@ -159,7 +159,7 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
     declare [operandTypeName]: `type:${TYPE_NAME}:customBigint:`
 
     /** The data type of an integer number of 64 bits of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomBigint extends CustomBigintType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }
@@ -207,7 +207,7 @@ export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
     declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`
 
     /** The data type of a floating point number of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomDouble extends CustomDoubleType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }
@@ -259,7 +259,7 @@ export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_N
     declare [operandTypeName]: `type:${TYPE_NAME}:customDecimal:`
 
     /** The data type of an exact decimal number of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomDecimalType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomDecimalType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomDecimal extends CustomDecimalType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }

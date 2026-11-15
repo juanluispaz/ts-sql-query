@@ -1,7 +1,7 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isUuid } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
-import type { OptionalOf, SourceOf, TypeClass, ValueSource } from './base.js'
+import type { OptionalOf, SourceOf, CustomTypeClass, ValueSource } from './base.js'
 import type { StringType } from './strings.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 
@@ -30,7 +30,7 @@ export abstract class CustomUuidType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     declare [operandTypeName]: `type:${TYPE_NAME}:customUuid:`
 
     /** The data type of a uuid of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomUuidType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomUuidType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomUuid extends CustomUuidType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }

@@ -1,6 +1,6 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray, __isBoolean } from './dataTypes.js'
-import type { IValueWithType, OptionalOf, SourceOf, TypeClass, ValueSource } from './base.js'
+import type { IValueWithType, OptionalOf, SourceOf, CustomTypeClass, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { BooleanType, IfValueSource } from './booleans.js'
 import type { MergeOptional } from './valueSource.js'
@@ -50,7 +50,7 @@ export abstract class CustomComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYP
     declare [operandTypeName]: `type:${TYPE_NAME}:customComparable:`
 
     /** The data type of a value of a type of the user that has an order, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomComparableType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomComparableType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomComparable extends CustomComparableType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }

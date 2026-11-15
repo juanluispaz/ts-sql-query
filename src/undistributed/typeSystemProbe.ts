@@ -11,6 +11,8 @@ import { CustomDecimalType as CustomDecimalTypeClass } from '../typeSystem/numbe
 import { CustomIntType as CustomIntTypeClass } from '../typeSystem/numbers.js'
 import { IntType as IntTypeClass, NumberType as NumberTypeClass } from '../typeSystem/numbers.js'
 import { IfType as IfTypeClass } from '../typeSystem/booleans.js'
+import { Table } from '../Table.js'
+import { PostgreSqlConnection } from '../connections/PostgreSqlConnection.js'
 import type { StringType } from '../typeSystem/strings.js'
 import type { UuidType } from '../typeSystem/uuids.js'
 import type { LocalDateTimeType, LocalDateType } from '../typeSystem/localDates.js'
@@ -259,3 +261,31 @@ if (MoneyType.is(anything)) {
 // A condition is a boolean at run time: its data type has no type guard
 // @ts-expect-error
 IfTypeClass.is(anything)
+
+// A method that takes a data type takes its class too, with the same result as by its names
+class ProbeConnection extends PostgreSqlConnection<'ProbeConnection'> {
+    moneyArg = this.arg(MoneyType, 'optional')
+}
+declare const probeConnection: ProbeConnection
+class ProbeTable extends Table<ProbeConnection, 'ProbeTable'> {
+    byClass = this.column('amount', MoneyType)
+    byNames = this.column<Money, 'Money'>('amount', 'customInt', 'Money')
+    builtInByClass = this.optionalColumn('id', IntTypeClass)
+    builtInByName = this.optionalColumn('id', 'int')
+    // @ts-expect-error a class that groups data types has no type of its own
+    group = this.column('id', NumberTypeClass)
+    // @ts-expect-error the family of a custom data type has no type name
+    family = this.column('id', CustomIntTypeClass)
+    constructor() {
+        super('probe_table')
+    }
+}
+declare const probeTable: ProbeTable
+assertType<Equal<typeof probeTable.byClass, typeof probeTable.byNames>>()
+assertType<Equal<typeof probeTable.builtInByClass, typeof probeTable.builtInByName>>()
+const moneyConst = probeConnection.const(5 as Money, MoneyType)
+const moneyConstByNames = probeConnection.const<Money, 'Money'>(5 as Money, 'customInt', 'Money')
+assertType<Equal<typeof moneyConst, typeof moneyConstByNames>>()
+// @ts-expect-error the value of a constant is of the type of its data type
+probeConnection.const(5, MoneyType)
+assertType<Equal<typeof probeConnection.moneyArg, Argument<CustomIntType<Money, 'Money'>, 'optional', 'combined'>>>()

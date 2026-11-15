@@ -1,4 +1,4 @@
-import type { IValueWithType, OptionalOf, SourceOf, TypeClass, ValueSource } from './base.js'
+import type { IValueWithType, OptionalOf, SourceOf, CustomTypeClass, ValueSource } from './base.js'
 import { NullableType } from './nullable.js'
 import type { BooleanType, IfValueSource } from './booleans.js'
 import type { IExecutableSelectQuery, MergeOptional, MergeOptionalUnion, OptionalType } from './valueSource.js'
@@ -44,7 +44,7 @@ export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exten
     declare [operandTypeName]: `type:${TYPE_NAME}:enum:`
 
     /** The data type of a value of an enumeration of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<EnumType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<EnumType<VALUE_TYPE, TYPE_NAME>> {
         abstract class Enum extends EnumType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }
@@ -59,7 +59,7 @@ export abstract class CustomEqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     declare [operandTypeName]: `type:${TYPE_NAME}:custom:`
 
     /** The data type of a value of a type of the user that can only be compared for equality, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomEqualableType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomEqualableType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomEqualable extends CustomEqualableType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }

@@ -20,7 +20,7 @@ import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 /** The root of every data type */
 export abstract class BaseType</*in|out*/ VALUE_TYPE> {
     /** The type the library knows the data type by at run time (the type name of a custom data type) */
-    declare static readonly type: string
+    declare static readonly type: string | undefined
     /** The custom type of a custom data type; undefined for a built-in data type */
     declare static readonly customType: CustomType | undefined
 
@@ -76,6 +76,10 @@ export interface TypeClass</*in|out*/ TYPE extends AnyType> {
     readonly prototype: TYPE
     readonly type: string
     readonly customType: CustomType | undefined
+}
+
+/** The class of a custom data type an `of` makes, with its type guard */
+export interface CustomTypeClass</*in|out*/ TYPE extends AnyType> extends TypeClass<TYPE> {
     is(value: any): value is ValueSource<any, TYPE, any>
 }
 

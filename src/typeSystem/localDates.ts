@@ -1,7 +1,7 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
-import type { OptionalOf, SourceOf, TypeClass, ValueSource } from './base.js'
+import type { OptionalOf, SourceOf, CustomTypeClass, ValueSource } from './base.js'
 import type { IntType } from './numbers.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 
@@ -85,7 +85,7 @@ export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDate:`
 
     /** The data type of a date without a zone of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomLocalDate extends CustomLocalDateType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }
@@ -100,7 +100,7 @@ export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalTime:`
 
     /** The data type of a time of the day without a zone of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomLocalTime extends CustomLocalTimeType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }
@@ -115,7 +115,7 @@ export abstract class CustomLocalDateTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ 
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDateTime:`
 
     /** The data type of a date and a time of the day without a zone of a type of the user, with its type name */
-    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): TypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>> {
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>> {
         abstract class CustomLocalDateTime extends CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME> {
             static override readonly type = typeName
         }

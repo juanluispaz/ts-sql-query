@@ -10,17 +10,25 @@ Read this before changing anything here. The code is the reference; this file sa
 
 - **The types** are the classes of this folder. They are `abstract` and are never instantiated: their methods are
   `abstract` declarations, and they exist so TypeScript knows what a value source can do.
-- **The runtime** is `src/internal/ValueSourceImpl.ts` (and `DBColumnImpl.ts`, `RawFragmentImpl.ts`), untouched by this
-  type system. Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) imports those classes: it builds them
-  (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the runtime is not
-  typed by the data type: the code that calls them declares what it builds.
+- **The runtime** is `src/internal/ValueSourceImpl.ts` (and `DBColumnImpl.ts`, `RawFragmentImpl.ts`). Nothing outside
+  [`valueSourceFactory.ts`](./valueSourceFactory.ts) imports them: it builds the value sources (`__create*`) and
+  recognises them (`__is*`). Its `__create*` functions return `any`, because the runtime is not typed by the data type:
+  the code that calls them declares what it builds.
+- A value source of the runtime has two axes apart. Its **methods** are those of `ValueSourceImpl`. Its **node** (how
+  it is written and what it reaches in the tree: a constant, a function of a value source, a fragment, a column, ...) is
+  `__node`, a `NodeStrategy`: one object for each kind of node, shared and without state, which receives the value
+  source; the value source has the fields of its node (`__operation`, `__valueSource`, `__value`, ...). Each kind has
+  its interface (`SqlOperation0ValueSource`), its strategy (`sqlOperation0ValueSourceNode`) and the function that builds
+  it (`__newSqlOperation0ValueSource`); `__is*` asks for the node. The aggregated arrays and the raw fragments of a table
+  are still classes of their own.
 - At run time a value source knows its data type by two strings, `__type` and `__customType` (for a custom data type,
   `__type` is its type name and `__customType` its family, e.g. `'Money'` / `'customInt'`). The questions about them
   (`__isInt`, `__isLocalDate`, `__isExactDecimal`, ...) are in [`dataTypes.ts`](./dataTypes.ts). **Nothing at run time
   reads the NType** below: it exists only for TypeScript.
 
-Replacing the runtime by one built from these classes (methods with bodies instead of `abstract`) is possible later,
-behind `valueSourceFactory.ts`, without touching the rest of the library; it was left out on purpose.
+The runtime is being moved into these classes (methods with bodies instead of `abstract`), behind
+`valueSourceFactory.ts`, in phases: first the nodes as strategies (done), then the methods of each family into its
+class, so that a value source is an instance of the class of its data type, and finally `ValueSourceImpl` is removed.
 
 ## The NType: the name of a data type for TypeScript
 

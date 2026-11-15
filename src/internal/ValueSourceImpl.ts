@@ -17,7 +17,56 @@ import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 
-export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
+/**
+ * How a value source is written and what it reaches in the tree, for one kind of node (a constant, a function of a
+ * value source, a fragment, ...). One object for each kind, shared by its value sources, without state: it receives
+ * the value source, which has the fields of its node
+ */
+export interface NodeStrategy<VS extends ValueSourceImpl> {
+    __toSql(vs: VS, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string
+    __toSqlForCondition(vs: VS, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string
+    __addWiths(vs: VS, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void
+    __registerTableOrView(vs: VS, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void
+    __registerRequiredColumn(vs: VS, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void
+    __getOldValues(vs: VS, sqlBuilder: HasIsValue): AnyTableOrView | undefined
+    __getValuesForInsert(vs: VS, sqlBuilder: HasIsValue): AnyTableOrView | undefined
+    __isAllowed(vs: VS, sqlBuilder: HasIsValue): boolean
+    __hasAggregation(vs: VS, sqlBuilder: HasIsValue): boolean
+    isConstValue(vs: VS): boolean
+    getConstValue(vs: VS): any
+    /** Only the neutral condition changes it: what `valueWhenNoValue` gives */
+    valueWhenNoValue?(vs: VS, value: any): any
+}
+
+/** What a node does when its strategy doesn't say otherwise: it reaches nothing */
+export const valueSourceNode: Omit<NodeStrategy<ValueSourceImpl>, '__toSql'> = {
+    __toSqlForCondition(vs, sqlBuilder, context, forceTypeCast) {
+        return vs.__node.__toSql(vs, sqlBuilder, context, forceTypeCast)
+    },
+    __addWiths() {},
+    __registerTableOrView() {},
+    __registerRequiredColumn() {},
+    __getOldValues() {
+        return undefined
+    },
+    __getValuesForInsert() {
+        return undefined
+    },
+    __isAllowed() {
+        return true
+    },
+    __hasAggregation(vs) {
+        return vs.__isAggregate ?? false
+    },
+    isConstValue() {
+        return false
+    },
+    getConstValue() {
+        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
+    },
+}
+
+export class ValueSourceImpl implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
     [nullableValueSource]!: 'NullableValueSource'
     [equalableValueSource]!: 'EqualableValueSource'
     [comparableValueSource]!: 'ComparableValueSource'
@@ -72,43 +121,47 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
             this.__uuidString = uuidString
         }
     }
-    abstract __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string
+    /** How this value source is written and what it reaches: the strategy of its node, shared by every value source of that node */
+    declare __node: NodeStrategy<any>
+    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return this.__node.__toSql(this, sqlBuilder, context, forceTypeCast)
+    }
     __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return this.__toSql(sqlBuilder, context, forceTypeCast)
+        return this.__node.__toSqlForCondition(this, sqlBuilder, context, forceTypeCast)
     }
-    __addWiths(_sqlBuilder: HasIsValue, _withs: Array<IWithView<any>>): void {
-        // Do nothing
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__node.__addWiths(this, sqlBuilder, withs)
     }
-    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
-        // Do nothing
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        this.__node.__registerTableOrView(this, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<DBColumn>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        // Do nothing
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        this.__node.__registerRequiredColumn(this, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
+    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return this.__node.__getOldValues(this, sqlBuilder)
     }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
+    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return this.__node.__getValuesForInsert(this, sqlBuilder)
     }
-    __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return true
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__node.__isAllowed(this, sqlBuilder)
     }
-    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
-        return this.__isAggregate ?? false
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__node.__hasAggregation(this, sqlBuilder)
     }
     isConstValue(): boolean {
-        return false
+        return this.__node.isConstValue(this)
     }
     getConstValue(): any {
-        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
+        return this.__node.getConstValue(this)
     }
     allowWhen(when: boolean, error: string | Error): any {
         let result
         if (typeof error === 'string') {
-            result = new AllowWhenValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this)
+            result = __newAllowWhenValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this)
         } else {
-            result = new AllowWhenValueSource(when, error, this)
+            result = __newAllowWhenValueSource(when, error, this)
         }
         if (this.__uuidString) {
             result.__uuidString = this.__uuidString
@@ -118,9 +171,9 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
     disallowWhen(when: boolean, error: string | Error): any {
         let result
         if (typeof error === 'string') {
-            result = new AllowWhenValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this)
+            result = __newAllowWhenValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this)
         } else {
-            result = new AllowWhenValueSource(!when, error, this)
+            result = __newAllowWhenValueSource(!when, error, this)
         }
         if (this.__uuidString) {
             result.__uuidString = this.__uuidString
@@ -128,14 +181,14 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
         return result
     }
     asOptional(): any {
-        const result = new NoopValueSource(this, this.__type, this.__customType, 'optional', this.__typeAdapter)
+        const result = __newNoopValueSource(this, this.__type, this.__customType, 'optional', this.__typeAdapter)
         if (this.__uuidString) {
             result.__uuidString = this.__uuidString
         }
         return result
     }
     asRequiredInOptionalObject(): any {
-        const result = new NoopValueSource(this, this.__type, this.__customType, 'requiredInOptionalObject', this.__typeAdapter)
+        const result = __newNoopValueSource(this, this.__type, this.__customType, 'requiredInOptionalObject', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
@@ -147,7 +200,7 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
         return result
     }
     useEmptyArrayForNoValue(): any {
-        const result = new NoopValueSource(this, this.__type, this.__customType, 'required', this.__typeAdapter)
+        const result = __newNoopValueSource(this, this.__type, this.__customType, 'required', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
@@ -159,7 +212,7 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
         return result
     }
     asOptionalNonEmptyArray(): any {
-        const result = new NoopValueSource(this, this.__type, this.__customType, 'optional', this.__typeAdapter)
+        const result = __newNoopValueSource(this, this.__type, this.__customType, 'optional', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
@@ -175,23 +228,23 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
     }
     // SqlComparator0
     isNull(): any {
-        return condition(new SqlOperationIsNullValueSource('_isNull', this, 'boolean', undefined, 'required', this.__typeAdapter))
+        return condition(__newSqlOperationIsNullValueSource('_isNull', this, 'boolean', undefined, 'required', this.__typeAdapter))
     }
     isNotNull(): any {
-        return condition(new SqlOperationIsNullValueSource('_isNotNull', this, 'boolean', undefined, 'required', this.__typeAdapter))
+        return condition(__newSqlOperationIsNullValueSource('_isNotNull', this, 'boolean', undefined, 'required', this.__typeAdapter))
     }
     // SqlComparator1
     equalsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     equals(value: any): any {
-        return condition(new SqlOperation1ValueSource('_equals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_equals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEqualsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEquals(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEquals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notEquals', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     /* The `is`/`isNot` family is a TOTAL predicate: `IS [NOT] DISTINCT FROM` (and the per-dialect emulation of it)
      * answers true or false even when an operand is NULL — which is the reason to reach for it instead of `equals`.
@@ -202,19 +255,19 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
      * into the neutral they become when the operand has no value — a neutral inherits the optional type of the
      * expression it stands for, and for a total predicate that is `'required'`. */
     isIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     is(value: any): any {
-        return condition(new SqlOperation1NotOptionalValueSource('_is', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1NotOptionalValueSource('_is', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     isNotIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     isNot(value: any): any {
-        return condition(new SqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', undefined, 'required', getTypeAdapter2(this, value)))
     }
     asString(): any {
-        const result = new SqlOperation0ValueSource('_asString', this, 'string', undefined, this.__optionalType, this.__typeAdapter)
+        const result = __newSqlOperation0ValueSource('_asString', this, 'string', undefined, this.__optionalType, this.__typeAdapter)
         result.__uuidString = __isUuid(this.__type, this.__customType)
         return result
     }
@@ -222,403 +275,407 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
         if (when) {
             return this
         } else {
-            return new NullValueSource(this.__type, this.__customType, 'optional', this.__typeAdapter)
+            return __newNullValueSource(this.__type, this.__customType, 'optional', this.__typeAdapter)
         }
     }
     ignoreWhenAsNull(when: boolean): any {
         if (when) {
-            return new NullValueSource(this.__type, this.__customType, 'optional', this.__typeAdapter)
+            return __newNullValueSource(this.__type, this.__customType, 'optional', this.__typeAdapter)
         } else {
             return this
         }
     }
     equalsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     equalsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_equalsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_equalsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEqualsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEqualsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessThanIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessThan(value: any): any {
-        return condition(new SqlOperation1ValueSource('_lessThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_lessThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterThanIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterThan(value: any): any {
-        return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_greaterThan', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessOrEqualIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     lessOrEqual(value: any): any {
-        return condition(new SqlOperation1ValueSource('_lessOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_lessOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterOrEqualIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     greaterOrEqual(value: any): any {
-        return condition(new SqlOperation1ValueSource('_greaterOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_greaterOrEqual', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     inIfValue(value: any): any {
-        return condition(new SqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     in(value: any): any {
-        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', undefined, getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperationInValueSource('_in', this, value, 'boolean', undefined, getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
     }
     notInIfValue(value: any): any {
-        return condition(new SqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notIn(value: any): any {
-        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', undefined, getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperationInValueSource('_notIn', this, value, 'boolean', undefined, getOptionalTypeOfIn(this, value), getTypeAdapter2(this, value)))
     }
     inN(...value: any[]): any {
-        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', undefined, getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperationInValueSource('_in', this, value, 'boolean', undefined, getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
     }
     notInN(...value: any[]): any {
-        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', undefined, getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperationInValueSource('_notIn', this, value, 'boolean', undefined, getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
     }
     likeIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_like', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_like', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     like(value: any): any {
-        return condition(new SqlOperation1ValueSource('_like', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_like', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLikeIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notLike', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notLike', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLike(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notLike', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notLike', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     likeInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     likeInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_likeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_likeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLikeInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notLikeInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notLikeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notLikeInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_startsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_startsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_startsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notStartsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notStartsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_endsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_endsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_endsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEndsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notEndsWith', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     startsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_startsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_startsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notStartsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notStartsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notStartsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     endsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_endsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_endsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notEndsWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEndsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notEndsWithInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     containsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_contains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_contains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     contains(value: any): any {
-        return condition(new SqlOperation1ValueSource('_contains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_contains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContainsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notContains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notContains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContains(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notContains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notContains', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     containsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     containsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_containsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_containsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContainsInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     notContainsInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notContainsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_notContainsInsensitive', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     // SqlComparator2
     between(value: any, value2: any): any {
-        return condition(new SqlOperation2ValueSource('_between', this, value, value2, 'boolean', undefined, getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
+        return condition(__newSqlOperation2ValueSource('_between', this, value, value2, 'boolean', undefined, getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
     }
     notBetween(value: any, value2: any): any {
-        return condition(new SqlOperation2ValueSource('_notBetween', this, value, value2, 'boolean', undefined, getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
+        return condition(__newSqlOperation2ValueSource('_notBetween', this, value, value2, 'boolean', undefined, getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
     }
     // SqlFunctionStatic: never used here
     // SqlFunction0
     // Boolean
     negate(): any {
-        return condition(new SqlOperation0ValueSource('_negate', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter))
+        return condition(__newSqlOperation0ValueSource('_negate', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter))
     }
     onlyWhen(condition: boolean): any {
         if (condition) {
             return this
         } else {
-            return new SqlOperationValueSourceIfValueAlwaysNoop(this.__optionalType)
+            return __newSqlOperationValueSourceIfValueAlwaysNoop(this.__optionalType)
         }
     }
     ignoreWhen(condition: boolean): any {
         if (condition) {
-            return new SqlOperationValueSourceIfValueAlwaysNoop(this.__optionalType)
+            return __newSqlOperationValueSourceIfValueAlwaysNoop(this.__optionalType)
         } else {
             return this
         }
     }
     trueWhenNoValue(): any {
-        const result = new BooleanValueWhenNoValueValueSource('_true', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter)
+        const result = __newBooleanValueWhenNoValueValueSource('_true', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }
     falseWhenNoValue(): any {
-        const result = new BooleanValueWhenNoValueValueSource('_false', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter)
+        const result = __newBooleanValueWhenNoValueValueSource('_false', this, 'boolean', undefined, this.__optionalType, this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }
     valueWhenNoValue(value: any): any {
+        const nodeValueWhenNoValue = this.__node.valueWhenNoValue
+        if (nodeValueWhenNoValue) {
+            return nodeValueWhenNoValue(this, value)
+        }
         if (value === true) {
             return this.trueWhenNoValue()
         }
         if (value === false) {
             return this.falseWhenNoValue()
         }
-        
-        const result = new ValueWhenNoValueValueSource(value, this, 'boolean', undefined, mergeOptional(this.__optionalType, __getValueSourcePrivate(value).__optionalType), this.__typeAdapter)
+
+        const result = __newValueWhenNoValueValueSource(value, this, 'boolean', undefined, mergeOptional(this.__optionalType, __getValueSourcePrivate(value).__optionalType), this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }
     // String
     collate(collation: any): any {
-        return new SqlOperationCollateValueSource(this, collation, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperationCollateValueSource(this, collation, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     toLowerCase(): any {
-        return new SqlOperation0ValueSource('_toLowerCase', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_toLowerCase', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     toUpperCase(): any {
-        return new SqlOperation0ValueSource('_toUpperCase', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_toUpperCase', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     length(): any {
-        return new SqlOperation0ValueSource('_length', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_length', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     trim(): any {
-        return new SqlOperation0ValueSource('_trim', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_trim', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     trimLeft(): any {
-        return new SqlOperation0ValueSource('_trimLeft', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_trimLeft', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     trimRight(): any {
-        return new SqlOperation0ValueSource('_trimRight', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_trimRight', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     reverse(): any {
-        return new SqlOperation0ValueSource('_reverse', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_reverse', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     // Number functions
     asDouble(): any {
-        return new SqlOperation0ValueSource('_asDouble', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_asDouble', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
     }
     asInt(): any { // test function
         if (this.__customType === undefined && this.__type === 'double') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return new SqlOperation0ValueSource('_asInt', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_asInt', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
-        return new NoopValueSource(this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newNoopValueSource(this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     asBigint(): any {
         if (this.__customType === undefined && this.__type === 'double') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return new SqlOperation0ValueSource('_asBigint', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_asBigint', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
         }
-        return new NoopValueSource(this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+        return __newNoopValueSource(this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
     }
     abs(): any {
-        return new SqlOperation0ValueSource('_abs', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_abs', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
     ceil(): any {
         if (this.__customType === undefined && this.__type === 'bigint') {
-            return new SqlOperation0ValueSource('_ceil', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_ceil', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
         } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return new SqlOperation0ValueSource('_ceil', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_ceil', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_ceil', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_ceil', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     floor(): any {
         if (this.__customType === undefined && this.__type === 'bigint') {
-            return new SqlOperation0ValueSource('_floor', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_floor', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
         } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return new SqlOperation0ValueSource('_floor', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_floor', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_floor', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_floor', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     round(): any {
         if (this.__customType === undefined && this.__type === 'bigint') {
-            return new SqlOperation0ValueSource('_round', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_round', this, 'bigint', undefined, this.__optionalType, this.__typeAdapter)
         } else if (this.__customType === 'customInt' || this.__customType === 'customBigint' || this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return new SqlOperation0ValueSource('_round', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_round', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_round', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_round', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     exp(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_exp', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_exp', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_exp', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_exp', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     ln(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_ln', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_ln', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_ln', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_ln', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     log10(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_log10', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_log10', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_log10', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_log10', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     sqrt(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_sqrt', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_sqrt', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_sqrt', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_sqrt', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     cbrt(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_cbrt', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_cbrt', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_cbrt', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_cbrt', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     sign(): any {
-        return new SqlOperation0ValueSource('_sign', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_sign', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     // Trigonometric Functions
     acos(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_acos', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_acos', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_acos', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_acos', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     asin(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_asin', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_asin', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_asin', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_asin', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     atan(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_atan', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_atan', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_atan', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_atan', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     cos(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_cos', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_cos', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_cos', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_cos', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     cot(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_cot', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_cot', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_cot', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_cot', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     sin(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_sin', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_sin', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_sin', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_sin', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     tan(): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation0ValueSource('_tan', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_tan', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
         } else {
-            return new SqlOperation0ValueSource('_tan', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
+            return __newSqlOperation0ValueSource('_tan', this, 'double', undefined, this.__optionalType, this.__typeAdapter)
         }
     }
     // Date & Time Functions
     getDate(): any {
-        return new SqlOperation0ValueSource('_getDate', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getDate', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getTime(): any {
-        return new SqlOperation0ValueSource('_getTime', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getTime', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getFullYear(): any {
-        return new SqlOperation0ValueSource('_getFullYear', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getFullYear', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getMonth(): any {
-        return new SqlOperation0ValueSource('_getMonth', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getMonth', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getDay(): any {
-        return new SqlOperation0ValueSource('_getDay', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getDay', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getHours(): any {
-        return new SqlOperation0ValueSource('_getHours', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getHours', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getMinutes(): any {
-        return new SqlOperation0ValueSource('_getMinutes', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getMinutes', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getSeconds(): any {
-        return new SqlOperation0ValueSource('_getSeconds', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getSeconds', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     getMilliseconds(): any {
-        return new SqlOperation0ValueSource('_getMilliseconds', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_getMilliseconds', this, 'int', undefined, this.__optionalType, this.__typeAdapter)
     }
     // SqlFunction1
     valueWhenNull(value: any): any {
@@ -658,70 +715,70 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
             // DATE, and the result keeps the adapter
             typeAdapter = undefined
         }
-        return new SqlOperationValueWhenNullValueSource(this, value, type, customType, getOptionalType2(this, value), typeAdapter)
+        return __newSqlOperationValueWhenNullValueSource(this, value, type, customType, getOptionalType2(this, value), typeAdapter)
     }
     nullIfValue(value: any): any {
-        return new SqlOperation1ValueSource('_nullIfValue', this, value, this.__type, this.__customType, 'optional', getTypeAdapter2(this, value))
+        return __newSqlOperation1ValueSource('_nullIfValue', this, value, this.__type, this.__customType, 'optional', getTypeAdapter2(this, value))
     }
     and(value: any): any {
-        return condition(new SqlOperation1ValueSource('_and', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_and', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     or(value: any): any {
-        return condition(new SqlOperation1ValueSource('_or', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(__newSqlOperation1ValueSource('_or', this, value, 'boolean', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     // Trigonometric Functions
     atan2(value: any): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation1ValueSource('_atan2', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_atan2', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_atan2', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_atan2', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     // String Functions
     concat(value: any): any {
-        return new SqlOperation1ValueSource('_concat', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        return __newSqlOperation1ValueSource('_concat', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     concatIfValue(value: any): any {
-        return new SqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     concatIgnoringNullIfValue(value: any): any {
         // The optionality is the RECEIVER's (`getOptionalType2` with a plain value), not the
         // stricter one `concatIgnoringNull` computes: an ABSENT value leaves the receiver alone,
         // and whether it is absent is a run-time fact. Absence also depends on the connection's
         // `allowEmptyString`, which this constructor cannot see.
-        return new SqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     concatIgnoringNull(value: any): any {
         // A NULL operand counts as the empty string, so the result is optional only when EVERY
         // operand is: `getRequiredType2` keeps the STRICTEST operand instead of the loosest.
-        return new SqlOperation1ValueSource('_concatIgnoringNull', this, value, this.__type, this.__customType, getRequiredType2(this, value), getTypeAdapter2(this, value))
+        return __newSqlOperation1ValueSource('_concatIgnoringNull', this, value, this.__type, this.__customType, getRequiredType2(this, value), getTypeAdapter2(this, value))
     }
     substrToEnd(start: any): any {
-        return new SqlOperation1ValueSource('_substrToEnd', this, start, this.__type, this.__customType, getOptionalType2(this, start), getTypeAdapter2(this, start))
+        return __newSqlOperation1ValueSource('_substrToEnd', this, start, this.__type, this.__customType, getOptionalType2(this, start), getTypeAdapter2(this, start))
     }
     substringToEnd(start: any): any {
-        return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__type, this.__customType, getOptionalType2(this, start), getTypeAdapter2(this, start))
+        return __newSqlOperation1ValueSource('_substringToEnd', this, start, this.__type, this.__customType, getOptionalType2(this, start), getTypeAdapter2(this, start))
     }
     // Number
     power(value: any): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation1ValueSource('_power', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_power', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_power', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_power', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     logn(value: any): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation1ValueSource('_logn', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_logn', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_logn', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_logn', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     roundn(value: any): any {
         if (this.__customType === 'customDouble' || __isExactDecimal(this.__type, this.__customType)) {
-            return new SqlOperation1ValueSource('_roundn', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_roundn', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_roundn', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_roundn', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     /**
@@ -748,9 +805,9 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
     }
     divide(value: any): any {
         if (this.__customType === 'customDouble') {
-            return new SqlOperation1ValueSource('_divide', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_divide', this, value, this.__type, this.__customType, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
-            return new SqlOperation1ValueSource('_divide', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
+            return __newSqlOperation1ValueSource('_divide', this, value, 'double', undefined, getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
     modulo(value: any): any {
@@ -758,417 +815,485 @@ export abstract class ValueSourceImpl implements TypedValueSource<any, any, any>
     }
     // SqlFunction2
     substr(start: any, count: any): any {
-        return new SqlOperation2ValueSource('_substr', this, start, count, this.__type, this.__customType, getOptionalType3(this, start, count), getTypeAdapter3(this, start, count))
+        return __newSqlOperation2ValueSource('_substr', this, start, count, this.__type, this.__customType, getOptionalType3(this, start, count), getTypeAdapter3(this, start, count))
     }
     substring(start: any, end: any): any {
-        return new SqlOperation2ValueSource('_substring', this, start, end, this.__type, this.__customType, getOptionalType3(this, start, end), getTypeAdapter3(this, start, end))
+        return __newSqlOperation2ValueSource('_substring', this, start, end, this.__type, this.__customType, getOptionalType3(this, start, end), getTypeAdapter3(this, start, end))
     }
     replaceAllIfValue(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     replaceAll(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     replaceAllInsensitiveIfValue(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     replaceAllInsensitive(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, this.__type, this.__customType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     // Oracle recursive
     __prior(): any {
-        return new SqlOperation0ValueSource('_prior', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
+        return __newSqlOperation0ValueSource('_prior', this, this.__type, this.__customType, this.__optionalType, this.__typeAdapter)
     }
 }
 
-export class SqlOperationStatic0ValueSource extends ValueSourceImpl implements HasOperation {
+export interface SqlOperationStatic0ValueSource extends ValueSourceImpl, HasOperation {
     __operation: keyof SqlOperationStatic0
-
-    constructor(operation: keyof SqlOperationStatic0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__operation = operation
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context)
-    }
 }
 
-export class SqlOperationStaticBooleanValueSource extends ValueSourceImpl implements HasOperation {
-    __operation: keyof SqlOperationStatic0
+export const sqlOperationStatic0ValueSourceNode: NodeStrategy<SqlOperationStatic0ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationStatic0ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context)
+    },
+}
 
-    constructor(operation: '_true' | '_false') {
-        super('boolean', undefined, 'required', undefined)
-        this.__operation = operation
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context)
-    }
-    override __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        if (this.__operation === '_true') {
+export function __newSqlOperationStatic0ValueSource(operation: keyof SqlOperationStatic0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationStatic0ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationStatic0ValueSource
+    vs.__node = sqlOperationStatic0ValueSourceNode
+
+    vs.__operation = operation
+    return vs
+}
+
+export interface SqlOperationStaticBooleanValueSource extends ValueSourceImpl, HasOperation {
+    __operation: keyof SqlOperationStatic0
+}
+
+export const sqlOperationStaticBooleanValueSourceNode: NodeStrategy<SqlOperationStaticBooleanValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationStaticBooleanValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context)
+    },
+    __toSqlForCondition(vs: SqlOperationStaticBooleanValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        if (vs.__operation === '_true') {
             return sqlBuilder._trueForCondition(context)
         } else {
             return sqlBuilder._falseForCondition(context)
         }
-    }
+    },
 }
 
-export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implements HasOperation {
+export function __newSqlOperationStaticBooleanValueSource(operation: '_true' | '_false'): SqlOperationStaticBooleanValueSource {
+    const vs = new ValueSourceImpl('boolean', undefined, 'required', undefined) as SqlOperationStaticBooleanValueSource
+    vs.__node = sqlOperationStaticBooleanValueSourceNode
+
+    vs.__operation = operation
+    return vs
+}
+
+export interface BooleanValueWhenNoValueValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: '_true' | '_false'
+}
 
-    constructor(operation: '_true' | '_false', valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+export const booleanValueWhenNoValueValueSourceNode: NodeStrategy<BooleanValueWhenNoValueValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        const sql = vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
         if (sql) {
             return sql
         }
 
         // No value
-        return sqlBuilder[this.__operation](context)
-    }
-    override __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+        return sqlBuilder[vs.__operation](context)
+    },
+    __toSqlForCondition(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        const sql = vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
         if (sql) {
             return sql
         }
 
         // No value
-        if (this.__operation === '_true') {
+        if (vs.__operation === '_true') {
             return sqlBuilder._trueForCondition(context)
         } else {
             return sqlBuilder._falseForCondition(context)
         }
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder)
-    }
+    },
+    __addWiths(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: BooleanValueWhenNoValueValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder)
+    },
 }
 
-export class ValueWhenNoValueValueSource extends ValueSourceImpl {
+export function __newBooleanValueWhenNoValueValueSource(operation: '_true' | '_false', valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): BooleanValueWhenNoValueValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as BooleanValueWhenNoValueValueSource
+    vs.__node = booleanValueWhenNoValueValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    return vs
+}
+
+export interface ValueWhenNoValueValueSource extends ValueSourceImpl {
     __valueSource: ValueSourceImpl
     __valueWhenNoValue: __ValueSourcePrivate & ToSql
+}
 
-    constructor(valueWhenNoValue: __ValueSourcePrivate & ToSql, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__valueWhenNoValue = valueWhenNoValue
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+export const valueWhenNoValueValueSourceNode: NodeStrategy<ValueWhenNoValueValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: ValueWhenNoValueValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        const sql = vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
         if (sql) {
             return sql
         }
 
         // No value
-        return this.__valueWhenNoValue.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+        return vs.__valueWhenNoValue.__toSql(sqlBuilder, context, forceTypeCast)
+    },
+    __toSqlForCondition(vs: ValueWhenNoValueValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        const sql = vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
         if (sql) {
             return sql
         }
 
         // No value
-        return this.__valueWhenNoValue.__toSqlForCondition(sqlBuilder, context, forceTypeCast)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        this.__valueWhenNoValue.__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        this.__valueWhenNoValue.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        this.__valueWhenNoValue.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder) || this.__valueWhenNoValue.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || this.__valueWhenNoValue.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder) && this.__valueWhenNoValue.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder) || this.__valueWhenNoValue.__hasAggregation(sqlBuilder)
-    }
+        return vs.__valueWhenNoValue.__toSqlForCondition(sqlBuilder, context, forceTypeCast)
+    },
+    __addWiths(vs: ValueWhenNoValueValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        vs.__valueWhenNoValue.__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: ValueWhenNoValueValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        vs.__valueWhenNoValue.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: ValueWhenNoValueValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        vs.__valueWhenNoValue.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: ValueWhenNoValueValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || vs.__valueWhenNoValue.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: ValueWhenNoValueValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || vs.__valueWhenNoValue.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: ValueWhenNoValueValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && vs.__valueWhenNoValue.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: ValueWhenNoValueValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || vs.__valueWhenNoValue.__hasAggregation(sqlBuilder)
+    },
 }
 
-export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements HasOperation {
-    __operation: keyof SqlOperationStatic1
-    __value: any
+export function __newValueWhenNoValueValueSource(valueWhenNoValue: __ValueSourcePrivate & ToSql, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): ValueWhenNoValueValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as ValueWhenNoValueValueSource
+    vs.__node = valueWhenNoValueValueSourceNode
 
-    constructor(operation: keyof SqlOperationStatic1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__operation = operation
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, this.__value, this.__type, this.__customType, this.__typeAdapter, forceTypeCast)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return __isAllowed(this.__value, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return __hasAggregation(this.__value, sqlBuilder)
-    }
+    vs.__valueSource = valueSource
+    vs.__valueWhenNoValue = valueWhenNoValue
+    return vs
 }
 
-export class SqlOperationConstValueSource extends ValueSourceImpl implements HasOperation {
+export interface SqlOperationStatic1ValueSource extends ValueSourceImpl, HasOperation {
     __operation: keyof SqlOperationStatic1
     __value: any
+}
 
-    constructor(value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__operation = '_const'
-        this.__value = value
-    }
+export const sqlOperationStatic1ValueSourceNode: NodeStrategy<SqlOperationStatic1ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationStatic1ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter, forceTypeCast)
+    },
+    __addWiths(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(vs.__value, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperationStatic1ValueSource, sqlBuilder: HasIsValue): boolean {
+        return __hasAggregation(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newSqlOperationStatic1ValueSource(operation: keyof SqlOperationStatic1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationStatic1ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationStatic1ValueSource
+    vs.__node = sqlOperationStatic1ValueSourceNode
+
+    vs.__operation = operation
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperationConstValueSource extends ValueSourceImpl, HasOperation {
+    __operation: keyof SqlOperationStatic1
+    __value: any
     // Set on a copy (see SqlBuilder._typedOperand) when the const is an operand nothing else gives a type to
     __forceTypeCast?: boolean | undefined
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (this.__forceTypeCast) {
-            return sqlBuilder._typedConst(context, this.__value, this.__type, this.__customType, this.__typeAdapter)
-        }
-        return sqlBuilder._const(context, this.__value, this.__type, this.__customType, this.__typeAdapter, forceTypeCast)
-    }
-    override __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (this.__forceTypeCast) {
-            return sqlBuilder._typedConstForCondition(context, this.__value, this.__type, this.__customType, this.__typeAdapter)
-        }
-        return sqlBuilder._constForCondition(context, this.__value, this.__type, this.__customType, this.__typeAdapter, forceTypeCast)
-    }
-    override isConstValue(): boolean {
-        return true
-    }
-    override getConstValue(): any {
-        return this.__value
-    }
-    override __addWiths(sqlBuilder: HasIsValue,withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return __isAllowed(this.__value, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return __hasAggregation(this.__value, sqlBuilder)
-    }
 }
 
-export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
+export const sqlOperationConstValueSourceNode: NodeStrategy<SqlOperationConstValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationConstValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (vs.__forceTypeCast) {
+            return sqlBuilder._typedConst(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter)
+        }
+        return sqlBuilder._const(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter, forceTypeCast)
+    },
+    __toSqlForCondition(vs: SqlOperationConstValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (vs.__forceTypeCast) {
+            return sqlBuilder._typedConstForCondition(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter)
+        }
+        return sqlBuilder._constForCondition(context, vs.__value, vs.__type, vs.__customType, vs.__typeAdapter, forceTypeCast)
+    },
+    isConstValue(_vs: SqlOperationConstValueSource): boolean {
+        return true
+    },
+    getConstValue(vs: SqlOperationConstValueSource): any {
+        return vs.__value
+    },
+    __addWiths(vs: SqlOperationConstValueSource, sqlBuilder: HasIsValue,withs: Array<IWithView<any>>): void {
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperationConstValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperationConstValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperationConstValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperationConstValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperationConstValueSource, sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(vs.__value, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperationConstValueSource, sqlBuilder: HasIsValue): boolean {
+        return __hasAggregation(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newSqlOperationConstValueSource(value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationConstValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationConstValueSource
+    vs.__node = sqlOperationConstValueSourceNode
+
+    vs.__operation = '_const'
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperation0ValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlFunction0 | keyof SqlBoolean0
-
-    constructor(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, this.__valueSource)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder)
-    }
 }
 
-export class SqlOperationCollateValueSource extends ValueSourceImpl implements HasOperation {
+export const sqlOperation0ValueSourceNode: NodeStrategy<SqlOperation0ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperation0ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, vs.__valueSource)
+    },
+    __addWiths(vs: SqlOperation0ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperation0ValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperation0ValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperation0ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperation0ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperation0ValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperation0ValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder)
+    },
+}
+
+export function __newSqlOperation0ValueSource(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperation0ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperation0ValueSource
+    vs.__node = sqlOperation0ValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    return vs
+}
+
+export interface SqlOperationCollateValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
-    __operation: '_collate' = '_collate'
+    __operation: '_collate'
     __collation: string
-
-    constructor(valueSource: ValueSourceImpl, collation: string, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__collation = collation
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._collate(context, this.__valueSource, this.__collation)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder)
-    }
 }
 
-export class SqlOperationIsNullValueSource extends ValueSourceImpl implements HasOperation {
+export const sqlOperationCollateValueSourceNode: NodeStrategy<SqlOperationCollateValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationCollateValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder._collate(context, vs.__valueSource, vs.__collation)
+    },
+    __addWiths(vs: SqlOperationCollateValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperationCollateValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperationCollateValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperationCollateValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperationCollateValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperationCollateValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperationCollateValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder)
+    },
+}
+
+export function __newSqlOperationCollateValueSource(valueSource: ValueSourceImpl, collation: string, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationCollateValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationCollateValueSource
+    vs.__node = sqlOperationCollateValueSourceNode
+    vs.__operation = '_collate'
+
+    vs.__valueSource = valueSource
+    vs.__collation = collation
+    return vs
+}
+
+export interface SqlOperationIsNullValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlComparator0
-
-    constructor(operation: keyof SqlComparator0, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, this.__valueSource)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder)
-    }
 }
 
-export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOperation {
+export const sqlOperationIsNullValueSourceNode: NodeStrategy<SqlOperationIsNullValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationIsNullValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, vs.__valueSource)
+    },
+    __addWiths(vs: SqlOperationIsNullValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperationIsNullValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperationIsNullValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperationIsNullValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperationIsNullValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperationIsNullValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperationIsNullValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder)
+    },
+}
+
+export function __newSqlOperationIsNullValueSource(operation: keyof SqlComparator0, valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationIsNullValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationIsNullValueSource
+    vs.__node = sqlOperationIsNullValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    return vs
+}
+
+export interface SqlOperation1ValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation1
     __value: any
-
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
-    }
 }
 
-export class SqlOperationInValueSource extends ValueSourceImpl implements HasOperation {
+export const sqlOperation1ValueSourceNode: NodeStrategy<SqlOperation1ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperation1ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperation1ValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newSqlOperation1ValueSource(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperation1ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperation1ValueSource
+    vs.__node = sqlOperation1ValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperationInValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: '_in' | '_notIn'
     __value: any
+}
 
-    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        const values = this.__value
+export const sqlOperationInValueSourceNode: NodeStrategy<SqlOperationInValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationInValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 __addWiths(values[i], sqlBuilder, withs)
@@ -1180,10 +1305,10 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
                 __addWiths(values, sqlBuilder, withs)
             }
         }
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        const values = this.__value
+    },
+    __registerTableOrView(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 __registerTableOrView(values[i], sqlBuilder, requiredTablesOrViews)
@@ -1191,10 +1316,10 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
         } else {
             __registerTableOrView(values, sqlBuilder, requiredTablesOrViews)
         }
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        const values = this.__value
+    },
+    __registerRequiredColumn(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 __registerRequiredColumn(values[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
@@ -1202,13 +1327,13 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
         } else {
             __registerRequiredColumn(values, sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        let result = this.__valueSource.__getOldValues(sqlBuilder)
+    },
+    __getOldValues(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        let result = vs.__valueSource.__getOldValues(sqlBuilder)
         if (result) {
             return result
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 result = __getOldValues(values[i], sqlBuilder)
@@ -1220,13 +1345,13 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
             return __getOldValues(values, sqlBuilder)
         }
         return undefined
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        let result = this.__valueSource.__getValuesForInsert(sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        let result = vs.__valueSource.__getValuesForInsert(sqlBuilder)
         if (result) {
             return result
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 result = __getValuesForInsert(values[i], sqlBuilder)
@@ -1238,13 +1363,13 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
             return __getValuesForInsert(values, sqlBuilder)
         }
         return undefined
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        let result = this.__valueSource.__isAllowed(sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue): boolean {
+        let result = vs.__valueSource.__isAllowed(sqlBuilder)
         if (!result) {
             return false
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 result = __isAllowed(values[i], sqlBuilder)
@@ -1256,12 +1381,12 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
             return __isAllowed(values, sqlBuilder)
         }
         return true
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        if (this.__valueSource.__hasAggregation(sqlBuilder)) {
+    },
+    __hasAggregation(vs: SqlOperationInValueSource, sqlBuilder: HasIsValue): boolean {
+        if (vs.__valueSource.__hasAggregation(sqlBuilder)) {
             return true
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 if (__hasAggregation(values[i], sqlBuilder)) {
@@ -1271,176 +1396,204 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
             return false
         }
         return __hasAggregation(values, sqlBuilder)
-    }
+    },
 }
 
-export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implements HasOperation {
+export function __newSqlOperationInValueSource(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationInValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationInValueSource
+    vs.__node = sqlOperationInValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperationValueWhenNullValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation1
     __value: any
-
-    constructor(valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = '_valueWhenNull'
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
-    }
 }
 
-export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl implements HasOperation {
+export const sqlOperationValueWhenNullValueSourceNode: NodeStrategy<SqlOperationValueWhenNullValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newSqlOperationValueWhenNullValueSource(valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationValueWhenNullValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationValueWhenNullValueSource
+    vs.__node = sqlOperationValueWhenNullValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = '_valueWhenNull'
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperation1NotOptionalValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation1
     __value: any
-
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
-    }
 }
 
-export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl implements HasOperation {
+export const sqlOperation1NotOptionalValueSourceNode: NodeStrategy<SqlOperation1NotOptionalValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newSqlOperation1NotOptionalValueSource(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperation1NotOptionalValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperation1NotOptionalValueSource
+    vs.__node = sqlOperation1NotOptionalValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation1
     __value: any
+}
 
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        if (!sqlBuilder._isValue(this.__value)) {
+export const sqlOperation1ValueSourceIfValueOrNoopNode: NodeStrategy<SqlOperation1ValueSourceIfValueOrNoop> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return ''
         }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        if (!sqlBuilder._isValue(this.__value)) {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return
         }
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        if (!sqlBuilder._isValue(this.__value)) {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return
         }
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        if (!sqlBuilder._isValue(this.__value)) {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return
         }
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        if (!sqlBuilder._isValue(this.__value)) {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return undefined
         }
-        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        if (!sqlBuilder._isValue(this.__value)) {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return undefined
         }
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        if (!sqlBuilder._isValue(this.__value)) {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return true
         }
-        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        if (!sqlBuilder._isValue(this.__value)) {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperation1ValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return false
         }
-        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
-    }
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder)
+    },
 }
 
-export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl implements HasOperation {
+export function __newSqlOperation1ValueSourceIfValueOrNoop(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperation1ValueSourceIfValueOrNoop {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperation1ValueSourceIfValueOrNoop
+    vs.__node = sqlOperation1ValueSourceIfValueOrNoopNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: '_in' | '_notIn'
     __value: any
+}
 
-    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        if (!sqlBuilder._isValue(this.__value)) {
+export const sqlOperationInValueSourceIfValueOrNoopNode: NodeStrategy<SqlOperationInValueSourceIfValueOrNoop> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return ''
         }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        if (!sqlBuilder._isValue(this.__value)) {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return
         }
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        const values = this.__value
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 __addWiths(values[i], sqlBuilder, withs)
@@ -1448,13 +1601,13 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         } else {
             __addWiths(values, sqlBuilder, withs)
         }
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        if (!sqlBuilder._isValue(this.__value)) {
+    },
+    __registerTableOrView(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return
         }
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        const values = this.__value
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 __registerTableOrView(values[i], sqlBuilder, requiredTablesOrViews)
@@ -1462,13 +1615,13 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         } else {
             __registerTableOrView(values, sqlBuilder, requiredTablesOrViews)
         }
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        if (!sqlBuilder._isValue(this.__value)) {
+    },
+    __registerRequiredColumn(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return
         }
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        const values = this.__value
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 __registerRequiredColumn(values[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
@@ -1476,16 +1629,16 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         } else {
             __registerRequiredColumn(values, sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        if (!sqlBuilder._isValue(this.__value)) {
+    },
+    __getOldValues(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return undefined
         }
-        let result = this.__valueSource.__getOldValues(sqlBuilder)
+        let result = vs.__valueSource.__getOldValues(sqlBuilder)
         if (result) {
             return result
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 result = __getOldValues(values[i], sqlBuilder)
@@ -1497,16 +1650,16 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
             return __getOldValues(values, sqlBuilder)
         }
         return undefined
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        if (!sqlBuilder._isValue(this.__value)) {
+    },
+    __getValuesForInsert(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return undefined
         }
-        let result = this.__valueSource.__getValuesForInsert(sqlBuilder)
+        let result = vs.__valueSource.__getValuesForInsert(sqlBuilder)
         if (result) {
             return result
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 result = __getValuesForInsert(values[i], sqlBuilder)
@@ -1518,16 +1671,16 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
             return __getValuesForInsert(values, sqlBuilder)
         }
         return undefined
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        if (!sqlBuilder._isValue(this.__value)) {
+    },
+    __isAllowed(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return true
         }
-        let result = this.__valueSource.__isAllowed(sqlBuilder)
+        let result = vs.__valueSource.__isAllowed(sqlBuilder)
         if (!result) {
             return false
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 result = __isAllowed(values[i], sqlBuilder)
@@ -1539,15 +1692,15 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
             return __isAllowed(values, sqlBuilder)
         }
         return true
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        if (!sqlBuilder._isValue(this.__value)) {
+    },
+    __hasAggregation(vs: SqlOperationInValueSourceIfValueOrNoop, sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(vs.__value)) {
             return false
         }
-        if (this.__valueSource.__hasAggregation(sqlBuilder)) {
+        if (vs.__valueSource.__hasAggregation(sqlBuilder)) {
             return true
         }
-        const values = this.__value
+        const values = vs.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
                 if (__hasAggregation(values[i], sqlBuilder)) {
@@ -1557,26 +1710,25 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
             return false
         }
         return __hasAggregation(values, sqlBuilder)
-    }
+    },
 }
 
-export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
+export function __newSqlOperationInValueSourceIfValueOrNoop(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperationInValueSourceIfValueOrNoop {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperationInValueSourceIfValueOrNoop
+    vs.__node = sqlOperationInValueSourceIfValueOrNoopNode
 
-    /**
-     * The optional type is the one of the boolean expression that was neutralised; the neutral is one more
-     * possibility added to that boolean (true / false / null / neutral), it doesn't replace it, then neutralising it
-     * must not drop the null that boolean admitted. When there is no previous boolean expression (the neutral used as
-     * the initial value of a dynamic boolean expression), no null is possible yet, and 'required' (the identity of the
-     * optional type merge) is the one that steps aside as soon as a real expression joins the expression.
-     *
-     * It has no default on purpose: dropping the optional type of the neutralised expression is precisely the mistake
-     * this parameter exists to prevent, and a default would let the next construction site make it again in silence.
-     * Each site says which of the two cases it is.
-     */
-    constructor(optionalType: OptionalType) {
-        super('', undefined, optionalType, undefined)
-    }
-    override valueWhenNoValue(value: any): any {
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
+}
+
+export const sqlOperationValueSourceIfValueAlwaysNoopNode: NodeStrategy<SqlOperationValueSourceIfValueAlwaysNoop> = {
+    ...valueSourceNode,
+    valueWhenNoValue(vs: SqlOperationValueSourceIfValueAlwaysNoop, value: any): any {
         // The neutral element of the four-valued dynamic-boolean system
         // (true / false / null / neutral): the "ignore" value produced by
         // `dynamicBooleanExpressionUsing(...)`, `onlyWhen(false)` and
@@ -1585,242 +1737,287 @@ export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
         // missing — always resolves to `value`, the expression placed in its
         // stead. A bare `true` / `false` is not an expression, so it becomes
         // the constant true / false condition.
-        if (value === true) return this.trueWhenNoValue()
-        if (value === false) return this.falseWhenNoValue()
+        if (value === true) return vs.trueWhenNoValue()
+        if (value === false) return vs.falseWhenNoValue()
         return value
-    }
-    __toSql(_sqlBuilder: SqlBuilder, _context: SqlBuildContext, _forceTypeCast: boolean): string {
+    },
+    __toSql(_vs: SqlOperationValueSourceIfValueAlwaysNoop, _sqlBuilder: SqlBuilder, _context: SqlBuildContext, _forceTypeCast: boolean): string {
         return ''
-    }
+    },
 }
 
+/**
+ * The optional type is the one of the boolean expression that was neutralised; the neutral is one more
+ * possibility added to that boolean (true / false / null / neutral), it doesn't replace it, then neutralising it
+ * must not drop the null that boolean admitted. When there is no previous boolean expression (the neutral used as
+ * the initial value of a dynamic boolean expression), no null is possible yet, and 'required' (the identity of the
+ * optional type merge) is the one that steps aside as soon as a real expression joins the expression.
+ *
+ * It has no default on purpose: dropping the optional type of the neutralised expression is precisely the mistake
+ * this parameter exists to prevent, and a default would let the next construction site make it again in silence.
+ * Each site says which of the two cases it is.
+ */
+export function __newSqlOperationValueSourceIfValueAlwaysNoop(optionalType: OptionalType): SqlOperationValueSourceIfValueAlwaysNoop {
+    const vs = new ValueSourceImpl('', undefined, optionalType, undefined) as SqlOperationValueSourceIfValueAlwaysNoop
+    vs.__node = sqlOperationValueSourceIfValueAlwaysNoopNode
+    return vs
+}
 
-export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl implements HasOperation {
+export interface SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation1
     __value: any
-
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!sqlBuilder._isValue(this.__value)) {
-            return this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
-        }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value], this.__operation), this.__value, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
-    }
 }
 
-export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOperation {
+export const sqlOperation1ValueSourceIfValueOrIgnoreNode: NodeStrategy<SqlOperation1ValueSourceIfValueOrIgnore> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (!sqlBuilder._isValue(vs.__value)) {
+            return vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+        }
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperation1ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newSqlOperation1ValueSourceIfValueOrIgnore(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SqlOperation1ValueSourceIfValueOrIgnore {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperation1ValueSourceIfValueOrIgnore
+    vs.__node = sqlOperation1ValueSourceIfValueOrIgnoreNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    return vs
+}
+
+export interface SqlOperation2ValueSource extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation2
     __value: any
     __value2: any
-
-    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-        this.__value2 = value2
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(this.__value, sqlBuilder, withs)
-        __addWiths(this.__value2, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value2, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value2, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder) || __getOldValues(this.__value2, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder) || __getValuesForInsert(this.__value2, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder) && __isAllowed(this.__value2, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder) || __hasAggregation(this.__value2, sqlBuilder)
-    }
 }
 
-export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl implements HasOperation {
+export const sqlOperation2ValueSourceNode: NodeStrategy<SqlOperation2ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperation2ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value, vs.__value2], vs.__operation), vs.__value, vs.__value2, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(vs.__value, sqlBuilder, withs)
+        __addWiths(vs.__value2, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value2, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value2, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder) || __getOldValues(vs.__value2, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder) || __getValuesForInsert(vs.__value2, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder) && __isAllowed(vs.__value2, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperation2ValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder) || __hasAggregation(vs.__value2, sqlBuilder)
+    },
+}
+
+export function __newSqlOperation2ValueSource(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined): SqlOperation2ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperation2ValueSource
+    vs.__node = sqlOperation2ValueSourceNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    vs.__value2 = value2
+    return vs
+}
+
+export interface SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl, HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation2
     __value: any
     __value2: any
-
-    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-        this.__operation = operation
-        this.__value = value
-        this.__value2 = value2
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!sqlBuilder._isValue(this.__value)) {
-            return this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
-        }
-        if (!sqlBuilder._isValue(this.__value2)) {
-            return this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
-        }
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__valueSource, [this.__value, this.__value2], this.__operation), this.__value, this.__value2, this.__valueSource.__type, this.__valueSource.__customType, this.__valueSource.__typeAdapter)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(this.__value, sqlBuilder, withs)
-        __addWiths(this.__value2, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(this.__value2, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value2, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder) || __getOldValues(this.__value2, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder) || __getValuesForInsert(this.__value2, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder) && __isAllowed(this.__value2, sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder) || __hasAggregation(this.__value2, sqlBuilder)
-    }
 }
 
-export class NoopValueSource extends ValueSourceImpl {
+export const sqlOperation2ValueSourceIfValueOrIgnoreNode: NodeStrategy<SqlOperation2ValueSourceIfValueOrIgnore> = {
+    ...valueSourceNode,
+    __toSql(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (!sqlBuilder._isValue(vs.__value)) {
+            return vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+        }
+        if (!sqlBuilder._isValue(vs.__value2)) {
+            return vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+        }
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value, vs.__value2], vs.__operation), vs.__value, vs.__value2, vs.__valueSource.__type, vs.__valueSource.__customType, vs.__valueSource.__typeAdapter)
+    },
+    __addWiths(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(vs.__value, sqlBuilder, withs)
+        __addWiths(vs.__value2, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(vs.__value2, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(vs.__value2, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder) || __getOldValues(vs.__value2, sqlBuilder)
+    },
+    __getValuesForInsert(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder) || __getValuesForInsert(vs.__value2, sqlBuilder)
+    },
+    __isAllowed(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder) && __isAllowed(vs.__value2, sqlBuilder)
+    },
+    __hasAggregation(vs: SqlOperation2ValueSourceIfValueOrIgnore, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder) || __hasAggregation(vs.__value2, sqlBuilder)
+    },
+}
+
+export function __newSqlOperation2ValueSourceIfValueOrIgnore(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter?: TypeAdapter | undefined): SqlOperation2ValueSourceIfValueOrIgnore {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SqlOperation2ValueSourceIfValueOrIgnore
+    vs.__node = sqlOperation2ValueSourceIfValueOrIgnoreNode
+
+    vs.__valueSource = valueSource
+    vs.__operation = operation
+    vs.__value = value
+    vs.__value2 = value2
+    return vs
+}
+
+export interface NoopValueSource extends ValueSourceImpl {
     __valueSource: ValueSourceImpl
-    constructor(valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__valueSource = valueSource
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        return this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__valueSource.__hasAggregation(sqlBuilder)
-    }
 }
 
-export class SequenceValueSource extends ValueSourceImpl {
+export const noopValueSourceNode: NodeStrategy<NoopValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: NoopValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        return vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+    },
+    __addWiths(vs: NoopValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: NoopValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: NoopValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: NoopValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: NoopValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: NoopValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: NoopValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__hasAggregation(sqlBuilder)
+    },
+}
+
+export function __newNoopValueSource(valueSource: ValueSourceImpl, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): NoopValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as NoopValueSource
+    vs.__node = noopValueSourceNode
+
+    vs.__valueSource = valueSource
+    return vs
+}
+
+export interface SequenceValueSource extends ValueSourceImpl {
     __operation: keyof SqlSequenceOperation
     __sequenceName: string
-    constructor(operation: keyof SqlSequenceOperation, sequenceName: string, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__operation = operation
-        this.__sequenceName = sequenceName
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, this.__sequenceName, this.__type, this.__customType)
-    }
 }
 
-export class FragmentValueSource extends ValueSourceImpl {
-    __operation: keyof SqlFragmentOperation = '_fragment' // Needed to detect if parenthesis is required
+export const sequenceValueSourceNode: NodeStrategy<SequenceValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: SequenceValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, vs.__sequenceName, vs.__type, vs.__customType)
+    },
+}
+
+export function __newSequenceValueSource(operation: keyof SqlSequenceOperation, sequenceName: string, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): SequenceValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as SequenceValueSource
+    vs.__node = sequenceValueSourceNode
+
+    vs.__operation = operation
+    vs.__sequenceName = sequenceName
+    return vs
+}
+
+export interface FragmentValueSource extends ValueSourceImpl {
+    __operation: keyof SqlFragmentOperation
     __sql: TemplateStringsArray
     __sqlParams: AnyValueSource[]
+}
 
-    constructor(sql: TemplateStringsArray, sqlParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate?: boolean) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__sql = sql
-        this.__sqlParams = sqlParams
-        if (type === 'boolean') {
-            this.__isBooleanForCondition = true
-        }
-        if (isAggregate) {
-            this.__isAggregate = true
-        }
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._fragment(context, this.__sql, this.__sqlParams)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        const sqlParams = this.__sqlParams
+export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: FragmentValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder._fragment(context, vs.__sql, vs.__sqlParams)
+    },
+    __addWiths(vs: FragmentValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
             value.__addWiths(sqlBuilder, withs)
         }
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        const sqlParams = this.__sqlParams
+    },
+    __registerTableOrView(vs: FragmentValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
             value.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         }
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        const sqlParams = this.__sqlParams
+    },
+    __registerRequiredColumn(vs: FragmentValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
             value.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        const sqlParams = this.__sqlParams
+    },
+    __getOldValues(vs: FragmentValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
             const result = value.__getOldValues(sqlBuilder)
@@ -1829,9 +2026,9 @@ export class FragmentValueSource extends ValueSourceImpl {
             }
         }
         return undefined
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        const sqlParams = this.__sqlParams
+    },
+    __getValuesForInsert(vs: FragmentValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
             const result = value.__getValuesForInsert(sqlBuilder)
@@ -1840,9 +2037,9 @@ export class FragmentValueSource extends ValueSourceImpl {
             }
         }
         return undefined
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        const sqlParams = this.__sqlParams
+    },
+    __isAllowed(vs: FragmentValueSource, sqlBuilder: HasIsValue): boolean {
+        const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
             const result = value.__isAllowed(sqlBuilder)
@@ -1851,14 +2048,14 @@ export class FragmentValueSource extends ValueSourceImpl {
             }
         }
         return true
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+    },
+    __hasAggregation(vs: FragmentValueSource, sqlBuilder: HasIsValue): boolean {
         // A fragment can itself be an aggregate (built via the aggregate
         // fragment variants) on top of (possibly) aggregating its params.
-        if (this.__isAggregate) {
+        if (vs.__isAggregate) {
             return true
         }
-        const sqlParams = this.__sqlParams
+        const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
             if (value.__hasAggregation(sqlBuilder)) {
@@ -1866,103 +2063,119 @@ export class FragmentValueSource extends ValueSourceImpl {
             }
         }
         return false
+    },
+}
+
+export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate?: boolean): FragmentValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as FragmentValueSource
+    vs.__node = fragmentValueSourceNode
+    vs.__operation = '_fragment' // Needed to detect if parenthesis is required
+
+    vs.__sql = sql
+    vs.__sqlParams = sqlParams
+    if (type === 'boolean') {
+        vs.__isBooleanForCondition = true
     }
+    if (isAggregate) {
+        vs.__isAggregate = true
+    }
+    return vs
 }
 
 /**
  * The call of a function of the database whose result `executeFunction` reads: it is selected as any other value of a
  * select, so the result is converted by its type as a column is (like the uuid of a database that stores it in binary)
  */
-export class FunctionCallValueSource extends ValueSourceImpl {
+export interface FunctionCallValueSource extends ValueSourceImpl {
     __functionName: string
     __functionParams: AnyValueSource[]
-    constructor(functionName: string, functionParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__functionName = functionName
-        this.__functionParams = functionParams
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._appendFunctionCall(context, this.__functionName, this.__functionParams)
-    }
 }
 
-export class ValueSourceFromBuilder extends ValueSourceImpl {
+export const functionCallValueSourceNode: NodeStrategy<FunctionCallValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: FunctionCallValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder._appendFunctionCall(context, vs.__functionName, vs.__functionParams)
+    },
+}
+
+export function __newFunctionCallValueSource(functionName: string, functionParams: AnyValueSource[], type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): FunctionCallValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as FunctionCallValueSource
+    vs.__node = functionCallValueSourceNode
+
+    vs.__functionName = functionName
+    vs.__functionParams = functionParams
+    return vs
+}
+
+/** What the builder of a virtual column gives, built the first time it is asked */
+function __builderOutputOf(vs: ValueSourceFromBuilder): AnyValueSource {
+    if (!vs.__builderOutput) {
+        vs.__builderOutput = vs.__builder(vs.__fragmentBuilder)
+    }
+    return vs.__builderOutput
+}
+
+function __builderOutputPrivateOf(vs: ValueSourceFromBuilder): __ValueSourcePrivate {
+    return __getValueSourcePrivate(__builderOutputOf(vs))
+}
+
+export interface ValueSourceFromBuilder extends ValueSourceImpl {
     __builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource
     __fragmentBuilder: FragmentQueryBuilder
     __builderOutput?: AnyValueSource | undefined 
-
-    constructor(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__builder = builder
-        this.__fragmentBuilder = fragmentBuilder
-        if (type === 'boolean') {
-            this.__isBooleanForCondition = true
-        }
-    }
-    __getBuilderOutput(): AnyValueSource {
-        if (!this.__builderOutput) {
-            this.__builderOutput = this.__builder(this.__fragmentBuilder)
-        }
-        return this.__builderOutput
-    }
-    __getBuilderOutputPrivate(): __ValueSourcePrivate {
-        return __getValueSourcePrivate(this.__getBuilderOutput())
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        const builderOutput = this.__getBuilderOutput()
-        if (!hasToSql(builderOutput)) {
-            throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: this.__type }, 'The result of value from fragment functions is no a valid sql element')
-        }
-        return builderOutput.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__getBuilderOutputPrivate().__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__getBuilderOutputPrivate().__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__getBuilderOutputPrivate().__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__getBuilderOutputPrivate().__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__getBuilderOutputPrivate().__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__getBuilderOutputPrivate().__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__getBuilderOutputPrivate().__hasAggregation(sqlBuilder)
-    }
 }
 
-export class AllowWhenValueSource extends ValueSourceImpl {
+export const valueSourceFromBuilderNode: NodeStrategy<ValueSourceFromBuilder> = {
+    ...valueSourceNode,
+    __toSql(vs: ValueSourceFromBuilder, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        const builderOutput = __builderOutputOf(vs)
+        if (!hasToSql(builderOutput)) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: vs.__type }, 'The result of value from fragment functions is no a valid sql element')
+        }
+        return builderOutput.__toSql(sqlBuilder, context, forceTypeCast)
+    },
+    __addWiths(vs: ValueSourceFromBuilder, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __builderOutputPrivateOf(vs).__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: ValueSourceFromBuilder, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        __builderOutputPrivateOf(vs).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: ValueSourceFromBuilder, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        __builderOutputPrivateOf(vs).__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: ValueSourceFromBuilder, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __builderOutputPrivateOf(vs).__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: ValueSourceFromBuilder, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __builderOutputPrivateOf(vs).__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: ValueSourceFromBuilder, sqlBuilder: HasIsValue): boolean {
+        return __builderOutputPrivateOf(vs).__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: ValueSourceFromBuilder, sqlBuilder: HasIsValue): boolean {
+        return __builderOutputPrivateOf(vs).__hasAggregation(sqlBuilder)
+    },
+}
+
+export function __newValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): ValueSourceFromBuilder {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as ValueSourceFromBuilder
+    vs.__node = valueSourceFromBuilderNode
+    vs.__builder = builder
+    vs.__fragmentBuilder = fragmentBuilder
+    if (type === 'boolean') {
+        vs.__isBooleanForCondition = true
+    }
+    return vs
+}
+
+export interface AllowWhenValueSource extends ValueSourceImpl {
     __valueSource: ValueSourceImpl
     __allowed: boolean
     __error: Error
-    constructor(allowed: boolean, error: Error, valueSource: ValueSourceImpl) {
-        // Carry the wrapped source's aggregated-array descriptor forward: the
-        // result projector reads `__aggregatedArrayColumns` / `__aggregatedArrayMode`
-        // / `__aggreagtedProjectingOptionalValuesAsNullable` directly off the value
-        // source it finds in the query columns, so an aggregate wrapped by an
-        // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
-        // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
-        // is mishandled at read time.
-        super(valueSource.__type, valueSource.__customType, valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__uuidString, valueSource.__aggreagtedProjectingOptionalValuesAsNullable)
-        this.__valueSource = valueSource
-        this.__error = error
-        this.__allowed = allowed
-        // Mirror the wrapped source's "boolean-as-condition" flag so that
-        // dialects without a native boolean (Oracle, SQL Server) emit the
-        // condition directly under WHERE/HAVING/ON instead of wrapping it
-        // with `= 1` (the path inside `_appendConditionSql` for boolean
-        // value sources whose surface form is a number).
-        if (valueSource.__isBooleanForCondition) {
-            this.__isBooleanForCondition = valueSource.__isBooleanForCondition
-        }
-    }
+}
+
+export const allowWhenValueSourceNode: NodeStrategy<AllowWhenValueSource> = {
+    ...valueSourceNode,
     // `allowWhen` / `disallowWhen` runtime enforcement. This `__toSql`
     // is the active throw point today: the error fires during SQL
     // construction (`query()` / `executeXxx()`) and propagates through
@@ -1992,139 +2205,191 @@ export class AllowWhenValueSource extends ValueSourceImpl {
     // when new value-source / table-or-view / query-builder shapes
     // are added** so that the feature lands working when the public
     // surface is wired up.
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this.__allowed) {
-            throw this.__error
+    __toSql(vs: AllowWhenValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (!vs.__allowed) {
+            throw vs.__error
         }
-        return this.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
-    }
-    override __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
-        if (!this.__allowed) {
-            throw this.__error
+        return vs.__valueSource.__toSql(sqlBuilder, context, forceTypeCast)
+    },
+    __toSqlForCondition(vs: AllowWhenValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (!vs.__allowed) {
+            throw vs.__error
         }
-        return this.__valueSource.__toSqlForCondition(sqlBuilder, context, forceTypeCast)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__valueSource.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        if (!this.__allowed) {
+        return vs.__valueSource.__toSqlForCondition(sqlBuilder, context, forceTypeCast)
+    },
+    __addWiths(vs: AllowWhenValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        vs.__valueSource.__addWiths(sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: AllowWhenValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: AllowWhenValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: AllowWhenValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: AllowWhenValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__valueSource.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: AllowWhenValueSource, sqlBuilder: HasIsValue): boolean {
+        if (!vs.__allowed) {
             return false
         }
-        return this.__valueSource.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return vs.__valueSource.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: AllowWhenValueSource, sqlBuilder: HasIsValue): boolean {
         // The `allowWhen`/`disallowWhen` gate is irrelevant to aggregation:
         // a disallowed expression still structurally contains its aggregate.
-        return this.__valueSource.__hasAggregation(sqlBuilder)
-    }
+        return vs.__valueSource.__hasAggregation(sqlBuilder)
+    },
 }
 
-export class AggregateFunctions0ValueSource extends ValueSourceImpl implements HasOperation {
+export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueSource: ValueSourceImpl): AllowWhenValueSource {
+    // Carry the wrapped source's aggregated-array descriptor forward: the
+    // result projector reads `__aggregatedArrayColumns` / `__aggregatedArrayMode`
+    // / `__aggreagtedProjectingOptionalValuesAsNullable` directly off the value
+    // source it finds in the query columns, so an aggregate wrapped by an
+    // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
+    // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
+    // is mishandled at read time.
+    const vs = new ValueSourceImpl(valueSource.__type, valueSource.__customType, valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__uuidString, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
+    vs.__node = allowWhenValueSourceNode
+    vs.__valueSource = valueSource
+    vs.__error = error
+    vs.__allowed = allowed
+    // Mirror the wrapped source's "boolean-as-condition" flag so that
+    // dialects without a native boolean (Oracle, SQL Server) emit the
+    // condition directly under WHERE/HAVING/ON instead of wrapping it
+    // with `= 1` (the path inside `_appendConditionSql` for boolean
+    // value sources whose surface form is a number).
+    if (valueSource.__isBooleanForCondition) {
+        vs.__isBooleanForCondition = valueSource.__isBooleanForCondition
+    }
+    return vs
+}
+
+export interface AggregateFunctions0ValueSource extends ValueSourceImpl, HasOperation {
     __operation: keyof AggregateFunctions0
-
-    constructor(operation: keyof AggregateFunctions0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__operation = operation
-        this.__isAggregate = true
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context)
-    }
 }
 
-export class NullValueSource extends ValueSourceImpl implements HasOperation {
-    __operation = '_asNullValue' as const
+export const aggregateFunctions0ValueSourceNode: NodeStrategy<AggregateFunctions0ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: AggregateFunctions0ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context)
+    },
+}
 
-    constructor(type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._asNullValue(context, this.__type, this.__customType, this.__typeAdapter)
-    }
-    override __isAllowed(_sqlBuilder: HasIsValue): boolean {
+export function __newAggregateFunctions0ValueSource(operation: keyof AggregateFunctions0, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): AggregateFunctions0ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as AggregateFunctions0ValueSource
+    vs.__node = aggregateFunctions0ValueSourceNode
+
+    vs.__operation = operation
+    vs.__isAggregate = true
+    return vs
+}
+
+export interface NullValueSource extends ValueSourceImpl, HasOperation {
+    __operation: '_asNullValue'
+}
+
+export const nullValueSourceNode: NodeStrategy<NullValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: NullValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder._asNullValue(context, vs.__type, vs.__customType, vs.__typeAdapter)
+    },
+    __isAllowed(_vs: NullValueSource, _sqlBuilder: HasIsValue): boolean {
         return true
-    }
+    },
 }
 
-export class AggregateFunctions1ValueSource extends ValueSourceImpl implements HasOperation {
+export function __newNullValueSource(type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): NullValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as NullValueSource
+    vs.__node = nullValueSourceNode
+    vs.__operation = '_asNullValue'
+    return vs
+}
+
+export interface AggregateFunctions1ValueSource extends ValueSourceImpl, HasOperation {
     __operation: keyof AggregateFunctions1
     __value: any
-
-    constructor(operation: keyof AggregateFunctions1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__operation = operation
-        this.__value = value
-        this.__isAggregate = true
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, sqlBuilder._typedOperand(this.__value, [], this.__operation))
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return __isAllowed(this.__value, sqlBuilder)
-    }
 }
 
-export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implements HasOperation {
+export const aggregateFunctions1ValueSourceNode: NodeStrategy<AggregateFunctions1ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: AggregateFunctions1ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__value, [], vs.__operation))
+    },
+    __addWiths(vs: AggregateFunctions1ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: AggregateFunctions1ValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: AggregateFunctions1ValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: AggregateFunctions1ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: AggregateFunctions1ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: AggregateFunctions1ValueSource, sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newAggregateFunctions1ValueSource(operation: keyof AggregateFunctions1, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): AggregateFunctions1ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as AggregateFunctions1ValueSource
+    vs.__node = aggregateFunctions1ValueSourceNode
+
+    vs.__operation = operation
+    vs.__value = value
+    vs.__isAggregate = true
+    return vs
+}
+
+export interface AggregateFunctions1or2ValueSource extends ValueSourceImpl, HasOperation {
     __operation: keyof AggregateFunctions1or2
     __value: any
     __separator: string | undefined
+}
 
-    constructor(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
-        super(type, customType, optionalType, typeAdapter)
-        this.__operation = operation
-        this.__separator = separator
-        this.__value = value
-        this.__isAggregate = true
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[this.__operation](context, this.__separator, this.__value)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, sqlBuilder, withs)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getOldValues(this.__value, sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return __getValuesForInsert(this.__value, sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return __isAllowed(this.__value, sqlBuilder)
-    }
+export const aggregateFunctions1or2ValueSourceNode: NodeStrategy<AggregateFunctions1or2ValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: AggregateFunctions1or2ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder[vs.__operation](context, vs.__separator, vs.__value)
+    },
+    __addWiths(vs: AggregateFunctions1or2ValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __addWiths(vs.__value, sqlBuilder, withs)
+    },
+    __registerTableOrView(vs: AggregateFunctions1or2ValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: AggregateFunctions1or2ValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: AggregateFunctions1or2ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getOldValues(vs.__value, sqlBuilder)
+    },
+    __getValuesForInsert(vs: AggregateFunctions1or2ValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return __getValuesForInsert(vs.__value, sqlBuilder)
+    },
+    __isAllowed(vs: AggregateFunctions1or2ValueSource, sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(vs.__value, sqlBuilder)
+    },
+}
+
+export function __newAggregateFunctions1or2ValueSource(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, type: string, customType: CustomType | undefined, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined): AggregateFunctions1or2ValueSource {
+    const vs = new ValueSourceImpl(type, customType, optionalType, typeAdapter) as AggregateFunctions1or2ValueSource
+    vs.__node = aggregateFunctions1or2ValueSourceNode
+
+    vs.__operation = operation
+    vs.__separator = separator
+    vs.__value = value
+    vs.__isAggregate = true
+    return vs
 }
 
 function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
@@ -2181,7 +2446,6 @@ function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
     return a.__optionalType
 }
 
-
 function getOptionalTypeOfIn(a: ValueSourceImpl, b: any): OptionalType {
     // A subquery on an optional column can return a NULL, and `<x> in (1, NULL)` is NULL, not false, when no
     // element matches, as the declared type says.
@@ -2237,7 +2501,6 @@ function getTypeAdapter2(a: ValueSourceImpl, b: any): TypeAdapter | undefined {
     return undefined
 }
 
-
 function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | undefined {
     if (a.__typeAdapter) {
         return a.__typeAdapter
@@ -2256,20 +2519,20 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
 
 function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
     if ((thiz.__customType === undefined && thiz.__type === 'double') || (thiz.__customType === undefined && thiz.__type === 'bigint') || thiz.__customType === 'customInt' || thiz.__customType === 'customBigint' || thiz.__customType === 'customDouble' || __isExactDecimal(thiz.__type, thiz.__customType)) {
-        return new SqlOperation1ValueSource(operation, thiz, value, thiz.__type, thiz.__customType, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
+        return __newSqlOperation1ValueSource(operation, thiz, value, thiz.__type, thiz.__customType, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
     } else {
         if (isValueSource(value)) {
             const valuePrivate = __getValueSourcePrivate(value)
             if (valuePrivate.__customType === undefined && valuePrivate.__type === 'int') {
-                return new SqlOperation1ValueSource(operation, thiz, value, 'int', undefined, getOptionalType2(thiz, value), thiz.__typeAdapter)
+                return __newSqlOperation1ValueSource(operation, thiz, value, 'int', undefined, getOptionalType2(thiz, value), thiz.__typeAdapter)
             } else {
-                return new SqlOperation1ValueSource(operation, thiz, value, 'double', undefined, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
+                return __newSqlOperation1ValueSource(operation, thiz, value, 'double', undefined, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
             }
         }
         if (Number.isInteger(value)) {
-            return new SqlOperation1ValueSource(operation, thiz, value, 'int', undefined, getOptionalType2(thiz, value), thiz.__typeAdapter)
+            return __newSqlOperation1ValueSource(operation, thiz, value, 'int', undefined, getOptionalType2(thiz, value), thiz.__typeAdapter)
         } else {
-            return new SqlOperation1ValueSource(operation, thiz, value, 'double', undefined, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
+            return __newSqlOperation1ValueSource(operation, thiz, value, 'double', undefined, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
         }
     }
 }
@@ -2371,41 +2634,49 @@ export class AllowWhenTableOrViewRawFragmentValueSource extends TableOrViewRawFr
 
 export type InlineSelectData = SelectData & IQueryDataDiscovery
 
-export class InlineSelectValueSource extends ValueSourceImpl implements HasOperation {
-    __operation = '_inlineSelectAsValue' as const
+export interface InlineSelectValueSource extends ValueSourceImpl, HasOperation {
+    __operation: '_inlineSelectAsValue'
     __selectData: InlineSelectData
+}
 
-    constructor(selectData: InlineSelectData, required: boolean) {
-        super(...valueSourceInitializationForInlineSelect(selectData, required))
-        this.__selectData = selectData
-    }
-    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._inlineSelectAsValue(this.__selectData, context)
-    }
-    override __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, context)
-    }
-    override __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
-        __addInlineQueryWiths(sqlBuilder, withs, this.__selectData)
-    }
-    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        this.__selectData.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-    }
-    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        this.__selectData.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__selectData.__getOldValues(sqlBuilder)
-    }
-    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return this.__selectData.__getValuesForInsert(sqlBuilder)
-    }
-    override __isAllowed(sqlBuilder: HasIsValue): boolean {
-        return this.__selectData.__isAllowed(sqlBuilder)
-    }
-    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
-        return this.__selectData.__hasAggregation(sqlBuilder)
-    }
+export const inlineSelectValueSourceNode: NodeStrategy<InlineSelectValueSource> = {
+    ...valueSourceNode,
+    __toSql(vs: InlineSelectValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder._inlineSelectAsValue(vs.__selectData, context)
+    },
+    __toSqlForCondition(vs: InlineSelectValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
+        return sqlBuilder._inlineSelectAsValueForCondition(vs.__selectData, context)
+    },
+    __addWiths(vs: InlineSelectValueSource, sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
+        __addInlineQueryWiths(sqlBuilder, withs, vs.__selectData)
+    },
+    __registerTableOrView(vs: InlineSelectValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__selectData.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    },
+    __registerRequiredColumn(vs: InlineSelectValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        vs.__selectData.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    },
+    __getOldValues(vs: InlineSelectValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__selectData.__getOldValues(sqlBuilder)
+    },
+    __getValuesForInsert(vs: InlineSelectValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return vs.__selectData.__getValuesForInsert(sqlBuilder)
+    },
+    __isAllowed(vs: InlineSelectValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__selectData.__isAllowed(sqlBuilder)
+    },
+    __hasAggregation(vs: InlineSelectValueSource, sqlBuilder: HasIsValue): boolean {
+        return vs.__selectData.__hasAggregation(sqlBuilder)
+    },
+}
+
+export function __newInlineSelectValueSource(selectData: InlineSelectData, required: boolean): InlineSelectValueSource {
+    const vs = new ValueSourceImpl(...valueSourceInitializationForInlineSelect(selectData, required)) as InlineSelectValueSource
+    vs.__node = inlineSelectValueSourceNode
+    vs.__operation = '_inlineSelectAsValue'
+
+    vs.__selectData = selectData
+    return vs
 }
 
 export class AggregateSelectValueSource implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {

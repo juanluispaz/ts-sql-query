@@ -2,18 +2,32 @@ import type { CustomTypeClass } from './base.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
 
+/** The class `CustomLocalDateType.of` made for each type name */
+const customLocalDateClasses = new Map<string, CustomTypeClass<CustomLocalDateType<any, any>>>()
+
+/** The class `CustomLocalTimeType.of` made for each type name */
+const customLocalTimeClasses = new Map<string, CustomTypeClass<CustomLocalTimeType<any, any>>>()
+
+/** The class `CustomLocalDateTimeType.of` made for each type name */
+const customLocalDateTimeClasses = new Map<string, CustomTypeClass<CustomLocalDateTimeType<any, any>>>()
+
 /** A date without a zone of a type of the user, of its type name */
 export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDatesType<VALUE_TYPE> {
     static override readonly customType = 'customLocalDate'
     declare [typeName]: `type:${TYPE_NAME}:customLocalDate:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDate:`
 
-    /** The data type of a date without a zone of a type of the user, with its type name */
+    /** The data type of a date without a zone of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomLocalDate extends CustomLocalDateType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
+        let result = customLocalDateClasses.get(typeName)
+        if (!result) {
+            abstract class CustomLocalDate extends CustomLocalDateType<VALUE_TYPE, TYPE_NAME> {
+                static override readonly type = typeName
+            }
+            result = CustomLocalDate
+            customLocalDateClasses.set(typeName, result)
         }
-        return CustomLocalDate
+        return result as CustomTypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
@@ -23,12 +37,17 @@ export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     declare [typeName]: `type:${TYPE_NAME}:customLocalTime:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalTime:`
 
-    /** The data type of a time of the day without a zone of a type of the user, with its type name */
+    /** The data type of a time of the day without a zone of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomLocalTime extends CustomLocalTimeType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
+        let result = customLocalTimeClasses.get(typeName)
+        if (!result) {
+            abstract class CustomLocalTime extends CustomLocalTimeType<VALUE_TYPE, TYPE_NAME> {
+                static override readonly type = typeName
+            }
+            result = CustomLocalTime
+            customLocalTimeClasses.set(typeName, result)
         }
-        return CustomLocalTime
+        return result as CustomTypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
@@ -38,11 +57,16 @@ export abstract class CustomLocalDateTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ 
     declare [typeName]: `type:${TYPE_NAME}:customLocalDateTime:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDateTime:`
 
-    /** The data type of a date and a time of the day without a zone of a type of the user, with its type name */
+    /** The data type of a date and a time of the day without a zone of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomLocalDateTime extends CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
+        let result = customLocalDateTimeClasses.get(typeName)
+        if (!result) {
+            abstract class CustomLocalDateTime extends CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME> {
+                static override readonly type = typeName
+            }
+            result = CustomLocalDateTime
+            customLocalDateTimeClasses.set(typeName, result)
         }
-        return CustomLocalDateTime
+        return result as CustomTypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>>
     }
 }

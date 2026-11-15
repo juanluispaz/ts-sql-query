@@ -186,8 +186,9 @@ const MoneyType = CustomIntType.of<Money, 'Money'>('Money')   // type 'Money', c
 
 One static per family, because a single generic factory (`customType<Money, 'Money'>('customInt', 'Money')`) can't
 know the family: when generic arguments are given explicitly, TypeScript doesn't infer the others. `of` gives a
-`CustomTypeClass` (a `TypeClass` with the type guard), and the users and the documentation give the class wherever a
-data type goes; a custom data type is not taken by its names (`'customInt', 'Money'`).
+`CustomTypeClass` (a `TypeClass` with the type guard); each family keeps the class it made for each type name and
+gives the same one again, so a data type is one class wherever it is made. The users and the documentation give the class
+wherever a data type goes; a custom data type is not taken by its names (`'customInt', 'Money'`).
 
 ## The data types by their classes
 

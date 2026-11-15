@@ -69,6 +69,8 @@ const MyIntDataType = CustomIntType.of<MyIntType, 'MyIntTypeName'>('MyIntTypeNam
 const MyEnumDataType = EnumType.of<MyEnumType, 'MyEnumTypeName'>('MyEnumTypeName')
 ```
 
+Calling `of` again with the same type name gives the same class, so a module can make it where it uses it.
+
 The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name. Two classes with the same type name and different TypeScript types are a mistake that nothing detects: give each type a name of its own.
 
 The built-in types have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families of the custom types. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.

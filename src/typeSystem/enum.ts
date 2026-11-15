@@ -4,6 +4,9 @@ import type { BooleanType, IfType } from './logical.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import type { logicalTypes } from '../utils/symbols.js'
 
+/** The class `EnumType.of` made for each type name */
+const enumClasses = new Map<string, CustomTypeClass<EnumType<any, any>>>()
+
 /** A value of an enumeration of the user, of its type name */
 export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE> {
     static override readonly customType = 'enum'
@@ -11,11 +14,16 @@ export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exten
     declare [typeName]: `type:${TYPE_NAME}:enum:`
     declare [operandTypeName]: `type:${TYPE_NAME}:enum:`
 
-    /** The data type of a value of an enumeration of the user, with its type name */
+    /** The data type of a value of an enumeration of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<EnumType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class Enum extends EnumType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
+        let result = enumClasses.get(typeName)
+        if (!result) {
+            abstract class Enum extends EnumType<VALUE_TYPE, TYPE_NAME> {
+                static override readonly type = typeName
+            }
+            result = Enum
+            enumClasses.set(typeName, result)
         }
-        return Enum
+        return result as CustomTypeClass<EnumType<VALUE_TYPE, TYPE_NAME>>
     }
 }

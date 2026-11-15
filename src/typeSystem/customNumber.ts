@@ -4,6 +4,15 @@ import type { intType } from '../utils/symbols.js'
 import { IntegersType, RealsType } from './numeric.js'
 import type { IntType } from './number.js'
 
+/** The class `CustomIntType.of` made for each type name */
+const customIntClasses = new Map<string, CustomTypeClass<CustomIntType<any, any>>>()
+
+/** The class `CustomBigintType.of` made for each type name */
+const customBigintClasses = new Map<string, CustomTypeClass<CustomBigintType<any, any>>>()
+
+/** The class `CustomDoubleType.of` made for each type name */
+const customDoubleClasses = new Map<string, CustomTypeClass<CustomDoubleType<any, any>>>()
+
 /** An integer number of a type of the user, of its type name */
 export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
     static override readonly customType = 'customInt'
@@ -11,12 +20,17 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     declare [typeName]: `type:${TYPE_NAME}:customInt:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
 
-    /** The data type of an integer number of a type of the user, with its type name */
+    /** The data type of an integer number of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomInt extends CustomIntType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
+        let result = customIntClasses.get(typeName)
+        if (!result) {
+            abstract class CustomInt extends CustomIntType<VALUE_TYPE, TYPE_NAME> {
+                static override readonly type = typeName
+            }
+            result = CustomInt
+            customIntClasses.set(typeName, result)
         }
-        return CustomInt
+        return result as CustomTypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
@@ -27,12 +41,17 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
     declare [typeName]: `type:${TYPE_NAME}:customBigint:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customBigint:`
 
-    /** The data type of an integer number of 64 bits of a type of the user, with its type name */
+    /** The data type of an integer number of 64 bits of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomBigint extends CustomBigintType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
+        let result = customBigintClasses.get(typeName)
+        if (!result) {
+            abstract class CustomBigint extends CustomBigintType<VALUE_TYPE, TYPE_NAME> {
+                static override readonly type = typeName
+            }
+            result = CustomBigint
+            customBigintClasses.set(typeName, result)
         }
-        return CustomBigint
+        return result as CustomTypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
@@ -43,11 +62,16 @@ export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
     declare [typeName]: `type:${TYPE_NAME}:customDouble:`
     declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`
 
-    /** The data type of a floating point number of a type of the user, with its type name */
+    /** The data type of a floating point number of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>> {
-        abstract class CustomDouble extends CustomDoubleType<VALUE_TYPE, TYPE_NAME> {
-            static override readonly type = typeName
+        let result = customDoubleClasses.get(typeName)
+        if (!result) {
+            abstract class CustomDouble extends CustomDoubleType<VALUE_TYPE, TYPE_NAME> {
+                static override readonly type = typeName
+            }
+            result = CustomDouble
+            customDoubleClasses.set(typeName, result)
         }
-        return CustomDouble
+        return result as CustomTypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>>
     }
 }

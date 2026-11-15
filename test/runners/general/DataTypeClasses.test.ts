@@ -5,7 +5,7 @@ import { assertType, type Exact } from '../../lib/assertType.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
 import {
-    BigintType, BooleanType, CustomComparableType, CustomDecimalType, CustomIntType, DoubleType, EnumType, IntType,
+    BigintType, BooleanType, CustomBigintType, CustomComparableType, CustomDecimalType, CustomIntType, DoubleType, EnumType, IntType,
     LocalDateType, StringDecimalType, StringType, Table, UuidType,
 } from '../../../src/exports/v2/index.js'
 import { NumberType } from '../../../src/typeSystem/number.js'
@@ -122,6 +122,15 @@ describe('DataTypeClasses', () => {
             assertType<Exact<typeof value, ValueSource<any, NumberType, any>>>()
         }
         expect(MoneyType.is(value)).toBe(true)
+    })
+
+    test('of-gives-the-same-class-for-the-same-type-name', () => {
+        expect(CustomIntType.of<Money, 'Money'>('Money')).toBe(MoneyType)
+        expect(EnumType.of<Status, 'Status'>('Status')).toBe(StatusType)
+        expect(CustomIntType.of<number, 'Other'>('Other')).not.toBe(MoneyType)
+        // The same type name in another family is another data type
+        expect(CustomBigintType.of<bigint, 'Money'>('Money')).not.toBe(MoneyType)
+        expect(CustomBigintType.of<bigint, 'Money'>('Money').customType).toBe('customBigint')
     })
 
     test('a-built-in-class-gives-the-type-its-name-gives', () => {

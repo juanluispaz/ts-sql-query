@@ -318,18 +318,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
             return this
         }
     }
-    equalsInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    equalsInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_equalsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notEqualsInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notEqualsInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notEqualsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
     lessThanIfValue(value: any): any {
         return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
@@ -371,102 +359,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
     }
     notInN(...value: any[]): any {
         return condition(__newSqlOperationInValueSource('_notIn', this, value, __builtInTypeOf(this, 'boolean'), getOptionalTypeN(this, value), getTypeAdapter2(this, value)))
-    }
-    likeIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_like', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    like(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_like', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notLikeIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notLike', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notLike(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notLike', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    likeInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    likeInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_likeInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notLikeInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notLikeInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notLikeInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    startsWithIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_startsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    startsWith(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_startsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notStartsWithIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notStartsWith(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notStartsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    endsWithIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_endsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    endsWith(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_endsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notEndsWithIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notEndsWith(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notEndsWith', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    startsWithInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    startsWithInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_startsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notStartsWithInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notStartsWithInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notStartsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    endsWithInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    endsWithInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_endsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notEndsWithInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notEndsWithInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notEndsWithInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    containsIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_contains', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    contains(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_contains', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notContainsIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notContains', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notContains(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notContains', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    containsInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    containsInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_containsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notContainsInsensitiveIfValue(value: any): any {
-        return condition(__newSqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    notContainsInsensitive(value: any): any {
-        return condition(__newSqlOperation1ValueSource('_notContainsInsensitive', this, value, __builtInTypeOf(this, 'boolean'), getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     // SqlComparator2
     between(value: any, value2: any): any {
@@ -522,30 +414,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return result
     }
     // String
-    collate(collation: any): any {
-        return __newSqlOperationCollateValueSource(this, collation, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
-    toLowerCase(): any {
-        return __newSqlOperation0ValueSource('_toLowerCase', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
-    toUpperCase(): any {
-        return __newSqlOperation0ValueSource('_toUpperCase', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
-    length(): any {
-        return __newSqlOperation0ValueSource('_length', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    trim(): any {
-        return __newSqlOperation0ValueSource('_trim', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
-    trimLeft(): any {
-        return __newSqlOperation0ValueSource('_trimLeft', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
-    trimRight(): any {
-        return __newSqlOperation0ValueSource('_trimRight', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
-    reverse(): any {
-        return __newSqlOperation0ValueSource('_reverse', this, __typeClassOf(this), this.__optionalType, this.__typeAdapter)
-    }
     // Number functions
     asDouble(): any {
         return __newSqlOperation0ValueSource('_asDouble', this, __builtInTypeOf(this, 'double'), this.__optionalType, this.__typeAdapter)
@@ -765,30 +633,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         }
     }
     // String Functions
-    concat(value: any): any {
-        return __newSqlOperation1ValueSource('_concat', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    concatIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    concatIgnoringNullIfValue(value: any): any {
-        // The optionality is the RECEIVER's (`getOptionalType2` with a plain value), not the
-        // stricter one `concatIgnoringNull` computes: an ABSENT value leaves the receiver alone,
-        // and whether it is absent is a run-time fact. Absence also depends on the connection's
-        // `allowEmptyString`, which this constructor cannot see.
-        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, __typeClassOf(this), getOptionalType2(this, value), getTypeAdapter2(this, value))
-    }
-    concatIgnoringNull(value: any): any {
-        // A NULL operand counts as the empty string, so the result is optional only when EVERY
-        // operand is: `getRequiredType2` keeps the STRICTEST operand instead of the loosest.
-        return __newSqlOperation1ValueSource('_concatIgnoringNull', this, value, __typeClassOf(this), getRequiredType2(this, value), getTypeAdapter2(this, value))
-    }
-    substrToEnd(start: any): any {
-        return __newSqlOperation1ValueSource('_substrToEnd', this, start, __typeClassOf(this), getOptionalType2(this, start), getTypeAdapter2(this, start))
-    }
-    substringToEnd(start: any): any {
-        return __newSqlOperation1ValueSource('_substringToEnd', this, start, __typeClassOf(this), getOptionalType2(this, start), getTypeAdapter2(this, start))
-    }
     // Number
     power(value: any): any {
         if (this.__customType === 'customDouble') {
@@ -844,24 +688,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         return createSqlOperation1ofOverloadedNumber(this, value, '_modulo')
     }
     // SqlFunction2
-    substr(start: any, count: any): any {
-        return __newSqlOperation2ValueSource('_substr', this, start, count, __typeClassOf(this), getOptionalType3(this, start, count), getTypeAdapter3(this, start, count))
-    }
-    substring(start: any, end: any): any {
-        return __newSqlOperation2ValueSource('_substring', this, start, end, __typeClassOf(this), getOptionalType3(this, start, end), getTypeAdapter3(this, start, end))
-    }
-    replaceAllIfValue(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
-    }
-    replaceAll(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
-    }
-    replaceAllInsensitiveIfValue(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
-    }
-    replaceAllInsensitive(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
-    }
     // The marks of a column of a table, a view or values (a value source with the node of a column, DBColumnImpl.ts)
     __asColumn(this: __ColumnPrivate): any {
         this.__writable = true
@@ -2517,7 +2343,7 @@ function mergeRequired(op1: OptionalType, op2: OptionalType): OptionalType {
     return 'optional'
 }
 
-function getRequiredType2(a: ValueSourceImpl, b: any): OptionalType {
+export function getRequiredType2(a: ValueSourceImpl, b: any): OptionalType {
     if (isValueSource(b)) {
         return mergeRequired(a.__optionalType, __getValueSourcePrivate(b).__optionalType)
     }
@@ -2528,7 +2354,7 @@ function getRequiredType2(a: ValueSourceImpl, b: any): OptionalType {
     return 'required'
 }
 
-function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
+export function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
     if (isValueSource(b)) {
         return mergeOptional(a.__optionalType, __getValueSourcePrivate(b).__optionalType)
     }
@@ -2569,7 +2395,7 @@ function getOptionalTypeN(a: ValueSourceImpl, values: any[]): OptionalType {
     return result
 }
 
-function getOptionalType3(a: ValueSourceImpl, b: any, c: any): OptionalType {
+export function getOptionalType3(a: ValueSourceImpl, b: any, c: any): OptionalType {
     let result = a.__optionalType
     if (isValueSource(b)) {
         result = mergeOptional(result, __getValueSourcePrivate(b).__optionalType)
@@ -2580,7 +2406,7 @@ function getOptionalType3(a: ValueSourceImpl, b: any, c: any): OptionalType {
     return result
 }
 
-function getTypeAdapter2(a: ValueSourceImpl, b: any): TypeAdapter | undefined {
+export function getTypeAdapter2(a: ValueSourceImpl, b: any): TypeAdapter | undefined {
     if (a.__typeAdapter) {
         return a.__typeAdapter
     }
@@ -2590,7 +2416,7 @@ function getTypeAdapter2(a: ValueSourceImpl, b: any): TypeAdapter | undefined {
     return undefined
 }
 
-function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | undefined {
+export function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | undefined {
     if (a.__typeAdapter) {
         return a.__typeAdapter
     }
@@ -2626,7 +2452,7 @@ function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any
     }
 }
 
-function condition(valueSource: ValueSourceImpl): ValueSourceImpl {
+export function condition(valueSource: ValueSourceImpl): ValueSourceImpl {
     valueSource.__isBooleanForCondition = true
     return valueSource
 }

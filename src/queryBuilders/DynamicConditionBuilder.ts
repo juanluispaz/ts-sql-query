@@ -5,6 +5,8 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import type { ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
+import { StringsType } from '../typeSystem/strings.js'
+import { ComparableType } from '../typeSystem/comparable.js'
 
 // Joins an accumulated nested-filter path prefix with the next key using a dot
 // separator, matching the `column + '.' + key` form used deeper in the builder.
@@ -173,7 +175,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 if (__isUuidValueSource(valueSourcePrivate) && useAsStringInUuid[operation]) {
                     condition = valueSource.asString()[operation](value)
                 } else {
-                    condition = valueSource[operation](value)
+                    condition = operationFor(valueSource, operation, column, key).call(valueSource, value)
                 }
             }
             result = result.and(condition)
@@ -327,6 +329,19 @@ const allowedOperations: { [operation: string]: true | undefined } = {
     containsInsensitive: true,
     notContainsInsensitiveIfValue: true,
     notContainsInsensitive: true
+}
+
+/**
+ * The method of the operation of a filter: the one of the data type of the column or, for a filter typed from a model
+ * where a custom type is written as a plain type (a `string` for a `customComparable` column), the one of the data type
+ * that has it (the text operators, the comparisons), applied to the column and sent to the database
+ */
+function operationFor(valueSource: any, operation: string, column: string, key: string): (value: any) => any {
+    const method = valueSource[operation] ?? (StringsType.prototype as any)[operation] ?? (ComparableType.prototype as any)[operation]
+    if (typeof method !== 'function') {
+        throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
+    }
+    return method
 }
 
 const useAsStringInUuid: { [operation: string]: true | undefined } = {

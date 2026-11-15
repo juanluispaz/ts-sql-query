@@ -6,10 +6,13 @@ one module through which the rest of the library builds and recognises the value
 
 Read this before changing anything here. The code is the reference; this file says why it is shaped the way it is.
 
-## The two halves: the types and the runtime
+## The types and the run time
 
-- **The types** are the classes of this folder. They are `abstract`: their methods are `abstract` declarations (for
-  now), and TypeScript knows from them what a value source can do.
+- **The types** are the classes of this folder: TypeScript knows from them what a value source can do, and each class
+  has the bodies of the methods it declares. They are `abstract` for TypeScript, and only two kinds of methods stay
+  `abstract`: those of `ValueSourceBaseType` (`isConstValue`, `allowWhen`, ...), which `ValueSourceRoot` has, and those
+  of the conditions (`IfType`, `AlwaysIfType`), which are never created: a condition is a `BooleanType` at run time
+  (a `BooleanConditionType`), which has them.
 - **A value source is an instance of the class of its data type**: `column('price', MoneyType)` is a `MoneyType`,
   `int.add(0.5)` a `DoubleType`, a comparison a `BooleanType` (a condition too). The library creates it with
   `new typeClass(...)` (the `abstract` is only for TypeScript), and its constructor fills `__type` and `__customType`
@@ -17,18 +20,17 @@ Read this before changing anything here. The code is the reference; this file sa
   custom data type, `__type` is its type name and `__customType` its family, e.g. `'Money'` / `'customInt'`). The
   questions about them (`__isInt`, `__isLocalDate`, `__isExactDecimal`, ...) are in [`dataTypes.ts`](./dataTypes.ts).
   **Nothing at run time reads the NType** below: it exists only for TypeScript.
-- **The methods are still in `src/internal/ValueSourceImpl.ts`**, while they move into the classes family by family:
-  `BaseType` extends `ValueSourceImpl` at run time through a cast that TypeScript doesn't see
-  (`ValueSourceImpl as unknown as abstract new () => object`), so an instance has those methods and the types and the
-  `.d.ts` are only those of the classes. When the last family has moved, the root of `ValueSourceImpl` (its fields and
-  the delegation to the node) goes into `ValueSourceBaseType` ([`valueSourceBase.ts`](./valueSourceBase.ts)) and
-  `ValueSourceImpl` is removed.
+- **What every value source has at run time** (its fields, its node, `isConstValue`, `allowWhen`, ...) is
+  `ValueSourceRoot`, in [`src/nodes/`](../nodes/README.md). `BaseType` extends it through a cast that TypeScript doesn't
+  see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the
+  classes; a method reaches the fields with `const vs = this as unknown as ValueSourceRoot`.
 - A method gives a value source of the same data type with `this.constructor`. A base doesn't import the data types
-  that extend it (see below), so the data types it gives are statics of the classes that can import them: the
-  boolean of the comparisons in `static [logicalTypes]` (`ComparableType`, `BooleanType`, `EnumType`,
-  `CustomEqualableType`), and, only while the methods live in `ValueSourceImpl`, the int, double, bigint or string a
-  family gives in `static [runtimeTypes]` (the int of `length` in `StringsType`, the double of `sqrt` in the numbers,
-  ...), which goes away when the family imports them in its own methods.
+  that extend it (see below), so the data types it gives are statics of the classes that can import them, the
+  reflection of their phantom members: the boolean and the condition of the comparisons in `static [logicalTypes]`
+  (`ComparableType`, `BooleanType`, `EnumType`, `CustomEqualableType`, read by `__conditionTypeOf` of
+  [`valueSourceBase.ts`](./valueSourceBase.ts)), the int of `sign` in `static [intType]`, and the int and the double of
+  the group number in `static [numberTypes]` (`__doubleTypeOf`). A family that can import a data type imports it
+  (`StringsType` the `IntType` of `length`).
 - A data type can say, in `static [computedType]`, the class a value computed from it gets, when it is not its own:
   the text of a uuid (`UuidTextType`, [`uuidText.ts`](./uuidText.ts), only for the run time: TypeScript sees a
   `StringType`) is still the uuid in SQL, and the SQL builder converts it where it meets another text. A method gives
@@ -42,22 +44,17 @@ Read this before changing anything here. The code is the reference; this file sa
   select used as a value) has the data type the select projects: the text of a uuid is still the uuid, the boolean
   of a condition is a value (`__projectedTypeClassOf`).
 - A value source has two axes apart: its data type (its class) and its **node**: how it is written and what it
-  reaches in the tree (a constant, a function of a value source, a fragment, a column, ...), `__node`, a
-  `NodeStrategy`: one object for each kind of node, shared and without state, which receives the value source; the
-  value source has the fields of its node (`__operation`, `__valueSource`, `__value`, ...). Each kind has its interface
-  (`SqlOperation0ValueSource`), its strategy (`sqlOperation0ValueSourceNode`) and the function that creates it from the
-  class of its data type (`__newSqlOperation0ValueSource`). A column is a value source of its data type with the node
-  of a column (`src/internal/DBColumnImpl.ts`), an aggregate as array an `AggregatedArrayType` with the node of its
-  aggregate (or of the null that replaces it, guarded or not by `allowWhen`), whose hooks say what its methods give
-  (`withOptionalType`, `asNull`, `allowWhen`, ...). The raw fragments of a table (the name or the alias of a table in
-  a raw fragment) are still a class of their own: they have no data type.
-- Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) creates them: it creates the value sources
-  (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the runtime is not
-  typed by the data type: the code that calls them declares what it creates. They receive the class of the data type:
-  a method that takes a data type turns a name of a built-in one into its class once, with `__dataTypeClassFrom` of
-  [`dataTypeClasses.ts`](./dataTypeClasses.ts), and a value source of the data type of another one takes its class
-  (`__typeClassOf`). `dataTypeClasses.ts` also gives the class of a type and a custom type (the custom ones with the
-  `of` of their family). No class of a data type imports it.
+  reaches in the tree (a constant, a function of a value source, a fragment, a column, an aggregate, ...). The nodes are
+  in [`src/nodes/`](../nodes/README.md), which explains them; a method of a class creates its result with the function of
+  a node and the class of the result (`__newSqlOperation0ValueSource(..., IntType, ...)`, `__operation1(this, '_add',
+  value, __typeClassOf(this))`).
+- Nothing outside [`valueSourceFactory.ts`](./valueSourceFactory.ts) and the classes creates them: the factory creates
+  the value sources (`__create*`) and recognises them (`__is*`). Its `__create*` functions return `any`, because the
+  runtime is not typed by the data type: the code that calls them declares what it creates. They receive the class of
+  the data type: a method that takes a data type turns a name of a built-in one into its class once, with
+  `__dataTypeClassFrom` of [`dataTypeClasses.ts`](./dataTypeClasses.ts), and a value source of the data type of another
+  one takes its class (`__typeClassOf`). `dataTypeClasses.ts` also gives the class of a type and a custom type (the
+  custom ones with the `of` of their family). No class of a data type imports it.
 
 ## The operations that disappear without a value (`*IfValue`)
 
@@ -82,7 +79,7 @@ Two rules hold them:
 - **Without a value, an operation reaches only what it writes**: the neutral reaches nothing (its receiver must not
   make a table of an optional join required, nor add a `with`), the receiver reaches what the receiver reaches.
 
-One function of `ValueSourceImpl.ts`, `ifValueNode`, makes the node of each of these operations from the node of the
+One function of [`src/nodes/ifValue.ts`](../nodes/ifValue.ts), `ifValueNode`, makes the node of each of these operations from the node of the
 operation it applies when there is a value (`sqlOperation1ValueSourceNode`, the `in`, the operation of two operands):
 each method of the node asks for the value once, as `__toSql` does, and without one gives what the neutral or the
 receiver gives. The value source keeps the fields of its operation (`__operation`, `__valueSource`, `__value`), so what
@@ -191,7 +188,7 @@ and the ones that come later extend it.
 `customComparable.ts` and `customEqualable.ts`; `enum.ts` has the enumerations. A file of a family never imports its
 custom file.
 
-Each method declares the data type **the runtime gives** for its result (read it in `ValueSourceImpl.ts` before
+Each method declares the data type **the runtime gives** for its result (read it in `ValueSourceRoot.ts` before
 declaring it): a getter of a date gives `IntType`, `asString()` of a uuid gives `StringType`, `length()` gives
 `IntType`. A subclass can't change the type of a result its base declares (TS2416); when a family needs a different
 result, the base declares it through a type that asks the data type, like `CoalesceTypeOf` below.

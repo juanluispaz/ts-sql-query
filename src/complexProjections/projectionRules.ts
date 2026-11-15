@@ -4,7 +4,7 @@ import type { OptionalType, ValueSourceOf, TypedValueSource } from '../typeSyste
 
 /*
  * RUNTIME TWIN: the rules below are applied again at runtime (getInnerObjetRuleToApply and the rule switch in
- * src/internal/DBColumnImpl.ts, and the result transformation of the query builders); a rule changed here must be
+ * src/internal/columnsFrom.ts, and the result transformation of the query builders); a rule changed here must be
  * changed there too, and the other way round, or the result stops matching its declared type.
  *
  * NOTE:

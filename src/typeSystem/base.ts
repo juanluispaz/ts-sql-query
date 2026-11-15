@@ -4,7 +4,7 @@ import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, valueSourceType, valueType } from '../utils/symbols.js'
 import type { intType, logicalTypes } from '../utils/symbols.js'
 import type { OptionalType, TypedValueSource } from './valueSource.js'
-import { ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import { ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 
 /*
  * The data type of a value source is a class: its type (its methods, the type of its value and its name for TypeScript,
@@ -19,11 +19,11 @@ import { ValueSourceImpl } from '../internal/ValueSourceImpl.js'
  */
 
 /**
- * While the methods of the value sources still live in ValueSourceImpl, the classes of the data types extend it at run
+ * While the methods of the value sources still live in ValueSourceRoot, the classes of the data types extend it at run
  * time, so a value source is an instance of the class of its data type and has those methods. TypeScript sees nothing
  * of it: the methods are those the classes declare
  */
-const ValueSourceRuntime = ValueSourceImpl as unknown as abstract new () => object
+const ValueSourceRuntime = ValueSourceRoot as unknown as abstract new () => object
 
 /** The root of every data type */
 export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime {

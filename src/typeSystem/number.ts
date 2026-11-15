@@ -3,9 +3,12 @@ import { ComparableType } from './comparable.js'
 import { IntegersType } from './numeric.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
-import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
-import { intType, type numberTypes } from '../utils/symbols.js'
-import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1, __typeClassOf, getOptionalType2, getTypeAdapter2, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import { operandTypeName, typeName } from '../utils/symbols.js'
+import { intType, numberTypes } from '../utils/symbols.js'
+import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
+import { getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
+import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
+import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 import type { SqlOperation1 } from '../sqlBuilders/SqlBuilder.js'
 import { isValueSource } from './valueSource.js'
 
@@ -29,8 +32,8 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
 
 /** The int and the double, the numbers of JavaScript */
 export abstract class NumberType extends ComparableType<number> {
-    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
-    static get [runtimeTypes]() { return numberRuntimeTypes }
+    /** The int and the double of the group (valueWhenNull of an int with a double gives a double) */
+    static get [numberTypes]() { return numberTypeClasses }
     /** Whether a type and a custom type are of the group number: an int or a double */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return customType === undefined && (type === 'int' || type === 'double')
@@ -43,7 +46,7 @@ export abstract class NumberType extends ComparableType<number> {
     /** The number as an int: a double is rounded (DoubleType), an int stays as it is */
     asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     asInt(): any {
-        const vs = this as unknown as ValueSourceImpl
+        const vs = this as unknown as ValueSourceRoot
         return __newNoopValueSource(vs, IntType, vs.__optionalType, vs.__typeAdapter)
     }
     asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
@@ -53,7 +56,7 @@ export abstract class NumberType extends ComparableType<number> {
     /** The number as a bigint: a double is rounded (DoubleType), an int stays as it is */
     asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
     asBigint(): any {
-        const vs = this as unknown as ValueSourceImpl
+        const vs = this as unknown as ValueSourceRoot
         return __newNoopValueSource(vs, BigintType, vs.__optionalType, vs.__typeAdapter)
     }
     abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
@@ -215,9 +218,8 @@ export abstract class BigintType extends IntegersType<bigint> {
     declare [operandTypeName]: 'type:bigint:'
 }
 
-// After the class it names, which extends NumberType: read by the getter of [runtimeTypes] (the double valueWhenNull
-// gives to an int with a double, while it lives in ValueSourceImpl)
-const numberRuntimeTypes = { double: DoubleType }
+// After the classes it names, which extend NumberType: read by the getter of [numberTypes]
+const numberTypeClasses = { int: IntType, double: DoubleType }
 
 /**
  * An operation of an int or a double with another number (add, minValue, ...): a double with a double; an int with an
@@ -225,7 +227,7 @@ const numberRuntimeTypes = { double: DoubleType }
  * 2.5: the value decides it)
  */
 function promotedNumberOperation(valueSource: object, value: any, operation: keyof SqlOperation1): any {
-    const vs = valueSource as ValueSourceImpl
+    const vs = valueSource as ValueSourceRoot
     if (vs instanceof DoubleType) {
         return __operation1(vs, operation, value, DoubleType)
     }

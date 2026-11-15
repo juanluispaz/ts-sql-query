@@ -5,7 +5,8 @@ import type { OptionalOf, SourceOf, ValueSource } from './base.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
 import type { StringType } from './strings.js'
 import { UuidTextType } from './uuidText.js'
-import { __newSqlOperation0ValueSource, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import { __newSqlOperation0ValueSource } from '../nodes/operations.js'
+import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 
 /** A uuid: comparable, but not a text; its text is asked with asString */
 export abstract class UuidsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
@@ -16,7 +17,7 @@ export abstract class UuidsType</*in|out*/ VALUE_TYPE> extends ComparableType<VA
 
     asString(): ValueSource<SourceOf<this>, StringType, OptionalOf<this>>
     asString(): any {
-        const vs = this as unknown as ValueSourceImpl
+        const vs = this as unknown as ValueSourceRoot
         return __newSqlOperation0ValueSource('_asString', vs, UuidTextType, vs.__optionalType, vs.__typeAdapter)
     }
 }

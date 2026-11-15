@@ -1,6 +1,6 @@
 import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __sameTypeClassOf } from '../internal/ValueSourceImpl.js'
+import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import type { __ValueSourcePrivate } from './valueSource.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
 import { BigintType, DoubleType, IntType } from './number.js'

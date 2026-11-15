@@ -1,10 +1,13 @@
 import type { CustomType } from '../TypeAdapter.js'
 import { __isAggregatedArray } from './dataTypes.js'
 import type { AnyType, BooleanOf, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
-import { ValueSourceBaseType } from './valueSourceBase.js'
+import { ValueSourceBaseType, __conditionTypeOf, __doubleTypeOf } from './valueSourceBase.js'
 import type { ColumnMarkersOf } from './valueSource.js'
 import type { numberTypes, operandTypeName } from '../utils/symbols.js'
-import { __sameTypeClassOf, __builtInTypeOf, __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource, __typeClassOf, getOptionalType2, getTypeAdapter2, type ValueSourceImpl, __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../internal/ValueSourceImpl.js'
+import { __sameTypeClassOf, __typeClassOf } from '../nodes/dataTypeClassOf.js'
+import { getOptionalType2, getTypeAdapter2 } from '../nodes/operands.js'
+import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource } from '../nodes/operations.js'
+import { type ValueSourceRoot, __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 import { __isDouble } from './dataTypes.js'
 import { OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
@@ -38,18 +41,18 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
 
     isNull(): ValueSource<SourceOf<this>, BooleanOf<this>, 'required'>
     isNull(): any {
-        const vs = this as unknown as ValueSourceImpl
-        return __newSqlOperationIsNullValueSource('_isNull', vs, __builtInTypeOf(vs, 'condition'), 'required', vs.__typeAdapter)
+        const vs = this as unknown as ValueSourceRoot
+        return __newSqlOperationIsNullValueSource('_isNull', vs, __conditionTypeOf(vs), 'required', vs.__typeAdapter)
     }
     isNotNull(): ValueSource<SourceOf<this>, BooleanOf<this>, 'required'>
     isNotNull(): any {
-        const vs = this as unknown as ValueSourceImpl
-        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __builtInTypeOf(vs, 'condition'), 'required', vs.__typeAdapter)
+        const vs = this as unknown as ValueSourceRoot
+        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __conditionTypeOf(vs), 'required', vs.__typeAdapter)
     }
     valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
     valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, TypeOf<VALUE>>, OptionalOf<VALUE>>
     valueWhenNull(value: any): any {
-        const vs = this as unknown as ValueSourceImpl
+        const vs = this as unknown as ValueSourceRoot
         let typeClass = __typeClassOf(vs)
         // Promote the declared numeric type from the fallback operand, the same way the
         // overloaded-number operations do (createSqlOperation1ofOverloadedNumber): an `int`
@@ -70,10 +73,10 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
             if (isValueSource(value)) {
                 const operandPrivate = __getValueSourcePrivate(value)
                 if (__isDouble(operandPrivate.__type, operandPrivate.__customType)) {
-                    typeClass = __builtInTypeOf(vs, 'double')
+                    typeClass = __doubleTypeOf(vs)
                 }
             } else if (typeof value === 'number' && !Number.isInteger(value)) {
-                typeClass = __builtInTypeOf(vs, 'double')
+                typeClass = __doubleTypeOf(vs)
             }
         }
         let typeAdapter = getTypeAdapter2(vs, value)
@@ -88,12 +91,12 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
     nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, 'optional'>
     nullIfValue(value: any): any {
-        const vs = this as unknown as ValueSourceImpl
+        const vs = this as unknown as ValueSourceRoot
         return __newSqlOperation1ValueSource('_nullIfValue', vs, value, __typeClassOf(vs), 'optional', getTypeAdapter2(vs, value))
     }
     asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     asOptional(): any {
-        const vs = this as unknown as ValueSourceImpl
+        const vs = this as unknown as ValueSourceRoot
         const result = __newNoopValueSource(vs, __sameTypeClassOf(vs), 'optional', vs.__typeAdapter)
         return result
     }

@@ -3,7 +3,8 @@ import { __isLocalDate, __isLocalDateTime, __isLocalTime } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, ValueSource } from './base.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
-import { __newSqlOperation0ValueSource, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import { __newSqlOperation0ValueSource } from '../nodes/operations.js'
+import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { IntType } from './number.js'
 
@@ -14,7 +15,7 @@ import { IntType } from './number.js'
 
 /** A part of a date or a time (its day, its hours, ...): an int */
 function datePartOf(valueSource: object, operation: keyof SqlFunction0): any {
-    const vs = valueSource as ValueSourceImpl
+    const vs = valueSource as ValueSourceRoot
     return __newSqlOperation0ValueSource(operation, vs, IntType, vs.__optionalType, vs.__typeAdapter)
 }
 

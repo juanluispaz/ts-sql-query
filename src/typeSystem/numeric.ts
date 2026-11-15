@@ -4,7 +4,8 @@ import { ComparableType } from './comparable.js'
 import type { INumberValue, IntOf, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
 import { intType, type operandTypeName } from '../utils/symbols.js'
-import { __operation0, __operation1, __typeClassOf } from '../internal/ValueSourceImpl.js'
+import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
+import { __operation0, __operation1 } from '../nodes/operations.js'
 
 /*
  * The numeric data types that work only with themselves (bigint, the exact decimals and the custom numbers), by what

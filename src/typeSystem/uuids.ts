@@ -1,3 +1,5 @@
+import type { CustomType } from '../TypeAdapter.js'
+import { __isUuid } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, TypeClass, ValueSource } from './base.js'
 import type { StringType } from './strings.js'
@@ -5,6 +7,11 @@ import { operandTypeName, typeName } from '../utils/symbols.js'
 
 /** A uuid: comparable, but not a text; its text is asked with asString */
 export abstract class UuidsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a uuid or a customUuid */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isUuid(type, customType)
+    }
+
     abstract asString(): ValueSource<SourceOf<this>, StringType, OptionalOf<this>>
 }
 

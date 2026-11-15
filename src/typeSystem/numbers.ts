@@ -1,3 +1,5 @@
+import type { CustomType } from '../TypeAdapter.js'
+import { __isBigint, __isExactDecimal } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeClass, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
@@ -26,6 +28,11 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
 
 /** The int and the double, the numbers of JavaScript */
 export abstract class NumberType extends ComparableType<number> {
+    /** Whether a type and a custom type are of the group number: an int or a double */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return customType === undefined && (type === 'int' || type === 'double')
+    }
+
     declare [typeName]: `type:${string}:number:`
     declare [operandTypeName]: `type:${string}:number:`
 
@@ -89,6 +96,11 @@ export abstract class DoubleType extends NumberType {
 
 /** A numeric data type that works only with itself */
 export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a number that works only with itself: a bigint, a stringDecimal or a custom number */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isBigint(type, customType) || __isExactDecimal(type, customType) || customType === 'customInt' || customType === 'customDouble'
+    }
+
     abstract abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract ceil(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract floor(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
@@ -110,6 +122,11 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
 
 /** An integer number that works only with itself (bigint, customInt, customBigint) */
 export abstract class IntegerType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of an integer number that works only with itself: a bigint, a customInt or a customBigint */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isBigint(type, customType) || customType === 'customInt'
+    }
+
 }
 
 /** An integer number of 64 bits, a JavaScript bigint */
@@ -152,6 +169,11 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
 
 /** A floating point number that works only with itself (customDouble): its floating point functions keep its data type */
 export abstract class RealType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a floating point number that works only with itself: a customDouble */
+    protected static override __isOfGroup(_type: string, customType: CustomType | undefined): boolean {
+        return customType === 'customDouble'
+    }
+
     abstract exp(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract ln(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abstract log10(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
@@ -195,6 +217,11 @@ export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
 
 /** An exact decimal number: its value keeps every digit; a computation that can't be exact gives a double */
 export abstract class DecimalType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of an exact decimal: a stringDecimal or a customDecimal */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isExactDecimal(type, customType)
+    }
+
     abstract exp(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     abstract ln(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     abstract log10(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>

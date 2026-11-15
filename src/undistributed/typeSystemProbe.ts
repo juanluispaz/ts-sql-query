@@ -9,6 +9,8 @@ import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSys
 import type { BigintType, CustomDecimalType, CustomDoubleType, CustomIntType, DoubleType, IntType, NumberType, StringDecimalType } from '../typeSystem/numbers.js'
 import { CustomDecimalType as CustomDecimalTypeClass } from '../typeSystem/numbers.js'
 import { CustomIntType as CustomIntTypeClass } from '../typeSystem/numbers.js'
+import { IntType as IntTypeClass, NumberType as NumberTypeClass } from '../typeSystem/numbers.js'
+import { IfType as IfTypeClass } from '../typeSystem/booleans.js'
 import type { StringType } from '../typeSystem/strings.js'
 import type { UuidType } from '../typeSystem/uuids.js'
 import type { LocalDateTimeType, LocalDateType } from '../typeSystem/localDates.js'
@@ -242,3 +244,18 @@ assertType<Equal<typeof fragmentOfOne, ValueSource<'s1/', IntType, 'optional'>>>
 const equalsAny = aString.equals(5 as any)
 const equalsAnyIsUsable: ValueSource<'s1/', BooleanType, 'required'> = equalsAny
 void equalsAnyIsUsable
+
+// The type guard of a data type: a value source of that data type, with any source and optionality
+declare const anything: unknown
+if (IntTypeClass.is(anything)) {
+    assertType<Equal<typeof anything, ValueSource<any, IntType, any>>>()
+}
+if (NumberTypeClass.is(anything)) {
+    assertType<Equal<typeof anything, ValueSource<any, NumberType, any>>>()
+}
+if (MoneyType.is(anything)) {
+    assertType<Equal<typeof anything, ValueSource<any, CustomIntType<Money, 'Money'>, any>>>()
+}
+// A condition is a boolean at run time: its data type has no type guard
+// @ts-expect-error
+IfTypeClass.is(anything)

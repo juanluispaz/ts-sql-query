@@ -153,6 +153,21 @@ know the family: when generic arguments are given explicitly, TypeScript doesn't
 reason the methods that take a custom data type by its names (`column<Money, 'Money'>('amount', 'customInt', 'Money')`)
 keep one overload per family.
 
+## The type guard: `is`
+
+Each data type of a value source has a static `is(value: any)`, a type guard: whether the value is a value source of
+that data type, of any source and optionality (`value is ValueSource<any, TYPE, any>`). It is declared once, in
+`ValueSourceBaseType`, with a `this` parameter, so the class it is called on gives the guarded type, also for a class an
+`of` made. A class that extends another answers by inheritance: `NumberType.is` says yes to an int and to a double,
+`CustomIntType.is` to any customInt, `MoneyType.is` only to a customInt named `'Money'`.
+
+At run time it reads the type and the custom type of the value source: a class with a type compares both, a family
+class (a custom type and no type) its custom type, and the classes that group data types answer with their
+`__isOfGroup` (direct questions about the type and the custom type, as in [`dataTypes.ts`](./dataTypes.ts)). What only
+TypeScript tells apart, `is` can't: a condition is a boolean at run time, so the condition classes have no `is` (they
+don't extend `ValueSourceBaseType`) and `BooleanType.is` says yes to a condition; the two classes of an aggregated array
+are one. A value that is not a value source is `false`.
+
 ## The data types by their names
 
 [`builtInDataTypes.ts`](./builtInDataTypes.ts) maps the name of each built-in data type (`'int'`, `'string'`, ...) to its
@@ -192,7 +207,7 @@ fragment expression. The methods that take a data type by its name (`column`, `c
 
 1. Its class in the file of its family, extending the class that has the methods it shares, with its NType and
    operand NType, its `static type` / `customType`, and its own methods with the result types the runtime gives.
-2. A custom one: its static `of`.
+2. A custom one: its static `of`. A class that groups data types without a type of its own: its `__isOfGroup`.
 3. A built-in one: its entry in each map of `builtInDataTypes.ts`.
 4. Its questions in `dataTypes.ts` and its handling in the runtime, as for any data type of the library.
 5. Its cases in the probe, and its tests in the matrix.

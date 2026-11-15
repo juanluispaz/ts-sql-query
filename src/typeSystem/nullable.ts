@@ -1,3 +1,5 @@
+import type { CustomType } from '../TypeAdapter.js'
+import { __isAggregatedArray } from './dataTypes.js'
 import { ValueSourceBaseType, type IValueWithType, type OptionalOf, type SourceOf, type TypeOf, type ValueSource } from './base.js'
 import type { BooleanType } from './booleans.js'
 import type { ColumnMarkersOf } from './valueSource.js'
@@ -12,6 +14,11 @@ export type CoalesceTypeOf<X, OPERAND> = TypeOf<X> extends NumberType ? Promoted
 
 /** A data type whose value can be null */
 export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a data type with a null value: every one but an aggregated array */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return !__isAggregatedArray(type, customType)
+    }
+
     abstract isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     abstract isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     abstract valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, NumberType>, 'required'>

@@ -3,6 +3,7 @@ import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, valueSourceType, valueType } from '../utils/symbols.js'
 import type { OptionalType, TypedValueSource } from './valueSource.js'
+import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
 
 /*
  * The data type of a value source is a class: its type (its methods, the type of its value and its name for TypeScript,
@@ -34,6 +35,34 @@ export type AnyType = BaseType<any>
 
 /** The root of the data types of the value sources (a condition is not one) */
 export abstract class ValueSourceBaseType</*in|out*/ VALUE_TYPE> extends BaseType<VALUE_TYPE> {
+    /**
+     * Whether the value is a value source of this data type or of one that extends it (`NumberType.is` answers yes to
+     * an int and to a double). At run time a value source knows only its type and its custom type: a condition is a
+     * boolean there, and the two data types of an aggregated array are one
+     */
+    static is<TYPE extends AnyType>(this: { readonly prototype: TYPE }, value: any): value is ValueSource<any, TYPE, any> {
+        if (!isValueSource(value)) {
+            return false
+        }
+        const valueSource = __getValueSourcePrivate(value)
+        const typeClass = this as unknown as typeof ValueSourceBaseType
+        if (typeClass.type !== undefined) {
+            return valueSource.__type === typeClass.type && valueSource.__customType === typeClass.customType
+        }
+        if (typeClass.customType !== undefined) {
+            return valueSource.__customType === typeClass.customType
+        }
+        return typeClass.__isOfGroup(valueSource.__type, valueSource.__customType)
+    }
+
+    /**
+     * Whether a type and a custom type are of this class, for a class without a type of its own (the data types it
+     * groups): any value source here
+     */
+    protected static __isOfGroup(_type: string, _customType: CustomType | undefined): boolean {
+        return true
+    }
+
     abstract isConstValue(): boolean
     abstract getConstValue(): VALUE_TYPE
     abstract allowWhen(when: boolean, errorMessage: string): this
@@ -47,6 +76,7 @@ export interface TypeClass</*in|out*/ TYPE extends AnyType> {
     readonly prototype: TYPE
     readonly type: string
     readonly customType: CustomType | undefined
+    is(value: any): value is ValueSource<any, TYPE, any>
 }
 
 export type AnyTypeClass = TypeClass<AnyType>

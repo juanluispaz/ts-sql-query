@@ -1,3 +1,5 @@
+import type { CustomType } from '../TypeAdapter.js'
+import { __isLocalDate, __isLocalDateTime, __isLocalTime } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, TypeClass, ValueSource } from './base.js'
 import type { IntType } from './numbers.js'
@@ -10,6 +12,11 @@ import { operandTypeName, typeName } from '../utils/symbols.js'
 
 /** A date without a zone */
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a localDate or a customLocalDate */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isLocalDate(type, customType)
+    }
+
     abstract getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     abstract getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     abstract getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
@@ -18,6 +25,11 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableTy
 
 /** A time of the day without a zone */
 export abstract class LocalTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a localTime or a customLocalTime */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isLocalTime(type, customType)
+    }
+
     abstract getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     abstract getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     abstract getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
@@ -26,6 +38,11 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE> extends ComparableTy
 
 /** A date and a time of the day without a zone */
 export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+    /** Whether a type and a custom type are of a localDateTime or a customLocalDateTime */
+    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
+        return __isLocalDateTime(type, customType)
+    }
+
     abstract getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     abstract getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     abstract getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>

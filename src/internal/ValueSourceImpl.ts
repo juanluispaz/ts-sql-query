@@ -533,33 +533,6 @@ export class ValueSourceImpl implements TypedValueSource<any, any, any>, __Value
         }
     }
     // Date & Time Functions
-    getDate(): any {
-        return __newSqlOperation0ValueSource('_getDate', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getTime(): any {
-        return __newSqlOperation0ValueSource('_getTime', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getFullYear(): any {
-        return __newSqlOperation0ValueSource('_getFullYear', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getMonth(): any {
-        return __newSqlOperation0ValueSource('_getMonth', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getDay(): any {
-        return __newSqlOperation0ValueSource('_getDay', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getHours(): any {
-        return __newSqlOperation0ValueSource('_getHours', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getMinutes(): any {
-        return __newSqlOperation0ValueSource('_getMinutes', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getSeconds(): any {
-        return __newSqlOperation0ValueSource('_getSeconds', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
-    getMilliseconds(): any {
-        return __newSqlOperation0ValueSource('_getMilliseconds', this, __builtInTypeOf(this, 'int'), this.__optionalType, this.__typeAdapter)
-    }
     // SqlFunction1
     valueWhenNull(value: any): any {
         let typeClass = __typeClassOf(this)

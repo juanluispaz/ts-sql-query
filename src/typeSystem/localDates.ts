@@ -2,7 +2,9 @@ import type { CustomType } from '../TypeAdapter.js'
 import { __isLocalDate, __isLocalDateTime, __isLocalTime } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, ValueSource } from './base.js'
-import { operandTypeName, typeName, runtimeTypes } from '../utils/symbols.js'
+import { operandTypeName, typeName } from '../utils/symbols.js'
+import { __newSqlOperation0ValueSource, type ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { IntType } from './number.js'
 
 /*
@@ -10,54 +12,105 @@ import { IntType } from './number.js'
  * Each part of the value is asked with its getter, which gives an int.
  */
 
+/** A part of a date or a time (its day, its hours, ...): an int */
+function datePartOf(valueSource: object, operation: keyof SqlFunction0): any {
+    const vs = valueSource as ValueSourceImpl
+    return __newSqlOperation0ValueSource(operation, vs, IntType, vs.__optionalType, vs.__typeAdapter)
+}
+
 /** A date without a zone */
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
-    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
-    static readonly [runtimeTypes] = { int: IntType }
     /** Whether a type and a custom type are of a localDate or a customLocalDate */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isLocalDate(type, customType)
     }
 
-    abstract getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getMonth(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDate(): any {
+        return datePartOf(this, '_getDate')
+    }
+    getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDay(): any {
+        return datePartOf(this, '_getDay')
+    }
+    getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getFullYear(): any {
+        return datePartOf(this, '_getFullYear')
+    }
+    getMonth(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMonth(): any {
+        return datePartOf(this, '_getMonth')
+    }
 }
 
 /** A time of the day without a zone */
 export abstract class LocalTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
-    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
-    static readonly [runtimeTypes] = { int: IntType }
     /** Whether a type and a custom type are of a localTime or a customLocalTime */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isLocalTime(type, customType)
     }
 
-    abstract getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getHours(): any {
+        return datePartOf(this, '_getHours')
+    }
+    getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMilliseconds(): any {
+        return datePartOf(this, '_getMilliseconds')
+    }
+    getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMinutes(): any {
+        return datePartOf(this, '_getMinutes')
+    }
+    getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getSeconds(): any {
+        return datePartOf(this, '_getSeconds')
+    }
 }
 
 /** A date and a time of the day without a zone */
 export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
-    /** While its methods still live in ValueSourceImpl: the built-in data types they give */
-    static readonly [runtimeTypes] = { int: IntType }
     /** Whether a type and a custom type are of a localDateTime or a customLocalDateTime */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isLocalDateTime(type, customType)
     }
 
-    abstract getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getMonth(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
-    abstract getTime(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDate(): any {
+        return datePartOf(this, '_getDate')
+    }
+    getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDay(): any {
+        return datePartOf(this, '_getDay')
+    }
+    getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getFullYear(): any {
+        return datePartOf(this, '_getFullYear')
+    }
+    getMonth(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMonth(): any {
+        return datePartOf(this, '_getMonth')
+    }
+    getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getHours(): any {
+        return datePartOf(this, '_getHours')
+    }
+    getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMilliseconds(): any {
+        return datePartOf(this, '_getMilliseconds')
+    }
+    getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMinutes(): any {
+        return datePartOf(this, '_getMinutes')
+    }
+    getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getSeconds(): any {
+        return datePartOf(this, '_getSeconds')
+    }
+    getTime(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getTime(): any {
+        return datePartOf(this, '_getTime')
+    }
 }
 
 /** A date without a zone, a JavaScript Date */

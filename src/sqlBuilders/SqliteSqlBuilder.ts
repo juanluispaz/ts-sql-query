@@ -8,11 +8,11 @@ import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrat
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment, __isColumn } from '../typeSystem/valueSourceFactory.js'
-import { __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
+import { __isExactDecimalSql, __sqlFamilyOf } from '../typeSystem/dataTypes.js'
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
-import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
@@ -129,7 +129,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._decimalNormalForm(sql)
     }
     _isCustomDecimal(value: unknown): boolean {
-        return isValueSource(value) && __isExactDecimal(__getValueSourcePrivate(value).__type, __getValueSourcePrivate(value).__customType)
+        return isValueSource(value) && __isExactDecimalSql(__classOf(__getValueSourcePrivate(value)))
     }
     /** A value that can be null: a value source that isn't required, or a null */
     _canBeNull(value: unknown): boolean {
@@ -290,37 +290,37 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._decimalComparableText(valueSource, this._appendSql(valueSource, context, false)) + ' ' + operator + ' ' + this._decimalComparableText(value, this._appendValue(value, context, typeClass, false))
     }
     override _equals(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalEquality('=', context, valueSource, value, typeClass)
         }
         return super._equals(context, valueSource, value, typeClass)
     }
     override _notEquals(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalEquality('<>', context, valueSource, value, typeClass)
         }
         return super._notEquals(context, valueSource, value, typeClass)
     }
     override _lessThan(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalOrderComparison('<', context, valueSource, value, typeClass)
         }
         return super._lessThan(context, valueSource, value, typeClass)
     }
     override _greaterThan(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalOrderComparison('>', context, valueSource, value, typeClass)
         }
         return super._greaterThan(context, valueSource, value, typeClass)
     }
     override _lessOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalOrderComparison('<=', context, valueSource, value, typeClass)
         }
         return super._lessOrEqual(context, valueSource, value, typeClass)
     }
     override _greaterOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalOrderComparison('>=', context, valueSource, value, typeClass)
         }
         return super._greaterOrEqual(context, valueSource, value, typeClass)
@@ -359,7 +359,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return undefined
     }
     override _in(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             const result = this._decimalIn(false, context, valueSource, value, typeClass)
             if (result !== undefined) {
                 return result
@@ -368,7 +368,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return super._in(context, valueSource, value, typeClass)
     }
     override _notIn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             const result = this._decimalIn(true, context, valueSource, value, typeClass)
             if (result !== undefined) {
                 return result
@@ -377,48 +377,48 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return super._notIn(context, valueSource, value, typeClass)
     }
     override _between(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && this._usesDecimalKeyFunctions()) {
+        if (__isExactDecimalSql(typeClass) && this._usesDecimalKeyFunctions()) {
             return this._decimalKeySql(this._appendSql(valueSource, context, false)) + ' between ' + this._decimalKeySql(this._appendValue(value, context, typeClass, false)) + ' and ' + this._decimalKeySql(this._appendValue(value2, context, typeClass, false))
         }
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             const first = this._appendSql(valueSource, context, false)
             return '(' + this._decimalCmpSql(first, this._appendValue(value, context, typeClass, false)) + ' >= 0 and ' + this._decimalCmpSql(first, this._appendValue(value2, context, typeClass, false)) + ' <= 0)'
         }
         return super._between(context, valueSource, value, value2, typeClass)
     }
     override _notBetween(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && this._usesDecimalKeyFunctions()) {
+        if (__isExactDecimalSql(typeClass) && this._usesDecimalKeyFunctions()) {
             return this._decimalKeySql(this._appendSql(valueSource, context, false)) + ' not between ' + this._decimalKeySql(this._appendValue(value, context, typeClass, false)) + ' and ' + this._decimalKeySql(this._appendValue(value2, context, typeClass, false))
         }
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             const first = this._appendSql(valueSource, context, false)
             return 'not (' + this._decimalCmpSql(first, this._appendValue(value, context, typeClass, false)) + ' >= 0 and ' + this._decimalCmpSql(first, this._appendValue(value2, context, typeClass, false)) + ' <= 0)'
         }
         return super._notBetween(context, valueSource, value, value2, typeClass)
     }
     override _add(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && !this._usesDecimalExtensionFunctions()) {
+        if (__isExactDecimalSql(typeClass) && !this._usesDecimalExtensionFunctions()) {
             this._rejectDecimalArithmeticAsText('addition')
         }
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && this._usesDecimalExtensionFunctions()) {
+        if (__isExactDecimalSql(typeClass) && this._usesDecimalExtensionFunctions()) {
             return this._decimalFunction('decimal_add', context, valueSource, value, typeClass)
         }
         return super._add(context, valueSource, value, typeClass)
     }
     override _subtract(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && !this._usesDecimalExtensionFunctions()) {
+        if (__isExactDecimalSql(typeClass) && !this._usesDecimalExtensionFunctions()) {
             this._rejectDecimalArithmeticAsText('subtraction')
         }
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && this._usesDecimalExtensionFunctions()) {
+        if (__isExactDecimalSql(typeClass) && this._usesDecimalExtensionFunctions()) {
             return this._decimalFunction('decimal_sub', context, valueSource, value, typeClass)
         }
         return super._subtract(context, valueSource, value, typeClass)
     }
     override _multiply(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && !this._usesDecimalExtensionFunctions()) {
+        if (__isExactDecimalSql(typeClass) && !this._usesDecimalExtensionFunctions()) {
             this._rejectDecimalArithmeticAsText('multiplication')
         }
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && this._usesDecimalExtensionFunctions()) {
+        if (__isExactDecimalSql(typeClass) && this._usesDecimalExtensionFunctions()) {
             // decimal_mul returns null for a null operand
             return 'decimal_mul(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, typeClass, false) + ')'
         }
@@ -658,7 +658,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     // SQLite truncates a fractional scale of round
     override _roundnTruncatesTheScale = true
     override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('rounding')
             }
@@ -667,7 +667,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return super._roundn(context, valueSource, value, typeClass)
     }
     override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             if (!this._usesDecimalExtensionFunctions()) {
                 this._decimalOperationNotExact('modulo')
             }
@@ -1048,7 +1048,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalIs(context, valueSource, value, typeClass)
         }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
@@ -1057,7 +1057,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._appendSqlParenthesis(valueSource, context, false) + ' is ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return 'not ' + this._decimalIs(context, valueSource, value, typeClass)
         }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
@@ -1181,13 +1181,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'log10(' + this._appendSql(valueSource, context, false) + ')'
     }
     override _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalChoice('<=', context, valueSource, value, typeClass)
         }
         return 'min(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
     }
     override _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType)) {
+        if (__isExactDecimalSql(typeClass)) {
             return this._decimalChoice('>=', context, valueSource, value, typeClass)
         }
         return 'max(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
@@ -1253,11 +1253,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return sql
     }
     override _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
-        if (__isExactDecimal(typeClass.type, typeClass.customType) && typeof value === 'string' && this._isCanonicalDecimalText()) {
+        if (__isExactDecimalSql(typeClass) && typeof value === 'string' && this._isCanonicalDecimalText()) {
             // In a canonical text variant a customDecimal is sent in its canonical text
             value = canonicalDecimalText(value)
         }
-        if (__isUuid(typeClass.type, typeClass.customType) && this._getUuidStrategy() === 'uuid-extension') {
+        if (__sqlFamilyOf(typeClass) === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
             return 'uuid_blob(' + super._appendParam(value, context, typeClass, forceTypeCast) + ')'
         }
         return super._appendParam(value, context, typeClass, forceTypeCast)

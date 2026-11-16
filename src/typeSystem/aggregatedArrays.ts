@@ -1,4 +1,4 @@
-import type { CustomType } from '../TypeAdapter.js'
+import type { CustomType, SqlDataType } from '../TypeAdapter.js'
 import { __isAggregatedArray } from './dataTypes.js'
 import type { OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
@@ -10,7 +10,11 @@ import { type ValueSourceRoot, __asRequiredInOptionalObjectOf, __ignoreWhenAsNul
 import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** The family of the arrays an aggregate as array gives: what every one offers */
+/** The type in the database of an aggregated array: a JSON document */
+const aggregatedArraySqlDataType: SqlDataType = { family: 'document', format: 'json' }
+
 export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
+    static override readonly sqlDataType: SqlDataType = aggregatedArraySqlDataType
     /** Whether a type and a custom type are of an aggregated array */
     protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
         return __isAggregatedArray(type, customType)

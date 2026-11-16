@@ -9,7 +9,7 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
 import { isMySqlReservedWord } from '../utils/mySqlMariaDB/mySqlReservedWords.js'
-import { __isUuid } from '../typeSystem/dataTypes.js'
+import { __sqlFamilyOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 
@@ -108,7 +108,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         return 'select * from (' + select + ') as ' + this._escape(this._updateNewAlias, true) + ' (' + columns + ')'
     }
     override _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
-        if (__isUuid(typeClass.type, typeClass.customType) && this._getUuidStrategy() === 'binary') {
+        if (__sqlFamilyOf(typeClass) === 'uuid' && this._getUuidStrategy() === 'binary') {
             return 'uuid_to_bin(' + super._appendParam(value, context, typeClass, forceTypeCast) + ')'
         }
         return super._appendParam(value, context, typeClass, forceTypeCast)

@@ -13,13 +13,13 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { isSqlServerReservedWord } from '../utils/sqlServer/sqlServerReservedWords.js'
 import type { CustomType } from '../TypeAdapter.js'
-import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
+import { __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __isCondition } from '../typeSystem/logical.js'
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
-import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
@@ -191,7 +191,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendValueParenthesis(value, context, typeClass, false)
     }
     override _appendConditionParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
-        if (__isBoolean(typeClass.type, typeClass.customType)) {
+        if (__sqlFamilyOf(typeClass) === 'boolean') {
             if (__isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
                 const typeAdapter = columnPrivate.__typeAdapter
@@ -943,7 +943,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'cast(' + sql + ' as bigint)'
     }
     override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (this._moduloRequiresFloatHandling(typeClass.type, typeClass.customType, value)) {
+        if (this._moduloRequiresFloatHandling(typeClass, value)) {
             // T-SQL's `%` operator rejects float operands ("The data types float
             // and int are incompatible in the modulo operator"); SQL Server has
             // no `mod(...)` function either. Cast both operands to numeric — the
@@ -1023,7 +1023,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // `.asDouble()` receiver whose SQL is itself `cast(... as float)`) keeps the
         // fraction natively and is left uncast to avoid a redundant double cast.
         let base = this._appendSql(valueSource, context, false)
-        if (!__isDouble(typeClass.type, typeClass.customType)) {
+        if (__sqlFamilyOf(typeClass) !== 'approximate numeric') {
             base = this._appendCastAsDouble(base)
         }
         return 'power(' + base + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
@@ -1382,8 +1382,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     /** A leaf of the JSON written by the library, as JSON text: `sql` is the value */
     _appendJsonValue(valueSource: AnyValueSource, sql: string, context: SqlBuildContext): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const type = valueSourcePrivate.__type
-        const customType = valueSourcePrivate.__customType
+        // What the value is, by the SQL data type of its data type
+        const typeClass = __classOf(valueSourcePrivate)
+        const sqlDataType = typeClass.sqlDataType
+        const family = sqlDataType?.family
 
         let result: string
 
@@ -1395,32 +1397,30 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result = 'convert(nvarchar(max), ' + this._appendAggregatedArrayValueProjection(valueSource, sql, context) + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
-        } else if (__isBoolean(type, customType) || (customType === undefined && type === 'int')) {
+        } else if (family === 'boolean' || (family === 'exact numeric' && sqlDataType!.scale === 0 && sqlDataType!.bytes !== undefined && sqlDataType!.bytes <= 4)) {
             result = 'convert(nvarchar(41), ' + sql + ')'
-        } else if (customType === undefined && type === 'double') {
+        } else if (family === 'approximate numeric') {
             // FINDING B: this manual `string_agg` JSON builder (SQL Server compat < 17M) is the
             // one path where the DB itself truncates a `float` before the JSON is even formed —
             // a styleless convert keeps only ≤6 significant figures. Style 3 is the only convert
             // style that round-trips a float exactly. It emits scientific notation, a valid
             // (unquoted) JSON number, so the lossless number parser preserves the digits.
             result = 'convert(nvarchar(41), ' + sql + ', 3)'
-        } else if (__isBigint(type, customType) || customType === 'customInt' || __isExactDecimal(type, customType)) {
+        } else if (family === 'exact numeric') {
+            // An exact number wider than a number of JavaScript (a bigint, a decimal) goes as its text, every digit
             result = `'"' + convert(nvarchar(41), ` + sql + `) + '"'`
-        } else if (customType === 'customDouble') {
-            // A quoted float leaf: the same lossless style-3 form as `double` (finding B).
-            result = `'"' + convert(nvarchar(41), ` + sql + `, 3) + '"'`
-        } else if (__isUuid(type, customType)) {
+        } else if (family === 'uuid') {
             // A uniqueidentifier's text form is 36 chars; the length-less
             // convert defaults to nvarchar(30) and overflows. nvarchar(36)
             // matches the upper-cased representation native FOR JSON emits.
             result = `'"' + convert(nvarchar(36), ` + sql + `) + '"'`
-        } else if (__isString(type, customType) || __isAggregatedArray(type, customType)) {
+        } else if (family === 'character string' || __isJsonDocumentSql(typeClass)) {
             // Strings are unbounded; the length-less convert defaults to
             // nvarchar(30) and truncates. nvarchar(max) preserves the value.
             result = 'convert(nvarchar(max), ' + sql + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
-        } else if (__isLocalDate(type, customType) || __isLocalTime(type, customType) || __isLocalDateTime(type, customType)) {
+        } else if (__temporalFieldsOf(typeClass) !== undefined) {
             result = 'convert(nvarchar, ' + sql + ', 127)'
             result = `'"' + ` + result + ` + '"'`
         } else {

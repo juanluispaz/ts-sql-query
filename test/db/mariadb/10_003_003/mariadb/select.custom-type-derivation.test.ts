@@ -151,7 +151,7 @@ describe(ctx.label, () => {
                     .divide(3),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ((sum(billed_amount)) * 1.0e0) / ? as result from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (sum(billed_amount)) / ? as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

@@ -78,7 +78,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = postgreSqlZonedValueSql(sql, context.requestedType.type, context.requestedType.customType, this.localTimeReferenceDate)
+            const zoned = postgreSqlZonedValueSql(sql, context.requestedType, this.localTimeReferenceDate)
             if (zoned) {
                 return context.output === 'aggregatedArrayValue' ? zoned + '::text' : zoned
             }

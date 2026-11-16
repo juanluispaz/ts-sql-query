@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat('[', string_agg('"' + convert(nvarchar(41), cast(12345678901234567890.1234567891 as decimal(38,10)), 3) + '"', ','), ']') as amounts from issue where id = @0 group by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, concat('[', string_agg(convert(nvarchar(41), cast(12345678901234567890.1234567891 as decimal(38,10)), 3), ','), ']') as amounts from issue where id = @0 group by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

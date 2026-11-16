@@ -25,8 +25,9 @@ Read this before changing anything here. The code is the reference; this file sa
   by default they call `next`, and a class overrides the ones it needs. They are a step of the chain of a conversion,
   after the type adapter of the value and before the connection (`NextTypeAdapter`, in
   `src/internal/TypeAdapterContextImpl.ts`). Its static `sqlDataType` is the type in the database of its values when
-  the column doesn't say a more precise one: the query runners and the connections decide by it, never by knowing the
-  class (`__typeSqlDataTypeOf` and `__temporalFieldsOf` of [`dataTypes.ts`](./dataTypes.ts)).
+  the column doesn't say a more precise one: the SQL builders, the query runners and the connections decide by it
+  what the value is, never by knowing the class (`__sqlFamilyOf`, `__temporalFieldsOf`, `__isExactDecimalSql`, ... of
+  [`dataTypes.ts`](./dataTypes.ts)); how a database that emulates a type keeps it is the strategy of the connection.
 - **What every value source has at run time** (its fields, its node, `isConstValue`, `allowWhen`, ...) is
   `ValueSourceRoot`, in [`src/nodes/`](../nodes/README.md). `BaseType` extends it through a cast that TypeScript doesn't
   see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the

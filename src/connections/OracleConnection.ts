@@ -216,7 +216,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = oracleZonedValueSql(sql, context.requestedType.type, context.requestedType.customType, this.localTimeReferenceDate)
+            const zoned = oracleZonedValueSql(sql, context.requestedType, this.localTimeReferenceDate)
             if (zoned) {
                 return zoned
             }

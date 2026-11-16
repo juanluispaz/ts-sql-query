@@ -1097,7 +1097,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tDerivedColumn)
             .selectOneColumn(tDerivedColumn.money.divide(0.005))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_double as float) / @0 as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select m_double / @0 as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.005,

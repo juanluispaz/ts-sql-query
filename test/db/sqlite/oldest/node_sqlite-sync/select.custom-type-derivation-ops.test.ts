@@ -768,7 +768,7 @@ describe(ctx.label, () => {
                     .divide(2),
             )
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((billed_amount) as real) / ?1 as result from issue_worklog where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (billed_amount) / ?1 as result from issue_worklog where id = ?2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

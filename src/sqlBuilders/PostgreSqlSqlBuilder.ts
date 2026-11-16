@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
-import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -9,13 +9,13 @@ import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
+import { __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
-import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
 
@@ -115,7 +115,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         if (operation !== undefined) {
             // An aggregated array (`json_agg($1)`, `json_build_object('a', $1)`) has no operation and always needs it
-            if (__isString(operandPrivate.__type, operandPrivate.__customType) || !this._operationNeedsTypedConst(operation, operand, operandPrivate.__type, operandPrivate.__customType, otherOperands)) {
+            if (__sqlFamilyOf(__classOf(operandPrivate)) === 'character string' || !this._operationNeedsTypedConst(operation, operand, __classOf(operandPrivate), otherOperands)) {
                 return operand
             }
         }
@@ -126,7 +126,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         typed.__forceTypeCast = true
         return typed
     }
-    _operationNeedsTypedConst(operation: string, operand: unknown, type: string, customType: CustomType | undefined, otherOperands: any[]): boolean {
+    _operationNeedsTypedConst(operation: string, operand: unknown, typeClass: DataTypeClass, otherOperands: any[]): boolean {
         switch (operation) {
             case '_add':
             case '_subtract':
@@ -156,7 +156,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 return this._numericKindOf(operand) === 'approximate' || this._numericKindOf(otherOperands[0]) === 'approximate'
             case '_modulo':
                 // The fractional form casts its operands to numeric itself
-                return !this._moduloRequiresFloatHandling(type, customType, otherOperands[0])
+                return !this._moduloRequiresFloatHandling(typeClass, otherOperands[0])
             case '_equals':
             case '_notEquals':
             case '_is':
@@ -164,7 +164,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             case '_in':
             case '_notIn':
                 // Compared as text, a uuid ignores the case and a date the time of day it was sent with
-                return __isUuid(type, customType) || __isLocalDate(type, customType) || __isLocalTime(type, customType) || __isLocalDateTime(type, customType)
+                return __sqlFamilyOf(typeClass) === 'uuid' || __temporalFieldsOf(typeClass) !== undefined
         }
         return false
     }
@@ -409,7 +409,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return super._asNullValue(context, typeClass)
     }
     override _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        if (this._moduloRequiresFloatHandling(typeClass.type, typeClass.customType, value)) {
+        if (this._moduloRequiresFloatHandling(typeClass, value)) {
             // PostgreSQL defines neither the `%` operator nor `mod(...)` for
             // `double precision` — both exist only for integer / numeric — so
             // the inherited `<col> % <rhs>` form fails at runtime with
@@ -643,7 +643,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return sql
         }
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = postgreSqlZonedValueSql(sql, valueSourcePrivate.__type, valueSourcePrivate.__customType, this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = postgreSqlZonedValueSql(sql, __classOf(valueSourcePrivate), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? '(' + zoned + " at time zone 'UTC')" : sql
     }
 }
@@ -654,8 +654,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
  * the day of the localTimeReferenceDate, `(date '1970-01-01' + <sql>)::timestamptz` or `(current_date + <sql>)…`.
  * Undefined for any other type.
  */
-export function postgreSqlZonedValueSql(sql: string, type: string, customType: CustomType | undefined, localTimeReferenceDate: string | undefined): string | undefined {
-    if (__isLocalDateTime(type, customType)) {
+export function postgreSqlZonedValueSql(sql: string, typeClass: DataTypeClass, localTimeReferenceDate: string | undefined): string | undefined {
+    const fields = __temporalFieldsOf(typeClass)
+    if (fields === 'timestamp') {
         // A parameter of a database outside UTC is already a timestamptz
         if (/^\$\d+::timestamptz$/.test(sql)) {
             return sql
@@ -663,7 +664,7 @@ export function postgreSqlZonedValueSql(sql: string, type: string, customType: C
         // A column, a qualified one, or a parameter, needs no parenthesis
         return (/^(?:[\w."]+|\$\d+)$/.test(sql) ? sql : '(' + sql + ')') + '::timestamptz'
     }
-    if (__isLocalTime(type, customType)) {
+    if (fields === 'time') {
         const day = localTimeReferenceDate === 'today' ? 'current_date' : "date '" + (localTimeReferenceDate ?? '1970-01-01') + "'"
         return '(' + day + ' + ' + sql + ')::timestamptz'
     }

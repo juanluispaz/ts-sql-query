@@ -173,7 +173,7 @@ describe(ctx.label, () => {
                 di: tIssueWorklog.billedAmount.divide(4),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(billed_amount as double) / ? as di from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount / ? as di from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,

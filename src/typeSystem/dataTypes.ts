@@ -133,3 +133,29 @@ export function __temporalFieldsOf(typeClass: DataTypeClass | undefined): 'date'
     }
     return sqlDataType.fields
 }
+
+/** The family of the SQL data type of a data type (its class); undefined for one without it (an enum, a custom one) */
+export function __sqlFamilyOf(typeClass: DataTypeClass | undefined): SqlDataType['family'] | undefined {
+    return typeClass?.sqlDataType?.family
+}
+
+/**
+ * Whether a data type is an exact number that isn't an integer of a fixed size, by its SQL data type: a decimal, or an
+ * integer of more digits than a bigint. Its value is kept as text where a number of JavaScript would lose digits
+ */
+export function __isExactDecimalSql(typeClass: DataTypeClass | undefined): boolean {
+    const sqlDataType = typeClass?.sqlDataType
+    return sqlDataType?.family === 'exact numeric' && !(sqlDataType.scale === 0 && sqlDataType.bytes !== undefined)
+}
+
+/** Whether a data type is an integer, by its SQL data type: an exact number without decimals */
+export function __isIntegerSql(typeClass: DataTypeClass | undefined): boolean {
+    const sqlDataType = typeClass?.sqlDataType
+    return sqlDataType?.family === 'exact numeric' && sqlDataType.scale === 0
+}
+
+/** Whether a data type is a JSON document, by its SQL data type: an aggregated array */
+export function __isJsonDocumentSql(typeClass: DataTypeClass | undefined): boolean {
+    const sqlDataType = typeClass?.sqlDataType
+    return sqlDataType?.family === 'document' && sqlDataType.format === 'json'
+}

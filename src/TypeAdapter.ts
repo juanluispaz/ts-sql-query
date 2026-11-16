@@ -1,7 +1,7 @@
 import { oracleDateParam } from './utils/metadataSymbols.js'
 import type { ConnectionConfiguration, DatabaseType } from './queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
-import { __isLocalDateTime, __isLocalTime } from './typeSystem/dataTypes.js'
+import { __temporalFieldsOf } from './typeSystem/dataTypes.js'
 import type { BuiltInDataType } from './typeSystem/builtInDataTypes.js'
 
 /**
@@ -528,7 +528,7 @@ export class OracleDateAsTimestampTypeAdapter implements TypeAdapter {
      */
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         const result = next.transformValueToDB(value, context)
-        if (__isLocalDateTime(context.requestedType.type, context.requestedType.customType) || __isLocalTime(context.requestedType.type, context.requestedType.customType)) {
+        if (__temporalFieldsOf(context.requestedType) === 'timestamp' || __temporalFieldsOf(context.requestedType) === 'time') {
             context.setMetadata(oracleDateParam, true)
         }
         return result

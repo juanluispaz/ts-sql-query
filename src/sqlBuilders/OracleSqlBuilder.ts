@@ -12,7 +12,7 @@ import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isBoolean, __isLocalDateTime, __isLocalTime, __isUuid } from '../typeSystem/dataTypes.js'
+import { __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
@@ -439,7 +439,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (this._nativeBoolean()) {
             return super._appendConditionParam(value, context, typeClass, forceTypeCast)
         }
-        if (__isBoolean(typeClass.type, typeClass.customType)) {
+        if (__sqlFamilyOf(typeClass) === 'boolean') {
             if (__isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
                 const typeAdapter = columnPrivate.__typeAdapter
@@ -655,7 +655,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._forceAsIdentifier(name)
     }
     override _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
-        if (__isUuid(typeClass.type, typeClass.customType) && this._uuidUsesRawFunctions()) {
+        if (__sqlFamilyOf(typeClass) === 'uuid' && this._uuidUsesRawFunctions()) {
             return 'uuid_to_raw(' + super._appendParam(value, context, typeClass, forceTypeCast) + ')'
         }
         return super._appendParam(value, context, typeClass, forceTypeCast)
@@ -1320,7 +1320,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return undefined
         }
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), valueSourcePrivate.__type, valueSourcePrivate.__customType, this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __classOf(valueSourcePrivate), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? 'sys_extract_utc(' + zoned + ')' : undefined
     }
     // Oracle counts a negative start from the end like JS, but answers '' once the start runs
@@ -1524,11 +1524,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
  * time alone): `cast(timestamp '1970-01-01 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or the
  * current date of the session for `'today'`. A wall clock the zone skips gives ORA-01878. Undefined for any other type.
  */
-export function oracleZonedValueSql(sql: string, type: string, customType: CustomType | undefined, localTimeReferenceDate: string | undefined): string | undefined {
-    if (__isLocalDateTime(type, customType)) {
+export function oracleZonedValueSql(sql: string, typeClass: DataTypeClass, localTimeReferenceDate: string | undefined): string | undefined {
+    const fields = __temporalFieldsOf(typeClass)
+    if (fields === 'timestamp') {
         return 'cast(' + sql + ' as timestamp with time zone)'
     }
-    if (__isLocalTime(type, customType)) {
+    if (fields === 'time') {
         const day = localTimeReferenceDate === 'today' ? 'cast(trunc(localtimestamp) as timestamp)' : "timestamp '" + (localTimeReferenceDate ?? '1970-01-01') + " 00:00:00'"
         return 'cast(' + day + ' + (' + sql + ' - trunc(' + sql + ')) as timestamp with time zone)'
     }

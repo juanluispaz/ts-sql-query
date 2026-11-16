@@ -536,7 +536,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, concat('[', string_agg(isnull('"' + convert(nvarchar(41), optional_release_ordinal) + '"', 'null'), ','), ']') as ords from release_overview where project_id = @0 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, concat('[', string_agg(isnull(convert(nvarchar(41), optional_release_ordinal), 'null'), ','), ']') as ords from release_overview where project_id = @0 group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -776,7 +776,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, amounts })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg('"' + convert(nvarchar(41), a_1_.result, 3) + '"', ','), ']') from (select billed_amount as result from issue_worklog where issue_id = issue.id order by result offset 0 rows) as a_1_) as amounts from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select concat('[', string_agg(convert(nvarchar(41), a_1_.result, 3), ','), ']') from (select billed_amount as result from issue_worklog where issue_id = issue.id order by result offset 0 rows) as a_1_) as amounts from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -799,7 +799,7 @@ describe(ctx.label, () => {
             .groupBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as issueId, concat('[', string_agg('"' + convert(nvarchar(41), billed_amount, 3) + '"', ','), ']') as amounts from issue_worklog where issue_id = @0 group by issue_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as issueId, concat('[', string_agg(convert(nvarchar(41), billed_amount, 3), ','), ']') as amounts from issue_worklog where issue_id = @0 group by issue_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

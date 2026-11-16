@@ -22,7 +22,7 @@ import { getWithData, hasWithData } from './SqlBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { __isAggregatedArray, __isBigint, __isDouble, __isExactDecimal, __isInt } from '../typeSystem/dataTypes.js'
+import { __isExactDecimal, __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSource, __isStringValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
@@ -590,7 +590,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // *inside* its parent's JSON and must stay a JSON array, not become a quoted string.
         // On the connectors that already hand the aggregate back as text (Oracle, SQL Server,
         // SQLite) `_finalizeAggregatedArrayResult` is the identity, so their SQL is untouched.
-        if (isOutermostQuery && isValueSource(value) && __isAggregatedArray(__getValueSourcePrivate(value).__type, __getValueSourcePrivate(value).__customType)) {
+        if (isOutermostQuery && isValueSource(value) && __isJsonDocumentSql(__classOf(__getValueSourcePrivate(value)))) {
             return this._finalizeAggregatedArrayResult(sql)
         }
         return sql
@@ -3845,16 +3845,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!isValueSource(operand)) {
             return 'unknown'
         }
-        const operandPrivate = __getValueSourcePrivate(operand)
-        const type = operandPrivate.__type
-        const customType = operandPrivate.__customType
-        if (customType === undefined && type === 'double') {
-            return 'approximate'
+        switch (__sqlFamilyOf(__classOf(__getValueSourcePrivate(operand)))) {
+            case 'approximate numeric':
+                return 'approximate'
+            case 'exact numeric':
+                return 'exact'
+            default:
+                return 'unknown'
         }
-        if (__isInt(type, customType) || __isBigint(type, customType) || __isExactDecimal(type, customType)) {
-            return 'exact'
-        }
-        return 'unknown'
     }
     _appendCastAsDouble(sql: string): string {
         return 'cast(' + sql + ' as real)'
@@ -4274,7 +4272,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return typeof value === 'number' && !Number.isInteger(value)
     }
-    _moduloRequiresFloatHandling(type: string, customType: CustomType | undefined, value: any): boolean {
+    _moduloRequiresFloatHandling(typeClass: DataTypeClass, value: any): boolean {
         // `_modulo` only receives the receiver's column type, but the
         // overloaded-number dispatcher promotes the result to `double` whenever
         // either operand is a floating-point value (a `double` / `customDouble`
@@ -4284,12 +4282,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // switch to their numeric form regardless of which side is the double.
         // Pure integer / bigint operands keep the plain `%` form (those engines
         // accept it).
-        if (__isDouble(type, customType)) {
+        if (__sqlFamilyOf(typeClass) === 'approximate numeric') {
             return true
         }
         if (isValueSource(value)) {
-            const valuePrivate = __getValueSourcePrivate(value)
-            return __isDouble(valuePrivate.__type, valuePrivate.__customType)
+            return __sqlFamilyOf(__classOf(__getValueSourcePrivate(value))) === 'approximate numeric'
         }
         return typeof value === 'number' && !Number.isInteger(value)
     }
@@ -4343,7 +4340,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (valuePrivate.isConstValue()) {
                 return Number.isInteger(this._transformParamToDB(valuePrivate.getConstValue(), __classOf(valuePrivate)))
             }
-            return (valuePrivate.__customType === undefined && valuePrivate.__type === 'int') || (valuePrivate.__customType === undefined && valuePrivate.__type === 'bigint') || valuePrivate.__customType === 'customInt' || valuePrivate.__customType === 'customBigint'
+            return __isIntegerSql(__classOf(valuePrivate))
         }
         return false
     }

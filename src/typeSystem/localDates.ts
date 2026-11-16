@@ -1,7 +1,6 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, ValueSource } from './base.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
 import { __operation0 } from '../nodes/operations.js'
 import type { DataTypeValueSource } from '../nodes/NodeStrategy.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -17,13 +16,17 @@ function datePartOf(valueSource: DataTypeValueSource, operation: keyof SqlFuncti
     return __operation0(valueSource, operation, IntType)
 }
 
-/** A date without a zone */
 /** The types in the database of a localDate, a localTime and a localDateTime */
 export const localDateSqlDataType: SqlDataType = { family: 'datetime', fields: 'date' }
 export const localTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'time' }
 export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'timestamp' }
 
-export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+/**
+ * The family of a date without a zone. A data type of the user extends it with its type name, sent and read as one:
+ * `class ReleaseDayType extends LocalDatesType<ReleaseDay, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }`
+ */
+export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    static override readonly sqlDataType: SqlDataType | undefined = localDateSqlDataType
 
     getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     getDate(): any {
@@ -43,8 +46,13 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableTy
     }
 }
 
-/** A time of the day without a zone */
-export abstract class LocalTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+/**
+ * The family of a time of the day without a zone. A data type of the user extends it with its type name, sent and
+ * read as one:
+ * `class OpeningTimeType extends LocalTimesType<OpeningTime, 'OpeningTime'> { static override readonly type = 'OpeningTime' }`
+ */
+export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    static override readonly sqlDataType: SqlDataType | undefined = localTimeSqlDataType
 
     getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     getHours(): any {
@@ -64,8 +72,13 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE> extends ComparableTy
     }
 }
 
-/** A date and a time of the day without a zone */
-export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+/**
+ * The family of a date and a time of the day without a zone. A data type of the user extends it with its type name,
+ * sent and read as one:
+ * `class AuditStampType extends LocalDateTimesType<AuditStamp, 'AuditStamp'> { static override readonly type = 'AuditStamp' }`
+ */
+export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    static override readonly sqlDataType: SqlDataType | undefined = localDateTimeSqlDataType
 
     getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     getDate(): any {
@@ -106,28 +119,19 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE> extends Comparab
 }
 
 /** A date without a zone, a JavaScript Date */
-export abstract class LocalDateType extends LocalDatesType<Date> {
+export abstract class LocalDateType extends LocalDatesType<Date, 'localDate'> {
     static override readonly type = 'localDate'
     static override readonly customType = undefined
-    static override readonly sqlDataType: SqlDataType = localDateSqlDataType
-    declare [typeName]: 'type:localDate:'
-    declare [operandTypeName]: 'type:localDate:'
 }
 
 /** A time of the day without a zone, a JavaScript Date */
-export abstract class LocalTimeType extends LocalTimesType<Date> {
+export abstract class LocalTimeType extends LocalTimesType<Date, 'localTime'> {
     static override readonly type = 'localTime'
     static override readonly customType = undefined
-    static override readonly sqlDataType: SqlDataType = localTimeSqlDataType
-    declare [typeName]: 'type:localTime:'
-    declare [operandTypeName]: 'type:localTime:'
 }
 
 /** A date and a time of the day without a zone, a JavaScript Date */
-export abstract class LocalDateTimeType extends LocalDateTimesType<Date> {
+export abstract class LocalDateTimeType extends LocalDateTimesType<Date, 'localDateTime'> {
     static override readonly type = 'localDateTime'
     static override readonly customType = undefined
-    static override readonly sqlDataType: SqlDataType = localDateTimeSqlDataType
-    declare [typeName]: 'type:localDateTime:'
-    declare [operandTypeName]: 'type:localDateTime:'
 }

@@ -1,18 +1,12 @@
-import type { SqlDataType } from '../TypeAdapter.js'
-import { decimalSqlDataType } from './decimals.js'
 import type { CustomTypeClass } from './base.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
 import { DecimalsType } from './decimals.js'
 
 /** The class `CustomDecimalType.of` made for each type name */
-const customDecimalClasses = new Map<string, CustomTypeClass<CustomDecimalType<any, any>>>()
+const customDecimalClasses = new Map<string, object>()
 
 /** An exact decimal number of a type of the user, of its type name */
-export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DecimalsType<VALUE_TYPE> {
+export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DecimalsType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'customDecimal'
-    static override readonly sqlDataType: SqlDataType = decimalSqlDataType
-    declare [typeName]: `type:${TYPE_NAME}:customDecimal:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customDecimal:`
 
     /** The data type of an exact decimal number of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomDecimalType<VALUE_TYPE, TYPE_NAME>> {
@@ -24,6 +18,6 @@ export abstract class CustomDecimalType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_N
             result = CustomDecimal
             customDecimalClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<CustomDecimalType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<CustomDecimalType<VALUE_TYPE, TYPE_NAME>>
     }
 }

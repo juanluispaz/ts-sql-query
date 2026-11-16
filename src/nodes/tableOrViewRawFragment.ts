@@ -18,7 +18,6 @@ export class TableOrViewRawFragmentValueSource implements TypedValueSource<any, 
     [typeName]: any
 
     [isValueSourceObject]: true = true
-    __type: string = ''
     __optionalType: OptionalType = 'required'
     /** It has no data type, and no type adapter */
     get __typeAdapter(): TypeAdapter | undefined {

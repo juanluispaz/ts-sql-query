@@ -36,8 +36,12 @@ export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
  */
 export type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
-/** What a type adapter reads of the class of a data type (`StringType`, a class an `of` made): its type and custom type */
+/** What a type adapter reads of the class of a data type (`StringType`, `MoneyType`): its type name and custom type */
 export interface DataTypeClass {
+    /**
+     * The type name of the data type (`'int'`, `'Money'`): the static `type` of its class, which a class of the user
+     * says by convention; when it doesn't, the name of the class (`MoneyType`)
+     */
     readonly type: string
     readonly customType: CustomType | undefined
     /**

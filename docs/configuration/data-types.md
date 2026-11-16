@@ -75,7 +75,7 @@ The type name is part of the type of the column: another column or expression ca
 
 The built-in types have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families of the custom types. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
 
-Each of these classes has a type guard, `is`, that says whether a value is a value source of its type, like a column or an expression: `MyIntDataType.is(value)`. A class with more than one type, like a family, says yes to any of its types: `CustomIntType.is(value)` is true for every `customInt`. A condition made by an `*IfValue` method is a `boolean` there.
+Each of these classes has a type guard, `is`, that says whether a value source, like a column or an expression, is of its type: `MyIntDataType.is(value)`. A class with more than one type, like a family, says yes to any of its types: `CustomIntType.is(value)` is true for every `customInt`. A condition made by an `*IfValue` method is a `boolean` there. The value source keeps its source and its optionality: from a union of value sources, `is` leaves the ones of its type, and a value source of a wider type, like a `NumberType` asked with `IntType.is`, becomes one of the type asked. A value that may not be a value source is asked with `instanceof` (`value instanceof IntType`), which says only its class.
 
 !!! tip "Generating UUIDs"
 

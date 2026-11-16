@@ -1,36 +1,54 @@
+import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { IntType } from './number.js'
 import type { INumberValue, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
-import type { operandTypeName } from '../utils/symbols.js'
+import type { additiveValueSource, operandTypeName } from '../utils/symbols.js'
+import type { NSource } from '../utils/sourceName.js'
+import type { TypedValueSource } from './valueSource.js'
 import { __registeredDataType } from './dataTypeRegistry.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
 import { __keptClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { doubleSqlDataType, intSqlDataType } from './numericSqlDataTypes.js'
 
 /*
- * The numeric data types that work only with themselves (bigint, the exact decimals and the custom numbers), by what
- * they share: their bases. The numbers of JavaScript are in number.ts and the exact decimals in decimals.ts.
+ * The numbers, by what they can do: each level adds operations, and a data type works only with itself (outside the
+ * group number of number.ts, which combines an int and a double): what it takes and what it gives is its data type.
+ *
+ * ArithmeticType
+ * ├── NumberType (number.ts)        the numbers of JavaScript: int and double work together
+ * └── AdditiveType                  added and subtracted (a sum of money)
+ *     └── MultipliableType          multiplied
+ *         ├── IntegersType          the integers: BigintType (bigint.ts)
+ *         ├── DecimalsType          the exact decimals (decimals.ts): StringDecimalType
+ *         └── DivisibleType         divided
+ *             └── RealsType         the floating point numbers, with their functions
+ *
+ * A data type of the user extends the level of what it can do, with its type name; IntegersType, DecimalsType and
+ * RealsType send and read it as an int, an exact decimal and a double, the others convert nothing.
  */
 
-/** A numeric data type that works only with itself */
-export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+/** What a position that takes a value source of any number that works only with itself accepts (sum, average) */
+export interface IAnyAdditiveValueSource</*in|out*/ SOURCE extends NSource> extends TypedValueSource<SOURCE, any, any> {
+    [additiveValueSource]: 'AdditiveValueSource'
+}
+
+/** A number: the root of the numbers */
+export abstract class ArithmeticType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+}
+
+/**
+ * A number that is added and subtracted with itself (a sum of money). A data type of the user extends it with its type
+ * name, as a value only the user knows (the library converts nothing and gives it no SQL data type):
+ * `class MoneyType extends AdditiveType<Money, 'Money'> { static override readonly type = 'Money' }`
+ */
+export abstract class AdditiveType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ArithmeticType<VALUE_TYPE, TYPE_NAME> {
+    declare [additiveValueSource]: 'AdditiveValueSource'
 
     abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abs(): any {
         return __operation0(this, '_abs', __computedClassOf(this, __typeClassOf(this)))
-    }
-    ceil(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    ceil(): any {
-        return __operation0(this, '_ceil', __computedClassOf(this, __typeClassOf(this)))
-    }
-    floor(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    floor(): any {
-        return __operation0(this, '_floor', __computedClassOf(this, __typeClassOf(this)))
-    }
-    round(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    round(): any {
-        return __operation0(this, '_round', __computedClassOf(this, __typeClassOf(this)))
     }
     sign(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     sign(): any {
@@ -61,6 +79,10 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
     modulo(value: any): any {
         return __operation1(this, '_modulo', value, __computedClassOf(this, __typeClassOf(this)))
     }
+}
+
+/** A number that is also multiplied by itself; a data type of the user extends it as AdditiveType */
+export abstract class MultipliableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends AdditiveType<VALUE_TYPE, TYPE_NAME> {
     multiply(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     multiply<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     multiply(value: any): any {
@@ -68,14 +90,51 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
     }
 }
 
-/** An integer number that works only with itself (bigint, customInt, customBigint) */
-export abstract class IntegersType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
-
+/**
+ * An integer number that works only with itself (bigint, and a data type of the user). A data type of the user extends
+ * it with its type name, sent and read as an int, a JavaScript number, unless its class says another SQL data type or
+ * another conversion: `class QuantityType extends IntegersType<number, 'Quantity'> { static override readonly type = 'Quantity' }`
+ */
+export abstract class IntegersType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableType<VALUE_TYPE, TYPE_NAME> {
+    static override readonly sqlDataType: SqlDataType | undefined = intSqlDataType
 }
 
-/** A floating point number that works only with itself (customDouble): its floating point functions keep its data type */
-export abstract class RealsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
+/** A number that is also divided by itself; a data type of the user extends it as AdditiveType */
+export abstract class DivisibleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableType<VALUE_TYPE, TYPE_NAME> {
+    divide(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    divide<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    divide(value: any): any {
+        return __operation1(this, '_divide', value, __computedClassOf(this, __typeClassOf(this)))
+    }
+}
 
+/**
+ * A floating point number that works only with itself: its floating point functions keep its data type. A data type of
+ * the user extends it with its type name, sent and read as a double:
+ * `class RatioType extends RealsType<number, 'Ratio'> { static override readonly type = 'Ratio' }`
+ */
+export abstract class RealsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DivisibleType<VALUE_TYPE, TYPE_NAME> {
+    static override readonly sqlDataType: SqlDataType | undefined = doubleSqlDataType
+
+    ceil(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    ceil(): any {
+        return __operation0(this, '_ceil', __computedClassOf(this, __typeClassOf(this)))
+    }
+    floor(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    floor(): any {
+        return __operation0(this, '_floor', __computedClassOf(this, __typeClassOf(this)))
+    }
+    round(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    round(): any {
+        return __operation0(this, '_round', __computedClassOf(this, __typeClassOf(this)))
+    }
+    roundn(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    roundn(value: number): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    roundn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    roundn(value: any): any {
+        return __operation1(this, '_roundn', value, __computedClassOf(this, __typeClassOf(this)))
+    }
     exp(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     exp(): any {
         return __operation0(this, '_exp', __typeClassOf(this))
@@ -133,18 +192,6 @@ export abstract class RealsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE
     logn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     logn(value: any): any {
         return __operation1(this, '_logn', value, __typeClassOf(this))
-    }
-    roundn(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    roundn(value: number): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    roundn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    roundn(value: any): any {
-        return __operation1(this, '_roundn', value, __computedClassOf(this, __typeClassOf(this)))
-    }
-    divide(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    divide<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    divide(value: any): any {
-        return __operation1(this, '_divide', value, __computedClassOf(this, __typeClassOf(this)))
     }
     atan2(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     atan2<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>

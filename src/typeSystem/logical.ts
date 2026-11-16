@@ -21,12 +21,11 @@ import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.j
 /** What a position that takes a boolean value accepts */
 export type IBooleanValue = IValueWithType<'type:boolean:logical:'>
 
-/** A boolean value */
 /** The type in the database of a boolean */
 export const booleanSqlDataType: SqlDataType = { family: 'boolean' }
 
-export abstract class BooleanType extends EqualableType<boolean> {
-    /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
+/** A boolean value */
+export abstract class BooleanType extends EqualableType<boolean, string> {
     static override readonly type = 'boolean'
     static override readonly customType = undefined
     static override readonly sqlDataType: SqlDataType = booleanSqlDataType

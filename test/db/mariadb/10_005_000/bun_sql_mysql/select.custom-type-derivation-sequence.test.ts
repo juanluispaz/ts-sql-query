@@ -73,15 +73,15 @@ describe(ctx.label, () => {
         })
     })
 
-    test('sequence/custom-int-ceil-keeps-the-sequence-data-type', async () => {
+    test('sequence/custom-int-abs-keeps-the-sequence-data-type', async () => {
         await ctx.withCommit(async () => {
             // The ceiling of the same sum: no extra bound operand, and the answer
             // 42 reads back as 0.42.
             ctx.mockNext(42)
             const v = await ctx.conn.selectFrom(tDerivedColumn)
-                .selectOneColumn(ctx.conn.derivedTagSeq.nextValue().multiply(0).add(tDerivedColumn.releaseTag).ceil())
+                .selectOneColumn(ctx.conn.derivedTagSeq.nextValue().multiply(0).add(tDerivedColumn.releaseTag).abs())
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil((nextval(release_tag_seq) * ?) + m_int) as result from col_matrix"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs((nextval(release_tag_seq) * ?) + m_int) as result from col_matrix"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 0,

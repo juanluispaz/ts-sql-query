@@ -1,25 +1,20 @@
 import type { SqlDataType } from '../TypeAdapter.js'
-import { intSqlDataType, doubleSqlDataType } from './number.js'
-import { bigintSqlDataType } from './bigint.js'
+import { bigintSqlDataType } from './numericSqlDataTypes.js'
 import type { CustomTypeClass } from './base.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
 import { IntegersType, RealsType } from './numeric.js'
 
 /** The class `CustomIntType.of` made for each type name */
-const customIntClasses = new Map<string, CustomTypeClass<CustomIntType<any, any>>>()
+const customIntClasses = new Map<string, object>()
 
 /** The class `CustomBigintType.of` made for each type name */
-const customBigintClasses = new Map<string, CustomTypeClass<CustomBigintType<any, any>>>()
+const customBigintClasses = new Map<string, object>()
 
 /** The class `CustomDoubleType.of` made for each type name */
-const customDoubleClasses = new Map<string, CustomTypeClass<CustomDoubleType<any, any>>>()
+const customDoubleClasses = new Map<string, object>()
 
 /** An integer number of a type of the user, of its type name */
-export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
+export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'customInt'
-    static override readonly sqlDataType: SqlDataType = intSqlDataType
-    declare [typeName]: `type:${TYPE_NAME}:customInt:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customInt:`
 
     /** The data type of an integer number of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>> {
@@ -31,16 +26,14 @@ export abstract class CustomIntType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
             result = CustomInt
             customIntClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<CustomIntType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
 /** An integer number of 64 bits of a type of the user, of its type name */
-export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE> {
+export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends IntegersType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'customBigint'
     static override readonly sqlDataType: SqlDataType = bigintSqlDataType
-    declare [typeName]: `type:${TYPE_NAME}:customBigint:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customBigint:`
 
     /** The data type of an integer number of 64 bits of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>> {
@@ -52,16 +45,13 @@ export abstract class CustomBigintType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
             result = CustomBigint
             customBigintClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<CustomBigintType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
 /** A floating point number of a type of the user, of its type name */
-export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends RealsType<VALUE_TYPE> {
+export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends RealsType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'customDouble'
-    static override readonly sqlDataType: SqlDataType = doubleSqlDataType
-    declare [typeName]: `type:${TYPE_NAME}:customDouble:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customDouble:`
 
     /** The data type of a floating point number of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>> {
@@ -73,6 +63,6 @@ export abstract class CustomDoubleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
             result = CustomDouble
             customDoubleClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<CustomDoubleType<VALUE_TYPE, TYPE_NAME>>
     }
 }

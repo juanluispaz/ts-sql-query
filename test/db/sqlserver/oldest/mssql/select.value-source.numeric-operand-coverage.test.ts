@@ -1143,15 +1143,15 @@ describe(ctx.label, () => {
         }
     })
 
-    test('num-tail/bigint-opt-receiver-rounding-and-arithmetic', async () => {
+    test('num-tail/bigint-opt-receiver-arithmetic', async () => {
         // Optional-bigint receiver (duration_ms, = 5400000 for worklog 1,
-        // present). rounding (ceil/floor/round) + const-operand arithmetic
+        // present). const-operand arithmetic
         // (subtract/modulo/minValue/maxValue) keep the OPTIONAL marker → every
-        // leaf `?: bigint`. Over 5400000n: ceil/floor/round = 5400000n,
+        // leaf `?: bigint`. Over 5400000n:
         // subtract(1n) = 5399999n, modulo(1000000n) = 400000n, minValue(1n) =
         // greatest(5400000,1) = 5400000n, maxValue(1n) = least(5400000,1) = 1n.
         const expected = {
-            id: 1, c: 5400000n, f: 5400000n, r: 5400000n,
+            id: 1,
             s: 5399999n, mo: 400000n, mn: 5400000n, mx: 1n,
         }
         ctx.mockNext(expected)
@@ -1159,16 +1159,13 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({
                 id: tIssueWorklog.id,
-                c:  tIssueWorklog.durationMs.ceil(),
-                f:  tIssueWorklog.durationMs.floor(),
-                r:  tIssueWorklog.durationMs.round(),
                 s:  tIssueWorklog.durationMs.subtract(1n),
                 mo: tIssueWorklog.durationMs.modulo(1000000n),
                 mn: tIssueWorklog.durationMs.minValue(1n),
                 mx: tIssueWorklog.durationMs.maxValue(1n),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(duration_ms) as c, floor(duration_ms) as f, round(duration_ms, 0) as r, duration_ms - @0 as s, duration_ms % @1 as mo, case when duration_ms is null then null else iif(duration_ms > @2, duration_ms, @3) end as mn, case when duration_ms is null then null else iif(duration_ms < @4, duration_ms, @5) end as mx from issue_worklog where id = @6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms - @0 as s, duration_ms % @1 as mo, case when duration_ms is null then null else iif(duration_ms > @2, duration_ms, @3) end as mn, case when duration_ms is null then null else iif(duration_ms < @4, duration_ms, @5) end as mx from issue_worklog where id = @6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1n,
@@ -1181,14 +1178,11 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, {
-            id: number; c?: bigint; f?: bigint; r?: bigint
+            id: number;
             s?: bigint; mo?: bigint; mn?: bigint; mx?: bigint
         }>>()
         if (ctx.realDbEnabled) {
             expect(row.id).toBe(1)
-            expect(BigInt(row.c!)).toBe(5400000n)
-            expect(BigInt(row.f!)).toBe(5400000n)
-            expect(BigInt(row.r!)).toBe(5400000n)
             expect(BigInt(row.s!)).toBe(5399999n)
             expect(BigInt(row.mo!)).toBe(400000n)
             expect(BigInt(row.mn!)).toBe(5400000n)

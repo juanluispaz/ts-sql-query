@@ -15,6 +15,11 @@ import { CustomDecimalType as CustomDecimalTypeClass } from '../typeSystem/custo
 import { CustomIntType as CustomIntTypeClass } from '../typeSystem/customNumber.js'
 import { IntType as IntTypeClass, NumberType as NumberTypeClass } from '../typeSystem/number.js'
 import { IfType as IfTypeClass } from '../typeSystem/logical.js'
+import type { typeName } from '../utils/symbols.js'
+import { AdditiveType as AdditiveTypeClass, IntegersType as IntegersTypeClass, MultipliableType as MultipliableTypeClass, DivisibleType as DivisibleTypeClass, RealsType as RealsTypeClass } from '../typeSystem/numeric.js'
+import { DecimalsType as DecimalsTypeClass } from '../typeSystem/decimals.js'
+import { EqualableType as EqualableTypeClass } from '../typeSystem/equalable.js'
+import { ComparableType as ComparableTypeClass } from '../typeSystem/comparable.js'
 import { Table } from '../Table.js'
 import type { Column } from '../utils/Column.js'
 import type { OptionalOf, SourceOf, TypeOf } from '../typeSystem/base.js'
@@ -208,7 +213,8 @@ declare const aStatus: ValueSource<'s1/', EnumType<'a' | 'b', 'Status'>, 'requir
 declare const customStatus: ValueSource<'s1/', CustomEqualableType<'a' | 'b', 'Status'>, 'required'>
 aStatus.equals('a')
 aStatus.in(['a', 'b'])
-// @ts-expect-error an enumeration is not a custom type of the same type name
+// The NType is the type name, whatever the family: two data types of the same type name are one for TypeScript (an
+// error of the user)
 aStatus.equals(customStatus)
 // @ts-expect-error an enumeration has no order
 aStatus.lessThan('a')
@@ -255,20 +261,38 @@ const equalsAny = aString.equals(5 as any)
 const equalsAnyIsUsable: ValueSource<'s1/', BooleanType, 'required'> = equalsAny
 void equalsAnyIsUsable
 
-// The type guard of a data type: a value source of that data type, with any source and optionality
+// The type guard of a data type: it narrows a value source keeping its source and optionality
+declare const anyValue: any
+if (IntTypeClass.is(anyValue)) {
+    // Any given, any kept: the value source of the data type, of any source and optionality
+    assertType<Equal<typeof anyValue, ValueSource<any, IntType, any>>>()
+}
+declare const intOrString: ValueSource<'s1/', IntType, 'required'> | ValueSource<'s2/', StringType, 'optional'>
+if (IntTypeClass.is(intOrString)) {
+    assertType<Equal<typeof intOrString, ValueSource<'s1/', IntType, 'required'>>>()
+}
+declare const someNumber: ValueSource<'s2/', NumberType, 'optional'>
+if (IntTypeClass.is(someNumber)) {
+    // A data type it extends: the one asked, with the source and optionality of the value source
+    assertType<Equal<typeof someNumber, ValueSource<'s2/', IntType, 'optional'>>>()
+    anInt.equals(someNumber)
+}
+if (NumberTypeClass.is(intOrString)) {
+    assertType<Equal<typeof intOrString, ValueSource<'s1/', IntType, 'required'>>>()
+}
+if (MoneyType.is(aMoney)) {
+    assertType<Equal<typeof aMoney, ValueSource<'s1/', CustomIntType<Money, 'Money'>, 'required'>>>()
+}
 declare const anything: unknown
-if (IntTypeClass.is(anything)) {
-    assertType<Equal<typeof anything, ValueSource<any, IntType, any>>>()
-}
-if (NumberTypeClass.is(anything)) {
-    assertType<Equal<typeof anything, ValueSource<any, NumberType, any>>>()
-}
-if (MoneyType.is(anything)) {
-    assertType<Equal<typeof anything, ValueSource<any, CustomIntType<Money, 'Money'>, any>>>()
+// A value that may not be a value source: instanceof, which gives only the class
+// @ts-expect-error
+IntTypeClass.is(anything)
+if (anything instanceof IntTypeClass) {
+    assertType<Equal<typeof anything, IntType>>()
 }
 // A condition is a boolean at run time: its data type has no type guard
 // @ts-expect-error
-IfTypeClass.is(anything)
+IfTypeClass.is(anyValue)
 
 // A method that takes a data type takes its class too; a built-in one gives the same as by its name
 class ProbeConnection extends PostgreSqlConnection<'ProbeConnection'> {
@@ -321,3 +345,88 @@ abstract class ProbeWrongConversionType extends CustomIntTypeClass<number, 'Prob
     }
 }
 void ProbeWrongConversionType
+
+// The data types of the user: a class that extends the family of what it can do, with its type name in the generic,
+// and by convention in its static type; its NType is `type:<type name>:`
+interface Cash { cash: true }
+abstract class CashType extends AdditiveTypeClass<Cash, 'Cash'> { static override readonly type = 'Cash' }
+abstract class ScaledType extends MultipliableTypeClass<number, 'Scaled'> { static override readonly type = 'Scaled' }
+abstract class QuantityType extends IntegersTypeClass<number, 'Quantity'> { static override readonly type = 'Quantity' }
+abstract class UnitPriceType extends DecimalsTypeClass<string, 'UnitPrice'> { static override readonly type = 'UnitPrice' }
+abstract class ShareType extends DivisibleTypeClass<number, 'Share'> { static override readonly type = 'Share' }
+abstract class RatioType extends RealsTypeClass<number, 'Ratio'> { static override readonly type = 'Ratio' }
+abstract class TagType extends EqualableTypeClass<string, 'Tag'> { static override readonly type = 'Tag' }
+abstract class VersionType extends ComparableTypeClass<string, 'Version'> { static override readonly type = 'Version' }
+// Without the static type, the library names it by its class
+abstract class UnnamedType extends IntegersTypeClass<number, 'Unnamed'> {}
+class FamiliesTable extends Table<ProbeConnection, 'FamiliesTable'> {
+    cash = this.column('cash', CashType)
+    scaled = this.column('scaled', ScaledType)
+    quantity = this.column('quantity', QuantityType)
+    price = this.column('unit_price', UnitPriceType)
+    share = this.column('share', ShareType)
+    ratio = this.column('ratio', RatioType)
+    tag = this.column('tag', TagType)
+    version = this.column('version', VersionType)
+    unnamed = this.column('unnamed', UnnamedType)
+    // @ts-expect-error a family has no type name of its own
+    family = this.column('family', AdditiveTypeClass)
+    // @ts-expect-error nor a family of a custom data type
+    customFamily = this.column('family', IntegersTypeClass)
+    constructor() {
+        super('families')
+    }
+}
+declare const families: FamiliesTable
+assertType<Equal<typeof families.cash[typeof typeName], 'type:Cash:'>>()
+assertType<Equal<typeof families.quantity[typeof typeName], 'type:Quantity:'>>()
+assertType<Equal<TypeOf<typeof families.cash>, CashType>>()
+
+// Each level adds what its numbers can do, and each one works only with itself
+const cashSum = families.cash.add(families.cash)
+assertType<Equal<TypeOf<typeof cashSum>, CashType>>()
+families.cash.modulo(families.cash)
+// @ts-expect-error an additive number is not multiplied
+families.cash.multiply(families.cash)
+// @ts-expect-error nor rounded: its operations don't add digits
+families.cash.round()
+// @ts-expect-error a data type of the user works only with itself
+families.cash.add(families.scaled)
+families.scaled.multiply(families.scaled)
+// @ts-expect-error a multipliable number is not divided
+families.scaled.divide(families.scaled)
+families.quantity.multiply(families.quantity)
+// @ts-expect-error an integer is not divided
+families.quantity.divide(families.quantity)
+// @ts-expect-error nor rounded
+families.quantity.round()
+const priceRounded = families.price.roundn(2)
+assertType<Equal<TypeOf<typeof priceRounded>, UnitPriceType>>()
+const priceCeil = families.price.ceil()
+assertType<Equal<TypeOf<typeof priceCeil>, UnitPriceType>>()
+const priceRoot = families.price.sqrt()
+assertType<Equal<TypeOf<typeof priceRoot>, DoubleType>>()
+// @ts-expect-error an exact decimal is not divided
+families.price.divide(families.price)
+families.share.divide(families.share)
+// @ts-expect-error a divisible number has no floating point functions
+families.share.sqrt()
+const ratioRoot = families.ratio.sqrt()
+assertType<Equal<TypeOf<typeof ratioRoot>, RatioType>>()
+families.ratio.divide(families.ratio).floor()
+// @ts-expect-error a bigint is not rounded
+anInt.asBigint().round()
+families.tag.equals('a')
+// @ts-expect-error a value compared for equality has no order
+families.tag.lessThan('a')
+families.version.lessThan('1.0')
+// The sum of a number of the user is of its data type; what isn't a number is not summed
+const cashTotal = probeConnection.sum(families.cash)
+assertType<Equal<TypeOf<typeof cashTotal>, CashType>>()
+assertType<Equal<OptionalOf<typeof cashTotal>, 'optional'>>()
+const ratioAverage = probeConnection.average(families.ratio)
+assertType<Equal<TypeOf<typeof ratioAverage>, DoubleType>>()
+// @ts-expect-error a value compared for equality is not summed
+probeConnection.sum(families.tag)
+// @ts-expect-error nor a value with an order
+probeConnection.sum(families.version)

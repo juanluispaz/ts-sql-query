@@ -13,6 +13,7 @@ import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -93,7 +94,7 @@ export class AbstractQueryBuilder {
                 }
                 throw e
             } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: column }, e)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: column }, e)
             }
         }
         if (result !== null && result !== undefined) {
@@ -111,7 +112,7 @@ export class AbstractQueryBuilder {
                 errorMessage += ' of the count number of rows query'
             }
             errorMessage += ', but null or undefined value was found'
-            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: column }, errorMessage)
+            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: column }, errorMessage)
         }
         return result
     }
@@ -181,7 +182,7 @@ export class AbstractQueryBuilder {
                     errorMessage += ' at index `' + index + '`'
                 }
                 errorMessage += '. ' + e + '. JSON: ' + value
-                throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: errorPrefix }, errorMessage)
+                throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: errorPrefix }, errorMessage)
             }
         }
 
@@ -198,7 +199,7 @@ export class AbstractQueryBuilder {
                 errorMessage += ' at index `' + index + '`'
             }
             errorMessage += '. An array were expected'
-            throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__type, rowIndex: index, columnPath: errorPrefix }, errorMessage)
+            throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: errorPrefix }, errorMessage)
         }
 
         const columns = valueSourcePrivate.__aggregatedArrayColumns!

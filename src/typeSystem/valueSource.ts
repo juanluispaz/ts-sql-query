@@ -110,7 +110,6 @@ export interface TypedValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ 
 
 export interface __ValueSourcePrivate extends IQueryDataDiscovery {
     [isValueSourceObject]: true
-    __type: string
     __optionalType: OptionalType
     readonly __typeAdapter: TypeAdapter | undefined
     /**

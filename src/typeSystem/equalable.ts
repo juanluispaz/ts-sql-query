@@ -4,15 +4,22 @@ import type { BooleanType, IfValueSource } from './logical.js'
 import type { IExecutableSelectQuery, MergeOptional, MergeOptionalUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { optionalType, source } from '../utils/symbols.js'
-import type { operandTypeName } from '../utils/symbols.js'
+import type { operandTypeName, typeName } from '../utils/symbols.js'
 import { __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperationInValueSourceIfValueOrNoop } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalTypeN, getOptionalTypeOfIn } from '../nodes/operands.js'
 import { __newSqlOperation1NotOptionalValueSource, __newSqlOperation1ValueSource, __newSqlOperationInValueSource } from '../nodes/operations.js'
 import { __registeredDataType } from './dataTypeRegistry.js'
 import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
-/** A data type whose values can be compared for equality */
-export abstract class EqualableType</*in|out*/ VALUE_TYPE> extends NullableType<VALUE_TYPE> {
+/**
+ * A data type whose values can be compared for equality. A data type of the user extends it with its type name, as a
+ * value that only the user knows (the library converts nothing and gives it no SQL data type):
+ * `class StatusType extends EqualableType<Status, 'Status'> { static override readonly type = 'Status' }`
+ */
+export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends NullableType<VALUE_TYPE> {
+    declare [typeName]: `type:${TYPE_NAME}:`
+    declare [operandTypeName]: `type:${TYPE_NAME}:`
+
     equalsIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     equalsIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, __registeredDataType('condition'), getOptionalType2(this, value))

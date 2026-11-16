@@ -8,7 +8,7 @@ import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrat
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment, __isColumn } from '../typeSystem/valueSourceFactory.js'
-import { __isExactDecimalSql, __sqlFamilyOf } from '../typeSystem/dataTypes.js'
+import { __isExactDecimalSql, __sqlFamilyOf, __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
@@ -735,7 +735,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             } else if (__isLocalDateTimeValueSource(valueSourcePrivate)) {
                 return this._getDateTimeFormat('dateTime')
             } else {
-                throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE', typeName: valueSourcePrivate.__type }, 'Unknown date type: ' + valueSourcePrivate.__type)
+                throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE', typeName: __valueSourceTypeNameOf(valueSourcePrivate) }, 'Unknown date type: ' + __valueSourceTypeNameOf(valueSourcePrivate))
             }
         }
         throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE' }, 'Unable to determine the value source type')

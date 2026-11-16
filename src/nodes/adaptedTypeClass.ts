@@ -1,4 +1,5 @@
 import type { DataTypeClass, SqlDataType, TypeAdapter } from '../TypeAdapter.js'
+import { unadaptedClass } from '../utils/symbols.js'
 
 // The type adapter of a value source is part of its class: a value source with a type adapter is an instance of a
 // subclass of the class of its data type that carries the adapter. That subclass is created once for each class and
@@ -9,8 +10,6 @@ import type { DataTypeClass, SqlDataType, TypeAdapter } from '../TypeAdapter.js'
 export const typeAdapterOfClass: unique symbol = Symbol('typeAdapterOfClass')
 /** Whether an adapted class says the SQL data type of its adapter (a computed value has only its conversions) */
 const keepsSqlDataType: unique symbol = Symbol('keepsSqlDataType')
-/** The class an adapted class extends: the class of the data type without the adapter */
-const unadaptedClass: unique symbol = Symbol('unadaptedClass')
 /** The number given to a class of a data type, to index the subclasses kept in an adapter */
 const classIdKey: unique symbol = Symbol('dataTypeClassId')
 /** The subclasses an adapter made, by the number of the class they extend */

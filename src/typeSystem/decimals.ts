@@ -1,10 +1,11 @@
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
-import { NumericType } from './numeric.js'
+import { MultipliableType } from './numeric.js'
+import { decimalSqlDataType } from './numericSqlDataTypes.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
-import { arithmeticOperandClass, operandTypeName, typeName } from '../utils/symbols.js'
+import { arithmeticOperandClass } from '../utils/symbols.js'
 import { DoubleType, IntType } from './number.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
@@ -15,12 +16,13 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /**
  * The family of the exact decimal numbers: the value keeps every digit; a computation that can't be exact gives a
- * double. Its data types are stringDecimal and the custom ones; a decimal of a library extends it
+ * double. Its data types are stringDecimal and the ones of the user; a decimal of a library extends it. A data type of
+ * the user extends it with its type name, sent and read as its text:
+ * `class PriceType extends DecimalsType<Price, 'Price'> { static override readonly type = 'Price' }`
  */
-/** The type in the database of an exact decimal: a number with every digit, of any precision and scale */
-export const decimalSqlDataType: SqlDataType = { family: 'exact numeric' }
+export abstract class DecimalsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableType<VALUE_TYPE, TYPE_NAME> {
+    static override readonly sqlDataType: SqlDataType | undefined = decimalSqlDataType
 
-export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     /**
      * A number of JavaScript given to an arithmetic operation of an exact decimal (the decimals of `roundn`, the exponent
      * of `power`, ...) is an int when it is an integer and a double otherwise; a decimal is given as its text
@@ -30,6 +32,19 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VA
             return Number.isInteger(value) ? IntType : DoubleType
         }
         return undefined
+    }
+
+    ceil(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    ceil(): any {
+        return __operation0(this, '_ceil', __computedClassOf(this, __typeClassOf(this)))
+    }
+    floor(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    floor(): any {
+        return __operation0(this, '_floor', __computedClassOf(this, __typeClassOf(this)))
+    }
+    round(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    round(): any {
+        return __operation0(this, '_round', __computedClassOf(this, __typeClassOf(this)))
     }
 
 
@@ -104,10 +119,7 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VA
 }
 
 /** An exact decimal number that the library delivers as its text, a JavaScript string */
-export abstract class StringDecimalType extends DecimalsType<string> {
+export abstract class StringDecimalType extends DecimalsType<string, 'stringDecimal'> {
     static override readonly type = 'stringDecimal'
     static override readonly customType = undefined
-    static override readonly sqlDataType: SqlDataType = decimalSqlDataType
-    declare [typeName]: 'type:stringDecimal:'
-    declare [operandTypeName]: 'type:stringDecimal:'
 }

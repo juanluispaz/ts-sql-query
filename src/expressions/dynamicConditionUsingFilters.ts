@@ -4,19 +4,15 @@ import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
-import type { CustomComparableType } from '../typeSystem/customComparable.js'
-import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
-import type { EnumType } from '../typeSystem/enum.js'
-import type { LocalDateTimeType, LocalDateType, LocalTimeType } from '../typeSystem/localDates.js'
-import type { CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType } from '../typeSystem/customLocalDates.js'
+import type { LocalDateTimeType, LocalDateTimesType, LocalDateType, LocalDatesType, LocalTimeType, LocalTimesType } from '../typeSystem/localDates.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
-import type { CustomBigintType, CustomDoubleType, CustomIntType } from '../typeSystem/customNumber.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
-import type { CustomDecimalType } from '../typeSystem/customDecimals.js'
 import type { StringType } from '../typeSystem/strings.js'
-import type { UuidType } from '../typeSystem/uuids.js'
-import type { CustomUuidType } from '../typeSystem/customUuids.js'
+import type { UuidType, UuidsType } from '../typeSystem/uuids.js'
+import type { ComparableType } from '../typeSystem/comparable.js'
+import type { EqualableType } from '../typeSystem/equalable.js'
+import type { valueSourceType } from '../utils/symbols.js'
 
 export interface Filter {
 }
@@ -216,19 +212,17 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IValueSource<any, LocalDateTimeType, any> ? DateTimeFilter :
         TYPE extends IValueSource<any, LocalDateType, any> ? DateFilter :
         TYPE extends IValueSource<any, LocalTimeType, any> ? TimeFilter :
-        TYPE extends IValueSource<any, CustomIntType<any, any>, any> ? CustomIntFilter<T> :
-        TYPE extends IValueSource<any, CustomBigintType<any, any>, any> ? CustomBigintFilter<T> :
-        TYPE extends IValueSource<any, CustomDoubleType<any, any>, any> ? CustomDoubleFilter<T> :
-        TYPE extends IValueSource<any, CustomDecimalType<any, any>, any> ? CustomDecimalFilter<T> :
-        TYPE extends IValueSource<any, CustomUuidType<any, any>, any> ? CustomUuidFilter<T> :
-        TYPE extends IValueSource<any, CustomLocalDateType<any, any>, any> ? CustomLocalDateFilter<T> :
-        TYPE extends IValueSource<any, CustomLocalTimeType<any, any>, any> ? CustomLocalTimeFilter<T> :
-        TYPE extends IValueSource<any, CustomLocalDateTimeType<any, any>, any> ? CustomLocalDateTimeFilter<T> :
-        TYPE extends IValueSource<any, CustomComparableType<any, any>, any> ? ComparableFilter<T> :
-        TYPE extends IValueSource<any, EnumType<any, any>, any> ? EqualableFilter<T> :
-        TYPE extends IValueSource<any, CustomEqualableType<any, any>, any> ? EqualableFilter<T> :
         TYPE extends IValueSource<any, AggregatedArrayType<any>, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
-        Filter
+        // A data type of the user, by the family it extends (its NType is only its type name): the most precise first
+        TYPE extends { [valueSourceType]: infer DATA_TYPE } ? (
+            DATA_TYPE extends UuidsType<any, any> ? CustomUuidFilter<T> :
+            DATA_TYPE extends LocalDateTimesType<any, any> ? CustomLocalDateTimeFilter<T> :
+            DATA_TYPE extends LocalDatesType<any, any> ? CustomLocalDateFilter<T> :
+            DATA_TYPE extends LocalTimesType<any, any> ? CustomLocalTimeFilter<T> :
+            DATA_TYPE extends ComparableType<any, any> ? ComparableFilter<T> :
+            DATA_TYPE extends EqualableType<any, any> ? EqualableFilter<T> :
+            Filter
+        ) : Filter
     ) : never
 
 export type Filterable = DataToProjectOfAny

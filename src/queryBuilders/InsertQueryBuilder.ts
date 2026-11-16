@@ -19,6 +19,7 @@ import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
+import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -98,7 +99,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (e instanceof TsSqlError) {
                             throw e
                         } else {
-                            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: idColumnPrivate.__type }, e)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: __valueSourceTypeNameOf(idColumnPrivate) }, e)
                         }
                     }
                     // Without a conflict to skip the row, an id is always returned: a do nothing, a where of the
@@ -107,7 +108,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (result === undefined) {
                             throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                         } else if (result === null) {
-                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type }, 'Expected a value as result of the insert returning last inserted id, but null value was found')
+                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(idColumnPrivate) }, 'Expected a value as result of the insert returning last inserted id, but null value was found')
                         }
                     }
                     if (this.__isMultiple) {
@@ -121,7 +122,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             } else {
                 result = this.__sqlBuilder._queryRunner.executeQuery('insertReturningMultipleLastInsertedId', this.__query, executionParams).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
-                    const idType = idColumnPrivate.__type
+                    const idType = __valueSourceTypeNameOf(idColumnPrivate)
                     const defaultTypeAdapter = this.__sqlBuilder._nextTypeAdapter
                     const length = rows.length
                     const output = new Array(length)
@@ -141,7 +142,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             }
                         }
                         if (result === null || result === undefined) {
-                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__type, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
+                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(idColumnPrivate), rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                         }
                         output[index] = result
                     }

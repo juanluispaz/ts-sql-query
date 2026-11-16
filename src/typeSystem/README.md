@@ -15,9 +15,7 @@ Read this before changing anything here. The code is the reference; this file sa
   (a `BooleanConditionType`), which has them.
 - **A value source is an instance of the class of its data type**: `column('price', MoneyType)` is a `MoneyType`,
   `int.add(0.5)` a `DoubleType`, a comparison a `BooleanType` (a condition too). The library creates it with
-  `new typeClass(...)` (the `abstract` is only for TypeScript), and its constructor fills `__type` from the static
-  `type` of the class, the name of the data type for the messages of the errors. The run time knows a data type by its
-  class: what a value is, by the SQL data type of the class (below), and how the connection converts it, by the family
+  `new typeClass(...)` (the `abstract` is only for TypeScript). The run time knows a data type by its class: what a value is, by the SQL data type of the class (below), and how the connection converts it, by the family
   the class extends (`instanceof`, in [`dataTypeQuestions.ts`](./dataTypeQuestions.ts), which only the connections ask).
   **Nothing at run time reads the NType** below: it exists only for TypeScript.
 - **The conversions of the values of a data type** are statics of its class, with the names and parameters of a type
@@ -104,23 +102,25 @@ reads them (the flattening of a `concat`) sees the same thing with or without `I
 Every data type class declares its NType in `[typeName]`:
 
 ```
-type:<type>:<custom type or group>:
+type:<type name>:<group>:
 ```
 
-It always ends with `:`. The second segment is empty for a built-in data type, holds the family for a custom one, and
-holds the group for the data types that work together:
+It always ends with `:`. The first segment is the type name; the second one exists only for the data types that work
+together, their group:
 
 | Data type | NType |
 |---|---|
 | `string`, `uuid`, `bigint`, `stringDecimal`, `localDate`, ... | `type:string:`, `type:uuid:`, ... |
 | `int`, `double` (group `number`) | `type:int:number:`, `type:double:number:` |
 | boolean, the `if` and `alwaysIf` conditions (group `logical`) | `type:boolean:logical:`, `type:if:logical:`, `type:alwaysIf:logical:` |
-| a custom data type `'Money'` of `customInt` | `type:Money:customInt:` |
-| an enum `'Status'`, a custom `'Status'` | `type:Status:enum:`, `type:Status:custom:` (different data types) |
+| a data type of the user `'Money'`, of any family (and a custom one) | `type:Money:` |
 | the aggregated arrays | `type:aggregatedArray:` |
 
-Two different data types with the same type name (an enum and a custom one, two families) are a user error, and
-TypeScript rejects comparing them.
+A family that the user extends builds it from the type name in its generic (`` `type:${TYPE_NAME}:` ``): a class of the
+user declares nothing of it, and a built-in data type of a family gets it the same way (`BigintType extends
+IntegersType<bigint, 'bigint'>` is `type:bigint:`); only the data types of a group and `StringType` declare their own.
+What a data type can do is said by its methods, not by its NType: two data types of the user with the same type name
+are one for TypeScript, whatever their family, an error of the user.
 
 ## A value source is its data type plus where it is
 
@@ -149,22 +149,33 @@ can't be a column or be projected, and it has a value a boolean doesn't have, th
 BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static type/customType, the conversions
 ├── ValueSourceBaseType<VALUE_TYPE>          isConstValue, getConstValue, allowWhen, disallowWhen, is   (valueSourceBase.ts)
 │   ├── NullableType<VALUE_TYPE>             isNull, valueWhenNull, asOptional, onlyWhenOrNull, ...
-│   │   └── EqualableType<VALUE_TYPE>        equals, is, in, inN, ... (and their *IfValue forms)
+│   │   └── EqualableType<V, NAME>           equals, is, in, inN, ... (and their *IfValue forms)     ← user: compared for equality
 │   │       ├── BooleanType                  negate, and, or, onlyWhen, ...                          (logical.ts)
-│   │       ├── EnumType<T, NAME> (enum.ts), CustomEqualableType<T, NAME> (customEqualable.ts)
-│   │       └── ComparableType<VALUE_TYPE>   lessThan, between, ...
-│   │           ├── NumberType               the group number: IntType, DoubleType                         (number.ts)
-│   │           ├── NumericType<V>           the numbers that work only with themselves: abs, add, multiply, ... (numeric.ts)
-│   │           │   ├── IntegersType<V>      BigintType (bigint.ts), CustomIntType, CustomBigintType (customNumber.ts)
-│   │           │   ├── RealsType<V>         its floating point functions keep the data type: CustomDoubleType (customNumber.ts)
-│   │           │   └── DecimalsType<V>      exact; what can't be exact gives a double: StringDecimalType (decimals.ts), CustomDecimalType (customDecimals.ts)
-│   │           ├── StringsType<V>           StringType
-│   │           ├── UuidsType<V>             UuidType, CustomUuidType
-│   │           ├── LocalDatesType / LocalTimesType / LocalDateTimesType and their leaves and custom ones
-│   │           └── CustomComparableType<T, NAME>
+│   │       ├── EnumType<V, NAME>            the enumerations                                        ← user (enum.ts)
+│   │       └── ComparableType<V, NAME>      lessThan, between, ...                                  ← user: with an order
+│   │           ├── StringsType<V>           StringType (not extended by the user)
+│   │           ├── UuidsType<V, NAME>       UuidType                                                ← user: sent and read as a uuid
+│   │           ├── LocalDatesType / LocalTimesType / LocalDateTimesType<V, NAME> and their leaves   ← user: as a date, a time, both
+│   │           └── ArithmeticType<V, NAME>  the numbers (numeric.ts)
+│   │               ├── NumberType           the group number: IntType, DoubleType (number.ts)
+│   │               └── AdditiveType<V, NAME>        abs, sign, minValue, maxValue, add, subtract, modulo   ← user: converts nothing
+│   │                   └── MultipliableType<V, NAME>    multiply                                    ← user: converts nothing
+│   │                       ├── IntegersType<V, NAME>    BigintType (bigint.ts)                      ← user: as an int
+│   │                       ├── DecimalsType<V, NAME>    ceil, floor, round, roundn; what can't be exact gives a double: StringDecimalType (decimals.ts)  ← user: as its text
+│   │                       └── DivisibleType<V, NAME>   divide                                      ← user: converts nothing
+│   │                           └── RealsType<V, NAME>   ceil, floor, round, roundn, the floating point functions, of its data type  ← user: as a double
 │   └── AggregatedArraysType<V>              useEmptyArrayForNoValue, ...: AggregatedArrayType, AggregatedArrayProjectableAsNullableType
 └── ConditionType                            IfType, AlwaysIfType                                    (logical.ts)
 ```
+
+A data type of the user extends the family of what its values can do, with its type name in the generic and, by
+convention, in its static `type`: `class MoneyType extends AdditiveType<Money, 'Money'> { static override readonly type
+= 'Money' }`. The family gives it its methods, its SQL data type (`IntegersType` an int of 4 bytes, `DecimalsType` an
+exact number, `RealsType` a double, `UuidsType` and the dates theirs; the others none) and how the connection converts
+its values (the family it extends, by `instanceof`, in `dataTypeQuestions.ts`). Outside the group number, a data type
+works only with itself: what it takes and what it gives is its data type (the exceptions: `sign` gives an int, an
+exact decimal gives a double for what can't be exact, and the number of decimals of `roundn` is a number). The custom
+data types (`CustomIntType`, ...) are subclasses of these families that keep their `of` and `customType` until they go.
 
 A method that applies to several data types is declared once, in the class they share. The methods are `this`
 relative, so a method of a base gives back the data type of the value source it is called on:
@@ -179,28 +190,28 @@ abstract equals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(valu
 breaks depending on which module is loaded first: a class that extends one not yet evaluated throws a
 `ReferenceError`. An `import type` is erased from the JavaScript, so a cycle of types only is safe, and the types name
 the data types directly: the comparisons of `NullableType` and `EqualableType` give a `BooleanType` (an
-`EqualableType`) with `import type { BooleanType } from './logical.js'`, `NumericType.sign()` gives an `IntType`, and
+`EqualableType`) with `import type { BooleanType } from './logical.js'`, `AdditiveType.sign()` gives an `IntType`, and
 `CoalesceTypeOf` asks whether the data type is a `NumberType`. At run time a base never imports a data type that
 extends it: it asks the registry for the classes it needs (above). That is why the numbers are in several files: the
-bases that work only with themselves ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript
-([`number.ts`](./number.ts): int and double, the group number; [`bigint.ts`](./bigint.ts), which `asBigint` of a
-number gives) and the exact decimals ([`decimals.ts`](./decimals.ts)).
+bases ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript ([`number.ts`](./number.ts): int and double, the group
+number; [`bigint.ts`](./bigint.ts), which `asBigint` of a number gives), the exact decimals
+([`decimals.ts`](./decimals.ts)), and the SQL data types of the numbers
+([`numericSqlDataTypes.ts`](./numericSqlDataTypes.ts)), apart so the bases give them without importing the classes that
+extend them.
 
 **A family is named in plural, its data types in singular.** A class in plural is a family: the base that its data
-types extend, which has their shared methods and no type of its own (`UuidsType` for `UuidType` and `CustomUuidType`;
-`LocalDatesType` for `LocalDateType` and `CustomLocalDateType`; `DecimalsType` for `StringDecimalType`,
-`CustomDecimalType` and, tomorrow, the `Decimal` of JavaScript once it is standard, or the decimal of a library). A class
-in singular is a data type with a value: a built-in one (`UuidType`, `IntType`) or a custom one. A file in plural has a
-family and the built-in data types of it (`uuids.ts`, `localDates.ts`, `decimals.ts`); a file in singular has one data
-type, a group or the tiers (`enum.ts`; `bigint.ts`; `number.ts`, the group number; `logical.ts`, the group logical: the boolean and
-the conditions; `numeric.ts`, `comparable.ts`, ...). A new kind of
-values (the temporal types, the spatial ones, a decimal library) starts with its family in plural, so the custom ones
-and the ones that come later extend it.
+types extend, which has their shared methods and no type of its own (`UuidsType` for `UuidType`; `LocalDatesType` for
+`LocalDateType`; `DecimalsType` for `StringDecimalType` and, tomorrow, the `Decimal` of JavaScript once it is standard,
+or the decimal of a library). A class in singular is a data type with a value: a built-in one (`UuidType`, `IntType`)
+or one of the user. A file in plural has a family and the built-in data types of it (`uuids.ts`, `localDates.ts`,
+`decimals.ts`); a file in singular has one data type, a group or the tiers (`enum.ts`; `bigint.ts`; `number.ts`, the
+group number; `logical.ts`, the group logical: the boolean and the conditions; `numeric.ts`, `comparable.ts`, ...). A
+new kind of values (the spatial ones, a decimal library) starts with its family in plural, so the data types of the
+user and the ones that come later extend it.
 
 **The custom data types of a family are in a file of their own**, next to the file of the family they extend:
 `customNumber.ts` (customInt, customBigint, customDouble), `customDecimals.ts`, `customUuids.ts`, `customLocalDates.ts`,
-`customComparable.ts` and `customEqualable.ts`; `enum.ts` has the enumerations. A file of a family never imports its
-custom file.
+`customComparable.ts` and `customEqualable.ts`. A file of a family never imports its custom file.
 
 Each method declares the data type **the runtime gives** for its result (read it in the body of the method before
 declaring it): a getter of a date gives `IntType`, `asString()` of a uuid gives `StringType`, `length()` gives
@@ -216,11 +227,14 @@ type of both) when one of them can be either. A number given as a value (`intCol
 `1` and `0.5` are both `number` for TypeScript, and the runtime decides with the value (`Number.isInteger`).
 `valueWhenNull` widens the same way: `NullableType` declares its result as `CoalesceTypeOf<this, OPERAND>` (`OPERAND` is
 `'value'` for a JavaScript value), which promotes like `PromotedNumberType` for a number of the group and is the data
-type of the value source for any other.
+type of the value source for any other. `NumberType` is closed: a class may extend `IntType` or `DoubleType` to add
+methods, and it is still an int or a double.
 
-The other numbers (`bigint`, `stringDecimal`, the custom ones) work only with themselves. An exact number (an integer
-or a decimal) has no `divide`, which wouldn't give an exact value (see `test/DEFERRED.md`); an exact decimal gives a
-`double` for the computations that can't be exact.
+The other numbers (`bigint`, `stringDecimal`, the ones of the user) work only with themselves, and each level of the
+classes adds what its numbers can do: an integer and an exact decimal have no `divide`, which wouldn't give an exact
+value (see `test/DEFERRED.md`); only the numbers with decimals are rounded (`ceil`, `floor`, `round`, `roundn`); an
+exact decimal gives a `double` for the computations that can't be exact. `sum` and `average` take any of them, by the
+mark of `AdditiveType` (`IAnyAdditiveValueSource`).
 
 ## The gates: what a position accepts
 
@@ -247,27 +261,30 @@ An input position never takes a full value source: it takes a light interface wi
 
 ## Custom data types
 
-A custom data type is a child class of its family class with its type name. Each family has a static `of`:
+Until they go, each family of custom data types (`CustomIntType`, `CustomEqualableType`, ...) is a subclass of its
+family with its `customType` and a static `of` that makes the class of a type name:
 
 ```ts
 const MoneyType = CustomIntType.of<Money, 'Money'>('Money')   // type 'Money', customType 'customInt'
 ```
 
-One static per family, because a single generic factory (`customType<Money, 'Money'>('customInt', 'Money')`) can't
-know the family: when generic arguments are given explicitly, TypeScript doesn't infer the others. `of` gives a
-`CustomTypeClass` (a `TypeClass` with the type guard); each family keeps the class it made for each type name and
-gives the same one again, so a data type is one class wherever it is made. The users and the documentation give the class
-wherever a data type goes; a custom data type is not taken by its names (`'customInt', 'Money'`).
+`of` gives a `CustomTypeClass` (a `TypeClass` with the type guard); each family keeps the class it made for each type
+name and gives the same one again, so a data type is one class wherever it is made. A data type of the user can also
+extend the family directly (above), which is what replaces them.
 
 ## The data types by their classes
 
 The methods that take a data type (`column`, `const`, `arg`, `fragmentWithType`, `executeFunction`, `sequence`, ...) have
-one overload that takes a `TypeClass<TYPE>`, for any class with a type of its own: a built-in one (`IntType`) or one an
-`of` made. It gives `ValueSource<SOURCE, TYPE, OPTIONAL_TYPE>` and their implementation reads `type` and `customType` of the
-class. The class is the only way to give a custom data type. A class without a type of its own (a group such as
-`NumberType`, or a family such as `CustomIntType`) is rejected when compiling: `BaseType` declares its static `type` as
-`string | undefined`, a class with a type narrows it, and `TypeClass` requires a `string`. `TypeClass` has no `is`:
+one overload that takes a `TypeClass<TYPE>`, for any class with a type name of its own: a built-in one (`IntType`), one
+of the user or one an `of` made. It gives `ValueSource<SOURCE, TYPE, OPTIONAL_TYPE>`. A class without a type name of its
+own (a group such as `NumberType`, or a family such as `IntegersType`) is rejected when compiling: its NType has no
+literal type name (`TypeNameOf`), and `TypeClass` then requires a `name` it can't have. `TypeClass` has no `is`:
 TypeScript infers the data type from `prototype`, and a generic `is` there would make the inference fail.
+
+The static `type` is the type name the run time knows a data type by (the messages of the errors, `typesByName` of a
+query runner, the context of a query): a class of the user says it by convention, the one of its NType; when it
+doesn't, `BaseType` gives the name of the class (a getter, which the subclass that carries a type adapter answers with
+the class of its data type).
 
 ## The class of a value given to an operation
 
@@ -288,17 +305,20 @@ as a floating point number, a question of their SQL data types.
 
 ## The type guard: `is`
 
-Each data type of a value source has a static `is(value: any)`, a type guard: whether the value is a value source of
-that data type, of any source and optionality (`value is ValueSource<any, TYPE, any>`). It is declared once, in
-`ValueSourceBaseType`, with a `this` parameter, so the class it is called on gives the guarded type, also for a class an
-`of` made. A class that extends another answers by inheritance: `NumberType.is` says yes to an int and to a double,
-`CustomIntType.is` to any customInt, `MoneyType.is` only to a customInt named `'Money'`.
+Each data type of a value source has a static `is(value)`, a type guard that takes a value source: whether it is of that
+data type, keeping what is known of it (`NarrowedToType` of [`valueSourceBase.ts`](./valueSourceBase.ts)). Of a union
+of value sources, it leaves the ones of the data type or of one that extends it, as they are; a value source of a data
+type it extends (a `NumberType` asked with `IntType.is`) becomes one of the data type asked, with its source and its
+optionality; `any` gives the value source of the data type of any source and optionality. A value that may not be a
+value source is asked with `instanceof`, which gives only the class. It is declared once, in `ValueSourceBaseType`,
+with a `this` parameter, so the class it is called on gives the guarded type. A class that extends another answers by
+inheritance: `NumberType.is` says yes to an int and to a double, `CustomIntType.is` to any customInt, `MoneyType.is` only
+to its own.
 
 At run time it is `instanceof` the class: a value source is an instance of the class of its data type (or of the
-subclass that carries its type adapter). What only TypeScript tells apart, `is` can't: a condition is a boolean at run time, so the condition classes have no `is` (they
-don't extend `ValueSourceBaseType`) and `BooleanType.is` says yes to a condition, also to the neutral (no condition,
-recognised by its node); the two classes of an aggregated array
-are one. A value that is not a value source is `false`.
+subclass that carries its type adapter). What only TypeScript tells apart, `is` can't: a condition is a boolean at run
+time, so the condition classes have no `is` (they don't extend `ValueSourceBaseType`) and `BooleanType.is` says yes to
+a condition, also to the neutral (no condition, recognised by its node).
 
 ## The data types by their names
 
@@ -337,13 +357,10 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
 
 ## Adding a data type
 
-1. Its class in the file of its family (a family in plural, see above), extending the class that has the methods it
-   shares, with its NType and
-   operand NType, its `static type` / `customType`, its `static sqlDataType` (the type in the database of its values,
-   by which the query runners send and read them; a custom family takes the one of the built-in type it is based on),
-   and its own methods with the result types the runtime gives.
-2. A custom one: its static `of`.
-3. A built-in one: its entry in each map of `builtInDataTypes.ts`.
-4. A built-in one: its registration in `registerDataTypes.ts`; a new family of custom data types: its family there.
-5. Its questions in `dataTypes.ts` and its handling in the runtime, as for any data type of the library.
-6. Its cases in the probe, and its tests in the matrix.
+1. Its class in the file of its family (a family in plural, see above), extending the family of what its values can
+   do with its type name (`extends IntegersType<bigint, 'bigint'>`, which gives its NType), its `static type`, its
+   `static sqlDataType` when it isn't the one of its family (the type in the database of its values, by which the query
+   runners send and read them), and its own methods with the result types the runtime gives.
+2. A built-in one: its entry in each map of `builtInDataTypes.ts`, and its registration in `registerDataTypes.ts`.
+3. Its question in `dataTypeQuestions.ts`, if the connection converts it in its own way.
+4. Its cases in the probe, and its tests in the matrix.

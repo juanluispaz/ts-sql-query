@@ -16,8 +16,12 @@ export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> ex
     [comparableValueSource]: 'ComparableValueSource'
 }
 
-/** A data type whose values have an order */
-export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableType<VALUE_TYPE> {
+/**
+ * A data type whose values have an order. A data type of the user extends it with its type name, as a value that only
+ * the user knows (the library converts nothing and gives it no SQL data type):
+ * `class VersionType extends ComparableType<Version, 'Version'> { static override readonly type = 'Version' }`
+ */
+export abstract class ComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE, TYPE_NAME> {
     /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
 
     declare [comparableValueSource]: 'ComparableValueSource'

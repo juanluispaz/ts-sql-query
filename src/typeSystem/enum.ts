@@ -1,16 +1,16 @@
 import type { CustomTypeClass } from './base.js'
 import { EqualableType } from './equalable.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
 
 /** The class `EnumType.of` made for each type name */
-const enumClasses = new Map<string, CustomTypeClass<EnumType<any, any>>>()
+const enumClasses = new Map<string, object>()
 
-/** A value of an enumeration of the user, of its type name */
-export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE> {
-    /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
+/**
+ * A value of an enumeration of the user, of its type name: the library converts nothing and gives it no SQL data type.
+ * A data type of the user extends it with its type name:
+ * `class StatusType extends EnumType<Status, 'Status'> { static override readonly type = 'Status' }`
+ */
+export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'enum'
-    declare [typeName]: `type:${TYPE_NAME}:enum:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:enum:`
 
     /** The data type of a value of an enumeration of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<EnumType<VALUE_TYPE, TYPE_NAME>> {
@@ -22,6 +22,6 @@ export abstract class EnumType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exten
             result = Enum
             enumClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<EnumType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<EnumType<VALUE_TYPE, TYPE_NAME>>
     }
 }

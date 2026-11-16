@@ -30,59 +30,30 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('custom-numeric/bigint-rounding', async () => {
-        // ceil/floor/round over a bigint column take the dedicated bigint
-        // arm and keep the bigint result type. view_count is 0 (default).
-        const expected = [{ id: 1, c: 0n, f: 0n, r: 0n }]
-        ctx.mockNext(expected)
-        const result = await ctx.conn.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
-            .select({
-                id: tIssue.id,
-                c:  tIssue.viewCount.ceil(),
-                f:  tIssue.viewCount.floor(),
-                r:  tIssue.viewCount.round(),
-            })
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", ceil(view_count) as "c", floor(view_count) as "f", round(view_count) as "r" from issue where id = :0"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number; c: bigint; f: bigint; r: bigint }>>>()
-        expect(result).toEqual(expected)
-    })
 
-    test('custom-numeric/customint-rounding-and-abs', async () => {
+    test('custom-numeric/customint-abs', async () => {
         // customInt operand keeps the customInt result type through
-        // ceil/floor/round (the customInt||customDouble arm) and abs.
+        // abs.
         // The integer results are exact, so the VALUE is asserted in
         // both modes.
         const score = ctx.conn.const(7, CustomIntType.of<number, 'ScoreCount'>('ScoreCount'))
-        const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
+        const expected = [{ id: 1, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
-                c:  score.ceil(),
-                f:  score.floor(),
-                r:  score.round(),
                 a:  score.abs(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", ceil(:0) as "c", floor(:1) as "f", round(:2) as "r", abs(:3) as "a" from issue where id = :4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", abs(:0) as "a" from issue where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            7,
-            7,
-            7,
             7,
             1,
           ]
         `)
-        assertType<Exact<typeof result, Array<{ id: number; c: number; f: number; r: number; a: number }>>>()
+        assertType<Exact<typeof result, Array<{ id: number; a: number }>>>()
         expect(result).toEqual(expected)
     })
 
@@ -620,45 +591,12 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; ord?: ReleaseTag }>>>()
         expect(result).toEqual(expected)
     })
-    test('custom-numeric/brand-survival-customint-rounding', async () => {
-        // ceil / floor / round on a branded ReleaseTag (customInt) const keep the
-        // ReleaseTag brand. Over the integer input 6 every result is a clean 6;
-        // ReleaseTag is marshalled to int, so `round((...)::numeric)` reads back
-        // as a number rather than the driver's raw string.
-        const tag = ctx.conn.const(6 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
-        const expected = [{ id: 1, c: 6, f: 6, r: 6 }]
-        ctx.mockNext(expected)
-        const result = await ctx.conn.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
-            .select({
-                id: tIssue.id,
-                c:  tag.ceil(),
-                f:  tag.floor(),
-                r:  tag.round(),
-            })
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", ceil(:0) as "c", floor(:1) as "f", round(:2) as "r" from issue where id = :3"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            6,
-            6,
-            6,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number; c: ReleaseTag; f: ReleaseTag; r: ReleaseTag }>>>()
-        expect(result).toEqual(expected)
-    })
 
     test('custom-numeric/brand-survival-customint-minmax', async () => {
         // minValue / maxValue on a branded ReleaseTag (customInt) value keep the
-        // ReleaseTag brand. minValue clamps via greatest, maxValue via least. A bare
-        // const receiver would emit greatest/least over two untyped placeholders,
-        // which postgres compares as text ('10' sorts before '6'); a leading round()
-        // (identity for the integer receiver 6) types the left operand so the
-        // comparison is numeric. Over round(6)=6 with a branded operand:
-        // minValue(10)=greatest(6,10)=10, maxValue(10)=least(6,10)=6. ReleaseTag is
-        // marshalled to int → clean numbers.
+        // ReleaseTag brand. minValue clamps via greatest, maxValue via least. Over 6
+        // with a branded operand: minValue(10)=greatest(6,10)=10,
+        // maxValue(10)=least(6,10)=6. ReleaseTag is marshalled to int → clean numbers.
         const tag = ctx.conn.const(6 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, mn: 10, mx: 6 }]
         ctx.mockNext(expected)
@@ -666,11 +604,11 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
-                mn: tag.round().minValue(10 as ReleaseTag),
-                mx: tag.round().maxValue(10 as ReleaseTag),
+                mn: tag.minValue(10 as ReleaseTag),
+                mx: tag.maxValue(10 as ReleaseTag),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", greatest(round(:0), :1) as "mn", least(round(:2), :3) as "mx" from issue where id = :4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", greatest(:0, :1) as "mn", least(:2, :3) as "mx" from issue where id = :4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             6,
@@ -686,12 +624,9 @@ describe(ctx.label, () => {
 
     test('custom-numeric/brand-survival-customint-arithmetic', async () => {
         // add / subtract / multiply / modulo on a branded ReleaseTag (customInt)
-        // value keep the ReleaseTag brand. A bare const receiver would emit two
-        // untyped placeholders postgres can't resolve for these operators; a leading
-        // round() (identity for the integer receiver 6) types the left operand as
-        // numeric so the operator resolves, without changing the value. Over
-        // round(6)=6 with branded operands: add(4)=10, subtract(4)=2, multiply(2)=12,
-        // modulo(4)=2. ReleaseTag is marshalled to int → clean integers.
+        // value keep the ReleaseTag brand. Over 6 with branded operands: add(4)=10,
+        // subtract(4)=2, multiply(2)=12, modulo(4)=2. ReleaseTag is marshalled to
+        // int → clean integers.
         const tag = ctx.conn.const(6 as ReleaseTag, CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'))
         const expected = [{ id: 1, a: 10, s: 2, mu: 12, mo: 2 }]
         ctx.mockNext(expected)
@@ -699,13 +634,13 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
-                a:  tag.round().add(4 as ReleaseTag),
-                s:  tag.round().subtract(4 as ReleaseTag),
-                mu: tag.round().multiply(2 as ReleaseTag),
-                mo: tag.round().modulo(4 as ReleaseTag),
+                a:  tag.add(4 as ReleaseTag),
+                s:  tag.subtract(4 as ReleaseTag),
+                mu: tag.multiply(2 as ReleaseTag),
+                mo: tag.modulo(4 as ReleaseTag),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", round(:0) + :1 as "a", round(:2) - :3 as "s", round(:4) * :5 as "mu", mod(round(:6), :7) as "mo" from issue where id = :8"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", :0 + :1 as "a", :2 - :3 as "s", :4 * :5 as "mu", mod(:6, :7) as "mo" from issue where id = :8"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             6,

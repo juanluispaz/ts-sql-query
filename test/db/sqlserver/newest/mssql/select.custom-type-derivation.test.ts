@@ -83,18 +83,18 @@ describe(ctx.label, () => {
         expect(v).toBe(15)
     })
 
-    test('aggregate-fragment/custom-int-ceil-keeps-custom-int', async () => {
-        // ceil(sum(cost_cents)) = 600 as a `Cents` aggregate; no bound operand,
+    test('aggregate-fragment/custom-int-abs-keeps-custom-int', async () => {
+        // abs(sum(cost_cents)) = 600 as a `Cents` aggregate; no bound operand,
         // the answer reads back as 6.
         ctx.mockNext(600)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
                 ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
-                    .ceil(),
+                    .abs(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(sum(cost_cents)) as result from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(sum(cost_cents)) as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(6)

@@ -9,7 +9,7 @@ import {
     LocalDateType, StringDecimalType, StringType, Table, UuidType, CustomBooleanTypeAdapter,
 } from '../../../src/exports/v2/index.js'
 import { NumberType } from '../../../src/typeSystem/number.js'
-import { NumericType, IntegersType, RealsType } from '../../../src/typeSystem/numeric.js'
+import { AdditiveType, ArithmeticType, IntegersType, RealsType } from '../../../src/typeSystem/numeric.js'
 import { DecimalsType } from '../../../src/typeSystem/decimals.js'
 import { ComparableType } from '../../../src/typeSystem/comparable.js'
 import { EqualableType } from '../../../src/typeSystem/equalable.js'
@@ -18,8 +18,7 @@ import { UuidsType } from '../../../src/typeSystem/uuids.js'
 import { StringsType } from '../../../src/typeSystem/strings.js'
 import { LocalDatesType } from '../../../src/typeSystem/localDates.js'
 import { AggregatedArraysType, AggregatedArrayType } from '../../../src/typeSystem/aggregatedArrays.js'
-import type { ValueSource } from '../../../src/typeSystem/base.js'
-import type { operandTypeName, typeName } from '../../../src/utils/symbols.js'
+import type { SourceOf, ValueSource } from '../../../src/typeSystem/base.js'
 
 type Money = number & { readonly __brand: 'Money' }
 type Status = 'open' | 'closed'
@@ -30,12 +29,9 @@ const PriceType = CustomDecimalType.of<string, 'Price'>('Price')
 const StatusType = EnumType.of<Status, 'Status'>('Status')
 const VersionType = CustomComparableType.of<string, 'Version'>('Version')
 
-// A data type of the user that extends a base of the library directly, with nothing more than its type
-abstract class ColorType extends EqualableType<string> {
+// A data type of the user that extends a base of the library directly, with nothing more than its type name
+abstract class ColorType extends EqualableType<string, 'Color'> {
     static override readonly type = 'Color'
-    static override readonly customType = 'custom'
-    declare [typeName]: 'type:Color:custom:'
-    declare [operandTypeName]: 'type:Color:custom:'
 }
 
 // Type adapters, each one given to the columns that store a boolean that way
@@ -66,7 +62,7 @@ const tThing = new class TThing extends Table<DBConnection, 'TThing'> {
 }()
 
 // A value of each data type, by its name
-const values: Record<string, unknown> = {
+const values: Record<string, any> = {
     int: tThing.int, double: tThing.double, bigint: tThing.bigint, string: tThing.string, boolean: tThing.boolean,
     uuid: tThing.uuid, localDate: tThing.localDate, stringDecimal: tThing.stringDecimal, money: tThing.money,
     price: tThing.price, status: tThing.status, version: tThing.version,
@@ -77,7 +73,7 @@ const values: Record<string, unknown> = {
 }
 
 // The values each class says yes to
-function accepted(typeClass: { is(value: unknown): boolean }): string[] {
+function accepted(typeClass: { is(value: any): boolean }): string[] {
     return Object.keys(values).filter(name => typeClass.is(values[name]))
 }
 
@@ -110,7 +106,8 @@ describe('DataTypeClasses', () => {
 
     test('is-of-a-group-says-yes-to-each-data-type-it-groups', () => {
         expect(accepted(NumberType)).toEqual(['int', 'double'])
-        expect(accepted(NumericType)).toEqual(['bigint', 'stringDecimal', 'money', 'price'])
+        expect(accepted(ArithmeticType)).toEqual(['int', 'double', 'bigint', 'stringDecimal', 'money', 'price'])
+        expect(accepted(AdditiveType)).toEqual(['bigint', 'stringDecimal', 'money', 'price'])
         expect(accepted(IntegersType)).toEqual(['bigint', 'money'])
         expect(accepted(RealsType)).toEqual([])
         expect(accepted(DecimalsType)).toEqual(['stringDecimal', 'price'])
@@ -128,18 +125,27 @@ describe('DataTypeClasses', () => {
         expect(accepted(BooleanType)).toEqual(['boolean', 'condition', 'neutral'])
     })
 
-    test('is-narrows-to-a-value-source-of-its-data-type', () => {
-        const value: unknown = tThing.money
-        if (MoneyType.is(value)) {
-            assertType<Exact<typeof value, ValueSource<any, CustomIntType<Money, 'Money'>, any>>>()
+    test('is-narrows-a-value-source-keeping-its-source-and-optionality', () => {
+        // Of a union, the value sources of the data type; of a data type it extends, the data type asked with the
+        // source and the optionality of the value source
+        function isMoney(value: typeof tThing.money | typeof tThing.double): boolean {
+            if (MoneyType.is(value)) {
+                assertType<Exact<typeof value, typeof tThing.money>>()
+                return true
+            }
+            return false
         }
-        if (IntType.is(value)) {
-            assertType<Exact<typeof value, ValueSource<any, IntType, any>>>()
+        function isInt(value: ValueSource<SourceOf<typeof tThing.int>, NumberType, 'required'>): boolean {
+            if (IntType.is(value)) {
+                assertType<Exact<typeof value, ValueSource<SourceOf<typeof tThing.int>, IntType, 'required'>>>()
+                return true
+            }
+            return false
         }
-        if (NumberType.is(value)) {
-            assertType<Exact<typeof value, ValueSource<any, NumberType, any>>>()
-        }
-        expect(MoneyType.is(value)).toBe(true)
+        expect(isMoney(tThing.money)).toBe(true)
+        expect(isMoney(tThing.double)).toBe(false)
+        expect(isInt(tThing.int.add(1))).toBe(true)
+        expect(isInt(tThing.double.add(1))).toBe(false)
     })
 
     test('of-gives-the-same-class-for-the-same-type-name', () => {

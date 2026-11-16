@@ -19,7 +19,7 @@ import { __createAggregateFunction0, __createAggregateFunction1, __createAggrega
 import { SelectQueryBuilder } from '../queryBuilders/SelectQueryBuilder.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, QueryExecutionSource } from '../TsSqlError.js'
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from '../queryBuilders/FragmentQueryBuilder.js'
-import { connection, source, transactionIsolationLevel, typeName, valueType } from '../utils/symbols.js'
+import { connection, source, transactionIsolationLevel, valueType } from '../utils/symbols.js'
 import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from '../utils/PromiseUtils.js'
 import type { DynamicConditionExtension, DynamicConditionExpression, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
 import { DynamicConditionBuilder } from '../queryBuilders/DynamicConditionBuilder.js'
@@ -36,8 +36,7 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { BuiltInDataType, BuiltInDataTypes, BuiltInDataTypeValues, BuiltInDataTypeValueSources, BuiltInDataTypeFragments } from '../typeSystem/builtInDataTypes.js'
 import { DoubleType, IntType } from '../typeSystem/number.js'
-import type { CustomBigintType, CustomDoubleType, CustomIntType } from '../typeSystem/customNumber.js'
-import type { CustomDecimalType } from '../typeSystem/customDecimals.js'
+import type { IAnyAdditiveValueSource } from '../typeSystem/numeric.js'
 import type { IAnyComparableValueSource } from '../typeSystem/comparable.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import { Argument } from '../typeSystem/arguments.js'
@@ -899,10 +898,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, NumberType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, NumberType, 'optional'>
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, BigintType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, BigintType, 'optional'>
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, StringDecimalType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, StringDecimalType, 'optional'>
-    sum<TYPE extends IValueSource<any, CustomIntType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomIntType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
-    sum<TYPE extends IValueSource<any, CustomBigintType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomBigintType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
-    sum<TYPE extends IValueSource<any, CustomDoubleType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomDoubleType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
-    sum<TYPE extends IValueSource<any, CustomDecimalType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomDecimalType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
+    sum<TYPE extends IAnyAdditiveValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'>
     sum(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return __createAggregateFunction1('_sum', value, __computedClassOf(valuePrivate, __typeClassOf(valuePrivate)), 'optional')
@@ -910,10 +906,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, NumberType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, NumberType, 'optional'>
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, BigintType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, BigintType, 'optional'>
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringDecimalType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, StringDecimalType, 'optional'>
-    sumDistinct<TYPE extends IValueSource<any, CustomIntType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomIntType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
-    sumDistinct<TYPE extends IValueSource<any, CustomBigintType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomBigintType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
-    sumDistinct<TYPE extends IValueSource<any, CustomDoubleType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomDoubleType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
-    sumDistinct<TYPE extends IValueSource<any, CustomDecimalType<any, any>, any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): ValueSource<TYPE[typeof source] | NAggregate<DB>, CustomDecimalType<TYPE[typeof valueType], TYPE[typeof typeName]>, 'optional'>
+    sumDistinct<TYPE extends IAnyAdditiveValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'>
     sumDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return __createAggregateFunction1('_sumDistinct', value, __computedClassOf(valuePrivate, __typeClassOf(valuePrivate)), 'optional')
@@ -930,11 +923,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // emits a cast inside `_average` / `_averageDistinct` so the engine
     // also returns a fractional scalar — homogenising behaviour across
     // every dialect.
-    average<SOURCE extends NSource>(value: (IValueSource<SOURCE, NumberType, any> | IValueSource<SOURCE, BigintType, any> | IValueSource<SOURCE, StringDecimalType, any> | IValueSource<SOURCE, CustomIntType<any, any>, any> | IValueSource<SOURCE, CustomBigintType<any, any>, any> | IValueSource<SOURCE, CustomDoubleType<any, any>, any> | IValueSource<SOURCE, CustomDecimalType<any, any>, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
+    average<SOURCE extends NSource>(value: (IValueSource<SOURCE, NumberType, any> | IValueSource<SOURCE, BigintType, any> | IValueSource<SOURCE, StringDecimalType, any> | IAnyAdditiveValueSource<SOURCE>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
     average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         return __createAggregateFunction1('_average', value, DoubleType, 'optional')
     }
-    averageDistinct<SOURCE extends NSource>(value: (IValueSource<SOURCE, NumberType, any> | IValueSource<SOURCE, BigintType, any> | IValueSource<SOURCE, StringDecimalType, any> | IValueSource<SOURCE, CustomIntType<any, any>, any> | IValueSource<SOURCE, CustomBigintType<any, any>, any> | IValueSource<SOURCE, CustomDoubleType<any, any>, any> | IValueSource<SOURCE, CustomDecimalType<any, any>, any>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
+    averageDistinct<SOURCE extends NSource>(value: (IValueSource<SOURCE, NumberType, any> | IValueSource<SOURCE, BigintType, any> | IValueSource<SOURCE, StringDecimalType, any> | IAnyAdditiveValueSource<SOURCE>) & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, DoubleType, 'optional'>
     averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         return __createAggregateFunction1('_averageDistinct', value, DoubleType, 'optional')
     }

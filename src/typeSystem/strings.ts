@@ -21,7 +21,7 @@ export type IStringValue = IValueWithType<'type:string:'>
 /** The type in the database of a text */
 export const stringSqlDataType: SqlDataType = { family: 'character string' }
 
-export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
+export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE, string> {
 
     // SqlComparator 1
     equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>

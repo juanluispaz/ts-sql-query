@@ -25,29 +25,27 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('platform-round: round emits the bare round(...) without ::numeric', async () => {
-        // With the flag on, `round()` drops the `::numeric` cast: the bigint
-        // column rounds as `round(view_count)` and the divided value (already
-        // `::float`) rounds as `round(<float div>)`. Issue 1: view_count 0,
+        // With the flag on, `round()` drops the `::numeric` cast: the divided
+        // value (already `::float`) rounds as `round(<float div>)`. Issue 1:
         // priority 2, so priority/2 = 1.0 -> round 1.
         const conn = ctx.withUsePlatformDependentRound()
-        const expected = [{ id: 1, vr: 0n, dr: 1 }]
+        const expected = [{ id: 1, dr: 1 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
-                vr: tIssue.viewCount.round(),
                 dr: tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(view_count) as vr, round(priority::float / $1) as dr from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(priority::float / $1) as dr from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ id: number; vr: bigint; dr: number }>>>()
+        assertType<Exact<typeof rows, Array<{ id: number; dr: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -55,24 +53,23 @@ describe(ctx.label, () => {
         // Same query through the default `ctx.conn` (flag `false`): each
         // `round(...)` wraps its operand in `::numeric` so tie-breaking is
         // portable.
-        const expected = [{ id: 1, vr: 0n, dr: 1 }]
+        const expected = [{ id: 1, dr: 1 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
-                vr: tIssue.viewCount.round(),
                 dr: tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((view_count)::numeric) as vr, round((priority::float / $1)::numeric) as dr from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1)::numeric) as dr from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ id: number; vr: bigint; dr: number }>>>()
+        assertType<Exact<typeof rows, Array<{ id: number; dr: number }>>>()
         expect(rows).toEqual(expected)
     })
 

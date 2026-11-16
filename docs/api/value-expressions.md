@@ -213,9 +213,6 @@ interface NumberValueSource extends ComparableValueSource<number, 'number'> {
  */
 interface BigintValueSource extends ComparableValueSource<bigint, 'bigint'> {
     abs(): this
-    ceil(): this
-    floor(): this
-    round(): this
     sign(): NumberValueSource
     /**
      * This function establishes a minimum value for the current value, that means the biggest value must be returned
@@ -377,9 +374,6 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDat
  */
 interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
-    ceil(): this
-    floor(): this
-    round(): this
     sign(): NumberValueSource
     /**
      * This function establishes a minimum value for the current value, that means the biggest value must be returned
@@ -402,9 +396,6 @@ interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableVa
  */
 interface CustomBigintValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
-    ceil(): this
-    floor(): this
-    round(): this
     sign(): NumberValueSource
     /**
      * This function establishes a minimum value for the current value, that means the biggest value must be returned

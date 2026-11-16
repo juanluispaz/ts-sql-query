@@ -33,10 +33,13 @@ export const typeName: unique symbol = Symbol('typeName')
 export const operandTypeName: unique symbol = Symbol('operandTypeName')
 export const valueSourceType: unique symbol = Symbol('valueSourceType')
 export const comparableValueSource: unique symbol = Symbol('comparableValueSource')
+export const additiveValueSource: unique symbol = Symbol('additiveValueSource')
 // The data types a family gives in what its bases declare, so a base doesn't name a data type that extends it
 // The class a value source computed from one of this data type gets, when it is not the same (the text of a uuid gives a
 // text): a static of the class
 export const computedType: unique symbol = Symbol('computedType')
+// The class a subclass that carries a type adapter extends: the class of the data type without the adapter
+export const unadaptedClass: unique symbol = Symbol('unadaptedClass')
 // The class a value given to an operation of a value source of this data type is sent with, when it is not the data
 // type of the value source (the fraction compared with an int is a double): statics of the class, with the value, which
 // give undefined when the value is of the data type. For a value of the data type (`equals`, `valueWhenNull`, ...):

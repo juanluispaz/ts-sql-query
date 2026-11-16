@@ -76,70 +76,8 @@ describe(ctx.label, () => {
 
     // ── fragmentWithType · customInt ('Cents') · no operand ────────────────
 
-    test('fragment/custom-int-ceil-keeps-custom-int', async () => {
-        // ceil(cost_cents) = 100 as a `Cents` fragment; the answer reads back as 1.
-        ctx.mockNext(100)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.costCents}`
-                    .ceil(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(cost_cents) as result from issue_worklog where id = @0"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(1)
-    })
 
-    test('fragment/custom-int-floor-keeps-custom-int', async () => {
-        // floor(cost_cents) = 100 as a `Cents` fragment; the answer reads back as 1.
-        ctx.mockNext(100)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.costCents}`
-                    .floor(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(cost_cents) as result from issue_worklog where id = @0"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(1)
-    })
 
-    test('fragment/custom-int-round-keeps-custom-int', async () => {
-        // round(cost_cents) = 100 as a `Cents` fragment; the answer reads back as
-        // 1. The receiver is an exact numeric expression, which also decides
-        // whether the dialect wraps the operand to make the tie-break portable.
-        ctx.mockNext(100)
-        const v = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(tIssueWorklog.id.equals(1))
-            .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
-                    .sql`${tIssueWorklog.costCents}`
-                    .round(),
-            )
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(cost_cents, 0) as result from issue_worklog where id = @0"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(1)
-    })
 
     test('fragment/custom-int-abs-carries-the-custom-int-through', async () => {
         // BOUNDARY: `abs` does not derive a data type, it carries the receiver's
@@ -1038,18 +976,18 @@ describe(ctx.label, () => {
 
     // ── aggregateFragmentWithType ──────────────────────────────────────────
 
-    test('aggregate-fragment/custom-int-round-keeps-custom-int', async () => {
-        // round(sum(cost_cents)) = 600 as a `Cents` aggregate; the answer reads
+    test('aggregate-fragment/custom-int-abs-keeps-custom-int', async () => {
+        // abs(sum(cost_cents)) = 600 as a `Cents` aggregate; the answer reads
         // back as 6.
         ctx.mockNext(600)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
                 ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
-                    .round(),
+                    .abs(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(sum(cost_cents), 0) as result from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(sum(cost_cents)) as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(6)
@@ -1225,18 +1163,18 @@ describe(ctx.label, () => {
 
     // ── const / optionalConst ──────────────────────────────────────────────
 
-    test('const/custom-int-ceil-keeps-custom-int', async () => {
-        // A `Cents` const of 1 is bound as 100; ceil leaves it alone and the
+    test('const/custom-int-abs-keeps-custom-int', async () => {
+        // A `Cents` const of 1 is bound as 100; abs leaves it alone and the
         // answer 100 reads back as 1.
         ctx.mockNext(100)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
                 ctx.conn.const(1, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
-                    .ceil(),
+                    .abs(),
             )
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceiling(@0) as result from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(@0) as result from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             100,

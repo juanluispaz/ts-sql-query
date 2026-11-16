@@ -180,6 +180,8 @@ const customersPerCompany = await connection.selectFrom(tCustomer)
 
 See [grouping by every non-aggregated column](../../queries/aggregate-and-group-by.md#grouping-by-every-non-aggregated-column).
 
+**`ceil()`, `floor()` and `round()` of an integer.** A `bigint`, a `customInt` and a `customBigint` don't have them: on an integer they gave the same value. Remove the call.
+
 **`executeInsertOne()` on a multi-row insert with `onConflictDoNothing()`.** It is not offered, since the conflict can skip every row: use `executeInsert()`.
 
 **Result types:**

@@ -1025,15 +1025,14 @@ describe(ctx.label, () => {
         }
     })
 
-    test('optional-bigint-receiver-rounding-arithmetic-fan-out', async () => {
-        // ceil/floor/round and the const-operand arithmetic (subtract/modulo/
-        // minValue/maxValue) on an OPTIONAL bigint receiver (`durationMs` =
+    test('optional-bigint-receiver-arithmetic-fan-out', async () => {
+        // The const-operand arithmetic (subtract/modulo/minValue/maxValue) on an OPTIONAL bigint receiver (`durationMs` =
         // 5400000 for worklog 1). Every leaf keeps the bigint type and threads the
-        // `optional` marker (`?: bigint`). ceil/floor/round=5400000n,
+        // `optional` marker (`?: bigint`).
         // subtract(400000n)=5000000n, modulo(1000000n)=400000n,
         // minValue(6000000n)=greatest=6000000n, maxValue(6000000n)=least=5400000n.
         const expected = {
-            id: 1, ce: 5400000n, fl: 5400000n, ro: 5400000n,
+            id: 1,
             s: 5000000n, mo: 400000n, mn: 6000000n, mx: 5400000n,
         }
         ctx.mockNext(expected)
@@ -1041,9 +1040,6 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({
                 id: tIssueWorklog.id,
-                ce: tIssueWorklog.durationMs.ceil(),
-                fl: tIssueWorklog.durationMs.floor(),
-                ro: tIssueWorklog.durationMs.round(),
                 s:  tIssueWorklog.durationMs.subtract(400000n),
                 mo: tIssueWorklog.durationMs.modulo(1000000n),
                 mn: tIssueWorklog.durationMs.minValue(6000000n),
@@ -1051,7 +1047,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(duration_ms) as ce, floor(duration_ms) as fl, round(duration_ms) as ro, duration_ms - ? as s, duration_ms % ? as mo, greatest(duration_ms, ?) as mn, least(duration_ms, ?) as mx from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms - ? as s, duration_ms % ? as mo, greatest(duration_ms, ?) as mn, least(duration_ms, ?) as mx from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             400000n,
@@ -1062,14 +1058,11 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, {
-            id: number; ce?: bigint; fl?: bigint; ro?: bigint
+            id: number;
             s?: bigint; mo?: bigint; mn?: bigint; mx?: bigint
         }>>()
         if (ctx.realDbEnabled) {
             expect(row.id).toBe(1)
-            expect(BigInt(row.ce!)).toBe(5400000n)
-            expect(BigInt(row.fl!)).toBe(5400000n)
-            expect(BigInt(row.ro!)).toBe(5400000n)
             expect(BigInt(row.s!)).toBe(5000000n)
             expect(BigInt(row.mo!)).toBe(400000n)
             expect(BigInt(row.mn!)).toBe(6000000n)

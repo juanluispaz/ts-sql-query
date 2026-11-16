@@ -2,7 +2,8 @@ import type { DataTypeClass } from '../TypeAdapter.js'
 import { BooleanType } from './logical.js'
 import { DoubleType, IntType } from './number.js'
 import { BigintType } from './bigint.js'
-import { CustomBigintType, CustomDoubleType, CustomIntType } from './customNumber.js'
+import { CustomBigintType } from './customNumber.js'
+import { IntegersType, RealsType } from './numeric.js'
 import { DecimalsType } from './decimals.js'
 import { StringType } from './strings.js'
 import { UuidsType } from './uuids.js'
@@ -24,14 +25,16 @@ function isOf(typeClass: DataTypeClass, base: abstract new (...args: any) => any
 export function __isBooleanClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, BooleanType)
 }
+/** An int: an IntType, or an integer of the user (IntegersType) that is not a bigint */
 export function __isIntClass(typeClass: DataTypeClass): boolean {
-    return isOf(typeClass, IntType) || isOf(typeClass, CustomIntType)
+    return isOf(typeClass, IntType) || (isOf(typeClass, IntegersType) && !__isBigintClass(typeClass))
 }
 export function __isBigintClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, BigintType) || isOf(typeClass, CustomBigintType)
 }
+/** A double: a DoubleType, or a floating point number of the user (RealsType) */
 export function __isDoubleClass(typeClass: DataTypeClass): boolean {
-    return isOf(typeClass, DoubleType) || isOf(typeClass, CustomDoubleType)
+    return isOf(typeClass, DoubleType) || isOf(typeClass, RealsType)
 }
 /** An exact decimal: a stringDecimal or a customDecimal, whose value is its text */
 export function __isExactDecimalClass(typeClass: DataTypeClass): boolean {

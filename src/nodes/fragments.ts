@@ -13,6 +13,7 @@ import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 
 export interface FragmentValueSource extends NodeValueSource {
     __operation: keyof SqlFragmentOperation
@@ -157,7 +158,7 @@ export const valueSourceFromBuilderNode: NodeStrategy<ValueSourceFromBuilder> = 
     __toSql(vs: ValueSourceFromBuilder, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         const builderOutput = __builderOutputOf(vs)
         if (!hasToSql(builderOutput)) {
-            throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: vs.__type }, 'The result of value from fragment functions is no a valid sql element')
+            throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: __valueSourceTypeNameOf(vs) }, 'The result of value from fragment functions is no a valid sql element')
         }
         return builderOutput.__toSql(sqlBuilder, context, forceTypeCast)
     },

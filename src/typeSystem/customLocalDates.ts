@@ -1,24 +1,18 @@
-import type { SqlDataType } from '../TypeAdapter.js'
-import { localDateSqlDataType, localTimeSqlDataType, localDateTimeSqlDataType } from './localDates.js'
 import type { CustomTypeClass } from './base.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
 
 /** The class `CustomLocalDateType.of` made for each type name */
-const customLocalDateClasses = new Map<string, CustomTypeClass<CustomLocalDateType<any, any>>>()
+const customLocalDateClasses = new Map<string, object>()
 
 /** The class `CustomLocalTimeType.of` made for each type name */
-const customLocalTimeClasses = new Map<string, CustomTypeClass<CustomLocalTimeType<any, any>>>()
+const customLocalTimeClasses = new Map<string, object>()
 
 /** The class `CustomLocalDateTimeType.of` made for each type name */
-const customLocalDateTimeClasses = new Map<string, CustomTypeClass<CustomLocalDateTimeType<any, any>>>()
+const customLocalDateTimeClasses = new Map<string, object>()
 
 /** A date without a zone of a type of the user, of its type name */
-export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDatesType<VALUE_TYPE> {
+export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDatesType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'customLocalDate'
-    static override readonly sqlDataType: SqlDataType = localDateSqlDataType
-    declare [typeName]: `type:${TYPE_NAME}:customLocalDate:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDate:`
 
     /** The data type of a date without a zone of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>> {
@@ -30,16 +24,13 @@ export abstract class CustomLocalDateType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
             result = CustomLocalDate
             customLocalDateClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<CustomLocalDateType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
 /** A time of the day without a zone of a type of the user, of its type name */
-export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalTimesType<VALUE_TYPE> {
+export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalTimesType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'customLocalTime'
-    static override readonly sqlDataType: SqlDataType = localTimeSqlDataType
-    declare [typeName]: `type:${TYPE_NAME}:customLocalTime:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customLocalTime:`
 
     /** The data type of a time of the day without a zone of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>> {
@@ -51,16 +42,13 @@ export abstract class CustomLocalTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
             result = CustomLocalTime
             customLocalTimeClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<CustomLocalTimeType<VALUE_TYPE, TYPE_NAME>>
     }
 }
 
 /** A date and a time of the day without a zone of a type of the user, of its type name */
-export abstract class CustomLocalDateTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDateTimesType<VALUE_TYPE> {
+export abstract class CustomLocalDateTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends LocalDateTimesType<VALUE_TYPE, TYPE_NAME> {
     static override readonly customType = 'customLocalDateTime'
-    static override readonly sqlDataType: SqlDataType = localDateTimeSqlDataType
-    declare [typeName]: `type:${TYPE_NAME}:customLocalDateTime:`
-    declare [operandTypeName]: `type:${TYPE_NAME}:customLocalDateTime:`
 
     /** The data type of a date and a time of the day without a zone of a type of the user, with its type name; the same class each time for the same type name */
     static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): CustomTypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>> {
@@ -72,6 +60,6 @@ export abstract class CustomLocalDateTimeType</*in|out*/ VALUE_TYPE, /*in|out*/ 
             result = CustomLocalDateTime
             customLocalDateTimeClasses.set(typeName, result)
         }
-        return result as CustomTypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>>
+        return result as unknown as CustomTypeClass<CustomLocalDateTimeType<VALUE_TYPE, TYPE_NAME>>
     }
 }

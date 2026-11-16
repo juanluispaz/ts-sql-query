@@ -96,14 +96,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(tDerivedColumn)
-            .selectOneColumn(tDerivedColumn.cents.ceil())
+            .selectOneColumn(tDerivedColumn.cents.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -163,14 +163,14 @@ describe(ctx.label, () => {
         expect(row).toEqual({ derived: 9.42 })
     })
 
-    test('optional-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('optional-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext({ derived: 42 })
         const row = sync(ctx.conn.selectFrom(tDerivedOptional)
-            .select({ derived: tDerivedOptional.cents.ceil() })
+            .select({ derived: tDerivedOptional.cents.abs() })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { derived?: number }>>()
         expect(row).toEqual({ derived: 0.42 })
@@ -230,14 +230,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('column-with-default-value/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('column-with-default-value/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(tDerivedDefault)
-            .selectOneColumn(tDerivedDefault.cents.ceil())
+            .selectOneColumn(tDerivedDefault.cents.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -297,14 +297,14 @@ describe(ctx.label, () => {
         expect(row).toEqual({ derived: 9.42 })
     })
 
-    test('optional-column-with-default-value/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('optional-column-with-default-value/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext({ derived: 42 })
         const row = sync(ctx.conn.selectFrom(tDerivedOptionalDefault)
-            .select({ derived: tDerivedOptionalDefault.cents.ceil() })
+            .select({ derived: tDerivedOptionalDefault.cents.abs() })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { derived?: number }>>()
         expect(row).toEqual({ derived: 0.42 })
@@ -364,14 +364,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('computed-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('computed-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(tDerivedComputed)
-            .selectOneColumn(tDerivedComputed.cents.ceil())
+            .selectOneColumn(tDerivedComputed.cents.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -431,14 +431,14 @@ describe(ctx.label, () => {
         expect(row).toEqual({ derived: 9.42 })
     })
 
-    test('optional-computed-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('optional-computed-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext({ derived: 42 })
         const row = sync(ctx.conn.selectFrom(tDerivedOptionalComputed)
-            .select({ derived: tDerivedOptionalComputed.cents.ceil() })
+            .select({ derived: tDerivedOptionalComputed.cents.abs() })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { derived?: number }>>()
         expect(row).toEqual({ derived: 0.42 })
@@ -498,14 +498,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('primary-key/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('primary-key/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(tDerivedPk)
-            .selectOneColumn(tDerivedPk.centsPk.ceil())
+            .selectOneColumn(tDerivedPk.centsPk.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -530,14 +530,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('autogenerated-primary-key/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('autogenerated-primary-key/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(tDerivedAutogenPk)
-            .selectOneColumn(tDerivedAutogenPk.centsPk.ceil())
+            .selectOneColumn(tDerivedAutogenPk.centsPk.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -562,14 +562,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('virtual-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('virtual-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(tDerivedVirtual)
-            .selectOneColumn(tDerivedVirtual.cents.ceil())
+            .selectOneColumn(tDerivedVirtual.cents.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -629,14 +629,14 @@ describe(ctx.label, () => {
         expect(row).toEqual({ derived: 9.42 })
     })
 
-    test('optional-virtual-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('optional-virtual-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext({ derived: 42 })
         const row = sync(ctx.conn.selectFrom(tDerivedVirtual)
-            .select({ derived: tDerivedVirtual.centsOptional.ceil() })
+            .select({ derived: tDerivedVirtual.centsOptional.abs() })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as derived from col_matrix"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as derived from col_matrix"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { derived?: number }>>()
         expect(row).toEqual({ derived: 0.42 })
@@ -696,14 +696,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('view-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('view-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(vDerivedColumn)
-            .selectOneColumn(vDerivedColumn.cents.ceil())
+            .selectOneColumn(vDerivedColumn.cents.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -763,14 +763,14 @@ describe(ctx.label, () => {
         expect(row).toEqual({ derived: 9.42 })
     })
 
-    test('view-optional-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('view-optional-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext({ derived: 42 })
         const row = sync(ctx.conn.selectFrom(vDerivedColumn)
-            .select({ derived: vDerivedColumn.centsOptional.ceil() })
+            .select({ derived: vDerivedColumn.centsOptional.abs() })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { derived?: number }>>()
         expect(row).toEqual({ derived: 0.42 })
@@ -830,14 +830,14 @@ describe(ctx.label, () => {
         expect(v).toBe(9.42)
     })
 
-    test('view-virtual-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('view-virtual-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext(42)
         const v = sync(ctx.conn.selectFrom(vDerivedColumn)
-            .selectOneColumn(vDerivedColumn.centsVirtual.ceil())
+            .selectOneColumn(vDerivedColumn.centsVirtual.abs())
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as result from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as result from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(0.42)
@@ -897,14 +897,14 @@ describe(ctx.label, () => {
         expect(row).toEqual({ derived: 9.42 })
     })
 
-    test('view-optional-virtual-column/custom-int-ceil-keeps-the-column-data-type', async () => {
-        // ceil of 42 cents: no bound operand, and the answer 42 reads back as 0.42
+    test('view-optional-virtual-column/custom-int-abs-keeps-the-column-data-type', async () => {
+        // abs of 42 cents: no bound operand, and the answer 42 reads back as 0.42
         // only while the expression still carries `Cents`.
         ctx.mockNext({ derived: 42 })
         const row = sync(ctx.conn.selectFrom(vDerivedColumn)
-            .select({ derived: vDerivedColumn.centsVirtualOptional.ceil() })
+            .select({ derived: vDerivedColumn.centsVirtualOptional.abs() })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ceil(m_int) as derived from col_matrix_view"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(m_int) as derived from col_matrix_view"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { derived?: number }>>()
         expect(row).toEqual({ derived: 0.42 })
@@ -1032,29 +1032,7 @@ describe(ctx.label, () => {
         expect(v).toBe(0.42)
     })
 
-    test('column/custom-int-floor-keeps-the-column-data-type', async () => {
-        // floor of 42 cents: no bound operand, and the answer reads back as 0.42.
-        ctx.mockNext(42)
-        const v = sync(ctx.conn.selectFrom(tDerivedColumn)
-            .selectOneColumn(tDerivedColumn.cents.floor())
-            .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select floor(m_int) as result from col_matrix"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.42)
-    })
 
-    test('column/custom-int-round-keeps-the-column-data-type', async () => {
-        // round of 42 cents: no bound operand, and the answer reads back as 0.42.
-        ctx.mockNext(42)
-        const v = sync(ctx.conn.selectFrom(tDerivedColumn)
-            .selectOneColumn(tDerivedColumn.cents.round())
-            .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(m_int) as result from col_matrix"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof v, number>>()
-        expect(v).toBe(0.42)
-    })
 
     test('column/custom-double-subtract-keeps-the-column-data-type', async () => {
         // 3.5 money minus 1 `Money`: the operand binds scaled (100) and the difference

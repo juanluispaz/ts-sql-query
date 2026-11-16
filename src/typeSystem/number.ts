@@ -1,5 +1,6 @@
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
-import { ComparableType } from './comparable.js'
+import { ArithmeticType } from './numeric.js'
+import { doubleSqlDataType, intSqlDataType } from './numericSqlDataTypes.js'
 import { BigintType } from './bigint.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
@@ -32,13 +33,7 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
     NumberType
 
 /** The int and the double, the numbers of JavaScript */
-/** The type in the database of an int: an integer of 4 bytes */
-export const intSqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 4 }
-
-/** The type in the database of a double: a floating point number of double precision */
-export const doubleSqlDataType: SqlDataType = { family: 'approximate numeric', precision: 53 }
-
-export abstract class NumberType extends ComparableType<number> {
+export abstract class NumberType extends ArithmeticType<number, string> {
     /**
      * A number given to an arithmetic operation of a number is an int when it is an integer and a double otherwise, as
      * TypeScript can't tell 2 from 2.5; a bigint is a bigint

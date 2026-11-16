@@ -1,7 +1,7 @@
 import type { CustomType, SqlDataType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
-import { operandTypeName, optionalType, source, typeName, valueSourceType, valueType } from '../utils/symbols.js'
+import { operandTypeName, optionalType, source, typeName, unadaptedClass, valueSourceType, valueType } from '../utils/symbols.js'
 import type { OptionalType, TypedValueSource } from './valueSource.js'
 import { ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 
@@ -9,10 +9,10 @@ import { ValueSourceRoot } from '../nodes/valueSourceRoot.js'
  * The data type of a value source is a class: its type (its methods, the type of its value and its name for TypeScript,
  * the NType) and, as statics, the type and the custom type the library knows it by at run time.
  *
- * The NType names the data type for TypeScript only: `type:<type>:<custom type or group>:`, always ending in `:`. A
- * built-in data type leaves the second segment empty (`type:string:`), a custom data type has there its custom type
- * (`type:MyId:customInt:`), and the data types that work together have there their group: `number` for int and double
- * (`type:int:number:`), `logical` for a boolean and the conditions (`type:boolean:logical:`, `type:if:logical:`).
+ * The NType names the data type for TypeScript only: `type:<type name>:<group>:`, always ending in `:`. The second
+ * segment exists only for the data types that work together, their group: `number` for int and double
+ * (`type:int:number:`), `logical` for a boolean and the conditions (`type:boolean:logical:`, `type:if:logical:`); any
+ * other data type is its type name (`type:string:`, `type:Money:`), which a family builds from its generic.
  *
  * A value source is its data type plus what places it in a query: its source and its optionality.
  */
@@ -26,8 +26,21 @@ const ValueSourceRuntime = ValueSourceRoot as unknown as abstract new () => obje
 
 /** The root of every data type */
 export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime {
-    /** The type the library knows the data type by at run time (the type name of a custom data type) */
-    declare static readonly type: string | undefined
+    /**
+     * The type name of the data type (`'int'`, `'Money'`): a class of the user says it by convention, the one of its
+     * NType (`static override readonly type = 'Money'`); without it, the name of the class (`MoneyType`)
+     */
+    declare static readonly type: string
+    static {
+        // The name of a class that doesn't say its type: the one of the class of the data type, also for the subclass
+        // that carries a type adapter
+        Object.defineProperty(this, 'type', {
+            get(this: { [unadaptedClass]?: { name: string }, name: string }): string {
+                return (this[unadaptedClass] ?? this).name
+            },
+            configurable: true,
+        })
+    }
     /** The custom type of a custom data type; undefined for a built-in data type */
     declare static readonly customType: CustomType | undefined
     /**
@@ -73,9 +86,21 @@ export type AnyType = BaseType<any>
 /** A class of a data type, as the methods that take a data type receive it */
 export interface TypeClass</*in|out*/ TYPE extends AnyType> {
     readonly prototype: TYPE
+    /**
+     * A class of a data type has its type name in its NType; a class without one (a family, a group such as
+     * NumberType) has no place where a data type goes
+     */
+    readonly name: [TypeNameOf<TYPE>] extends [never] ? never : string
     readonly type: string
     readonly customType: CustomType | undefined
 }
+
+/**
+ * The type name of a data type, the segment of its NType after `type:` (`'int'` of `type:int:number:`, `'Money'` of
+ * `type:Money:`); never for a class without a type name of its own (`type:${string}:`, or a family taken as a value,
+ * whose type name is any)
+ */
+export type TypeNameOf<TYPE> = TYPE extends { [typeName]: `type:${infer NAME}:${string}` } ? (string extends NAME ? never : `${any}` extends NAME ? never : NAME) : never
 
 /** The class of a custom data type an `of` makes, with its type guard */
 export interface CustomTypeClass</*in|out*/ TYPE extends AnyType> extends TypeClass<TYPE> {

@@ -62,7 +62,6 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
 /** The array an aggregate as array gives: the rows it aggregates, as objects or as the values of one column */
 export abstract class AggregatedArrayType</*in|out*/ VALUE_TYPE> extends AggregatedArraysType<VALUE_TYPE> {
     static override readonly type = 'aggregatedArray'
-    static override readonly customType = undefined
     declare [typeName]: 'type:aggregatedArray:'
     declare [operandTypeName]: 'type:aggregatedArray:'
 }

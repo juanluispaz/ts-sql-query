@@ -7,7 +7,7 @@
 // `DynamicConditionForModel<M>` is sugar for `DynamicCondition<DynamicDefinitionForModel<M>>`;
 // the mapping (`DynamicDefinitionForModel`) turns `number → 'int'`, `string →
 // 'string'`, `bigint → 'bigint'`, `Date → 'localDateTime'`, a literal union →
-// `['enum', …]`, and a nested object → a nested definition.
+// `EnumType<…, string>`, and a nested object → a nested definition.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -15,6 +15,7 @@ import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForMo
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { tIssue, tIssueWorklog, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import type { EnumType } from '../../../../../src/exports/v2/index.js'
 
 // Business model (upper layer) — no ts-sql-query types.
 interface IssueModel {
@@ -62,7 +63,7 @@ describe(ctx.label, () => {
         type M = { status: 'open' | 'closed'; org: { id: number; name: string } }
         assertType<Exact<
             DynamicDefinitionForModel<M>,
-            { status: ['enum', 'open' | 'closed']; org: { id: 'int'; name: 'string' } }
+            { status: EnumType<'open' | 'closed', string>; org: { id: 'int'; name: 'string' } }
         >>()
     })
 
@@ -305,12 +306,12 @@ describe(ctx.label, () => {
     })
 
     test('from-model/numeric-literal-union-maps-to-enum', async () => {
-        // A NUMERIC-literal union model field maps to `['enum', T]` — the
+        // A NUMERIC-literal union model field maps to `EnumType<T, string>` — the
         // `[number] extends [T]` FALSE branch of DynamicDefinitionForModel (a widened
         // `number` does not extend a literal union). The rounded
         // `{ level: { equals: 2 } }` filter over an
         // int value source emits the same SQL+params as the direct `priority.equals(2)`.
-        assertType<Exact<DynamicDefinitionForModel<{ level: 1 | 2 | 3 }>, { level: ['enum', 1 | 2 | 3] }>>()
+        assertType<Exact<DynamicDefinitionForModel<{ level: 1 | 2 | 3 }>, { level: EnumType<1 | 2 | 3, string> }>>()
 
         const fields = { level: tIssue.priority }
         const filter: DynamicConditionForModel<{ level: 1 | 2 | 3 }> = { level: { equals: 2 } }

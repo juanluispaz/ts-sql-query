@@ -1331,7 +1331,7 @@ The values travel as JSON, which has no dates or big integers, so the library co
 | `localDate`, `localTime`, `localDateTime` | `Date` |
 | `uuid` | `string`, also in the databases where it's stored in binary: the query converts it to text |
 
-A number arrives as its text, so that no precision is lost, and it's the type of the column that converts it. A custom type is converted as the built-in type it is [based on](../configuration/data-types.md#your-own-types), like a `customInt` as an `int`; an `enum`, a `custom` or a `customComparable` needs its conversion registered, and without it a number arrives in the array as text.
+A number arrives as its text, so that no precision is lost, and it's the type of the column that converts it. A type of yours is converted as [its family](../configuration/data-types.md#your-own-types) says, like an `IntegersType` as an `int`; one whose family converts nothing, like an `EnumType`, an `EqualableType` or a `ComparableType`, needs its conversion registered, and without it a number arrives in the array as text.
 
 An `int` above `Number.MAX_SAFE_INTEGER` raises the `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` error instead of returning a wrong value. Use `bigint` for those columns.
 

@@ -113,7 +113,7 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 | v1 | v2 | Deprecated in v1 since |
 |---|---|---|
 | `compose`, `composeDeletingInternalProperty`, `composeDeletingExternalProperty`, `withOne`, `withMany`, ... `split`, `splitOptional`, `splitRequired`, `guidedSplitOptional`, `guidedSplitRequired`, and `mapForGuidedSplit`, `prefixCapitalized`, `prefixDotted`, `prefixMapFor...` | [Complex projections](../../queries/complex-projections.md) or [aggregate as an object array](../../queries/aggregate-as-object-array.md) | v1.61.0, 2 Mar 2024; announced as legacy, to be removed, since v1.54.0, 26 Jun 2023 |
-| Columns `'stringInt'`, `'stringDouble'`, `.asStringInt()`, `.asStringDouble()` | `'bigint'`, or [`'customInt'`, `'customDouble'`](../../configuration/data-types.md); `.asInt()`, `.asBigint()`, `.asDouble()` | v1.60.0, 25 Feb 2024 |
+| Columns `'stringInt'`, `'stringDouble'`, `.asStringInt()`, `.asStringDouble()` | `'bigint'`, or a class of yours that extends [`IntegersType` or `RealsType`](../../configuration/data-types.md#your-own-types); `.asInt()`, `.asBigint()`, `.asDouble()` | v1.60.0, 25 Feb 2024 |
 
 ### Types that now reject what compiled
 
@@ -136,35 +136,40 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
-**A custom type is a class.** A custom type isn't given by its names any more (`'custom', 'RgbColor'`): it is a class, made once with the `of` of its family, with your TypeScript type and its type name as generic arguments and the type name as its argument, and given where the names went. This applies to columns, constants, fragments, arguments, function results and sequences. The form with one generic argument, deprecated in v1.69.0, is gone with it:
+**A custom type is a class.** A custom type isn't given by its names any more (`'custom', 'RgbColor'`): it is a class of yours that extends the family of what its values can do, with your TypeScript type and its type name as generic arguments and the type name in its static `type`, declared once and given where the names went. This applies to columns, constants, fragments, arguments, function results and sequences. The form with one generic argument, deprecated in v1.69.0, is gone with it:
 
 ```typescriptreact
-import { CustomEqualableType } from 'ts-sql-query'
+import { EqualableType } from 'ts-sql-query'
 
 // v1
 this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
 this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 // v2
-const RgbColorType = CustomEqualableType.of<RgbColor, 'RgbColor'>('RgbColor')
+abstract class RgbColorType extends EqualableType<RgbColor, 'RgbColor'> {
+    static override readonly type = 'RgbColor'
+}
 this.column('ColumnName', RgbColorType)
 ```
 
-The family of each custom type, all of them exported by `ts-sql-query`:
+The family each custom type extends, all of them exported by `ts-sql-query` (see [Your own types](../../configuration/data-types.md#your-own-types)):
 
 | v1 | v2 |
 |---|---|
-| `'customInt', 'Name'` | `CustomIntType.of<T, 'Name'>('Name')` |
-| `'customBigint', 'Name'` | `CustomBigintType.of<T, 'Name'>('Name')` |
-| `'customDouble', 'Name'` | `CustomDoubleType.of<T, 'Name'>('Name')` |
-| `'customUuid', 'Name'` | `CustomUuidType.of<T, 'Name'>('Name')` |
-| `'customLocalDate', 'Name'` | `CustomLocalDateType.of<T, 'Name'>('Name')` |
-| `'customLocalTime', 'Name'` | `CustomLocalTimeType.of<T, 'Name'>('Name')` |
-| `'customLocalDateTime', 'Name'` | `CustomLocalDateTimeType.of<T, 'Name'>('Name')` |
-| `'enum', 'Name'` | `EnumType.of<T, 'Name'>('Name')` |
-| `'custom', 'Name'` | `CustomEqualableType.of<T, 'Name'>('Name')` |
-| `'customComparable', 'Name'` | `CustomComparableType.of<T, 'Name'>('Name')` |
+| `'customInt', 'Name'` | `IntegersType<T, 'Name'>` |
+| `'customBigint', 'Name'` | `IntegersType<T, 'Name'>`, with `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }` and `T` a `bigint` |
+| `'customDouble', 'Name'` | `RealsType<T, 'Name'>` |
+| `'customDecimal', 'Name'` | `DecimalsType<T, 'Name'>` |
+| `'customUuid', 'Name'` | `UuidsType<T, 'Name'>` |
+| `'customLocalDate', 'Name'` | `LocalDatesType<T, 'Name'>` |
+| `'customLocalTime', 'Name'` | `LocalTimesType<T, 'Name'>` |
+| `'customLocalDateTime', 'Name'` | `LocalDateTimesType<T, 'Name'>` |
+| `'enum', 'Name'` | `EnumType<T, 'Name'>` |
+| `'custom', 'Name'` | `EqualableType<T, 'Name'>` |
+| `'customComparable', 'Name'` | `ComparableType<T, 'Name'>` |
 
-A type adapter still receives the custom type by its name, `'custom'` for a `CustomEqualableType`, and the type name, `'RgbColor'`.
+A type adapter receives the class of the type, with the type name in `type`, `'RgbColor'`.
+
+**A column of a custom type in `DynamicCondition`.** The definition of a dynamic condition gives such a column by its class, `total: MoneyType`, instead of a tuple, `total: ['customDouble', Money]`, and its filter is the one of its family: `ComparableFilter<T>` instead of `CustomIntFilter<T>`, `CustomDoubleFilter<T>` and the filters of the custom dates, and `UuidsFilter<T>` instead of `CustomUuidFilter<T>`. `DynamicCondition` and the filters imported from the paths of v1 (`ts-sql-query/dynamicCondition`, `ts-sql-query/expressions/dynamicConditionUsingFilters`) still take the tuples, deprecated; the ones of `ts-sql-query` don't.
 
 **A select with an aggregate and a column of a table, without a group by.** SQLite and MariaDB ran it, with the value of any row of the group; the other databases rejected it. Group by the column, or take any value of the group with [`anyValue`](../../queries/aggregate-and-group-by.md#any-value-of-the-group) if it is the same in the whole group:
 
@@ -180,18 +185,18 @@ const customersPerCompany = await connection.selectFrom(tCustomer)
 
 See [grouping by every non-aggregated column](../../queries/aggregate-and-group-by.md#grouping-by-every-non-aggregated-column).
 
-**`ceil()`, `floor()` and `round()` of an integer.** A `bigint`, a `customInt` and a `customBigint` don't have them: on an integer they gave the same value. Remove the call.
+**`ceil()`, `floor()` and `round()` of an integer.** A `bigint` and an integer of yours (`IntegersType`) don't have them: on an integer they gave the same value. Remove the call.
 
 **`executeInsertOne()` on a multi-row insert with `onConflictDoNothing()`.** It is not offered, since the conflict can skip every row: use `executeInsert()`.
 
 **Result types:**
 
-- `connection.average(...)` and `connection.averageDistinct(...)` always return `number`. Drop an annotation that says `bigint` or a custom type.
+- `connection.average(...)` and `connection.averageDistinct(...)` always return `number`. Drop an annotation that says `bigint` or a type of yours.
 - Nested projections go up to [5 levels](../../queries/complex-projections.md), counting the object passed to `select`.
 
 ### Type adapters and the transforms of the connection
 
-`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive what they transform and a context: in a type adapter before `next`, `transformValueToDB(value, context, next)`, and in the connection at the end, `transformValueToDB(value, context)`. The type of the value is no longer an argument: it is in the context, as the original type, declared in the library, which never changes (`originalType`), and the type requested for the value (`requestedType`), by default the original one, by which the next type adapter and the conversion of the library decide. Both are the class of the type, not its name: where v1 compared `type === 'MyIntTypeName'`, compare the name of the type, `context.requestedType.type === 'MyIntTypeName'`, or the class itself, `context.requestedType === MyIntType` for a column declared with `MyIntType = CustomIntType.of<MyInt, 'MyIntTypeName'>('MyIntTypeName')`; a comparison of the class with a text doesn't compile. Which custom type it is, is `context.requestedType.customType`. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: read the type from the context and pass the context on to `next` or `super`. When your rule changes the type, request the new one with `setRequestedType` before calling `next` or `super`, a built-in type by its name, like `setRequestedType('int')`, and a custom one by its class, like `setRequestedType(MyIntType)`: in `transformValueToDB` it is also the type the parameter is sent with (see [The original and the requested type](../../advanced/type-adapters.md#the-original-and-the-requested-type)):
+`transformValueFromDB`, `transformValueToDB` and `transformPlaceholder` receive what they transform and a context: in a type adapter before `next`, `transformValueToDB(value, context, next)`, and in the connection at the end, `transformValueToDB(value, context)`. The type of the value is no longer an argument: it is in the context, as the original type, declared in the library, which never changes (`originalType`), and the type requested for the value (`requestedType`), by default the original one, by which the next type adapter and the conversion of the library decide. Both are the class of the type, not its name: where v1 compared `type === 'MyIntTypeName'`, compare the name of the type, `context.requestedType.type === 'MyIntTypeName'`, or the class itself, `context.requestedType === MyIntType` for a column declared with `MyIntType`, a class that extends `IntegersType<MyInt, 'MyIntTypeName'>`; a comparison of the class with a text doesn't compile. A type adapter written for v1 doesn't compile, and neither does an override of the connection that calls `super`: read the type from the context and pass the context on to `next` or `super`. When your rule changes the type, request the new one with `setRequestedType` before calling `next` or `super`, a built-in type by its name, like `setRequestedType('int')`, and one of yours by its class, like `setRequestedType(MyIntType)`: in `transformValueToDB` it is also the type the parameter is sent with (see [The original and the requested type](../../advanced/type-adapters.md#the-original-and-the-requested-type)):
 
 In v1:
 
@@ -221,7 +226,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 `transformPlaceholder` no longer receives `forceTypeCast` nor the value sent: it is `transformPlaceholder(placeholder, context)` in the connection, with `next` at the end in a type adapter, the value sent is `context.valueSentToDB`, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
 
-A rule like this one, that only sends a `customInt` to `int`, is no longer needed: a custom type is converted as its built-in type (see [Custom types are converted as their built-in type](#custom-types-are-converted-as-their-built-in-type)). `CustomType`, which custom type a type is, is exported from `ts-sql-query`.
+A rule like this one, that only sends an integer of yours to `int`, is no longer needed: a custom type is converted as its family says (see [Custom types are converted as their family](#custom-types-are-converted-as-their-family)).
 
 ### Your own query runner, and the connection of the driver
 
@@ -246,7 +251,7 @@ Everything in this section compiles, and nothing warns you about it. Each item s
 2. **On an older database server, queries fail**, unless you declare its version. [The version of your database](#set-the-version-of-your-database).
 3. **Oracle commits statements outside a transaction**, and on PostgreSQL and Oracle a nested transaction rejects. Remove your manual commits; don't nest, or allow it. [Transactions](#transactions).
 4. **Your `catch` stops matching.** An error of your own crosses a transaction unwrapped, and the classes and messages are others. [Errors](#errors).
-5. **A custom type without its conversion arrives converted.** Register its conversion if your code expects the value as the driver gives it. [Custom types are converted as their built-in type](#custom-types-are-converted-as-their-built-in-type).
+5. **A custom type without its conversion arrives converted.** Register its conversion if your code expects the value as the driver gives it. [Custom types are converted as their family](#custom-types-are-converted-as-their-family).
 6. **Outside UTC, the dates and times move**, and the rows already written must be converted. [Dates and times in a process outside UTC](#dates-and-times-in-a-process-outside-utc).
 7. **SQLite: a date or time stored as text stops matching** a value of another precision. Normalize the stored values. [SQLite: the precision of the dates and times as text](#sqlite-the-precision-of-the-dates-and-times-as-text).
 8. **An old property in your connection class is ignored.** [Properties](#properties-of-the-connection-that-no-longer-exist).
@@ -381,9 +386,9 @@ The errors the library raises itself have a reason instead of a message to compa
 
 **A number too big now fails.** Reading an integer above `Number.MAX_SAFE_INTEGER` that the driver already rounded to a `number` rejects with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. v1 returned the rounded value. Declare the column `'bigint'`. On SQLite, enable the big integers of your driver too; the query runners of `mysql2`, `mariadb` and `oracledb` already receive them exact.
 
-### Custom types are converted as their built-in type
+### Custom types are converted as their family
 
-A `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime` or `customLocalDateTime` whose conversion you didn't register was returned as the driver gave it, or as text from an array aggregate. It's now converted as an `int`, a `double`, a `uuid` or the type of its date or time, whatever its type name, with the same checks: a number past `Number.MAX_SAFE_INTEGER` in a `customInt` is rejected, and an exact decimal kept as text in a `customDouble` becomes a `number` and loses the digits a `number` doesn't hold. On PostgreSQL, the parameter of these types gets the cast of that type where the library writes one, like `$1::float8` for a `customDouble`. On SQL Server, a `customInt` is bound as `int`, as an `int` is; it was bound as `bigint`, so a value above 2,147,483,647 is now rejected by the database: use `customBigint` for it. To keep a value as it comes, register its conversion: see [Custom types](../../configuration/data-types.md#your-own-types). An `enum`, a `custom` and a `customComparable` are not converted, as before.
+A `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime` or `customLocalDateTime` whose conversion you didn't register was returned as the driver gave it, or as text from an array aggregate. Its class in v2 (`IntegersType`, `RealsType`, `UuidsType`, `LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`) converts it as an `int`, a `double`, a `uuid` or the type of its date or time, whatever its type name, with the same checks: a number past `Number.MAX_SAFE_INTEGER` in an `IntegersType` is rejected, and an exact decimal kept as text in a `RealsType` becomes a `number` and loses the digits a `number` doesn't hold. On PostgreSQL, the parameter of these types gets the cast of that type where the library writes one, like `$1::float8` for a `RealsType`. On SQL Server, an `IntegersType` is bound as `int`, as an `int` is; a `customInt` was bound as `bigint`, so a value above 2,147,483,647 is now rejected by the database: give its class an SQL data type of 8 bytes. To keep a value as it comes, register its conversion: see [Your own types](../../configuration/data-types.md#your-own-types). An `EnumType`, an `EqualableType` and a `ComparableType` are not converted, as an `enum`, a `custom` and a `customComparable` weren't.
 
 ### Dates and times in a process outside UTC
 
@@ -397,7 +402,7 @@ v2 keeps every date and time of the database in UTC, whatever the zone of the pr
     update release set signed_off_at = (signed_off_at at time zone 'Europe/Madrid') at time zone 'UTC';
     ```
 
-    `2024-01-14 10:30:00` becomes `2024-01-14 09:30:00`, and `2024-07-14 14:30:00` becomes `2024-07-14 12:30:00`. If you can't convert them, read and write that column through a [type adapter](../../advanced/type-adapters.md) on a `customLocalDateTime`.
+    `2024-01-14 10:30:00` becomes `2024-01-14 09:30:00`, and `2024-07-14 14:30:00` becomes `2024-07-14 12:30:00`. If you can't convert them, read and write that column through a [type adapter](../../advanced/type-adapters.md) on a `LocalDateTimesType` of yours.
 - **A query runner can reject the connection**, when it's created: `oracledb` needs the environment variable `ORA_SDTZ` set to UTC (or not set, with the process in UTC), or to the `databaseTimeZone` you declare, `pg` and postgres.js a session `TimeZone` in the zone of the database (UTC, or the `databaseTimeZone` you declare) if their configuration sets one, and `mssql` a pool without `useUTC: false` (see [Query runners](#query-runners)).
 - **MySQL and MariaDB `TIMESTAMP`** and Oracle `TIMESTAMP WITH LOCAL TIME ZONE` are converted with the zone of the database session, which must be in UTC.
 
@@ -473,7 +478,7 @@ A property left in your connection class still compiles and does nothing, unless
 - `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them: swap the value you pass.
 - **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../configuration/query-runners/recommended/better-sqlite3.md)).
 - **Some configurations of the driver are rejected** when the query runner is created, with `INVALID_CONFIGURATION`: `pg` with `binary: true`; postgres.js with a `transform` of the results, or with `infer: true` outside UTC; `mssql` with `camelCaseColumns` or `columnNameReplacer`, with a `textsize` below the default of tedious, or with `useUTC: false` outside UTC; `oracledb` without `ORA_SDTZ` set to the zone of the database (UTC, or the `databaseTimeZone` you declare) when the process or the database isn't in UTC. See the *Connection requirements* of each query runner, like [oracledb](../../configuration/query-runners/recommended/oracledb.md#connection-requirements).
-- **The settings of the driver that change a value no longer apply to the queries of the library**: the parsers of `date` and `timestamp` of `pg`; `dateStrings`, `supportBigNumbers`, `typeCast`, `rowsAsArray`, `decimalNumbers` and `timezone` of `mysql2`; `typeCast`, `rowsAsArray`, `metaAsArray`, `nestTables`, `dateStrings`, `decimalAsNumber`, `bigIntAsNumber` and `insertIdAsNumber` of `mariadb`; `arrayRowMode` of `mssql`; the global `fetchTypeHandler`, `fetchAsString`, `fetchAsBuffer` and `maxRows` of `oracledb`. They still apply to your own queries through the driver. If you used one to shape what the library returned, use a [custom type](../../configuration/data-types.md#your-own-types) with its conversion instead. The `supportBigNumbers` of `mysql2` and the global `fetchTypeHandler` of `oracledb` that the docs recommended for large integers are no longer needed.
+- **The settings of the driver that change a value no longer apply to the queries of the library**: the parsers of `date` and `timestamp` of `pg`; `dateStrings`, `supportBigNumbers`, `typeCast`, `rowsAsArray`, `decimalNumbers` and `timezone` of `mysql2`; `typeCast`, `rowsAsArray`, `metaAsArray`, `nestTables`, `dateStrings`, `decimalAsNumber`, `bigIntAsNumber` and `insertIdAsNumber` of `mariadb`; `arrayRowMode` of `mssql`; the global `fetchTypeHandler`, `fetchAsString`, `fetchAsBuffer` and `maxRows` of `oracledb`. They still apply to your own queries through the driver. If you used one to shape what the library returned, use a [type of yours](../../configuration/data-types.md#your-own-types) with its conversion instead. The `supportBigNumbers` of `mysql2` and the global `fetchTypeHandler` of `oracledb` that the docs recommended for large integers are no longer needed.
 - **Oracle: a `boolean` parameter of a procedure is bound as a PL/SQL `BOOLEAN`.** A procedure with a `NUMBER` parameter that you called with a `boolean` value fails with `PLS-00306`: give it an `int` (`this.const(flag ? 1 : 0, 'int')`) ([docs](../../configuration/query-runners/recommended/oracledb.md#procedures-with-a-boolean-parameter)).
 - **A date or a time outside the calendar is rejected when it's read**, like `2024-02-30` that MySQL keeps with `ALLOW_INVALID_DATES`, or `24:00:00`: before, it became another day ([docs](../../configuration/time-zones.md#known-limits)).
 - **SQL given straight to a query runner** must use the placeholders of the library. Oracle binds by name, so a placeholder is named after the index of its value (`:0`, `:1`). `BetterSqlite3QueryRunner` numbers them (`?1`, `?2`), and doesn't bind a bare `?`.

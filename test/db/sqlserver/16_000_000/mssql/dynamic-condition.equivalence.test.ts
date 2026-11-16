@@ -38,6 +38,7 @@ import { tIssue, tIssueWorklog, tProject, tProjectRelease } from '../../domain/c
 import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { IntegersType, RealsType } from '../../../../../src/exports/v2/index.js'
+import type { ComparableType, EnumType, EqualableType, LocalDateTimesType, LocalDatesType, LocalTimesType, UuidsType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
 abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
@@ -745,13 +746,13 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/enum-descriptor-dispatch', async () => {
-        // The `['enum', T]` descriptor maps to an EqualableFilter<T>. Only the
+        // The `EnumType<T, string>` descriptor maps to an EqualableFilter<T>. Only the
         // *type* mapping is pinned elsewhere (from-model); this runs an enum
         // filter through `withValues` and proves it emits exactly what the
         // direct equalable calls do. `tIssue.status` stores the enum values in
         // a plain string column, so the field map dispatches the enum filter
         // through the string value source.
-        type StatusFilter = DynamicCondition<{ id: 'int', status: ['enum', 'open' | 'closed'] }>
+        type StatusFilter = DynamicCondition<{ id: 'int', status: EnumType<'open' | 'closed', string> }>
         const filter: StatusFilter = {
             status: { equals: 'open', in: ['open', 'closed'], notEquals: 'closed' },
         }
@@ -785,12 +786,12 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-comparable-descriptor-dispatch', async () => {
-        // the `['customComparable', T]` descriptor maps to a
+        // the `ComparableType<T, string>` descriptor maps to a
         // ComparableFilter<T>. tProjectRelease.version is a branded
         // customComparable column; the dynamic filter must emit exactly the
         // direct comparable calls. A plain `string` in a model doesn't reach the custom
         // arms, so here the descriptor map is the route.
-        type ReleaseFilter = DynamicCondition<{ id: 'int', version: ['customComparable', string] }>
+        type ReleaseFilter = DynamicCondition<{ id: 'int', version: ComparableType<string, string> }>
         const filter: ReleaseFilter = { version: { greaterThan: '0.5.0', lessThan: '1.3.0', equals: '1.2.0' } }
 
         ctx.mockNext([])
@@ -820,12 +821,12 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-uuid-descriptor-dispatch', async () => {
-        // the `['customUuid', T]` descriptor maps to CustomUuidFilter<T> —
+        // the `UuidsType<T, string>` descriptor maps to UuidsFilter<T> —
         // a bespoke equality + like/affix interface over the branded uuid.
         // signingKey is an optional customUuid column. The like-family
         // operators route through the same `asString()` rewrite the plain
         // uuid path uses (useAsStringInUuid).
-        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: UuidsType<string, string> }>
         const filter: ReleaseFilter = {
             signingKey: { equals: '0a8f9c1e-1111-4222-8333-444455556666', contains: 'abc', startsWith: '0a8f' },
         }
@@ -1008,7 +1009,7 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-local-date-descriptor-dispatch', async () => {
-        // the `['customLocalDate', T]` descriptor maps to CustomLocalDateFilter.
+        // the `LocalDatesType<T, string>` descriptor maps to ComparableFilter.
         // releasedOn ('ReleaseDay') is a customLocalDate column; the comparable
         // filter must emit exactly the direct comparable calls. The model path
         // can't reach custom arms (it can't map adapters), so dynamicConditionFor
@@ -1040,7 +1041,7 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-local-time-descriptor-dispatch', async () => {
-        // the `['customLocalTime', T]` descriptor maps to CustomLocalTimeFilter.
+        // the `LocalTimesType<T, string>` descriptor maps to ComparableFilter.
         // cutoffTime ('CutoffClock') is a customLocalTime column.
         const lo = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
         const hi = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
@@ -1069,8 +1070,8 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-local-date-time-descriptor-dispatch', async () => {
-        // the `['customLocalDateTime', T]` descriptor maps to
-        // CustomLocalDateTimeFilter. signedOffAt ('SignOffStamp') is an optional
+        // the `LocalDateTimesType<T, string>` descriptor maps to
+        // ComparableFilter. signedOffAt ('SignOffStamp') is an optional
         // customLocalDateTime column.
         const lo = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
         const hi = new Date(Date.UTC(2024, 11, 31, 0, 0, 0))
@@ -1104,7 +1105,7 @@ describe(ctx.label, () => {
         // carries an explicit `DynamicCondition<...>` column-type (not an inline
         // literal) so the comparable operators are checked against that column-type.
         const amount = ctx.conn.const(5, MoneyType)
-        type AmountFilter = DynamicCondition<{ id: 'int', amount: ['customDouble', number] }>
+        type AmountFilter = DynamicCondition<{ id: 'int', amount: RealsType<number, string> }>
         const filter: AmountFilter = { amount: { greaterThan: 3, lessThan: 9 } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)
@@ -1195,7 +1196,7 @@ describe(ctx.label, () => {
         // carries an explicit `DynamicCondition<...>` column-type (not an inline
         // literal).
         const tag = ctx.conn.const(5, ReleaseTagType)
-        type TagFilter = DynamicCondition<{ id: 'int', tag: ['customInt', number] }>
+        type TagFilter = DynamicCondition<{ id: 'int', tag: IntegersType<number, string> }>
         const filter: TagFilter = { tag: { greaterThan: 3, lessThan: 9 } }
 
         ctx.mockNext([])
@@ -1226,7 +1227,7 @@ describe(ctx.label, () => {
     test('equivalence/custom-equality-descriptor-dispatch', async () => {
         // `channel` is an equality-only `custom` column. The filter carries an
         // explicit `DynamicCondition<...>` column-type (not an inline literal).
-        type ChannelFilter = DynamicCondition<{ id: 'int', channel: ['custom', ReleaseChannel] }>
+        type ChannelFilter = DynamicCondition<{ id: 'int', channel: EqualableType<ReleaseChannel, string> }>
         const filter: ChannelFilter = { channel: { notEquals: 'canary', in: ['stable', 'beta'] } }
 
         ctx.mockNext([])
@@ -1259,7 +1260,7 @@ describe(ctx.label, () => {
         // forced by the suite.
         const lo = new Date(Date.UTC(2024, 0, 1, 10, 0, 0))
         const hi = new Date(Date.UTC(2024, 11, 31, 10, 0, 0))
-        type ReleaseFilter = DynamicCondition<{ id: 'int', releasedOn: ['customLocalDate', Date] }>
+        type ReleaseFilter = DynamicCondition<{ id: 'int', releasedOn: LocalDatesType<Date, string> }>
         const filter: ReleaseFilter = { releasedOn: { greaterOrEqual: lo, lessThan: hi } }
 
         ctx.mockNext([])
@@ -1290,7 +1291,7 @@ describe(ctx.label, () => {
         // `DynamicCondition<...>` column-type (not an inline literal).
         const lo = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
         const hi = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
-        type ReleaseFilter = DynamicCondition<{ id: 'int', cutoffTime: ['customLocalTime', Date] }>
+        type ReleaseFilter = DynamicCondition<{ id: 'int', cutoffTime: LocalTimesType<Date, string> }>
         const filter: ReleaseFilter = { cutoffTime: { greaterOrEqual: lo, lessThan: hi } }
 
         ctx.mockNext([])
@@ -1321,7 +1322,7 @@ describe(ctx.label, () => {
         // an explicit `DynamicCondition<...>` column-type (not an inline literal).
         const lo = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
         const hi = new Date(Date.UTC(2024, 11, 31, 0, 0, 0))
-        type ReleaseFilter = DynamicCondition<{ id: 'int', signedOffAt: ['customLocalDateTime', Date] }>
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signedOffAt: LocalDateTimesType<Date, string> }>
         const filter: ReleaseFilter = { signedOffAt: { greaterOrEqual: lo, lessThan: hi } }
 
         ctx.mockNext([])
@@ -1351,7 +1352,7 @@ describe(ctx.label, () => {
         // `equalsInsensitive` on a uuid source is emitted via the `asString()`
         // text rewrite — `lower(signing_key::text) = lower(...)` (see the direct
         // equivalent). `signingKey` is an optional customUuid column.
-        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: UuidsType<string, string> }>
         const filter: ReleaseFilter = { signingKey: { equalsInsensitive: '0A8F9C1E-1111-4222-8333-444455556666' } }
 
         ctx.mockNext([])
@@ -1526,7 +1527,7 @@ describe(ctx.label, () => {
         // through `asString()` like the `equalsInsensitive` arm —
         // `lower(signing_key::text) <> lower(...)`. `signingKey` is an optional
         // customUuid column.
-        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: UuidsType<string, string> }>
         const filter: ReleaseFilter = { signingKey: { notEqualsInsensitive: '0A8F9C1E-1111-4222-8333-444455556666' } }
 
         ctx.mockNext([])
@@ -2361,7 +2362,7 @@ describe(ctx.label, () => {
 
     // -- B17 enum (tIssueWorklog.activity, a required WorklogActivity enum) ---
     test('dyn/enum-descriptor-is-isnot-notin-nullable', async () => {
-        type Filter = DynamicCondition<{ id: 'int', activity: ['enum', 'coding' | 'review' | 'meeting'] }>
+        type Filter = DynamicCondition<{ id: 'int', activity: EnumType<'coding' | 'review' | 'meeting', string> }>
         const filter: Filter = { activity: { is: 'coding', isNot: 'review', notIn: ['meeting'], isNull: true, isNotNull: true } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssueWorklog)
@@ -2422,7 +2423,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/enum-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', activity: ['enum', 'coding' | 'review' | 'meeting'] }>
+        type Filter = DynamicCondition<{ id: 'int', activity: EnumType<'coding' | 'review' | 'meeting', string> }>
         const filter: Filter = { activity: {
             equalsIfValue: 'coding', notEqualsIfValue: 'review', isIfValue: 'meeting',
             isNotIfValue: 'coding', inIfValue: ['coding', 'review'], notInIfValue: ['meeting'],
@@ -3311,7 +3312,7 @@ describe(ctx.label, () => {
 
     // -- customInt (tIssueWorklog.costCents, branded 'Cents') -----------------
     test('dyn/customint-descriptor-ops', async () => {
-        type Filter = DynamicCondition<{ id: 'int', costCents: ['customInt', number] }>
+        type Filter = DynamicCondition<{ id: 'int', costCents: IntegersType<number, string> }>
         const filter: Filter = { costCents: { equals: 10, notEquals: 20, is: 30, isNot: 40, in: [1, 2], notIn: [9], lessOrEqual: 100, greaterOrEqual: 5, isNull: true, isNotNull: true } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssueWorklog)
@@ -3394,7 +3395,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customint-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', costCents: ['customInt', number] }>
+        type Filter = DynamicCondition<{ id: 'int', costCents: IntegersType<number, string> }>
         const filter: Filter = { costCents: {
             equalsIfValue: 10, notEqualsIfValue: 20, isIfValue: 30, isNotIfValue: 40, inIfValue: [1, 2],
             notInIfValue: [9], lessOrEqualIfValue: 100, greaterOrEqualIfValue: 5,
@@ -3495,7 +3496,7 @@ describe(ctx.label, () => {
 
     // -- B10 customDouble (tIssueWorklog.billedAmount, branded 'Money') -------
     test('dyn/customdouble-descriptor-ops', async () => {
-        type Filter = DynamicCondition<{ id: 'int', billedAmount: ['customDouble', number] }>
+        type Filter = DynamicCondition<{ id: 'int', billedAmount: RealsType<number, string> }>
         const filter: Filter = { billedAmount: { equals: 10.5, notEquals: 20.5, is: 30.5, isNot: 40.5, in: [1.5, 2.5], notIn: [9.5], lessOrEqual: 100.5, greaterOrEqual: 5.5, isNull: true, isNotNull: true } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssueWorklog)
@@ -3578,7 +3579,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customdouble-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', billedAmount: ['customDouble', number] }>
+        type Filter = DynamicCondition<{ id: 'int', billedAmount: RealsType<number, string> }>
         const filter: Filter = { billedAmount: {
             equalsIfValue: 10.5, notEqualsIfValue: 20.5, isIfValue: 30.5, isNotIfValue: 40.5, inIfValue: [1.5, 2.5],
             notInIfValue: [9.5], lessOrEqualIfValue: 100.5, greaterOrEqualIfValue: 5.5,
@@ -3679,7 +3680,7 @@ describe(ctx.label, () => {
 
     // -- B11 customComparable (tProjectRelease.version, branded 'Semver') -----
     test('dyn/customcomparable-descriptor-ops', async () => {
-        type Filter = DynamicCondition<{ id: 'int', version: ['customComparable', string] }>
+        type Filter = DynamicCondition<{ id: 'int', version: ComparableType<string, string> }>
         const filter: Filter = { version: { notEquals: '2.0.0', is: '1.5.0', isNot: '0.9.0', in: ['1.0.0', '1.2.0'], notIn: ['3.0.0'], lessOrEqual: '2.0.0', greaterOrEqual: '1.0.0', isNull: true, isNotNull: true } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tProjectRelease)
@@ -3758,7 +3759,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customcomparable-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', version: ['customComparable', string] }>
+        type Filter = DynamicCondition<{ id: 'int', version: ComparableType<string, string> }>
         const filter: Filter = { version: {
             equalsIfValue: '1.2.0', notEqualsIfValue: '2.0.0', isIfValue: '1.5.0', isNotIfValue: '0.9.0',
             notInIfValue: ['3.0.0'], lessThanIfValue: '2.0.0', greaterThanIfValue: '0.5.0', greaterOrEqualIfValue: '1.0.0',
@@ -3857,7 +3858,7 @@ describe(ctx.label, () => {
 
     // -- B12 custom eq-only (tProjectRelease.channel, 'ReleaseChannel') -------
     test('dyn/custom-descriptor-equalable-nullable', async () => {
-        type Filter = DynamicCondition<{ id: 'int', channel: ['custom', 'stable' | 'beta' | 'canary'] }>
+        type Filter = DynamicCondition<{ id: 'int', channel: EqualableType<'stable' | 'beta' | 'canary', string> }>
         const filter: Filter = { channel: { equals: 'stable', is: 'beta', isNot: 'canary', notIn: ['canary'], isNull: true, isNotNull: true } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tProjectRelease)
@@ -3922,7 +3923,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/custom-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', channel: ['custom', 'stable' | 'beta' | 'canary'] }>
+        type Filter = DynamicCondition<{ id: 'int', channel: EqualableType<'stable' | 'beta' | 'canary', string> }>
         const filter: Filter = { channel: { equalsIfValue: 'stable', isIfValue: 'beta', isNotIfValue: 'canary', notInIfValue: ['canary'] } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tProjectRelease)
@@ -3996,7 +3997,7 @@ describe(ctx.label, () => {
 
     // -- B13 customLocalDate (tProjectRelease.releasedOn, 'ReleaseDay') -------
     test('dyn/customlocaldate-descriptor-ops', async () => {
-        type Filter = DynamicCondition<{ id: 'int', releasedOn: ['customLocalDate', Date] }>
+        type Filter = DynamicCondition<{ id: 'int', releasedOn: LocalDatesType<Date, string> }>
         const d1 = new Date(Date.UTC(2024, 0, 1, 10, 0, 0)), d2 = new Date(Date.UTC(2024, 5, 1, 10, 0, 0)), d3 = new Date(Date.UTC(2024, 11, 1, 10, 0, 0))
         const filter: Filter = { releasedOn: { equals: d1, notEquals: d2, is: d3, isNot: d1, in: [d1, d2], notIn: [d3], lessOrEqual: d2, greaterThan: d1, isNull: true, isNotNull: true } }
         ctx.mockNext([])
@@ -4081,7 +4082,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customlocaldate-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', releasedOn: ['customLocalDate', Date] }>
+        type Filter = DynamicCondition<{ id: 'int', releasedOn: LocalDatesType<Date, string> }>
         const d1 = new Date(Date.UTC(2024, 0, 1, 10, 0, 0)), d2 = new Date(Date.UTC(2024, 5, 1, 10, 0, 0)), d3 = new Date(Date.UTC(2024, 11, 1, 10, 0, 0))
         const filter: Filter = { releasedOn: {
             equalsIfValue: d1, notEqualsIfValue: d2, isIfValue: d3, isNotIfValue: d1, inIfValue: [d1, d2],
@@ -4184,7 +4185,7 @@ describe(ctx.label, () => {
 
     // -- B14 customLocalTime (tProjectRelease.cutoffTime, 'CutoffClock') ------
     test('dyn/customlocaltime-descriptor-ops', async () => {
-        type Filter = DynamicCondition<{ id: 'int', cutoffTime: ['customLocalTime', Date] }>
+        type Filter = DynamicCondition<{ id: 'int', cutoffTime: LocalTimesType<Date, string> }>
         const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
         const filter: Filter = { cutoffTime: { equals: t1, notEquals: t2, is: t3, isNot: t1, in: [t1, t2], notIn: [t3], lessOrEqual: t2, greaterThan: t1, isNull: true, isNotNull: true } }
         ctx.mockNext([])
@@ -4269,7 +4270,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customlocaltime-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', cutoffTime: ['customLocalTime', Date] }>
+        type Filter = DynamicCondition<{ id: 'int', cutoffTime: LocalTimesType<Date, string> }>
         const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
         const filter: Filter = { cutoffTime: {
             equalsIfValue: t1, notEqualsIfValue: t2, isIfValue: t3, isNotIfValue: t1, inIfValue: [t1, t2],
@@ -4372,7 +4373,7 @@ describe(ctx.label, () => {
 
     // -- B15 customLocalDateTime (tProjectRelease.signedOffAt, 'SignOffStamp') --
     test('dyn/customlocaldatetime-descriptor-ops', async () => {
-        type Filter = DynamicCondition<{ id: 'int', signedOffAt: ['customLocalDateTime', Date] }>
+        type Filter = DynamicCondition<{ id: 'int', signedOffAt: LocalDateTimesType<Date, string> }>
         const s1 = new Date('2024-01-01T00:00:00.000Z'), s2 = new Date('2024-06-15T12:00:00.000Z'), s3 = new Date('2024-12-31T00:00:00.000Z')
         const filter: Filter = { signedOffAt: { equals: s1, notEquals: s2, is: s3, isNot: s1, in: [s1, s2], notIn: [s3], lessOrEqual: s2, greaterThan: s1, isNull: true, isNotNull: true } }
         ctx.mockNext([])
@@ -4457,7 +4458,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customlocaldatetime-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', signedOffAt: ['customLocalDateTime', Date] }>
+        type Filter = DynamicCondition<{ id: 'int', signedOffAt: LocalDateTimesType<Date, string> }>
         const s1 = new Date('2024-01-01T00:00:00.000Z'), s2 = new Date('2024-06-15T12:00:00.000Z'), s3 = new Date('2024-12-31T00:00:00.000Z')
         const filter: Filter = { signedOffAt: {
             equalsIfValue: s1, notEqualsIfValue: s2, isIfValue: s3, isNotIfValue: s1, inIfValue: [s1, s2],
@@ -4914,7 +4915,7 @@ describe(ctx.label, () => {
 
     // -- customUuid (tProjectRelease.signingKey, branded 'SigningKey') --------
     test('dyn/customuuid-descriptor-core-ops', async () => {
-        type Filter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        type Filter = DynamicCondition<{ id: 'int', signingKey: UuidsType<string, string> }>
         const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
         const filter: Filter = { signingKey: { notEquals: u2, is: u3, isNot: u1, in: [u1, u2], notIn: [u3], lessThan: u3, greaterThan: u1, lessOrEqual: u2, greaterOrEqual: u1, isNull: true, isNotNull: true } }
         ctx.mockNext([])
@@ -5003,7 +5004,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customuuid-descriptor-string-family', async () => {
-        type Filter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        type Filter = DynamicCondition<{ id: 'int', signingKey: UuidsType<string, string> }>
         const filter: Filter = { signingKey: {
             like: '%1111%', notLike: '%9999%', likeInsensitive: '%1111%', notLikeInsensitive: '%9999%',
             notStartsWith: 'ffff', endsWith: '6666', notEndsWith: '0000', notContains: '9999',
@@ -5114,7 +5115,7 @@ describe(ctx.label, () => {
     })
 
     test('dyn/customuuid-descriptor-ifvalue-fire', async () => {
-        type Filter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        type Filter = DynamicCondition<{ id: 'int', signingKey: UuidsType<string, string> }>
         const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
         const filter: Filter = { signingKey: {
             equalsIfValue: u1, notEqualsIfValue: u2, isIfValue: u3, isNotIfValue: u1, inIfValue: [u1, u2],
@@ -5402,12 +5403,12 @@ describe(ctx.label, () => {
 
     // Base (non-IfValue) operators per leaf type through the dynamic dispatcher: int
     // `isNot` (priority) and enum `equals` / `notEquals` / `in` (status, mapped
-    // through the `['enum', T]` descriptor — status stores the enum values in a
+    // through the `EnumType<T, string>` descriptor — status stores the enum values in a
     // plain string column). Each fires on a present value and equals its direct
     // twin. Filter is annotated with an explicit `DynamicCondition<...>` so the
     // `FilterTypeOf<descriptor>` arm validates the shapes.
     test('equivalence/base-op-int-and-enum-family', async () => {
-        type Filter = DynamicCondition<{ id: 'int', priority: 'int', status: ['enum', 'open' | 'closed'] }>
+        type Filter = DynamicCondition<{ id: 'int', priority: 'int', status: EnumType<'open' | 'closed', string> }>
         const filter: Filter = {
             priority: { isNot: 4 },
             status: { equals: 'open', notEquals: 'closed', in: ['open', 'closed'] },

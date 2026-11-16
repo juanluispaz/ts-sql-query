@@ -196,7 +196,7 @@ export interface ConnectionConfiguration {
     readonly useSimultaneousAssignment?: boolean
     /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
     readonly useLikeInsteadOfIlike?: boolean
-    /** SQLite: how a customDecimal is computed and compared (`decimalStrategy`) */
+    /** SQLite: how an exact decimal is computed and compared (`decimalStrategy`) */
     readonly decimalStrategy?: string
     /** SQLite: the date and time functions of the database work in the time zone of the application */
     readonly sqliteRunsInApplicationTimeZone?: boolean
@@ -243,7 +243,7 @@ export interface QueryResultColumn {
     readonly name: string
     /** The property path in the result object (`customer.name`), `result` for a single value, '' without one */
     readonly path: string
-    /** The original type, its class (`IntType`, the class of a custom type, the one of an aggregated array) */
+    /** The original type, its class (`IntType`, the class of a type of the user, the one of an aggregated array) */
     readonly originalType: DataTypeClass
     /** The type of the value the database returns for the column, its class */
     readonly requestedType: DataTypeClass

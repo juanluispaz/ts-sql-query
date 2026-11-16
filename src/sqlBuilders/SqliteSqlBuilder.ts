@@ -44,7 +44,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const strategy = this._connectionConfiguration.uuidStrategy
         return strategy === 'string as sent' ? 'string' : strategy as any || 'uuid-extension'
     }
-    /** How a customDecimal is computed and compared (`decimalStrategy`) */
+    /** How an exact decimal is computed and compared (`decimalStrategy`) */
     _getDecimalStrategy(): SqliteDecimalStrategy {
         return this._connectionConfiguration.decimalStrategy as SqliteDecimalStrategy | undefined || 'decimal-extension and tsq-functions with canonical text'
     }
@@ -57,7 +57,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return strategy.replace(' with canonical text', '') as 'text' | 'decimal-functions' | 'decimal-extension and tsq-functions'
     }
     /**
-     * A canonical text variant: the library writes every customDecimal in its canonical text (see canonicalDecimalText)
+     * A canonical text variant: the library writes every exact decimal in its canonical text (see canonicalDecimalText)
      * and takes the values stored as written so, which compare and group as their text
      */
     _isCanonicalDecimalText(): boolean {
@@ -73,14 +73,14 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._getDecimalBaseStrategy() === 'decimal-functions'
     }
     /**
-     * With 'decimal-functions' and its canonical variant, a customDecimal is compared by its key (tsq_decimal_key),
+     * With 'decimal-functions' and its canonical variant, an exact decimal is compared by its key (tsq_decimal_key),
      * whose text order is the order of the numbers and which is the same for 1.5 and 1.50, so an index on
      * tsq_decimal_key(column) serves every comparison
      */
     _decimalKeySql(sql: string): string {
         return 'tsq_decimal_key(' + sql + ')'
     }
-    /** A comparison of a customDecimal value source with a value, as numbers: by their keys, or by decimal_cmp */
+    /** A comparison of an exact decimal value source with a value, as numbers: by their keys, or by decimal_cmp */
     _decimalOrderComparison(operator: '<' | '>' | '<=' | '>=', context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (this._usesDecimalKeyFunctions()) {
             return this._decimalKeySql(this._appendSql(valueSource, context, false)) + ' ' + operator + ' ' + this._decimalKeySql(this._appendValue(value, context, typeClass, false))
@@ -89,13 +89,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     /**
      * With the decimal strategies 'text' and 'canonical text', SQLite computes with a text in floating point, so no
-     * arithmetic of a customDecimal is exact: the query is rejected instead of writing a result that has lost digits
+     * arithmetic of an exact decimal is exact: the query is rejected instead of writing a result that has lost digits
      */
     _rejectDecimalArithmeticAsText(operation: string): never {
-        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a customDecimal is not exact with the decimal strategy \'' + this._getDecimalStrategy() + '\' of SQLite: use a decimal strategy with functions, like \'decimal-extension and tsq-functions with canonical text\'')
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a decimal is not exact with the decimal strategy \'' + this._getDecimalStrategy() + '\' of SQLite: use a decimal strategy with functions, like \'decimal-extension and tsq-functions with canonical text\'')
     }
     /**
-     * A customDecimal whose text is canonical in a canonical text variant: a column (stored so), a constant or a value
+     * An exact decimal whose text is canonical in a canonical text variant: a column (stored so), a constant or a value
      * (sent so), or the value of a query (whose select list gives it so). Any other expression (a computation, a
      * fragment) may give another text of the same number
      */
@@ -103,7 +103,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return !isValueSource(value) || __isColumn(value) || __isConst(value) || __isInlineSelect(value)
     }
     /**
-     * In a canonical text variant, the SQL of a customDecimal turned into its canonical text when it may not be, the
+     * In a canonical text variant, the SQL of an exact decimal turned into its canonical text when it may not be, the
      * expression computed once, in a subquery; otherwise the SQL as it is. The result of a function of the decimal
      * extension or of the library has no zeros before its integer part, so only the zeros at the end of its fraction and
      * the sign of a zero go; a fragment can be any text, which gets its normal form. Only a text is turned: anything
@@ -119,7 +119,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return "(select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select " + sql + ' as tsq_v))'
     }
     /**
-     * A text of a customDecimal that is the same for the values equal as numbers: in a canonical text variant, the
+     * A text of an exact decimal that is the same for the values equal as numbers: in a canonical text variant, the
      * canonical text (the SQL as it is for a column, a constant or a value); otherwise, the normal form
      */
     _decimalComparableText(value: unknown, sql: string): string {
@@ -139,7 +139,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return value === null || value === undefined
     }
     /**
-     * The parts of the text of a customDecimal, written in SQL over the SQL of the value (repeated, so a value
+     * The parts of the text of an exact decimal, written in SQL over the SQL of the value (repeated, so a value
      * written once per use): the integer part without its leading zeros, the fraction without its trailing zeros,
      * the significant digits (empty for a zero), where the point goes from the first significant digit, and whether
      * it has a minus sign. They compare and group the values as the numbers they are without a function of the
@@ -156,7 +156,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return { integer, fraction, digits, exponent, negative }
     }
     /**
-     * The parts of a canonical text of a customDecimal (see canonicalDecimalText), shorter to compute: its significant
+     * The parts of a canonical text of an exact decimal (see canonicalDecimalText), shorter to compute: its significant
      * digits (with the zeros at the end of the integer part, which compare the same), where the point goes, and whether
      * it has a minus sign; a zero is '0'
      */
@@ -168,18 +168,18 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const zero = sql + " = '0'"
         return { digits, exponent, negative, zero }
     }
-    /** The text of the number of a customDecimal, the same for the values equal as numbers: `001.50` is `1.5`, `-0.00` is `0` */
+    /** The text of the number of an exact decimal, the same for the values equal as numbers: `001.50` is `1.5`, `-0.00` is `0` */
     _decimalNormalForm(sql: string): string {
         const parts = this._decimalParts(sql)
         return '(case when ' + sql + ' is null then null when ' + parts.digits + " = '' then '0' else (case when " + parts.negative + " then '-' else '' end) || (case when " + parts.integer + " = '' then '0' else " + parts.integer + " end) || (case when " + parts.fraction + " <> '' then '.' || " + parts.fraction + " else '' end) end)"
     }
-    /** -1, 0 or 1 by the sign of the number of a customDecimal; null for a null */
+    /** -1, 0 or 1 by the sign of the number of an exact decimal; null for a null */
     _decimalSign(sql: string): string {
         const parts = this._decimalParts(sql)
         return '(case when ' + sql + ' is null then null when ' + parts.digits + " = '' then 0 when " + parts.negative + ' then -1 else 1 end)'
     }
     /**
-     * -1, 0 or 1 as the number of the first customDecimal is less, equal or greater than the second one; null when one
+     * -1, 0 or 1 as the number of the first exact decimal is less, equal or greater than the second one; null when one
      * is null. With the decimal extension's functions, decimal_cmp; with the decimal strategy 'text', in SQL, by the
      * sign, the place of the point and the significant digits, in reverse for the negative numbers
      */
@@ -194,7 +194,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return '(case when ' + signA + ' <> ' + signB + ' then (case when ' + signA + ' < ' + signB + ' then -1 else 1 end) when ' + signA + ' = 0 then 0 else ' + signA + ' * (case when ' + a.exponent + ' <> ' + b.exponent + ' then (case when ' + a.exponent + ' < ' + b.exponent + ' then -1 else 1 end) when ' + a.digits + ' < ' + b.digits + ' then -1 when ' + a.digits + ' > ' + b.digits + ' then 1 else 0 end) end)'
     }
     /**
-     * The terms that order a customDecimal as the numbers, in SQL: by the sign, then the place of the point and the
+     * The terms that order an exact decimal as the numbers, in SQL: by the sign, then the place of the point and the
      * significant digits, ascending for the positive numbers and descending for the negative ones; a descending order
      * turns every term around. The nulls go where the ordering says, by the first term.
      */
@@ -217,7 +217,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             + ', (case when ' + sign + ' = -1 then ' + parts.digits + ' end)' + opposite
     }
     /**
-     * The smallest or the largest customDecimal of the group, with its text, in SQL: each value gets a key made of the
+     * The smallest or the largest exact decimal of the group, with its text, in SQL: each value gets a key made of the
      * place of its point and its significant digits followed by the value itself; the smallest number is the negative
      * one of the largest magnitude, or else the non negative one of the smallest key (a zero before any positive
      * number), and the other way round for the largest. The value is what follows the digits and the space of the key.
@@ -257,7 +257,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return call
     }
     /**
-     * The smaller or the larger of two customDecimal values, compared as numbers; null when one is null, as min and
+     * The smaller or the larger of two exact decimal values, compared as numbers; null when one is null, as min and
      * max of two values in SQLite
      */
     _decimalChoice(comparison: '<=' | '>=', context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
@@ -272,12 +272,12 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return 'case ' + (nullCheck ? 'when ' + nullCheck + ' then null ' : '') + 'when ' + this._decimalCmpSql(first, second) + ' ' + comparison + ' 0 then ' + first + ' else ' + second + ' end'
     }
-    /** -1, 0 or 1 as the customDecimal value source is less, equal or greater than the value, compared as numbers */
+    /** -1, 0 or 1 as the exact decimal value source is less, equal or greater than the value, compared as numbers */
     _decimalCompare(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         return this._decimalCmpSql(this._appendSql(valueSource, context, false), this._appendValue(value, context, typeClass, false))
     }
     /**
-     * Whether two customDecimal values are the same number: with the decimal extension's functions, by decimal_cmp;
+     * Whether two exact decimal values are the same number: with the decimal extension's functions, by decimal_cmp;
      * with the decimal strategy 'text', by their normal forms (`1.5` and `1.50` are the same)
      */
     _decimalEquality(operator: '=' | '<>', context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
@@ -326,7 +326,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return super._greaterOrEqual(context, valueSource, value, typeClass)
     }
     /**
-     * A customDecimal in a list or in the values of a query, compared as numbers. A list: with the decimal extension's
+     * An exact decimal in a list or in the values of a query, compared as numbers. A list: with the decimal extension's
      * functions, one decimal_cmp per value; otherwise, by the normal forms. A query: its values in their normal form,
      * through a with that names its only column whatever its name is
      */
@@ -437,7 +437,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return super._sum(context, value)
     }
-    /** The distinct values of a customDecimal are the distinct numbers: their normal forms (`1.5` and `1.50` are one) */
+    /** The distinct values of an exact decimal are the distinct numbers: their normal forms (`1.5` and `1.50` are one) */
     override _sumDistinct(context: SqlBuildContext, value: any): string {
         if (this._isCustomDecimal(value) && !this._usesDecimalExtensionFunctions()) {
             this._rejectDecimalArithmeticAsText('sum')
@@ -461,13 +461,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return super._averageDistinct(context, value)
     }
-    /** The order by names a customDecimal, which is ordered by expressions of it */
+    /** The order by names an exact decimal, which is ordered by expressions of it */
     _isDecimalOrderByEntry(entry: OrderByEntry, query: SelectData): boolean {
         const expression = entry.expression
         const column = typeof expression === 'string' ? getQueryColumn(query.__columns, expression) : expression
         return this._isCustomDecimal(column)
     }
-    /** With the decimal strategy 'decimal-functions', a customDecimal is ordered by its key, whose text orders as the number does */
+    /** With the decimal strategy 'decimal-functions', an exact decimal is ordered by its key, whose text orders as the number does */
     override _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
         if (context.orderByDecimalAsReal || !this._usesDecimalKeyFunctions() || !this._isDecimalOrderByEntry(entry, query)) {
             return super._appendOrderByColumnAlias(entry, query, context)
@@ -480,7 +480,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
     }
     /**
-     * Without the functions of the library for the order, a customDecimal is ordered as the number by terms
+     * Without the functions of the library for the order, an exact decimal is ordered as the number by terms
      * written in SQL (see _decimalOrderByTerms), the ordering of the entry applied to them
      */
     override _appendOrderByEntryTerms(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string | undefined {
@@ -503,7 +503,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             context.orderByDecimalAsReal = false
         }
     }
-    /** A compound query can only order by its columns: an expression of a customDecimal goes over a query that wraps it */
+    /** A compound query can only order by its columns: an expression of an exact decimal goes over a query that wraps it */
     override _needsCompoundOrderByWrap(query: SelectData): boolean {
         if (super._needsCompoundOrderByWrap(query)) {
             return true
@@ -511,7 +511,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return query.__type === 'compound' && !!query.__orderBy && query.__orderBy.some(entry => this._isDecimalOrderByEntry(entry, query))
     }
     /**
-     * min and max of a customDecimal compare the numbers: with the decimal strategy 'decimal-functions', the aggregates
+     * min and max of an exact decimal compare the numbers: with the decimal strategy 'decimal-functions', the aggregates
      * of the library; otherwise in SQL (see _decimalMinOrMax)
      */
     override _min(context: SqlBuildContext, value: any): string {
@@ -533,7 +533,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return super._max(context, value)
     }
     /**
-     * With the decimal extension's functions, `is` and `is not` of a customDecimal compare the numbers: equal when both
+     * With the decimal extension's functions, `is` and `is not` of an exact decimal compare the numbers: equal when both
      * are null or decimal_cmp gives 0 (decimal_cmp is null when one is null)
      */
     _decimalIs(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
@@ -559,8 +559,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'coalesce(' + compare + ', ' + first + ' is null and ' + second + ' is null)'
     }
     /**
-     * A union, an intersect or an except of queries with a customDecimal column takes the values equal as numbers
-     * (`1.5` and `1.50`) as the same: the rows are compared by the grouping key of each customDecimal (see
+     * A union, an intersect or an except of queries with an exact decimal column takes the values equal as numbers
+     * (`1.5` and `1.50`) as the same: the rows are compared by the grouping key of each exact decimal (see
      * _decimalGroupingKey), and each group of equal rows gives one of them
      */
     override _buildCompoundCore(query: CompoundSelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
@@ -610,12 +610,12 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'select ' + selectColumns + ' from (' + first + ') as ' + firstAlias + ' where ' + (operator === 'intersect' ? '' : 'not ') + 'exists (select 1 from (' + second + ') as ' + secondAlias + ' where ' + sameRow + ') group by ' + groupBy
     }
     /**
-     * abs, ceil, floor, round, roundn and modulo of a customDecimal: with the strategies with functions, the functions
+     * abs, ceil, floor, round, roundn and modulo of an exact decimal: with the strategies with functions, the functions
      * of the library (tsq_), which the decimal extension doesn't have; abs, without functions of the library, without
      * the minus sign of the text; with 'text' and 'canonical text' no other emission is exact
      */
     _decimalOperationNotExact(operation: string): never {
-        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a customDecimal is not exact with the decimal strategy \'' + this._getDecimalStrategy() + '\' of SQLite: use a decimal strategy with functions, like \'decimal-extension and tsq-functions with canonical text\'')
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'The ' + operation + ' of a decimal is not exact with the decimal strategy \'' + this._getDecimalStrategy() + '\' of SQLite: use a decimal strategy with functions, like \'decimal-extension and tsq-functions with canonical text\'')
     }
     override _abs(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isCustomDecimal(valueSource)) {
@@ -785,7 +785,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._decimalGroupingKey(entry, selectColumn.sql)
     }
     /**
-     * The values of a customDecimal are grouped by the number they are (`1.5` with `1.50`): in a canonical text variant,
+     * The values of an exact decimal are grouped by the number they are (`1.5` with `1.50`): in a canonical text variant,
      * by their canonical text; with 'decimal-functions', by the key of the value; otherwise by its normal form
      */
     _decimalGroupingKey(value: unknown, sql: string): string {
@@ -804,12 +804,12 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._decimalNormalForm(sql)
     }
     /**
-     * A distinct select of groups (a group by or an aggregate) with a customDecimal column would compare the texts of
+     * A distinct select of groups (a group by or an aggregate) with an exact decimal column would compare the texts of
      * the rows it gives, where `1.5` and `1.50` are different: no emission of SQLite removes them as numbers there,
      * unless the texts are canonical
      */
     _rejectDistinctDecimalOfGroups(): never {
-        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'A distinct select with a customDecimal column and a group by or an aggregate is not exact in SQLite with the decimal strategy \'' + this._getDecimalStrategy() + '\': use its canonical text variant, like \'decimal-extension and tsq-functions with canonical text\', remove the distinct, or group by the columns instead')
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'A distinct select with an exact decimal column and a group by or an aggregate is not exact in SQLite with the decimal strategy \'' + this._getDecimalStrategy() + '\': use its canonical text variant, like \'decimal-extension and tsq-functions with canonical text\', remove the distinct, or group by the columns instead')
     }
     override _buildSelectGroupBy(query: PlainSelectData, context: SqlBuildContext, isOutermostQuery: boolean, selectColumnsSql?: Map<AnyValueSource, SelectColumnSql> | undefined): string {
         if (query.__groupBy.length > 0) {
@@ -836,7 +836,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             // In a canonical text variant the select list gives the canonical texts, which a distinct compares
             return ''
         }
-        // A distinct select with a customDecimal, without aggregates, is grouped by its columns, the customDecimal by
+        // A distinct select with an exact decimal, without aggregates, is grouped by its columns, the exact decimal by
         // its grouping key, so the values equal as numbers are one row
         let hasDecimal = false
         let hasAggregation = false
@@ -1244,7 +1244,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // the 60000 (second, millisecond) pairs, all at powers of two.
         return "cast(round(strftime('%f', " + this._appendSql(valueSource, context, false) + ") * 1000) as integer) % 1000"
     }
-    /** In a canonical text variant a computed customDecimal is stored in its canonical text */
+    /** In a canonical text variant a computed exact decimal is stored in its canonical text */
     override _appendValueForColumn(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string {
         const sql = super._appendValueForColumn(column, value, context, forceTypeCast)
         if (hasToSql(value) && this._isCanonicalDecimalText() && this._isCustomDecimal(column)) {
@@ -1254,7 +1254,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
         if (__isExactDecimalSql(typeClass) && typeof value === 'string' && this._isCanonicalDecimalText()) {
-            // In a canonical text variant a customDecimal is sent in its canonical text
+            // In a canonical text variant an exact decimal is sent in its canonical text
             value = canonicalDecimalText(value)
         }
         if (__sqlFamilyOf(typeClass) === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
@@ -1264,7 +1264,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (this._isCustomDecimal(value) && this._isCanonicalDecimalText()) {
-            // In a canonical text variant a column of a select gives the canonical text of a computed customDecimal
+            // In a canonical text variant a column of a select gives the canonical text of a computed exact decimal
             return this._canonicalDecimalSql(value, this._appendSql(value, context, false))
         }
         if (isOutermostQuery && this._getUuidStrategy() === 'uuid-extension') {
@@ -1289,7 +1289,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
             }
             if (this._isCustomDecimal(aggregatedArrayColumns) && (aggregatedArrayDistinct || this._isCanonicalDecimalText())) {
-                // The distinct values of a customDecimal are the distinct numbers, each in its normal form; in a
+                // The distinct values of an exact decimal are the distinct numbers, each in its normal form; in a
                 // canonical text variant every value goes in its canonical text
                 return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._decimalComparableText(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false)), context) + ')'
             }

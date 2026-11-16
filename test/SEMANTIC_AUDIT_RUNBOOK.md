@@ -76,7 +76,7 @@ Three kinds of promise, all equally binding:
 
 | Promise | Broken when | Real example found |
 |---|---|---|
-| **The declared type** (`__type` and `__customType`) | the SQL emits a different one | `asBigint()` → `bigint` declared, `float` emitted → wrong beyond 2^53 |
+| **The declared type** (the class of the data type) | the SQL emits a different one | `asBigint()` → `bigint` declared, `float` emitted → wrong beyond 2^53 |
 | **The JavaScript semantics the method mirrors** | the engine's own rule differs | `getSeconds()` returned **60**; `getMilliseconds()` returned **1000**; `getDay()` shifted by `SET DATEFIRST` |
 | **The documented contract** | the code drifted from the page | `executeSelectPage` docs say the count runs "without pagination"; the code kept the `ORDER BY` |
 
@@ -127,7 +127,7 @@ Ordered by yield. Lens #2 alone found the whole date-part family.
 
 ### 1. Declared vs emitted
 
-Walk the classes of the data types in `src/typeSystem/` for every operation they create with a declared data type — `__operation0(this, '_op', <DataTypeClass>)`, `__operation1(this, '_op', value, <DataTypeClass>)`, `__newSqlOperation*ValueSource('_op', vs, …, <DataTypeClass>, …)` (the creations live in `src/nodes/`) — and ask: **does `_op`'s SQL actually produce `<DataTypeClass>` on every dialect?** Then walk every guard in `src/sqlBuilders/` that keys on a declared type (`customType === undefined && type === 'double'`, `__isDouble`, `_getMathArgumentType`) and ask: **can a declared-vs-emitted divergence route around it?**
+Walk the classes of the data types in `src/typeSystem/` for every operation they create with a declared data type — `__operation0(this, '_op', <DataTypeClass>)`, `__operation1(this, '_op', value, <DataTypeClass>)`, `__newSqlOperation*ValueSource('_op', vs, …, <DataTypeClass>, …)` (the creations live in `src/nodes/`) — and ask: **does `_op`'s SQL actually produce `<DataTypeClass>` on every dialect?** Then walk every guard in `src/sqlBuilders/` that keys on a declared type (`__isDoubleClass`, `__isIntClass`) and ask: **can a declared-vs-emitted divergence route around it?**
 
 Found: `asInt`/`asBigint`, and the `_modulo` guard that a declared-bigint receiver walks straight past.
 

@@ -113,7 +113,7 @@ together, their group:
 | `string`, `uuid`, `bigint`, `stringDecimal`, `localDate`, ... | `type:string:`, `type:uuid:`, ... |
 | `int`, `double` (group `number`) | `type:int:number:`, `type:double:number:` |
 | boolean, the `if` and `alwaysIf` conditions (group `logical`) | `type:boolean:logical:`, `type:if:logical:`, `type:alwaysIf:logical:` |
-| a data type of the user `'Money'`, of any family (and a custom one) | `type:Money:` |
+| a data type of the user `'Money'`, of any family | `type:Money:` |
 | the aggregated arrays | `type:aggregatedArray:` |
 
 A family that the user extends builds it from the type name in its generic (`` `type:${TYPE_NAME}:` ``): a class of the
@@ -128,7 +128,7 @@ are one for TypeScript, whatever their family, an error of the user.
 type ValueSource<SOURCE, TYPE, OPTIONAL_TYPE> = TYPE & ValueSourceOfType<SOURCE, TYPE, OPTIONAL_TYPE>
 ```
 
-- `TYPE` is the instance type of a data type class (`IntType`, `StringType`, `CustomIntType<Money, 'Money'>`). It
+- `TYPE` is the instance type of a data type class (`IntType`, `StringType`, `MoneyType`). It
   carries the methods, the type of the value (`[valueType]`), the NType (`[typeName]`) and the operand NType
   (`[operandTypeName]`).
 - `ValueSourceOfType` adds what places the value in a query: its source (`[source]`, an `NSource`), its optionality
@@ -146,7 +146,7 @@ can't be a column or be projected, and it has a value a boolean doesn't have, th
 ## The classes
 
 ```
-BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static type/customType, the conversions
+BaseType<VALUE_TYPE>                         the NType, the operand NType, the type of the value, static type and sqlDataType, the conversions
 ├── ValueSourceBaseType<VALUE_TYPE>          isConstValue, getConstValue, allowWhen, disallowWhen, is   (valueSourceBase.ts)
 │   ├── NullableType<VALUE_TYPE>             isNull, valueWhenNull, asOptional, onlyWhenOrNull, ...
 │   │   └── EqualableType<V, NAME>           equals, is, in, inN, ... (and their *IfValue forms)     ← user: compared for equality
@@ -176,8 +176,7 @@ its values (the family it extends, by `instanceof`, in `dataTypeQuestions.ts`; a
 data type of its class fits in one, up to 6 bytes or 15 digits, and a `bigint` otherwise: what its values are says how
 they are kept in JavaScript, so a class of the user says 8 bytes to have a `bigint`). Outside the group number, a data type
 works only with itself: what it takes and what it gives is its data type (the exceptions: `sign` gives an int, an
-exact decimal gives a double for what can't be exact, and the number of decimals of `roundn` is a number). The custom
-data types (`CustomIntType`, ...) are subclasses of these families that keep their `of` and `customType` until they go.
+exact decimal gives a double for what can't be exact, and the number of decimals of `roundn` is a number).
 
 A method that applies to several data types is declared once, in the class they share. The methods are `this`
 relative, so a method of a base gives back the data type of the value source it is called on:
@@ -210,10 +209,6 @@ or one of the user. A file in plural has a family and the built-in data types of
 group number; `logical.ts`, the group logical: the boolean and the conditions; `numeric.ts`, `comparable.ts`, ...). A
 new kind of values (the spatial ones, a decimal library) starts with its family in plural, so the data types of the
 user and the ones that come later extend it.
-
-**The custom data types of a family are in a file of their own**, next to the file of the family they extend:
-`customNumber.ts` (customInt, customBigint, customDouble), `customDecimals.ts`, `customUuids.ts`, `customLocalDates.ts`,
-`customComparable.ts` and `customEqualable.ts`. A file of a family never imports its custom file.
 
 Each method declares the data type **the runtime gives** for its result (read it in the body of the method before
 declaring it): a getter of a date gives `IntType`, `asString()` of a uuid gives `StringType`, `length()` gives
@@ -253,7 +248,7 @@ An input position never takes a full value source: it takes a light interface wi
 
 - **The operand NType** (`[operandTypeName]`) is the NType itself, or the pattern of the group for a number
   (`` `type:${string}:number:` ``). It is what makes an `int` accept a `double` without any special rule.
-- **The payload is not compared**: a gate matches the NType, not the type of the value. Two custom data types with the
+- **The payload is not compared**: a gate matches the NType, not the type of the value. Two data types of the user with the
   same type name and different payloads are a user error; comparing the payload would cost the compiler on every
   operand.
 - **`IValueSource` is generic in the operand NType, not in the data type.** TypeScript compares two instances of the
@@ -261,24 +256,11 @@ An input position never takes a full value source: it takes a light interface wi
   would see `IntType` and `NumberType` as different inputs even though both give the same operand NType, and the arms
   of a compound select (`union`, a recursive `with`) would stop matching.
 
-## Custom data types
-
-Until they go, each family of custom data types (`CustomIntType`, `CustomEqualableType`, ...) is a subclass of its
-family with its `customType` and a static `of` that makes the class of a type name:
-
-```ts
-const MoneyType = CustomIntType.of<Money, 'Money'>('Money')   // type 'Money', customType 'customInt'
-```
-
-`of` gives a `CustomTypeClass` (a `TypeClass` with the type guard); each family keeps the class it made for each type
-name and gives the same one again, so a data type is one class wherever it is made. A data type of the user can also
-extend the family directly (above), which is what replaces them.
-
 ## The data types by their classes
 
 The methods that take a data type (`column`, `const`, `arg`, `fragmentWithType`, `executeFunction`, `sequence`, ...) have
-one overload that takes a `TypeClass<TYPE>`, for any class with a type name of its own: a built-in one (`IntType`), one
-of the user or one an `of` made. It gives `ValueSource<SOURCE, TYPE, OPTIONAL_TYPE>`. A class without a type name of its
+one overload that takes a `TypeClass<TYPE>`, for any class with a type name of its own: a built-in one (`IntType`) or one
+of the user. It gives `ValueSource<SOURCE, TYPE, OPTIONAL_TYPE>`. A class without a type name of its
 own (a group such as `NumberType`, or a family such as `IntegersType`) is rejected when compiling: its NType has no
 literal type name (`TypeNameOf`), and `TypeClass` then requires a `name` it can't have. `TypeClass` has no `is`:
 TypeScript infers the data type from `prototype`, and a generic `is` there would make the inference fail.
@@ -314,8 +296,8 @@ type it extends (a `NumberType` asked with `IntType.is`) becomes one of the data
 optionality; `any` gives the value source of the data type of any source and optionality. A value that may not be a
 value source is asked with `instanceof`, which gives only the class. It is declared once, in `ValueSourceBaseType`,
 with a `this` parameter, so the class it is called on gives the guarded type. A class that extends another answers by
-inheritance: `NumberType.is` says yes to an int and to a double, `CustomIntType.is` to any customInt, `MoneyType.is` only
-to its own.
+inheritance: `NumberType.is` says yes to an int and to a double, `IntegersType.is` to a bigint and to any integer of the
+user, `MoneyType.is` only to its own.
 
 At run time it is `instanceof` the class: a value source is an instance of the class of its data type (or of the
 subclass that carries its type adapter). What only TypeScript tells apart, `is` can't: a condition is a boolean at run

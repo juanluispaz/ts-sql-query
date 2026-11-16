@@ -521,32 +521,36 @@ The parameters are: `[ ' ', ' ', 'ACME', 'ACME Corp' ]`
 
 [Functions that return a dynamic select](dynamic-select-functions.md#from-the-model) has a larger function typed this way, next to the same function typed from the columns.
 
-## Custom types and values an interface can't describe
+## Types of yours and values an interface can't describe
 
 An interface says nothing about the column, so the operators of a property come from its TypeScript type. For most columns that gives the same filter as the column. These are the cases where it doesn't:
 
 | Property in the interface | What the filter offers | What differs from the column |
 |---|---|---|
-| A branded `string` or `number`, like `number & { brand: 'Money' }` | Equality and comparison, with values of that type | A `custom` column has only equality: a comparison on it throws `DYNAMIC_CONDITION_UNKNOWN_OPERATION` when the condition is built. The text operators, like `contains`, aren't offered |
-| A custom type written as a plain type, like `string` for a `customComparable` column | All the operators of that type | An operator the column doesn't have, like `contains` on a `customComparable` column, throws `DYNAMIC_CONDITION_UNKNOWN_OPERATION` when the condition is built |
-| An object of your own, like a custom type stored in one column | A group of properties, one filter for each | The column is one value, with equality |
+| A branded `string` or `number`, like `number & { brand: 'Money' }` | Equality and comparison, with values of that type | A column of an `EqualableType` has only equality: a comparison on it throws `DYNAMIC_CONDITION_UNKNOWN_OPERATION` when the condition is built. The text operators, like `contains`, aren't offered |
+| A type of yours written as a plain type, like `string` for a column of a `ComparableType` | All the operators of that type | An operator the column doesn't have, like `contains` on a column of a `ComparableType`, throws `DYNAMIC_CONDITION_UNKNOWN_OPERATION` when the condition is built |
+| An object of your own, like a type of yours stored in one column | A group of properties, one filter for each | The column is one value, with equality |
 | An array, a `Map`, a `Set`, a function, a binary value, a `RegExp`, or a union of different types like `string \| number` | Nothing: the filter can't use that property | |
 
 A branded `bigint`, `boolean` or `Date` keeps the operators of its base type.
 
-To give a property the filter of its column, take it out of the interface and name its type. `DynamicDefinitionForModel<Model>` is the list of types that `DynamicConditionForModel` builds from, and it can be combined with [names of types](../../api/dynamic-conditions.md):
+To give a property the filter of its column, take it out of the interface and give its type: the class of a type of yours, or the name of a built-in one. `DynamicDefinitionForModel<Model>` is the list of types that `DynamicConditionForModel` builds from, and it can be combined with [them](../../api/dynamic-conditions.md):
 
 ```ts
-import { DynamicCondition, DynamicDefinitionForModel } from "ts-sql-query"
+import { DynamicCondition, DynamicDefinitionForModel, RealsType } from "ts-sql-query"
 
 type Money = number & { readonly brand: 'Money' }
+
+abstract class MoneyType extends RealsType<Money, 'Money'> {
+    static override readonly type = 'Money'
+}
 
 interface Invoice {
     id: number
     total: Money
 }
 
-type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: ['customDouble', Money] }>
+type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: MoneyType }>
 
 const filter: InvoiceFilter = {
     id: { equals: 1 },

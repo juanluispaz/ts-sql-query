@@ -147,7 +147,7 @@ A `datetimeoffset` keeps, with each value, the offset it was written with, like 
 - `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../../advanced/type-adapters.md#how-the-converted-sql-compares)).
 - `transformValueFromDB` and `transformValueToDB` keep the text as the value.
 
-The column is a `customComparable` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as an `nvarchar`. A `customLocalDateTime` doesn't serve for it: its parameters are sent as a `datetime2`, which the driver makes from a `Date`, so `'2024-07-01T10:30:15.1234567+09:00'` is stored as `2024-07-01T01:30:15.1230000+00:00`.
+The column is a `ComparableType` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as an `nvarchar`. A `LocalDateTimesType` doesn't serve for it: its parameters are sent as a `datetime2`, which the driver makes from a `Date`, so `'2024-07-01T10:30:15.1234567+09:00'` is stored as `2024-07-01T01:30:15.1230000+00:00`.
 
 <!-- doc-code-snippet-template: sqlserver -->
 ```ts

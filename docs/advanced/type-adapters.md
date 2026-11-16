@@ -4,7 +4,7 @@ search:
 ---
 # Type adapters
 
-A type adapter changes how a value is converted on its way to the database and back: the value sent, the SQL of its parameter, and the SQL of the value as it leaves the database. Use one when the conversion of the library for the [data type](../configuration/data-types.md) of a column isn't the one you need: a value of your own type the library doesn't know, like an RGB colour kept as bytes, a custom type whose values aren't those of the type it is based on, like a decimal kept as text, or a value the database must give in another form, like a date as its text.
+A type adapter changes how a value is converted on its way to the database and back: the value sent, the SQL of its parameter, and the SQL of the value as it leaves the database. Use one when the conversion of the library for the [data type](../configuration/data-types.md) of a column isn't the one you need: a value of your own type the library doesn't know, like an RGB colour kept as bytes, a type of yours whose values aren't those its family converts, like a decimal kept as text, or a value the database must give in another form, like a date as its text.
 
 The conversion goes in one of three places:
 
@@ -172,9 +172,9 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-### A custom type kept as text
+### A type of yours kept as text
 
-Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on: without it, the value is converted as the [data type](../configuration/data-types.md#your-own-types) says.
+Register the conversion of a type of yours whose family converts nothing, like an `EnumType`, an `EqualableType` or a `ComparableType`, and of one whose values in your code aren't those its family converts: without it, the value is converted as the [data type](../configuration/data-types.md#your-own-types) says.
 
 Write it in the connection, as above, so it applies everywhere that type is used:
 
@@ -184,7 +184,7 @@ Write it in the connection, as above, so it applies everywhere that type is used
 
 The SQL type a parameter is sent with comes from [the type requested for it](../configuration/data-types.md#how-a-value-is-sent-to-the-database), by default its own; the `typesByName` option of the query runner gives a type of your own another one.
 
-For example, a `customDouble` kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is. A [`customDecimal`](../configuration/data-types.md#exact-decimals) does this without a conversion of your own:
+For example, a `RealsType` of yours kept as text, so that no digit is lost: it's read as the text the database gives, and sent as it is. A [`DecimalsType`](../configuration/data-types.md#exact-decimals) does this without a conversion of your own:
 
 ```ts
 import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query"
@@ -221,7 +221,7 @@ async function main() {
 
 Then `connection.const(amount, ExactDecimalType)`, with `ExactDecimalType` a class that extends `RealsType<ExactDecimal, 'ExactDecimal'>`, selected on its own is written `select $1::numeric as result`, with the parameter `[ '12345678901234567890.123456789' ]`, and the result keeps every digit. `pg` and Bun SQL write the cast only where the query needs a type; compared with a `numeric` column, the column gives it. With postgres.js and PGlite, declare the oid of `numeric`, `typesByName: { ExactDecimal: 1700 }`: the parameter is sent as a `numeric` everywhere, and the SQL is `select $1 as result`.
 
-On SQL Server, a `customDouble` is sent as a `float`, which loses digits too. Declare the type `nvarchar`: the text arrives with all its digits, and SQL Server converts it where a `decimal` is expected, like in an insert or a comparison with a `decimal` column:
+On SQL Server, a `RealsType` is sent as a `float`, which loses digits too. Declare the type `nvarchar`: the text arrives with all its digits, and SQL Server converts it where a `decimal` is expected, like in an insert or a comparison with a `decimal` column:
 
 <!-- doc-code-snippet-template: sqlserver -->
 ```ts
@@ -253,7 +253,7 @@ A value has two types in the context, so that what was declared and what is sent
 - The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType` a class that extends `LocalDatesType<ReleaseDay, 'ReleaseDay'>`, or `const(1, 'int')`. It never changes.
 - The **requested type**, `requestedType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
-`originalType` and `requestedType` are the class of the type: `IntType` for `const(1, 'int')`, `ReleaseDayType` for the column above. The class has the name of the type in `type`, like `'int'` or `'ReleaseDay'`, and in `customType` which custom type it is, the family of the class (`'customLocalDate'` for a `CustomLocalDateType`), `undefined` for a built-in type.
+`originalType` and `requestedType` are the class of the type: `IntType` for `const(1, 'int')`, `ReleaseDayType` for the column above. The class has the name of the type in `type`, like `'int'` or `'ReleaseDay'`, and its type in the database in `sqlDataType`, when it has one.
 
 Compare the requested type with the class, `context.requestedType === ReleaseDayType`, or its name with `type`, `context.requestedType.type === 'ReleaseDay'`. `of` gives the same class each time it's called with the same name, so both say the same. A comparison of the type with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile: the type is a class, not its name.
 

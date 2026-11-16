@@ -10,7 +10,7 @@
 //
 // Operand sources: bigint coverage comes from the read-only
 // `viewCount` column (seed default 0); customInt/customDouble come from
-// `const(v, CustomIntType.of(...))` or `const(v, CustomDoubleType.of(...))`, which bind a plain
+// `const(v, a class of IntegersType)` or `const(v, a class of RealsType)`, which bind a plain
 // number — EXCEPT the arithmetic-and-sign arms, which run over the real
 // `cost_cents` / `billed_amount` worklog columns (marshalled, so `col OP col`
 // stays resolvable and the results come back as clean numbers). The
@@ -543,7 +543,7 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-add-with-branded-type-const-operand', async () => {
         // customDouble `add` with a branded TYPE const as the right operand
-        // (`billedAmount.add(const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money')))`).
+        // (`billedAmount.add(const(2 as Money, MoneyType))`).
         // billed_amount ('Money'→double) is 200 for worklog 1, so 200 + 2 = 202
         // (clean number).
         const money2 = ctx.conn.const(2 as Money, MoneyType)

@@ -264,7 +264,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-equality-only-column-projects-as-its-branded-type', async () => {
-        // `column(name, CustomEqualableType.of('ReleaseChannel'))` → a TypeAdapter
+        // `column(name, ReleaseChannelType)` → a TypeAdapter
         // backed equalable value source carrying the branded `ReleaseChannel`
         // type; equality is the available operator. Release 1 channel
         // 'stable'.
@@ -285,7 +285,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-comparable-column-confers-ordering-operators', async () => {
-        // `column(name, CustomComparableType.of('Semver'))` → a
+        // `column(name, SemverType)` → a
         // comparable value source: `lessThan` / `between` / `orderBy` are all
         // available at the column site (an equalable value source could not
         // express them). Versions below 1.3.0: release 1 (1.2.0) and 3

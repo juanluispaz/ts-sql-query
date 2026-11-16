@@ -196,7 +196,6 @@ export abstract class NumberType extends ArithmeticType<number, string> {
 /** An integer number, a JavaScript number */
 export abstract class IntType extends NumberType {
     static override readonly type = 'int'
-    static override readonly customType = undefined
     static override readonly sqlDataType: SqlDataType = intSqlDataType
     declare [typeName]: 'type:int:number:'
 
@@ -227,7 +226,6 @@ export abstract class IntType extends NumberType {
 /** A floating point number, a JavaScript number */
 export abstract class DoubleType extends NumberType {
     static override readonly type = 'double'
-    static override readonly customType = undefined
     static override readonly sqlDataType: SqlDataType = doubleSqlDataType
     declare [typeName]: 'type:double:number:'
 }

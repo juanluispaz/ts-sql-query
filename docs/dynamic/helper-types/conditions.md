@@ -238,9 +238,9 @@ The executed query is:
 
 The parameters are: `[ 'smi', 'smi' ]`
 
-This table has every filter and the name of the type it belongs to. A column or expression in the map gets the filter of its type in the same way.
+This table has every filter and the type it belongs to: the name of a built-in type, or the family a class of yours extends, given in the definition as the class (`total: MoneyType`). A column or expression in the map gets the filter of its type in the same way.
 
-| Filter | Name of the type in the definition | Operators |
+| Filter | Type in the definition | Operators |
 |---|---|---|
 | `StringFilter` | `'string'`, `'uuid'` | Those of `ComparableFilter<string>`, and the [text operators](../../api/dynamic-conditions.md) |
 | `NumberFilter` | `'int'`, `'double'` | Those of `ComparableFilter<number>` |
@@ -250,16 +250,9 @@ This table has every filter and the name of the type it belongs to. A column or 
 | `DateFilter` | `'localDate'` | Those of `ComparableFilter<Date>` |
 | `TimeFilter` | `'localTime'` | Those of `ComparableFilter<Date>` |
 | `DateTimeFilter` | `'localDateTime'` | Those of `ComparableFilter<Date>` |
-| `EqualableFilter<T>` | `['enum', T]`, `['custom', T]` | Those of `NullableFilter`, and `equals`, `notEquals`, `is`, `isNot`, `in`, `notIn` |
-| `ComparableFilter<T>` | `['customComparable', T]` | Those of `EqualableFilter<T>`, and `lessThan`, `greaterThan`, `lessOrEqual`, `greaterOrEqual` |
-| `CustomIntFilter<T>` | `['customInt', T]` | Those of `ComparableFilter<T>` |
-| `CustomBigintFilter<T>` | `['customBigint', T]` | Those of `ComparableFilter<T>` |
-| `CustomDoubleFilter<T>` | `['customDouble', T]` | Those of `ComparableFilter<T>` |
-| `CustomDecimalFilter<T>` | `['customDecimal', T]` | Those of `ComparableFilter<T>` |
-| `CustomLocalDateFilter<T>` | `['customLocalDate', T]` | Those of `ComparableFilter<T>` |
-| `CustomLocalTimeFilter<T>` | `['customLocalTime', T]` | Those of `ComparableFilter<T>` |
-| `CustomLocalDateTimeFilter<T>` | `['customLocalDateTime', T]` | Those of `ComparableFilter<T>` |
-| `CustomUuidFilter<T>` | `['customUuid', T]` | Those of `ComparableFilter<T>`, and the text operators, with values of type `T` |
+| `EqualableFilter<T>` | A class that extends `EnumType` or `EqualableType` | Those of `NullableFilter`, and `equals`, `notEquals`, `is`, `isNot`, `in`, `notIn` |
+| `ComparableFilter<T>` | A class that extends `ComparableType`, one of the families of the numbers (`IntegersType`, `DecimalsType`, `RealsType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) or of the dates (`LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`) | Those of `EqualableFilter<T>`, and `lessThan`, `greaterThan`, `lessOrEqual`, `greaterOrEqual` |
+| `UuidsFilter<T>` | A class that extends `UuidsType` | Those of `ComparableFilter<T>`, and the text operators, with values of type `T` |
 | `NullableFilter` | None: other filters extend it | `isNull`, `isNotNull` |
 | `Filter` | None: other filters extend it | None |
 
@@ -280,7 +273,7 @@ The [Dynamic conditions API](../../api/dynamic-conditions.md) lists the definiti
 | `bigint` | `'bigint'` | `BigintFilter` |
 | `string` | `'string'` | `StringFilter` |
 | `Date` | `'localDateTime'` | `DateTimeFilter`, with the same operators as `DateFilter` and `TimeFilter` |
-| A union of texts or numbers, like `'active' \| 'inactive'` | `['enum', T]` | `EqualableFilter<T>` |
+| A union of texts or numbers, like `'active' \| 'inactive'` | `EnumType<T, string>` | `EqualableFilter<T>` |
 | A nested object | A nested definition | A nested filter |
 
 A property can be optional or nullable: the filter is the same.
@@ -318,7 +311,7 @@ const filter: CustomerFilter = {
 
 An interface has only TypeScript types, so it doesn't say how the column is defined. Two cases need a definition with the names of the types instead of a model:
 
-- A column with a [custom type](../../configuration/data-types.md): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `StringFilter`. If it's a type made more specific, like `string & { __brand: 'code' }`, it can be any custom type, so it gets `ComparableFilter` of that type.
+- A column of a [type of yours](../../configuration/data-types.md#your-own-types): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `StringFilter`. If it's a type made more specific, like `string & { __brand: 'code' }`, it can be any type of yours, so it gets `ComparableFilter` of that type.
 - A property that is an array, a `Map`, a `Set` or a binary value: it has no filter, and it doesn't appear in the type.
 
 [Rules of your own](../caller-decides/filters.md#rules-of-your-own) go in the second type argument, as in `DynamicCondition`.

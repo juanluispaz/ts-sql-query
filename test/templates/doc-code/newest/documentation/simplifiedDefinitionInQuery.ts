@@ -63,7 +63,7 @@ void function (
     _bvs: BooleanValueSource,
     _tis: TransactionIsolationLevel,
 ) {}
-interface ValueSource<T, TYPE_NAME extends string> {
+interface ValueSource<T, TYPE_NAME extends string = string> {
     makeCompilerHappy_type: T
     makeCompilerHappy_typeName: TYPE_NAME
 }
@@ -88,11 +88,11 @@ void function(
 ) {}
 
 type MyEnumType = any
-type MyCustomType = any
-type MyCustomComparableType = any
+type MyEqualableType = any
+type MyComparableType = any
 
 void function(
     _met: MyEnumType,
-    _mct: MyCustomType,
-    _mcct: MyCustomComparableType
+    _meqt: MyEqualableType,
+    _mct: MyComparableType
 ) {}

@@ -237,7 +237,7 @@ describe(ctx.label, () => {
 //         // result value (3005). The 'ReleaseTag' typeName is marshalled to its int
 //         // base by the connection's baseTypeForCustom, so the tuple casts to int.
 //         class VReleaseTagSampler extends Values<DBConnection, 'releaseTagSampler'> {
-//             ordinal = this.column(CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'), plusOffsetAdapter)
+//             ordinal = this.column(ReleaseTagType, plusOffsetAdapter)
 //         }
 //         const expected = [{ ordinal: 3005 as ReleaseTag }]
 //         ctx.mockNext([{ ordinal: 2005 }])
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
 //         // leaf reads back absent. The 'ReleaseTag' typeName is marshalled to its int
 //         // base by the connection’s baseTypeForCustom, so the tuple casts to int.
 //         class VOptionalReleaseTagSampler extends Values<DBConnection, 'optionalReleaseTagSampler'> {
-//             ordinal = this.optionalColumn(CustomIntType.of<ReleaseTag, 'ReleaseTag'>('ReleaseTag'), plusOffsetAdapter)
+//             ordinal = this.optionalColumn(ReleaseTagType, plusOffsetAdapter)
 //         }
 //         ctx.mockNext([{ ordinal: 2005 }])
 //         const v1 = Values.create(VOptionalReleaseTagSampler, 'optionalReleaseTagSampler', [{ ordinal: 3005 as ReleaseTag }])
@@ -333,7 +333,7 @@ describe(ctx.label, () => {
 //         // because some engines normalise the case on read.
 //         class VUuidSampler extends Values<DBConnection, 'uuidSampler'> {
 //             ref     = this.column('uuid')
-//             signing = this.column(CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+//             signing = this.column(SigningKeyType)
 //         }
 //         const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
 //         const signing = '11111111-2222-4333-8444-555566667777'
@@ -511,8 +511,8 @@ describe(ctx.label, () => {
 //         // and round-trips unchanged.
 //         class VReqSampler extends Values<DBConnection, 'reqSampler'> {
 //             str   = this.column('string')
-//             cents = this.column(CustomIntType.of<number, 'Cents'>('Cents'))
-//             money = this.column(CustomDoubleType.of<number, 'Money'>('Money'))
+//             cents = this.column(CentsType)
+//             money = this.column(MoneyType)
 //         }
 //         const row = { str: 'abc', cents: 12, money: 3.5 }
 //         const expected = [row]
@@ -544,9 +544,9 @@ describe(ctx.label, () => {
 //             big   = this.column('bigint', passthroughAdapter)
 //             dbl   = this.column('double', passthroughAdapter)
 //             str   = this.column('string', passthroughAdapter)
-//             money = this.column(CustomDoubleType.of<number, 'Money'>('Money'), passthroughAdapter)
-//             ver   = this.column(CustomComparableType.of<string, 'Semver'>('Semver'), passthroughAdapter)
-//             chan  = this.column(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), passthroughAdapter)
+//             money = this.column(MoneyType, passthroughAdapter)
+//             ver   = this.column(SemverType, passthroughAdapter)
+//             chan  = this.column(ReleaseChannelType, passthroughAdapter)
 //             act   = this.column(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), passthroughAdapter)
 //         }
 //         const row = { big: 100n, dbl: 2.5, str: 'abc', money: 3.5, ver: '1.2.0', chan: 'stable' as ReleaseChannel, act: 'coding' as WorklogActivity }
@@ -579,7 +579,7 @@ describe(ctx.label, () => {
 //         // some engines normalise the case on read.
 //         class VReqAdapterUuidSampler extends Values<DBConnection, 'reqAdapterUuidSampler'> {
 //             ref     = this.column('uuid', passthroughAdapter)
-//             signing = this.column(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), passthroughAdapter)
+//             signing = this.column(SigningKeyType, passthroughAdapter)
 //         }
 //         const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
 //         const signing = '11111111-2222-4333-8444-555566667777'
@@ -613,10 +613,10 @@ describe(ctx.label, () => {
 //             big   = this.optionalColumn('bigint')
 //             dbl   = this.optionalColumn('double')
 //             str   = this.optionalColumn('string')
-//             cents = this.optionalColumn(CustomIntType.of<number, 'Cents'>('Cents'))
-//             money = this.optionalColumn(CustomDoubleType.of<number, 'Money'>('Money'))
-//             ver   = this.optionalColumn(CustomComparableType.of<string, 'Semver'>('Semver'))
-//             chan  = this.optionalColumn(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))
+//             cents = this.optionalColumn(CentsType)
+//             money = this.optionalColumn(MoneyType)
+//             ver   = this.optionalColumn(SemverType)
+//             chan  = this.optionalColumn(ReleaseChannelType)
 //             act   = this.optionalColumn(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))
 //         }
 //         const row = { flag: true, n: 7, big: 100n, dbl: 2.5, str: 'abc', cents: 12, money: 3.5, ver: '1.2.0', chan: 'stable' as ReleaseChannel, act: 'coding' as WorklogActivity }
@@ -647,12 +647,12 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
 //     test('values-tuple-optional-uuid-and-custom-uuid-column-no-adapter', async () => {
-//         // `optionalColumn('uuid')` / `optionalColumn(CustomUuidType.of('SigningKey'))`.
+//         // `optionalColumn('uuid')` / `optionalColumn(SigningKeyType)`.
 //         // All-optional object (`?: T`); present values round-trip,
 //         // compared case-insensitively.
 //         class VOptUuidSampler extends Values<DBConnection, 'optUuidSampler'> {
 //             ref     = this.optionalColumn('uuid')
-//             signing = this.optionalColumn(CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+//             signing = this.optionalColumn(SigningKeyType)
 //         }
 //         const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
 //         const signing = '11111111-2222-4333-8444-555566667777'
@@ -683,9 +683,9 @@ describe(ctx.label, () => {
 //             big   = this.optionalColumn('bigint', passthroughAdapter)
 //             dbl   = this.optionalColumn('double', passthroughAdapter)
 //             str   = this.optionalColumn('string', passthroughAdapter)
-//             money = this.optionalColumn(CustomDoubleType.of<number, 'Money'>('Money'), passthroughAdapter)
-//             ver   = this.optionalColumn(CustomComparableType.of<string, 'Semver'>('Semver'), passthroughAdapter)
-//             chan  = this.optionalColumn(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), passthroughAdapter)
+//             money = this.optionalColumn(MoneyType, passthroughAdapter)
+//             ver   = this.optionalColumn(SemverType, passthroughAdapter)
+//             chan  = this.optionalColumn(ReleaseChannelType, passthroughAdapter)
 //             act   = this.optionalColumn(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), passthroughAdapter)
 //         }
 //         const row = { flag: true, big: 100n, dbl: 2.5, str: 'abc', money: 3.5, ver: '1.2.0', chan: 'stable' as ReleaseChannel, act: 'coding' as WorklogActivity }
@@ -718,7 +718,7 @@ describe(ctx.label, () => {
 //         // inert; all-optional object; present values round-trip case-insensitively.
 //         class VOptAdapterUuidSampler extends Values<DBConnection, 'optAdapterUuidSampler'> {
 //             ref     = this.optionalColumn('uuid', passthroughAdapter)
-//             signing = this.optionalColumn(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), passthroughAdapter)
+//             signing = this.optionalColumn(SigningKeyType, passthroughAdapter)
 //         }
 //         const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
 //         const signing = '11111111-2222-4333-8444-555566667777'
@@ -749,10 +749,10 @@ describe(ctx.label, () => {
 //         class VVReqSampler extends Values<DBConnection, 'vvReqSampler'> {
 //             n      = this.column('int')
 //             vint   = this.virtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.const(42, 'int')}`)
-//             vcents = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (f) => f.sql`${ctx.conn.const(12, CustomIntType.of<number, 'Cents'>('Cents'))}`)
-//             vmoney = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (f) => f.sql`${ctx.conn.const(3.5, CustomDoubleType.of<number, 'Money'>('Money'))}`)
-//             vver   = this.virtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (f) => f.sql`${ctx.conn.const('1.2.0', CustomComparableType.of<string, 'Semver'>('Semver'))}`)
-//             vchan  = this.virtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (f) => f.sql`${ctx.conn.const('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))}`)
+//             vcents = this.virtualColumnFromFragment(CentsType, (f) => f.sql`${ctx.conn.const(12, CentsType)}`)
+//             vmoney = this.virtualColumnFromFragment(MoneyType, (f) => f.sql`${ctx.conn.const(3.5, MoneyType)}`)
+//             vver   = this.virtualColumnFromFragment(SemverType, (f) => f.sql`${ctx.conn.const('1.2.0', SemverType)}`)
+//             vchan  = this.virtualColumnFromFragment(ReleaseChannelType, (f) => f.sql`${ctx.conn.const('stable', ReleaseChannelType)}`)
 //             vact   = this.virtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (f) => f.sql`${ctx.conn.const('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))}`)
 //         }
 //         const expected = [{ n: 7, vint: 42, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
@@ -786,7 +786,7 @@ describe(ctx.label, () => {
 //         class VVReqUuidSampler extends Values<DBConnection, 'vvReqUuidSampler'> {
 //             n        = this.column('int')
 //             vref     = this.virtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.const(uuidRef, 'uuid')}`)
-//             vsigning = this.virtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (f) => f.sql`${ctx.conn.const(uuidSign, CustomUuidType.of<string, 'SigningKey'>('SigningKey'))}`)
+//             vsigning = this.virtualColumnFromFragment(SigningKeyType, (f) => f.sql`${ctx.conn.const(uuidSign, SigningKeyType)}`)
 //         }
 //         ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
 //         const v = Values.create(VVReqUuidSampler, 'vvReqUuidSampler', [{ n: 7 }])
@@ -816,10 +816,10 @@ describe(ctx.label, () => {
 //             n      = this.column('int')
 //             vint   = this.optionalVirtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.optionalConst(42, 'int')}`)
 //             vbig   = this.optionalVirtualColumnFromFragment('bigint', (f) => f.sql`${ctx.conn.optionalConst(100n, 'bigint')}`)
-//             vcents = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (f) => f.sql`${ctx.conn.optionalConst(12, CustomIntType.of<number, 'Cents'>('Cents'))}`)
-//             vmoney = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (f) => f.sql`${ctx.conn.optionalConst(3.5, CustomDoubleType.of<number, 'Money'>('Money'))}`)
-//             vver   = this.optionalVirtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (f) => f.sql`${ctx.conn.optionalConst('1.2.0', CustomComparableType.of<string, 'Semver'>('Semver'))}`)
-//             vchan  = this.optionalVirtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (f) => f.sql`${ctx.conn.optionalConst('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))}`)
+//             vcents = this.optionalVirtualColumnFromFragment(CentsType, (f) => f.sql`${ctx.conn.optionalConst(12, CentsType)}`)
+//             vmoney = this.optionalVirtualColumnFromFragment(MoneyType, (f) => f.sql`${ctx.conn.optionalConst(3.5, MoneyType)}`)
+//             vver   = this.optionalVirtualColumnFromFragment(SemverType, (f) => f.sql`${ctx.conn.optionalConst('1.2.0', SemverType)}`)
+//             vchan  = this.optionalVirtualColumnFromFragment(ReleaseChannelType, (f) => f.sql`${ctx.conn.optionalConst('stable', ReleaseChannelType)}`)
 //             vact   = this.optionalVirtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (f) => f.sql`${ctx.conn.optionalConst('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))}`)
 //         }
 //         const expected = [{ n: 7, vint: 42, vbig: 100n, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
@@ -854,7 +854,7 @@ describe(ctx.label, () => {
 //         class VVOptUuidSampler extends Values<DBConnection, 'vvOptUuidSampler'> {
 //             n        = this.column('int')
 //             vref     = this.optionalVirtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.optionalConst(uuidRef, 'uuid')}`)
-//             vsigning = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (f) => f.sql`${ctx.conn.optionalConst(uuidSign, CustomUuidType.of<string, 'SigningKey'>('SigningKey'))}`)
+//             vsigning = this.optionalVirtualColumnFromFragment(SigningKeyType, (f) => f.sql`${ctx.conn.optionalConst(uuidSign, SigningKeyType)}`)
 //         }
 //         ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
 //         const v = Values.create(VVOptUuidSampler, 'vvOptUuidSampler', [{ n: 7 }])
@@ -914,10 +914,10 @@ describe(ctx.label, () => {
 //         class VVReqAdapterSampler extends Values<DBConnection, 'vvReqAdapterSampler'> {
 //             n      = this.column('int')
 //             vint   = this.virtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.const(42, 'int')}`, passthroughAdapter)
-//             vcents = this.virtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (f) => f.sql`${ctx.conn.const(12, CustomIntType.of<number, 'Cents'>('Cents'))}`, passthroughAdapter)
-//             vmoney = this.virtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (f) => f.sql`${ctx.conn.const(3.5, CustomDoubleType.of<number, 'Money'>('Money'))}`, passthroughAdapter)
-//             vver   = this.virtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (f) => f.sql`${ctx.conn.const('1.2.0', CustomComparableType.of<string, 'Semver'>('Semver'))}`, passthroughAdapter)
-//             vchan  = this.virtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (f) => f.sql`${ctx.conn.const('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))}`, passthroughAdapter)
+//             vcents = this.virtualColumnFromFragment(CentsType, (f) => f.sql`${ctx.conn.const(12, CentsType)}`, passthroughAdapter)
+//             vmoney = this.virtualColumnFromFragment(MoneyType, (f) => f.sql`${ctx.conn.const(3.5, MoneyType)}`, passthroughAdapter)
+//             vver   = this.virtualColumnFromFragment(SemverType, (f) => f.sql`${ctx.conn.const('1.2.0', SemverType)}`, passthroughAdapter)
+//             vchan  = this.virtualColumnFromFragment(ReleaseChannelType, (f) => f.sql`${ctx.conn.const('stable', ReleaseChannelType)}`, passthroughAdapter)
 //             vact   = this.virtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (f) => f.sql`${ctx.conn.const('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))}`, passthroughAdapter)
 //         }
 //         const expected = [{ n: 7, vint: 42, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
@@ -950,7 +950,7 @@ describe(ctx.label, () => {
 //         class VVReqAdapterUuidSampler extends Values<DBConnection, 'vvReqAdapterUuidSampler'> {
 //             n        = this.column('int')
 //             vref     = this.virtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.const(uuidRef, 'uuid')}`, passthroughAdapter)
-//             vsigning = this.virtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (f) => f.sql`${ctx.conn.const(uuidSign, CustomUuidType.of<string, 'SigningKey'>('SigningKey'))}`, passthroughAdapter)
+//             vsigning = this.virtualColumnFromFragment(SigningKeyType, (f) => f.sql`${ctx.conn.const(uuidSign, SigningKeyType)}`, passthroughAdapter)
 //         }
 //         ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
 //         const v = Values.create(VVReqAdapterUuidSampler, 'vvReqAdapterUuidSampler', [{ n: 7 }])
@@ -978,10 +978,10 @@ describe(ctx.label, () => {
 //             n      = this.column('int')
 //             vint   = this.optionalVirtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.optionalConst(42, 'int')}`, passthroughAdapter)
 //             vbig   = this.optionalVirtualColumnFromFragment('bigint', (f) => f.sql`${ctx.conn.optionalConst(100n, 'bigint')}`, passthroughAdapter)
-//             vcents = this.optionalVirtualColumnFromFragment(CustomIntType.of<number, 'Cents'>('Cents'), (f) => f.sql`${ctx.conn.optionalConst(12, CustomIntType.of<number, 'Cents'>('Cents'))}`, passthroughAdapter)
-//             vmoney = this.optionalVirtualColumnFromFragment(CustomDoubleType.of<number, 'Money'>('Money'), (f) => f.sql`${ctx.conn.optionalConst(3.5, CustomDoubleType.of<number, 'Money'>('Money'))}`, passthroughAdapter)
-//             vver   = this.optionalVirtualColumnFromFragment(CustomComparableType.of<string, 'Semver'>('Semver'), (f) => f.sql`${ctx.conn.optionalConst('1.2.0', CustomComparableType.of<string, 'Semver'>('Semver'))}`, passthroughAdapter)
-//             vchan  = this.optionalVirtualColumnFromFragment(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), (f) => f.sql`${ctx.conn.optionalConst('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'))}`, passthroughAdapter)
+//             vcents = this.optionalVirtualColumnFromFragment(CentsType, (f) => f.sql`${ctx.conn.optionalConst(12, CentsType)}`, passthroughAdapter)
+//             vmoney = this.optionalVirtualColumnFromFragment(MoneyType, (f) => f.sql`${ctx.conn.optionalConst(3.5, MoneyType)}`, passthroughAdapter)
+//             vver   = this.optionalVirtualColumnFromFragment(SemverType, (f) => f.sql`${ctx.conn.optionalConst('1.2.0', SemverType)}`, passthroughAdapter)
+//             vchan  = this.optionalVirtualColumnFromFragment(ReleaseChannelType, (f) => f.sql`${ctx.conn.optionalConst('stable', ReleaseChannelType)}`, passthroughAdapter)
 //             vact   = this.optionalVirtualColumnFromFragment(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), (f) => f.sql`${ctx.conn.optionalConst('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'))}`, passthroughAdapter)
 //         }
 //         const expected = [{ n: 7, vint: 42, vbig: 100n, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
@@ -1015,7 +1015,7 @@ describe(ctx.label, () => {
 //         class VVOptAdapterUuidSampler extends Values<DBConnection, 'vvOptAdapterUuidSampler'> {
 //             n        = this.column('int')
 //             vref     = this.optionalVirtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.optionalConst(uuidRef, 'uuid')}`, passthroughAdapter)
-//             vsigning = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), (f) => f.sql`${ctx.conn.optionalConst(uuidSign, CustomUuidType.of<string, 'SigningKey'>('SigningKey'))}`, passthroughAdapter)
+//             vsigning = this.optionalVirtualColumnFromFragment(SigningKeyType, (f) => f.sql`${ctx.conn.optionalConst(uuidSign, SigningKeyType)}`, passthroughAdapter)
 //         }
 //         ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
 //         const v = Values.create(VVOptAdapterUuidSampler, 'vvOptAdapterUuidSampler', [{ n: 7 }])

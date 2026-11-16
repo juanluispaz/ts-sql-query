@@ -4,7 +4,7 @@ search:
 ---
 # The type of a column in the database
 
-The [data type](../configuration/data-types.md) of a column says what the value is in TypeScript and how the library converts it: an `int`, a `localDateTime`, a `customDecimal`. It doesn't say what the column is in the database: a `customDecimal` can be a `numeric(18, 4)` or a `decimal(10, 2)`, a `string` a `varchar(50)` or an `nvarchar(max)`. The **SQL data type** says it: the family of the type in the database, with what refines it (the precision and the scale, the length, whether the text is national, the digits of the fraction of the seconds), and, if you want, its name in each database.
+The [data type](../configuration/data-types.md) of a column says what the value is in TypeScript and how the library converts it: an `int`, a `localDateTime`, an exact decimal of yours. It doesn't say what the column is in the database: an exact decimal can be a `numeric(18, 4)` or a `decimal(10, 2)`, a `string` a `varchar(50)` or an `nvarchar(max)`. The **SQL data type** says it: the family of the type in the database, with what refines it (the precision and the scale, the length, whether the text is national, the digits of the fraction of the seconds), and, if you want, its name in each database.
 
 The library and the query runners use it where it gives a better query, and it saves declaring a type per driver (`typesByName` of a query runner) for what the SQL data type already says. Everything else works the same without it: it's optional, column by column.
 
@@ -30,7 +30,7 @@ const typesConnection = new DBConnection(new NoExecutionQueryRunner())
 Then each column gives the name of its type:
 
 ```ts
-import { CustomDecimalType, withSqlDataType } from "ts-sql-query"
+import { DecimalsType, withSqlDataType } from "ts-sql-query"
 
 abstract class PriceType extends DecimalsType<string, 'Price'> {
     static override readonly type = 'Price'
@@ -53,7 +53,7 @@ class TProduct extends Table<DBConnection, 'TProduct'> {
 The SQL data type can also be written as the object itself, with the [families](#the-families) below, when there's no connection at hand or the type is the same for several databases:
 
 ```ts
-import { CustomBooleanTypeAdapter, CustomDecimalType, withSqlDataType } from "ts-sql-query"
+import { CustomBooleanTypeAdapter, DecimalsType, withSqlDataType } from "ts-sql-query"
 
 abstract class PriceType extends DecimalsType<string, 'Price'> {
     static override readonly type = 'Price'
@@ -118,16 +118,16 @@ The class of a data type says what its values are in the database, in its static
 | Data type | Its SQL data type |
 |---|---|
 | `boolean` | `{ family: 'boolean' }` |
-| `int`, `customInt` | `{ family: 'exact numeric', scale: 0, bytes: 4 }` |
-| `bigint`, `customBigint` | `{ family: 'exact numeric', scale: 0, bytes: 8 }` |
-| `double`, `customDouble` | `{ family: 'approximate numeric', precision: 53 }` |
-| `stringDecimal`, `customDecimal` | `{ family: 'exact numeric' }` |
+| `int`, `IntegersType` | `{ family: 'exact numeric', scale: 0, bytes: 4 }` |
+| `bigint` | `{ family: 'exact numeric', scale: 0, bytes: 8 }` |
+| `double`, `RealsType` | `{ family: 'approximate numeric', precision: 53 }` |
+| `stringDecimal`, `DecimalsType` | `{ family: 'exact numeric' }` |
 | `string` | `{ family: 'character string' }` |
-| `uuid`, `customUuid` | `{ family: 'uuid' }` |
-| `localDate`, `customLocalDate` | `{ family: 'datetime', fields: 'date' }` |
-| `localTime`, `customLocalTime` | `{ family: 'datetime', fields: 'time' }` |
-| `localDateTime`, `customLocalDateTime` | `{ family: 'datetime', fields: 'timestamp' }` |
-| `enum`, `custom`, `customComparable` | none: only you know what the value is, and it's sent as its value in JavaScript |
+| `uuid`, `UuidsType` | `{ family: 'uuid' }` |
+| `localDate`, `LocalDatesType` | `{ family: 'datetime', fields: 'date' }` |
+| `localTime`, `LocalTimesType` | `{ family: 'datetime', fields: 'time' }` |
+| `localDateTime`, `LocalDateTimesType` | `{ family: 'datetime', fields: 'timestamp' }` |
+| `EnumType`, `EqualableType`, `ComparableType`, `AdditiveType`, `MultipliableType`, `DivisibleType` | none: only you know what the value is, and it's sent as its value in JavaScript |
 
 A class that extends a data type can give its own, like `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }` for an integer of 30 digits: the query runners send and read its values by it without knowing the class.
 
@@ -142,7 +142,7 @@ Where a database has no type of its own for a value, the library keeps it in ano
 | Database | With the SQL data type of the column |
 |---|---|
 | SQL Server | A text of a `character string` with `national: false` (a `varchar` or a `char` column) is sent as a `varchar` of the length of the column, a `varchar(max)` when it's longer, instead of an `nvarchar`. Compared with an `nvarchar`, SQL Server converts a `varchar` column, and with a SQL collation, like the default `SQL_Latin1_General_CP1_CI_AS`, it reads its whole index; as a `varchar` it seeks it. A text with a character outside ASCII is still sent as an `nvarchar`, which keeps it: as a `varchar` the driver would write it in the code page of the database, and a character it lacks would become `?`, also for a column of a UTF-8 collation. A date and time of a `datetime` or a `smalldatetime` column is sent as one, instead of a `datetime2`: compared with a `datetime2`, SQL Server converts the column with its exact fraction of 1/300 of a second, and an equality doesn't find a value with milliseconds (`10:00:00.123`) |
-| Oracle | The `returning` of a `character string` that is a `largeObject` (a `CLOB`, an `NCLOB` with `national`) is received whole, without declaring the type in `typesByName` (without it, a text longer than 4000 bytes is rejected by Oracle, ORA-22835); one of a known `length` is received in a buffer of that length. An object of a `JSON` column (`{ family: 'document', format: 'json' }`), the value of a `custom` type of yours, is sent as a JSON; without it, the driver rejects an object |
+| Oracle | The `returning` of a `character string` that is a `largeObject` (a `CLOB`, an `NCLOB` with `national`) is received whole, without declaring the type in `typesByName` (without it, a text longer than 4000 bytes is rejected by Oracle, ORA-22835); one of a known `length` is received in a buffer of that length. An object of a `JSON` column (`{ family: 'document', format: 'json' }`), the value of a type of yours, is sent as a JSON; without it, the driver rejects an object |
 | PostgreSQL | Where PostgreSQL needs the type of a parameter (a constant selected on its own, a value in a `coalesce`, a fragment), it gets the type of its SQL data type, without the precision or the length that would round or cut it (`numeric(18, 4)` is a `numeric`, `varchar(20)` a `varchar`, and `char(5)` a `bpchar`, the same type of any length: a `char` without its length would be of one character): also a type the library doesn't know, like a `jsonb`, an `inet` or an enum of the database (`{ family: 'enumeration', name: 'mood' }`). `pg` and Bun SQL write it as a cast (`$1::jsonb`); postgres.js and PGlite send the parameter with the oid of the type when it has a fixed one |
 | MariaDB, MySQL, SQLite | Nothing yet: the query runner receives it, so a query runner of yours can read it in [the context of the query](query-execution-metadata.md) (`originalSqlDataType` and `requestedSqlDataType` of each parameter and of each column of the result) |
 

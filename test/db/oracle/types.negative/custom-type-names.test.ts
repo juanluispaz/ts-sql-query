@@ -1,6 +1,6 @@
-// Compile-time negative tests for the type name of a custom type on the oracle
-// dialect: a custom data type is a class made by the `of` of its family, with the
-// type name as the second generic argument; the family alone is not a data type.
+// Compile-time negative tests for the type name of a data type of the user on the oracle
+// dialect: a data type of the user is a class that extends its family, with the type
+// name as the second generic argument; the family alone is not a data type.
 // These never execute any SQL: `validate:tests` (tsc) rejects each
 // `@ts-expect-error` line.
 
@@ -9,123 +9,135 @@ import { Table } from '../../../../src/Table.js'
 import { View } from '../../../../src/View.js'
 import { Values } from '../../../../src/Values.js'
 import { DBConnection } from '../domain/connection.js'
-import { CustomIntType } from '../../../../src/exports/v2/index.js'
+import { IntegersType } from '../../../../src/exports/v2/index.js'
 
 type Money = number & { readonly __money: unique symbol }
 
-// Rule: the type name of a custom type is the second generic argument of `of`.
+// The data types of the user, each one a class of the family of its values
+abstract class MoneyType extends IntegersType<Money, 'Money'> {
+    static override readonly type = 'Money'
+}
+abstract class OtherMoneyType extends IntegersType<Money, 'OtherMoney'> {
+    static override readonly type = 'OtherMoney'
+}
+
+// Rule: the type name of a data type of the user is the second generic argument of its family.
 // @ts-expect-error a single generic argument does not give the type name
-void CustomIntType.of<Money>('Money')
+abstract class WithoutTypeNameType extends IntegersType<Money> {}
+// A type name that isn't a literal is no type name: the class is not a data type
+abstract class AnyNameType extends IntegersType<Money, string> {}
 
 // The methods of the connection that are protected are only reachable in a subclass.
-class ConnWithCustomTypes extends DBConnection {
-    // Rule: a custom data type is the class the `of` of its family makes, with its type name.
-    sequenceTwo = this.sequence('money_seq', CustomIntType.of<Money, 'Money'>('Money'))
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    sequenceOne = this.sequence('money_seq', CustomIntType)
+class ConnWithTypesOfTheUser extends DBConnection {
+    // Rule: a data type of the user is a class that extends its family, with its type name.
+    sequenceTwo = this.sequence('money_seq', MoneyType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    sequenceOne = this.sequence('money_seq', IntegersType)
 
-    callTwo() { return this.executeFunction('money_fn', [], CustomIntType.of<Money, 'Money'>('Money'), 'required') }
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    callOne() { return this.executeFunction('money_fn', [], CustomIntType, 'required') }
+    callTwo() { return this.executeFunction('money_fn', [], MoneyType, 'required') }
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    callOne() { return this.executeFunction('money_fn', [], IntegersType, 'required') }
 
-    argTwo() { return this.arg(CustomIntType.of<Money, 'Money'>('Money'), 'required') }
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    argOne() { return this.arg(CustomIntType, 'required') }
+    argTwo() { return this.arg(MoneyType, 'required') }
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    argOne() { return this.arg(IntegersType, 'required') }
 
-    valueArgTwo() { return this.valueArg(CustomIntType.of<Money, 'Money'>('Money'), 'required') }
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    valueArgOne() { return this.valueArg(CustomIntType, 'required') }
+    valueArgTwo() { return this.valueArg(MoneyType, 'required') }
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    valueArgOne() { return this.valueArg(IntegersType, 'required') }
 
     // Rule: the value argument of an if-value fragment keeps its type name.
     ifValueSameTypeName = this.buildFragmentWithArgsIfValue(
-        this.arg(CustomIntType.of<Money, 'Money'>('Money'), 'required'),
-        this.valueArg(CustomIntType.of<Money, 'Money'>('Money'), 'optional')
+        this.arg(MoneyType, 'required'),
+        this.valueArg(MoneyType, 'optional')
     ).as((amount, limit) => amount.greaterThan(limit))
     ifValueOtherTypeName = this.buildFragmentWithArgsIfValue(
-        this.arg(CustomIntType.of<Money, 'Money'>('Money'), 'required'),
-        this.valueArg(CustomIntType.of<Money, 'OtherMoney'>('OtherMoney'), 'optional')
+        this.arg(MoneyType, 'required'),
+        this.valueArg(OtherMoneyType, 'optional')
     // @ts-expect-error another type name
     ).as((amount, limit) => amount.greaterThan(limit))
 }
 
 const tMoney = new class TMoney extends Table<DBConnection, 'TMoney'> {
     id         = this.autogeneratedPrimaryKey('id', 'int')
-    // Rule: a custom data type is the class the `of` of its family makes, with its type name.
-    amount     = this.column('amount', CustomIntType.of<Money, 'Money'>('Money'))
-    otherMoney = this.column('other_money', CustomIntType.of<Money, 'OtherMoney'>('OtherMoney'))
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    columnOne = this.column('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalColumnOne = this.optionalColumn('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    columnWithDefaultValueOne = this.columnWithDefaultValue('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalColumnWithDefaultValueOne = this.optionalColumnWithDefaultValue('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    computedColumnOne = this.computedColumn('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalComputedColumnOne = this.optionalComputedColumn('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    virtualOne = this.virtualColumnFromFragment(CustomIntType, fragment => fragment.sql`${this.amount}`)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalVirtualOne = this.optionalVirtualColumnFromFragment(CustomIntType, fragment => fragment.sql`${this.amount}`)
+    // Rule: a data type of the user is a class that extends its family, with its type name.
+    amount     = this.column('amount', MoneyType)
+    otherMoney = this.column('other_money', OtherMoneyType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    columnOne = this.column('amount', IntegersType)
+    // @ts-expect-error a class without a literal type name is not a data type
+    columnWithoutLiteralName = this.column('amount', AnyNameType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalColumnOne = this.optionalColumn('amount', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    columnWithDefaultValueOne = this.columnWithDefaultValue('amount', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalColumnWithDefaultValueOne = this.optionalColumnWithDefaultValue('amount', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    computedColumnOne = this.computedColumn('amount', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalComputedColumnOne = this.optionalComputedColumn('amount', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    virtualOne = this.virtualColumnFromFragment(IntegersType, fragment => fragment.sql`${this.amount}`)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalVirtualOne = this.optionalVirtualColumnFromFragment(IntegersType, fragment => fragment.sql`${this.amount}`)
 }('t_money')
 
 new class TMoneyKeys extends Table<DBConnection, 'TMoneyKeys'> {
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    primaryKeyOne = this.primaryKey('id', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    autogeneratedOne = this.autogeneratedPrimaryKey('id', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    bySequenceOne = this.autogeneratedPrimaryKeyBySequence('id', 'money_seq', CustomIntType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    primaryKeyOne = this.primaryKey('id', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    autogeneratedOne = this.autogeneratedPrimaryKey('id', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    bySequenceOne = this.autogeneratedPrimaryKeyBySequence('id', 'money_seq', IntegersType)
 }('t_money_keys')
 
 new class VMoney extends View<DBConnection, 'VMoney'> {
-    amount = this.column('amount', CustomIntType.of<Money, 'Money'>('Money'))
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    columnOne = this.column('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalColumnOne = this.optionalColumn('amount', CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    virtualOne = this.virtualColumnFromFragment(CustomIntType, fragment => fragment.sql`${this.amount}`)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalVirtualOne = this.optionalVirtualColumnFromFragment(CustomIntType, fragment => fragment.sql`${this.amount}`)
+    amount = this.column('amount', MoneyType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    columnOne = this.column('amount', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalColumnOne = this.optionalColumn('amount', IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    virtualOne = this.virtualColumnFromFragment(IntegersType, fragment => fragment.sql`${this.amount}`)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalVirtualOne = this.optionalVirtualColumnFromFragment(IntegersType, fragment => fragment.sql`${this.amount}`)
 }('v_money')
 
 class VRowMoney extends Values<DBConnection, 'vRowMoney'> {
-    amount = this.column(CustomIntType.of<Money, 'Money'>('Money'))
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    columnOne = this.column(CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalColumnOne = this.optionalColumn(CustomIntType)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    virtualOne = this.virtualColumnFromFragment(CustomIntType, fragment => fragment.sql`${this.amount}`)
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    optionalVirtualOne = this.optionalVirtualColumnFromFragment(CustomIntType, fragment => fragment.sql`${this.amount}`)
+    amount = this.column(MoneyType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    columnOne = this.column(IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalColumnOne = this.optionalColumn(IntegersType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    virtualOne = this.virtualColumnFromFragment(IntegersType, fragment => fragment.sql`${this.amount}`)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    optionalVirtualOne = this.optionalVirtualColumnFromFragment(IntegersType, fragment => fragment.sql`${this.amount}`)
 }
 
 function _typeNegatives(connection: DBConnection, money: Money) {
-    // Rule: a custom data type is the class the `of` of its family makes, with its type name.
-    connection.const(money, CustomIntType.of<Money, 'Money'>('Money'))
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    connection.const(money, CustomIntType)
-    connection.optionalConst(money, CustomIntType.of<Money, 'Money'>('Money'))
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    connection.optionalConst(money, CustomIntType)
-    connection.fragmentWithType(CustomIntType.of<Money, 'Money'>('Money'), 'required')
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    connection.fragmentWithType(CustomIntType, 'required')
-    connection.aggregateFragmentWithType(CustomIntType.of<Money, 'Money'>('Money'), 'required')
-    // @ts-expect-error the family of a custom data type has no type name: its `of` makes the data type
-    connection.aggregateFragmentWithType(CustomIntType, 'required')
+    // Rule: a data type of the user is a class that extends its family, with its type name.
+    connection.const(money, MoneyType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    connection.const(money, IntegersType)
+    connection.optionalConst(money, MoneyType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    connection.optionalConst(money, IntegersType)
+    connection.fragmentWithType(MoneyType, 'required')
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    connection.fragmentWithType(IntegersType, 'required')
+    connection.aggregateFragmentWithType(MoneyType, 'required')
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    connection.aggregateFragmentWithType(IntegersType, 'required')
 
     // Rule: the type name is part of the type: a column of the same TypeScript type
     // with another type name can be neither compared with it nor assigned to it.
-    tMoney.amount.equals(connection.const(money, CustomIntType.of<Money, 'Money'>('Money')))
+    tMoney.amount.equals(connection.const(money, MoneyType))
     // @ts-expect-error another type name
     tMoney.amount.equals(tMoney.otherMoney)
     // @ts-expect-error another type name
-    tMoney.amount.equals(connection.const(money, CustomIntType.of<Money, 'OtherMoney'>('OtherMoney')))
+    tMoney.amount.equals(connection.const(money, OtherMoneyType))
     connection.update(tMoney).set({ amount: money }).where(tMoney.id.equals(1))
     // @ts-expect-error another type name
     connection.update(tMoney).set({ amount: tMoney.otherMoney }).where(tMoney.id.equals(1))
@@ -133,6 +145,7 @@ function _typeNegatives(connection: DBConnection, money: Money) {
 
 test('custom-type-names-negative-types', () => {
     expect(typeof _typeNegatives).toBe('function')
-    expect(typeof ConnWithCustomTypes).toBe('function')
+    expect(typeof WithoutTypeNameType).toBe('function')
+    expect(typeof ConnWithTypesOfTheUser).toBe('function')
     expect(typeof VRowMoney).toBe('function')
 })

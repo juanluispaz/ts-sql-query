@@ -9,6 +9,10 @@ import { MySql2QueryRunner } from '../../../src/queryRunners/MySql2QueryRunner.j
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/mysql/runners.js'
 import { addParam } from '../lib/params.js'
+import { DecimalsType } from '../../../src/exports/v2/index.js'
+
+// The data types of the user the parameters are of, each one a class of the family of its values
+abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
 
 // 30 digits, 10 of them decimals: a double keeps about 16
 const exact = '12345678901234567890.1234567891'
@@ -30,7 +34,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('MySQL 
 
     test('computes-with-every-digit', async () => {
         const params: any[] = []
-        const placeholder = addParam(runner!, params, exact, 'Amount', 'customDecimal', false)
+        const placeholder = addParam(runner!, params, exact, AmountType, false)
         expect(placeholder).toBe('cast(? as decimal(30, 10))')
         expect(await runner!.executeQuery('selectOneColumnOneRow', `select cast(${placeholder} + 0 as char)`, params)).toBe(exact)
     })
@@ -39,7 +43,7 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('MySQL 
         const params: any[] = []
         let error: unknown
         try {
-            addParam(runner!, params, '1.' + '1'.repeat(31), 'Amount', 'customDecimal', false)
+            addParam(runner!, params, '1.' + '1'.repeat(31), AmountType, false)
         } catch (e) {
             error = e
         }

@@ -638,7 +638,7 @@ describe(ctx.label, () => {
     })
 
     test('values-tuple-optional-uuid-and-custom-uuid-column-no-adapter', async () => {
-        // `optionalColumn('uuid')` / `optionalColumn(CustomUuidType.of('SigningKey'))`.
+        // `optionalColumn('uuid')` / `optionalColumn(SigningKeyType)`.
         // All-optional object (`?: T`); present values round-trip,
         // compared case-insensitively.
         class VOptUuidSampler extends Values<DBConnection, 'optUuidSampler'> {

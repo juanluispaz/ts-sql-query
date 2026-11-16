@@ -20,7 +20,7 @@ export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
     forUseInTransaction?: boolean | undefined
     /**
-     * The DbType of oracledb, like `oracledb.DB_TYPE_NUMBER`, each parameter of a type name (the name given to a custom
+     * The DbType of oracledb, like `oracledb.DB_TYPE_NUMBER`, each parameter of a type name (the name of a type of the user,
      * type, or a built-in one) is bound with, also a RETURNING OUT bind, instead of the one oracledb gives its value;
      * or an object with that DbType and the maxSize, in bytes, of a RETURNING OUT bind of that type name
      */
@@ -99,7 +99,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * The fetch type handler of an execution of the library, which replaces the global one of oracledb
      * (`oracledb.fetchTypeHandler`) and, answering for every column, its `fetchAsString` and `fetchAsBuffer` too, so the
      * values are received as the library reads them whatever oracledb was configured with:
-     * - a column expected as a customDecimal, a stringDecimal, a bigint or a customBigint is fetched as text, with all
+     * - a column expected as an exact decimal, a bigint or an integer of the user wider than a number is fetched as text, with all
      *   its digits (oracledb gives a NUMBER as a JavaScript number, which loses digits and the scale). The column is the
      *   one with the name expected, or the only column of a query that returns one value without a name;
      * - a DATE or a TIMESTAMP is the Date whose UTC getters are its digits, the values in the database being in UTC:

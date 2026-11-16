@@ -3,8 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { MySqlConnection } from '../../../../../src/connections/MySqlConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, type CustomType } from '../../../../../src/TypeAdapter.js'
-export type { CustomType }
+import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
@@ -27,7 +26,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
-import { CustomLocalDateType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { EnumType } from '../../../../../src/exports/v2/index.js'
 import { DecimalsType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
@@ -216,7 +215,6 @@ void function(_dcfm: DynamicConditionForModel<any>, _obfm: OrderByForModel<any>)
 void fromRef
 
 void EnumType
-void CustomLocalDateType
 void function(
     _dpp: DynamicPickPaths<any>,
     _dc: DynamicCondition<any>,

@@ -482,7 +482,7 @@ A [shape](../queries/shapes.md#columns-in-a-group) names a column in a group by 
 
 !!! note
 
-    Only a plain object with at least one column is a group: anything else in the class, like a method or an object with other values, is not taken as part of the columns. The value of a column can be an object too (a custom type with a json value, for instance), because it's the definition that says what is a group. As with the [alias](../queries/complex-projections.md#nested-object-projections), the types reach up to the fifth level.
+    Only a plain object with at least one column is a group: anything else in the class, like a method or an object with other values, is not taken as part of the columns. The value of a column can be an object too (a type of yours with a json value, for instance), because it's the definition that says what is a group. As with the [alias](../queries/complex-projections.md#nested-object-projections), the types reach up to the fifth level.
 
 ## Virtual columns
 
@@ -623,7 +623,7 @@ Compared with a view:
 
 Every database can use it in a select. What changes between them:
 
-- **PostgreSQL**: the values are written with a cast, so [your custom types need a valid one](data-types.md#your-own-types).
+- **PostgreSQL**: the values are written with a cast, so [your own types need a valid one](data-types.md#your-own-types).
 - **MySQL**: it needs MySQL 8.0.19. With a `compatibilityVersion` below `8_000_000`, [the query is rejected](supported-databases/mysql.md#compatibility-version).
 - **Oracle**: below `compatibilityVersion` `23_004_000`, it's written with `select ... from dual union all` instead of `values`. In the `from` of an update and the `using` of a delete, the database rejects it.
 - **MariaDB and MySQL**: in an update or a delete, they use their multi-table forms. On MariaDB that needs MariaDB 12.3, and [with Bun SQL it can't be used](query-runners/recommended/bun_sql_mysql.md).

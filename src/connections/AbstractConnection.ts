@@ -1105,7 +1105,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
                 // before the point (`.5`, as Oracle writes it) gets it
                 if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid decimal value received from the db: ' + value)
                 }
                 if (value.startsWith('.')) {
                     return '0' + value
@@ -1118,12 +1118,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             if (typeof value === 'number') {
                 // The driver gave a JavaScript number: the digits beyond its precision, and the scale, are already
                 // lost, and nothing tells which
-                throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a customDecimal value from the db: the driver returned ' + value + ' as a JavaScript number')
+                throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a decimal value from the db: the driver returned ' + value + ' as a JavaScript number')
             }
             if (typeof value === 'bigint') {
                 return '' + value
             }
-            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid decimal value received from the db: ' + value)
         }
         if (__isStringClass(context.requestedType)) {
             if (typeof value === 'string') {
@@ -1242,11 +1242,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             // database reads it with all its digits
             if (typeof value === 'string') {
                 if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid customDecimal value to send to the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid decimal value to send to the db: ' + value)
                 }
                 return value
             }
-            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid customDecimal value to send to the db: ' + value)
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid decimal value to send to the db: ' + value)
         }
         if (__isStringClass(context.requestedType)) {
             if (typeof value === 'string') {

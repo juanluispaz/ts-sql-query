@@ -1,7 +1,7 @@
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
 /**
- * The digits of the text of a customDecimal sent to the database: its precision and scale as a decimal type counts
+ * The digits of the text of an exact decimal sent to the database: its precision and scale as a decimal type counts
  * them (`-0012.50` is decimal(4, 2)) and its significant digits (`0.0120` has 2); undefined when it isn't a plain
  * decimal text (the type adapter of the user may send something else, which is left as it is).
  */
@@ -16,7 +16,7 @@ export function customDecimalDigitsOf(value: unknown): { precision: number, scal
     return { precision: Math.max(integerDigits.length, 1) + decimals.length, scale: decimals.length, significantDigits: significant.length }
 }
 
-/** Rejects the customDecimal value of the parameter at that index, which the decimals of the database can't hold */
+/** Rejects the exact decimal value of the parameter at that index, which the decimals of the database can't hold */
 export function rejectCustomDecimalParam(value: unknown, type: string, index: number, widestDecimal: string): never {
-    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type, paramIndex: index }, 'Invalid customDecimal value to send to the db: ' + value + ' doesn\'t fit the widest decimal of the database, ' + widestDecimal)
+    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type, paramIndex: index }, 'Invalid decimal value to send to the db: ' + value + ' doesn\'t fit the widest decimal of the database, ' + widestDecimal)
 }

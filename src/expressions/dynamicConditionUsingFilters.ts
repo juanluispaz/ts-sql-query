@@ -2,9 +2,9 @@ import type { DataToProjectOf, DataToProjectOfAny, GetDataToProjectSource } from
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { AnyValueSource, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
-import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
+import type { AnyType, ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
-import type { LocalDateTimeType, LocalDateTimesType, LocalDateType, LocalDatesType, LocalTimeType, LocalTimesType } from '../typeSystem/localDates.js'
+import type { LocalDateTimeType, LocalDateType, LocalTimeType } from '../typeSystem/localDates.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
@@ -51,11 +51,7 @@ export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
 export interface BooleanFilter extends EqualableFilter<boolean> { }
 export interface NumberFilter extends ComparableFilter<number> { }
 export interface BigintFilter extends ComparableFilter<bigint> { }
-export interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
-export interface CustomBigintFilter<TYPE> extends ComparableFilter<TYPE> { }
-export interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
 export interface StringDecimalFilter extends ComparableFilter<string> { }
-export interface CustomDecimalFilter<TYPE> extends ComparableFilter<TYPE> { }
 export interface StringFilter extends ComparableFilter<string> {
     equalsInsensitiveIfValue?: string | null | undefined
     equalsInsensitive?: string
@@ -97,11 +93,9 @@ export interface StringFilter extends ComparableFilter<string> {
 export interface DateFilter extends ComparableFilter<Date> { }
 export interface TimeFilter extends ComparableFilter<Date> { }
 export interface DateTimeFilter extends ComparableFilter<Date> { }
-export interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
-export interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
-export interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
 
-export interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
+/** The filter of a uuid of the user: also the text operators, which apply to its text */
+export interface UuidsFilter<TYPE> extends ComparableFilter<TYPE> {
     equalsInsensitiveIfValue?: TYPE | null | undefined
     equalsInsensitive?: TYPE
     notEqualsInsensitiveIfValue?: TYPE | null | undefined
@@ -140,7 +134,7 @@ export interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
     notContainsInsensitive?: TYPE
 }
 
-export type FilterTypeOf<TYPE> = 
+export type FilterTypeOf<TYPE> =
     TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends 'int' ? NumberFilter :
     TYPE extends 'bigint' ? BigintFilter :
@@ -151,39 +145,33 @@ export type FilterTypeOf<TYPE> =
     TYPE extends 'localDate' ? DateFilter :
     TYPE extends 'localTime' ? TimeFilter :
     TYPE extends 'localDateTime' ? DateTimeFilter :
-    TYPE extends ['customInt', infer T] ? CustomIntFilter<T> :
-    TYPE extends ['customBigint', infer T] ? CustomBigintFilter<T> :
-    TYPE extends ['customDouble', infer T] ? CustomDoubleFilter<T> :
-    TYPE extends ['customDecimal', infer T] ? CustomDecimalFilter<T> :
-    TYPE extends ['customUuid', infer T] ? CustomUuidFilter<T> :
-    TYPE extends ['customLocalDate', infer T] ? CustomLocalDateFilter<T> :
-    TYPE extends ['customLocalTime', infer T] ? CustomLocalTimeFilter<T> :
-    TYPE extends ['customLocalDateTime', infer T] ? CustomLocalDateTimeFilter<T> :
-    TYPE extends ['enum', infer T] ? EqualableFilter<T> :
-    TYPE extends ['custom', infer T] ? EqualableFilter<T> :
-    TYPE extends ['customComparable', infer T] ? ComparableFilter<T> :
-    MapValueSourceToFilter<TYPE>
+    TYPE extends AnyValueSource ? MapValueSourceToFilter<TYPE> :
+    // A data type, like the class of a type of the user (`total: MoneyType`): the filter of a value source of it
+    TYPE extends AnyType ? MapValueSourceToFilter<ValueSource<any, TYPE, 'required'>> :
+    never
 
-export type DynamicColumnType<T> = 'boolean' | 'int' | 'bigint' | 'double' |
-    'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime' | 
-    ['customInt', T] | ['customBigint', T] | ['customDouble', T] | ['customDecimal', T] | ['customUuid', T] | ['customLocalDate', T] | ['customLocalTime', T] | ['customLocalDateTime', T] | 
-    ['enum', T] | ['custom', T] | ['customComparable', T]
+/**
+ * How the definition of a dynamic condition declares a column without its value source: by the name of a built-in data
+ * type (`'int'`), or by its data type (`MoneyType`, the class of a type of the user)
+ */
+export type DynamicColumnType = 'boolean' | 'int' | 'bigint' | 'double' |
+    'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime' | AnyType
 
 // The definition of a dynamic condition: up to 5 levels, as a complex projection; the last level only has columns
 export type DynamicDefinition = {
-    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition2
+    [key: string]: AnyValueSource | DynamicColumnType | DynamicDefinition2
 }
 type DynamicDefinition2 = {
-    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition3
+    [key: string]: AnyValueSource | DynamicColumnType | DynamicDefinition3
 }
 type DynamicDefinition3 = {
-    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition4
+    [key: string]: AnyValueSource | DynamicColumnType | DynamicDefinition4
 }
 type DynamicDefinition4 = {
-    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition5
+    [key: string]: AnyValueSource | DynamicColumnType | DynamicDefinition5
 }
 type DynamicDefinition5 = {
-    [key: string]: AnyValueSource | DynamicColumnType<any>
+    [key: string]: AnyValueSource | DynamicColumnType
 }
 
 export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DynamicConditionExtension = never> = {
@@ -192,8 +180,7 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION ext
     or?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
 } & {
     [KEY in NonReplacedField<DEFINITION, EXTENSION>]?:
-        DEFINITION[KEY] extends DynamicColumnType<any>
-        ? ColumnFilterWithExtension<FilterTypeOf<DEFINITION[KEY]>, EXTENSION> : DEFINITION[KEY] extends AnyValueSource
+        DEFINITION[KEY] extends AnyValueSource | DynamicColumnType
         ? ColumnFilterWithExtension<FilterTypeOf<DEFINITION[KEY]>, EXTENSION> : DEFINITION[KEY] extends DynamicDefinition
         ? DynamicCondition<DEFINITION[KEY], KEY extends keyof EXTENSION ? (EXTENSION[KEY] extends DynamicConditionExtension ? EXTENSION[KEY] : never) : never>
         : never
@@ -215,10 +202,7 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IValueSource<any, AggregatedArrayType<any>, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
         // A data type of the user, by the family it extends (its NType is only its type name): the most precise first
         TYPE extends { [valueSourceType]: infer DATA_TYPE } ? (
-            DATA_TYPE extends UuidsType<any, any> ? CustomUuidFilter<T> :
-            DATA_TYPE extends LocalDateTimesType<any, any> ? CustomLocalDateTimeFilter<T> :
-            DATA_TYPE extends LocalDatesType<any, any> ? CustomLocalDateFilter<T> :
-            DATA_TYPE extends LocalTimesType<any, any> ? CustomLocalTimeFilter<T> :
+            DATA_TYPE extends UuidsType<any, any> ? UuidsFilter<T> :
             DATA_TYPE extends ComparableType<any, any> ? ComparableFilter<T> :
             DATA_TYPE extends EqualableType<any, any> ? EqualableFilter<T> :
             Filter

@@ -27,7 +27,6 @@ export const booleanSqlDataType: SqlDataType = { family: 'boolean' }
 /** A boolean value */
 export abstract class BooleanType extends EqualableType<boolean, string> {
     static override readonly type = 'boolean'
-    static override readonly customType = undefined
     static override readonly sqlDataType: SqlDataType = booleanSqlDataType
     declare [typeName]: 'type:boolean:logical:'
     declare [operandTypeName]: 'type:boolean:logical:'

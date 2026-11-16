@@ -264,7 +264,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 ## Exact decimals: the decimal strategies
 
-SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of an [exact decimal](../data-types.md#exact-decimals) (a `stringDecimal` or a `customDecimal`) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store it in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
+SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of an [exact decimal](../data-types.md#exact-decimals) (a `stringDecimal` or a `DecimalsType` of yours) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store it in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
 
 ```sql
 create table exact_amount (
@@ -274,7 +274,7 @@ create table exact_amount (
 ) strict;
 ```
 
-SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `stringDecimal` or a `customDecimal`; everything below applies to both. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts. There are three strategies, each in two variants:
+SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `stringDecimal` or a `DecimalsType` of yours; everything below applies to both. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts. There are three strategies, each in two variants:
 
 | Strategy | What the library writes | What it needs | What is rejected |
 |---|---|---|---|
@@ -282,14 +282,14 @@ SQLite compares and orders that text as text, and computes with it in floating p
 | `decimal-functions` | The functions of the decimal extension and the ones of the library, also for the order by, the grouping, `min`, `max` and `abs` (`tsq_decimal_key`, `tsq_decimal_min`, `tsq_decimal_max`, `tsq_decimal_abs`) | The functions of the extension and of the library | Nothing |
 | `text` | Plain SQL | Nothing | The arithmetic: `add`, `subtract`, `multiply`, `modulo`, `ceil`, `floor`, `round`, `roundn` and `sum` |
 
-Each strategy has a **canonical text** variant, named with ` with canonical text` at the end (`canonical text` for `text`). **The default is `decimal-extension and tsq-functions with canonical text`.** In a canonical text variant the library writes every `customDecimal` in its canonical text: without zeros before the integer part (`0` when it is zero), without zeros at the end of the fraction, and without a minus sign for a zero. `007.50` is written as `7.5`, `-0.00` as `0` and `.5` as `0.5`, in every value it sends (an insert, an update, a comparison) and in every computed value it stores or reads. In return, it takes the values stored as written so, and compares their text directly: an equality, `in`, `notIn`, `is`, the group by, `distinct`, the duplicates of a `union`, `intersect` or `except` and the distinct aggregates compare the text, which is faster and can use an ordinary index of the column (`SEARCH t USING COVERING INDEX` for an equality and an `in`, measured with bun:sqlite). The order by, the ranges, `min` and `max` stay exact as in the strategy without the variant.
+Each strategy has a **canonical text** variant, named with ` with canonical text` at the end (`canonical text` for `text`). **The default is `decimal-extension and tsq-functions with canonical text`.** In a canonical text variant the library writes every exact decimal in its canonical text: without zeros before the integer part (`0` when it is zero), without zeros at the end of the fraction, and without a minus sign for a zero. `007.50` is written as `7.5`, `-0.00` as `0` and `.5` as `0.5`, in every value it sends (an insert, an update, a comparison) and in every computed value it stores or reads. In return, it takes the values stored as written so, and compares their text directly: an equality, `in`, `notIn`, `is`, the group by, `distinct`, the duplicates of a `union`, `intersect` or `except` and the distinct aggregates compare the text, which is faster and can use an ordinary index of the column (`SEARCH t USING COVERING INDEX` for an equality and an `in`, measured with bun:sqlite). The order by, the ranges, `min` and `max` stay exact as in the strategy without the variant.
 
 | | Without the variant | With canonical text |
 |---|---|---|
 | What is stored | The text as you send it (`1.50` stays `1.50`) | The canonical text (`1.50` is stored as `1.5`) |
 | What is read | The text stored, with its scale | The canonical text: the scale of a value isn't kept |
 | Equality, `in`, group by, `distinct` | By the number: `1.5` equals `1.50` | By the text, which is the same for the same number |
-| A distinct select with a `customDecimal` column and a `group by` or an aggregate | Rejected: the distinct of its rows would compare their texts | Allowed |
+| A distinct select with an exact decimal column and a `group by` or an aggregate | Rejected: the distinct of its rows would compare their texts | Allowed |
 | A value written by something else than the library | Any text of a decimal | Must be in canonical text: a value like `1.50` written by another program, or by SQL you write, isn't equal to `1.5` in an equality, and is a group of its own |
 
 The canonical text is a contract: use a canonical text variant when the library writes the values of those columns, or when you normalize what others write. To turn the values a table already has into their canonical text, run once, for each column:
@@ -347,7 +347,7 @@ On the drivers that register functions written in JavaScript, one call of `regis
 
 ### An index on the key of a decimal
 
-With `decimal-functions` and its canonical text variant, the comparisons and the order by of a `customDecimal` use its key: `price.greaterThan('9.5')` is `tsq_decimal_key(price) > tsq_decimal_key(?)`, and without the canonical text the equality and `in` too. `registerSqliteFunctions` registers `tsq_decimal_key` as deterministic, so SQLite takes an index on that expression, and uses it for the same expression in a query:
+With `decimal-functions` and its canonical text variant, the comparisons and the order by of an exact decimal use its key: `price.greaterThan('9.5')` is `tsq_decimal_key(price) > tsq_decimal_key(?)`, and without the canonical text the equality and `in` too. `registerSqliteFunctions` registers `tsq_decimal_key` as deterministic, so SQLite takes an index on that expression, and uses it for the same expression in a query:
 
 ```sql
 create index exact_amount_price_key on exact_amount (tsq_decimal_key(price));

@@ -11,11 +11,11 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     Bun SQL for SQLite can't register functions written in JavaScript nor load an extension of SQLite. So with it:
 
-    - The exact decimals ([`stringDecimal` and `customDecimal`](../../data-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
+    - The exact decimals ([`stringDecimal` and the `DecimalsType` of yours](../../data-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
     - The [uuid strategy](../../supported-databases/sqlite.md#uuid-strategies) `uuid-extension`, the default, works only where the SQLite that Bun uses has the uuid extension built in, like the one of macOS (measured with SQLite 3.51.0).
     - `replaceAllInsensitiveFunction` can't be used.
 
-    [bun:sqlite](bun_sqlite.md) (`BunSqliteQueryRunner`) has none of these limits: one call of `registerSqliteFunctions` registers every function the library writes. If you stay with Bun SQL, set the decimal strategy to `canonical text`: it compares, orders and groups a `customDecimal` exactly, and rejects its arithmetic when the query is built (`UNSUPPORTED_QUERY`), so nothing gives a number that has lost digits. On a system whose SQLite lacks the uuid extension, set the uuid strategy to `string`.
+    [bun:sqlite](bun_sqlite.md) (`BunSqliteQueryRunner`) has none of these limits: one call of `registerSqliteFunctions` registers every function the library writes. If you stay with Bun SQL, set the decimal strategy to `canonical text`: it compares, orders and groups an exact decimal exactly, and rejects its arithmetic when the query is built (`UNSUPPORTED_QUERY`), so nothing gives a number that has lost digits. On a system whose SQLite lacks the uuid extension, set the uuid strategy to `string`.
 
     Which function each setting needs is on [SQLite functions and extensions](../../supported-databases/sqlite-extensions.md).
 
@@ -74,7 +74,7 @@ To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategi
 
 ## SQLite and exact decimals
 
-Bun SQL can't register the functions the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions write, the default included: use the `canonical text` strategy, which compares, orders and groups a [`customDecimal`](../../data-types.md#exact-decimals) exactly and rejects its arithmetic, or [bun:sqlite](bun_sqlite.md).
+Bun SQL can't register the functions the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions write, the default included: use the `canonical text` strategy, which compares, orders and groups an [exact decimal](../../data-types.md#exact-decimals) exactly and rejects its arithmetic, or [bun:sqlite](bun_sqlite.md).
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/sqlite";

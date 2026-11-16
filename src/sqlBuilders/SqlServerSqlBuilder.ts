@@ -1019,7 +1019,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // 1.4142…) and even an integer exponent overflows the int type where every other
         // engine widens (`power(50000, 2)` -> arithmetic overflow). Cast an integer base to
         // float so the fractional/large result is honoured — the same fix _cbrtRadicand
-        // applies. A base that is already floating (`double`/`customDouble`, e.g. a
+        // applies. A base that is already floating (`double`, `RealsType`, e.g. a
         // `.asDouble()` receiver whose SQL is itself `cast(... as float)`) keeps the
         // fraction natively and is left uncast to avoid a redundant double cast.
         let base = this._appendSql(valueSource, context, false)
@@ -1390,7 +1390,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         let result: string
 
         // A number leaf is converted with room for any decimal(38): 38 digits, the sign, the point and a leading
-        // zero. The length-less convert defaults to nvarchar(30), and a custom number type mapped to a wide decimal
+        // zero. The length-less convert defaults to nvarchar(30), and a number of the user mapped to a wide decimal
         // column overflows it
         if (this._isConvertedAggregatedArrayValue(valueSource)) {
             // The text of the type adapter (or of the connection), as a JSON string

@@ -27,9 +27,9 @@ Both ways are only types: the SQL is built from the map and from the values rece
 | Where the map goes | Where the types can see it: `typeof` needs a variable outside the function, or a function that returns the map, with `ReturnType` | Inside the function |
 | When a column changes | The types change with it | You change the interface. The compiler tells you when the rows no longer fit it |
 | What the types depend on | The tables: the code that uses these types has to see their definitions | Only the interface, which you can share with code that doesn't know the tables |
-| Operators of the filter | Those of the column, custom types included | Those of the TypeScript type of the property, so [a custom type may need more](from-business-model.md#custom-types-and-values-an-interface-cant-describe) |
+| Operators of the filter | Those of the column, types of yours included | Those of the TypeScript type of the property, so [a type of yours may need more](from-business-model.md#types-of-yours-and-values-an-interface-cant-describe) |
 
-Choose the columns when the function and its callers live with the tables, or when the columns have custom types: there is less to write and nothing to keep in step. Choose an interface when it already exists or has to be shared, like the contract of an API, or when the rest of your code shouldn't depend on the tables.
+Choose the columns when the function and its callers live with the tables, or when the columns have types of yours: there is less to write and nothing to keep in step. Choose an interface when it already exists or has to be shared, like the contract of an API, or when the rest of your code shouldn't depend on the tables.
 
 ## Filtering: `DynamicCondition`
 

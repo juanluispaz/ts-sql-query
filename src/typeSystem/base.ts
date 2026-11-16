@@ -1,4 +1,4 @@
-import type { CustomType, SqlDataType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { SqlDataType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, unadaptedClass, valueSourceType, valueType } from '../utils/symbols.js'
@@ -7,7 +7,7 @@ import { ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 
 /*
  * The data type of a value source is a class: its type (its methods, the type of its value and its name for TypeScript,
- * the NType) and, as statics, the type and the custom type the library knows it by at run time.
+ * the NType) and, as statics, the type name and the SQL data type the library knows it by at run time.
  *
  * The NType names the data type for TypeScript only: `type:<type name>:<group>:`, always ending in `:`. The second
  * segment exists only for the data types that work together, their group: `number` for int and double
@@ -41,8 +41,6 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime
             configurable: true,
         })
     }
-    /** The custom type of a custom data type; undefined for a built-in data type */
-    declare static readonly customType: CustomType | undefined
     /**
      * The type in the database of the values of the data type, when the column doesn't say a more precise one: the
      * query runners send and read a value by it. Undefined for a data type whose values only the user knows
@@ -92,7 +90,6 @@ export interface TypeClass</*in|out*/ TYPE extends AnyType> {
      */
     readonly name: [TypeNameOf<TYPE>] extends [never] ? never : string
     readonly type: string
-    readonly customType: CustomType | undefined
 }
 
 /**
@@ -101,11 +98,6 @@ export interface TypeClass</*in|out*/ TYPE extends AnyType> {
  * whose type name is any)
  */
 export type TypeNameOf<TYPE> = TYPE extends { [typeName]: `type:${infer NAME}:${string}` } ? (string extends NAME ? never : `${any}` extends NAME ? never : NAME) : never
-
-/** The class of a custom data type an `of` makes, with its type guard */
-export interface CustomTypeClass</*in|out*/ TYPE extends AnyType> extends TypeClass<TYPE> {
-    is(value: any): value is ValueSource<any, TYPE, any>
-}
 
 export type AnyTypeClass = TypeClass<AnyType>
 

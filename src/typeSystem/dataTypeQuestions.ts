@@ -42,7 +42,7 @@ export function __isBigintClass(typeClass: DataTypeClass): boolean {
 export function __isDoubleClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, DoubleType) || isOf(typeClass, RealsType)
 }
-/** An exact decimal: a stringDecimal or a customDecimal, whose value is its text */
+/** An exact decimal: a stringDecimal or a decimal of the user, whose value is its text */
 export function __isExactDecimalClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, DecimalsType)
 }

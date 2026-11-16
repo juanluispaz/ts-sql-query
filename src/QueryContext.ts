@@ -48,7 +48,7 @@ export interface QueryContext {
  * adapter can request another in its `transformValueToDB`).
  */
 export interface QueryParamContext {
-    /** The original type of the parameter, its class (`IntType`, or the class of a custom type) */
+    /** The original type of the parameter, its class (`IntType`, or the class of a type of the user) */
     readonly originalType: DataTypeClass | undefined
     /** The type the parameter is sent with, its class */
     readonly requestedType: DataTypeClass | undefined

@@ -18,7 +18,7 @@ A dynamic condition allows you to create a condition whose structure is defined 
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
 ```
 
-The utility type `DynamicCondition`, from `ts-sql-query`, is the type of the dynamic criteria. It receives a map with the name of each field, and as value the name of its type, a value source to get the type from, or a nested map. [Dynamic conditions](../dynamic/helper-types/conditions.md) shows how to use it and the other helper types.
+The utility type `DynamicCondition`, from `ts-sql-query`, is the type of the dynamic criteria. It receives a map with the name of each field, and as value the name of its type, its data type (the class of a type of yours, like `MoneyType`), a value source to get the type from, or a nested map. [Dynamic conditions](../dynamic/helper-types/conditions.md) shows how to use it and the other helper types.
 
 For the filter definition:
 
@@ -34,19 +34,16 @@ type FilterType = DynamicCondition<{
     myLocalDate: 'localDate'
     myLocalTime: 'localTime'
     myLocalDateTime: 'localDateTime'
-    myEnum: ['enum', MyEnumType]
-    myCustom: ['custom', MyCustomType]
-    myCustomComparable: ['customComparable', MyCustomComparableType]
-    myCustomInt: ['customInt', MyCustomType]
-    myCustomBigint: ['customBigint', MyCustomType]
-    myCustomDouble: ['customDouble', MyCustomType]
-    myCustomDecimal: ['customDecimal', MyCustomType]
-    myCustomUuid: ['customUuid', MyCustomType]
-    myCustomLocalDate: ['customLocalDate', MyCustomType]
-    myCustomLocalTime: ['customLocalTime', MyCustomType]
-    myCustomLocalDateTime: ['customLocalDateTime', MyCustomType]
+    myEnum: MyEnumType
+    myEqualable: MyEqualableType
+    myComparable: MyComparableType
+    myNumber: MyNumberType
+    myOwnUuid: MyUuidType
+    myOwnDate: MyDateType
 }>
 ```
+
+Where `MyEnumType` is a class of yours that extends `EnumType<MyEnum, 'MyEnum'>`, `MyEqualableType` one that extends `EqualableType`, `MyComparableType` one that extends `ComparableType`, `MyNumberType` one of the families of the numbers, like `IntegersType` or `RealsType`, `MyUuidType` one that extends `UuidsType`, and `MyDateType` one of the families of the dates, like `LocalDatesType` (see [Your own types](../configuration/data-types.md#your-own-types)).
 
 The `FilterType` definition looks like this. Every field is optional:
 
@@ -65,23 +62,18 @@ type FilterType = {
     myLocalDate?: DateFilter
     myLocalTime?: TimeFilter
     myLocalDateTime?: DateTimeFilter
-    myEnum?: EqualableFilter<MyEnumType>
-    myCustom?: EqualableFilter<MyCustomType>
-    myCustomComparable?: ComparableFilter<MyCustomComparableType>
-    myCustomInt?: CustomIntFilter<MyCustomType>
-    myCustomBigint?: CustomBigintFilter<MyCustomType>
-    myCustomDouble?: CustomDoubleFilter<MyCustomType>
-    myCustomDecimal?: CustomDecimalFilter<MyCustomType>
-    myCustomUuid?: CustomUuidFilter<MyCustomType>
-    myCustomLocalDate?: CustomLocalDateFilter<MyCustomType>
-    myCustomLocalTime?: CustomLocalTimeFilter<MyCustomType>
-    myCustomLocalDateTime?: CustomLocalDateTimeFilter<MyCustomType>
+    myEnum?: EqualableFilter<MyEnum>
+    myEqualable?: EqualableFilter<MyEqualable>
+    myComparable?: ComparableFilter<MyComparable>
+    myNumber?: ComparableFilter<MyNumber>
+    myOwnUuid?: UuidsFilter<MyUuid>
+    myOwnDate?: ComparableFilter<MyDate>
 }
 ```
 
 !!! note
 
-    For convenience, the `uuid` and `customUuid` types accept the text operators of `StringFilter`, and they apply the `asString()` method before them.
+    For convenience, a `uuid` and a uuid of yours (a class that extends `UuidsType`) accept the text operators of `StringFilter`, and they apply the `asString()` method before them.
 
 !!! tip "Deriving the filter type from a business model"
 
@@ -170,7 +162,7 @@ interface StringFilter extends ComparableFilter<string> {
 ```
 
 ```typescript
-interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
+interface UuidsFilter<TYPE> extends ComparableFilter<TYPE> {
     equalsInsensitiveIfValue?: TYPE | null | undefined
     equalsInsensitive?: TYPE
     notEqualsInsensitiveIfValue?: TYPE | null | undefined
@@ -217,14 +209,7 @@ interface BigintFilter extends ComparableFilter<bigint> { }
 interface DateFilter extends ComparableFilter<Date> { }
 interface TimeFilter extends ComparableFilter<Date> { }
 interface DateTimeFilter extends ComparableFilter<Date> { }
-interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomBigintFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface StringDecimalFilter extends ComparableFilter<string> { }
-interface CustomDecimalFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
 ```
 
 You can extend the set of rules defining your own. For this, you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. `withValues` accepts the rules in the filter, written in place or in a variable. If you use the `DynamicCondition` utility type, you must provide the type of your extension object as a second argument. See [Rules of your own](../dynamic/caller-decides/filters.md#rules-of-your-own).

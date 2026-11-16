@@ -310,7 +310,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 | `this.arg(type, 'required' \| 'optional', adapter?)` | A value, a column or an expression | A parameter for a value, the SQL of the rest |
 | `this.valueArg(type, 'required' \| 'optional', adapter?)` | Only a value | A parameter |
 
-A `'required'` argument doesn't accept `null` or `undefined`. A custom type or an enum takes its name too, as in `fragmentWithType`.
+A `'required'` argument doesn't accept `null` or `undefined`. A type of yours goes by its class, as in `fragmentWithType`.
 
 You use the function as a regular database function:
 
@@ -860,7 +860,7 @@ const tCustomerWithAge = new class TCustomerWithAge extends Table<DBConnection, 
 }();
 ```
 
-The `${...}` of the `fragment` only takes the columns of that table. A type adapter can go as the last argument, and a custom type or an enum takes its name after the type. When the table has an alias, the fragment uses it. A virtual column can't be set in an insert or an update, and it's also available in a view and in [`Values`](../api/constant-values-view.md). [Mapping](../configuration/mapping.md#virtual-columns) has a query that uses one.
+The `${...}` of the `fragment` only takes the columns of that table. A type adapter can go as the last argument, and a type of yours goes by its class. When the table has an alias, the fragment uses it. A virtual column can't be set in an insert or an update, and it's also available in a view and in [`Values`](../api/constant-values-view.md). [Mapping](../configuration/mapping.md#virtual-columns) has a query that uses one.
 
 ### Raw fragments
 

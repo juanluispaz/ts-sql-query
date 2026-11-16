@@ -4,10 +4,11 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel, ComparableFilter, EqualableFilter, StringFilter, BigintFilter, BooleanFilter, CustomDoubleFilter, CustomIntFilter, CustomLocalDateFilter, CustomLocalDateTimeFilter, CustomLocalTimeFilter, CustomUuidFilter, DateFilter, DateTimeFilter, NumberFilter, TimeFilter } from '../../../../../src/dynamic/condition.js'
+import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel, ComparableFilter, EqualableFilter, StringFilter, BigintFilter, BooleanFilter, UuidsFilter, DateFilter, DateTimeFilter, NumberFilter, TimeFilter } from '../../../../../src/dynamic/condition.js'
 import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
+import type { ComparableType, EnumType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -118,9 +119,9 @@ describe(ctx.label, () => {
         type Definition = {
             string: 'string'; uuid: 'uuid'; int: 'int'; double: 'double'; bigint: 'bigint'; boolean: 'boolean'
             localDate: 'localDate'; localTime: 'localTime'; localDateTime: 'localDateTime'
-            enum: ['enum', 'a' | 'b']; custom: ['custom', 'a' | 'b']; customComparable: ['customComparable', 'a' | 'b']
-            customInt: ['customInt', 'a' | 'b']; customDouble: ['customDouble', 'a' | 'b']; customUuid: ['customUuid', 'a' | 'b']
-            customLocalDate: ['customLocalDate', 'a' | 'b']; customLocalTime: ['customLocalTime', 'a' | 'b']; customLocalDateTime: ['customLocalDateTime', 'a' | 'b']
+            enum: EnumType<'a' | 'b', string>; custom: EqualableType<'a' | 'b', string>; customComparable: ComparableType<'a' | 'b', string>
+            customInt: IntegersType<'a' | 'b', string>; customDouble: RealsType<'a' | 'b', string>; customUuid: UuidsType<'a' | 'b', string>
+            customLocalDate: LocalDatesType<'a' | 'b', string>; customLocalTime: LocalTimesType<'a' | 'b', string>; customLocalDateTime: LocalDateTimesType<'a' | 'b', string>
         }
         type Filter = DynamicCondition<Definition>
         assertType<Exact<NonNullable<Filter['string']>, StringFilter>>()
@@ -135,12 +136,12 @@ describe(ctx.label, () => {
         assertType<Exact<NonNullable<Filter['enum']>, EqualableFilter<'a' | 'b'>>>()
         assertType<Exact<NonNullable<Filter['custom']>, EqualableFilter<'a' | 'b'>>>()
         assertType<Exact<NonNullable<Filter['customComparable']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customInt']>, CustomIntFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customDouble']>, CustomDoubleFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customUuid']>, CustomUuidFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customLocalDate']>, CustomLocalDateFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customLocalTime']>, CustomLocalTimeFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customLocalDateTime']>, CustomLocalDateTimeFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customInt']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customDouble']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customUuid']>, UuidsFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customLocalDate']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customLocalTime']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['customLocalDateTime']>, ComparableFilter<'a' | 'b'>>>()
     })
 
     test('docs-extra:utilities-conditions/a-branded-property-has-equality-and-comparison', () => {
@@ -187,7 +188,7 @@ describe(ctx.label, () => {
             name: 'string'
             createdAt: 'localDateTime'
             published: 'boolean'
-            slug: ['enum', 'mktg-site' | 'tools' | 'public-api' | 'legacy']
+            slug: EnumType<'mktg-site' | 'tools' | 'public-api' | 'legacy', string>
             organization: { id: 'int'; name: 'string' }
         }>>()
 

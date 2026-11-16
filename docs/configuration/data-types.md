@@ -144,8 +144,6 @@ The TypeScript type has to be the one of that value: a `bigint` for an integer w
 
 The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md), which also covers how to send a value of your type with another SQL type, like a floating point number kept as text.
 
-The custom types made with `of` (`CustomIntType.of<Cents, 'Cents'>('Cents')`, …) are classes of these families too; a class that extends the family replaces them.
-
 ## Exact decimals
 
 JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:
@@ -260,7 +258,7 @@ What each database keeps, for a `decimal(38, 10)` and a `decimal(10, 2)` column:
 | SQLite | By default, the canonical text: `'1.5'` for `1.50`; with a strategy without the canonical text, the text stored | By default, the canonical text; otherwise the text, as it is | Exact or rejected, by the decimal strategy: see below |
 | SQL Server | All the digits, with the scale of the column: `'1.50'`; the outermost query converts the value to text with `convert(nvarchar(41), …)` | As an `nvarchar`, written as `cast(@0 as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(38)` is rejected | Exact |
 
-In every database, a `customDecimal` in an [array aggregate](../queries/aggregate-as-object-array.md) is read from the JSON with all its digits.
+In every database, an exact decimal of yours in an [array aggregate](../queries/aggregate-as-object-array.md) is read from the JSON with all its digits.
 
 On SQL Server the conversion to text goes only in the select that returns the rows, so the database compares, groups and orders the numbers, not their text. An order by of a converted column is written with its expression, and a compound query, or a `selectDistinctFrom` ordered by a converted column, is wrapped in a select that converts the columns:
 
@@ -287,16 +285,16 @@ Each parameter of a query goes with its type, the one requested for it: by defau
 | Type | PostgreSQL type, where the query needs one | SQL Server parameter type |
 |---|---|---|
 | `boolean` | `bool` | `bit` |
-| `int`, `customInt` | `int4` | `int` |
-| `bigint`, `customBigint` | `int8` | `bigint` |
-| `double`, `customDouble` | `float8` | `float` |
-| `stringDecimal`, `customDecimal` | `numeric` | `nvarchar`, the text |
+| `int`, `IntegersType` of 4 bytes, its default | `int4` | `int` |
+| `bigint`, `IntegersType` of 8 bytes | `int8` | `bigint` |
+| `double`, `RealsType` | `float8` | `float` |
+| `stringDecimal`, `DecimalsType` | `numeric` | `nvarchar`, the text |
 | `string` | `text` | `nvarchar` |
-| `uuid`, `customUuid` | `uuid` | `uniqueidentifier` |
-| `localDate`, `customLocalDate` | `date` | `date` |
-| `localTime`, `customLocalTime` | `time` | `time` |
-| `localDateTime`, `customLocalDateTime` | `timestamp` | `datetime2` |
-| `enum`, `custom`, `customComparable` | By the value: `int4` or `int8` for a whole number, `float8` for one with decimals, `int8` for a `bigint`, and none otherwise | By the value, and a text always as `nvarchar` |
+| `uuid`, `UuidsType` | `uuid` | `uniqueidentifier` |
+| `localDate`, `LocalDatesType` | `date` | `date` |
+| `localTime`, `LocalTimesType` | `time` | `time` |
+| `localDateTime`, `LocalDateTimesType` | `timestamp` | `datetime2` |
+| A type of yours whose family converts nothing, like `EnumType`, `EqualableType` or `ComparableType` | By the value: `int4` or `int8` for a whole number, `float8` for one with decimals, `int8` for a `bigint`, and none otherwise | By the value, and a text always as `nvarchar` |
 
 PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these types is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
 

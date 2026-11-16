@@ -8,7 +8,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { Table } from '../../../../../src/Table.js'
 import { TsSqlError, type TsSqlErrorReason } from '../../../../../src/TsSqlError.js'
-import type { CustomDecimalFilter, DynamicCondition } from '../../../../../src/dynamic/condition.js'
+import type { ComparableFilter, DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
@@ -450,8 +450,8 @@ describe(ctx.label, () => {
     test('custom-decimal/a-dynamic-condition-filters-with-a-custom-decimal-filter', async () => {
         ctx.mockNext([1])
         ctx.mockNext([1])
-        type Condition = DynamicCondition<{ price: ['customDecimal', Amount] }>
-        assertType<Exact<NonNullable<Condition['price']>, CustomDecimalFilter<Amount>>>()
+        type Condition = DynamicCondition<{ price: DecimalsType<Amount, string> }>
+        assertType<Exact<NonNullable<Condition['price']>, ComparableFilter<Amount>>>()
         const filter: Condition = { price: { greaterOrEqual: '1.50' as Amount, lessThan: '2' as Amount } }
         const dynamicIds = sync(ctx.conn.selectFrom(tExactAmount)
             .where(ctx.conn.dynamicConditionFor({ price: tExactAmount.price }).withValues(filter))

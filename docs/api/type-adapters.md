@@ -44,25 +44,20 @@ A value has two types in the context, so that what was declared and what is sent
 - The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType` a class that extends `LocalDatesType<ReleaseDay, 'ReleaseDay'>`, or `const(1, 'int')`. It never changes.
 - The **requested type**, `requestedType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
-`originalType` and `requestedType` are the class of the type, like `IntType` or `ReleaseDayType`. What the context reads of the class is `DataTypeClass`, exported from `ts-sql-query`: `type` is the name of the type, like `'int'` or `'ReleaseDay'`, and `customType` says which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), `undefined` for a built-in type:
+`originalType` and `requestedType` are the class of the type, like `IntType` or `ReleaseDayType`. What the context reads of the class is `DataTypeClass`, exported from `ts-sql-query`: `type` is the name of the type, like `'int'` or `'ReleaseDay'`, and `sqlDataType` its type in the database, when it has one (see [SQL data types](../advanced/sql-data-types.md)):
 
 ```typescript
 interface DataTypeClass {
     readonly type: string
-    readonly customType: CustomType | undefined
+    readonly sqlDataType?: SqlDataType | undefined
 }
-
-type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal'
-    | 'customUuid'
-    | 'customLocalDate' | 'customLocalTime' | 'customLocalDateTime'
-    | 'enum' | 'custom' | 'customComparable'
 ```
 
-A custom type is converted as the built-in type it is based on (see [Custom types](../configuration/data-types.md#your-own-types)) unless its conversion is registered.
+A type of yours is converted as its family says (see [Your own types](../configuration/data-types.md#your-own-types)) unless its conversion is registered.
 
-Compare the type with its class, `context.requestedType === ReleaseDayType` (`of` gives the same class for the same name), or its name, `context.requestedType.type === 'ReleaseDay'`. A comparison with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile.
+Compare the type with its class, `context.requestedType === ReleaseDayType`, or its name, `context.requestedType.type === 'ReleaseDay'`. A comparison with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile.
 
-`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and a custom one by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter just before the conversion of the connection, whoever requested it: once, and not the adapter already converting the value.
+`setRequestedType` takes a type as a column does: a built-in one by its name or its class, like `setRequestedType('string')` or `setRequestedType(StringType)`, and one of yours by its class, like `setRequestedType(ReleaseDayType)`. With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter just before the conversion of the connection, whoever requested it: once, and not the adapter already converting the value.
 
 What the requested type is in each transformation:
 

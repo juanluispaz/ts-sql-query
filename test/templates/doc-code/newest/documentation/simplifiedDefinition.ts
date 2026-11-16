@@ -25,21 +25,10 @@ type RESULT = any
 type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
-type Argument<_T, _TYPE_NAME extends string> = any
-// The class of a data type: a built-in one, like `StringType`, or one the `of` of a family made
+type Argument<_T, _TYPE_NAME extends string = string> = any
+// The name of a built-in data type, and the class of a data type: a built-in one, like `StringType`, or one of the user
+type BuiltInType = 'boolean' | 'int' | 'bigint' | 'double' | 'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime'
 type DataTypeClass = any
-// The classes of the custom data types, made by the `of` of each family
-type CustomIntType<_T, _TYPE_NAME extends string> = any
-type CustomBigintType<_T, _TYPE_NAME extends string> = any
-type CustomDoubleType<_T, _TYPE_NAME extends string> = any
-type CustomDecimalType<_T, _TYPE_NAME extends string> = any
-type CustomUuidType<_T, _TYPE_NAME extends string> = any
-type CustomLocalDateType<_T, _TYPE_NAME extends string> = any
-type CustomLocalTimeType<_T, _TYPE_NAME extends string> = any
-type CustomLocalDateTimeType<_T, _TYPE_NAME extends string> = any
-type EnumType<_T, _TYPE_NAME extends string> = any
-type CustomEqualableType<_T, _TYPE_NAME extends string> = any
-type CustomComparableType<_T, _TYPE_NAME extends string> = any
 type DynamicFilter = any
 type Filterable = any
 type DynamicConditionExtension = any
@@ -57,17 +46,7 @@ void function (
     _ojs: OuterJoinSource,
     _a: Argument<any, any>,
     _dtc: DataTypeClass,
-    _customIntType: CustomIntType<any, any>,
-    _customBigintType: CustomBigintType<any, any>,
-    _customDoubleType: CustomDoubleType<any, any>,
-    _customDecimalType: CustomDecimalType<any, any>,
-    _customUuidType: CustomUuidType<any, any>,
-    _customLocalDateType: CustomLocalDateType<any, any>,
-    _customLocalTimeType: CustomLocalTimeType<any, any>,
-    _customLocalDateTimeType: CustomLocalDateTimeType<any, any>,
-    _enumType: EnumType<any, any>,
-    _customEqualableType: CustomEqualableType<any, any>,
-    _customComparableType: CustomComparableType<any, any>,
+    _bit: BuiltInType,
     _df: DynamicFilter,
     _f: Filterable,
     _dce: DynamicConditionExtension,
@@ -76,7 +55,7 @@ void function (
     _avs: AnyValueSource,
     _tis: TransactionIsolationLevel,
 ) { }
-interface ValueSource<T, TYPE_NAME extends string> {
+interface ValueSource<T, TYPE_NAME extends string = string> {
     makeCompilerHappy_type: T
     makeCompilerHappy_typeName: TYPE_NAME
 }
@@ -105,13 +84,31 @@ void function(
 ) {}
 
 type MyEnumType = any
-type MyCustomType = any
-type MyCustomComparableType = any
+type MyEqualableType = any
+type MyComparableType = any
+type MyNumberType = any
+type MyUuidType = any
+type MyDateType = any
+type MyEnum = any
+type MyEqualable = any
+type MyComparable = any
+type MyNumber = any
+type MyUuid = any
+type MyDate = any
 
 void function(
     _met: MyEnumType,
-    _mct: MyCustomType,
-    _mcct: MyCustomComparableType
+    _meqt: MyEqualableType,
+    _mct: MyComparableType,
+    _mnt: MyNumberType,
+    _mut: MyUuidType,
+    _mdt: MyDateType,
+    _me: MyEnum,
+    _meq: MyEqualable,
+    _mc: MyComparable,
+    _mn: MyNumber,
+    _mu: MyUuid,
+    _md: MyDate
 ) {}
 
 type DatabaseType = any

@@ -11,7 +11,13 @@
 import { test, expect } from '../../../lib/testRunner.js'
 import type { DynamicCondition } from '../../../../src/dynamic/condition.js'
 import type { DBConnection } from '../domain/connection.js'
+import { EnumType } from '../../../../src/exports/v2/index.js'
 import { tIssue, tIssueWorklog, tProject, tProjectRelease } from '../domain/connection.js'
+
+// A data type of the user, given to a definition as its class
+abstract class StateType extends EnumType<'open' | 'closed', 'State'> {
+    static override readonly type = 'State'
+}
 
 declare const connection: DBConnection
 
@@ -194,7 +200,7 @@ function _typeNegatives() {
         name:   'string',
         active: 'boolean',
         due:    'localDate',
-        state:  ['enum', 'open' | 'closed'],
+        state:  StateType,
         owner:  { code: 'string' },
     }>
     // Rule: the descriptor data type decides the filter operators and value data type.

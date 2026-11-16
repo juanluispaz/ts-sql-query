@@ -16,11 +16,11 @@ A sequential id says too much when it leaves your backend: how many rows there a
 
 The order of the encrypted texts isn't the order of the ids: don't sort them in your code expecting the order of the database.
 
-You can use another way of encrypting: what the library needs is a custom data type and its conversion.
+You can use another way of encrypting: what the library needs is a type of yours and its conversion.
 
 ## Encrypted ID
 
-Create a custom data type and define its conversion, using a type adapter or extending the default type adapter. Here the connection defines the rules for a type called `encryptedID`:
+Create a type of yours and define its conversion, using a type adapter or extending the default type adapter. Here the connection defines the rules for a type called `encryptedID`:
 
 ```typescriptreact
 import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query";
@@ -66,10 +66,10 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ```
 
-In the table, the id is a `custom` or `customComparable` column with the type name `encryptedID`, and `string`, the type of the encrypted text, as its TypeScript type:
+In the table, the id is a column of a class that extends `EqualableType` or `ComparableType`, with the type name `encryptedID`, and `string`, the type of the encrypted text, as its TypeScript type:
 
 ```typescriptreact
-import { CustomComparableType, Table } from "ts-sql-query"
+import { ComparableType, Table } from "ts-sql-query"
 
 abstract class EncryptedIdType extends ComparableType<string, 'encryptedID'> {
     static override readonly type = 'encryptedID'
@@ -126,7 +126,7 @@ The id used in the query will be sent to the database decrypted.
 
 In the previous example, the id 1 of a company and the id 1 of a customer have the same encrypted text, and one could be used in place of the other. With a prefix per table, each encrypted id says which table it belongs to: the texts are different, and `decrypt` throws an error if the prefix isn't the one of that column.
 
-Here the name of the custom data type follows the pattern `ID_<prefix>`, and the connection takes the prefix from it:
+Here the name of the type follows the pattern `ID_<prefix>`, and the connection takes the prefix from it:
 
 ```typescriptreact
 import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from "ts-sql-query";
@@ -174,10 +174,10 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ```
 
-In the table, the id is a `custom` or `customComparable` column whose type name is `ID_` followed by the prefix, and `string` as its TypeScript type:
+In the table, the id is a column of a class that extends `EqualableType` or `ComparableType`, whose type name is `ID_` followed by the prefix, and `string` as its TypeScript type:
 
 ```typescriptreact
-import { CustomComparableType, Table } from "ts-sql-query"
+import { ComparableType, Table } from "ts-sql-query"
 
 abstract class CompanyIdType extends ComparableType<string, 'ID_co'> {
     static override readonly type = 'ID_co'

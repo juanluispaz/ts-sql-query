@@ -1,16 +1,14 @@
 // A data type of the user extends the family of what its values can do, with its type name: an integer, a decimal, a
-// floating point number, a uuid or a date is sent and read as the custom data type of that family; a family that
+// floating point number, a uuid or a date is sent and read as the built-in data type of that family; a family that
 // doesn't fix how the values are kept (a number that is only added, a value compared for equality or with an order)
-// converts nothing, as a custom one. A class that doesn't say its static type is named by its class.
+// converts nothing. A class that doesn't say its static type is named by its class.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { TsSqlError } from '../../../src/TsSqlError.js'
-import {
-    CustomComparableType, CustomDecimalType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateType, CustomUuidType,
-} from '../../../src/exports/v2/index.js'
+import { DoubleType, IntType, LocalDateType, StringDecimalType, UuidType } from '../../../src/exports/v2/index.js'
 import type { DataTypeClass } from '../../../src/TypeAdapter.js'
 import { AdditiveType, IntegersType, RealsType } from '../../../src/typeSystem/numeric.js'
 import { DecimalsType } from '../../../src/typeSystem/decimals.js'
@@ -54,32 +52,40 @@ async function roundTrip(typeClass: DataTypeClass, sent: unknown, read: unknown)
 
 describe('DataTypeFamilies', () => {
     const pairs: Array<[string, DataTypeClass, DataTypeClass, unknown, unknown[]]> = [
-        ['integers', QuantityType, CustomIntType.of<number, 'Quantity'>('Quantity'), 7, [7, '7', 7n, 1.5, 'x', null]],
-        ['decimals', PriceType, CustomDecimalType.of<string, 'Price'>('Price'), '1.25', ['1.25', 1.25, 'x', null]],
-        ['reals', RatioType, CustomDoubleType.of<number, 'Ratio'>('Ratio'), 0.5, [0.5, '0.5', 'x', null]],
-        ['uuids', KeyType, CustomUuidType.of<string, 'Key'>('Key'), '1d2b5e7a-1c3f-4b6a-8d9e-0f1a2b3c4d5e', ['1D2B5E7A-1C3F-4B6A-8D9E-0F1A2B3C4D5E', 5, null]],
-        ['dates', DayType, CustomLocalDateType.of<Date, 'Day'>('Day'), new Date(Date.UTC(2024, 0, 2)), ['2024-01-02', new Date(Date.UTC(2024, 0, 2)), 'x', null]],
-        ['equalable', TagType, CustomEqualableType.of<string, 'Tag'>('Tag'), 'a', ['a', 5, null]],
-        ['comparable', VersionType, CustomComparableType.of<string, 'Version'>('Version'), '1.0', ['1.0', 5, null]],
+        ['integers', QuantityType, IntType, 7, [7, '7', 7n, 1.5, 'x', null]],
+        ['decimals', PriceType, StringDecimalType, '1.25', ['1.25', 1.25, 'x', null]],
+        ['reals', RatioType, DoubleType, 0.5, [0.5, '0.5', 'x', null]],
+        ['uuids', KeyType, UuidType, '1d2b5e7a-1c3f-4b6a-8d9e-0f1a2b3c4d5e', ['1D2B5E7A-1C3F-4B6A-8D9E-0F1A2B3C4D5E', 5, null]],
+        ['dates', DayType, LocalDateType, new Date(Date.UTC(2024, 0, 2)), ['2024-01-02', new Date(Date.UTC(2024, 0, 2)), 'x', null]],
     ]
 
-    for (const [label, familyClass, customClass, sent, reads] of pairs) {
-        test('a-data-type-of-the-' + label + '-family-is-sent-and-read-as-its-custom-data-type', async () => {
-            expect(familyClass.sqlDataType).toBe(customClass.sqlDataType)
+    for (const [label, familyClass, builtInClass, sent, reads] of pairs) {
+        test('a-data-type-of-the-' + label + '-family-is-sent-and-read-as-its-built-in-data-type', async () => {
+            expect(familyClass.sqlDataType).toBe(builtInClass.sqlDataType)
             for (const read of reads) {
-                const result = await roundTrip(familyClass, sent, read)
-                expect((result as { value: unknown }).value).not.toBe('INVALID_MOCKED_VALUE')
-                expect(result).toEqual(await roundTrip(customClass, sent, read))
+                const result = await roundTrip(familyClass, sent, read) as { params: unknown[], value: unknown }
+                const builtIn = await roundTrip(builtInClass, sent, read) as { params: unknown[], value: unknown }
+                expect(result.value).not.toBe('INVALID_MOCKED_VALUE')
+                expect([result.params, result.value]).toEqual([builtIn.params, builtIn.value])
             }
         })
     }
 
-    test('an-additive-data-type-converts-nothing-and-has-no-sql-data-type', async () => {
-        expect(CashType.sqlDataType).toBeUndefined()
-        for (const read of [5, '5', 'x', null]) {
-            expect(await roundTrip(CashType, 5, read)).toEqual(await roundTrip(CustomEqualableType.of<number, 'Cash'>('Cash'), 5, read))
-        }
-    })
+    const unconverted: Array<[string, DataTypeClass, unknown]> = [
+        ['additive', CashType, 5],
+        ['equalable', TagType, 'a'],
+        ['comparable', VersionType, '1.0'],
+    ]
+
+    for (const [label, familyClass, sent] of unconverted) {
+        test('a-data-type-of-the-' + label + '-family-converts-nothing-and-has-no-sql-data-type', async () => {
+            expect(familyClass.sqlDataType).toBeUndefined()
+            for (const read of [5, '5', 'x']) {
+                const result = await roundTrip(familyClass, sent, read) as { params: unknown[], value: unknown }
+                expect([result.params, result.value]).toEqual([[sent], { value: read }])
+            }
+        })
+    }
 
     test('the-type-requested-of-a-value-is-the-class-of-the-user', async () => {
         rowsToReturn = []

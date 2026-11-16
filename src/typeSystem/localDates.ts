@@ -121,17 +121,14 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
 /** A date without a zone, a JavaScript Date */
 export abstract class LocalDateType extends LocalDatesType<Date, 'localDate'> {
     static override readonly type = 'localDate'
-    static override readonly customType = undefined
 }
 
 /** A time of the day without a zone, a JavaScript Date */
 export abstract class LocalTimeType extends LocalTimesType<Date, 'localTime'> {
     static override readonly type = 'localTime'
-    static override readonly customType = undefined
 }
 
 /** A date and a time of the day without a zone, a JavaScript Date */
 export abstract class LocalDateTimeType extends LocalDateTimesType<Date, 'localDateTime'> {
     static override readonly type = 'localDateTime'
-    static override readonly customType = undefined
 }

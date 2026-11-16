@@ -21,7 +21,7 @@
  *
  * - Every function but uuid() is deterministic: the same arguments give the same result. They are registered as
  *   deterministic, which SQLite requires to use a function in an index on an expression, a partial index or a generated
- *   column (an index on tsq_decimal_key(column) serves the comparisons of a customDecimal). uuid() isn't: each call
+ *   column (an index on tsq_decimal_key(column) serves the comparisons of an exact decimal). uuid() isn't: each call
  *   gives a new value.
  * - None is registered as direct only (SQLITE_DIRECTONLY): that flag forbids a function in views, triggers, CHECK
  *   constraints, defaults and indexes, which is where a user may want these.

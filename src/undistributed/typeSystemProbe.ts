@@ -8,11 +8,9 @@ import type { FragmentExpression } from '../typeSystem/fragments.js'
 import type { AlwaysIfValueSource, BooleanType, IfValueSource } from '../typeSystem/logical.js'
 import type { DoubleType, IntType, NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
-import type { CustomDoubleType, CustomIntType } from '../typeSystem/customNumber.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
-import type { CustomDecimalType } from '../typeSystem/customDecimals.js'
-import { CustomDecimalType as CustomDecimalTypeClass } from '../typeSystem/customDecimals.js'
-import { CustomIntType as CustomIntTypeClass } from '../typeSystem/customNumber.js'
+import type { DecimalsType } from '../typeSystem/decimals.js'
+import type { IntegersType, RealsType } from '../typeSystem/numeric.js'
 import { IntType as IntTypeClass, NumberType as NumberTypeClass } from '../typeSystem/number.js'
 import { IfType as IfTypeClass } from '../typeSystem/logical.js'
 import type { typeName } from '../utils/symbols.js'
@@ -25,9 +23,12 @@ import type { Column } from '../utils/Column.js'
 import type { OptionalOf, SourceOf, TypeOf } from '../typeSystem/base.js'
 import { PostgreSqlConnection } from '../connections/PostgreSqlConnection.js'
 import type { StringType } from '../typeSystem/strings.js'
-import type { UuidType } from '../typeSystem/uuids.js'
+import { UuidsType as UuidsTypeClass, type UuidType } from '../typeSystem/uuids.js'
+import type { ComparableFilter, DynamicCondition, EqualableFilter, NumberFilter, UuidsFilter } from '../expressions/dynamicConditionUsingFilters.js'
+import type { DynamicConditionForModel } from '../dynamic/condition.js'
+import type { DynamicCondition as DynamicConditionOfVersion1 } from '../exports/v1/expressions/dynamicConditionUsingFilters.js'
 import type { LocalDateTimeType, LocalDateType } from '../typeSystem/localDates.js'
-import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
+import type { EqualableType } from '../typeSystem/equalable.js'
 import type { EnumType } from '../typeSystem/enum.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
@@ -41,10 +42,10 @@ type Other = number & { readonly __other: unique symbol }
 declare const anInt: ValueSource<'s1/', IntType, 'required'>
 declare const aDouble: ValueSource<'s2/', DoubleType, 'optional'>
 declare const aString: ValueSource<'s1/', StringType, 'required'>
-declare const aMoney: ValueSource<'s1/', CustomIntType<Money, 'Money'>, 'required'>
-declare const otherMoney: ValueSource<'s2/', CustomIntType<Money, 'Money'>, 'optional'>
-declare const anOther: ValueSource<'s1/', CustomIntType<Other, 'Other'>, 'required'>
-declare const intNamedMoney: ValueSource<'s1/', CustomIntType<number, 'int'>, 'required'>
+declare const aMoney: ValueSource<'s1/', IntegersType<Money, 'Money'>, 'required'>
+declare const otherMoney: ValueSource<'s2/', IntegersType<Money, 'Money'>, 'optional'>
+declare const anOther: ValueSource<'s1/', IntegersType<Other, 'Other'>, 'required'>
+declare const intNamedMoney: ValueSource<'s1/', IntegersType<number, 'int'>, 'required'>
 declare const aBoolean: ValueSource<'s1/', BooleanType, 'required'>
 declare const anIf: IfValueSource<'s2/', 'optional'>
 declare const anAlwaysIf: AlwaysIfValueSource<'s1/', 'required'>
@@ -57,13 +58,13 @@ assertType<Equal<typeof intEqualsNumber, ValueSource<'s1/', BooleanType, 'requir
 aDouble.lessThan(anInt)
 // @ts-expect-error a string is not a number
 anInt.equals(aString)
-// @ts-expect-error a custom int is not an int
+// @ts-expect-error an integer of the user is not an int
 anInt.equals(aMoney)
-// @ts-expect-error an int is not a custom int
+// @ts-expect-error an int is not an integer of the user
 aMoney.equals(anInt)
 // @ts-expect-error another type name
 aMoney.equals(anOther)
-// @ts-expect-error a custom int named like a built-in type is not that type
+// @ts-expect-error an integer of the user named like a built-in type is not that type
 anInt.equals(intNamedMoney)
 const moneyEqualsMoney = aMoney.equals(otherMoney)
 assertType<Equal<typeof moneyEqualsMoney, ValueSource<'s1/' | 's2/', BooleanType, 'optional'>>>()
@@ -75,7 +76,7 @@ assertType<Equal<typeof optionalInt, ValueSource<'s1/', IntType, 'optional'>>>()
 const doubleIsNull = aDouble.isNull()
 assertType<Equal<typeof doubleIsNull, ValueSource<'s2/', BooleanType, 'required'>>>()
 const optionalMoney = aMoney.asOptional()
-assertType<Equal<typeof optionalMoney, ValueSource<'s1/', CustomIntType<Money, 'Money'>, 'optional'>>>()
+assertType<Equal<typeof optionalMoney, ValueSource<'s1/', IntegersType<Money, 'Money'>, 'optional'>>>()
 const intEqualsIfValue = anInt.equalsIfValue(null)
 assertType<Equal<typeof intEqualsIfValue, IfValueSource<'s1/', 'required'>>>()
 const coalesced = aDouble.valueWhenNull(anInt)
@@ -100,17 +101,19 @@ assertType<ConditionIsNotAValueSource>()
 type BooleanIsAValueSource = typeof aBoolean extends TypedValueSource<any, any, any> ? true : false
 assertType<BooleanIsAValueSource>()
 
-// A custom data type made by the static function of its family
-const MoneyType = CustomIntTypeClass.of<Money, 'Money'>('Money')
-assertType<Equal<typeof MoneyType.prototype, CustomIntType<Money, 'Money'>>>()
+// A data type of the user: a class that extends its family with its type name
+abstract class MoneyType extends IntegersTypeClass<Money, 'Money'> {
+    static override readonly type = 'Money'
+}
+assertType<Equal<typeof MoneyType.type, 'Money'>>()
 
 // The numbers: an operation of an int with a double gives a double; with a number given as a value, TypeScript can't
 // know which one it is, so it is the number in general
 declare const aBigint: ValueSource<'s1/', BigintType, 'required'>
-declare const aDecimal: ValueSource<'s1/', CustomDecimalType<string, 'Price'>, 'required'>
-declare const otherDecimal: ValueSource<'s2/', CustomDecimalType<string, 'Price'>, 'optional'>
+declare const aDecimal: ValueSource<'s1/', DecimalsType<string, 'Price'>, 'required'>
+declare const otherDecimal: ValueSource<'s2/', DecimalsType<string, 'Price'>, 'optional'>
 declare const aStringDecimal: ValueSource<'s1/', StringDecimalType, 'required'>
-declare const aCustomDouble: ValueSource<'s1/', CustomDoubleType<number, 'Ratio'>, 'required'>
+declare const aCustomDouble: ValueSource<'s1/', RealsType<number, 'Ratio'>, 'required'>
 declare const aNumber: ValueSource<'s2/', NumberType, 'required'>
 
 const intPlusInt = anInt.add(anInt)
@@ -142,7 +145,7 @@ assertType<Equal<typeof intWhenNullInt, ValueSource<'s1/', IntType, 'required'>>
 const stringWhenNull = aString.valueWhenNull('')
 assertType<Equal<typeof stringWhenNull, ValueSource<'s1/', StringType, 'required'>>>()
 const moneyWhenNull = aMoney.valueWhenNull(otherMoney)
-assertType<Equal<typeof moneyWhenNull, ValueSource<'s1/' | 's2/', CustomIntType<Money, 'Money'>, 'optional'>>>()
+assertType<Equal<typeof moneyWhenNull, ValueSource<'s1/' | 's2/', IntegersType<Money, 'Money'>, 'optional'>>>()
 
 // The other numbers work only with themselves
 const bigintPlusBigint = aBigint.add(aBigint)
@@ -156,27 +159,25 @@ aBigint.divide(aBigint)
 const bigintSign = aBigint.sign()
 assertType<Equal<typeof bigintSign, ValueSource<'s1/', IntType, 'required'>>>()
 const moneyTimesMoney = aMoney.multiply(otherMoney)
-assertType<Equal<typeof moneyTimesMoney, ValueSource<'s1/' | 's2/', CustomIntType<Money, 'Money'>, 'optional'>>>()
-// @ts-expect-error a custom int has no sqrt
+assertType<Equal<typeof moneyTimesMoney, ValueSource<'s1/' | 's2/', IntegersType<Money, 'Money'>, 'optional'>>>()
+// @ts-expect-error an integer of the user has no sqrt
 aMoney.sqrt()
 const decimalExp = aDecimal.exp()
 assertType<Equal<typeof decimalExp, ValueSource<'s1/', DoubleType, 'required'>>>()
 const decimalRoundn = aDecimal.roundn(anInt)
-assertType<Equal<typeof decimalRoundn, ValueSource<'s1/', CustomDecimalType<string, 'Price'>, 'required'>>>()
+assertType<Equal<typeof decimalRoundn, ValueSource<'s1/', DecimalsType<string, 'Price'>, 'required'>>>()
 const decimalPower = aStringDecimal.power(aDouble)
 assertType<Equal<typeof decimalPower, ValueSource<'s1/' | 's2/', DoubleType, 'optional'>>>()
 const decimalPlusDecimal = aDecimal.add(otherDecimal)
-assertType<Equal<typeof decimalPlusDecimal, ValueSource<'s1/' | 's2/', CustomDecimalType<string, 'Price'>, 'optional'>>>()
+assertType<Equal<typeof decimalPlusDecimal, ValueSource<'s1/' | 's2/', DecimalsType<string, 'Price'>, 'optional'>>>()
 // @ts-expect-error a decimal of the user is not a string decimal
 aDecimal.add(aStringDecimal)
 // @ts-expect-error a decimal is not an int
 aStringDecimal.add(anInt)
 const ratioRoundn = aCustomDouble.roundn(anInt)
-assertType<Equal<typeof ratioRoundn, ValueSource<'s1/', CustomDoubleType<number, 'Ratio'>, 'required'>>>()
+assertType<Equal<typeof ratioRoundn, ValueSource<'s1/', RealsType<number, 'Ratio'>, 'required'>>>()
 const ratioSqrt = aCustomDouble.sqrt()
-assertType<Equal<typeof ratioSqrt, ValueSource<'s1/', CustomDoubleType<number, 'Ratio'>, 'required'>>>()
-const PriceType = CustomDecimalTypeClass.of<string, 'Price'>('Price')
-assertType<Equal<typeof PriceType.prototype, CustomDecimalType<string, 'Price'>>>()
+assertType<Equal<typeof ratioSqrt, ValueSource<'s1/', RealsType<number, 'Ratio'>, 'required'>>>()
 
 // Texts
 declare const optionalString: ValueSource<'s2/', StringType, 'optional'>
@@ -210,7 +211,7 @@ aDate.lessThan(aDateTime)
 
 // The enumerations and the other types of the user
 declare const aStatus: ValueSource<'s1/', EnumType<'a' | 'b', 'Status'>, 'required'>
-declare const customStatus: ValueSource<'s1/', CustomEqualableType<'a' | 'b', 'Status'>, 'required'>
+declare const customStatus: ValueSource<'s1/', EqualableType<'a' | 'b', 'Status'>, 'required'>
 aStatus.equals('a')
 aStatus.in(['a', 'b'])
 // The NType is the type name, whatever the family: two data types of the same type name are one for TypeScript (an
@@ -228,7 +229,7 @@ assertType<Equal<typeof asNullable, ValueSource<'s1/', AggregatedArrayType<{ a: 
 
 // Another source for a value source (a column of an alias, of a with, ...)
 assertType<Equal<RemapValueSourceType<'x/', typeof anInt>, ValueSource<'x/', IntType, 'required'>>>()
-assertType<Equal<RemapValueSourceTypeWithOptionalType<'x/', typeof aMoney, 'optional'>, ValueSource<'x/', CustomIntType<Money, 'Money'>, 'optional'>>>()
+assertType<Equal<RemapValueSourceTypeWithOptionalType<'x/', typeof aMoney, 'optional'>, ValueSource<'x/', IntegersType<Money, 'Money'>, 'optional'>>>()
 const intInput: RemapIValueSourceType<'s2/', typeof anInt> = aDouble.asRequiredInOptionalObject() as unknown as ValueSource<'s2/', DoubleType, 'required'>
 void intInput
 // @ts-expect-error a text is not what an int position accepts
@@ -237,7 +238,7 @@ void notAnIntInput
 
 // The arguments of a fragment
 type IntArg = Argument<IntType, 'required', 'combined'>
-type OptionalMoneyArg = Argument<CustomIntType<Money, 'Money'>, 'optional', 'combined'>
+type OptionalMoneyArg = Argument<IntegersType<Money, 'Money'>, 'optional', 'combined'>
 type ValueArg = Argument<StringType, 'required', 'value'>
 assertType<Equal<TypeOfArgument<IntArg>, number>>()
 assertType<Equal<TypeOfArgument<OptionalMoneyArg>, Money | null | undefined>>()
@@ -281,7 +282,7 @@ if (NumberTypeClass.is(intOrString)) {
     assertType<Equal<typeof intOrString, ValueSource<'s1/', IntType, 'required'>>>()
 }
 if (MoneyType.is(aMoney)) {
-    assertType<Equal<typeof aMoney, ValueSource<'s1/', CustomIntType<Money, 'Money'>, 'required'>>>()
+    assertType<Equal<typeof aMoney, ValueSource<'s1/', IntegersType<Money, 'Money'>, 'required'>>>()
 }
 declare const anything: unknown
 // A value that may not be a value source: instanceof, which gives only the class
@@ -305,29 +306,29 @@ class ProbeTable extends Table<ProbeConnection, 'ProbeTable'> {
     builtInByName = this.optionalColumn('id', 'int')
     // @ts-expect-error a class that groups data types has no type of its own
     group = this.column('id', NumberTypeClass)
-    // @ts-expect-error the family of a custom data type has no type name
-    family = this.column('id', CustomIntTypeClass)
+    // @ts-expect-error a family has no type name
+    family = this.column('id', IntegersTypeClass)
     constructor() {
         super('probe_table')
     }
 }
 declare const probeTable: ProbeTable
 assertType<Equal<SourceOf<typeof probeTable.byClass>, SourceOf<typeof probeTable.builtInByName>>>()
-assertType<Equal<TypeOf<typeof probeTable.byClass>, CustomIntType<Money, 'Money'>>>()
+assertType<Equal<TypeOf<typeof probeTable.byClass>, MoneyType>>()
 assertType<Equal<OptionalOf<typeof probeTable.byClass>, 'required'>>()
 assertType<typeof probeTable.byClass extends Column ? true : false>()
 assertType<Equal<typeof probeTable.builtInByClass, typeof probeTable.builtInByName>>()
 const moneyConst = probeConnection.const(5 as Money, MoneyType)
 const intConst = probeConnection.const(5, 'int')
 assertType<Equal<SourceOf<typeof moneyConst>, SourceOf<typeof intConst>>>()
-assertType<Equal<TypeOf<typeof moneyConst>, CustomIntType<Money, 'Money'>>>()
+assertType<Equal<TypeOf<typeof moneyConst>, MoneyType>>()
 // @ts-expect-error the value of a constant is of the type of its data type
 probeConnection.const(5, MoneyType)
-assertType<Equal<typeof probeConnection.moneyArg, Argument<CustomIntType<Money, 'Money'>, 'optional', 'combined'>>>()
+assertType<Equal<typeof probeConnection.moneyArg, Argument<IntegersType<Money, 'Money'>, 'optional', 'combined'>>>()
 
 // The conversions of the values of a data type: statics of its class, with the names and parameters of a type
 // adapter; a class of the user overrides the ones it needs, and a signature of another shape is rejected
-abstract class ProbeConvertedIntType extends CustomIntTypeClass<number, 'ProbeConverted'> {
+abstract class ProbeConvertedIntType extends IntegersTypeClass<number, 'ProbeConverted'> {
     static override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         return next.transformValueFromDB(value, context)
     }
@@ -339,7 +340,7 @@ abstract class ProbeConvertedIntType extends CustomIntTypeClass<number, 'ProbeCo
 assertType<Equal<typeof ProbeConvertedIntType.transformValueToDB, (value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter) => unknown>>()
 assertType<Equal<typeof ProbeConvertedIntType.transformPlaceholder, (placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter) => string>>()
 // @ts-expect-error a placeholder is a text
-abstract class ProbeWrongConversionType extends CustomIntTypeClass<number, 'ProbeConverted'> {
+abstract class ProbeWrongConversionType extends IntegersTypeClass<number, 'ProbeConverted'> {
     static override transformPlaceholder(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): number {
         return next.transformPlaceholder(placeholder, context).length
     }
@@ -371,7 +372,7 @@ class FamiliesTable extends Table<ProbeConnection, 'FamiliesTable'> {
     unnamed = this.column('unnamed', UnnamedType)
     // @ts-expect-error a family has no type name of its own
     family = this.column('family', AdditiveTypeClass)
-    // @ts-expect-error nor a family of a custom data type
+    // @ts-expect-error nor a family
     customFamily = this.column('family', IntegersTypeClass)
     constructor() {
         super('families')
@@ -430,3 +431,22 @@ assertType<Equal<TypeOf<typeof ratioAverage>, DoubleType>>()
 probeConnection.sum(families.tag)
 // @ts-expect-error nor a value with an order
 probeConnection.sum(families.version)
+
+// A dynamic condition declares a column by the name of a built-in data type or by its data type, and gets the filter of
+// its family; a data type is not taken for a nested definition, and the tuples of version 1 are only in its path
+type ProbeFilter = DynamicCondition<{ id: 'int', total: MoneyType, tag: TagType, ref: ProbeRefType, nested: { version: VersionType } }>
+assertType<Equal<NonNullable<ProbeFilter['id']>, NumberFilter>>()
+assertType<Equal<NonNullable<ProbeFilter['total']>, ComparableFilter<Money>>>()
+assertType<Equal<NonNullable<ProbeFilter['tag']>, EqualableFilter<string>>>()
+assertType<Equal<NonNullable<ProbeFilter['ref']>, UuidsFilter<string>>>()
+assertType<Equal<NonNullable<NonNullable<ProbeFilter['nested']>['version']>, ComparableFilter<string>>>()
+abstract class ProbeRefType extends UuidsTypeClass<string, 'ProbeRef'> { static override readonly type = 'ProbeRef' }
+// @ts-expect-error a tuple of version 1 is not a column of a definition
+type ProbeFilterWithTuple = DynamicCondition<{ total: ['customInt', Money] }>
+type ProbeFilterOfVersion1 = DynamicConditionOfVersion1<{ total: ['customInt', Money], state: ['enum', 'a' | 'b'], nested: { at: ['customLocalDate', Date] } }>
+assertType<Equal<NonNullable<ProbeFilterOfVersion1['total']>, ComparableFilter<Money>>>()
+assertType<Equal<NonNullable<ProbeFilterOfVersion1['state']>, EqualableFilter<'a' | 'b'>>>()
+assertType<Equal<NonNullable<NonNullable<ProbeFilterOfVersion1['nested']>['at']>, ComparableFilter<Date>>>()
+type ProbeModelFilter = DynamicConditionForModel<{ total: Money, state: 'a' | 'b' }>
+assertType<Equal<NonNullable<ProbeModelFilter['total']>, ComparableFilter<Money>>>()
+assertType<Equal<NonNullable<ProbeModelFilter['state']>, EqualableFilter<'a' | 'b'>>>()

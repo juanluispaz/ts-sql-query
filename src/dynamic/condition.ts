@@ -1,5 +1,7 @@
 import type { TerminalValueObject, NonValueObject } from '../utils/objectUtils.js'
 import type { DynamicCondition, DynamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
+import type { ComparableType } from '../typeSystem/comparable.js'
+import type { EnumType } from '../typeSystem/enum.js'
 
 export type { DynamicCondition }
 export type {
@@ -10,19 +12,12 @@ export type {
     BooleanFilter,
     NumberFilter,
     BigintFilter,
-    CustomIntFilter,
-    CustomBigintFilter,
-    CustomDoubleFilter,
-    CustomDecimalFilter,
     StringDecimalFilter,
     StringFilter,
     DateFilter,
     TimeFilter,
     DateTimeFilter,
-    CustomLocalDateFilter,
-    CustomLocalTimeFilter,
-    CustomLocalDateTimeFilter,
-    CustomUuidFilter
+    UuidsFilter
 } from '../expressions/dynamicConditionUsingFilters.js'
 
 /*
@@ -31,14 +26,14 @@ export type {
  *
  * `DynamicDefinitionForModel<MODEL>` maps a plain business interface to the descriptor
  * map that `DynamicCondition` already understands (`number` → `'int'`, `string` →
- * `'string'`, a string/number literal union → `['enum', …]`, `Date` → date filter, a
+ * `'string'`, a string/number literal union → `EnumType<…, string>`, `Date` → date filter, a
  * nested plain object → recurse). `DynamicConditionForModel<MODEL>` then feeds that to
  * `DynamicCondition`, so the produced filter is — by construction — the same shape
  * `dynamicConditionFor(columns).withValues(...)` expects, with no value-source type
  * leaking into the public signature.
  *
  * The type says nothing about how the column is defined. A branded string or number is
- * some custom type, and which one can't be known here: `customComparable` has the operators
+ * a type of the user, and which one can't be known here: `ComparableType` has the operators
  * that fit all of them, and it keeps the brand in the values. Non-filterable object values
  * (arrays, Map/Set, binary, …) map to `never`. For those, or for the exact filter of a
  * column, build the definition with the descriptor map directly.
@@ -50,8 +45,8 @@ type IsBrandOf<T, BASE> = [Exclude<keyof T, keyof BASE>] extends [never] ? false
 type DynamicDefinitionLeafForModel<T> =
     [T] extends [boolean] ? 'boolean' :
     [T] extends [bigint] ? 'bigint' :
-    [T] extends [number] ? ([number] extends [T] ? 'int' : IsBrandOf<T, number> extends true ? ['customComparable', T] : ['enum', T]) :
-    [T] extends [string] ? ([string] extends [T] ? 'string' : IsBrandOf<T, string> extends true ? ['customComparable', T] : ['enum', T]) :
+    [T] extends [number] ? ([number] extends [T] ? 'int' : IsBrandOf<T, number> extends true ? ComparableType<T, string> : EnumType<T, string>) :
+    [T] extends [string] ? ([string] extends [T] ? 'string' : IsBrandOf<T, string> extends true ? ComparableType<T, string> : EnumType<T, string>) :
     [T] extends [Date] ? 'localDateTime' :
     never
 

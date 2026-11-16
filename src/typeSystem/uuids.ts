@@ -25,5 +25,4 @@ export abstract class UuidsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exte
 /** A uuid, a JavaScript string */
 export abstract class UuidType extends UuidsType<string, 'uuid'> {
     static override readonly type = 'uuid'
-    static override readonly customType = undefined
 }

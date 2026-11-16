@@ -332,7 +332,7 @@ const allowedOperations: { [operation: string]: true | undefined } = {
 
 /**
  * The method of the operation of a filter, of the data type of the column: an operation the data type doesn't have is
- * rejected, also when a filter typed from a model offers it (a custom type written as a plain type in the model)
+ * rejected, also when a filter typed from a model offers it (a type of the user written as a plain type in the model)
  */
 function operationFor(valueSource: any, operation: string, column: string, key: string): (value: any) => any {
     const method = valueSource[operation]

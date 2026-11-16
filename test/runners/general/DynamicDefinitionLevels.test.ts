@@ -5,6 +5,7 @@
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { assertType, type Exact } from '../../lib/assertType.js'
 import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../src/dynamic/condition.js'
+import type { EnumType } from '../../../src/typeSystem/enum.js'
 
 type Status = 'open' | 'closed'
 interface Issue {
@@ -24,7 +25,7 @@ interface Node {
 describe('The levels of a dynamic definition', () => {
     test('a-model-within-5-levels-gives-the-same-definition', () => {
         assertType<Exact<DynamicDefinitionForModel<Issue>, {
-            id: 'int', title: 'string', status: ['enum', Status], closedAt: 'localDateTime', tags: never,
+            id: 'int', title: 'string', status: EnumType<Status, string>, closedAt: 'localDateTime', tags: never,
             project: { name: 'string', budget: 'bigint' },
         }>>()
     })

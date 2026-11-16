@@ -7,7 +7,7 @@ import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import { CustomIntType, IntType, StringType, Table } from '../../../src/exports/v2/index.js'
+import { IntegersType, IntType, StringType, Table } from '../../../src/exports/v2/index.js'
 import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../src/TypeAdapter.js'
 
 // Writes what each step of the chain does, in the order it happens; a projection only when it receives SQL (the
@@ -37,9 +37,8 @@ const asText: TypeAdapter = {
 }
 
 // An integer of the user sent and read as its text, through asText; it adds 1 to what it sends and to what it reads
-abstract class TracedType extends CustomIntType<number, 'Traced'> {
+abstract class TracedType extends IntegersType<number, 'Traced'> {
     static override readonly type = 'Traced'
-    static override readonly customType = 'customInt'
 
     static override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         steps.push('type to ' + String(value))

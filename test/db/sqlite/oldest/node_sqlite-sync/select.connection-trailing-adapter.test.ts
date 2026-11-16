@@ -451,7 +451,7 @@ describe(ctx.label, () => {
     // `double` and the adapter's `* 10` read transform is observable.
 
     test('const/custom-double-adapter-transforms-read-value', async () => {
-        // `const(2.5, CustomDoubleType.of<number, 'Money'>('Money'), doubleTimesTen)`. Raw 2.5 read
+        // `const(2.5, MoneyType, doubleTimesTen)`. Raw 2.5 read
         // back as 25 through the adapter parked in the `adapter2` slot.
         ctx.mockNext(2.5)
         const v = sync(ctx.conn.selectFromNoTable()
@@ -468,7 +468,7 @@ describe(ctx.label, () => {
     })
 
     test('optional-const/custom-double-adapter-transforms-read-value', async () => {
-        // `optionalConst(2.5, CustomDoubleType.of<number, 'Money'>('Money'), doubleTimesTen)` — same
+        // `optionalConst(2.5, MoneyType, doubleTimesTen)` — same
         // transform through the `adapter2` slot; the optional overload widens
         // the leaf to `number | null`.
         ctx.mockNext(2.5)

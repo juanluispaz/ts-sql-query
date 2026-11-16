@@ -84,8 +84,8 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     }
 
     /**
-     * How a `customDecimal` is stored, computed, compared and ordered. SQLite has no exact decimal type: a
-     * `customDecimal` lives in a `TEXT` column (of a `STRICT` table, so SQLite doesn't turn it into a floating point
+     * How an exact decimal is stored, computed, compared and ordered. SQLite has no exact decimal type: a
+     * decimal lives in a `TEXT` column (of a `STRICT` table, so SQLite doesn't turn it into a floating point
      * number). Every strategy is exact: an operation it can't do exactly is rejected when the query is built.
      *
      * - `'decimal-extension and tsq-functions'`: the functions of the `decimal` extension of SQLite (`decimal_add`,

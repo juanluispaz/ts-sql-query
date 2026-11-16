@@ -352,7 +352,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 
 | Property | What it is |
 |---|---|
-| `originalType` | The class of its original type, the one declared in the library, like `IntType` or the class of a custom type; its `type` is the name of the type, like `'int'`, and its `customType` which custom type it is, like `'customInt'`, `undefined` for a built-in type |
+| `originalType` | The class of its original type, the one declared in the library, like `IntType` or the class of a type of yours; its `type` is the name of the type, like `'int'` |
 | `requestedType` | The class of the type the parameter is sent with: the original one, unless the `transformValueToDB` of its type adapter or of the connection requested another with `setRequestedType`, like `StringType` for a date sent as its text (see [The original and the requested type](type-adapters.md#the-original-and-the-requested-type)) |
 | `forceTypeCast` | Whether the database must receive its type, because the position where it's written gives it none: the query runners of PostgreSQL then write a cast or send the parameter with its type |
 | `isValueForColumn` | Whether it's the value given to a column of a table, in the values of an insert or in the set of an update, where the column gives it its type |
@@ -373,7 +373,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
             const requestedType: DataTypeClass | undefined = param?.requestedType
             const forceTypeCast: boolean | undefined = param?.forceTypeCast
             const isValueForColumn: boolean | undefined = param?.isValueForColumn
-            console.log('parameter', index, params[index], originalType?.type, originalType?.customType, requestedType?.type, requestedType?.customType, forceTypeCast, isValueForColumn)
+            console.log('parameter', index, params[index], originalType?.type, requestedType?.type, forceTypeCast, isValueForColumn)
         }
         // Additional information
         console.log('query type', queryType)
@@ -389,7 +389,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
 
 In `select $1::int4 as i from customer where id = $2`, with the parameters `[ 7, 10 ]`, the first parameter is an `IntType`, original and requested (its `type` is `'int'`), with `forceTypeCast` `true`: a constant selected on its own. The second is an `IntType` too, with `forceTypeCast` `false`: compared with the column `id`, it takes its type from it.
 
-`isValueForColumn` is `true` for both parameters of `insert into customer (first_name, company_id) values ($1, $2)`, and `false` in a `where`, or anywhere else. The query runners of MariaDB, MySQL and SQL Server use it to leave a `stringDecimal` or a `customDecimal` without the cast they write elsewhere.
+`isValueForColumn` is `true` for both parameters of `insert into customer (first_name, company_id) values ($1, $2)`, and `false` in a `where`, or anywhere else. The query runners of MariaDB, MySQL and SQL Server use it to leave an exact decimal without the cast they write elsewhere.
 
 `getMetadata(key)` reads what a type adapter kept for the parameter with `context.setMetadata(key, value)`, in its `transformValueToDB`, under the `symbol` the adapter defines (see [Metadata of a query and its parameters](metadata.md)). The query runners of Oracle read the mark `OracleDateAsTimestampTypeAdapter` keeps to send its parameters as a `DATE`.
 
@@ -403,7 +403,7 @@ The context of each query the library builds also has the columns of its result,
 |---|---|
 | `name` | The key of the column in a row returned by the database. `''` when the SQL gives the column no alias: the count query of a select page, the id returned by `returningLastInsertedId`, the value of a function |
 | `path` | The property of the result object it fills, like `'customer.name'` for a nested object, `'result'` for a query that selects one column, `''` without one |
-| `originalType` | The class of the original type of its value, the one declared in the library, like `IntType` or the class of a custom type; its `type` is the name of the type, like `'int'`, and its `customType` which custom type it is, like `'customInt'`, `undefined` for a built-in type. For an aggregated array, whose JSON text the library converts value by value, its `type` is `'aggregatedArray'` and its `customType` `undefined` |
+| `originalType` | The class of the original type of its value, the one declared in the library, like `IntType` or the class of a type of yours; its `type` is the name of the type, like `'int'`. For an aggregated array, whose JSON text the library converts value by value, its `type` is `'aggregatedArray'` |
 | `requestedType` | The class of the type of the value the database returns for the column: the one the `transformProjection` of its type adapter or of the connection requests with `setRequestedType`, like `StringType` for the text of a date (see [The original and the requested type](type-adapters.md#the-original-and-the-requested-type)); otherwise the original one |
 
 The array is empty for a query that returns no columns: an insert, update or delete without returning, a procedure, and the statements of a transaction. `resultColumns` is `undefined` for a statement you run through the query runner yourself. `getResultColumn(name)` finds one column by its `name`.
@@ -416,7 +416,7 @@ class MetadataLoggingQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): void {
         const columns: readonly QueryResultColumn[] | undefined = getQueryContext(query, params).resultColumns
         for (const column of columns ?? []) {
-            console.log('result column', column.name, column.path, column.originalType.type, column.originalType.customType, column.requestedType.type, column.requestedType.customType)
+            console.log('result column', column.name, column.path, column.originalType.type, column.requestedType.type)
         }
         // Additional information
         console.log('query type', queryType)

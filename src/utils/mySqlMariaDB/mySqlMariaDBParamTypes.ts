@@ -6,7 +6,7 @@ import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
  * The placeholder of a parameter on MySQL and MariaDB, for every query runner of them. An exact number sent as its
- * text (a stringDecimal, a customDecimal) is sent as text, and the database computes with a text in double precision, and compares it in double precision in an `in` or
+ * text (a stringDecimal, a decimal of the user) is sent as text, and the database computes with a text in double precision, and compares it in double precision in an `in` or
  * a `between`: it is cast to a decimal with the digits of the value, except as the value of a column, whose type it
  * takes. A value beyond the widest decimal of the database (65 digits, 30 of them decimals) is rejected: the cast
  * would give 999…9 without an error, and without it the database would compute in double precision; no column can

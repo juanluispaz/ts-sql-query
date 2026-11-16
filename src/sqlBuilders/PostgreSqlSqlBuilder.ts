@@ -474,7 +474,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // resolved type, which is what lets a downstream operator resolve against an
         // untyped placeholder — `round($1) % $2` is a `double precision % unknown` on
         // PostgreSQL, an operator that does not exist. It does mean `round()` answers a
-        // numeric, which the drivers hand back as a string for a custom type carrying no
+        // numeric, which the drivers hand back as a string for a type of the user carrying no
         // marshalling of its own.
         return 'round((' + this._appendSql(valueSource, context, false) + ')::numeric)'
     }

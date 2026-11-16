@@ -340,7 +340,6 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
 /** A text, a JavaScript string */
 export abstract class StringType extends StringsType<string> {
     static override readonly type = 'string'
-    static override readonly customType = undefined
     static override readonly sqlDataType: SqlDataType = stringSqlDataType
     declare [typeName]: 'type:string:'
     declare [operandTypeName]: 'type:string:'

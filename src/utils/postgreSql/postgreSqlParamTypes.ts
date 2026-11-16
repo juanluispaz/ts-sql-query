@@ -111,8 +111,8 @@ export function isPostgreSqlZonedParam(params: any[], index: number): boolean {
  * The PostgreSQL type of a parameter of that requested type, from the SQL data type of the type (its class): a boolean
  * is a `bool`; an integer of 4 bytes or less an `int4`, of 8 an `int8`, any other exact number a `numeric`; a floating
  * point number a `float8`; a text a `text`; a uuid a `uuid`; a date, a time and a timestamp a `date`, a `time` and a
- * `timestamp` (a `timestamptz` when zoned). A type without a SQL data type (an `enum`, a `custom`, a
- * `customComparable`) or a value without type gets the type of the JS value sent: a bigint is an `int8`, an integer
+ * `timestamp` (a `timestamptz` when zoned). A type without a SQL data type (an `enum`, an `EqualableType` or a
+ * `ComparableType` of the user) or a value without type gets the type of the JS value sent: a bigint is an `int8`, an integer
  * number an `int4` or an `int8` by its range, any other number a `float8`. Undefined when there is none, like for a
  * text or a null of those types.
  */

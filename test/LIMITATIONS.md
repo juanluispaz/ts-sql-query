@@ -271,8 +271,8 @@ threading the type into `addParam`, which is a **public-interface change**
 — `QueryRunner` is the seam users override, every runner in `src/` plus the
 wrappers (`ConsoleLog` / `Interceptor` / `Mock` / `Chained`) and any
 user-authored runner implement it. The type is already in scope at the
-call site (`AbstractSqlBuilder._appendParam`, which receives `type` and
-`customType`), and the params array already carries bind descriptors
+call site (`AbstractSqlBuilder._appendParam`, which receives the class of
+the data type), and the params array already carries bind descriptors
 (`addOutParam` pushes `{ dir: BIND_OUT, as }`), so the shape fits — but it
 is a refactor of its own, out of scope for test work. Until then the
 library deliberately does not declare bind types.
@@ -287,10 +287,10 @@ declares the bind — the same mechanism `SqlServerSqlBuilder._appendParam` alre
 uses for **IN** params (`params['@'+N]` → `MssqlPoolQueryRunner.getType`). So the
 reason this stayed a limitation no longer holds. A future refactor can close it
 by registering each IN param's type in `OracleSqlBuilder._appendParam` (where
-`type` and `customType` are in scope; `_appendParam` is already overridden there for the
+the class of the data type is in scope; `_appendParam` is already overridden there for the
 `uuid_to_raw` wrap) and, in the runner's three `connection.execute` paths,
 wrapping each IN value as `{ val, type, dir: BIND_IN }` — with the oracledb type
-decided from the type and custom type of the param, as `MssqlPoolQueryRunner.getType`
+decided from the class of the data type of the param, as `MssqlPoolQueryRunner.getType`
 does, and its `inferType` fallback. That lets `stmtCacheSize` be restored to the driver default
 and closes this entry. Deferred by choice, not blocked.
 

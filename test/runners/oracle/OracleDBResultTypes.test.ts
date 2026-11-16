@@ -1,5 +1,5 @@
 // OracleDBQueryRunner reads the expected type of each result column on the params: a column expected as a
-// customDecimal or a bigint is fetched as text, with every digit, where oracledb would give a JavaScript number. The
+// exact decimal or a bigint is fetched as text, with every digit, where oracledb would give a JavaScript number. The
 // fetch type handler of the runner answers for every column, so the global settings of oracledb of the application
 // (oracledb.fetchTypeHandler, fetchAsString, fetchAsBuffer, maxRows) don't change what the library receives; a DATE or
 // a TIMESTAMP is the Date whose UTC getters are its digits, a CLOB is text.

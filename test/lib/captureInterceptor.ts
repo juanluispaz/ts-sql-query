@@ -33,7 +33,7 @@ function checkParamTypes(query: string, params: unknown[]): void {
     for (let index = 0; index < params.length; index++) {
         const param = getQueryContext(query, params as any[]).getParam(index)
         if (!param || !isKnownType(param.originalType) || !isKnownType(param.requestedType) || typeof param.forceTypeCast !== 'boolean') {
-            throw new Error('The parameter ' + index + ' of the query has no type (original: ' + String(param?.originalType?.type) + ' ' + String(param?.originalType?.customType) + ', requested: ' + String(param?.requestedType?.type) + ' ' + String(param?.requestedType?.customType) + ', forceTypeCast: ' + String(param?.forceTypeCast) + '): ' + query)
+            throw new Error('The parameter ' + index + ' of the query has no type (original: ' + String(param?.originalType?.type) + ', requested: ' + String(param?.requestedType?.type) + ', forceTypeCast: ' + String(param?.forceTypeCast) + '): ' + query)
         }
     }
 }

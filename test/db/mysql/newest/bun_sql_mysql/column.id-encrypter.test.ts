@@ -84,7 +84,7 @@ const tEncIssue = new class TEncIssue extends Table<DBConnection, 'TEncIssue'> {
 // The sequence of the ids of the issues, whose values are encrypted ids (no
 // sequences here: used only by the test commented out below)
 // class EncryptedIdSequenceConnection extends EncryptedIdConnection {
-//     encryptedIssueIdSeq = this.sequence('issue_id_seq', CustomComparableType.of<string, 'encryptedID'>('encryptedID'))
+//     encryptedIssueIdSeq = this.sequence('issue_id_seq', EncryptedIDType)
 // }
 
 describe(ctx.label, () => {

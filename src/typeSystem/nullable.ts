@@ -50,7 +50,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         // engine resolves to the wider `double`, so a NULL int row legitimately returns the
         // double's fraction. Without vs promotion the result is still declared `int` and
         // the marshaller's int arm rejects that valid value (INVALID_VALUE_RECEIVED_FROM_DATABASE).
-        // Only a plain `int` receiver needs widening — a double/bigint/customInt/customBigint/customDouble
+        // Only a plain `int` receiver needs widening — a double, a bigint or a number of the user
         // receiver already carries the wider-or-matching type, and the compile-time signature
         // only admits a same-`typeName` operand.
         //

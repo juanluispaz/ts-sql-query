@@ -8,7 +8,7 @@ export type SqliteDateTimeFormat = 'localdate seconds as text' | 'localdate mill
 
 export type SqliteDateTimeFormatType = 'date' | 'time' | 'dateTime'
 
-/** How a customDecimal is stored, computed, compared and ordered on SQLite (`decimalStrategy` of `SqliteConnection`) */
+/** How an exact decimal is stored, computed, compared and ordered on SQLite (`decimalStrategy` of `SqliteConnection`) */
 export type SqliteDecimalStrategy = 'text' | 'canonical text'
     | 'decimal-functions' | 'decimal-functions with canonical text'
     | 'decimal-extension and tsq-functions' | 'decimal-extension and tsq-functions with canonical text'

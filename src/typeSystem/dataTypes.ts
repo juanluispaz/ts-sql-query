@@ -10,7 +10,7 @@ export function __valueSourceTypeNameOf(valueSource: object): string {
 
 /**
  * The SQL data type a data type gives its values: the `sqlDataType` of its class; undefined for one whose values only
- * the user knows (an enum, a custom one)
+ * the user knows (an enum, a type of the user that only it knows)
  */
 export function __typeSqlDataTypeOf(typeClass: DataTypeClass | undefined): SqlDataType | undefined {
     return typeClass?.sqlDataType
@@ -20,7 +20,7 @@ export function __typeSqlDataTypeOf(typeClass: DataTypeClass | undefined): SqlDa
  * Whether a SQL data type declared for a value (the one of its column, or one requested for it) describes a value of
  * that requested type, comparing it with the SQL data type of the type: the same family, for a boolean, a uuid, a date,
  * a time and a timestamp (by its fields); any number or a money, for a number; any family but a number, a boolean, a
- * date or a time, and a binary, for a text; any, for a type without one (an enum, a custom one). One that doesn't is
+ * date or a time, and a binary, for a text; any, for a type without one (an enum, a type of the user that only it knows). One that doesn't is
  * how the database keeps a value it emulates (the char(36) of a uuid, the NUMBER(1) of a boolean), or the one of a
  * value sent as another type: it says nothing of the value sent
  */
@@ -55,7 +55,7 @@ export function __temporalFieldsOf(typeClass: DataTypeClass | undefined): 'date'
     return sqlDataType.fields
 }
 
-/** The family of the SQL data type of a data type (its class); undefined for one without it (an enum, a custom one) */
+/** The family of the SQL data type of a data type (its class); undefined for one without it (an enum, a type of the user that only it knows) */
 export function __sqlFamilyOf(typeClass: DataTypeClass | undefined): SqlDataType['family'] | undefined {
     return typeClass?.sqlDataType?.family
 }

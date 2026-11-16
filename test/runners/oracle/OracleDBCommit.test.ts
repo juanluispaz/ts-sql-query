@@ -96,7 +96,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
             expect(Number(await r.executeQuery('selectOneColumnOneRow', 'select 1 from dual', []))).toBe(1)
             await r.executeQuery('insert', 'insert into rt_commit (id) values (312)', [])
             const params: any[] = []
-            const out = addOutParam(r, params, 'id', 'int', undefined, false)
+            const out = addOutParam(r, params, 'id', 'int', false)
             expect(Number(await r.executeQuery('insertReturningLastInsertedId', `insert into rt_commit (id) values (313) returning id into ${out}`, params))).toBe(313)
             expect(await r.executeQuery('update', 'update rt_commit set id = 314 where id = 313', [])).toBe(1)
             expect(await r.executeQuery('delete', 'delete from rt_commit where id = 312', [])).toBe(1)

@@ -10,6 +10,8 @@ To learn how values are used in a query, see [Basic query structure](../queries/
 
 All values managed by the database are represented as a subclass of `ValueSource`, almost all methods listed here support the TypeScript value and the database value (as overload).
 
+A value of a [type of yours](../configuration/data-types.md#your-own-types) has the methods of the family its class extends: `EqualableValueSource` for `EqualableType` and `EnumType`, `ComparableValueSource` for `ComparableType`, and, below, `AdditiveValueSource` and the other numbers, `UuidsValueSource` and the dates. It works only with values of its own type.
+
 Methods ending in `IfValue` behave like their counterparts without `IfValue`, but only apply the logic if the provided value is not `undefined`, `null`, an empty string (unless `allowEmptyString` is enabled in the connection), or an empty array. Otherwise, the condition is ignored. See [What counts as no value](../queries/dynamic-queries.md#what-counts-as-no-value).
 
 In the database, when null is part of an operation, the result of the operation is null. The definitions below don't show the optionality of each result, but the types of the library do: the result is optional when any operand is optional, except where a comment says something else.
@@ -17,7 +19,7 @@ In the database, when null is part of an operation, the result of the operation 
 All data manipulation operations are methods on the value itself. For example, the absolute value in SQL is `abs(value)`, and in `ts-sql-query` it is `value.abs()`.
 
 ```typescript
-interface ValueSource<T, TYPE_NAME extends string> {
+interface ValueSource<T, TYPE_NAME extends string = string> {
     isConstValue(): boolean
     /**
      * It returns the proper type of the value, instead of the any type included here to simplify
@@ -370,9 +372,10 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDat
 
 ```typescript
 /**
- * Represents a custom int
+ * Represents a number of a type of yours that extends `AdditiveType`, like an amount of money: it is added and
+ * subtracted with values of its own type. The value sources of the families below have these methods too
  */
-interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+interface AdditiveValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     sign(): NumberValueSource
     /**
@@ -385,91 +388,44 @@ interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableVa
     maxValue(value: T | this): this
     add(value: T | this): this
     subtract(value: T | this): this
+    modulo(value: T | this): this
+}
+```
+
+```typescript
+/**
+ * Represents a number of a type of yours that extends `MultipliableType`: it is also multiplied
+ */
+interface MultipliableValueSource<T, TYPE_NAME extends string> extends AdditiveValueSource<T, TYPE_NAME> {
     multiply(value: T | this): this
-    modulo(value: T | this): this
 }
 ```
 
 ```typescript
 /**
- * Represents a custom bigint
+ * Represents an integer of a type of yours that extends `IntegersType`, sent to and received from the database as an
+ * int, or as a bigint when its SQL data type doesn't fit in a number
  */
-interface CustomBigintValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    abs(): this
-    sign(): NumberValueSource
-    /**
-     * This function establishes a minimum value for the current value, that means the biggest value must be returned
-     */
-    minValue(value: T | this): this
-    /**
-     * This function establishes a maximum value for the current value, that means the smallest value must be returned
-     */
-    maxValue(value: T | this): this
-    add(value: T | this): this
-    subtract(value: T | this): this
-    modulo(value: T | this): this
+interface IntegersValueSource<T, TYPE_NAME extends string> extends MultipliableValueSource<T, TYPE_NAME> {
 }
 ```
 
 ```typescript
 /**
- * Represents a custom double
+ * Represents an exact decimal number of a type of yours that extends `DecimalsType`, sent to and received from the
+ * database as its text, so it keeps every digit. The functions whose result can't be exact return a double
  */
-interface CustomDoubleValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    abs(): this
+interface DecimalsValueSource<T, TYPE_NAME extends string> extends MultipliableValueSource<T, TYPE_NAME> {
     ceil(): this
     floor(): this
     round(): this
-    exp(): this
-    ln(): this
-    log10(): this
-    sqrt(): this
-    cbrt(): this
-    sign(): NumberValueSource
-    acos(): this
-    asin(): this
-    atan(): this
-    cos(): this
-    cot(): this
-    sin(): this
-    tan(): this
-    power(value: T | this): this
-    logn(value: T | this): this
-    /** The number of decimals can be a value of the custom type or a number, or a value source of either */
-    roundn(value: T | number | this | NumberValueSource): this
-    /**
-     * This function establishes a minimum value for the current value, that means the biggest value must be returned
-     */
-    minValue(value: T | this): this
-    /**
-     * This function establishes a maximum value for the current value, that means the smallest value must be returned
-     */
-    maxValue(value: T | this): this
-    add(value: T | this): this
-    subtract(value: T | this): this
-    multiply(value: T | this): this
-    divide(value: T | this): this
-    modulo(value: T | this): this
-    atan2(value: T | this): this
-}
-```
-
-```typescript
-/**
- * Represents a custom decimal: a decimal number of a type of your own, sent to and received from the database as its
- * text, so it keeps every digit. The functions whose result can't be exact return a double.
- */
-interface CustomDecimalValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    abs(): this
-    ceil(): this
-    floor(): this
-    round(): this
+    /** The number of decimals is a number, or a value source of one */
+    roundn(value: number | NumberValueSource): this
     exp(): NumberValueSource
     ln(): NumberValueSource
     log10(): NumberValueSource
     sqrt(): NumberValueSource
     cbrt(): NumberValueSource
-    sign(): NumberValueSource
     acos(): NumberValueSource
     asin(): NumberValueSource
     atan(): NumberValueSource
@@ -479,21 +435,45 @@ interface CustomDecimalValueSource<T, TYPE_NAME extends string> extends Comparab
     tan(): NumberValueSource
     power(value: number | NumberValueSource): NumberValueSource
     logn(value: number | NumberValueSource): NumberValueSource
-    /** The number of decimals is a number, or a value source of one */
-    roundn(value: number | NumberValueSource): this
-    /**
-     * This function establishes a minimum value for the current value, that means the biggest value must be returned
-     */
-    minValue(value: T | this): this
-    /**
-     * This function establishes a maximum value for the current value, that means the smallest value must be returned
-     */
-    maxValue(value: T | this): this
-    add(value: T | this): this
-    subtract(value: T | this): this
-    multiply(value: T | this): this
-    modulo(value: T | this): this
     atan2(value: number | NumberValueSource): NumberValueSource
+}
+```
+
+```typescript
+/**
+ * Represents a number of a type of yours that extends `DivisibleType`: it is also divided
+ */
+interface DivisibleValueSource<T, TYPE_NAME extends string> extends MultipliableValueSource<T, TYPE_NAME> {
+    divide(value: T | this): this
+}
+```
+
+```typescript
+/**
+ * Represents a floating point number of a type of yours that extends `RealsType`, sent to and received from the
+ * database as a double
+ */
+interface RealsValueSource<T, TYPE_NAME extends string> extends DivisibleValueSource<T, TYPE_NAME> {
+    ceil(): this
+    floor(): this
+    round(): this
+    /** The number of decimals can be a value of its type or a number, or a value source of either */
+    roundn(value: T | number | this | NumberValueSource): this
+    exp(): this
+    ln(): this
+    log10(): this
+    sqrt(): this
+    cbrt(): this
+    acos(): this
+    asin(): this
+    atan(): this
+    cos(): this
+    cot(): this
+    sin(): this
+    tan(): this
+    power(value: T | this): this
+    logn(value: T | this): this
+    atan2(value: T | this): this
 }
 ```
 
@@ -542,19 +522,19 @@ interface StringDecimalValueSource extends ComparableValueSource<string, 'string
 
 ```typescript
 /**
- * Represents a custom UUID
+ * Represents a UUID of a type of yours that extends `UuidsType`
  */
-interface CustomUuidValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+interface UuidsValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
 }
 ```
 
 ```typescript
 /**
- * Represents a custom local date without time (using a Date object). The getters give its parts in UTC, as the
- * getUTC… methods of the Date read
+ * Represents a local date without time of a type of yours that extends `LocalDatesType`. The getters give its parts in
+ * UTC, as the getUTC… methods of the Date read
  */
-interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+interface LocalDatesValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -568,10 +548,10 @@ interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends Compar
 
 ```typescript
 /**
- * Represents a custom local time without date (using a Date object). The getters give its parts in UTC, as the
- * getUTC… methods of the Date read
+ * Represents a local time without date of a type of yours that extends `LocalTimesType`. The getters give its parts in
+ * UTC, as the getUTC… methods of the Date read
  */
-interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+interface LocalTimesValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the hours */
     getHours(): NumberValueSource
     /** Gets the minutes */
@@ -585,10 +565,10 @@ interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends Compar
 
 ```typescript
 /**
- * Represents a custom local date with time (using a Date object). The getters give its parts in UTC, as the
- * getUTC… methods of the Date read
+ * Represents a local date with time of a type of yours that extends `LocalDateTimesType`. The getters give its parts
+ * in UTC, as the getUTC… methods of the Date read
  */
-interface CustomLocalDateTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+interface LocalDateTimesValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/

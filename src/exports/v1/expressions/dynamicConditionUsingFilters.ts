@@ -1,6 +1,10 @@
 // ts-sql-query/expressions/dynamicConditionUsingFilters: the path of version 1, kept so that code written for it keeps compiling. Each name says where
 // it is imported from in version 2
 
+import { type ComparableFilter, type ComparableType, type DecimalsType, type DynamicCondition as DynamicConditionOfVersion2, type EnumType, type EqualableType, type IntegersType, type LocalDateTimesType, type LocalDatesType, type LocalTimesType, type RealsType, type UuidsFilter, type UuidsType } from '../../v2/index.js'
+import { type DynamicConditionExtension, type DynamicDefinition } from '../../../expressions/dynamicConditionUsingFilters.js'
+import { type AnyValueSource } from '../../../typeSystem/valueSource.js'
+
 export {
     /** @deprecated Import it from 'ts-sql-query' */
     type BigintFilter,
@@ -9,23 +13,9 @@ export {
     /** @deprecated Import it from 'ts-sql-query' */
     type ComparableFilter,
     /** @deprecated Import it from 'ts-sql-query' */
-    type CustomDoubleFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type CustomIntFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type CustomLocalDateFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type CustomLocalDateTimeFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type CustomLocalTimeFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type CustomUuidFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
     type DateFilter,
     /** @deprecated Import it from 'ts-sql-query' */
     type DateTimeFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type DynamicCondition,
     /** @deprecated Import it from 'ts-sql-query' */
     type EqualableFilter,
     /** @deprecated Import it from 'ts-sql-query' */
@@ -39,3 +29,66 @@ export {
     /** @deprecated Import it from 'ts-sql-query' */
     type TimeFilter,
 } from '../../v2/index.js'
+
+/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+export interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> {
+}
+
+/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+export interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> {
+}
+
+/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+export interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> {
+}
+
+/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+export interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> {
+}
+
+/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+export interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> {
+}
+
+/** @deprecated Use UuidsFilter, imported from 'ts-sql-query' */
+export interface CustomUuidFilter<TYPE> extends UuidsFilter<TYPE> {
+}
+
+/**
+ * @deprecated Use DynamicCondition, imported from 'ts-sql-query': a column of a type of yours is declared with its data
+ * type (`total: MoneyType`) instead of a tuple (`total: ['customDouble', Money]`)
+ */
+export type DynamicCondition<DEFINITION, EXTENSION extends DynamicConditionExtension = never> =
+    DefinitionOfVersion1<DEFINITION> extends infer RESULT extends DynamicDefinition ? DynamicConditionOfVersion2<RESULT, EXTENSION> : never
+
+// The data type each tuple of version 1 declared
+type ColumnOfVersion1<COLUMN> =
+    COLUMN extends ['customInt', infer T] ? IntegersType<T, string> :
+    COLUMN extends ['customBigint', infer T] ? IntegersType<T, string> :
+    COLUMN extends ['customDouble', infer T] ? RealsType<T, string> :
+    COLUMN extends ['customDecimal', infer T] ? DecimalsType<T, string> :
+    COLUMN extends ['customUuid', infer T] ? UuidsType<T, string> :
+    COLUMN extends ['customLocalDate', infer T] ? LocalDatesType<T, string> :
+    COLUMN extends ['customLocalTime', infer T] ? LocalTimesType<T, string> :
+    COLUMN extends ['customLocalDateTime', infer T] ? LocalDateTimesType<T, string> :
+    COLUMN extends ['enum', infer T] ? EnumType<T, string> :
+    COLUMN extends ['custom', infer T] ? EqualableType<T, string> :
+    COLUMN extends ['customComparable', infer T] ? ComparableType<T, string> :
+    COLUMN
+
+// A definition of version 1, with its tuples as data types: up to 5 levels, as a definition of version 2
+type DefinitionOfVersion1<DEFINITION> = {
+    [KEY in keyof DEFINITION]: DEFINITION[KEY] extends AnyValueSource | string | [string, any] ? ColumnOfVersion1<DEFINITION[KEY]> : DefinitionOfVersion1Level2<DEFINITION[KEY]>
+}
+type DefinitionOfVersion1Level2<DEFINITION> = {
+    [KEY in keyof DEFINITION]: DEFINITION[KEY] extends AnyValueSource | string | [string, any] ? ColumnOfVersion1<DEFINITION[KEY]> : DefinitionOfVersion1Level3<DEFINITION[KEY]>
+}
+type DefinitionOfVersion1Level3<DEFINITION> = {
+    [KEY in keyof DEFINITION]: DEFINITION[KEY] extends AnyValueSource | string | [string, any] ? ColumnOfVersion1<DEFINITION[KEY]> : DefinitionOfVersion1Level4<DEFINITION[KEY]>
+}
+type DefinitionOfVersion1Level4<DEFINITION> = {
+    [KEY in keyof DEFINITION]: DEFINITION[KEY] extends AnyValueSource | string | [string, any] ? ColumnOfVersion1<DEFINITION[KEY]> : DefinitionOfVersion1Level5<DEFINITION[KEY]>
+}
+type DefinitionOfVersion1Level5<DEFINITION> = {
+    [KEY in keyof DEFINITION]: ColumnOfVersion1<DEFINITION[KEY]>
+}

@@ -14,7 +14,7 @@ import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 /** The options of PostgresQueryRunner */
 export interface PostgresQueryRunnerConfig {
     /**
-     * The type each parameter of a type name (the name given to a custom type, or a built-in one) is sent with, in every
+     * The type each parameter of a type name (the name of a type of the user, or of a built-in one) is sent with, in every
      * position: the oid of a PostgreSQL type, like `1700` for numeric, or a function that gives the parameter, like
      * `value => sql.typed.money(value)` for a type declared in the `types` option of postgres.js
      */

@@ -5,17 +5,6 @@ import { __temporalFieldsOf } from './typeSystem/dataTypes.js'
 import type { BuiltInDataType } from './typeSystem/builtInDataTypes.js'
 
 /**
- * Which custom type a value is, the family of the class of its data type, like `'customInt'` for
- * `column('id', CustomIntType.of<MyInt, 'MyIntTypeName'>('MyIntTypeName'))`: a custom type is converted as the built-in type it is based on
- * (`customInt` as an `int`) unless its conversion is registered; an `enum`, a `custom` or a `customComparable` is sent
- * and received as it comes.
- */
-export type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal'
-    | 'customUuid'
-    | 'customLocalDate' | 'customLocalTime' | 'customLocalDateTime'
-    | 'enum' | 'custom' | 'customComparable'
-
-/**
  * Where a value leaves the database, given to `transformProjection`: `'resultColumn'` is a column of the result of the
  * query (a column of the outermost select, of the returning of an insert, an update or a delete, or the value of a
  * function called with `executeFunction`).
@@ -36,17 +25,16 @@ export type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
  */
 export type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
-/** What a type adapter reads of the class of a data type (`StringType`, `MoneyType`): its type name and custom type */
+/** What a type adapter reads of the class of a data type (`StringType`, `MoneyType`): its type name and its SQL data type */
 export interface DataTypeClass {
     /**
      * The type name of the data type (`'int'`, `'Money'`): the static `type` of its class, which a class of the user
      * says by convention; when it doesn't, the name of the class (`MoneyType`)
      */
     readonly type: string
-    readonly customType: CustomType | undefined
     /**
      * The type in the database of the values of the data type, when the column doesn't say a more precise one (see
-     * `SqlDataType`); undefined for a data type whose values only the user knows (an enum, a custom one)
+     * `SqlDataType`); undefined for a data type whose values only the user knows (an enum, a type of the user that extends `EqualableType`)
      */
     readonly sqlDataType?: SqlDataType | undefined
 }

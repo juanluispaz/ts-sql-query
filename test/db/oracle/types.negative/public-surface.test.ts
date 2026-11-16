@@ -9,7 +9,7 @@ import * as compat from '../../../../src/exports/v1/dynamicCondition.js'
 import { deepOmit, deepPick, type DeepPick, type DeepOmit } from '../../../../src/extras/deepUtilities.js'
 import { sync } from '../../../../src/extras/sync.js'
 import { extractColumnNamesFrom, extractColumnsFrom } from '../../../../src/extras/utils.js'
-import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type CustomType } from '../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter } from '../../../../src/TypeAdapter.js'
 import { type ConnectionConfiguration, type QueryResultColumn } from '../../../../src/queryRunners/QueryRunner.js'
 import { getQueryContext } from '../../../../src/QueryContext.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
@@ -50,8 +50,8 @@ function _typeNegatives() {
     const resultColumn: QueryResultColumn = { name: 'id', path: 'id', originalType: root.IntType, requestedType: root.IntType }
     // @ts-expect-error a result column is read-only
     resultColumn.requestedType = root.BigintType
-    // @ts-expect-error the custom type of a result column is one of the list
-    void ({ name: 'id', path: 'id', originalType: 'Money', originalCustomType: 'number', requestedType: 'Money', requestedCustomType: undefined } satisfies QueryResultColumn)
+    // @ts-expect-error the type of a result column is its class, not its name
+    void ({ name: 'id', path: 'id', originalType: 'Money', requestedType: 'Money' } satisfies QueryResultColumn)
     // Rule: the mock imitates a query runner of the library by the name of its class.
     new MockQueryRunner(() => undefined, { queryRunner: 'PostgresQueryRunner' })
     new MockQueryRunner(() => undefined, { queryRunner: 'MySql2QueryRunner', database: 'mariaDB' })
@@ -150,9 +150,6 @@ function _typeNegatives() {
         // @ts-expect-error projectionComparison is not a method of a type adapter
         projectionComparison() { return 'value' },
     } satisfies TypeAdapter)
-    void ('customLocalDate' satisfies CustomType)
-    // @ts-expect-error a built-in type is not a custom one
-    void ('localDate' satisfies CustomType)
 
     // Rule: the paths of deepPick and deepOmit are the paths of the object.
     const model = { id: 1, company: { name: 'a' } }

@@ -7,12 +7,18 @@
 import oracledb from 'oracledb'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
-import type { CustomType } from '../../../src/TypeAdapter.js'
+import type { DataTypeClass } from '../../../src/TypeAdapter.js'
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
 import { queryContextOf } from '../../../src/internal/QueryContextImpl.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
 import { addOutParam, addParam } from '../lib/params.js'
+import { LocalDateTimesType, LocalDatesType, LocalTimesType } from '../../../src/exports/v2/index.js'
+
+// The data types of the user the parameters are of, each one a class of the family of its values
+abstract class CutoffClockType extends LocalTimesType<Date, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
+abstract class SignOffStampType extends LocalDateTimesType<Date, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
 
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: out binds', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined
@@ -33,23 +39,22 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         await db?.release()
     }, 300_000)
 
-    // The type and the custom type of each OUT bind
-    type OutType = readonly [string, CustomType | undefined]
-    function insertReturningMoments(types: readonly [OutType, OutType]): { sql: string, params: any[] } {
+    // The type of each OUT bind
+    function insertReturningMoments(types: readonly [string | DataTypeClass, string | DataTypeClass]): { sql: string, params: any[] } {
         const params: any[] = []
-        const d = addParam(r(), params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', undefined, false)
-        const ts = addParam(r(), params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', undefined, false)
-        const dOut = addOutParam(r(), params, 'd', types[0][0], types[0][1], false)
-        const tsOut = addOutParam(r(), params, 'ts', types[1][0], types[1][1], false)
+        const d = addParam(r(), params, new Date(Date.UTC(2026, 9, 25)), 'localDateTime', false)
+        const ts = addParam(r(), params, new Date(Date.UTC(2026, 9, 25, 10, 30, 15)), 'localDateTime', false)
+        const dOut = addOutParam(r(), params, 'd', types[0], false)
+        const tsOut = addOutParam(r(), params, 'ts', types[1], false)
         return { sql: `insert into rt_moment (d, ts) values (${d}, ${ts}) returning d, ts into ${dOut}, ${tsOut}`, params }
     }
 
     test('temporal-out-binds-with-their-data-type-are-dates', async () => {
-        const cases: (readonly [OutType, OutType])[] = [
-            [['localDate', undefined], ['localDateTime', undefined]],
-            [['ReleaseDay', 'customLocalDate'], ['SignOffStamp', 'customLocalDateTime']],
-            [['localDate', undefined], ['localTime', undefined]],
-            [['ReleaseDay', 'customLocalDate'], ['CutoffClock', 'customLocalTime']],
+        const cases: (readonly [string | DataTypeClass, string | DataTypeClass])[] = [
+            ['localDate', 'localDateTime'],
+            [ReleaseDayType, SignOffStampType],
+            ['localDate', 'localTime'],
+            [ReleaseDayType, CutoffClockType],
         ]
         for (const types of cases) {
             const { sql, params } = insertReturningMoments(types)
@@ -64,16 +69,16 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         // session: its digits for a date or a timestamp, the instant for a timestamp with time zone (bound as a
         // timestamp, the instant lost its offset)
         const params: any[] = []
-        const dOut = addOutParam(r(), params, 'd', 'localDateTime', undefined, false)
-        const tsOut = addOutParam(r(), params, 'ts', 'localDateTime', undefined, false)
-        const tstzOut = addOutParam(r(), params, 'tstz', 'localDateTime', undefined, false)
+        const dOut = addOutParam(r(), params, 'd', 'localDateTime', false)
+        const tsOut = addOutParam(r(), params, 'ts', 'localDateTime', false)
+        const tstzOut = addOutParam(r(), params, 'tstz', 'localDateTime', false)
         const sql = `insert into rt_moment (d, ts, tstz) values (date '2026-10-25', timestamp '2026-10-25 10:30:15.123', timestamp '2026-10-25 19:30:15.123 +09:00') returning d, ts, tstz into ${dOut}, ${tsOut}, ${tstzOut}`
         const row = await r().executeQuery('insertReturningOneRow', sql, params)
         expect(row).toEqual({ d: new Date(Date.UTC(2026, 9, 25)), ts: new Date(Date.UTC(2026, 9, 25, 10, 30, 15, 123)), tstz: new Date(Date.UTC(2026, 9, 25, 10, 30, 15, 123)) })
     })
 
     test('out-binds-without-a-temporal-data-type-are-strings', async () => {
-        const { sql, params } = insertReturningMoments([['string', undefined], ['', undefined]])
+        const { sql, params } = insertReturningMoments(['string', ''])
         const row = await r().executeQuery('insertReturningOneRow', sql, params)
         expect(typeof row.d).toBe('string')
         expect(typeof row.ts).toBe('string')
@@ -81,7 +86,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     function callEcho(value: string): { sql: string, params: any[] } {
         const params: any[] = []
-        const sql = `begin rt_echo(${addParam(r(), params, value, 'string', undefined, false)}, ${addOutParam(r(), params, 'message', 'string', undefined, false)}); end;`
+        const sql = `begin rt_echo(${addParam(r(), params, value, 'string', false)}, ${addOutParam(r(), params, 'message', 'string', false)}); end;`
         return { sql, params }
     }
 
@@ -98,8 +103,8 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('out-binds-of-a-pl-sql-block-make-one-row-per-repeated-name', async () => {
         const params: any[] = []
-        const sql = `begin insert into rt_moment (d) values (${addParam(r(), params, new Date(), 'localDateTime', undefined, false)}) returning id into ${addOutParam(r(), params, '', 'int', undefined, false)};`
-            + ` insert into rt_moment (d) values (${addParam(r(), params, new Date(), 'localDateTime', undefined, false)}) returning id into ${addOutParam(r(), params, '', 'int', undefined, false)}; end;`
+        const sql = `begin insert into rt_moment (d) values (${addParam(r(), params, new Date(), 'localDateTime', false)}) returning id into ${addOutParam(r(), params, '', 'int', false)};`
+            + ` insert into rt_moment (d) values (${addParam(r(), params, new Date(), 'localDateTime', false)}) returning id into ${addOutParam(r(), params, '', 'int', false)}; end;`
         const ids = (await r().executeQuery('insertReturningMultipleLastInsertedId', sql, params)).map(Number)
         expect(ids).toHaveLength(2)
         expect(ids[1]!).toBeGreaterThan(ids[0]!)
@@ -114,7 +119,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     test('a-mutation-returning-nothing-into-out-binds', async () => {
         const params: any[] = []
-        const sql = `update rt_moment set d = d where id < 0 returning id into ${addOutParam(r(), params, 'id', 'int', undefined, false)}`
+        const sql = `update rt_moment set d = d where id < 0 returning id into ${addOutParam(r(), params, 'id', 'int', false)}`
         expect(await r().executeQuery('updateReturningManyRows', sql, params)).toEqual([])
     })
 })

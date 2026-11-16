@@ -536,7 +536,7 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-add-with-branded-type-const-operand', async () => {
         // customDouble `add` with a branded TYPE const as the right operand
-        // (`billedAmount.add(const(2 as Money, CustomDoubleType.of<Money, 'Money'>('Money')))`).
+        // (`billedAmount.add(const(2 as Money, MoneyType))`).
         // billed_amount ('Money'→double) is 200 for worklog 1, so 200 + 2 = 202
         // (clean number).
         const money2 = ctx.conn.const(2 as Money, MoneyType)

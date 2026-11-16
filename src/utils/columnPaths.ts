@@ -9,7 +9,7 @@ import { __isColumn } from '../typeSystem/valueSourceFactory.js'
  *
  * The query builders and the SQL builders work with flat names: a column in a group is named by its path, 'coords.lat',
  * the same name a nested property of a select has. These helpers translate between both forms. A table is not always
- * made only of columns (it can have any other property), and the value of a column can be an object too (a custom type
+ * made only of columns (it can have any other property), and the value of a column can be an object too (a type of the user
  * with a json value), so it's always the definition, never the value, that says what is a group.
  */
 

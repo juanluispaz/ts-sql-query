@@ -14,7 +14,7 @@ export interface PgLiteQueryRunnerConfig {
     /** Accept a transaction begun inside another one; rejected with `NESTED_TRANSACTION_NOT_SUPPORTED` by default */
     allowNestedTransactions?: boolean | undefined
     /**
-     * The oid of the PostgreSQL type, like `1700` for numeric, each parameter of a type name (the name given to a custom
+     * The oid of the PostgreSQL type, like `1700` for numeric, each parameter of a type name (the name of a type of the user,
      * type, or a built-in one) is sent with, in every position
      */
     typesByName?: { readonly [typeName: string]: number } | undefined

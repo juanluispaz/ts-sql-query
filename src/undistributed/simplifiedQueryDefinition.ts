@@ -4,7 +4,7 @@
  * Simplified versions of the query's API
  */
 
-interface ValueSource<T, TYPE_NAME extends string> {
+interface ValueSource<T, TYPE_NAME extends string = string> {
     isConstValue(): boolean
     /**
      * It returns the proper type of the value, instead of the any type included here to simplify
@@ -328,13 +328,11 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDat
 }
 
 /**
- * Represents a custom int
+ * Represents a number of a type of yours that extends `AdditiveType`, like an amount of money: it is added and
+ * subtracted with values of its own type. The value sources of the families below have these methods too
  */
-interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+interface AdditiveValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
-    ceil(): this
-    floor(): this
-    round(): this
     sign(): NumberValueSource
     /**
      * This function establishes a minimum value for the current value, that means the biggest value must be returned
@@ -346,88 +344,38 @@ interface CustomIntValueSource<T, TYPE_NAME extends string> extends ComparableVa
     maxValue(value: T | this): this
     add(value: T | this): this
     subtract(value: T | this): this
+    modulo(value: T | this): this
+}
+
+/**
+ * Represents a number of a type of yours that extends `MultipliableType`: it is also multiplied
+ */
+interface MultipliableValueSource<T, TYPE_NAME extends string> extends AdditiveValueSource<T, TYPE_NAME> {
     multiply(value: T | this): this
-    modulo(value: T | this): this
 }
 
 /**
- * Represents a custom bigint
+ * Represents an integer of a type of yours that extends `IntegersType`, sent to and received from the database as an
+ * int, or as a bigint when its SQL data type doesn't fit in a number
  */
-interface CustomBigintValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    abs(): this
-    ceil(): this
-    floor(): this
-    round(): this
-    sign(): NumberValueSource
-    /**
-     * This function establishes a minimum value for the current value, that means the biggest value must be returned
-     */
-    minValue(value: T | this): this
-    /**
-     * This function establishes a maximum value for the current value, that means the smallest value must be returned
-     */
-    maxValue(value: T | this): this
-    add(value: T | this): this
-    subtract(value: T | this): this
-    modulo(value: T | this): this
+interface IntegersValueSource<T, TYPE_NAME extends string> extends MultipliableValueSource<T, TYPE_NAME> {
 }
 
 /**
- * Represents a custom double
+ * Represents an exact decimal number of a type of yours that extends `DecimalsType`, sent to and received from the
+ * database as its text, so it keeps every digit. The functions whose result can't be exact return a double
  */
-interface CustomDoubleValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    abs(): this
+interface DecimalsValueSource<T, TYPE_NAME extends string> extends MultipliableValueSource<T, TYPE_NAME> {
     ceil(): this
     floor(): this
     round(): this
-    exp(): this
-    ln(): this
-    log10(): this
-    sqrt(): this
-    cbrt(): this
-    sign(): NumberValueSource
-    acos(): this
-    asin(): this
-    atan(): this
-    cos(): this
-    cot(): this
-    sin(): this
-    tan(): this
-    power(value: T | this): this
-    logn(value: T | this): this
-    /** The number of decimals can be a value of the custom type or a number, or a value source of either */
-    roundn(value: T | number | this | NumberValueSource): this
-    /**
-     * This function establishes a minimum value for the current value, that means the biggest value must be returned
-     */
-    minValue(value: T | this): this
-    /**
-     * This function establishes a maximum value for the current value, that means the smallest value must be returned
-     */
-    maxValue(value: T | this): this
-    add(value: T | this): this
-    subtract(value: T | this): this
-    multiply(value: T | this): this
-    divide(value: T | this): this
-    modulo(value: T | this): this
-    atan2(value: T | this): this
-}
-
-/**
- * Represents a custom decimal: a decimal number of a type of your own, sent to and received from the database as its
- * text, so it keeps every digit. The functions whose result can't be exact return a double.
- */
-interface CustomDecimalValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    abs(): this
-    ceil(): this
-    floor(): this
-    round(): this
+    /** The number of decimals is a number, or a value source of one */
+    roundn(value: number | NumberValueSource): this
     exp(): NumberValueSource
     ln(): NumberValueSource
     log10(): NumberValueSource
     sqrt(): NumberValueSource
     cbrt(): NumberValueSource
-    sign(): NumberValueSource
     acos(): NumberValueSource
     asin(): NumberValueSource
     atan(): NumberValueSource
@@ -437,21 +385,41 @@ interface CustomDecimalValueSource<T, TYPE_NAME extends string> extends Comparab
     tan(): NumberValueSource
     power(value: number | NumberValueSource): NumberValueSource
     logn(value: number | NumberValueSource): NumberValueSource
-    /** The number of decimals is a number, or a value source of one */
-    roundn(value: number | NumberValueSource): this
-    /**
-     * This function establishes a minimum value for the current value, that means the biggest value must be returned
-     */
-    minValue(value: T | this): this
-    /**
-     * This function establishes a maximum value for the current value, that means the smallest value must be returned
-     */
-    maxValue(value: T | this): this
-    add(value: T | this): this
-    subtract(value: T | this): this
-    multiply(value: T | this): this
-    modulo(value: T | this): this
     atan2(value: number | NumberValueSource): NumberValueSource
+}
+
+/**
+ * Represents a number of a type of yours that extends `DivisibleType`: it is also divided
+ */
+interface DivisibleValueSource<T, TYPE_NAME extends string> extends MultipliableValueSource<T, TYPE_NAME> {
+    divide(value: T | this): this
+}
+
+/**
+ * Represents a floating point number of a type of yours that extends `RealsType`, sent to and received from the
+ * database as a double
+ */
+interface RealsValueSource<T, TYPE_NAME extends string> extends DivisibleValueSource<T, TYPE_NAME> {
+    ceil(): this
+    floor(): this
+    round(): this
+    /** The number of decimals can be a value of its type or a number, or a value source of either */
+    roundn(value: T | number | this | NumberValueSource): this
+    exp(): this
+    ln(): this
+    log10(): this
+    sqrt(): this
+    cbrt(): this
+    acos(): this
+    asin(): this
+    atan(): this
+    cos(): this
+    cot(): this
+    sin(): this
+    tan(): this
+    power(value: T | this): this
+    logn(value: T | this): this
+    atan2(value: T | this): this
 }
 
 /**
@@ -495,59 +463,62 @@ interface StringDecimalValueSource extends ComparableValueSource<string, 'string
 }
 
 /**
- * Represents a custom UUID
+ * Represents a UUID of a type of yours that extends `UuidsType`
  */
-interface CustomUuidValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+interface UuidsValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
 }
 
 /**
- * Represents a custom local date without time (using a Date object)
+ * Represents a local date without time of a type of yours that extends `LocalDatesType`. The getters give its parts in
+ * UTC, as the getUTC… methods of the Date read
  */
-interface CustomLocalDateValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    /** Gets the year, in UTC (as getUTCFullYear) */
+interface LocalDatesValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+    /** Gets the year */
     getFullYear(): NumberValueSource
-    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
+    /** Gets the month (value between 0 to 11)*/
     getMonth(): NumberValueSource
-    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
+    /** Gets the day-of-the-month */
     getDate(): NumberValueSource
-    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
+    /** Gets the day of the week (0 represents Sunday) */
     getDay(): NumberValueSource
 }
 
 /**
- * Represents a custom local time without date (using a Date object)
+ * Represents a local time without date of a type of yours that extends `LocalTimesType`. The getters give its parts in
+ * UTC, as the getUTC… methods of the Date read
  */
-interface CustomLocalTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    /** Gets the hours, in UTC (as getUTCHours) */
+interface LocalTimesValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+    /** Gets the hours */
     getHours(): NumberValueSource
-    /** Gets the minutes, in UTC (as getUTCMinutes) */
+    /** Gets the minutes */
     getMinutes(): NumberValueSource
-    /** Gets the seconds, in UTC (as getUTCSeconds) */
+    /** Gets the seconds */
     getSeconds(): NumberValueSource
-    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
+    /** Gets the milliseconds */
     getMilliseconds(): NumberValueSource
 }
 
 /**
- * Represents a custom local date with time (using a Date object)
+ * Represents a local date with time of a type of yours that extends `LocalDateTimesType`. The getters give its parts
+ * in UTC, as the getUTC… methods of the Date read
  */
-interface CustomLocalDateTimeValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
-    /** Gets the year, in UTC (as getUTCFullYear) */
+interface LocalDateTimesValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
+    /** Gets the year */
     getFullYear(): NumberValueSource
-    /** Gets the month (value between 0 to 11), in UTC (as getUTCMonth) */
+    /** Gets the month (value between 0 to 11)*/
     getMonth(): NumberValueSource
-    /** Gets the day-of-the-month, in UTC (as getUTCDate) */
+    /** Gets the day-of-the-month */
     getDate(): NumberValueSource
-    /** Gets the day of the week (0 represents Sunday), in UTC (as getUTCDay) */
+    /** Gets the day of the week (0 represents Sunday) */
     getDay(): NumberValueSource
-    /** Gets the hours, in UTC (as getUTCHours) */
+    /** Gets the hours */
     getHours(): NumberValueSource
-    /** Gets the minutes, in UTC (as getUTCMinutes) */
+    /** Gets the minutes */
     getMinutes(): NumberValueSource
-    /** Gets the seconds, in UTC (as getUTCSeconds) */
+    /** Gets the seconds */
     getSeconds(): NumberValueSource
-    /** Gets the milliseconds, in UTC (as getUTCMilliseconds) */
+    /** Gets the milliseconds */
     getMilliseconds(): NumberValueSource
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource
@@ -647,50 +618,10 @@ interface Connection {
     false(): BooleanValueSource
 
     // Methods that create a value source with a constant value
-    const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    const(value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    const(value: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    const(value: Date, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    const(value: Date, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    const<T, TYPE_NAME extends string>(value: T, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    const<T>(value: T, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Methods that create a value source with an optional constant value
-    optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalConst(value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource
-    optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    optionalConst(value: string | null | undefined, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalConst<T>(value: T | null | undefined, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // The exists and not exists of a subquery
     exists(select: Subquery): BooleanValueSource
@@ -711,22 +642,18 @@ interface Connection {
     sum(value: NumberValueSource): NumberValueSource
     sum(value: BigintValueSource): BigintValueSource
     sum(value: StringDecimalValueSource): StringDecimalValueSource
-    sum<T, TYPE_NAME extends string>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    sum<T, TYPE_NAME extends string>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
-    sum<T, TYPE_NAME extends string>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
-    sum<T, TYPE_NAME extends string>(value: CustomDecimalValueSource<T, TYPE_NAME>): CustomDecimalValueSource<T, TYPE_NAME>
+    sum<T, TYPE_NAME extends string>(value: AdditiveValueSource<T, TYPE_NAME>): AdditiveValueSource<T, TYPE_NAME>
+    sum(value: StringDecimalValueSource): StringDecimalValueSource
     /** sum(distinct value) */
     sumDistinct(value: NumberValueSource): NumberValueSource
     sumDistinct(value: BigintValueSource): BigintValueSource
     sumDistinct(value: StringDecimalValueSource): StringDecimalValueSource
-    sumDistinct<T, TYPE_NAME extends string>(value: CustomIntValueSource<T, TYPE_NAME>): CustomIntValueSource<T, TYPE_NAME>
-    sumDistinct<T, TYPE_NAME extends string>(value: CustomBigintValueSource<T, TYPE_NAME>): CustomBigintValueSource<T, TYPE_NAME>
-    sumDistinct<T, TYPE_NAME extends string>(value: CustomDoubleValueSource<T, TYPE_NAME>): CustomDoubleValueSource<T, TYPE_NAME>
-    sumDistinct<T, TYPE_NAME extends string>(value: CustomDecimalValueSource<T, TYPE_NAME>): CustomDecimalValueSource<T, TYPE_NAME>
+    sumDistinct<T, TYPE_NAME extends string>(value: AdditiveValueSource<T, TYPE_NAME>): AdditiveValueSource<T, TYPE_NAME>
+    sumDistinct(value: StringDecimalValueSource): StringDecimalValueSource
     /** avg(value). It always returns a number, a double, also for a bigint or a custom type */
-    average(value: NumberValueSource | BigintValueSource | StringDecimalValueSource | CustomIntValueSource<any, any> | CustomBigintValueSource<any, any> | CustomDoubleValueSource<any, any> | CustomDecimalValueSource<any, any>): NumberValueSource
+    average(value: NumberValueSource | BigintValueSource | StringDecimalValueSource | AdditiveValueSource<any, any>): NumberValueSource
     /** avg(distinct value). It always returns a number, a double, also for a bigint or a custom type */
-    averageDistinct(value: NumberValueSource | BigintValueSource | StringDecimalValueSource | CustomIntValueSource<any, any> | CustomBigintValueSource<any, any> | CustomDoubleValueSource<any, any> | CustomDecimalValueSource<any, any>): NumberValueSource
+    averageDistinct(value: NumberValueSource | BigintValueSource | StringDecimalValueSource | AdditiveValueSource<any, any>): NumberValueSource
     /** group_concat(value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcat(value: StringValueSource, separator?: string): StringValueSource
     /**
@@ -745,50 +672,10 @@ interface Connection {
     aggregateAsArrayOfOneColumnDistinct<T, TYPE_NAME extends string>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
 
     // Methods that create SQL fragments
-    fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    fragmentWithType<_T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
 
     // Same as fragmentWithType, but the produced value is treated as an aggregate
-    aggregateFragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    aggregateFragmentWithType<_T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    aggregateFragmentWithType(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
 
     /** 
      * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
@@ -800,101 +687,21 @@ interface Connection {
 
     // Protected methods that call a function. Any failure rejects the promise.
     // With 'optional' the promise also resolves to null; to simplify, that isn't written in the signatures below.
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<bigint>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
-    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customInt', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customBigint', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customDouble', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customDecimal', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customUuid', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customLocalDate', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customLocalTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'enum', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'custom', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME extends string>(functionName: string, params: AnyValueSource[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T>(functionName: string, params: AnyValueSource[], returnType: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
     // Protected methods to define a sequence (only available on MariaDB, Oracle, PostgreSQL and SQL Server)
-    sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
-    sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource>
-    sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource>
-    sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource>
-    sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource>
-    sequence(name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<UuidValueSource>
-    sequence(name: string, type: 'stringDecimal', adapter?: TypeAdapter): Sequence<StringDecimalValueSource>
-    sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<LocalDateValueSource>
-    sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<LocalTimeValueSource>
-    sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomIntValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomBigintValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomDoubleValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomDecimalValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomUuidValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalDateValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalTimeValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalDateTimeValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<T, TYPE_NAME>>
-    sequence<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<ComparableValueSource<T, TYPE_NAME>>
+    sequence<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): Sequence<ValueSource<T>>
 
     // Protected methods to define reusable fragments
     /**
      * Defines an argument that accepts a value or a value source of the specified type
      */
-    arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<boolean, 'boolean'>
-    arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
-    arg(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<bigint, 'bigint'>
-    arg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
-    arg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'string'>
-    arg(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'uuid'>
-    arg(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'stringDecimal'>
-    arg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDate'>
-    arg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localTime'>
-    arg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDateTime'>
-    arg<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    arg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
+    arg<T>(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
 
     /**
      * Defines an argument that accepts a value of the specified type, but not a value source
      */
-    valueArg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<boolean, 'boolean'>
-    valueArg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
-    valueArg(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<bigint, 'bigint'>
-    valueArg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<number, 'number'>
-    valueArg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'string'>
-    valueArg(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'uuid'>
-    valueArg(type: 'stringDecimal', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<string, 'stringDecimal'>
-    valueArg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDate'>
-    valueArg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localTime'>
-    valueArg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument<Date, 'localDateTime'>
-    valueArg<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
-    valueArg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T, TYPE_NAME>
+    valueArg<T>(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
 
     /*
      * These protected methods receive the argument definitions that you create with arg or valueArg.
@@ -1061,7 +868,7 @@ type DynamicFilter = {
  * EqualableFilter for enum and custom, ComparableFilter for customComparable, and for the other custom types the filter of its name.
  * The uuid and customUuid types accept the text operators, and they apply asString before them.
  */
-type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | StringDecimalFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | CustomIntFilter<any> | CustomBigintFilter<any> | CustomDoubleFilter<any> | CustomDecimalFilter<any> | CustomUuidFilter<any> | CustomLocalDateFilter<any> | CustomLocalTimeFilter<any> | CustomLocalDateTimeFilter<any>
+type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | StringDecimalFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | UuidsFilter<any>
 
 interface NullableFilter {
     isNull?: boolean
@@ -1133,7 +940,7 @@ interface StringFilter extends ComparableFilter<string> {
     notContainsInsensitive?: string
 }
 
-interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
+interface UuidsFilter<TYPE> extends ComparableFilter<TYPE> {
     equalsInsensitiveIfValue?: TYPE | null | undefined
     equalsInsensitive?: TYPE
     notEqualsInsensitiveIfValue?: TYPE | null | undefined
@@ -1178,14 +985,7 @@ interface BigintFilter extends ComparableFilter<bigint> { }
 interface DateFilter extends ComparableFilter<Date> { }
 interface TimeFilter extends ComparableFilter<Date> { }
 interface DateTimeFilter extends ComparableFilter<Date> { }
-interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomBigintFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
 interface StringDecimalFilter extends ComparableFilter<string> { }
-interface CustomDecimalFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
-interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
 
 // Protected configuration properties that each connection adds
 interface MariaDBConnectionConfiguration {
@@ -1263,261 +1063,41 @@ interface Table {
     valuesForInsert(): this
 
     // Protected methods that create a required column that doesn't admit null
-    column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    column(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    column<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    column<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column that admits null
-    optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    optionalColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // Protected methods that create a required column that doesn't admit null and has a default value on insert
-    columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    columnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    columnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    columnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    columnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    columnWithDefaultValue<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // Protected methods that create an optional column that admits null and has a default value on insert
-    optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalColumnWithDefaultValue<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // Protected methods that create a primary key column autogenerated in the database
     // When you insert you don't need to specify this column
-    autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    autogeneratedPrimaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    autogeneratedPrimaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    autogeneratedPrimaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    autogeneratedPrimaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    autogeneratedPrimaryKey<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a primary key column not automatically generated
     // When you insert you must specify this column
-    primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    primaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    primaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    primaryKey(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    primaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    primaryKey<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
       
     // Protected methods that create a primary key column generated by a sequence
     // When you insert you don't need to specify this column, it will be added automatically by ts-sql-query
     // Only available on MariaDB, Oracle, PostgreSQL and SQL Server
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(name: string, sequenceName: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a computed column that doesn't admit null
-    computedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    computedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    computedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    computedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    computedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    computedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    computedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    computedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    computedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    computedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    computedColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional computed column that admits null
-    optionalComputedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    optionalComputedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalComputedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    optionalComputedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    optionalComputedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    optionalComputedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    optionalComputedColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    optionalComputedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    optionalComputedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    optionalComputedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalComputedColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a column from a sql fragment in the table
-    virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
-    virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
-    virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
-    virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
-    virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
-    virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
-    virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
-    virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomIntValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomBigintValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDoubleValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDecimalValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomUuidValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    virtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column from a sql fragment in the table
-    optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
-    optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
-    optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
-    optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
-    optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
-    optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
-    optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
-    optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomIntValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomBigintValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDoubleValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDecimalValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomUuidValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalVirtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 }
 
 
@@ -1533,96 +1113,16 @@ interface View {
     forUseInLeftJoinAs(as: string): this & OuterJoinSource
 
     // Protected methods that create a required column that doesn't admit null
-    column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    column(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    column<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    column<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column that admits null
-    optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
-    optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
-    optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    optionalColumn(name: string, type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a column from a sql fragment in the view
-    virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
-    virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
-    virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
-    virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
-    virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
-    virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
-    virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
-    virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomIntValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomBigintValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDoubleValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDecimalValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomUuidValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    virtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column from a sql fragment in the view
-    optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
-    optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
-    optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
-    optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
-    optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
-    optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
-    optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
-    optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomIntValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomBigintValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDoubleValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDecimalValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomUuidValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalVirtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 }
 
 
@@ -1647,96 +1147,16 @@ interface Values {
     create<T extends Values>(type: new (name: string, values: any) => T, name: string, values: { [columnName: string]: any }[]): T
 
     // Protected methods that create a required column that doesn't admit null
-    column(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    column(type: 'int', adapter?: TypeAdapter): NumberValueSource
-    column(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    column(type: 'double', adapter?: TypeAdapter): NumberValueSource
-    column(type: 'string', adapter?: TypeAdapter): StringValueSource
-    column(type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    column(type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    column(type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    column(type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    column(type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    column<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    column<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    column<T>(type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column that admits null
-    optionalColumn(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
-    optionalColumn(type: 'int', adapter?: TypeAdapter): NumberValueSource
-    optionalColumn(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
-    optionalColumn(type: 'double', adapter?: TypeAdapter): NumberValueSource
-    optionalColumn(type: 'string', adapter?: TypeAdapter): StringValueSource
-    optionalColumn(type: 'uuid', adapter?: TypeAdapter): UuidValueSource
-    optionalColumn(type: 'stringDecimal', adapter?: TypeAdapter): StringDecimalValueSource
-    optionalColumn(type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource
-    optionalColumn(type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource
-    optionalColumn(type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalColumn<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalColumn<T>(type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a column from a sql fragment in the view
-    virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
-    virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
-    virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
-    virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
-    virtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
-    virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
-    virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
-    virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomIntValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomBigintValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDoubleValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDecimalValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomUuidValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    virtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    virtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column from a sql fragment in the view
-    optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
-    optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
-    optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
-    optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
-    optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
-    optionalVirtualColumnFromFragment(type: 'stringDecimal', fn: (fragment: FragmentExpression) => StringDecimalValueSource, adapter?: TypeAdapter): StringDecimalValueSource
-    optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => LocalDateValueSource, adapter?: TypeAdapter): LocalDateValueSource
-    optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => LocalTimeValueSource, adapter?: TypeAdapter): LocalTimeValueSource
-    optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => LocalDateTimeValueSource, adapter?: TypeAdapter): LocalDateTimeValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomIntValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomIntValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customBigint', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomBigintValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomBigintValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDoubleValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDoubleValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customDecimal', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomDecimalValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomDecimalValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomUuidValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomUuidValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalTimeValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => CustomLocalDateTimeValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => EqualableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): EqualableValueSource<T, TYPE_NAME>
-    optionalVirtualColumnFromFragment<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, fn: (fragment: FragmentExpression) => ComparableValueSource<T, TYPE_NAME>, adapter?: TypeAdapter): ComparableValueSource<T, TYPE_NAME>
+    optionalVirtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 }
 
 
@@ -2747,14 +2167,9 @@ type CompoundableSubquery = SelectExpression
 
 
 
-type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal'
-    | 'customUuid'
-    | 'customLocalDate' | 'customLocalTime' | 'customLocalDateTime'
-    | 'enum' | 'custom' | 'customComparable'
-
 type BuiltInType = 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'
 /** The class of a data type: a built-in one, like `StringType`, or one the `of` of a family of custom types made */
-type DataTypeClass = { readonly type: string, readonly customType: CustomType | undefined }
+type DataTypeClass = { readonly type: string, readonly sqlDataType?: SqlDataType | undefined }
 
 interface TypeAdapter {
     /** The type of the value in the database; set it with withSqlDataType */
@@ -2871,7 +2286,7 @@ type RESULT = any
 type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
-type Argument<_T, _TYPE_NAME extends string> = any
+type Argument<_T, _TYPE_NAME extends string = string> = any
 type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>
@@ -2881,7 +2296,9 @@ type ConnectionConfiguration = any
 type SqlDataType = any
 
 void function (_c: Connection, _v: Values, _config: MariaDBConnectionConfiguration | MySqlConnectionConfiguration | OracleConnectionConfiguration | PostgreSqlConnectionConfiguration | SqliteConnectionConfiguration | SqlServerConnectionConfiguration) { return null}
-interface ValueSource<T, TYPE_NAME extends string> {
+interface ValueSource<T, TYPE_NAME extends string = string> {
     makeCompilerHappy_type: T
     makeCompilerHappy_typeName: TYPE_NAME
 }
+// The value sources of the data types, each one given by the methods that take a data type (see ValueSource<T>)
+void function (_uuid: UuidValueSource, _integers: IntegersValueSource<any, any>, _decimals: DecimalsValueSource<any, any>, _reals: RealsValueSource<any, any>, _uuids: UuidsValueSource<any, any>, _localDates: LocalDatesValueSource<any, any>, _localTimes: LocalTimesValueSource<any, any>, _localDateTimes: LocalDateTimesValueSource<any, any>) { return null }

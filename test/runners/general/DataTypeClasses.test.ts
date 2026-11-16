@@ -5,7 +5,7 @@ import { assertType, type Exact } from '../../lib/assertType.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import { NoopQueryRunner } from '../../../src/queryRunners/NoopQueryRunner.js'
 import {
-    BigintType, BooleanType, CustomBigintType, CustomComparableType, CustomDecimalType, CustomIntType, DoubleType, EnumType, IntType,
+    BigintType, BooleanType, DoubleType, EnumType, IntType,
     LocalDateType, StringDecimalType, StringType, Table, UuidType, CustomBooleanTypeAdapter,
 } from '../../../src/exports/v2/index.js'
 import { NumberType } from '../../../src/typeSystem/number.js'
@@ -23,11 +23,14 @@ import type { SourceOf, ValueSource } from '../../../src/typeSystem/base.js'
 type Money = number & { readonly __brand: 'Money' }
 type Status = 'open' | 'closed'
 
-const MoneyType = CustomIntType.of<Money, 'Money'>('Money')
-const OtherType = CustomIntType.of<number, 'Other'>('Other')
-const PriceType = CustomDecimalType.of<string, 'Price'>('Price')
-const StatusType = EnumType.of<Status, 'Status'>('Status')
-const VersionType = CustomComparableType.of<string, 'Version'>('Version')
+// The data types of the user, each one a class of the family of its values
+abstract class MoneyType extends IntegersType<Money, 'Money'> { static override readonly type = 'Money' }
+abstract class OtherType extends IntegersType<number, 'Other'> { static override readonly type = 'Other' }
+abstract class PriceType extends DecimalsType<string, 'Price'> { static override readonly type = 'Price' }
+abstract class StatusType extends EnumType<Status, 'Status'> { static override readonly type = 'Status' }
+abstract class VersionType extends ComparableType<string, 'Version'> { static override readonly type = 'Version' }
+// Another declaration with the same type name and family: another class
+abstract class AnotherMoneyType extends IntegersType<Money, 'Money'> { static override readonly type = 'Money' }
 
 // A data type of the user that extends a base of the library directly, with nothing more than its type name
 abstract class ColorType extends EqualableType<string, 'Color'> {
@@ -89,19 +92,19 @@ describe('DataTypeClasses', () => {
         expect(accepted(AggregatedArrayType)).toEqual(['aggregatedArray'])
     })
 
-    test('is-of-a-custom-type-says-yes-only-to-its-type-name', () => {
+    test('is-of-a-type-of-the-user-says-yes-only-to-its-class', () => {
         expect(accepted(MoneyType)).toEqual(['money'])
         expect(accepted(OtherType)).toEqual([])
         expect(accepted(PriceType)).toEqual(['price'])
         expect(accepted(StatusType)).toEqual(['status'])
         expect(accepted(VersionType)).toEqual(['version'])
+        expect(accepted(AnotherMoneyType)).toEqual([])
     })
 
     test('is-of-a-family-says-yes-to-each-of-its-types', () => {
-        expect(accepted(CustomIntType)).toEqual(['money'])
-        expect(accepted(CustomDecimalType)).toEqual(['price'])
+        expect(accepted(IntegersType)).toEqual(['bigint', 'money'])
+        expect(accepted(DecimalsType)).toEqual(['stringDecimal', 'price'])
         expect(accepted(EnumType)).toEqual(['status'])
-        expect(accepted(CustomComparableType)).toEqual(['version'])
     })
 
     test('is-of-a-group-says-yes-to-each-data-type-it-groups', () => {
@@ -148,18 +151,15 @@ describe('DataTypeClasses', () => {
         expect(isInt(tThing.double.add(1))).toBe(false)
     })
 
-    test('of-gives-the-same-class-for-the-same-type-name', () => {
-        expect(CustomIntType.of<Money, 'Money'>('Money')).toBe(MoneyType)
-        expect(EnumType.of<Status, 'Status'>('Status')).toBe(StatusType)
-        expect(CustomIntType.of<number, 'Other'>('Other')).not.toBe(MoneyType)
-        // The same type name in another family is another data type
-        expect(CustomBigintType.of<bigint, 'Money'>('Money')).not.toBe(MoneyType)
-        expect(CustomBigintType.of<bigint, 'Money'>('Money').customType).toBe('customBigint')
+    test('each-declaration-is-a-class-of-its-own', () => {
+        expect(AnotherMoneyType.type).toBe(MoneyType.type)
+        expect(tThing.money).not.toBeInstanceOf(AnotherMoneyType)
+        expect(AnotherMoneyType.is(tThing.money)).toBe(false)
     })
 
     test('a-value-source-is-an-instance-of-the-class-of-its-data-type', () => {
         expect(tThing.money).toBeInstanceOf(MoneyType)
-        expect(tThing.money).toBeInstanceOf(CustomIntType)
+        expect(tThing.money).toBeInstanceOf(IntegersType)
         expect(tThing.int).toBeInstanceOf(IntType)
         expect(tThing.int).toBeInstanceOf(NumberType)
         expect(tThing.int).not.toBeInstanceOf(DoubleType)

@@ -20,7 +20,6 @@ export {
 export {
     CustomBooleanTypeAdapter,
     ForceTypeCast,
-    type CustomType,
     type DataTypeClass,
     type DefaultTypeAdapter,
     type ProjectionComparison,
@@ -92,19 +91,9 @@ export {
 } from '../../typeSystem/bigint.js'
 
 export {
-    CustomBigintType,
-    CustomDoubleType,
-    CustomIntType,
-} from '../../typeSystem/customNumber.js'
-
-export {
     DecimalsType,
     StringDecimalType,
 } from '../../typeSystem/decimals.js'
-
-export {
-    CustomDecimalType,
-} from '../../typeSystem/customDecimals.js'
 
 export {
     StringType,
@@ -116,10 +105,6 @@ export {
 } from '../../typeSystem/uuids.js'
 
 export {
-    CustomUuidType,
-} from '../../typeSystem/customUuids.js'
-
-export {
     LocalDateTimeType,
     LocalDateTimesType,
     LocalDateType,
@@ -129,22 +114,8 @@ export {
 } from '../../typeSystem/localDates.js'
 
 export {
-    CustomLocalDateTimeType,
-    CustomLocalDateType,
-    CustomLocalTimeType,
-} from '../../typeSystem/customLocalDates.js'
-
-export {
-    CustomEqualableType,
-} from '../../typeSystem/customEqualable.js'
-
-export {
     EnumType,
 } from '../../typeSystem/enum.js'
-
-export {
-    CustomComparableType,
-} from '../../typeSystem/customComparable.js'
 
 export {
     getQueryContext,
@@ -191,19 +162,12 @@ export {
     type BooleanFilter,
     type NumberFilter,
     type BigintFilter,
-    type CustomIntFilter,
-    type CustomBigintFilter,
-    type CustomDoubleFilter,
-    type CustomDecimalFilter,
     type StringDecimalFilter,
     type StringFilter,
     type DateFilter,
     type TimeFilter,
     type DateTimeFilter,
-    type CustomLocalDateFilter,
-    type CustomLocalTimeFilter,
-    type CustomLocalDateTimeFilter,
-    type CustomUuidFilter,
+    type UuidsFilter,
 } from '../../expressions/dynamicConditionUsingFilters.js'
 
 export {

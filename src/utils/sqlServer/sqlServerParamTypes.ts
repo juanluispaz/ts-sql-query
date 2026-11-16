@@ -5,7 +5,7 @@ import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
  * The placeholder of a parameter on SQL Server, for every query runner of it. An exact number sent as its text (a
- * stringDecimal, a customDecimal, a number or a bigint of an exact number that isn't an integer of a fixed size) is
+ * stringDecimal, an exact decimal, a number or a bigint of an exact number that isn't an integer of a fixed size) is
  * sent as an nvarchar:
  * two of them would be concatenated, a modulo rejects it, and alone it would be cut to the width of the text it is
  * converted to; it is cast to a decimal with the digits of the value, except as the value of a column, whose type it

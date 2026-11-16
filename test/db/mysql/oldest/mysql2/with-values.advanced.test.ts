@@ -63,10 +63,10 @@ type Money      = number & { readonly __brand: 'Money' }
 type OrderState = 'open' | 'paid' | 'void'
 
 class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
-    // `column(CustomIntType.of<T, 'IssueId'>('IssueId'))` reaches — the
+    // `column(IssueIdType)` reaches — the
     // `typeof adapter === 'string'` branch of the column impl.
     issueId  = this.column(IssueIdType)
-    // `optionalColumn(CustomDoubleType.of<T, 'Money'>('Money'))` reaches —
+    // `optionalColumn(MoneyType)` reaches —
     // the optional sibling of the same branch.
     amount   = this.optionalColumn(MoneyType)
     // `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
@@ -225,8 +225,8 @@ describe(ctx.label, () => {
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
-        // `column(CustomIntType.of<T, 'IssueId'>('IssueId'))` and
-        // `optionalColumn(CustomDoubleType.of<T, 'Money'>('Money'))` on the
+        // `column(IssueIdType)` and
+        // `optionalColumn(MoneyType)` on the
         // `VIssueBilling` view above route through the
         // `typeof adapter === 'string'` branch — the only branch reached when the
         // user passes a typeName. The emitted VALUES tuple casts the placeholders for
@@ -310,7 +310,7 @@ describe(ctx.label, () => {
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
-        // `optionalVirtualColumnFromFragment(CustomUuidType.of<T, 'BillingRef'>('BillingRef'), fn)`
+        // `optionalVirtualColumnFromFragment(BillingRefType, fn)`
         // reaches. Same dispatch branch as the
         // required-virtual-column test above; the projection surfaces
         // `string | undefined`.
@@ -411,8 +411,8 @@ describe(ctx.label, () => {
         // has issues 101 and 102; the joined view only has 101, so 102's joined
         // leaf is absent.
         class VIssueBillingJoin extends Values<DBConnection, 'issueBillingJoin'> {
-            issueId = this.column(CustomIntType.of<IssueId, 'IssueId'>('IssueId'))
-            amount  = this.optionalColumn(CustomDoubleType.of<Money, 'Money'>('Money'))
+            issueId = this.column(IssueIdType)
+            amount  = this.optionalColumn(MoneyType)
         }
         const expected = [
             { base: 101 as IssueId, joined: 101 as IssueId },

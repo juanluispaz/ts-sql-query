@@ -130,7 +130,7 @@ add(value: any): any {
   `*WhenNoValue`, `collate`): the type adapter of the receiver as it has it, with its SQL data type (`__keptClassOf`);
   a fallback of another SQL data type keeps only its conversions;
 - a number computed from the receiver, of its data type (`add`, `subtract`, `multiply`, `modulo`, `abs`, `round`,
-  `roundn`, the `divide` of a customDouble, `sum`): the conversions of its type adapter, without its SQL data type
+  `roundn`, the `divide` of a `RealsType`, `sum`): the conversions of its type adapter, without its SQL data type
   (`__computedClassOf`): a value computed from a column is not a value of that column;
 - anything else, none: a comparison, `length`, `sign`, the mathematical functions, an `as*`, `average`, `count`, and the
   operations of a text that give a new text (`concat`, `substr`, `replaceAll`, `trim`, ...): an adapter of a text says

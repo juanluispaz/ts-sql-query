@@ -6,7 +6,7 @@ import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
  * Checks a parameter on Oracle, for every query runner of it: the number of the database keeps 38 significant
- * digits, so an exact number sent as its text (a stringDecimal, a customDecimal) with more, which would be rounded in a computation without an error and that no column
+ * digits, so an exact number sent as its text (a stringDecimal, a decimal of the user) with more, which would be rounded in a computation without an error and that no column
  * can hold, is rejected. Call it before adding the parameter at that index.
  */
 export function checkOracleParam(index: number, value: unknown, requestedType: DataTypeClass | undefined): void {

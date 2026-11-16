@@ -24,7 +24,7 @@ Three places own the work. What decides where a thing goes is **whether it condi
 | Place | Owns |
 |---|---|
 | **The connection**, with its **SQL builder** | The semantics: which values a data type accepts and promises (`transformValueToDB` / `transformValueFromDB`), the SQL around the values, the SQL of the result columns (the `transformProjection` of the connection, the `next` of a type adapter's), and **the form of a value that the SQL it writes depends on**. It hands that form to the runner and reads it back |
-| **The runner's `addParam`** | How the database interprets each parameter as the type it is: the placeholder, the cast in it, and the checks of the final value (a `customDecimal` too wide for the database). The rule is the same for every runner of a database, and `MockQueryRunner` with the name of a runner applies the same one |
+| **The runner's `addParam`** | How the database interprets each parameter as the type it is: the placeholder, the cast in it, and the checks of the final value (an exact decimal too wide for the database). The rule is the same for every runner of a database, and `MockQueryRunner` with the name of a runner applies the same one |
 | **The runner at execution** | What is specific to its driver: how the driver must receive a value the database already handles (the UTC text of a `Date`, `1`/`0` for a boolean the driver can't bind, a driver type, an OID, a bind type), the per-query options that make the driver deliver without loss, and the shape of the rows |
 
 - The connection hands the form the SQL depends on. Oracle has no BOOLEAN before 23ai, and the SQL the library writes
@@ -138,11 +138,13 @@ the other databases.
    context has the requested type of the value as it leaves the database (the one its `transformProjection`
    requests), which an adapter that converts the value to another type changes before calling `next`.
 
-The connection converts a value by its requested type and custom type: a value with a custom type is decided by it,
-whatever its type name (`customInt` as an `int`, `customBigint` as a `bigint`, `customDouble` as a `double`,
-`customDecimal` as a `stringDecimal`, `customUuid` as a `uuid`, `customLocalDate/Time/DateTime` as a
-`localDate/Time/DateTime`), and one without, by its type. `enum`, `custom`, `customComparable` and a value without a
-built-in type pass unconverted. The query runners decide the same way.
+The connection converts a value by the class of its requested type: a data type of the user is converted as its family
+says, whatever its type name (an `IntegersType` as an `int`, or as a `bigint` when the SQL data type of its class
+doesn't fit in a number; a `RealsType` as a `double`; a `DecimalsType` as a `stringDecimal`; a `UuidsType` as a `uuid`;
+a `LocalDatesType`, `LocalTimesType` or `LocalDateTimesType` as a `localDate`, `localTime` or `localDateTime`), and a
+built-in one by its type. A data type of the user whose family converts nothing (`EnumType`, `EqualableType`,
+`ComparableType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) and a value without a built-in type pass
+unconverted. The query runners decide the same way.
 
 ## 2. Sending
 
@@ -157,14 +159,14 @@ Every rejection is `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 | `int` | an integer `number` (not checked for the safe range) | non-integer number, non-number | the number |
 | `bigint` | `bigint` | anything else (a `number` too) | the bigint |
 | `double` | any `number` (`NaN`, `Infinity` included) | non-number | the number |
-| `stringDecimal`, `customDecimal` | a string matching `^-?(\d+(\.\d+)?\|\.\d+)$` (point separator, no exponent) | other strings, non-strings | the text |
+| `stringDecimal`, `DecimalsType` | a string matching `^-?(\d+(\.\d+)?\|\.\d+)$` (point separator, no exponent) | other strings, non-strings | the text |
 | `string` | `string` | non-string | the string |
 | `uuid` | `string` (format not checked) | non-string | the string; in lower case with the uuid strategy `'string'` (MariaDB, MySQL, Oracle, SQLite) and on SQL Server unless `useUpperCaseUuid` |
 | `localDate` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC day is the value) |
 | `localTime` | a valid `Date` | invalid `Date`, non-Date | a new `Date` on 1970-01-01 UTC with the UTC time of the given one; with a database outside UTC, the instant of its own day (§7.3) |
 | `localDateTime` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC getters are the digits; the instant for a zoned column) |
 | `aggregatedArray` | — | always | — |
-| `enum`, `custom`, `customComparable`, no built-in type | anything | — | the value as given |
+| a type of the user whose family converts nothing, no built-in type | anything | — | the value as given |
 | SQLite temporal | a valid `Date` | invalid `Date`, non-Date | text or number per `SqliteDateTimeFormat` |
 
 An unsafe integer or `NaN` passes `int` / `double` and reaches the driver; only `Sqlite3WasmOO1QueryRunner` guards the
@@ -175,7 +177,7 @@ Tests: `test/db/<db>/<version>/<connector>/marshalling.transform-validation.test
 **The runner must not assume this table holds.** A type adapter's `transformValueToDB` replaces the connection's (it
 only calls it through `next` if it wants), and its result is not validated again. So a runner receives the forms above
 for the built-in types without adapter, and anything for a value with an adapter or of
-`enum`/`custom`/`customComparable`. Every runner is written for that: at execution it converts only a valid `Date` of a
+a type of the user whose family converts nothing. Every runner is written for that: at execution it converts only a valid `Date` of a
 temporal type, and `addParam` checks a decimal only when it is plain decimal text; anything else is sent as it is.
 
 ### 2.2 `addParam`: placeholder, cast, checks
@@ -199,9 +201,9 @@ A rejected decimal is `INVALID_VALUE_TO_SEND_TO_DATABASE` with its `paramIndex`.
 is `decimal(4, 2)`, `0.0120` has 2 significant digits.
 
 The type of a PostgreSQL param by data type (the cast, and the OID of postgres.js and PGlite): `bool`/16, `int4`/23,
-`int8`/20, `float8`/701, `numeric`/1700 (`stringDecimal`, `customDecimal`), `text`/25, `uuid`/2950, `date`/1082,
+`int8`/20, `float8`/701, `numeric`/1700 (`stringDecimal`, `DecimalsType`), `text`/25, `uuid`/2950, `date`/1082,
 `time`/1083, `timestamp`/1114; with a database outside UTC, `timestamptz`/1184 for a `localDateTime` and a `localTime`
-(§7.3). For `enum`/`custom`/`customComparable` or a value without a built-in type it comes from the JS value: a bigint
+(§7.3). For a type of the user whose family converts nothing or a value without a built-in type it comes from the JS value: a bigint
 `int8`, an integer number `int4` or `int8` by range, another number `float8`, anything else none.
 
 Tests: `test/runners/postgres/PostgreSqlParamTypes.test.ts`, `test/runners/mysql/MySqlCustomDecimalParams.test.ts`,
@@ -219,10 +221,10 @@ casts). A `Date` reads well: its `toISOString()` shows the UTC digits (`2024-01-
 |---|---|---|---|
 | boolean | `true` / `false` | `1` / `0`; `true` / `false` with `booleanStorage: 'boolean'` | `true` / `false` |
 | int, bigint, double | the number / bigint | same | same (sqlite-wasm: an integer beyond 64 bits as its text) |
-| stringDecimal, customDecimal, string, uuid | the text | the text | the text |
+| stringDecimal, DecimalsType, string, uuid | the text | the text | the text |
 | localDate, localDateTime | the `Date` | the `Date` | the text or number of the date strategy |
 | localTime | a `Date` on 1970-01-01 UTC (outside UTC, of its own day) | same | per the date strategy |
-| enum, custom, customComparable, a value with a type adapter | what the adapter or the user gives | same | same |
+| a type of the user whose family converts nothing, a value with a type adapter | what the adapter or the user gives | same | same |
 
 - What the driver receives differs from the params only by the runner's work at execution (§2.4). That work is tested
   against the real engine (the environment tests, `test/ENVIRONMENT_TESTS.md`, and the driver tests of each runner in
@@ -266,7 +268,7 @@ What the drivers of each database receive, as a copy of the params when a value 
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `query({ ...queryOptions, sql }, params)` with the values above | — |
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `query({ ...queryOptions, sql }, params)` with the values above | — |
 | `BunSqlMySqlQueryRunner` | `sql.unsafe(query, params)` with the values above | — |
-| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.input('<i>', type, value)` for each param, then `request.query(query)`. Type: `typesByName` (a factory or a type with arguments) → by its data type → an `enum`, `custom` or `customComparable` infers it from the value (a string is `NVarChar`) → a param without type infers it from the value (a `Date` the library read keeps its data type for that). tedious writes a `Date` with the UTC getters (`useUTC`, true by default) | `ISqlTypeFactory` / `ISqlType` |
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.input('<i>', type, value)` for each param, then `request.query(query)`. Type: `typesByName` (a factory or a type with arguments) → by its data type → a type of the user without a SQL data type infers it from the value (a string is `NVarChar`) → a param without type infers it from the value (a `Date` the library read keeps its data type for that). tedious writes a `Date` with the UTC getters (`useUTC`, true by default) | `ISqlTypeFactory` / `ISqlType` |
 | `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: `typesByName` → `{ val, type }`; in `executeProcedure`, or in any query with `booleanStorage: 'boolean'`, a boolean param (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version); a boolean RETURNING OUT bind gets `DB_TYPE_BOOLEAN` only with `booleanStorage: 'boolean'` (with `'number'` it has no type and comes back as text); a temporal `Date` as above; a null of a number or temporal type → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`{ dir: BIND_OUT, type }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one declared in `typesByName` (`{ type, maxSize }`), else the `returningMaxSize` of the runner, else 32767. A `Lob` OUT value (a CLOB declared in `typesByName`) is read whole | `DbType` or `{ type, maxSize }`, also for OUT binds |
 | `BetterSqlite3QueryRunner` | `prepare(query).all/run({ 1: p0, 2: p1, … })` | — |
 | `BunSqliteQueryRunner` | `prepare(query).all/run(...params)` | — |
@@ -287,17 +289,17 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 | Data type | PostgreSQL | MySQL / MariaDB | SQL Server (mssql type) | Oracle (bind) | SQLite |
 |---|---|---|---|---|---|
 | boolean | boolean; forced: `bool` | boolean, stored as 1/0 | `Bit` | number `1`/`0`; null → `DB_TYPE_NUMBER`; in a procedure, or with `booleanStorage: 'boolean'`, `DB_TYPE_BOOLEAN` (a null too) | `1`/`0` (bun:sqlite and Bun SQL: the boolean, bound as `1`/`0` by the driver) |
-| int, customInt | number; forced: `int4` | number | `Int` | number; null → `DB_TYPE_NUMBER` | number (wasm: beyond 64 bits as `cast(text as real)`) |
-| bigint, customBigint | bigint; forced: `int8` | bigint | `BigInt` | bigint; null → `DB_TYPE_NUMBER` | bigint |
-| double, customDouble | number; forced: `float8` | number | `Float` | number; null → `DB_TYPE_NUMBER` | number |
-| stringDecimal, customDecimal | text; forced: `numeric` | text, `cast(? as decimal(p,s))` outside a column value | `NVarChar`, `cast(@N as decimal(p,s))` outside a column value | text; null → `DB_TYPE_NUMBER` | text (the SQL around it per `decimalStrategy`) |
+| int, IntegersType that fits in a number | number; forced: `int4` | number | `Int` | number; null → `DB_TYPE_NUMBER` | number (wasm: beyond 64 bits as `cast(text as real)`) |
+| bigint, IntegersType wider than a number | bigint; forced: `int8` | bigint | `BigInt` | bigint; null → `DB_TYPE_NUMBER` | bigint |
+| double, RealsType | number; forced: `float8` | number | `Float` | number; null → `DB_TYPE_NUMBER` | number |
+| stringDecimal, DecimalsType | text; forced: `numeric` | text, `cast(? as decimal(p,s))` outside a column value | `NVarChar`, `cast(@N as decimal(p,s))` outside a column value | text; null → `DB_TYPE_NUMBER` | text (the SQL around it per `decimalStrategy`) |
 | string | text; forced: `text` | text | `NVarChar` | text | text |
-| uuid, customUuid | text; forced: `uuid` | text | `UniqueIdentifier` | text | text |
+| uuid, UuidsType | text; forced: `uuid` | text | `UniqueIdentifier` | text | text |
 | localDate | `YYYY-MM-DD` (UTC day); forced: `date` | `YYYY-MM-DD` (UTC day) | the Date, `Date` | `DATE` of the UTC day | per `SqliteDateTimeFormat` |
 | localTime | `HH:MM:SS.mmm` (UTC); forced: `time` | `HH:MM:SS.mmm` (UTC) | the Date on 1970-01-01 UTC, `Time` | `TIMESTAMP` on 1970-01-01, the UTC digits | per format |
 | localDateTime | `YYYY-MM-DD HH:MM:SS.mmm+00`; forced: `timestamp` | `YYYY-MM-DD HH:MM:SS.mmm` (UTC) | the Date, `DateTime2` | `TIMESTAMP`, the UTC digits | per format |
-| enum, custom, customComparable | as given; forced: type of the JS value or none | as given | a string `NVarChar`, otherwise inferred from the value | as given | as given (a boolean `1`/`0`, except bun:sqlite and Bun SQL) |
-| null of a built-in type (or its custom type) | forced: the type's cast/OID | null | the type's type | typed by its type (number, timestamp), otherwise untyped | null |
+| a type of the user whose family converts nothing | as given; forced: type of the JS value or none | as given | a string `NVarChar`, otherwise inferred from the value | as given | as given (a boolean `1`/`0`, except bun:sqlite and Bun SQL) |
+| null of a built-in type (or of a family that converts) | forced: the type's cast/OID | null | the type's type | typed by its type (number, timestamp), otherwise untyped | null |
 
 ### 2.6 The SQL data type of a parameter
 
@@ -307,7 +309,7 @@ optionally, the name of the type in each database, `native`), apart:
 
 - **The one of its data type**, the static `sqlDataType` of its class, in `originalType` and `requestedType` of the
   context: what the value is (an integer of 4 bytes for an `int`, an exact number without precision for a decimal, a
-  text, a uuid, a date, …); none for an `enum`, a `custom` or a `customComparable`, whose values only the user knows.
+  text, a uuid, a date, …); none for a type of the user whose family converts nothing, whose values only the user knows.
 - **The one declared**, `originalSqlDataType` and `requestedSqlDataType` of each parameter and column of the result:
   the one a type adapter says (`withSqlDataType`), the one of the column, for the value of the column in an insert or
   an update, a value compared with the column (`equals`, `in`, `between`, …) and the OUT params of a `returning` of
@@ -320,7 +322,7 @@ driver a value is bound with and the cast of its placeholder (an integer of up t
 number a `float8`, a `Float`; a date, a time or a timestamp the type of the database of its fields), the form of a
 date given to the driver, the check and the cast of an exact number sent as its text, and which columns of the result
 are fetched as text (an exact number that isn't an integer of up to 4 bytes, on Oracle). A class of the user that
-says its own SQL data type is sent and read by it. A value without a SQL data type (an `enum`, a `custom`, a value of
+says its own SQL data type is sent and read by it. A value without a SQL data type (an `enum`, an `EqualableType` of the user, a value of
 SQL written by hand) is bound by its JavaScript value. What only the declared one says, more precise than the one of
 the type (the length of a text, a large object, a `datetime` of SQL Server, a JSON, the native name of a PostgreSQL
 type, the precision of a number read as text), is used only when it describes the value: when it is of the family of
@@ -375,7 +377,7 @@ their own queries.
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: true`, `bigNumberStrings: true`, `rowsAsArray: false`; and its own `typeCast` (DECIMAL/NEWDECIMAL as their text, else `next()`) when the connection has a `typeCast` function, `typeCast: false` or `decimalNumbers: true`, since a typeCast given with the query replaces the connection's | DATE/DATETIME/TIMESTAMP/TIME as text; BIGINT and DECIMAL as exact text; objects | `test/runners/mysql/DriverConfiguration.test.ts` (`a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner`), `test/runners/mysql/DeliveredValues.test.ts` |
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: false`, `bigIntAsNumber: false`, `decimalAsNumber: false`, `insertIdAsNumber: false`, `rowsAsArray: false`, `metaAsArray: false`, `nestTables: false`, `typeCast: undefined` (each replaces the connection's) | dates as text; BIGINT and insert id as `bigint`; DECIMAL as text; objects | `test/runners/mariadb/DriverConfiguration.test.ts`, `test/runners/mariadb/DeliveredValues.test.ts` |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false` | tedious defaults: BIGINT as text, INT and DECIMAL as numbers (the connection converts decimal result columns to `nvarchar(41)`), BIT as a boolean; dates with the UTC getters (`useUTC`), the instant for `datetimeoffset` | `test/runners/sqlserver/DeliveredValues.test.ts`, `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
-| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `outFormat: OUT_FORMAT_OBJECT`, `maxRows: 0`, a `fetchTypeHandler` answering every column: a result column of type stringDecimal/customDecimal/bigint/customBigint (by name, or the only column of an unnamed one-value result) → `DB_TYPE_VARCHAR`; `DATE`/`TIMESTAMP` → the `Date` rebuilt with its local getters as UTC; CLOB/NCLOB → string; BLOB → Buffer; else its own type | decimals and bigints as text; DATE/TIMESTAMP as UTC Date (exact except a wall clock skipped by summer time in the zone of the process, and years < 100 built as 19xx by oracledb); NUMBER as number; RETURNING OUT binds as in §2.4 | `test/runners/oracle/OracleDBResultTypes.test.ts`, `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` |
+| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `outFormat: OUT_FORMAT_OBJECT`, `maxRows: 0`, a `fetchTypeHandler` answering every column: a result column of an exact decimal or of an integer wider than a number (by name, or the only column of an unnamed one-value result) → `DB_TYPE_VARCHAR`; `DATE`/`TIMESTAMP` → the `Date` rebuilt with its local getters as UTC; CLOB/NCLOB → string; BLOB → Buffer; else its own type | decimals and bigints as text; DATE/TIMESTAMP as UTC Date (exact except a wall clock skipped by summer time in the zone of the process, and years < 100 built as 19xx by oracledb); NUMBER as number; RETURNING OUT binds as in §2.4 | `test/runners/oracle/OracleDBResultTypes.test.ts`, `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` |
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner` | nothing (`safeIntegers` not forced) | numbers, or `bigint` with the driver's big-integer mode; text; dates as stored per format | the tests of each runner in `test/runners/sqlite/` |
 | `NodeSqliteQueryRunner` | `setReturnArrays(false)` per statement, where the method exists (Node 22.16 and 24); `readBigInts` not forced | objects even on a database opened with `returnArrays: true`; numbers, or `bigint` with `readBigInts` | `test/runners/sqlite/NodeSqliteQueryRunner.test.ts` (`the-rows-are-objects-with-return-arrays-on-the-database`) |
 | `Sqlite3WasmOO1QueryRunner` | `selectObjects` | objects; numbers, and a `bigint` for an integer beyond the safe range | `test/runners/sqlite/Sqlite3WasmOO1Numbers.test.ts` |
@@ -396,7 +398,7 @@ themselves is in the `DeliveredValues` tests of `test/runners/<db>/` and in the 
 | int | number; text (int8, count) | number; text (mysql2 BIGINT); bigint (mariadb BIGINT) | number; text (BIGINT) | number; text from an OUT bind | number, bigint |
 | bigint | text (int8) | text (mysql2); bigint (mariadb) | text | text (fetched as VARCHAR) | number, bigint |
 | double | number; text (numeric) | number; text (DECIMAL) | number | number | number |
-| stringDecimal, customDecimal | text | text | text (`convert(nvarchar(41))`) | text, possibly `.5` / `-.5` | text per `decimalStrategy` |
+| stringDecimal, DecimalsType | text | text | text (`convert(nvarchar(41))`) | text, possibly `.5` / `-.5` | text per `decimalStrategy` |
 | string, uuid | text | text | text | text | text |
 | localDate | Date (`date` parsed as UTC) | text `YYYY-MM-DD` (mysql2/mariadb); Date (Bun SQL) | Date | Date (rebuilt as UTC) | per format |
 | localTime | text `HH:MM:SS[.ffffff]`; `timetz` text with its offset | text `HH:MM:SS[.ffffff]` | Date | Date | per format |
@@ -423,7 +425,7 @@ Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyStr
 | `int` | safe integer number; text `^-?\d+(\.0+)?$` → number; bigint → number | integer number not safe; text or bigint beyond the safe range | non-integer number, other text, other types |
 | `bigint` | safe integer number → bigint; text → `BigInt(text without a trailing .0+)` (`BigInt()` also takes `0x1f` and blanks, which no database delivers); bigint | integer number not safe | non-integer number, text `BigInt` refuses, other types |
 | `double` | number; text `^(-?(\d+(\.\d+)?\|\.\d+)([eE][-+]?\d+)?\|NaN\|-?Infinity)$` → `+v`; bigint → `Number(v)` (a `double` is approximate by definition: rounding a bigint is not a loss to report) | — | other text, other types |
-| `stringDecimal`, `customDecimal` | text `^-?(\d+(\.\d+)?\|\.\d+)$` (`.5` → `0.5`, `-.5` → `-0.5`); bigint → its text | any number | other text (an exponent too), other types |
+| `stringDecimal`, `DecimalsType` | text `^-?(\d+(\.\d+)?\|\.\d+)$` (`.5` → `0.5`, `-.5` → `-0.5`); bigint → its text | any number | other text (an exponent too), other types |
 | `string`, `uuid` | text, unchanged; a `uuid` in lower case with the uuid strategy `'string'` and on SQL Server unless `useUpperCaseUuid`; on SQL Server also the text of a uuid (`asString()`) in a column of the result | — | non-text |
 | `localDate` | valid Date, read with its UTC getters, or temporal text (§3.4) → a new Date at 10:00 UTC of the UTC day of the received one | — | anything else, invalid Date, unparsable text, text outside the calendar |
 | `localTime` | same inputs → a Date on 1970-01-01 with the UTC time of the received one; with a database outside UTC, the instant read, on its own day (§7.3) | — | same |
@@ -474,7 +476,7 @@ by hand (an empty context).
 
 | Of | Field | Written by | What it is for |
 |---|---|---|---|
-| each parameter | `originalType`, `requestedType` (the class of each type, with its `type` and `customType`), `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
+| each parameter | `originalType`, `requestedType` (the class of each type, with its `type` and `sqlDataType`), `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
 | each parameter | `originalSqlDataType`, `requestedSqlDataType` | the type adapter the parameter is converted with (`withSqlDataType`), the one of the column for a value compared with it; the requested one, by the adapter (`setRequestedSqlDataType`) (§2.6) | the type of the column in the database, for the bind type or the buffer of the driver |
 | each parameter | `isValueForColumn` | the library before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server; on Oracle with a database outside UTC, a bare placeholder (§7.3) |
 | each parameter | `getMetadata(key)`: a key of a type adapter or of the library | `transformValueToDB` of the type adapter and of the connection (`setMetadata`), before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters, which the Oracle runners bind as a `DATE` when of whole seconds, and as a `DATE` when `null` (§2.4); the connection marks the temporal values of a database outside UTC (§7.3) |
@@ -571,7 +573,7 @@ Reading:
   user's responsibility, documented in `docs/configuration/query-runners/recommended/bun_sql_mysql.md`).
 - MySQL/MariaDB: `TIMESTAMP` columns follow the session `time_zone` (the rule above). A date outside the calendar
   (`ALLOW_INVALID_DATES`), a zero date (without `NO_ZERO_DATE`) and a `24:00:00` value are rejected when read
-  (`docs/configuration/time-zones.md#known-limits`); who stores them reads them with a custom type.
+  (`docs/configuration/time-zones.md#known-limits`); who stores them reads them with a type of their own.
 - PostgreSQL `time` values of `24:00:00` are rejected the same way.
 - Oracle: a session zone changed with `ALTER SESSION`, or a connection opened before `ORA_SDTZ` is set, isn't seen.
 - PGlite: created (or opened once) with `postgresqlconf: ["timezone = 'UTC'"]`, or its database takes the zone of the
@@ -596,7 +598,7 @@ better-sqlite3, bun:sqlite and sqlite-wasm); `docs/configuration/time-zones.md#k
 2. What the driver needs and the database doesn't (the UTC text of a `Date`, `1`/`0` for a boolean, a driver type)
    is made at execution, on a copy given to the driver: the params keep the value the connection handed. Never rewrite
    the SQL text.
-3. Accept the forms of §2.1, and anything for adapted or custom values: convert only what you recognise (a valid Date
+3. Accept the forms of §2.1, and anything for adapted values or values of the user: convert only what you recognise (a valid Date
    of a temporal type, a plain decimal text), send the rest as it is.
 4. Type the parameter from the context of the query (§4), never from the SQL text; fall back to inferring from the
    value only when there is no type.
@@ -677,7 +679,7 @@ into such a column is stored with `+00:00`.
 A type adapter on the column keeps the zone for every query: its `transformProjection` gives the column as that text in
 `'resultColumn'` (the select, the `returning` / `output`) and `'aggregatedArrayValue'`, its `transformPlaceholder`
 converts the text sent (`to_timestamp_tz(:0, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR')`, `cast(@0 as datetimeoffset)`), and the
-value is the text. A `customComparable` (or a `custom`) text is sent as text; a `customLocalDateTime` is bound as a
+value is the text. A text of a `ComparableType` (or an `EqualableType`) of the user is sent as text; a `LocalDateTimesType` of the user is bound as a
 `localDateTime`, on SQL Server as a `datetime2`, which tedious makes from a `Date`: the offset and the digits below the
 millisecond are lost (measured on SQL Server 2019). Outside those outputs (the where, the order by) the column keeps
 its SQL, so they compare instants; its `transformProjection` says `comparison` `'none'`, so a union and a distinct

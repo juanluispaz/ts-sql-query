@@ -7,14 +7,13 @@ import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnect
 import { SqlServerConnection } from '../../../src/connections/SqlServerConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import { CustomBigintType, IntType, Table, withSqlDataType } from '../../../src/exports/v2/index.js'
+import { IntegersType, IntType, Table, withSqlDataType } from '../../../src/exports/v2/index.js'
 import type { SqlDataType } from '../../../src/TypeAdapter.js'
 
 // An integer of 30 digits, read and sent as a bigint of JavaScript
 const thirtyDigits: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }
-abstract class BigIntegerType extends CustomBigintType<bigint, 'BigInteger'> {
+abstract class BigIntegerType extends IntegersType<bigint, 'BigInteger'> {
     static override readonly type = 'BigInteger'
-    static override readonly customType = 'customBigint'
     static override readonly sqlDataType: SqlDataType = thirtyDigits
 }
 

@@ -28,7 +28,7 @@ import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSour
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
-import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
+import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
@@ -3048,7 +3048,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (!oldCoumn) {
                     throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'The column ' + property + ' is missing from the old values table')
                 }
-                const condition = (column as any as ValueSource<any, CustomEqualableType<any, any>, any>).equals(oldCoumn)
+                const condition = (column as any as ValueSource<any, EqualableType<any, any>, any>).equals(oldCoumn)
                 if (where) {
                     where = where.and(condition)
                 } else {
@@ -3829,7 +3829,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * - `approximate`: a floating point expression.
      * - `exact`: an integer or fixed point expression. Engines divide two exact operands
      *   exactly — or as an integer division, dropping the fractional part entirely.
-     * - `unknown`: the declared type doesn't say. A `customDouble` is declared by the
+     * - `unknown`: the declared type doesn't say. A `RealsType` of the user is declared by the
      *   application and may be backed by either (a DECIMAL money column, say), and anything
      *   that is not a value source is a bound value or a raw fragment.
      *
@@ -4212,8 +4212,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _moduloRequiresFloatHandling(typeClass: DataTypeClass, value: any): boolean {
         // `_modulo` only receives the receiver's column type, but the
         // overloaded-number dispatcher promotes the result to `double` whenever
-        // either operand is a floating-point value (a `double` / `customDouble`
-        // receiver, or an `int` receiver modulo'd by a `double` / `customDouble`
+        // either operand is a floating-point value (a `double` or `RealsType`
+        // receiver, or an `int` receiver modulo'd by a `double` or `RealsType`
         // operand or a fractional literal). Detect that here so the dialects whose
         // `%` operator rejects floating-point operands (PostgreSQL, SQL Server) can
         // switch to their numeric form regardless of which side is the double.

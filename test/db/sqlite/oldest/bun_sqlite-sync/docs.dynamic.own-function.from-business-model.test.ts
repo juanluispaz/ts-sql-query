@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DynamicConditionForModel, DynamicCondition, DynamicDefinitionForModel, CustomDoubleFilter } from '../../../../../src/dynamic/condition.js'
+import type { DynamicConditionForModel, DynamicCondition, DynamicDefinitionForModel, ComparableFilter } from '../../../../../src/dynamic/condition.js'
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import type { DeepPick, DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
@@ -13,6 +13,8 @@ import { tOrganization, tProject, tProjectRelease } from '../../domain/connectio
 import type { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
+import type { ComparableType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { RealsType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -221,12 +223,16 @@ describe(ctx.label, () => {
         // doc-start
         type Money = number & { readonly brand: 'Money' }
 
+        abstract class MoneyType extends RealsType<Money, 'Money'> {
+            static override readonly type = 'Money'
+        }
+
         interface Invoice {
             id: number
             total: Money
         }
 
-        type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: ['customDouble', Money] }>
+        type InvoiceFilter = DynamicCondition<DynamicDefinitionForModel<Omit<Invoice, 'total'>> & { total: MoneyType }>
 
         const filter: InvoiceFilter = {
             id: { equals: 1 },
@@ -234,7 +240,7 @@ describe(ctx.label, () => {
         }
         // doc-end
 
-        assertType<Exact<NonNullable<InvoiceFilter['total']>, CustomDoubleFilter<Money>>>()
+        assertType<Exact<NonNullable<InvoiceFilter['total']>, ComparableFilter<Money>>>()
         expect(filter.total?.greaterThan).toBe(100)
     })
 
@@ -271,11 +277,11 @@ describe(ctx.label, () => {
             big: 'bigint'
             text: 'string'
             at: 'localDateTime'
-            status: ['enum', 'active' | 'inactive']
-            level: ['enum', 1 | 2]
+            status: EnumType<'active' | 'inactive', string>
+            level: EnumType<1 | 2, string>
             group: { id: 'int' }
-            brandedString: ['customComparable', Brand<string, 'Code'>]
-            brandedNumber: ['customComparable', Brand<number, 'Money'>]
+            brandedString: ComparableType<Brand<string, 'Code'>, string>
+            brandedNumber: ComparableType<Brand<number, 'Money'>, string>
             brandedBigint: 'bigint'
             brandedDate: 'localDateTime'
             list: never

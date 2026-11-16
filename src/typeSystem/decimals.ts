@@ -121,5 +121,4 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
 /** An exact decimal number that the library delivers as its text, a JavaScript string */
 export abstract class StringDecimalType extends DecimalsType<string, 'stringDecimal'> {
     static override readonly type = 'stringDecimal'
-    static override readonly customType = undefined
 }

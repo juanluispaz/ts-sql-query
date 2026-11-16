@@ -22,7 +22,7 @@ const isolationLevelWords: { [level: number]: string } = {
 /** The options of MssqlPoolQueryRunner */
 export interface MssqlPoolQueryRunnerConfig {
     /**
-     * The type of mssql each parameter of a type name (the name given to a custom type, or a built-in one) is bound
+     * The type of mssql each parameter of a type name (the name of a type of the user, or of a built-in one) is bound
      * with, instead of the one of its type: `TYPES.NVarChar` for an exact decimal kept as text, or
      * `TYPES.Decimal(18, 4)`
      */
@@ -373,14 +373,14 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
                 break
             default:
         }
-        // Any other type is one without a SQL data type (an enum, a custom or a customComparable): what it holds is
+        // Any other type is one without a SQL data type (an enum, an EqualableType or a ComparableType of the user): what it holds is
         // only known by the user. A text goes as text, whatever it looks like: '1.2' on a text column can't be sent as
         // a number.
         return this.inferCustomType(params[index])
     }
 
     /**
-     * The type of mssql of a value of a custom type, whose meaning only the user knows: a text as an NVarChar,
+     * The type of mssql of a value of a type of the user whose meaning only the user knows: a text as an NVarChar,
      * otherwise inferred from the value
      */
     protected inferCustomType(value: any): ISqlTypeFactory {

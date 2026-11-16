@@ -2,8 +2,13 @@
 // it is imported from in version 2
 
 export {
-    /** @deprecated Import it from 'ts-sql-query' */
+    /** @deprecated Use DynamicCondition, imported from 'ts-sql-query': a column of a type of yours is declared with its data type */
     type DynamicCondition,
+    /** @deprecated Use DynamicCondition, imported from 'ts-sql-query': a column of a type of yours is declared with its data type */
+    type DynamicCondition as TypeSafeDynamicCondition,
+} from './expressions/dynamicConditionUsingFilters.js'
+
+export {
     /** @deprecated Import it from 'ts-sql-query' */
     type DynamicPick,
     /** @deprecated Import it from 'ts-sql-query' */
@@ -26,8 +31,6 @@ export {
     expandTypeFromDynamicPickPaths,
     /** @deprecated Import it from 'ts-sql-query' */
     expandTypeProjectedAsNullableFromDynamicPickPaths,
-    /** @deprecated Use DynamicCondition, imported from 'ts-sql-query' */
-    type DynamicCondition as TypeSafeDynamicCondition,
     /** @deprecated Use PickValuesPathWithAllProperties, imported from 'ts-sql-query' */
     type PickValuesPathWithAllProperties as PickValuesPathWitAllProperties,
     /** @deprecated Use PickValuesPathWithAllPropertiesProjectedAsNullable, imported from 'ts-sql-query' */

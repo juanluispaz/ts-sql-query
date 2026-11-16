@@ -12,7 +12,7 @@ import type { FragmentExpression } from './fragments.js'
 
 // The data types the library has, named by the type given to a column, a constant, a fragment or an argument, and what
 // each one is in each position: the type of its value, its value source, what a position that takes it accepts, and its
-// fragment expression. A custom data type is not here: it gives its type name besides its type.
+// fragment expression. A data type of the user is not here: it is given by its class.
 
 /** The type of the value of each built-in data type */
 export interface BuiltInDataTypeValues {

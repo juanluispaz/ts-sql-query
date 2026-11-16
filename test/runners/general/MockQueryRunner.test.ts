@@ -2,14 +2,20 @@
 // gate it applies to the executor's answer, and its transaction bookkeeping.
 
 import { SynchronousPromise } from 'synchronous-promise'
-import type { CustomType } from '../../../src/TypeAdapter.js'
+import type { DataTypeClass } from '../../../src/TypeAdapter.js'
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { MockQueryRunner, noopQueryExecutor, type MockQueryExecutor } from '../../../src/queryRunners/MockQueryRunner.js'
 import type { DatabaseType, QueryType } from '../../../src/queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from '../../../src/TsSqlError.js'
 import { QUERY_CALLS, sampleResult, type ResultShape } from '../lib/queryRunnerCalls.js'
 import { reasonOf, rejectionOf } from '../lib/runnerContract.js'
-import { addOutParam, addParam } from '../lib/params.js'
+import { addOutParam, addParam, typeNameOf } from '../lib/params.js'
+import { ComparableType, EnumType, EqualableType } from '../../../src/exports/v2/index.js'
+
+// The data types of the user the parameters are of, each one a class of the family of its values
+abstract class BigType extends EqualableType<unknown, 'Big'> { static override readonly type = 'Big' }
+abstract class RatioType extends ComparableType<unknown, 'Ratio'> { static override readonly type = 'Ratio' }
+abstract class StatusType extends EnumType<unknown, 'Status'> { static override readonly type = 'Status' }
 
 const INVALID: { [shape in ResultShape]: readonly unknown[] } = {
     row: [1, new Date()],
@@ -142,7 +148,7 @@ describe('MockQueryRunner', () => {
         test(`params-on-${database}`, () => {
             const runner = new MockQueryRunner(() => undefined, { database })
             const params: any[] = []
-            expect([addParam(runner, params, 'a', 'string', undefined, false), addParam(runner, params, 'b', 'string', undefined, false)]).toEqual([first, second])
+            expect([addParam(runner, params, 'a', 'string', false), addParam(runner, params, 'b', 'string', false)]).toEqual([first, second])
             expect(params).toEqual(['a', 'b'])
             expect(runner.database).toBe(database)
         })
@@ -155,17 +161,17 @@ describe('MockQueryRunner', () => {
     for (const [database, placeholder] of FORCED) {
         test(`forced-type-on-${database}`, () => {
             const runner = new MockQueryRunner(() => undefined, { database })
-            expect(addParam(runner, [], 1, 'int', undefined, true)).toBe(placeholder)
+            expect(addParam(runner, [], 1, 'int', true)).toBe(placeholder)
         })
     }
     test('forced-type-on-postgreSql-by-the-value', () => {
         const runner = new MockQueryRunner(() => undefined, { database: 'postgreSql' })
-        const cases: [unknown, string, CustomType | undefined, string][] = [
-            [1, 'Status', 'enum', '$1::int4'], [5000000000, 'Big', 'custom', '$1::int8'], [1.5, 'Ratio', 'customComparable', '$1::float8'],
-            [5n, 'Count', undefined, '$1::int8'], ['open', 'Status', 'enum', '$1'], [null, 'Status', 'enum', '$1'],
+        const cases: [unknown, string | DataTypeClass, string][] = [
+            [1, StatusType, '$1::int4'], [5000000000, BigType, '$1::int8'], [1.5, RatioType, '$1::float8'],
+            [5n, 'Count', '$1::int8'], ['open', StatusType, '$1'], [null, StatusType, '$1'],
         ]
-        for (const [value, type, customType, placeholder] of cases) {
-            expect([type, value, addParam(runner, [], value, type, customType, true)]).toEqual([type, value, placeholder])
+        for (const [value, type, placeholder] of cases) {
+            expect([typeNameOf(type), value, addParam(runner, [], value, type, true)]).toEqual([typeNameOf(type), value, placeholder])
         }
     })
 
@@ -173,15 +179,15 @@ describe('MockQueryRunner', () => {
         const runner = new MockQueryRunner(() => undefined)
         runner.useDatabase('dbase' as any)
         let error: unknown
-        try { addParam(runner, [], 1, 'int', undefined, false) } catch (e) { error = e }
+        try { addParam(runner, [], 1, 'int', false) } catch (e) { error = e }
         expect(reasonOf(error)).toBe('UNSUPPORTED_DATABASE')
     })
 
     test('out-params', () => {
         const oracle = new MockQueryRunner(() => undefined, { database: 'oracle' })
         const params: any[] = []
-        expect(addOutParam(oracle, params, 'id', 'int', undefined, false)).toBe(':0')
-        expect(addOutParam(oracle, params, '', 'int', undefined, false)).toBe(':1')
+        expect(addOutParam(oracle, params, 'id', 'int', false)).toBe(':0')
+        expect(addOutParam(oracle, params, '', 'int', false)).toBe(':1')
         expect(params).toEqual([{ dir: 3003, as: 'id' }, { dir: 3003 }])
         let error: unknown
         try { new MockQueryRunner(() => undefined).addOutParam([], 'id') } catch (e) { error = e }

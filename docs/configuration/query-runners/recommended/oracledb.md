@@ -207,7 +207,7 @@ The `NLS_COMP` / `NLS_SORT` pair is the [session collation](../../collations.md#
 
 ## Large integers
 
-There is nothing to configure: a `bigint`, a `customBigint`, a [`stringDecimal` or a `customDecimal`](../../data-types.md#exact-decimals) keeps all its digits, whatever the global settings of oracledb. A column read as an `int` arrives as a JavaScript `number`, and a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
+There is nothing to configure: a `bigint`, an integer of yours wider than a `number`, an [exact decimal](../../data-types.md#exact-decimals) keeps all its digits, whatever the global settings of oracledb. A column read as an `int` arrives as a JavaScript `number`, and a value past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
 
 ## Inside a transaction something else manages
 
@@ -239,7 +239,7 @@ The second argument of `OracleDBQueryRunner`, optional, is an object of type `Or
 
 ## The type of the parameters
 
-oracledb binds each value with the type it gives a JavaScript value; the query runner binds a `localDate` as a `DATE` and a `localTime` or `localDateTime` as a `TIMESTAMP`, with the digits of its UTC getters whatever the zone of the process, so a `DATE` or `TIMESTAMP` column compares with it as it is and an index of the column can be used. The option `typesByName` maps the name of a type, the one you give a custom type or a built-in one like `'int'`, to the `DbType` of oracledb every parameter of that name is bound with, also its `null` and the value returned with `returning`:
+oracledb binds each value with the type it gives a JavaScript value; the query runner binds a `localDate` as a `DATE` and a `localTime` or `localDateTime` as a `TIMESTAMP`, with the digits of its UTC getters whatever the zone of the process, so a `DATE` or `TIMESTAMP` column compares with it as it is and an index of the column can be used. The option `typesByName` maps the name of a type, the one you give a type of yours or a built-in one like `'int'`, to the `DbType` of oracledb every parameter of that name is bound with, also its `null` and the value returned with `returning`:
 
 ```ts
 import oracledb from 'oracledb';

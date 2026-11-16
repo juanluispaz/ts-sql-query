@@ -168,7 +168,7 @@ A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written wit
 - `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../../advanced/type-adapters.md#how-the-converted-sql-compares)).
 - `transformValueFromDB` and `transformValueToDB` keep the text as the value.
 
-The column is a `customComparable` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as text.
+The column is a `ComparableType` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as text.
 
 <!-- doc-code-snippet-template: oracle -->
 ```ts

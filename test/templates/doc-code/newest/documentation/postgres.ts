@@ -63,7 +63,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
-import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type CustomType, type DataTypeClass } from '../../../../../src/TypeAdapter.js'
+import { type DefaultTypeAdapter, type ProjectionComparison, type ProjectionOutput, type TypeAdapter, type DataTypeClass } from '../../../../../src/TypeAdapter.js'
 export type { DataTypeClass }
 
 import { Pool } from 'pg';
@@ -81,7 +81,9 @@ import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQue
 
 import { TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
-import { DecimalsType, LocalDatesType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, LocalDatesType, RealsType } from '../../../../../src/exports/v2/index.js'
+// Extended by the classes of the types of the examples
+void RealsType
 
 // The data types of the values of the user, each one a class of the family of its values
 abstract class BirthdayType extends LocalDatesType<Date, 'Birthday'> { static override readonly type = 'Birthday' }
@@ -389,7 +391,6 @@ void function(
     _tovo: TableOrViewOf<any>,
     _dta: DefaultTypeAdapter,
     _ta: TypeAdapter,
-    _tc: CustomType,
     _po: ProjectionOutput,
     _pc: ProjectionComparison,
     _dc: DynamicCondition<any>

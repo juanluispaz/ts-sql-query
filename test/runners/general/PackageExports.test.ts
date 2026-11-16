@@ -47,10 +47,20 @@ function specifiersOf(file: string): Specifier[] {
         while ((match = imports.exec(code)) !== null) {
             rest = rest.replace(match[0], '')
         }
-        const definition = /\/\*\* @deprecated [^\n]+ \*\/\nexport (?:function|class|interface) (\w+)[^\n]*\{\n[\s\S]*?\n\}\n?/g
+        const definition = /\/\*\* @deprecated [^\n]+ \*\/\nexport (?:function|class|interface) (\w+)[^\n]*\{\n(?:[\s\S]*?\n)?\}\n?/g
         while ((match = definition.exec(code)) !== null) {
             rest = rest.replace(match[0], '')
             result.push({ name: match[1]!, exported: match[1]!, from: self, deprecated: true })
+        }
+        // A type alias, deprecated, with the types it needs that the file doesn't export: each one up to a blank line
+        const typeDefinition = /\/\*\*\n \* @deprecated [\s\S]*? \*\/\nexport type (\w+)[\s\S]*?(?=\n\n|(?![\s\S]))/g
+        while ((match = typeDefinition.exec(code)) !== null) {
+            rest = rest.replace(match[0], '')
+            result.push({ name: match[1]!, exported: match[1]!, from: self, deprecated: true })
+        }
+        const helperType = /^type \w+[\s\S]*?(?=\n\n|(?![\s\S]))/gm
+        while ((match = helperType.exec(code)) !== null) {
+            rest = rest.replace(match[0], '')
         }
     }
     while ((match = block.exec(code)) !== null) {
@@ -74,6 +84,9 @@ function specifiersOf(file: string): Specifier[] {
     expect(rest.trim()).toBe('')
     return result
 }
+
+/** The names version 2 keeps, changed so that the code of version 1 no longer compiles with them: version 1 has its form */
+const changedInVersion2 = ['DynamicCondition']
 
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { exports: Record<string, { types: string, default: string }> }
 const entryPaths = Object.keys(packageJson.exports).filter(key => key !== './package.json' && key !== './__UNSUPPORTED__/*')
@@ -118,8 +131,11 @@ describe('The exports of the package', () => {
                     // It comes from a path of version 2, so it is the same object or type
                     expect(specifiers.get(v2Entries.find(v2 => sourceOf(v2) === join(root, 'src', spec.from + '.ts'))!)!.some(v2 => v2.exported === spec.name)).toBe(true)
                 } else {
-                    // A name version 2 dropped, kept for the code of version 1: no path of version 2 exports it
-                    expect({ key, name: spec.exported, inVersion2: v2Entries.some(v2 => specifiers.get(v2)!.some(v2Spec => v2Spec.exported === spec.exported)) }).toEqual({ key, name: spec.exported, inVersion2: false })
+                    // A name version 2 dropped, kept for the code of version 1: no path of version 2 exports it; or one
+                    // version 2 changed so that the code of version 1 no longer compiles with it, with its form of
+                    // version 1
+                    const inVersion2 = v2Entries.some(v2 => specifiers.get(v2)!.some(v2Spec => v2Spec.exported === spec.exported))
+                    expect({ key, name: spec.exported, inVersion2 }).toEqual({ key, name: spec.exported, inVersion2: changedInVersion2.includes(spec.exported) })
                 }
             }
         }

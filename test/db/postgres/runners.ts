@@ -159,10 +159,10 @@ function decoratePostgresContext(
 
 const DATABASE = 'postgres'
 
-// The PostgreSQL type of the custom types of the tests, given to the runner of
+// The PostgreSQL type of the types of the user of the tests, given to the runner of
 // every cell (`typesByName`): the cast pg and Bun SQL write, and the oid
 // postgres.js and PGlite send the parameter with. An `ExactDecimal` is a
-// `customDouble` that holds an exact decimal as text: as a `float8` it would
+// `RealsType` that holds an exact decimal as text: as a `float8` it would
 // lose digits.
 export const castTypesByName = { ExactDecimal: 'numeric' }
 export const oidTypesByName = { ExactDecimal: 1700 }

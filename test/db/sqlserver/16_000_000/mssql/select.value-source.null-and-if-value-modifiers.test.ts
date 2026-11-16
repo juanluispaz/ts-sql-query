@@ -415,8 +415,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-date-null-if-value-literal', async () => {
-        // Custom twin: `nullIfValue(literalDate)` on a customLocalDate column
+    test('temporal/own-local-date-null-if-value-literal', async () => {
+        // Custom twin: `nullIfValue(literalDate)` on a LocalDatesType column
         // (releasedOn / 'ReleaseDay'). release 2: released_on 2024-02-20,
         // probe 2024-01-15 (≠) → the date.
         const expected = { id: 2, d: new Date(Date.UTC(2024, 1, 20, 10, 0, 0)) }
@@ -437,8 +437,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-date-time-value-when-null-literal-on-null-row', async () => {
-        // Custom twin: `valueWhenNull(literalDateTime)` on a customLocalDateTime
+    test('temporal/own-local-date-time-value-when-null-literal-on-null-row', async () => {
+        // Custom twin: `valueWhenNull(literalDateTime)` on a LocalDateTimesType
         // column (signedOffAt / 'SignOffStamp'). release 2 has signed_off_at
         // NULL, so the coalesce substitutes the literal fallback → result
         // required.
@@ -460,8 +460,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-time-value-when-null-source', async () => {
-        // Custom twin: `valueWhenNull(valueSource)` overload on a customLocalTime
+    test('temporal/own-local-time-value-when-null-source', async () => {
+        // Custom twin: `valueWhenNull(valueSource)` overload on a LocalTimesType
         // column (cutoffTime / 'CutoffClock'). `cutoff_time.valueWhenNull(cutoff_time)`
         // yields the column value (never null) → 17:00:00 for release 1.
         const expected = { id: 1, x: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
@@ -545,8 +545,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-date-value-when-null', async () => {
-        // `valueWhenNull` on a customLocalDate column
+    test('temporal/own-local-date-value-when-null', async () => {
+        // `valueWhenNull` on a LocalDatesType column
         // (releasedOn / 'ReleaseDay', required). Both overloads — `d` a literal-Date
         // fallback, `d2` a value-source fallback (releasedOn itself). releasedOn is
         // never null → required `Date` on both. release 2: released_on 2024-02-20.
@@ -604,8 +604,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-time-null-if-value', async () => {
-        // `nullIfValue` on a customLocalTime column
+    test('temporal/own-local-time-null-if-value', async () => {
+        // `nullIfValue` on a LocalTimesType column
         // (cutoffTime / 'CutoffClock', required). Both overloads — `t` a literal-Time
         // probe (16:00:00 ≠ the column, value kept), `t2` a value-source probe
         // (cutoffTime itself → always NULL, leaf absent). nullIfValue widens to
@@ -632,8 +632,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-date-time-null-if-value', async () => {
-        // `nullIfValue` on a customLocalDateTime column
+    test('temporal/own-local-date-time-null-if-value', async () => {
+        // `nullIfValue` on a LocalDateTimesType column
         // (signedOffAt / 'SignOffStamp', optional). Both overloads — `x` a
         // literal-DateTime probe (2099-01-01 ≠ the column, value kept), `x2` a
         // value-source probe (signedOffAt itself → always NULL, leaf absent).
@@ -814,8 +814,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('null-modifiers-on-custom-comparable-version-leaf', async () => {
-        // `version` is a customComparable column typed as the bare
+    test('null-modifiers-on-own-comparable-version-leaf', async () => {
+        // `version` is a ComparableType column typed as the bare
         // comparable value source — no leaf overrides its Nullable family, so the
         // base-interface redeclarations of `valueWhenNull` / `nullIfValue` /
         // `asOptional` (plus inherited `isNotNull`) are reached by NO other leaf.
@@ -855,8 +855,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('null-modifiers-on-custom-channel-leaf', async () => {
-        // `channel` is a `custom` (equality-only) column typed as the bare
+    test('null-modifiers-on-own-channel-leaf', async () => {
+        // `channel` is an `EqualableType` (equality-only) column typed as the bare
         // equalable value source — same bare-base situation as version above, but on
         // the Equalable redeclarations. The value type is the
         // ReleaseChannel union, so the brand is preserved through coalesce / nullif
@@ -976,8 +976,8 @@ describe(ctx.label, () => {
         expect(nullIds).toEqual([2])
     })
 
-    test('null-modifiers-on-optional-custom-hits-real-null-branch', async () => {
-        // The `custom` kind: `channel` is an OPTIONAL custom column (ReleaseChannel) on
+    test('null-modifiers-on-optional-own-hits-real-null-branch', async () => {
+        // The `EqualableType` kind: `channel` is an OPTIONAL custom column (ReleaseChannel) on
         // tReleaseDraft. Draft 1 sets 'beta'; draft 2 leaves it NULL. valueWhenNull('stable')
         // substitutes on the NULL row, nullIfValue keeps the present value, asOptional drops the null,
         // isNull selects draft 2.
@@ -1020,8 +1020,8 @@ describe(ctx.label, () => {
         expect(nullIds).toEqual([2])
     })
 
-    test('null-modifiers-on-optional-custom-comparable-hits-real-null-branch', async () => {
-        // The `customComparable` kind: `minVersion` is an OPTIONAL customComparable column (Semver
+    test('null-modifiers-on-optional-own-comparable-hits-real-null-branch', async () => {
+        // The `ComparableType` kind: `minVersion` is an OPTIONAL ComparableType column (Semver
         // typeName) on tReleaseDraft. Draft 1 sets '1.0.0'; draft 2 leaves it NULL.
         // valueWhenNull('0.0.0') substitutes on the NULL row, nullIfValue keeps the present value,
         // asOptional drops the null, isNull selects draft 2.
@@ -1064,8 +1064,8 @@ describe(ctx.label, () => {
         expect(nullIds).toEqual([2])
     })
 
-    test('is-null-is-not-null-on-optional-custom-double', async () => {
-        // isNull / isNotNull on the OPTIONAL customDouble column `budget` ('Money')
+    test('is-null-is-not-null-on-optional-own-double', async () => {
+        // isNull / isNotNull on the OPTIONAL RealsType column `budget` ('Money')
         // on tReleaseDraft. Draft 1 sets budget 1500.5 (present -> n false, nn true);
         // draft 2 leaves it NULL (-> n true, nn false), so the NULL branch is real.
         const expected = [
@@ -1087,8 +1087,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('is-null-is-not-null-on-optional-custom-local-date', async () => {
-        // isNull / isNotNull on the OPTIONAL customLocalDate column `targetDay`
+    test('is-null-is-not-null-on-optional-own-local-date', async () => {
+        // isNull / isNotNull on the OPTIONAL LocalDatesType column `targetDay`
         // ('ReleaseDay') on tReleaseDraft. Draft 1 sets target_day 2024-07-10
         // (present); draft 2 leaves it NULL, realising the NULL branch.
         const expected = [
@@ -1110,8 +1110,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('is-null-is-not-null-on-optional-custom-local-time', async () => {
-        // isNull / isNotNull on the OPTIONAL customLocalTime column `cutoff`
+    test('is-null-is-not-null-on-optional-own-local-time', async () => {
+        // isNull / isNotNull on the OPTIONAL LocalTimesType column `cutoff`
         // ('CutoffClock') on tReleaseDraft. Draft 1 sets cutoff 08:30:00 (present);
         // draft 2 leaves it NULL, realising the NULL branch.
         const expected = [
@@ -1161,8 +1161,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; cvs?: ReleaseStage; nvs?: ReleaseStage }>>>()
         expect(rows).toEqual(expected)
     })
-    test('value-source-null-modifiers-on-optional-custom-leaf', async () => {
-        // The value-source overloads on a `custom` (ReleaseChannel) column, via a `channel`
+    test('value-source-null-modifiers-on-optional-own-leaf', async () => {
+        // The value-source overloads on an `EqualableType` (ReleaseChannel) column, via a `channel`
         // self-reference. `coalesce(channel, channel)` keeps the brand and stays optional;
         // `nullif(channel, channel)` is always NULL. Draft 1 channel 'beta'; draft 2 NULL.
         const expected = [
@@ -1187,8 +1187,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; cvs?: ReleaseChannel; nvs?: ReleaseChannel }>>>()
         expect(rows).toEqual(expected)
     })
-    test('value-source-null-modifiers-on-optional-custom-comparable-leaf', async () => {
-        // The value-source overloads on a `customComparable` (Semver) column, via a
+    test('value-source-null-modifiers-on-optional-own-comparable-leaf', async () => {
+        // The value-source overloads on a `ComparableType` (Semver) column, via a
         // `minVersion` self-reference. `coalesce(min_version, min_version)` stays optional;
         // `nullif(min_version, min_version)` is always NULL. Draft 1 min_version '1.0.0'; draft 2 NULL.
         const expected = [
@@ -1240,8 +1240,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; req?: WorklogActivity; own?: WorklogActivity; ign?: WorklogActivity }>>()
         expect(row).toEqual(expected)
     })
-    test('modifier-trio-on-custom-channel-leaf', async () => {
-        // The same modifier trio on a `custom` (ReleaseChannel) column.
+    test('modifier-trio-on-own-channel-leaf', async () => {
+        // The same modifier trio on an `EqualableType` (ReleaseChannel) column.
         // `asRequiredInOptionalObject()` keeps the ReleaseChannel brand; the two NULL-substitution
         // modifiers drop to absent. Release 1 channel 'stable'.
         const expected = { id: 1, req: 'stable' }
@@ -1265,8 +1265,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; req?: ReleaseChannel; own?: ReleaseChannel; ign?: ReleaseChannel }>>()
         expect(row).toEqual(expected)
     })
-    test('modifier-trio-on-custom-comparable-version-leaf', async () => {
-        // The same modifier trio on a `customComparable` (Semver) column.
+    test('modifier-trio-on-own-comparable-version-leaf', async () => {
+        // The same modifier trio on a `ComparableType` (Semver) column.
         // `asRequiredInOptionalObject()` keeps the branded string; the two NULL-substitution
         // modifiers drop to absent. Release 1 version '1.2.0'.
         const expected = { id: 1, req: '1.2.0' }
@@ -1360,10 +1360,10 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('modifier-trio-on-custom-temporal-leaves', async () => {
+    test('modifier-trio-on-own-temporal-leaves', async () => {
         // The modifier trio on custom temporal columns (branded Date types):
-        // `releasedOn` (customLocalDate), `cutoffTime` (customLocalTime), `signedOffAt`
-        // (customLocalDateTime). `asRequiredInOptionalObject()` keeps the mapped Date
+        // `releasedOn` (LocalDatesType), `cutoffTime` (LocalTimesType), `signedOffAt`
+        // (LocalDateTimesType). `asRequiredInOptionalObject()` keeps the mapped Date
         // type (`*Req?: Date`); `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)` drop
         // `*Own` / `*Ign` to absent. Release 1: released_on 2024-01-15,
         // cutoff_time 17:00:00, signed_off_at 2024-01-14 12:30:00.
@@ -1435,9 +1435,9 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('modifier-trio-on-custom-int-and-double-leaves', async () => {
-        // The modifier trio on custom numeric leaves: costCents (customInt 'Cents') and
-        // billedAmount (customDouble 'Money'). asRequiredInOptionalObject() passes the
+    test('modifier-trio-on-own-int-and-double-leaves', async () => {
+        // The modifier trio on custom numeric leaves: costCents (IntegersType 'Cents') and
+        // billedAmount (RealsType 'Money'). asRequiredInOptionalObject() passes the
         // marshalled number through (*Req?: number); the two NULL-substitution modifiers
         // drop *Own / *Ign to absent. Worklog 1 cost_cents 100, billed_amount 200.
         const expected = { id: 1, cReq: 100, bReq: 200 }
@@ -1508,8 +1508,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-date-null-if-value-source', async () => {
-        // nullIfValue(valueSource) on a customLocalDate column (releasedOn / 'ReleaseDay')
+    test('temporal/own-local-date-null-if-value-source', async () => {
+        // nullIfValue(valueSource) on a LocalDatesType column (releasedOn / 'ReleaseDay')
         // — the value-source arm. released_on.nullIfValue(released_on) is always NULL →
         // the optional leaf is absent.
         const expected = { id: 1 }
@@ -1528,8 +1528,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('temporal/custom-local-time-value-when-null-literal', async () => {
-        // valueWhenNull(literalTime) on a customLocalTime column (cutoffTime / 'CutoffClock')
+    test('temporal/own-local-time-value-when-null-literal', async () => {
+        // valueWhenNull(literalTime) on a LocalTimesType column (cutoffTime / 'CutoffClock')
         // — the literal arm (the value-source arm is covered above). Release 1 cutoff_time
         // 17:00:00 (not null) → the column value.
         const expected = { id: 1, x: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }

@@ -84,7 +84,7 @@ function _typeNegatives() {
         transformValueToDB(value, context, next) { return next.transformValueToDB(value, context) },
     } satisfies TypeAdapter)
     // Rule: the original type of a value never changes; the requested one changes only with setRequestedType, which
-    // takes a type as a column does: a built-in one by its name, a custom one with which custom type it is.
+    // takes a type as a column does: a built-in one by its name, a custom one with which type of the user it is.
     void ({
         transformValueFromDB(value, context, next) {
             context.setRequestedType('localDate')
@@ -97,12 +97,12 @@ function _typeNegatives() {
             context.originalType = root.StringType
             // @ts-expect-error the requested type changes with setRequestedType
             context.requestedType = root.StringType
-            // @ts-expect-error a custom type is requested by its class, not by its name
+            // @ts-expect-error a type of the user is requested by its class, not by its name
             context.setRequestedType('ReleaseDay')
-            // @ts-expect-error a custom type is requested by its class, not by its custom type
-            context.setRequestedType('customLocalDate')
-            // @ts-expect-error nor by its custom type and its name
-            context.setRequestedType('customLocalDate', 'ReleaseDay')
+            // @ts-expect-error a type of the user is requested by its class, not by its type of the user
+            context.setRequestedType('ownLocalDate')
+            // @ts-expect-error nor by its type of the user and its name
+            context.setRequestedType('ownLocalDate', 'ReleaseDay')
             // @ts-expect-error the type is its class: it is compared with the class, or by its name with .type
             void (context.requestedType === 'string')
             return next.transformValueToDB(value, context)

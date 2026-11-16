@@ -79,9 +79,9 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('required-const/uuid-enum-custom-comparable', async () => {
+    test('required-const/uuid-enum-own-comparable', async () => {
         // uuid (-> string), enum (-> the branded union), custom (equality, ->
-        // the branded union), customComparable (-> string). The branded leaves
+        // the branded union), ComparableType (-> string). The branded leaves
         // resolve to their underlying TS type, all REQUIRED.
         const expected = { u: UUID_V, e: 'coding' as WorklogActivity, c: 'stable' as ReleaseChannel, cc: '1.2.0' }
         ctx.mockNext(expected)
@@ -106,8 +106,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('required-const/custom-numeric-and-uuid', async () => {
-        // customInt (-> number), customDouble (-> number), customUuid
+    test('required-const/own-numeric-and-uuid', async () => {
+        // IntegersType (-> number), RealsType (-> number), UuidsType
         // (-> string). Brands carry through; the leaves are the underlying type,
         // all REQUIRED.
         const expected = { ci: 7, cd: 1.5, cu: UUID_V }
@@ -132,8 +132,8 @@ describe(ctx.label, () => {
     })
 
     test('required-const/temporal-time-and-datetime', async () => {
-        // localTime / localDateTime and their custom siblings customLocalTime /
-        // customLocalDateTime (-> Date), all REQUIRED. These four round-trip a
+        // localTime / localDateTime and their custom siblings LocalTimesType /
+        // LocalDateTimesType (-> Date), all REQUIRED. These four round-trip a
         // const value cleanly on every engine. A time-only value sits on
         // 1970-01-01.
         const lt  = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -207,8 +207,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('required-const/custom-bigint-past-int32', async () => {
-        // A customBigint const past int32 (9 999 999 999), selected alone, comes back as a bigint of the same value,
+    test('required-const/own-bigint-past-int32', async () => {
+        // An IntegersType of 8 bytes const past int32 (9 999 999 999), selected alone, comes back as a bigint of the same value,
         // typed as its brand.
         type AuditPosition = bigint & { readonly __brand: 'AuditPosition' }
         abstract class AuditPositionType extends IntegersType<AuditPosition, 'AuditPosition'> {

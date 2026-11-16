@@ -647,11 +647,11 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — INSERT … RETURNING requires MariaDB 10.5+; earlier releases reject the RETURNING clause with ER_PARSE_ERROR (1064).
     /*
-    test('insert-returning-temporal-custom-kinds-round-trip', async () => {
-        // RETURNING the branded custom temporal kinds on INSERT — customLocalDate
-        // (releasedOn), customLocalTime (cutoffTime), customLocalDateTime (publishedAt)
+    test('insert-returning-temporal-own-kinds-round-trip', async () => {
+        // RETURNING the branded custom temporal kinds on INSERT — LocalDatesType
+        // (releasedOn), LocalTimesType (cutoffTime), LocalDateTimesType (publishedAt)
         // — then reading the same row back. Same RETURNING == SELECT contract; the
-        // custom kinds erase to plain `Date` on read.
+        // types of the user erase to plain `Date` on read.
         await ctx.withRollback(async () => {
             const releasedOn = new Date(Date.UTC(2025, 2, 10))
             const cutoffTime = new Date(Date.UTC(1970, 0, 1, 18, 45, 0))

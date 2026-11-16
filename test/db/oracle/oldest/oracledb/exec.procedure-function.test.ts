@@ -167,8 +167,8 @@ describe(ctx.label, () => {
         expect(at).toEqual(new Date('2024-02-27T10:30:00.000Z'))
     })
 
-    test('execute-function-returning-custom-double', async () => {
-        // estimated_total(1) returns a branded customDouble (`Money`):
+    test('execute-function-returning-own-double', async () => {
+        // estimated_total(1) returns a branded RealsType (`Money`):
         // COALESCE(SUM(estimated_hours),0) → 0 (the seed leaves estimated_hours
         // null for project 1's issues).
         ctx.mockNext(0)
@@ -228,7 +228,7 @@ describe(ctx.label, () => {
         expect(at).toEqual(new Date('2024-02-27T10:30:00.000Z'))
     })
 
-    test('execute-function-returning-optional-custom-double', async () => {
+    test('execute-function-returning-optional-own-double', async () => {
         // estimated_total with the 'optional' flag -> `Money | null` (branded).
         // estimated_total(1) is COALESCE(SUM(...),0) = 0.
         ctx.mockNext(0 as Money)
@@ -260,8 +260,8 @@ describe(ctx.label, () => {
         expect(name).toBe('[Marketing site]')
     })
 
-    test('execute-function-custom-double-with-trailing-adapter-shift-branch', async () => {
-        // The custom-kind executeFunction overload threads a trailing TypeAdapter
+    test('execute-function-own-double-with-trailing-adapter-shift-branch', async () => {
+        // The own-kind executeFunction overload threads a trailing TypeAdapter
         // through the read: plusOffsetAdapter shifts the numeric Money result by
         // +1000. The mock is primed with the RAW value 0, so estimated_total(1)
         // (= 0) comes back as 1000.
@@ -449,7 +449,7 @@ describe(ctx.label, () => {
         expect(value).toBe('coding')
     })
 
-    test('execute-function-returning-custom', async () => {
+    test('execute-function-returning-own-equalable', async () => {
         // ret_channel(1) returns an equality-only custom value (ReleaseChannel)
         // → 'stable'.
         ctx.mockNext('stable')
@@ -464,7 +464,7 @@ describe(ctx.label, () => {
         expect(value).toBe('stable')
     })
 
-    test('execute-function-returning-optional-custom', async () => {
+    test('execute-function-returning-optional-own-equalable', async () => {
         // ret_channel with the 'optional' flag → `ReleaseChannel | null`.
         ctx.mockNext('stable')
         const value = await ctx.conn.callRetCustomOptional(1)
@@ -478,7 +478,7 @@ describe(ctx.label, () => {
         expect(value).toBe('stable')
     })
 
-    test('execute-function-returning-custom-comparable', async () => {
+    test('execute-function-returning-own-comparable', async () => {
         // ret_semver(1) returns an ordered custom value (Semver, a branded
         // string) → '1.0.0'.
         ctx.mockNext('1.0.0')
@@ -493,7 +493,7 @@ describe(ctx.label, () => {
         expect(value).toBe('1.0.0')
     })
 
-    test('execute-function-returning-optional-custom-comparable', async () => {
+    test('execute-function-returning-optional-own-comparable', async () => {
         // ret_semver with the 'optional' flag → `string | null`.
         ctx.mockNext('1.0.0')
         const value = await ctx.conn.callRetCustomComparableOptional(1)
@@ -507,8 +507,8 @@ describe(ctx.label, () => {
         expect(value).toBe('1.0.0')
     })
 
-    test('execute-function-returning-custom-int', async () => {
-        // count_open_issues(1) read as the branded customInt kind (Cents) → 1.
+    test('execute-function-returning-own-int', async () => {
+        // count_open_issues(1) read as the branded IntegersType kind (Cents) → 1.
         ctx.mockNext(1)
         const value = await ctx.conn.callRetCustomInt(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues(:0) from dual"`)
@@ -521,8 +521,8 @@ describe(ctx.label, () => {
         expect(value).toBe(1)
     })
 
-    test('execute-function-returning-optional-custom-int', async () => {
-        // count_open_issues read as customInt with the 'optional' flag → `number | null`.
+    test('execute-function-returning-optional-own-int', async () => {
+        // count_open_issues read as IntegersType with the 'optional' flag → `number | null`.
         ctx.mockNext(1)
         const value = await ctx.conn.callRetCustomIntOptional(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues(:0) from dual"`)
@@ -535,8 +535,8 @@ describe(ctx.label, () => {
         expect(value).toBe(1)
     })
 
-    test('execute-function-returning-custom-uuid', async () => {
-        // ret_uuid(1) read as the branded customUuid kind (SigningKey) → the
+    test('execute-function-returning-own-uuid', async () => {
+        // ret_uuid(1) read as the branded UuidsType kind (SigningKey) → the
         // uuid string.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetCustomUuid(1)
@@ -550,8 +550,8 @@ describe(ctx.label, () => {
         expect(value).toBe('0a8f9c1e-1111-4222-8333-444455556666')
     })
 
-    test('execute-function-returning-optional-custom-uuid', async () => {
-        // ret_uuid read as customUuid with the 'optional' flag → `string | null`.
+    test('execute-function-returning-optional-own-uuid', async () => {
+        // ret_uuid read as UuidsType with the 'optional' flag → `string | null`.
         ctx.mockNext('0a8f9c1e-1111-4222-8333-444455556666')
         const value = await ctx.conn.callRetCustomUuidOptional(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(ret_uuid(:0)) from dual"`)
@@ -564,8 +564,8 @@ describe(ctx.label, () => {
         expect(value).toBe('0a8f9c1e-1111-4222-8333-444455556666')
     })
 
-    test('execute-function-returning-custom-local-date', async () => {
-        // ret_day(1) read as the branded customLocalDate kind (ReleaseDay); the
+    test('execute-function-returning-own-local-date', async () => {
+        // ret_day(1) read as the branded LocalDatesType kind (ReleaseDay); the
         // marshalled Date is driver-dependent, so it is asserted structurally.
         ctx.mockNext(new Date(Date.UTC(2024, 1, 3)))
         const value = await ctx.conn.callRetCustomLocalDate(1)
@@ -579,8 +579,8 @@ describe(ctx.label, () => {
         expect(value).toBeInstanceOf(Date)
     })
 
-    test('execute-function-returning-optional-custom-local-date', async () => {
-        // ret_day read as customLocalDate with the 'optional' flag → `Date | null`.
+    test('execute-function-returning-optional-own-local-date', async () => {
+        // ret_day read as LocalDatesType with the 'optional' flag → `Date | null`.
         ctx.mockNext(new Date(Date.UTC(2024, 1, 3)))
         const value = await ctx.conn.callRetCustomLocalDateOptional(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_day(:0) from dual"`)
@@ -593,8 +593,8 @@ describe(ctx.label, () => {
         expect(value).toBeInstanceOf(Date)
     })
 
-    test('execute-function-returning-custom-local-time', async () => {
-        // ret_clock(1) read as the branded customLocalTime kind (CutoffClock);
+    test('execute-function-returning-own-local-time', async () => {
+        // ret_clock(1) read as the branded LocalTimesType kind (CutoffClock);
         // the marshalled Date is driver-dependent, so it is asserted structurally.
         ctx.mockNext(new Date(Date.UTC(1970, 0, 1, 14, 25, 36)))
         const value = await ctx.conn.callRetCustomLocalTime(1)
@@ -608,8 +608,8 @@ describe(ctx.label, () => {
         expect(value).toBeInstanceOf(Date)
     })
 
-    test('execute-function-returning-optional-custom-local-time', async () => {
-        // ret_clock read as customLocalTime with the 'optional' flag → `Date | null`.
+    test('execute-function-returning-optional-own-local-time', async () => {
+        // ret_clock read as LocalTimesType with the 'optional' flag → `Date | null`.
         ctx.mockNext(new Date(Date.UTC(1970, 0, 1, 14, 25, 36)))
         const value = await ctx.conn.callRetCustomLocalTimeOptional(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ret_clock(:0) from dual"`)
@@ -622,8 +622,8 @@ describe(ctx.label, () => {
         expect(value).toBeInstanceOf(Date)
     })
 
-    test('execute-function-returning-custom-local-date-time', async () => {
-        // latest_issue_at(1) read as the branded customLocalDateTime kind
+    test('execute-function-returning-own-local-date-time', async () => {
+        // latest_issue_at(1) read as the branded LocalDateTimesType kind
         // (SignOffStamp). MAX(created_at) of project 1's issues: issue 2,
         // created at 2024-02-27 10:30:00.
         ctx.mockNext(new Date('2024-02-27T10:30:00.000Z'))
@@ -638,8 +638,8 @@ describe(ctx.label, () => {
         expect(value).toEqual(new Date('2024-02-27T10:30:00.000Z'))
     })
 
-    test('execute-function-returning-optional-custom-local-date-time', async () => {
-        // latest_issue_at read as customLocalDateTime with the 'optional' flag →
+    test('execute-function-returning-optional-own-local-date-time', async () => {
+        // latest_issue_at read as LocalDateTimesType with the 'optional' flag →
         // `Date | null`. MAX(created_at) of project 1's issues: issue 2, created
         // at 2024-02-27 10:30:00.
         ctx.mockNext(new Date('2024-02-27T10:30:00.000Z'))

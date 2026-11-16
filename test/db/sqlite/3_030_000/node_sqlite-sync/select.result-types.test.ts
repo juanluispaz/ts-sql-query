@@ -12,7 +12,7 @@ import { tColMatrixOptional, tIssue, tOrganization, tProject } from '../../domai
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
-// A type shown by its name, and a custom one with its custom type: `int`, `Money (customInt)`
+// A type shown by its name, and a custom one with its type of the user: `int`, `Money (IntegersType)`
 function typeLabel(type: QueryResultColumn['originalType']): string {
     return type.type
 }

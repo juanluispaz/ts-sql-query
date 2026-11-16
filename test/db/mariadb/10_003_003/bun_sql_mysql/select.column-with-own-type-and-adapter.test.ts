@@ -1,0 +1,179 @@
+// Coverage of the `column(name, type, adapter)` with a data type of the user and an adapter
+// declaration form on `Table` — exercised by a local fixture that
+// re-projects the existing `project` table with its `id` column
+// declared as a branded `IntegersType` (`'ProjectId'`) carrying a
+// `TypeAdapter`. The form lives on `Table.column` overloads
+// (typed by 'IntegersType'/'RealsType'/'UuidsType'/
+// 'LocalDatesType*'/'ComparableType') and is mirrored on
+// `optionalColumn`.
+//
+// The adapter used here is `LoggingAdapter`: it records the
+// `transformValueFromDB` and `transformValueToDB` invocations into
+// in-test arrays so we can assert the adapter was wired (and called)
+// for the own-typed column.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { Table } from '../../../../../src/Table.js'
+import type { TypeAdapter, DefaultTypeAdapter, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
+import { DBConnection } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+import { IntegersType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ProjectIdType extends IntegersType<number, 'ProjectId'> { static override readonly type = 'ProjectId' }
+
+const fromDBCalls: Array<{ type: string }> = []
+const toDBCalls:   Array<{ type: string }> = []
+
+const loggingAdapter: TypeAdapter = {
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        fromDBCalls.push({ type: context.requestedType.type })
+        return next.transformValueFromDB(value, context)
+    },
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        toDBCalls.push({ type: context.requestedType.type })
+        return next.transformValueToDB(value, context)
+    },
+}
+
+const tProjectBranded = new class TProjectBranded extends Table<DBConnection, 'TProjectBranded'> {
+    id   = this.column('id', ProjectIdType, loggingAdapter)
+    name = this.column('name', 'string')
+    constructor() { super('project') }
+}()
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => {
+        ctx.reset()
+        fromDBCalls.length = 0
+        toDBCalls.length = 0
+    })
+
+    test('own-int-column-with-adapter-roundtrips-through-adapter', async () => {
+        // mockNext returns the raw rows; the lib runs each `id` cell
+        // through the adapter's `transformValueFromDB`. After the call
+        // we assert `fromDBCalls` was populated (the adapter was on the
+        // hot path). Mock matches the full seed (4 projects, all
+        // dialects) so the value assertion is identical in mock and
+        // real-DB modes — `orderBy('id')` pins the order.
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
+        const rows = await ctx.conn.selectFrom(tProjectBranded)
+            .select({
+                id:   tProjectBranded.id,
+                name: tProjectBranded.name,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
+        // The adapter is called for every retrieved `id` cell.
+        expect(fromDBCalls.length).toBeGreaterThanOrEqual(4)
+        expect(fromDBCalls[0]?.type).toBe('ProjectId')
+    })
+
+    test('own-int-column-with-adapter-fires-to-db-on-where', async () => {
+        // The WHERE comparison binds a literal whose value goes through
+        // the adapter's `transformValueToDB` before becoming the bound
+        // parameter. After the call we assert that `toDBCalls` was
+        // populated.
+        ctx.mockNext([{ id: 1, name: 'Marketing site' }])
+        const rows = await ctx.conn.selectFrom(tProjectBranded)
+            .where(tProjectBranded.id.equals(1))
+            .select({
+                id:   tProjectBranded.id,
+                name: tProjectBranded.name,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(rows).toEqual([{ id: 1, name: 'Marketing site' }])
+        expect(toDBCalls.length).toBeGreaterThanOrEqual(1)
+        expect(toDBCalls.find(c => c.type === 'ProjectId')).toBeDefined()
+    })
+
+    test('autogenerated-primary-key-own-int-with-adapter-roundtrips-through-adapter', async () => {
+        // The same branded-own-type + adapter form on the `autogeneratedPrimaryKey`
+        // declaration method (whose 4-arg custom shape takes the `typeName` string in
+        // the third positional slot — the arm the plain `column` fixture does not
+        // reach). The adapter is wired with the branded `'ProjectId'` type; a broken
+        // arm (falling to the non-custom branch) would treat `'ProjectId'` as the
+        // adapter and drop `loggingAdapter`, leaving `fromDBCalls` empty.
+        const tProjectAutoPkBranded = new class TProjectAutoPkBranded extends Table<DBConnection, 'TProjectAutoPkBranded'> {
+            id   = this.autogeneratedPrimaryKey('id', ProjectIdType, loggingAdapter)
+            name = this.column('name', 'string')
+            constructor() { super('project') }
+        }()
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
+        const rows = await ctx.conn.selectFrom(tProjectAutoPkBranded)
+            .select({ id: tProjectAutoPkBranded.id, name: tProjectAutoPkBranded.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
+        expect(fromDBCalls.length).toBeGreaterThanOrEqual(4)
+        expect(fromDBCalls[0]?.type).toBe('ProjectId')
+    })
+
+    test('primary-key-own-int-with-adapter-roundtrips-through-adapter', async () => {
+        // The non-autogenerated `primaryKey('id',ProjectIdType,adapter)`
+        // custom form — same third-positional-typeName arm as above, on the plain
+        // primary-key declaration method. The adapter is wired with `'ProjectId'`.
+        const tProjectPkBranded = new class TProjectPkBranded extends Table<DBConnection, 'TProjectPkBranded'> {
+            id   = this.primaryKey('id', ProjectIdType, loggingAdapter)
+            name = this.column('name', 'string')
+            constructor() { super('project') }
+        }()
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
+        const rows = await ctx.conn.selectFrom(tProjectPkBranded)
+            .select({ id: tProjectPkBranded.id, name: tProjectPkBranded.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
+        expect(fromDBCalls.length).toBeGreaterThanOrEqual(4)
+        expect(fromDBCalls[0]?.type).toBe('ProjectId')
+    })
+})

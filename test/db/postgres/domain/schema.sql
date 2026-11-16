@@ -102,7 +102,7 @@ CREATE TABLE issue_worklog (
     duration_ms BIGINT,
     billable BOOLEAN,
     approved VARCHAR(1),
-    -- billed amount per worklog (customDouble 'Money') and an `invoiced`
+    -- billed amount per worklog (ownDouble 'Money') and an `invoiced`
     -- flag stored as int 1/0 (numeric CustomBooleanTypeAdapter overload).
     billed_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
     invoiced INTEGER NOT NULL DEFAULT 0,
@@ -127,7 +127,7 @@ CREATE TABLE calendar_year (
     year_label VARCHAR(64) NOT NULL
 );
 
--- Exact decimals (customDecimal): a value of 30 significant digits and one with the scale 2.
+-- Exact decimals (DecimalsType): a value of 30 significant digits and one with the scale 2.
 CREATE TABLE exact_amount (
     id INTEGER PRIMARY KEY,
     amount NUMERIC(38,10),
@@ -160,7 +160,7 @@ CREATE TABLE project_release (
     released_on DATE NOT NULL,
     cutoff_time TIME NOT NULL,
     signed_off_at TIMESTAMP,
-    -- REQUIRED customLocalDateTime twin of signed_off_at.
+    -- REQUIRED ownLocalDateTime twin of signed_off_at.
     published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- Plain-kind sources for the release_overview VIEW's per-kind read columns
     -- (boolean/bigint/double). uuid/localDate/localTime reuse signing_key/
@@ -247,7 +247,7 @@ LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL E
 
 -- Constant-returning functions, one per remaining executeFunction return kind
 -- (boolean / uuid / date / time / and the varchar bases behind enum / custom /
--- customComparable). Each takes an ignored int arg to keep the `select fn($1)`
+-- ownComparable). Each takes an ignored int arg to keep the `select fn($1)`
 -- call shape identical to the functions above.
 DROP FUNCTION IF EXISTS ret_flag(integer);
 DROP FUNCTION IF EXISTS ret_uuid(integer);
@@ -335,7 +335,7 @@ SELECT r.id AS id,
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
 
--- release_draft: OPTIONAL enum/custom/customComparable columns so the
+-- release_draft: OPTIONAL enum/custom/ownComparable columns so the
 -- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
 CREATE TABLE release_draft (
     id INTEGER PRIMARY KEY,
@@ -400,9 +400,9 @@ FROM col_matrix;
 -- One zero-arg function per base value kind, each returning the col_matrix row-1
 -- value of that kind (executeFunction return-kind + trailing
 -- adapter fan-out, exercised by `exec.function-value-kinds.test.ts`). Custom
--- kinds reuse the base-kind function (customInt→cm_int, customDouble→cm_double,
--- customUuid→cm_uuid, customLocalDate→cm_date, customLocalTime→cm_time,
--- customLocalDateTime→cm_datetime, enum/custom/customComparable→cm_str). These
+-- kinds reuse the base-kind function (ownInt→cm_int, ownDouble→cm_double,
+-- ownUuid→cm_uuid, ownLocalDate→cm_date, ownLocalTime→cm_time,
+-- ownLocalDateTime→cm_datetime, enum/custom/ownComparable→cm_str). These
 -- are declared AFTER col_matrix because a `LANGUAGE sql` body is parsed and
 -- validated against the referenced table at CREATE time.
 DROP FUNCTION IF EXISTS cm_int();

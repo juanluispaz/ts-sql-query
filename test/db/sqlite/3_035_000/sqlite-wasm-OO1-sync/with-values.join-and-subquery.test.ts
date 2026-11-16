@@ -262,7 +262,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('view-direct-read-custom-localdatetime-column', async () => {
+    test('view-direct-read-own-localdatetime-column', async () => {
         // Direct raw read of the REQUIRED custom localDateTime View column
         // publishStamp ('PublishStamp') as a `{ x: view.publishStamp }`
         // projection — a required `Date` leaf (the brand erases at the

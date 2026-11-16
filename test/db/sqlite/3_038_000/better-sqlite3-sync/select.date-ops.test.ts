@@ -259,11 +259,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-temporal-getters-and-compare', async () => {
+    test('own-temporal-getters-and-compare', async () => {
         // The date/time getters and comparison on the custom temporal columns.
-        // releasedOn (customLocalDate, required) -> getFullYear; cutoffTime
-        // (customLocalTime, required) -> getHours; signedOffAt
-        // (customLocalDateTime, optional) -> getTime (the custom getter encodes
+        // releasedOn (LocalDatesType, required) -> getFullYear; cutoffTime
+        // (LocalTimesType, required) -> getHours; signedOffAt
+        // (LocalDateTimesType, optional) -> getTime (the custom getter encodes
         // the optional leaf as `t?: number`, not `number | undefined`); and
         // releasedOn.lessThan(date) -> boolean. Release 1: released_on
         // 2024-01-15, cutoff_time 17:00:00, signed_off_at 2024-01-14 12:30:00.
@@ -342,8 +342,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-localdate-remaining-getters', async () => {
-        // The remaining localDate getters on the custom-localDate
+    test('own-localdate-remaining-getters', async () => {
+        // The remaining localDate getters on the own-localDate
         // column releasedOn (required): getMonth (JS 0-indexed), getDate, and
         // getDay (JS 0 = Sunday). Release 1: released_on
         // 2024-01-15 (a Monday) -> month 0 (January), date 15, day-of-week 1.
@@ -367,8 +367,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-localtime-remaining-getters', async () => {
-        // The remaining localTime getters on the custom-localTime
+    test('own-localtime-remaining-getters', async () => {
+        // The remaining localTime getters on the own-localTime
         // column cutoffTime (required): getMinutes, getSeconds, getMilliseconds.
         // Release 1: cutoff_time 17:00:00 -> 0, 0, 0.
         const expected = [{ m: 0, s: 0, ms: 0 }]
@@ -391,9 +391,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-localdatetime-optional-getters', async () => {
+    test('own-localdatetime-optional-getters', async () => {
         // The full localDateTime getter set on the OPTIONAL
-        // custom-localDateTime column signedOffAt — every getter carries the
+        // own-localDateTime column signedOffAt — every getter carries the
         // optional marker through to a `?: number` leaf (the custom getter
         // encodes the optional leaf as `?: number`, not `number | undefined`). Release 1: signed_off_at 2024-01-14 12:30:00 (a Sunday) ->
         // year 2024, month 0, date 14, day-of-week 0, hours 12, minutes 30,
@@ -425,7 +425,7 @@ describe(ctx.label, () => {
 
     test('temporal-equals-and-not-equals', async () => {
         // Equalable members (`.equals` / `.notEquals`) on a temporal column.
-        // releasedOn (customLocalDate): release
+        // releasedOn (LocalDatesType): release
         // 1 → 2024-01-15, 2 → 2024-02-20, 3 → 2024-03-01. `.equals(2024-01-15)`
         // matches release 1; `.notEquals(2024-01-15)` matches 2 and 3.
         const target = new Date(Date.UTC(2024, 0, 15))
@@ -584,7 +584,7 @@ describe(ctx.label, () => {
     test('temporal-between-value-source-bounds-projected-is-optional', async () => {
         // `between(temporalVS, temporalVS)` projecting the both-bound
         // optional-boolean leaf. The optional lower bound is synthesized with
-        // `.asOptional()` on the same required custom-localDate column
+        // `.asOptional()` on the same required own-localDate column
         // (asOptional preserves the TYPE_NAME), so the bound's optionality
         // merges into the projected boolean (`?: boolean`). Release 1:
         // released_on 2024-01-15 is between itself and itself -> true.
@@ -705,10 +705,10 @@ describe(ctx.label, () => {
         })
     })
 
-    test('view-custom-localdate-getters', async () => {
-        // The custom-localDate getters through a VIEW column (the table side is
-        // covered by custom-localdate-remaining-getters). vReleaseOverview.releasedOn
-        // is a required customLocalDate ('ReleaseDay'), so getFullYear/getMonth/
+    test('view-own-localdate-getters', async () => {
+        // The own-localDate getters through a VIEW column (the table side is
+        // covered by own-localdate-remaining-getters). vReleaseOverview.releasedOn
+        // is a required LocalDatesType ('ReleaseDay'), so getFullYear/getMonth/
         // getDate/getDay each project a required `number`. Release 1 through the
         // view: released_on 2024-01-15 (a Monday) -> year 2024, month 0 (January,
         // JS 0-indexed), date 15, day-of-week 1.
@@ -733,11 +733,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('view-custom-localdatetime-optional-getters', async () => {
-        // The full custom-localDateTime getter set through a VIEW column (the
-        // table side is covered by custom-localdatetime-optional-getters).
-        // vReleaseOverview.signedOffAt is an OPTIONAL customLocalDateTime
-        // ('SignOffStamp') — the sole optional-custom-localDateTime column on any
+    test('view-own-localdatetime-optional-getters', async () => {
+        // The full own-localDateTime getter set through a VIEW column (the
+        // table side is covered by own-localdatetime-optional-getters).
+        // vReleaseOverview.signedOffAt is an OPTIONAL LocalDateTimesType
+        // ('SignOffStamp') — the sole optional-own-localDateTime column on any
         // View — so every getter carries the optional marker to a `?: number`
         // leaf. Release 1 through the view: signed_off_at 2024-01-14 12:30:00 (a
         // Sunday) -> year 2024, month 0, date 14, day-of-week 0, hours 12, minutes
@@ -776,11 +776,11 @@ describe(ctx.label, () => {
     })
 
 
-    test('optional-custom-temporal-getters-realize-the-undefined-inhabitant', async () => {
-        // OPTIONAL-custom-temporal getters on a 2-row projection where the second row
+    test('optional-own-temporal-getters-realize-the-undefined-inhabitant', async () => {
+        // OPTIONAL-own-temporal getters on a 2-row projection where the second row
         // is NULL, so the getter leaves realize both a value and `undefined`.
-        // `targetDay` (optional customLocalDate) getters and `cutoff`
-        // (optional customLocalTime) getters both carry the optional marker to a
+        // `targetDay` (optional LocalDatesType) getters and `cutoff`
+        // (optional LocalTimesType) getters both carry the optional marker to a
         // `?: number` leaf. Draft 1: target_day 2024-07-10 (a Wednesday) ->
         // year 2024, month 6 (July, JS 0-indexed), date 10, day-of-week 3; cutoff
         // 08:30:00 -> hours 8, minutes 30, seconds 0, milliseconds 0. Draft 2 leaves

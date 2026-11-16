@@ -1,4 +1,4 @@
-// A type adapter can request the type a value is sent with: `dayMonthYear` sends a ReleaseDay (a customLocalDate) as
+// A type adapter can request the type a value is sent with: `dayMonthYear` sends a ReleaseDay (a LocalDatesType) as
 // its text DD/MM/YYYY, requesting a string in transformValueToDB, and writes the placeholder converting that text to a
 // date. The query runner sends the parameter as the type requested, a text, also where the database must receive its
 // type. The rows show the query finds the release of that day (release 1 was released on 2024-01-15).
@@ -64,7 +64,7 @@ const tReleaseDayAsText = new class TReleaseDayAsText extends Table<DBConnection
     constructor() { super('project_release') }
 }()
 
-// A custom type decides how its value is converted, whatever its name: a customLocalDate named 'localDateTime' is a
+// A type of the user decides how its value is converted, whatever its name: a LocalDatesType named 'localDateTime' is a
 // localDate
 const tReleaseDayNamedLikeABuiltIn = new class TReleaseDayNamedLikeABuiltIn extends Table<DBConnection, 'TReleaseDayNamedLikeABuiltIn'> {
     id         = this.primaryKey('id', 'int')
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1, day: dayOf(2024, 1, 15) }])
     })
 
-    test('requested-type/a-custom-type-decides-whatever-its-name', async () => {
+    test('requested-type/a-own-type-decides-whatever-its-name', async () => {
         ctx.mockNext([{ id: 1, releasedOn: '2024-01-15' }])
         const rows = await ctx.conn.selectFrom(tReleaseDayNamedLikeABuiltIn)
             .where(tReleaseDayNamedLikeABuiltIn.releasedOn.equals(dayOf(2024, 1, 15)))

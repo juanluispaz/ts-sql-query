@@ -118,7 +118,7 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             expect(placeholder).toBe(typesTheParam ? '$1' : '$1::numeric')
             expect(await r.executeQuery('selectOneRow', `select (${placeholder})::text as v, pg_typeof(${placeholder})::text as t`, params)).toEqual({ v: exactDecimal, t: 'numeric' })
 
-            // Without the declaration, a customDouble gets the type of a double, which loses digits
+            // Without the declaration, a RealsType gets the type of a double, which loses digits
             const plainParams: any[] = []
             const asDouble = await runners!.plain.executeQuery('selectOneColumnOneRow', `select (${addParam(runners!.plain, plainParams, exactDecimal, ExactDecimalType, true)})::text`, plainParams)
             expect(asDouble).not.toBe(exactDecimal)

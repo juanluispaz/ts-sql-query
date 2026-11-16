@@ -494,7 +494,7 @@ describe(ctx.label, () => {
     // ── custom (cm_str, ReleaseChannel) ─────────────────────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-required', async () => {
+    test('own-required', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustom()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -505,7 +505,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-optional', async () => {
+    test('own-optional', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -516,7 +516,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-required-adapter', async () => {
+    test('own-required-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -527,7 +527,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-optional-adapter', async () => {
+    test('own-optional-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -537,10 +537,10 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── customComparable (cm_str, Semver) ───────────────────────────────
+    // ── ComparableType (cm_str, Semver) ───────────────────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-comparable-required', async () => {
+    test('own-comparable-required', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparable()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -551,7 +551,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-comparable-optional', async () => {
+    test('own-comparable-optional', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparableOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -562,7 +562,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-comparable-required-adapter', async () => {
+    test('own-comparable-required-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparableAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -573,7 +573,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-comparable-optional-adapter', async () => {
+    test('own-comparable-optional-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparableOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -583,10 +583,10 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── customInt (cm_int, Cents) ───────────────────────────────────────
+    // ── IntegersType (cm_int, Cents) ───────────────────────────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-int-required', async () => {
+    test('own-int-required', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomInt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -597,7 +597,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-int-optional', async () => {
+    test('own-int-optional', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomIntOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -608,7 +608,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-int-required-adapter', async () => {
+    test('own-int-required-adapter', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomIntAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -619,7 +619,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-int-optional-adapter', async () => {
+    test('own-int-optional-adapter', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomIntOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -629,10 +629,10 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── customUuid (cm_uuid, SigningKey) ────────────────────────────────
+    // ── UuidsType (cm_uuid, SigningKey) ────────────────────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-uuid-required', async () => {
+    test('own-uuid-required', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuid()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -643,7 +643,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-uuid-optional', async () => {
+    test('own-uuid-optional', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -654,7 +654,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-uuid-required-adapter', async () => {
+    test('own-uuid-required-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -665,7 +665,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-uuid-optional-adapter', async () => {
+    test('own-uuid-optional-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -675,10 +675,10 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── customDouble (cm_double, Money) ─────────────────────────────────
+    // ── RealsType (cm_double, Money) ─────────────────────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-double-required', async () => {
+    test('own-double-required', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDouble()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -689,7 +689,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-double-optional', async () => {
+    test('own-double-optional', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDoubleOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -700,7 +700,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-double-required-adapter', async () => {
+    test('own-double-required-adapter', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDoubleAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -711,7 +711,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-double-optional-adapter', async () => {
+    test('own-double-optional-adapter', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDoubleOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -721,10 +721,10 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── customLocalDate (cm_date, ReleaseDay) — temporal ────────────────
+    // ── LocalDatesType (cm_date, ReleaseDay) — temporal ────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-required', async () => {
+    test('own-local-date-required', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDate()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -735,7 +735,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-optional', async () => {
+    test('own-local-date-optional', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDateOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -746,7 +746,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-required-adapter', async () => {
+    test('own-local-date-required-adapter', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDateAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -757,7 +757,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-optional-adapter', async () => {
+    test('own-local-date-optional-adapter', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDateOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -767,10 +767,10 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── customLocalTime (cm_time, CutoffClock) ──────────────────────────
+    // ── LocalTimesType (cm_time, CutoffClock) ──────────────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-time-required', async () => {
+    test('own-local-time-required', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTime()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -781,7 +781,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-time-optional', async () => {
+    test('own-local-time-optional', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTimeOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -792,7 +792,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-time-required-adapter', async () => {
+    test('own-local-time-required-adapter', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTimeAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -803,7 +803,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-time-optional-adapter', async () => {
+    test('own-local-time-optional-adapter', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTimeOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -813,10 +813,10 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── customLocalDateTime (cm_datetime, SignOffStamp) ─────────────────
+    // ── LocalDateTimesType (cm_datetime, SignOffStamp) ─────────────────
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-time-required', async () => {
+    test('own-local-date-time-required', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTime()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -827,7 +827,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-time-optional', async () => {
+    test('own-local-date-time-optional', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTimeOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -838,7 +838,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-time-required-adapter', async () => {
+    test('own-local-date-time-required-adapter', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTimeAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -849,7 +849,7 @@ describe(ctx.label, () => {
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
-    test('custom-local-date-time-optional-adapter', async () => {
+    test('own-local-date-time-optional-adapter', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTimeOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()

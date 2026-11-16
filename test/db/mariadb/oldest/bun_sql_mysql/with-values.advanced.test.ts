@@ -81,7 +81,7 @@ class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
 
 // the BASE-TYPE (non-custom) `optionalVirtualColumnFromFragment`
 // overloads — `'int'` / `'string'` / … with no typeName, contrast with
-// `VIssueBilling.billingRef` which uses the `customUuid` form. Each projects
+// `VIssueBilling.billingRef` which uses the `UuidsType` form. Each projects
 // as `T | undefined` and, like every virtual column, is NOT a VALUES tuple
 // member: only the real `column(...)` fields appear in the `name(cols)`
 // list, while reading a virtual field inlines its fragment SQL.
@@ -217,13 +217,13 @@ describe(ctx.label, () => {
 //     })
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
-//     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
+//     test('values-with-own-typed-columns-emits-own-int-own-double-casts', async () => {
 //         // `column(IssueIdType)` and
 //         // `optionalColumn(MoneyType)` on the
 //         // `VIssueBilling` view above route through the
 //         // `typeof adapter === 'string'` branch — the only branch reached when the
 //         // user passes a typeName. The emitted VALUES tuple casts the placeholders for
-//         // the custom-typed columns; the exact cast each dialect emits is
+//         // the own-typed columns; the exact cast each dialect emits is
 //         // pinned by the snapshot.
 //         ctx.mockNext([
 //             { issueId: 101 as IssueId, amount: 19.99 as Money },
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
 //     })
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
-//     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
+//     test('values-virtual-column-from-fragment-with-own-type-emits-inline-fragment', async () => {
 //         // `virtualColumnFromFragment(EnumType.of<T, 'OrderState'>('OrderState'), fn)` reaches
 //         // the `typeof arg1 === 'string'` branch. The
 //         // column does NOT appear in the VALUES tuple; the fragment SQL
@@ -298,7 +298,7 @@ describe(ctx.label, () => {
 //     })
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MariaDB discards the parameter values inside a VALUES (...) table constructor of a server-side prepared statement (MDEV-33477), and Bun SQL always sends a prepared statement; runs on the mariadb connector.
-//     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
+//     test('values-optional-virtual-column-from-fragment-with-own-type-emits-inline-fragment', async () => {
 //         // `optionalVirtualColumnFromFragment(BillingRefType, fn)`
 //         // reaches. Same dispatch branch as the
 //         // required-virtual-column test above; the projection surfaces

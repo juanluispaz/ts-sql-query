@@ -500,9 +500,9 @@ describe(ctx.label, () => {
         })
     })
 
-    test('update-returning-temporal-custom-kinds-round-trip', async () => {
-        // RETURNING the branded custom temporal kinds on UPDATE — customLocalDate,
-        // customLocalTime, customLocalDateTime — then reading the same row back.
+    test('update-returning-temporal-own-kinds-round-trip', async () => {
+        // RETURNING the branded custom temporal kinds on UPDATE — LocalDatesType,
+        // LocalTimesType, LocalDateTimesType — then reading the same row back.
         await ctx.withRollback(async () => {
             const releasedOn = new Date(Date.UTC(2026, 3, 4))
             const cutoffTime = new Date(Date.UTC(1970, 0, 1, 22, 10, 0))

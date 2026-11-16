@@ -535,7 +535,7 @@ that lists the columns of its table (see step 4 below).
      the data-only reset, or the per-test reseed leaves its rows behind.
    - `test/db/<db>/domain/connection.ts` — declare the column on the
      `Table` subclass (and add the `CustomBooleanTypeAdapter` import etc.
-     as needed). A new custom `typeName` also goes in `baseTypeForCustom`
+     as needed). A new EqualableType `typeName` also goes in `baseTypeForCustom`
      in each of the six connections.
 
    Per-dialect details: each `schema.sql` drops its objects in its own

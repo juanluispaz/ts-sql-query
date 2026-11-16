@@ -494,7 +494,7 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
             },
         })
         return {
-            // An `ExactDecimal` (a customDouble that holds an exact decimal as
+            // An `ExactDecimal` (a RealsType that holds an exact decimal as
             // text) is bound as text: as a Float it would lose digits.
             runner: new MssqlPoolQueryRunner(pool, { typesByName: { ExactDecimal: sql.TYPES.NVarChar } }),
             shutdown: async () => { await pool.close() },

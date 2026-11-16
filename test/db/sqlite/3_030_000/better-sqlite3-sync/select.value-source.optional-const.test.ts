@@ -81,9 +81,9 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('optional-const/uuid-enum-custom-comparable', async () => {
+    test('optional-const/uuid-enum-own-comparable', async () => {
         // uuid (-> string), enum (-> the branded union), custom (equality, ->
-        // the branded union), customComparable (-> string). The branded leaves
+        // the branded union), ComparableType (-> string). The branded leaves
         // resolve to their underlying TS type.
         const expected = { u: UUID_V, e: 'coding' as WorklogActivity, c: 'stable' as ReleaseChannel, cc: '1.2.0' }
         ctx.mockNext(expected)
@@ -108,8 +108,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('optional-const/custom-numeric-and-uuid', async () => {
-        // customInt (-> number), customDouble (-> number), customUuid
+    test('optional-const/own-numeric-and-uuid', async () => {
+        // IntegersType (-> number), RealsType (-> number), UuidsType
         // (-> string). Brands carry through; the leaves are the underlying type.
         const expected = { ci: 7, cd: 1.5, cu: UUID_V }
         ctx.mockNext(expected)
@@ -133,8 +133,8 @@ describe(ctx.label, () => {
     })
 
     test('optional-const/temporal-time-and-datetime', async () => {
-        // localTime / localDateTime and their custom siblings customLocalTime /
-        // customLocalDateTime (-> Date), all 'optional'. These four round-trip a
+        // localTime / localDateTime and their custom siblings LocalTimesType /
+        // LocalDateTimesType (-> Date), all 'optional'. These four round-trip a
         // const value cleanly on every engine. A time-only value sits on
         // 1970-01-01. (The localDate arms are driven via null below.)
         const lt  = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -165,7 +165,7 @@ describe(ctx.label, () => {
     })
 
     test('optional-const/localdate-keyword-cast-and-type', async () => {
-        // The `localDate` / `customLocalDate` arms — the emitted placeholder
+        // The `localDate` / `LocalDatesType` arms — the emitted placeholder
         // cast (pg `::date` for the enumerated keyword, bare for the custom one)
         // and the `Date | null` leaf. The value is driven with `null` because a
         // non-null date const echoed back is not round-trippable on every driver

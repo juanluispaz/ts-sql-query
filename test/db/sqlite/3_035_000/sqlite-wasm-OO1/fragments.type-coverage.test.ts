@@ -100,9 +100,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual([expected])
     })
 
-    test('fragment-with-type-double-custom-and-custom-local-arms', async () => {
-        // The `double` / `custom` / `customUuid` / `customLocalDate` /
-        // `customLocalTime` / `customLocalDateTime` return arms over release 1
+    test('fragment-with-type-double-own-and-own-local-arms', async () => {
+        // The `double` / `EqualableType` / `UuidsType` / `LocalDatesType` /
+        // `LocalTimesType` / `LocalDateTimesType` return arms over release 1
         // (version 1.2.0, channel stable, released 2024-01-15, cutoff 17:00,
         // signed off 2024-01-14 12:30, signing key the seeded uuid).
         const REF1 = '0a8f9c1e-1111-4222-8333-444455556666'
@@ -275,9 +275,9 @@ describe(ctx.label, () => {
         expect(custom).toEqual({})
     })
 
-    test('aggregate-fragment-with-type-optional-custom-scalar-arms', async () => {
+    test('aggregate-fragment-with-type-optional-own-scalar-arms', async () => {
         // The `'optional'` arm of aggregateFragmentWithType for the branded scalar
-        // kinds customInt / customDouble / enum (over worklogs) and customComparable
+        // kinds IntegersType / RealsType / enum (over worklogs) and ComparableType
         // / custom (over releases). A no-match WHERE resolves each aggregate over an
         // EMPTY group -> NULL -> the optional branded leaf's absent inhabitant.
         const c = ctx.conn
@@ -307,9 +307,9 @@ describe(ctx.label, () => {
         expect(rel).toEqual({})
     })
 
-    test('aggregate-fragment-with-type-enum-and-custom-arms', async () => {
+    test('aggregate-fragment-with-type-enum-and-own-arms', async () => {
         // `aggregateFragmentWithType` carrying the branded leaf: `enum`
-        // (max activity over issue 1's worklogs) and `custom` (max channel over
+        // (max activity over issue 1's worklogs) and `EqualableType` (max channel over
         // the releases). Issue 1 worklogs: 'coding','meeting' -> max 'meeting';
         // release channels {stable,beta,canary} -> max 'stable'.
         const expectedAct = { maxActivity: 'meeting' as WorklogActivity }
@@ -343,8 +343,8 @@ describe(ctx.label, () => {
         expect(chRow).toEqual(expectedCh)
     })
 
-    test('fragment-with-type-custom-double-and-local-date-time-arms', async () => {
-        // `fragmentWithType('customDouble', ...)` builds a CustomDoubleFragmentExpression
+    test('fragment-with-type-own-double-and-local-date-time-arms', async () => {
+        // `fragmentWithType('RealsType', ...)` builds a CustomDoubleFragmentExpression
         // carrying the 'Money' typeName (marshalled to double), and
         // `fragmentWithType('localDateTime', 'required')` reads a full timestamp
         // back. Worklog 1's billed_amount is 200; release 1's signed_off_at is
@@ -432,11 +432,11 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { tagged: string }>>()
         expect(row).toEqual(expected)
     })
-    test('fragment-with-type-custom-kind-threads-a-trailing-type-adapter', async () => {
-        // The custom-kind `fragmentWithType(type, typeName, required, adapter)`
+    test('fragment-with-type-own-kind-threads-a-trailing-type-adapter', async () => {
+        // The own-kind `fragmentWithType(type, typeName, required, adapter)`
         // overload threads the trailing adapter into the read: bracketAdapter
         // brackets release 1's version ('1.2.0'), read back through the
-        // customComparable 'Semver' fragment. The mock is primed with the RAW
+        // ComparableType 'Semver' fragment. The mock is primed with the RAW
         // value; the adapter brackets it on the way out.
         ctx.mockNext({ v: '1.2.0' })
         const expected = { v: '[1.2.0]' }
@@ -456,10 +456,10 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('aggregate-fragment-with-type-custom-kind-threads-a-trailing-type-adapter', async () => {
-        // The custom-kind `aggregateFragmentWithType(type, typeName, required, adapter)`
+    test('aggregate-fragment-with-type-own-kind-threads-a-trailing-type-adapter', async () => {
+        // The own-kind `aggregateFragmentWithType(type, typeName, required, adapter)`
         // overload threads the trailing adapter into the read. bracketAdapter brackets
-        // max(version) over the releases, read through the customComparable 'Semver'
+        // max(version) over the releases, read through the ComparableType 'Semver'
         // aggregate fragment. Versions {1.2.0, 1.3.0-beta.1, 0.9.0} -> max
         // '1.3.0-beta.1' -> '[1.3.0-beta.1]'.
         ctx.mockNext({ v: '1.3.0-beta.1' })
@@ -516,8 +516,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('aggregate-fragment-with-type-custom-local-time-threads-a-trailing-type-adapter', async () => {
-        // The CUSTOM-kind `customLocalTime` ('CutoffClock') return arm with a
+    test('aggregate-fragment-with-type-own-local-time-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `LocalTimesType` ('CutoffClock') return arm with a
         // trailing adapter. Releases'
         // cutoff_time {17:00, 18:30, 16:00} -> max = 18:30 -> +1h -> 19:30.
         ctx.mockNext({ mct: new Date(Date.UTC(1970, 0, 1, 18, 30, 0)) })
@@ -533,8 +533,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('aggregate-fragment-with-type-custom-local-date-time-threads-a-trailing-type-adapter', async () => {
-        // The CUSTOM-kind `customLocalDateTime` ('SignOffStamp') return arm with a
+    test('aggregate-fragment-with-type-own-local-date-time-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `LocalDateTimesType` ('SignOffStamp') return arm with a
         // trailing adapter. max(signed_off_at) = 2024-02-28
         // 09:00 -> +1h -> 10:00.
         ctx.mockNext({ mcdt: new Date(Date.UTC(2024, 1, 28, 9, 0, 0)) })
@@ -575,8 +575,8 @@ describe(ctx.label, () => {
         }
     })
 
-    test('aggregate-fragment-with-type-custom-local-date-threads-a-trailing-type-adapter', async () => {
-        // The CUSTOM-kind `customLocalDate` ('ReleaseDay') return arm with a trailing
+    test('aggregate-fragment-with-type-own-local-date-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `LocalDatesType` ('ReleaseDay') return arm with a trailing
         // adapter. Same localDate marshaller boundary, so the
         // value is asserted MOCK-ONLY. max(released_on) over {2024-01-15, 2024-02-20,
         // 2024-03-01} = 2024-03-01 -> +1h.
@@ -601,7 +601,7 @@ describe(ctx.label, () => {
 
     test('fragment-with-type-optional-arms-over-worklog', async () => {
         // The `'optional'` arms of the boolean / localDate / localTime /
-        // customInt / customDouble / enum return families. The SQL is identical
+        // IntegersType / RealsType / enum return families. The SQL is identical
         // to the required form; only the leaf widens to `?: T`.
         // Worklog 1: billable TRUE, work_date 2024-03-04, started_at 09:15,
         // cost_cents 100 (Cents -> number), billed_amount 200 (Money -> number),
@@ -642,8 +642,8 @@ describe(ctx.label, () => {
     })
 
     test('fragment-with-type-optional-arms-over-release', async () => {
-        // The `'optional'` arms of the customUuid / customLocalDate /
-        // customLocalTime / customLocalDateTime / customComparable return
+        // The `'optional'` arms of the UuidsType / LocalDatesType /
+        // LocalTimesType / LocalDateTimesType / ComparableType return
         // families. The SQL is identical to the required form; only the leaf
         // widens to `?: T`. Release 1: signing key the seeded uuid,
         // released 2024-01-15, cutoff 17:00, signed off 2024-01-14 12:30,
@@ -685,7 +685,7 @@ describe(ctx.label, () => {
     test('fragment-with-type-optional-arm-plain-local-date-time', async () => {
         // The `'optional'` arm of the plain `localDateTime` return family, over a
         // genuinely plain localDateTime column (the release date/time columns are
-        // custom-branded). Organization 1's created_at carries an explicit,
+        // own-branded). Organization 1's created_at carries an explicit,
         // deterministic 2023-06-15 08:00 (not the CURRENT_TIMESTAMP default), so
         // the present value round-trips; the leaf widens to `?: Date`.
         const expected = {
@@ -803,8 +803,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('fragment-with-type-custom-local-date-threads-a-trailing-type-adapter', async () => {
-        // The CUSTOM-kind `customLocalDate` ('ReleaseDay') return arm of
+    test('fragment-with-type-own-local-date-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `LocalDatesType` ('ReleaseDay') return arm of
         // `fragmentWithType(type, typeName, required, adapter)` over a plain column
         // read. `shiftHourAdapter` shifts the read value +1h. Release 1's
         // released_on 2024-01-15 reads back at 10:00 UTC -> +1h -> 11:00 UTC.

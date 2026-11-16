@@ -1,4 +1,4 @@
-// Documentation snippets for the Data types page (docs/configuration/data-types.md), sections Custom types and
+// Documentation snippets for the Data types page (docs/configuration/data-types.md), sections Types of the user and
 // Exact decimals.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -30,8 +30,8 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('docs:data-types/custom-type-converted-as-its-category', async () => {
-        // The SQL gives both values as text: the customInt is converted as an int, the custom arrives as it comes
+    test('docs:data-types/own-type-converted-as-its-category', async () => {
+        // The SQL gives both values as text: the IntegersType is converted as an int, the custom arrives as it comes
         ctx.mockNext({ units: '42', tag: '42' })
         const row = sync(ctx.conn.selectFromNoTable()
             .select({

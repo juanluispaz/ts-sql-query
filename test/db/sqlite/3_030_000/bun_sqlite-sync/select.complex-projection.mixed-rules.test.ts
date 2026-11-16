@@ -348,7 +348,7 @@ describe(ctx.label, () => {
 
     test('top-level-optional-branded-column-default-as-undefined', async () => {
         // A top-level optional branded literal-union column projected directly.
-        // `tReleaseDraft.channel` is an optional `custom` (ReleaseChannel) column; under the default
+        // `tReleaseDraft.channel` is an optional `EqualableType` (ReleaseChannel) column; under the default
         // projector the leaf is `channel?: ReleaseChannel`, absent when null. Draft 1 channel 'beta';
         // draft 2 NULL → absent.
         const expected = [{ id: 1, channel: 'beta' }, { id: 2 }]

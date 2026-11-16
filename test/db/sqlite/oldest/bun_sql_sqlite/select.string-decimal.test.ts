@@ -496,7 +496,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('string-decimal/a-dynamic-condition-filters-with-a-custom-decimal-filter', async () => {
+    test('string-decimal/a-dynamic-condition-filters-with-a-own-decimal-filter', async () => {
         // MOCK-ONLY: Bun SQL's SQLite can't register functions, and the default decimal strategy writes decimal_add,
         // decimal_sub, decimal_mul, decimal_sum and decimal_cmp, and the library's tsq_ functions for the roundings
         ctx.mockOnlyConnection()

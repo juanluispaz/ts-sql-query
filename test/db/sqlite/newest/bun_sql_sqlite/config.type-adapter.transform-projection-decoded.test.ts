@@ -9,7 +9,7 @@
 //     `upperUuid` gives the uuid in upper case, and its `transformValueFromDB` reads it back in lower case: it rejects
 //     a text that isn't in upper case, so a value the database didn't convert fails the test.
 //   - With the default decimal strategy, 'decimal-extension and tsq-functions with canonical text', a computed
-//     customDecimal (here `valueWhenNull` and a fragment) is read in its canonical text. `markedAmount` writes a `#`
+//     DecimalsType (here `valueWhenNull` and a fragment) is read in its canonical text. `markedAmount` writes a `#`
 //     before the text, and its `transformValueFromDB` takes it away: it rejects a text without it.
 //
 // issue: 1 has the external_ref 0a8f9c1e-1111-4222-8333-444455556666 and 2 has 7b3e9d20-2222-4c55-9b66-dddd00009999,
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('transform-projection-decoded/decimal: the adapter wraps the canonical text of a computed customDecimal in a column of the result', async () => {
+    test('transform-projection-decoded/decimal: the adapter wraps the canonical text of a computed ownDecimal in a column of the result', async () => {
         // The fragment gives 1.50 and 00, read in their canonical text 1.5 and 0
         const padded = ctx.conn.fragmentWithType(AmountType, 'optional', markedAmount).sql`${tMarkedAmount.price} || '0'`
         ctx.mockNext([
@@ -232,7 +232,7 @@ describe(ctx.label, () => {
         ])
     })
 
-    test('transform-projection-decoded/decimal: the adapter wraps the canonical text of a computed customDecimal inside an aggregated array', async () => {
+    test('transform-projection-decoded/decimal: the adapter wraps the canonical text of a computed ownDecimal inside an aggregated array', async () => {
         const padded = ctx.conn.fragmentWithType(AmountType, 'optional', markedAmount).sql`${tMarkedAmount.price} || '0'`
         ctx.mockNext({
             prices:  ['#1.5', '#0', '#0'],

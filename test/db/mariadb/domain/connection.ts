@@ -78,7 +78,7 @@ const plusThousandBigintAdapter: TypeAdapter = {
 }
 // Temporal observable TypeAdapter: shifts a Date +1 hour on read / -1 hour on
 // write, so the adapter's effect is visible in a temporal result. Used by the
-// customLocalDateTime + adapter Table column shiftedStamp.
+// LocalDateTimesType + adapter Table column shiftedStamp.
 const shiftHourAdapter: TypeAdapter = {
     transformValueFromDB(value, context, next) {
         const v = next.transformValueFromDB(value, context)
@@ -140,16 +140,16 @@ const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
 // for the `invoiced` flag — the integer counterpart of the string adapters.
 const invoicedAdapter  = new CustomBooleanTypeAdapter(1, 0)
 
-// Branded newtype for the customDouble executeFunction wrapper (G1).
+// Branded newtype for the RealsType executeFunction wrapper (G1).
 export type Money = number & { readonly __brand: 'Money' }
 
-// Branded newtype for the customInt sequence (G2).
+// Branded newtype for the IntegersType sequence (G2).
 export type ReleaseTag = number & { readonly __brand: 'ReleaseTag' }
 
 // Every other TypeAdapter in this file switches on `typeof value`, so it cannot
 // tell an `int` from a `Cents`. This one transforms ONLY when the original type NAME
 // of the value is `Cents`, `Money` or `ReleaseTag` (write x100, read /100) and delegates
-// every other type name untouched. An expression that keeps its custom data type is therefore
+// every other type name untouched. An expression that keeps its data type of the user is therefore
 // scaled and one that fell back to a plain `int` / `double` is not, so the bound
 // placeholder and the value read back both record which data type the expression
 // actually carried.
@@ -182,11 +182,11 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     }
 
     // The `VIssueBilling` values view in `with-values.advanced.test.ts`
-    // declares custom types without a per-column `TypeAdapter`: `IssueId`
-    // (customInt), `Money` (customDouble) and `BillingRef` (customUuid).
+    // declares types of the user without a per-column `TypeAdapter`: `IssueId`
+    // (IntegersType), `Money` (RealsType) and `BillingRef` (UuidsType).
     // The default adapter passes custom typeNames through unchanged; some
     // drivers hand an uncast VALUES placeholder back as a string, so a
-    // `customInt` read from a VALUES tuple could surface as `"101"` rather
+    // `IntegersType` read from a VALUES tuple could surface as `"101"` rather
     // than `101`. Reading these typeNames as their base native type (the type
     // requested for the value read) keeps the round-trip typed correctly on
     // every dialect (a no-op where the driver already returns the native type);
@@ -203,7 +203,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
             case 'Ratio':        return 'double'
             case 'ScoreCount':   return 'int'
             case 'Score':        return 'double'
-            // Branded custom types declared on tProjectRelease / vReleaseOverview.
+            // Branded types of the user declared on tProjectRelease / vReleaseOverview.
             case 'Semver':       return 'string'
             case 'ReleaseChannel': return 'string'
             case 'SigningKey':   return 'uuid'
@@ -271,7 +271,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // executeFunction return-type fan-out beyond the existing int /
     // string arms — total_view_count returns bigint, latest_issue_at returns
     // an optional localDateTime (null when the project has no issues), and
-    // estimated_total returns a branded customDouble (Money). The function
+    // estimated_total returns a branded RealsType (Money). The function
     // bodies live in this dialect's domain/schema.sql.
     callTotalViewCount(projectId: number): Promise<bigint> {
         return this.executeFunction('total_view_count', [
@@ -288,7 +288,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
             this.const(projectId, 'int'),
         ], MoneyType, 'required')
     }
-    // A customDouble executeFunction wrapper with a trailing TypeAdapter:
+    // A RealsType executeFunction wrapper with a trailing TypeAdapter:
     // plusOffsetAdapter shifts the numeric result so the adapter's effect is
     // observable. Reuses estimated_total.
     callEstimatedTotalOffset(projectId: number): Promise<Money> {
@@ -324,9 +324,9 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // per remaining return kind, each routing that kind's transformValueFromDB
     // marshaller and the required/optional null-gate. Plain kinds reuse the
     // constant functions (ret_flag / ret_uuid / ret_day / ret_clock /
-    // ret_activity / ret_channel / ret_semver); double / customInt /
-    // customLocalDateTime reuse estimated_total / count_open_issues /
-    // latest_issue_at. The custom kinds thread the typeName generic.
+    // ret_activity / ret_channel / ret_semver); double / IntegersType /
+    // LocalDateTimesType reuse estimated_total / count_open_issues /
+    // latest_issue_at. The types of the user thread the typeName generic.
     callRetBoolean(id: number): Promise<boolean> {
         return this.executeFunction('ret_flag', [this.const(id, 'int')], 'boolean', 'required')
     }
@@ -416,7 +416,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // negate, uuid/string bracket, Date +1h) makes the adapter visible in the
     // result. Custom kinds thread the typeName generic and reuse the base
     // function; the plain-kind adapter rides the last positional slot, the
-    // custom-kind adapter the `adapter2` slot after the typeName.
+    // own-kind adapter the `adapter2` slot after the typeName.
 
     // int (cm_int)
     callCmInt(): Promise<number> {
@@ -572,7 +572,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('cm_str', [], ReleaseChannelType, 'optional', bracketAdapter)
     }
 
-    // customComparable (cm_str, Semver)
+    // ComparableType (cm_str, Semver)
     callCmCustomComparable(): Promise<string> {
         return this.executeFunction('cm_str', [], SemverType, 'required')
     }
@@ -586,7 +586,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('cm_str', [], SemverType, 'optional', bracketAdapter)
     }
 
-    // customInt (cm_int, Cents)
+    // IntegersType (cm_int, Cents)
     callCmCustomInt(): Promise<number> {
         return this.executeFunction('cm_int', [], CentsType, 'required')
     }
@@ -600,7 +600,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('cm_int', [], CentsType, 'optional', fnNumberTimesTen)
     }
 
-    // customUuid (cm_uuid, SigningKey)
+    // UuidsType (cm_uuid, SigningKey)
     callCmCustomUuid(): Promise<string> {
         return this.executeFunction('cm_uuid', [], SigningKeyType, 'required')
     }
@@ -614,7 +614,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('cm_uuid', [], SigningKeyType, 'optional', fnUuidBracket)
     }
 
-    // customDouble (cm_double, Money)
+    // RealsType (cm_double, Money)
     callCmCustomDouble(): Promise<number> {
         return this.executeFunction('cm_double', [], MoneyRealsType, 'required')
     }
@@ -628,7 +628,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('cm_double', [], MoneyRealsType, 'optional', fnNumberTimesTen)
     }
 
-    // customLocalDate (cm_date, ReleaseDay)
+    // LocalDatesType (cm_date, ReleaseDay)
     callCmCustomLocalDate(): Promise<Date> {
         return this.executeFunction('cm_date', [], ReleaseDayType, 'required')
     }
@@ -642,7 +642,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('cm_date', [], ReleaseDayType, 'optional', shiftHourAdapter)
     }
 
-    // customLocalTime (cm_time, CutoffClock)
+    // LocalTimesType (cm_time, CutoffClock)
     callCmCustomLocalTime(): Promise<Date> {
         return this.executeFunction('cm_time', [], CutoffClockType, 'required')
     }
@@ -656,7 +656,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.executeFunction('cm_time', [], CutoffClockType, 'optional', shiftHourAdapter)
     }
 
-    // customLocalDateTime (cm_datetime, SignOffStamp)
+    // LocalDateTimesType (cm_datetime, SignOffStamp)
     callCmCustomLocalDateTime(): Promise<Date> {
         return this.executeFunction('cm_datetime', [], SignOffStampType, 'required')
     }
@@ -845,16 +845,16 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     doubleEq = this.buildFragmentWithArgsIfValue(
         this.arg('double', 'optional'), this.valueArg('double', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
-    customComparableEq = this.buildFragmentWithArgsIfValue(
+    ownComparableEq = this.buildFragmentWithArgsIfValue(
         this.arg(SemverType, 'optional'), this.valueArg(SemverType, 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
-    customEq = this.buildFragmentWithArgsIfValue(
+    ownEq = this.buildFragmentWithArgsIfValue(
         this.arg(ReleaseChannelType, 'optional'), this.valueArg(ReleaseChannelType, 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     enumEq = this.buildFragmentWithArgsIfValue(
         this.arg(WorklogActivityType, 'optional'), this.valueArg(WorklogActivityType, 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
-    customUuidEq = this.buildFragmentWithArgsIfValue(
+    ownUuidEq = this.buildFragmentWithArgsIfValue(
         this.arg(SigningKeyType, 'optional'), this.valueArg(SigningKeyType, 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     // boolean arm — combined in a LOGICAL (condition) context with `or` so the
@@ -866,7 +866,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         this.arg('boolean', 'optional'), this.valueArg('boolean', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} or ${v}`)
 
-    // arg / valueArg over the temporal and custom-fractional keywords. Each is
+    // arg / valueArg over the temporal and own-fractional keywords. Each is
     // `${col} = ${value}` in a column context (the arg binds to a typed column at
     // the call site), so the SQL stays portable and the valueArg marshals a
     // distinct bound value per kind (e.g. a Date through valueArg('localTime')
@@ -880,7 +880,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     localDateTimeEq = this.buildFragmentWithArgsIfValue(
         this.arg('localDateTime', 'optional'), this.valueArg('localDateTime', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
-    customDoubleEq = this.buildFragmentWithArgsIfValue(
+    ownDoubleEq = this.buildFragmentWithArgsIfValue(
         this.arg(MoneyRealsType, 'optional'), this.valueArg(MoneyRealsType, 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
     // bigint / uuid arg + valueArg arms — `${col} = ${value}` in a column
@@ -910,22 +910,22 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // (plusThousandBigintAdapter, read +1000n), reusing audit_tag_seq.
     auditTagSeqOffset = this.sequence('audit_tag_seq', 'bigint', plusThousandBigintAdapter)
 
-    // Double / customDouble sequence value-types: reuse the existing
+    // Double / RealsType sequence value-types: reuse the existing
     // int / bigint sequences but marshal the drawn value as the WIDER double /
-    // customDouble kind. The emitted SQL is identical to issueIdSeq / auditTagSeq;
-    // only the read marshalling changes. customDouble binds the 'Money' typeName
+    // RealsType kind. The emitted SQL is identical to issueIdSeq / auditTagSeq;
+    // only the read marshalling changes. RealsType binds the 'Money' typeName
     // (marshalled to double via baseTypeForCustom); the value type is a plain
     // number, so nextValue()/currentValue() surface a `number` result.
     doubleSeq = this.sequence('issue_id_seq', 'double')
-    customDoubleSeq = this.sequence('audit_tag_seq', MoneyRealsType)
+    ownDoubleSeq = this.sequence('audit_tag_seq', MoneyRealsType)
 
-    // A sequence whose value type is a branded customInt (ReleaseTag)
+    // A sequence whose value type is a branded IntegersType (ReleaseTag)
     // rather than the plain int / bigint of issueIdSeq / auditTagSeq — the
     // value-type fan-out of sequence(...). The release_tag_seq DDL lives in
     // this dialect's domain/schema.sql.
     releaseTagSeq = this.sequence('release_tag_seq', ReleaseTagType)
 
-    // A CUSTOM-kind (customInt / ReleaseTag) sequence carrying a trailing
+    // A CUSTOM-kind (IntegersType / ReleaseTag) sequence carrying a trailing
     // TypeAdapter (plusOffsetAdapter, read +1000). Reuses release_tag_seq; the
     // emitted SQL is identical to releaseTagSeq, only the read value is shifted.
     releaseTagSeqOffset = this.sequence('release_tag_seq', ReleaseTagType, plusOffsetAdapter)
@@ -950,7 +950,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
 
     // CUSTOM-kind arg / valueArg carrying a trailing TypeAdapter
     // (scaledTenthAdapter, x10 on the write path) — the combined-mode (`adapter2`)
-    // slot on the CUSTOM-kind arm of arg / valueArg. Each routes a bound customInt
+    // slot on the CUSTOM-kind arm of arg / valueArg. Each routes a bound IntegersType
     // ('Cents', marshalled to int) literal
     // through the adapter's write path (x10), so passing 1 binds the scaled 10.
     scaledCustomArgFragment = this.buildFragmentWithArgs(
@@ -1017,7 +1017,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
         return this.rawFragment`${table} for system_time between ${from} and ${to} ${alias}`
     })
 
-    // A sequence whose drawn value carries a CUSTOM data type (customInt /
+    // A sequence whose drawn value carries a CUSTOM data type (IntegersType /
     // 'ReleaseTag') together with the `scaledByTypeName` adapter, so a derivation
     // applied to `nextValue()` / `currentValue()` records the data type the
     // sequence reference itself carries. Reuses release_tag_seq.
@@ -1030,7 +1030,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // the derived value source is returned directly) how the result reads back.
     //
     // The `scaledByTypeName` ones pair the argument with a second argument of the
-    // SAME custom data type, bound to a column at the call site, so every
+    // SAME data type of the user, bound to a column at the call site, so every
     // placeholder sits next to a typed operand and the emitted SQL stays portable.
     derivedArgCents = this.buildFragmentWithArgs(
         this.arg(CentsType, 'required', scaledByTypeName),
@@ -1164,7 +1164,7 @@ export const vProjectOverview = new class VProjectOverview extends View<DBConnec
 
 // Enum / branded custom value types declared on the worklog + release
 // fixtures below. These are the app-side TS types; the column declares
-// the matching `'enum'` / `'custom'` / `'customComparable'` kind and the
+// the matching `'enum'` / `'custom'` / `'ComparableType'` kind and the
 // connection's `baseTypeForCustom` maps the typeName to its native base.
 export type WorklogActivity = 'coding' | 'review' | 'meeting'
 export type ReleaseChannel  = 'stable' | 'beta' | 'canary'
@@ -1202,13 +1202,13 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     durationMs = this.optionalColumn('duration_ms', 'bigint')
     billable   = this.optionalColumn('billable', 'boolean')
     approved   = this.optionalColumn('approved', 'boolean', approvedAdapter)
-    // The amount billed for the worklog — a branded customDouble ('Money',
+    // The amount billed for the worklog — a branded RealsType ('Money',
     // marshalled to double). invoiced is a boolean stored as int 1/0 via the
     // NUMERIC CustomBooleanTypeAdapter overload.
     billedAmount = this.columnWithDefaultValue('billed_amount', MoneyRealsType)
     invoiced     = this.columnWithDefaultValue('invoiced', 'boolean', invoicedAdapter)
     // The internal cost of the worklog in integer cents — a branded
-    // customInt ('Cents', marshalled to int).
+    // IntegersType ('Cents', marshalled to int).
     costCents    = this.columnWithDefaultValue('cost_cents', CentsType)
     activity   = this.column('activity', WorklogActivityType)
     // optionalVirtualColumnFromFragment on a Table (the optional
@@ -1218,16 +1218,16 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     activityTagged = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.activity})`, bracketAdapter)
     // Custom-kind virtualColumnFromFragment columns (the `(type, typeName, fn,
     // adapter?)` form that produces a branded value source). Computed inline (no DB
-    // column). `centsFromId` is a REQUIRED branded customInt ('Cents', marshalled to
+    // column). `centsFromId` is a REQUIRED branded IntegersType ('Cents', marshalled to
     // int): worklog id * 100. `centsFromIdOptional` is its optional sibling.
-    // `activityCustomKind` is a string-backed custom kind (enum 'WorklogActivity').
+    // `activityCustomKind` is a string-backed type of the user (enum 'WorklogActivity').
     // `centsFromIdTagged` carries a trailing TypeAdapter (plusOffsetAdapter, read +1000).
     centsFromId         = this.virtualColumnFromFragment(CentsType, (fragment) => fragment.sql`${this.id} * 100`)
     centsFromIdOptional = this.optionalVirtualColumnFromFragment(CentsType, (fragment) => fragment.sql`${this.id} * 100`)
     activityCustomKind  = this.virtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`lower(${this.activity})`)
     centsFromIdTagged   = this.virtualColumnFromFragment(CentsType, (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
-    // The optional × custom-kind × trailing-adapter triple: an OPTIONAL branded
-    // customInt ('Cents', marshalled to int) virtual column (`id * 100`) carrying a
+    // The optional × own-kind × trailing-adapter triple: an OPTIONAL branded
+    // IntegersType ('Cents', marshalled to int) virtual column (`id * 100`) carrying a
     // trailing TypeAdapter (plusOffsetAdapter, read +1000) — the optional sibling of
     // centsFromIdTagged and the adapter-bearing sibling of centsFromIdOptional.
     centsFromIdOptionalTagged = this.optionalVirtualColumnFromFragment(CentsType, (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
@@ -1260,13 +1260,13 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     localTimeVirtualOptional = this.optionalVirtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.startedAt}`)
     intVirtual               = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id} + 1`)
     intVirtualOptional       = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.minutes}`)
-    customDoubleVirtual         = this.virtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.billedAmount}`)
-    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.billedAmount}`)
+    ownDoubleVirtual         = this.virtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.billedAmount}`)
+    ownDoubleVirtualOptional = this.optionalVirtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.billedAmount}`)
     constructor() { super('issue_worklog') }
 }()
 
-// A published release of a project: branded `customComparable` version,
-// `custom` (equality-only) channel, optional `customUuid` signing key,
+// A published release of a project: branded `ComparableType` version,
+// `EqualableType` (equality-only) channel, optional `UuidsType` signing key,
 // custom date/time columns, a DB-computed `notes` column (excluded from
 // the writable shape) and a `virtualColumnFromFragment` on a writable
 // table (isolates the computed/virtual exclusion against a non-empty
@@ -1282,31 +1282,31 @@ export const tProjectRelease = new class TProjectRelease extends Table<DBConnect
     signedOffAt = this.optionalColumn('signed_off_at', SignOffStampType)
     notes       = this.computedColumn('notes', 'string')
     versionTag  = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.channel})`)
-    // A REQUIRED-on-read customLocalDateTime column (branded
-    // 'PublishStamp'). signedOffAt above is the OPTIONAL customLocalDateTime;
-    // this is its required-on-read twin, so the required-custom-localDateTime
+    // A REQUIRED-on-read LocalDateTimesType column (branded
+    // 'PublishStamp'). signedOffAt above is the OPTIONAL LocalDateTimesType;
+    // this is its required-on-read twin, so the required-own-localDateTime
     // read getter is observed directly (it projects `Date`, not `Date |
     // undefined`). Declared columnWithDefaultValue (DB DEFAULT CURRENT_TIMESTAMP)
     // so it stays optional on INSERT — existing tProjectRelease INSERT tests that
     // don't enumerate it keep working. Added last to keep existing snapshots stable.
     publishedAt = this.columnWithDefaultValue('published_at', PublishStampType)
     // Per-kind virtualColumnFromFragment fan-out on a writable Table
-    // carrying custom-typed columns: the custom string/uuid/temporal kinds (and
+    // carrying own-typed columns: the custom string/uuid/temporal kinds (and
     // the plain uuid / localDateTime kinds this table can source) that the
     // worklog fixture can't. required + optional; each references an existing
     // same-table typed column so the fragment SQL is portable.
-    customComparableVirtual         = this.virtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
-    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
-    customVirtual                   = this.virtualColumnFromFragment(ReleaseChannelType, (fragment) => fragment.sql`${this.channel}`)
-    customVirtualOptional           = this.optionalVirtualColumnFromFragment(ReleaseChannelType, (fragment) => fragment.sql`${this.channel}`)
-    customUuidVirtual               = this.virtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingKey}`)
-    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingKey}`)
-    customLocalDateVirtual          = this.virtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releasedOn}`)
-    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releasedOn}`)
-    customLocalTimeVirtual          = this.virtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffTime}`)
-    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffTime}`)
-    customLocalDateTimeVirtual         = this.virtualColumnFromFragment(PublishStampType, (fragment) => fragment.sql`${this.publishedAt}`)
-    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.signedOffAt}`)
+    ownComparableVirtual         = this.virtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
+    ownComparableVirtualOptional = this.optionalVirtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
+    ownVirtual                   = this.virtualColumnFromFragment(ReleaseChannelType, (fragment) => fragment.sql`${this.channel}`)
+    ownVirtualOptional           = this.optionalVirtualColumnFromFragment(ReleaseChannelType, (fragment) => fragment.sql`${this.channel}`)
+    ownUuidVirtual               = this.virtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingKey}`)
+    ownUuidVirtualOptional       = this.optionalVirtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingKey}`)
+    ownLocalDateVirtual          = this.virtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releasedOn}`)
+    ownLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releasedOn}`)
+    ownLocalTimeVirtual          = this.virtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffTime}`)
+    ownLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffTime}`)
+    ownLocalDateTimeVirtual         = this.virtualColumnFromFragment(PublishStampType, (fragment) => fragment.sql`${this.publishedAt}`)
+    ownLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.signedOffAt}`)
     uuidVirtual                     = this.virtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingKey}`)
     uuidVirtualOptional             = this.optionalVirtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingKey}`)
     localDateTimeVirtual            = this.virtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.publishedAt}`)
@@ -1329,7 +1329,7 @@ export const tProjectReview = new class TProjectReview extends Table<DBConnectio
 }()
 
 // View side of the release columns — surfaces the same per-type
-// ValueSource dispatch (custom / custom-date-time / optional / virtual)
+// ValueSource dispatch (custom / own-date-time / optional / virtual)
 // on a View source instead of a Table.
 export const vReleaseOverview = new class VReleaseOverview extends View<DBConnection, 'VReleaseOverview'> {
     id           = this.column('id', 'int')
@@ -1343,8 +1343,8 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // other View column in any dialect carries an adapter, so the read of a
     // View column through its adapter is otherwise never observed.
     versionBracketed = this.column('version_bracketed', 'string', bracketAdapter)
-    // A customLocalTime VIEW column — the View side of the
-    // customLocalTime kind (Table side is tProjectRelease.cutoffTime). Maps the
+    // A LocalTimesType VIEW column — the View side of the
+    // LocalTimesType kind (Table side is tProjectRelease.cutoffTime). Maps the
     // release's cutoff_time through the view.
     cutoffClock  = this.column('cutoff_clock', CutoffClockType)
     versionUpper = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
@@ -1363,13 +1363,13 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // (bracketAdapter, read wraps in [...]).
     versionUpperTagged = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`, bracketAdapter)
     // Custom-kind virtualColumnFromFragment / optional on a VIEW: required + optional
-    // branded customInt ('Cents', marshalled to int), computed as release id * 10.
+    // branded IntegersType ('Cents', marshalled to int), computed as release id * 10.
     centsFromId         = this.virtualColumnFromFragment(CentsType, (fragment) => fragment.sql`${this.id} * 10`)
     centsFromIdOptional = this.optionalVirtualColumnFromFragment(CentsType, (fragment) => fragment.sql`${this.id} * 10`)
     // Per-kind PLAIN read marshalling on a View: boolean/bigint/double are backed by
     // project_release base columns; uuid reuses signing_key; localDate/localTime reuse
-    // released_on/cutoff_time (also mapped as their custom-branded twins above); the
-    // custom-kind + trailing-adapter column maps id through plusOffsetAdapter (read +1000).
+    // released_on/cutoff_time (also mapped as their own-branded twins above); the
+    // own-kind + trailing-adapter column maps id through plusOffsetAdapter (read +1000).
     isSigned        = this.optionalColumn('is_signed', 'boolean')
     downloadCount   = this.optionalColumn('download_count', 'bigint')
     avgRating       = this.optionalColumn('avg_rating', 'double')
@@ -1377,12 +1377,12 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     releaseDayPlain = this.column('release_day_plain', 'localDate')
     cutoffPlain     = this.column('cutoff_plain', 'localTime')
     releaseOrdinal  = this.column('release_ordinal', ReleaseTagType, plusOffsetAdapter)
-    // A nullable custom-kind (customInt / ReleaseTag) VIEW column carrying a
+    // A nullable own-kind (IntegersType / ReleaseTag) VIEW column carrying a
     // trailing TypeAdapter (plusOffsetAdapter, read +1000). The view computes it
     // as the release id when download_count is present, else NULL.
     optionalReleaseOrdinal = this.optionalColumn('optional_release_ordinal', ReleaseTagType, plusOffsetAdapter)
     // A REQUIRED plain localDateTime View column and its REQUIRED
-    // customLocalDateTime ('PublishStamp') twin — both surface the release's
+    // LocalDateTimesType ('PublishStamp') twin — both surface the release's
     // published_at through the view, so the required-on-read localDateTime getter
     // surface is observed on a View source (the optional archivedAt View getters
     // and the Table-side publishedAt are the other sides).
@@ -1408,18 +1408,18 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     localDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.signedOffAt}`)
     intVirtual               = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id} + 1`)
     intVirtualOptional       = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id}`)
-    customComparableVirtual         = this.virtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
-    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
-    customUuidVirtual               = this.virtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingUuid}`)
-    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingUuid}`)
-    customLocalDateVirtual          = this.virtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releaseDayPlain}`)
-    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releaseDayPlain}`)
-    customLocalTimeVirtual          = this.virtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffPlain}`)
-    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffPlain}`)
-    customLocalDateTimeVirtual         = this.virtualColumnFromFragment(PublishStampType, (fragment) => fragment.sql`${this.publishStampPlain}`)
-    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.signedOffAt}`)
-    customDoubleVirtual         = this.virtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.avgRating}`)
-    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.avgRating}`)
+    ownComparableVirtual         = this.virtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
+    ownComparableVirtualOptional = this.optionalVirtualColumnFromFragment(SemverType, (fragment) => fragment.sql`${this.version}`)
+    ownUuidVirtual               = this.virtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingUuid}`)
+    ownUuidVirtualOptional       = this.optionalVirtualColumnFromFragment(SigningKeyType, (fragment) => fragment.sql`${this.signingUuid}`)
+    ownLocalDateVirtual          = this.virtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    ownLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    ownLocalTimeVirtual          = this.virtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffPlain}`)
+    ownLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.cutoffPlain}`)
+    ownLocalDateTimeVirtual         = this.virtualColumnFromFragment(PublishStampType, (fragment) => fragment.sql`${this.publishStampPlain}`)
+    ownLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.signedOffAt}`)
+    ownDoubleVirtual         = this.virtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.avgRating}`)
+    ownDoubleVirtualOptional = this.optionalVirtualColumnFromFragment(MoneyRealsType, (fragment) => fragment.sql`${this.avgRating}`)
     constructor() { super('release_overview') }
 }()
 
@@ -1500,10 +1500,10 @@ export const tLedgerEntry = new class TLedgerEntry extends Table<DBConnection, '
 }()
 
 // A dedicated table for the OPTIONAL-column NULL branch of the Nullable family on
-// the bare-base enum/custom/customComparable leaves. The required siblings
+// the bare-base enum/custom/ComparableType leaves. The required siblings
 // live on tIssueWorklog.activity / tProjectRelease.channel / tProjectRelease.version;
 // here `stage` (enum), `channel` (custom, reusing ReleaseChannel) and `minVersion`
-// (customComparable, reusing the Semver typeName) are nullable, so a draft that has
+// (ComparableType, reusing the Semver typeName) are nullable, so a draft that has
 // not decided them yet leaves them NULL — letting valueWhenNull / nullIfValue /
 // isNull observe the real NULL branch. A caller-provided int PK (no identity) keeps
 // the per-dialect reset trivial.
@@ -1514,17 +1514,17 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     stage      = this.optionalColumn('stage', ReleaseStageType)
     channel    = this.optionalColumn('channel', ReleaseChannelType)
     minVersion = this.optionalColumn('min_version', SemverType)
-    // Optional custom-kind columns (customDouble 'Money', customLocalDate
-    // 'ReleaseDay', customLocalTime 'CutoffClock') so isNull / isNotNull reach a
+    // Optional own-kind columns (RealsType 'Money', LocalDatesType
+    // 'ReleaseDay', LocalTimesType 'CutoffClock') so isNull / isNotNull reach a
     // realizable NULL branch on these kinds. Draft 2 leaves them NULL.
     budget     = this.optionalColumn('budget', MoneyRealsType)
     targetDay  = this.optionalColumn('target_day', ReleaseDayType)
     cutoff     = this.optionalColumn('cutoff', CutoffClockType)
     // Trailing-TypeAdapter ([a2] slot) on Table columns of each remaining kind —
-    // no other Table column factory carries a custom-kind trailing adapter. Each
+    // no other Table column factory carries a own-kind trailing adapter. Each
     // is a columnWithDefaultValue reading its DB DEFAULT through the adapter, so
     // the adapter's read effect is observable: the numeric kinds scale/shift, the
-    // string kinds bracket, the customLocalDateTime shifts +1h.
+    // string kinds bracket, the LocalDateTimesType shifts +1h.
     scaledCost      = this.columnWithDefaultValue('scaled_cost', CentsType, scaledTenthAdapter)
     shiftedAmount   = this.columnWithDefaultValue('shifted_amount', MoneyRealsType, plusOffsetAdapter)
     bracketVersion  = this.columnWithDefaultValue('bracket_version', SemverType, bracketAdapter)
@@ -1533,7 +1533,7 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     shiftedStamp    = this.columnWithDefaultValue('shifted_stamp', PublishStampType, shiftHourAdapter)
     shiftedCount    = this.columnWithDefaultValue('shifted_count', 'bigint', plusThousandBigintAdapter)
     shiftedRating   = this.columnWithDefaultValue('shifted_rating', 'double', plusOffsetAdapter)
-    // customUuid / customLocalDate / customLocalTime columns carrying a trailing
+    // UuidsType / LocalDatesType / LocalTimesType columns carrying a trailing
     // TypeAdapter, each reading its DB DEFAULT through the adapter (uuid bracketed;
     // date/time shifted +1h on read).
     bracketSigningKey = this.columnWithDefaultValue('bracket_signing_key', SigningKeyType, bracketAdapter)
@@ -1549,7 +1549,7 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
 // primary-key distinction each factory encodes is TYPE-LEVEL only, so every
 // factory reads each data type the same way on a
 // single plain row — the read SQL/value coincides, the typed path does not.
-// The custom data types reuse the domain's registered typeNames (Cents / Money /
+// The data types of the user reuse the domain's registered typeNames (Cents / Money /
 // SigningKey / Semver / ReleaseChannel / ReleaseDay / CutoffClock / SignOffStamp
 // via baseTypeForCustom; enum WorklogActivity).
 
@@ -2115,8 +2115,8 @@ export const tColMatrixOptionalComputedAdapter = new class TColMatrixOptionalCom
 
 // Column factories reading the SAME col_matrix row through a CUSTOM data type and
 // the `scaledByTypeName` adapter. One class per factory, so a factory that loses
-// the custom data type is visible on its own: `cents` is a customInt ('Cents')
-// over m_int (42) and `money` a customDouble ('Money') over m_double (3.5). The
+// the data type of the user is visible on its own: `cents` is an IntegersType ('Cents')
+// over m_int (42) and `money` a RealsType ('Money') over m_double (3.5). The
 // plain `int` / `double` twins over the same two columns are the controls — same
 // SQL, no scaling. No DDL of its own: col_matrix and col_matrix_view already hold
 // the one seeded row.
@@ -2128,7 +2128,7 @@ export const tDerivedColumn = new class TDerivedColumn extends Table<DBConnectio
     plainDouble = this.column('m_double', 'double')
     cents       = this.column('m_int', CentsType, scaledByTypeName)
     money       = this.column('m_double', MoneyRealsType, scaledByTypeName)
-    // The temporal and uuid custom data types on the same factory. They carry no
+    // The temporal and uuid data types of the user on the same factory. They carry no
     // adapter: what observes their data type is the dialect's own dispatch on it
     // (the date/time spelling and the uuid handling), not a value transform.
     signOff     = this.column('m_datetime', SignOffStampType)
@@ -2137,7 +2137,7 @@ export const tDerivedColumn = new class TDerivedColumn extends Table<DBConnectio
     signingKey  = this.column('m_uuid', SigningKeyType)
     // The adapter-free twins of `cents` / `money`, plus a `ReleaseTag` twin for the
     // sequence tests. They are the OPERANDS the derived-type tests pass to a
-    // custom-typed fragment argument or to a sequence derivation: the operand has
+    // own-typed fragment argument or to a sequence derivation: the operand has
     // to share the receiver's data type, and it must not bring an adapter of its
     // own, so the receiver's is the one that runs.
     plainCents  = this.column('m_int', CentsType)
@@ -2197,7 +2197,7 @@ export const tDerivedOptionalComputed = new class TDerivedOptionalComputed exten
 }()
 
 // `primaryKey(name, type, typeName, adapter)` — the caller-provided key itself
-// carries the custom data type.
+// carries the data type of the user.
 export const tDerivedPk = new class TDerivedPk extends Table<DBConnection, 'TDerivedPk'> {
     centsPk     = this.primaryKey('m_int', CentsType, scaledByTypeName)
     plainInt    = this.column('m_int', 'int')

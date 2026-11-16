@@ -230,10 +230,10 @@ entry point* the type system exposes. One source method can be many type-paths:
   return-branches.
 - **Arity** — `buildFragmentWithArgs` at 0/1/2/3/4/5 args; the compound vs
   non-compound order-by overload set.
-- **Data type** — each `'int' | 'bigint' | 'uuid' | 'customDouble' | …` a factory
+- **Data type** — each `'int' | 'bigint' | 'uuid' | 'RealsType' | …` a factory
   or `const`/`fragmentWithType`/`sequence` accepts.
 - **Return-branch** — optionality/nullability propagation, brand keep vs erase
-  (`sign()` on a customInt erases to Number), result-shape inference.
+  (`sign()` on an IntegersType erases to Number), result-shape inference.
 - **Input-classification** — which projection *rule* fires for a given leaf
   configuration (the rule-2↔rule-3 boundary is a path even though two
   configurations can produce the same output shape).
@@ -322,7 +322,7 @@ A generic *impl* does not make a path degenerate when the
 surface "saturated":
 1. **Receiver-optionality variants.** A method on an `'optional'` receiver threads a different
    `OPTIONAL_TYPE` → a distinct return-branch (`T | undefined` vs `T`), explicitly a type-path in
-   §2. `customLocalTime.asOptional().getHours()` is NOT covered by the required-receiver getter,
+   §2. `ownLocalTime.asOptional().getHours()` is NOT covered by the required-receiver getter,
    even though the SQL coincides — a recurring deferral; promote it.
 2. **Per-receiver-redeclared Nullable-family methods.** `valueWhenNull`/`nullIfValue`/`asOptional`/…
    are redeclared on each leaf to re-thread the leaf's return type; a generic *impl* + a tested
@@ -437,7 +437,7 @@ surface is the biggest fan-out and is split several ways:
 | F1-CUSTOMNUM | `CustomIntValueSource` + `CustomDoubleValueSource` (+ brand keep/erase) |
 | F1-STR | `StringValueSource` |
 | F1-BOOLIF | `Boolean` / `IfValueSource` / `AlwaysIfValueSource` + the `*IfValue` family |
-| F1-TEMP | `Local{Date,Time,DateTime}` + custom-temporal getters + null-modifiers |
+| F1-TEMP | `Local{Date,Time,DateTime}` + own-temporal getters + null-modifiers |
 | F1-EQCMP | the shared `Equalable`/`Comparable`/`Nullable` base methods × **every** concrete leaf type (the cross-product) |
 | F2-COL | column factories × data type × required/optional × adapter (`Table.ts`, `View.ts`) |
 | F2-VALVIEW | `Values` (inline VALUES) + View-source per-data-type dispatch |
@@ -474,7 +474,7 @@ a finding.
 **Pruning the fan-out as surfaces saturate — a per-surface enumerator may be dropped once it
 returns 0 unique §A, gated on its owning `src` being unchanged.** As rounds mature, most
 per-surface *leaf* enumerators (the Connection API, boolean/if-value, the equality/comparison
-base grid, column factories + Values/View, the dynamic base, custom-numeric brand keep/erase,
+base grid, column factories + Values/View, the dynamic base, own-numeric brand keep/erase,
 the SELECT builder fluent surface) reach true saturation and keep returning 0. The user may
 scope a round to **skip** these — do not re-run a saturated enumerator every round out of habit.
 **But the drop is valid only against the `src` the surface was audited against.** Gate each
@@ -693,7 +693,7 @@ fires). The coordinator is the adjudicator.
        trusting a "matched nothing" result (a bare `matched: []` is ambiguous — a real bug, or the
        insert never landed — until the control proves persistence).
      - Delete the probe; `git status --porcelain` clean. The flaky/slow docker cells (mssql,
-       oracle) are worth it for a filed defect, and any custom-type / per-data-type emission claim (§9
+       oracle) are worth it for a filed defect, and any own-type / per-data-type emission claim (§9
        branded-twin) needs this real-DB pass — the mock hides what the engine rejects.
 
 5. **Adversarially re-check the confident §C / "saturated" DROPS — not only the §A claims.**
@@ -763,14 +763,14 @@ Structure that has worked:
   proving absence. Tiers are the risk/priority label carried by each item:
   - **T1** — distinct code-path / runtime-branch / the bug class (output-coincidence
     masks real risk: shaped builders, adapter-dispatch fan-out, projection-classification
-    boundaries, compound-interface overloads, custom-temporal getters, brand-keep
+    boundaries, compound-interface overloads, own-temporal getters, brand-keep
     boundaries, masked-emission branches). Highest value, usually cheapest.
   - **T2** — distinct overloads / per-type emission / seam compositions; shared
     dispatcher but observably distinct.
   - **T3** — genuine per-variant completeness (often §B, needs a fixture).
   - **T4** — output-coincident completeness fan-out (same dispatcher, byte-identical
     emission but a distinct reachable overload/data type/arity/leaf). LOWEST priority but
-    **ENUMERATED one line per variant** (`notInN` on bigint, on double, on customInt, …
+    **ENUMERATED one line per variant** (`notInN` on bigint, on double, on IntegersType, …
     — *not* "notInN on 10 leaves"): this is precisely the tail a themed report hides
     and the next round re-finds, so name each one. A distinction reaches OUT (below)
     only when it has ZERO runtime/SQL/value surface (pure compile-only) — never a silent
@@ -793,7 +793,7 @@ the path + the shared dispatcher + the tested representative (e.g.
 "`column('x','uuid')` — same column node (`src/nodes/column.ts`) as the covered
 `int`/`string`/`bigint` data types, data-type string only"). A **refuted** entry names the
 claim + the evidence that killed it (e.g. "bigint `equals` direct — REFUTED,
-covered at `select.value-source.custom-numeric.test.ts:NN`"), so the next round
+covered at `select.value-source.own-numeric.test.ts:NN`"), so the next round
 doesn't re-chase it.
 
 ## Recurring themes
@@ -829,7 +829,7 @@ these first; they are where output-coincidence most often masks a real defect:
 8. **Feature×feature compositions tested only alone** (`shaped × customizeQuery`,
    `shaped × returning`, brand-keep through `forUseAsInlineQueryValue`). The
    seam, not the feature, is the gap.
-9. **Adapter-bearing / custom-typed column fed into *any* non-`equals` method**
+9. **Adapter-bearing / own-typed column fed into *any* non-`equals` method**
    (the "operand outside WHERE / non-`equals` method" theme). An
    adapter column (`scaledTenth` ×10, `bracket`, the custom-booleans) is almost always
    tested only via `.equals` / bare projection — never fed into the *other* methods of
@@ -943,8 +943,8 @@ technique that catches it:
   own `@ts-expect-error` key-omission probe (multiple `assertType<Exact>` in one scope
   cascade and misattribute).
 - **Per-type emission valid on the covered receiver, invalid on the sibling** (theme
-  1/7). `modulo` on `double`/`customDouble` emits `float % x` (PostgreSQL rejects; `%` is
-  integer/numeric only), where the suite exercised only int/bigint/customInt receivers.
+  1/7). `modulo` on `double`/`RealsType` emits `float % x` (PostgreSQL rejects; `%` is
+  integer/numeric only), where the suite exercised only int/bigint/IntegersType receivers.
   *Technique:* enumerate the emission per receiver-leaf, not per method, and dialect-check
   (SQLite/MySQL/MariaDB accept `float % x`, so a mock or a single dialect hides it).
 - **A conditional emission branch EXECUTES on existing tests but its distinguishing output is
@@ -958,14 +958,14 @@ technique that catches it:
   `.and(...)`. *Technique:* grep for the branch's **distinguishing output token** (the escaped
   `\%`/`[%]`, the `::date` inside `extract`, the `or (… and …)` shape), NOT the method name — a
   method-name grep reports it covered; then write the test that feeds the triggering input.
-- **The BRANDED / custom-typeName twin DIVERGES from the plain twin at a typeName-keyed emission
+- **The BRANDED / own-typeName twin DIVERGES from the plain twin at a typeName-keyed emission
   path — coverage-invisible, and usually a by-design LIMITATION, not a bug** (theme 1/7; the
-  custom-type analogue of "valid on the covered receiver, invalid on the sibling"). When a
+  own-type analogue of "valid on the covered receiver, invalid on the sibling"). When a
   `SqlBuilder`/connection path switches on a **type name** — a `transformPlaceholder` cast switch, a
   value-marshalling map, a per-type emission `case` — the plain names
   (`'localDate'`/`'localTime'`/`'localDateTime'`) are handled but the **custom twin** carries its
   **brand** typeName (`'ReleaseDay'`) that matches no case → it falls through to the default
-  (e.g. `const(d,'customLocalDate','ReleaseDay').getMonth()` emits a **bare** `extract(month from
+  (e.g. `const(d,'LocalDatesType','ReleaseDay').getMonth()` emits a **bare** `extract(month from
   $1)` where the plain leaf emits `$1::date` — PostgreSQL rejects the bare parameter). **Classify
   before filing:** in this codebase this landed on **by-design LIMITATION** — custom typeNames carry
   no built-in SQL type, so casting/marshalling a custom placeholder is the **USER's responsibility**
@@ -974,7 +974,7 @@ technique that catches it:
   `transformPlaceholder` the domain `DBConnection` doesn't model, unlike its `baseTypeForCustom`
   value marshalling). Only file a bug if the maintainer confirms the library is meant to derive it.
   *Technique:* whenever a path keys on a base type name, enumerate the **custom / branded data type of the
-  same family** (customLocal* for temporal, `customInt`/`customDouble` for numeric, `custom`/`enum`
+  same family** (LocalDates/Times/DateTimesType for temporal, `IntegersType`/`RealsType` for numeric, `EqualableType`/`enum`
   for equality) and **`--docker`-probe the branded twin** — the plain twin passes on both mock and
   real DB while the branded twin passes on the mock but the engine rejects it (only the real-DB cell
   surfaces it). The same root cause recurs across paths that resolve a typeName (placeholder cast AND

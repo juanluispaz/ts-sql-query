@@ -85,7 +85,7 @@ const plusOffsetAdapter: TypeAdapter = {
     },
 }
 
-// Branded text-collapsing kinds as real VALUES-tuple columns: customComparable
+// Branded text-collapsing kinds as real VALUES-tuple columns: ComparableType
 // ('Semver'), custom ('ReleaseChannel') and enum ('WorklogActivity'). All
 // collapse to text, so they round-trip on every dialect.
 class VBrandedSampler extends Values<DBConnection, 'brandedSampler'> {
@@ -107,7 +107,7 @@ const bracketAdapter: TypeAdapter = {
     },
 }
 
-// A connection whose `customComparable` type 'NumericId' is a decimal text in the
+// A connection whose `ComparableType` type 'NumericId' is a decimal text in the
 // application and a bigint in the database: the text is sent as a JS bigint and the
 // number read is handed back as text.
 class NumericIdConnection extends DBConnection {
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-cast-per-branded-text-kind', async () => {
-        // One VALUES row per branded text-collapsing kind: customComparable
+        // One VALUES row per branded text-collapsing kind: ComparableType
         // ('Semver'), custom ('ReleaseChannel') and enum ('WorklogActivity').
         // Each collapses to text inside the tuple and round-trips unchanged.
         const row = { ver: '1.2.0', chan: 'stable' as ReleaseChannel, act: 'coding' as WorklogActivity }
@@ -252,9 +252,9 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-custom-kind-column-with-type-adapter-shifts-write-and-read', async () => {
+    test('values-tuple-own-kind-column-with-type-adapter-shifts-write-and-read', async () => {
         // The CUSTOM-kind arm of `Values.column(type, typeName, adapter)` — the
-        // `adapter2` slot reached only when a custom kind ('customInt'/'ReleaseTag')
+        // `adapter2` slot reached only when a type of the user ('IntegersType'/'ReleaseTag')
         // ALSO carries a TRAILING TypeAdapter. `ordinal` is a branded `ReleaseTag`
         // carrying plusOffsetAdapter (write -1000, read +1000). Passing ordinal 3005
         // binds the SHIFTED value 2005 in the VALUES tuple, and the read shifts it
@@ -283,8 +283,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-optional-custom-kind-column-with-type-adapter-shifts-and-passes-null', async () => {
-        // An OPTIONAL VALUES-tuple column of a custom kind (customInt / ReleaseTag)
+    test('values-tuple-optional-own-kind-column-with-type-adapter-shifts-and-passes-null', async () => {
+        // An OPTIONAL VALUES-tuple column of a type of the user (IntegersType / ReleaseTag)
         // carrying a trailing TypeAdapter (plusOffsetAdapter, write -1000 / read
         // +1000), so the leaf is `ordinal?: ReleaseTag`. Present: 3005 binds the
         // shifted 2005 in the VALUES tuple and reads back +1000 to 3005. Null: the
@@ -359,7 +359,7 @@ describe(ctx.label, () => {
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-cast-per-uuid-kind', async () => {
-        // A plain uuid and a branded customUuid (SigningKey) as real VALUES-tuple
+        // A plain uuid and a branded UuidsType (SigningKey) as real VALUES-tuple
         // columns: each emits its uuid cast inside the tuple and round-trips
         // through the bound params. uuid values are compared case-insensitively
         // because some engines normalise the case on read.
@@ -389,29 +389,29 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-cast-per-custom-temporal-kind-via-null-value', async () => {
-        // Branded custom-temporal kinds as VALUES-tuple columns —
-        // customLocalDate ('ReleaseDay'), customLocalTime ('CutoffClock') and
-        // customLocalDateTime ('SignOffStamp'). Each routes through the
+    test('values-tuple-cast-per-own-temporal-kind-via-null-value', async () => {
+        // Branded own-temporal kinds as VALUES-tuple columns —
+        // LocalDatesType ('ReleaseDay'), LocalTimesType ('CutoffClock') and
+        // LocalDateTimesType ('SignOffStamp'). Each routes through the
         // connection's temporal `baseTypeForCustom` arms (-> localDate / localTime
         // / localDateTime), reached here via a VALUES tuple instead of a
         // Table/View. As with the plain-temporal tuple test, a Date does not
         // round-trip identically through the per-dialect VALUES cast, so every
         // leaf is supplied as null: the cast the tuple emits is what this pins,
         // and each null leaf reads back absent.
-        class VCustomTemporalSampler extends Values<DBConnection, 'customTemporalSampler'> {
+        class VCustomTemporalSampler extends Values<DBConnection, 'ownTemporalSampler'> {
             d  = this.optionalColumn(ReleaseDayType)
             t  = this.optionalColumn(CutoffClockType)
             ts = this.optionalColumn(SignOffStampType)
         }
         ctx.mockNext([{ d: null, t: null, ts: null }])
-        const v = Values.create(VCustomTemporalSampler, 'customTemporalSampler', [
+        const v = Values.create(VCustomTemporalSampler, 'ownTemporalSampler', [
             { d: null, t: null, ts: null },
         ])
         const rows = await ctx.conn.selectFrom(v)
             .select({ d: v.d, t: v.t, ts: v.ts })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler(\`d\`, \`t\`, ts) as (values row(?, ?, ?)) select \`d\` as \`d\`, \`t\` as \`t\`, ts as ts from customTemporalSampler"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with ownTemporalSampler(\`d\`, \`t\`, ts) as (values row(?, ?, ?)) select \`d\` as \`d\`, \`t\` as \`t\`, ts as ts from ownTemporalSampler"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,
@@ -548,9 +548,9 @@ describe(ctx.label, () => {
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
     test('values-tuple-required-column-per-remaining-kind-no-adapter', async () => {
-        // Required `column(kind)` (no adapter) for the base/custom kinds not yet a
-        // Values-tuple member: plain `string`, `customInt` ('Cents' -> int) and
-        // `customDouble` ('Money' -> double). Each emits its own cast in the tuple
+        // Required `column(kind)` (no adapter) for the base/types of the user not yet a
+        // Values-tuple member: plain `string`, `IntegersType` ('Cents' -> int) and
+        // `RealsType` ('Money' -> double). Each emits its own cast in the tuple
         // and round-trips unchanged.
         class VReqSampler extends Values<DBConnection, 'reqSampler'> {
             str   = this.column('string')
@@ -581,8 +581,8 @@ describe(ctx.label, () => {
     /*
     test('values-tuple-required-column-per-kind-with-passthrough-adapter', async () => {
         // The trailing-adapter arm `column(kind, adapter)` per required kind not yet
-        // exercised with an adapter — bigint/double/string plus custom kinds
-        // customDouble/customComparable/custom/enum. passthroughAdapter is inert, so
+        // exercised with an adapter — bigint/double/string plus types of the user
+        // RealsType/ComparableType/custom/enum. passthroughAdapter is inert, so
         // the tuple casts + bound params match the no-adapter arm; this pins that
         // each kind's adapter overload compiles and its adapter dispatch fires.
         class VReqAdapterSampler extends Values<DBConnection, 'reqAdapterSampler'> {
@@ -620,8 +620,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-required-uuid-and-custom-uuid-column-with-passthrough-adapter', async () => {
-        // The trailing-adapter arm of `column('uuid' | 'customUuid', …, adapter)`.
+    test('values-tuple-required-uuid-and-own-uuid-column-with-passthrough-adapter', async () => {
+        // The trailing-adapter arm of `column('uuid' | 'UuidsType', …, adapter)`.
         // passthroughAdapter is inert; uuids are compared case-insensitively because
         // some engines normalise the case on read.
         class VReqAdapterUuidSampler extends Values<DBConnection, 'reqAdapterUuidSampler'> {
@@ -652,8 +652,8 @@ describe(ctx.label, () => {
     /*
     test('values-tuple-optional-column-per-kind-no-adapter', async () => {
         // `optionalColumn(kind)` (no adapter) per kind not yet an optional
-        // Values-tuple member: boolean/int/bigint/double/string plus custom kinds
-        // customInt/customDouble/customComparable/custom/enum. Every leaf is
+        // Values-tuple member: boolean/int/bigint/double/string plus types of the user
+        // IntegersType/RealsType/ComparableType/custom/enum. Every leaf is
         // optional, so the projected object is all-optional (`?: T`);
         // present values round-trip.
         class VOptSampler extends Values<DBConnection, 'optSampler'> {
@@ -697,7 +697,7 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-optional-uuid-and-custom-uuid-column-no-adapter', async () => {
+    test('values-tuple-optional-uuid-and-own-uuid-column-no-adapter', async () => {
         // `optionalColumn('uuid')` / `optionalColumn(SigningKeyType)`.
         // All-optional object (`?: T`); present values round-trip,
         // compared case-insensitively.
@@ -729,7 +729,7 @@ describe(ctx.label, () => {
     /*
     test('values-tuple-optional-column-per-kind-with-passthrough-adapter', async () => {
         // The optional trailing-adapter arm `optionalColumn(kind, adapter)` per kind
-        // — boolean/bigint/double/string + customDouble/customComparable/custom/enum.
+        // — boolean/bigint/double/string + RealsType/ComparableType/custom/enum.
         // passthroughAdapter is inert; all-optional object; present values round-trip.
         class VOptAdapterSampler extends Values<DBConnection, 'optAdapterSampler'> {
             flag  = this.optionalColumn('boolean', passthroughAdapter)
@@ -768,8 +768,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-optional-uuid-and-custom-uuid-column-with-passthrough-adapter', async () => {
-        // The optional uuid / customUuid trailing-adapter arm. passthroughAdapter is
+    test('values-tuple-optional-uuid-and-own-uuid-column-with-passthrough-adapter', async () => {
+        // The optional uuid / UuidsType trailing-adapter arm. passthroughAdapter is
         // inert; all-optional object; present values round-trip case-insensitively.
         class VOptAdapterUuidSampler extends Values<DBConnection, 'optAdapterUuidSampler'> {
             ref     = this.optionalColumn('uuid', passthroughAdapter)
@@ -799,8 +799,8 @@ describe(ctx.label, () => {
     /*
     test('values-tuple-required-virtual-column-from-fragment-per-kind', async () => {
         // Required `virtualColumnFromFragment(kind, fn)` per kind not yet a
-        // Values-view virtual column — boolean/int + custom kinds customInt/
-        // customDouble/customComparable/custom/enum. Each computes a const fragment
+        // Values-view virtual column — boolean/int + types of the user IntegersType/
+        // RealsType/ComparableType/custom/enum. Each computes a const fragment
         // in the outer SELECT (not a tuple member); the anchor `n` keeps the object
         // non-empty. Pins the projected type + value per kind.
         class VVReqSampler extends Values<DBConnection, 'vvReqSampler'> {
@@ -837,8 +837,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-required-virtual-uuid-and-custom-uuid-column-from-fragment', async () => {
-        // Required uuid / customUuid virtual columns computed from a const fragment.
+    test('values-tuple-required-virtual-uuid-and-own-uuid-column-from-fragment', async () => {
+        // Required uuid / UuidsType virtual columns computed from a const fragment.
         // Compared case-insensitively.
         const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
         const uuidSign = '11111111-2222-4333-8444-555566667777'
@@ -870,7 +870,7 @@ describe(ctx.label, () => {
     /*
     test('values-tuple-optional-virtual-column-from-fragment-per-kind', async () => {
         // Optional `optionalVirtualColumnFromFragment(kind, fn)` per kind —
-        // boolean/int/bigint + custom kinds customInt/customDouble/customComparable/
+        // boolean/int/bigint + types of the user IntegersType/RealsType/ComparableType/
         // custom/enum. The anchor `n` is required, so optional leaves project as
         // `?: T` (no `| undefined`); present const values round-trip.
         class VVOptSampler extends Values<DBConnection, 'vvOptSampler'> {
@@ -909,8 +909,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-optional-virtual-uuid-and-custom-uuid-column-from-fragment', async () => {
-        // Optional uuid / customUuid virtual columns computed from a const fragment.
+    test('values-tuple-optional-virtual-uuid-and-own-uuid-column-from-fragment', async () => {
+        // Optional uuid / UuidsType virtual columns computed from a const fragment.
         // Anchor `n` required, so leaves project `?: string`. Compared case-insensitively.
         const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
         const uuidSign = '11111111-2222-4333-8444-555566667777'
@@ -944,7 +944,7 @@ describe(ctx.label, () => {
         // Optional virtual temporal columns (localDate / localTime / localDateTime)
         // computed from a null optionalConst: a Date does not round-trip identically
         // through the per-dialect cast, so each is supplied null and reads back
-        // absent. Required-temporal and custom-temporal virtual columns are omitted
+        // absent. Required-temporal and own-temporal virtual columns are omitted
         // for the same round-trip reason (see the tuple temporal tests above).
         class VVTemporalSampler extends Values<DBConnection, 'vvTemporalSampler'> {
             n   = this.column('int')
@@ -1012,8 +1012,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-required-virtual-uuid-and-custom-uuid-column-from-fragment-with-passthrough-adapter', async () => {
-        // Required uuid / customUuid virtual columns with an inert passthroughAdapter.
+    test('values-tuple-required-virtual-uuid-and-own-uuid-column-from-fragment-with-passthrough-adapter', async () => {
+        // Required uuid / UuidsType virtual columns with an inert passthroughAdapter.
         const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
         const uuidSign = '11111111-2222-4333-8444-555566667777'
         class VVReqAdapterUuidSampler extends Values<DBConnection, 'vvReqAdapterUuidSampler'> {
@@ -1081,8 +1081,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-tuple-optional-virtual-uuid-and-custom-uuid-column-from-fragment-with-passthrough-adapter', async () => {
-        // Optional uuid / customUuid virtual columns with an inert passthroughAdapter.
+    test('values-tuple-optional-virtual-uuid-and-own-uuid-column-from-fragment-with-passthrough-adapter', async () => {
+        // Optional uuid / UuidsType virtual columns with an inert passthroughAdapter.
         const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
         const uuidSign = '11111111-2222-4333-8444-555566667777'
         class VVOptAdapterUuidSampler extends Values<DBConnection, 'vvOptAdapterUuidSampler'> {
@@ -1201,8 +1201,8 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — the VALUES table constructor requires MySQL 8.0.19+; below it the library refuses to emit it (UNSUPPORTED_QUERY), and MySQL 5.7 has no VALUES row source.
     /*
-    test('values-custom-comparable-bigint-compared-with-int-column', async () => {
-        // A VALUES column of a customComparable type ('NumericId') whose value the
+    test('values-own-comparable-bigint-compared-with-int-column', async () => {
+        // A VALUES column of a ComparableType type ('NumericId') whose value the
         // connection sends as a JS bigint, joined with the integer id of the
         // organization table. The pg binding gives the bigint its int8 cast inside
         // the tuple, so the join compares integer with int8. Rows ('2', 'Globex

@@ -4,8 +4,8 @@
 // in `select.value-source.null-and-if-value-modifiers.test.ts` and
 // `select.value-source.if-value-negated-and-is.test.ts`. What those don't
 // prove is that the SAME IfValue dispatcher carries the value-encoded leaves'
-// observable param-encoding when the predicate FIRES — bigint, customInt,
-// customDouble, uuid, customUuid, enum and the numeric-custom-boolean remap.
+// observable param-encoding when the predicate FIRES — bigint, IntegersType,
+// RealsType, uuid, UuidsType, enum and the numeric-custom-boolean remap.
 // The non-IfValue equality/comparison twins on these exact leaves are pinned
 // in `select.value-source.equality-comparison-by-type.test.ts`; this file is
 // the IfValue mirror, asserting both the FIRE half (a present value emits the
@@ -103,11 +103,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // customInt — tIssueWorklog.costCents ('Cents', required, marshalled int).
+    // IntegersType — tIssueWorklog.costCents ('Cents', required, marshalled int).
 
-    test('customInt-equals-if-value-fires', async () => {
+    test('ownInt-equals-if-value-fires', async () => {
         // `equalsIfValue(400)` fires → `cost_cents = $1` matches worklog 3; the
-        // param carries the marshalled customInt value.
+        // param carries the marshalled IntegersType value.
         const expected = [{ id: 3 }]
         ctx.mockNext(expected)
         const cost: number | undefined = 400
@@ -126,12 +126,12 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // customDouble — tIssueWorklog.billedAmount ('Money', required,
+    // RealsType — tIssueWorklog.billedAmount ('Money', required,
     // marshalled double).
 
-    test('customDouble-equals-if-value-fires', async () => {
+    test('ownDouble-equals-if-value-fires', async () => {
         // `equalsIfValue(50)` fires → `billed_amount = $1` matches worklog 2;
-        // the param carries the marshalled customDouble value.
+        // the param carries the marshalled RealsType value.
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const amount: number | undefined = 50
@@ -173,11 +173,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // customUuid — tProjectRelease.signingKey (optional customUuid 'SigningKey').
+    // UuidsType — tProjectRelease.signingKey (optional UuidsType 'SigningKey').
 
-    test('customUuid-equals-if-value-fires', async () => {
+    test('ownUuid-equals-if-value-fires', async () => {
         // `equalsIfValue(<release-1 key>)` fires → `signing_key = $1` matches
-        // release 1; the param carries the marshalled customUuid string.
+        // release 1; the param carries the marshalled UuidsType string.
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const key: string | undefined = '0a8f9c1e-1111-4222-8333-444455556666'
@@ -287,12 +287,12 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // compare-`*IfValue` on a non-int leaf — customComparable
+    // compare-`*IfValue` on a non-int leaf — ComparableType
     // tProjectRelease.version ('Semver', required): 1=1.2.0, 2=1.3.0-beta.1,
-    // 3=0.9.0. customComparable is a comparable value source, so the ordered
+    // 3=0.9.0. ComparableType is a comparable value source, so the ordered
     // IfValue arms (`greaterOrEqualIfValue`/`lessThanIfValue`) apply.
 
-    test('customComparable-compare-if-value-fires-and-elides', async () => {
+    test('ownComparable-compare-if-value-fires-and-elides', async () => {
         // `greaterOrEqualIfValue('1.0.0')` fires → `version >= $1`; on the
         // seeded semver text that keeps releases 1 ('1.2.0') and 2
         // ('1.3.0-beta.1'); release 3 ('0.9.0') sorts below. The AND'd
@@ -318,11 +318,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // notInN on a non-int leaf — customComparable tProjectRelease.version.
+    // notInN on a non-int leaf — ComparableType tProjectRelease.version.
     // `notInN(...vals)` is the variadic-rest overload of `notIn([...])`; on a
-    // non-int leaf it carries the marshalled customComparable params.
+    // non-int leaf it carries the marshalled ComparableType params.
 
-    test('customComparable-not-in-n-variadic-spread', async () => {
+    test('ownComparable-not-in-n-variadic-spread', async () => {
         // `version.notInN('1.2.0', '0.9.0')` excludes releases 1 and 3 → only
         // release 2 ('1.3.0-beta.1') survives. Same `not in ($1, $2)` SQL as
         // the array form, params carrying the marshalled semver strings.
@@ -344,7 +344,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customComparable-greater-than-if-value-fires-and-elides', async () => {
+    test('ownComparable-greater-than-if-value-fires-and-elides', async () => {
         // `greaterThanIfValue('1.0.0')` fires → `version > $1`; on the
         // seeded semver text that keeps releases 1 ('1.2.0') and 2 ('1.3.0-beta.1');
         // release 3 ('0.9.0') sorts below. The AND'd `greaterOrEqualIfValue(undefined)`

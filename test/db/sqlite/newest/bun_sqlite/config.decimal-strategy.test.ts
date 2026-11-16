@@ -189,7 +189,7 @@ describe(ctx.label, () => {
     }
 
     for (const strategy of notCanonicalStrategies) {
-        test('decimal-strategy: ' + strategy + ' rejects a distinct select of groups with a customDecimal', async () => {
+        test('decimal-strategy: ' + strategy + ' rejects a distinct select of groups with a ownDecimal', async () => {
             const conn = ctx.withDecimalStrategy(strategy)
             let reason: TsSqlErrorReason | string = 'sent'
             try {
@@ -202,7 +202,7 @@ describe(ctx.label, () => {
     }
 
     for (const strategy of ['text', 'canonical text'] as const) {
-        test('decimal-strategy: ' + strategy + ' rejects the arithmetic of a customDecimal before sending the query', async () => {
+        test('decimal-strategy: ' + strategy + ' rejects the arithmetic of a ownDecimal before sending the query', async () => {
             const conn = ctx.withDecimalStrategy(strategy)
             const reasons: (TsSqlErrorReason | string | number)[] = []
             for (const query of [

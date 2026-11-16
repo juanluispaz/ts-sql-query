@@ -151,9 +151,9 @@ describe(ctx.label, () => {
         expect(result).toEqual({ s: 0n, sd: 0n })
     })
 
-    test('max-preserves-customcomparable', async () => {
+    test('max-preserves-own-comparable', async () => {
         // max/min preserve the input value-source type, flipping only
-        // optionality. max over a branded customComparable column keeps the
+        // optionality. max over a branded ComparableType column keeps the
         // comparable (leaf `string`). version values {1.2.0, 1.3.0-beta.1,
         // 0.9.0} -> max '1.3.0-beta.1' (lexicographic). Semver marshals as
         // string.
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
         // avg of the two non-null
         // durations {5400000, 1800000} (worklog 2 is NULL, excluded) is
         // 3600000; the two values are distinct so averageDistinct matches.
-        // (sum/average over a customDouble operand has no fixture column —
+        // (sum/average over a RealsType operand has no fixture column —
         // Money is only produced by executeFunction — so that arm is omitted.)
         ctx.mockNext({ avg: 3600000, avgD: 3600000 })
         const row = await ctx.conn.selectFrom(tIssueWorklog)
@@ -205,9 +205,9 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { avg?: number; avgD?: number }>>()
         expect(row).toEqual({ avg: 3600000, avgD: 3600000 })
     })
-    test('customdouble-sum-distinct-and-average-return-branches', async () => {
-        // `sum(customDouble)` / `sumDistinct(customDouble)` keep the customDouble
-        // kind ('optional'); `average(customDouble)` drops the brand to a plain
+    test('own-double-sum-distinct-and-average-return-branches', async () => {
+        // `sum(RealsType)` / `sumDistinct(RealsType)` keep the RealsType
+        // kind ('optional'); `average(RealsType)` drops the brand to a plain
         // Number ('optional'). All surface as
         // `number?`. `billed_amount` ('Money') is {200, 50, 200}: sum = 450,
         // distinct sum = 250, average = 150.
@@ -225,8 +225,8 @@ describe(ctx.label, () => {
         expect(result).toEqual({ s: 450, sd: 250, av: 150 })
     })
 
-    test('sum-customint-branded', async () => {
-        // sum of a `customInt` column preserves the brand (leaf `number`).
+    test('sum-own-int-branded', async () => {
+        // sum of an `IntegersType` column preserves the brand (leaf `number`).
         // cost_cents is {100, 100, 400} -> sum 600. The typeName is marshalled,
         // so the sum comes back as a clean `600` on every engine.
         ctx.mockNext({ ci: 600 })
@@ -241,9 +241,9 @@ describe(ctx.label, () => {
         expect(result).toEqual({ ci: 600 })
     })
 
-    test('customint-sum-distinct-and-average-return-branches', async () => {
-        // `sumDistinct(customInt)` keeps the customInt kind ('optional'); the
-        // `average(customInt)` drops the brand to a plain Number
+    test('own-int-sum-distinct-and-average-return-branches', async () => {
+        // `sumDistinct(IntegersType)` keeps the IntegersType kind ('optional'); the
+        // `average(IntegersType)` drops the brand to a plain Number
         // ('optional'). Both surface as `number?`, and the typeName is
         // marshalled so the value comes back clean. cost_cents {100,100,400}:
         // distinct sum = 500, average = 600/3 = 200.
@@ -260,10 +260,10 @@ describe(ctx.label, () => {
         expect(result).toEqual({ sd: 500, av: 200 })
     })
 
-    test('min-max-over-bigint-customint-customdouble', async () => {
+    test('min-max-over-bigint-own-int-own-double', async () => {
         // min/max preserve the input value-source kind, flipping only
         // optionality: the `bigint` (durationMs) leaf stays `bigint?`, and the
-        // branded `customInt` ('Cents', costCents) / `customDouble` ('Money',
+        // branded `IntegersType` ('Cents', costCents) / `RealsType` ('Money',
         // billedAmount) leaves stay `number?` — the brand is the typeName,
         // erased in the result, and the value comes back marshalled.
         // duration_ms {5400000, NULL, 1800000} -> min 1800000n, max 5400000n;
@@ -386,8 +386,8 @@ describe(ctx.label, () => {
     })
     // min/max fan-out over the leaf kinds the existing aggregation coverage
     // doesn't reach: a plain `string`, a plain `double`, a plain `localTime`, a
-    // plain `localDateTime`, and the three CUSTOM temporal kinds (customLocalDate
-    // / customLocalTime / customLocalDateTime). Plus sum/average over a plain
+    // plain `localDateTime`, and the three CUSTOM temporal kinds (LocalDatesType
+    // / LocalTimesType / LocalDateTimesType). Plus sum/average over a plain
     // `double` column and sumDistinct/averageDistinct over a plain `int` column.
     // min/max preserve the input value-source kind (flipping only optionality), so
     // each leaf keeps its own result type; sum/average/*Distinct are optional
@@ -418,7 +418,7 @@ describe(ctx.label, () => {
     test('min-max-over-plain-double', async () => {
         // min/max over a plain `double` leaf (the double virtualColumnFromFragment
         // reading billed_amount). billed_amount is {200, 50, 200}; min = 50,
-        // max = 200 — a distinct typed path from the customDouble min/max above.
+        // max = 200 — a distinct typed path from the RealsType min/max above.
         ctx.mockNext({ lo: 50, hi: 200 })
         const result = await ctx.conn.selectFrom(tIssueWorklog)
             .select({
@@ -471,11 +471,11 @@ describe(ctx.label, () => {
         expect(result).toEqual({ lo, hi })
     })
 
-    test('min-max-over-custom-temporal-leaves', async () => {
+    test('min-max-over-own-temporal-leaves', async () => {
         // min/max over the three CUSTOM temporal kinds on project_release:
-        // released_on (customLocalDate 'ReleaseDay'), cutoff_time (customLocalTime
-        // 'CutoffClock') and published_at (customLocalDateTime 'PublishStamp').
-        // min/max preserve each custom kind (the brand is the typeName, erased in
+        // released_on (LocalDatesType 'ReleaseDay'), cutoff_time (LocalTimesType
+        // 'CutoffClock') and published_at (LocalDateTimesType 'PublishStamp').
+        // min/max preserve each type of the user (the brand is the typeName, erased in
         // the Date result). Dates {2024-01-15, 2024-02-20, 2024-03-01} → endpoints
         // (date-only normalises to 10:00 UTC); cutoffs {17:00, 18:30, 16:00} →
         // 16:00 / 18:30 on 1970-01-01; publish stamps {2024-01-16 09:00,

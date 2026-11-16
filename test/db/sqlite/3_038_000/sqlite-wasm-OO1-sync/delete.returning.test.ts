@@ -196,7 +196,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('delete-project-release-returning-branded-custom-column', async () => {
+    test('delete-project-release-returning-branded-own-type-column', async () => {
         // `returningOneColumn(...)` on a DELETE preserves the column's branded
         // value type: reading `channel` back through RETURNING yields
         // `ReleaseChannel`, not a widened `string`. Release 1's channel is
@@ -445,7 +445,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('delete-returning-temporal-custom-kinds-round-trip', async () => {
+    test('delete-returning-temporal-own-kinds-round-trip', async () => {
         // RETURNING the branded custom temporal kinds on DELETE. Read BEFORE the delete;
         // SELECT == DELETE RETURNING.
         await ctx.withRollback(async () => {

@@ -1,13 +1,13 @@
-// arg / valueArg keyword-arm fragments for the temporal and custom-fractional
-// argument types — localDate / localTime / localDateTime / customDouble. Each
+// arg / valueArg keyword-arm fragments for the temporal and own-fractional
+// argument types — localDate / localTime / localDateTime / RealsType. Each
 // `<Kind>Eq` fragment field emits `<col> = $1` in a column context; the
 // load-bearing detail is the distinct bound value each kind's `valueArg`
 // marshals: a Date through `valueArg('localTime')` binds 'HH:MM:SS', through
 // `valueArg('localDate')` binds the Date, a number through
-// `valueArg('customDouble')` binds the number.
+// `valueArg('RealsType')` binds the number.
 //
-// The custom-temporal `valueArg` kinds (customLocalDate / customLocalTime /
-// customLocalDateTime) are intentionally NOT covered here: their `valueArg`
+// The own-temporal `valueArg` kinds (LocalDatesType / LocalTimesType /
+// LocalDateTimesType) are intentionally NOT covered here: their `valueArg`
 // binds the raw Date rather than routing through the connection's
 // `baseTypeForCustom` marshalling the way the const/column paths do, so the
 // bound value does not round-trip on the real engines (it is only accepted by
@@ -77,12 +77,12 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('arg-keyword-custom-double', async () => {
-        // billed_amount is a customDouble 'Money' column; worklog 2 = 50.
+    test('arg-keyword-own-double', async () => {
+        // billed_amount is a RealsType 'Money' column; worklog 2 = 50.
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssueWorklog)
-            .where(ctx.conn.customDoubleEq(tIssueWorklog.billedAmount, 50))
+            .where(ctx.conn.ownDoubleEq(tIssueWorklog.billedAmount, 50))
             .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

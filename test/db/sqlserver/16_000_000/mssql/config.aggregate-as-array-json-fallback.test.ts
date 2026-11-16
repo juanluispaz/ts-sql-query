@@ -52,7 +52,7 @@ describe(ctx.label, () => {
     test('string_agg JSON fallback fits a number of a wide decimal column', async () => {
         // A custom number type mapped to a decimal(38,10) column: its text, 31 characters here, doesn't fit the
         // nvarchar(30) a length-less convert gives, which failed with "Arithmetic overflow". The value is read as a
-        // double, as a customDouble is.
+        // double, as a RealsType is.
         type Amount = number & { readonly __brand: 'Amount' }
         abstract class AmountType extends RealsType<Amount, 'Amount'> { static override readonly type = 'Amount' }
         const old = new DBConnection(ctx.conn.queryRunner, 16_000_000)

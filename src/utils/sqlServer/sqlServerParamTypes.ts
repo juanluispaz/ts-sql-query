@@ -1,5 +1,5 @@
 import type { DataTypeClass } from '../../TypeAdapter.js'
-import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
+import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalParams.js'
 import { __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
@@ -19,12 +19,12 @@ export function sqlServerPlaceholder(placeholder: string, params: any[], index: 
     }
     // An integer of a fixed size goes as one (an Int, a BigInt); any other exact number, as its text
     const sentAsText = sqlDataType.scale !== 0 || sqlDataType.bytes === undefined
-    const digits = typeof value === 'string' ? customDecimalDigitsOf(value) : sentAsText && (typeof value === 'bigint' || typeof value === 'number') ? customDecimalDigitsOf(String(value)) : undefined
+    const digits = typeof value === 'string' ? exactDecimalDigitsOf(value) : sentAsText && (typeof value === 'bigint' || typeof value === 'number') ? exactDecimalDigitsOf(String(value)) : undefined
     if (!digits) {
         return placeholder
     }
     if (digits.precision > 38) {
-        rejectCustomDecimalParam(value, requestedType?.type ?? '', index, 'decimal(38)')
+        rejectExactDecimalParam(value, requestedType?.type ?? '', index, 'decimal(38)')
     }
     if ((existingParamContextOf(params, index)?.isValueForColumn === true)) {
         return placeholder

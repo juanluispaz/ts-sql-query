@@ -1,5 +1,5 @@
 // Trailing-TypeAdapter ([a2] slot) on Table columns of each kind. Before these
-// fixtures, no Table column factory carried a custom-kind trailing TypeAdapter
+// fixtures, no Table column factory carried a own-kind trailing TypeAdapter
 // (only View columns did), and the plain-kind adapter slot on a Table was only
 // exercised for int / string. Each column below is a columnWithDefaultValue on
 // tReleaseDraft that reads its DB DEFAULT through a value-transforming adapter,
@@ -18,8 +18,8 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('custom-int-trailing-adapter-column-read', async () => {
-        // scaledCost: customInt 'Cents' + scaledTenthAdapter (read /10). Draft 1's
+    test('own-int-trailing-adapter-column-read', async () => {
+        // scaledCost: IntegersType 'Cents' + scaledTenthAdapter (read /10). Draft 1's
         // scaled_cost DEFAULT 250 reads back as 25.
         ctx.mockNext({ id: 1, v: 250 })
         const row = sync(ctx.conn.selectFrom(tReleaseDraft)
@@ -44,8 +44,8 @@ describe(ctx.label, () => {
         expect(opt).toEqual({ id: 1, v: 25 })
     })
 
-    test('custom-double-trailing-adapter-column-read', async () => {
-        // shiftedAmount: customDouble 'Money' + plusOffsetAdapter (read +1000).
+    test('own-double-trailing-adapter-column-read', async () => {
+        // shiftedAmount: RealsType 'Money' + plusOffsetAdapter (read +1000).
         // Draft 1's shifted_amount DEFAULT 300 reads back as 1300.
         ctx.mockNext({ id: 1, v: 300 })
         const row = sync(ctx.conn.selectFrom(tReleaseDraft)
@@ -70,8 +70,8 @@ describe(ctx.label, () => {
         expect(opt).toEqual({ id: 1, v: 1300 })
     })
 
-    test('custom-comparable-trailing-adapter-column-read', async () => {
-        // bracketVersion: customComparable 'Semver' + bracketAdapter (read wraps in
+    test('own-comparable-trailing-adapter-column-read', async () => {
+        // bracketVersion: ComparableType 'Semver' + bracketAdapter (read wraps in
         // [...]). Draft 1's bracket_version DEFAULT '2.0.0' reads back as '[2.0.0]'.
         ctx.mockNext({ id: 1, v: '2.0.0' })
         const row = sync(ctx.conn.selectFrom(tReleaseDraft)
@@ -96,7 +96,7 @@ describe(ctx.label, () => {
         expect(opt).toEqual({ id: 1, v: '[2.0.0]' })
     })
 
-    test('custom-trailing-adapter-column-read', async () => {
+    test('own-trailing-adapter-column-read', async () => {
         // bracketChannel: custom 'ReleaseChannel' + bracketAdapter. Draft 1's
         // bracket_channel DEFAULT 'stable' reads back as '[stable]'.
         ctx.mockNext({ id: 1, v: 'stable' })
@@ -148,8 +148,8 @@ describe(ctx.label, () => {
         expect(opt).toEqual({ id: 1, v: '[coding]' })
     })
 
-    test('custom-local-date-time-trailing-adapter-column-read', async () => {
-        // shiftedStamp: customLocalDateTime 'PublishStamp' + shiftHourAdapter (read
+    test('own-local-date-time-trailing-adapter-column-read', async () => {
+        // shiftedStamp: LocalDateTimesType 'PublishStamp' + shiftHourAdapter (read
         // +1h). Draft 1's shifted_stamp DEFAULT 2024-06-01 10:00:00 reads back as
         // 2024-06-01 11:00:00.
         ctx.mockNext({ id: 1, v: new Date(Date.UTC(2024, 5, 1, 10, 0, 0)) })
@@ -227,8 +227,8 @@ describe(ctx.label, () => {
         expect(opt).toEqual({ id: 1, v: 1004.5 })
     })
 
-    test('custom-uuid-trailing-adapter-column-read', async () => {
-        // bracketSigningKey: customUuid 'SigningKey' + bracketAdapter (read wraps in
+    test('own-uuid-trailing-adapter-column-read', async () => {
+        // bracketSigningKey: UuidsType 'SigningKey' + bracketAdapter (read wraps in
         // [...]). Draft 1's bracket_signing_key DEFAULT
         // 00000000-0000-4000-8000-000000000000 (a digits-only uuid, so no dialect's
         // case normalization changes it) reads back through the uuid base marshaller,
@@ -256,8 +256,8 @@ describe(ctx.label, () => {
         expect(opt).toEqual({ id: 1, v: '[00000000-0000-4000-8000-000000000000]' })
     })
 
-    test('custom-local-date-trailing-adapter-column-read', async () => {
-        // shiftedReleaseDay: customLocalDate 'ReleaseDay' + shiftHourAdapter (read
+    test('own-local-date-trailing-adapter-column-read', async () => {
+        // shiftedReleaseDay: LocalDatesType 'ReleaseDay' + shiftHourAdapter (read
         // +1h). Draft 1's shifted_release_day DEFAULT 2025-03-01 reads back through the
         // localDate base marshaller, then shifted +1h.
         ctx.mockNext({ id: 1, v: new Date(Date.UTC(2025, 2, 1, 0, 0, 0)) })
@@ -283,8 +283,8 @@ describe(ctx.label, () => {
         expect(opt).toEqual({ id: 1, v: new Date(Date.UTC(2025, 2, 1, 11, 0, 0)) })
     })
 
-    test('custom-local-time-trailing-adapter-column-read', async () => {
-        // shiftedCutoff: customLocalTime 'CutoffClock' + shiftHourAdapter (read +1h).
+    test('own-local-time-trailing-adapter-column-read', async () => {
+        // shiftedCutoff: LocalTimesType 'CutoffClock' + shiftHourAdapter (read +1h).
         // Draft 1's shifted_cutoff DEFAULT 09:00:00 reads back through the localTime
         // base marshaller, then shifted +1h to 10:00:00.
         ctx.mockNext({ id: 1, v: new Date(Date.UTC(1970, 0, 1, 9, 0, 0)) })

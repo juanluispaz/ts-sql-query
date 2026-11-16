@@ -320,10 +320,10 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('chained-modifiers-customlocaldatetime-getfullyear', async () => {
-        // The five projection modifiers on the customLocalDateTime column
+    test('chained-modifiers-own-local-date-time-getfullyear', async () => {
+        // The five projection modifiers on the LocalDateTimesType column
         // signedOffAt, each followed by getFullYear — proving the modifier returns
-        // the custom-temporal leaf so the getter still fires, and pinning each
+        // the own-temporal leaf so the getter still fires, and pinning each
         // modifier's SQL shape + projected optional marker:
         //   valueWhenNull            -> coalesce(...), required `number` leaf
         //   nullIfValue              -> nullif(...),   optional leaf
@@ -471,9 +471,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-localdatetime-asoptional-projected', async () => {
+    test('own-localdatetime-asoptional-projected', async () => {
         // `tProjectRelease.publishedAt.asOptional()` projected directly — the
-        // required customLocalDateTime column re-marked optional by `asOptional()`,
+        // required LocalDateTimesType column re-marked optional by `asOptional()`,
         // the required->optional overload projected on its own (no other modifier
         // shapes it). published_at is non-null on release 1, so the leaf realizes a
         // concrete Date and projects as `?: Date`.
@@ -528,8 +528,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('const-custom-localdate-getfullyear', async () => {
-        // getFullYear() of a customLocalDate const: 2024-02-20 gives 2024.
+    test('const-own-localdate-getfullyear', async () => {
+        // getFullYear() of a LocalDatesType const: 2024-02-20 gives 2024.
         const d = new Date('2024-02-20T00:00:00Z')
         ctx.mockNext(2024)
         const year = await ctx.conn.selectFromNoTable()

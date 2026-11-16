@@ -1,8 +1,8 @@
 // Direct-fluent Equalable + Comparable methods on the temporal leaf types — the
 // plain `localDate` / `localTime` columns (`tIssueWorklog.workDate`,
-// `tIssueWorklog.startedAt`) and the custom-temporal columns
-// (`tProjectRelease.cutoffTime` customLocalTime, `tProjectRelease.signedOffAt`
-// customLocalDateTime). The *dynamic* dispatcher already covers these per type;
+// `tIssueWorklog.startedAt`) and the own-temporal columns
+// (`tProjectRelease.cutoffTime` LocalTimesType, `tProjectRelease.signedOffAt`
+// LocalDateTimesType). The *dynamic* dispatcher already covers these per type;
 // this pins the *direct* fluent surface (equality / is-isNot / between / single
 // bounds / membership) with CONST operands.
 //
@@ -395,10 +395,10 @@ describe(ctx.label, () => {
         expect(ge).toEqual(expectedGe)
     })
 
-    // customLocalTime — tProjectRelease.cutoffTime ('CutoffClock', required):
+    // LocalTimesType — tProjectRelease.cutoffTime ('CutoffClock', required):
     //   release 1 -> 17:00:00, 2 -> 18:30:00, 3 -> 16:00:00.
 
-    test('customLocalTime-equals-not-equals', async () => {
+    test('ownLocalTime-equals-not-equals', async () => {
         // `.equals(17:00)` matches release 1; `.notEquals(17:00)` matches
         // releases 2 and 3 (cutoff_time is non-null on every release).
         const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -436,7 +436,7 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — MySQL 8.0 evaluates `time IN (?, ?)` wrongly when the statement is prepared server-side (no row matches), and Bun SQL always prepares the statement; runs on the mysql2 connector.
     /*
-    test('customLocalTime-in-array-in-n', async () => {
+    test('ownLocalTime-in-array-in-n', async () => {
         // `.in([17:00, 16:00])` matches releases 1 and 3; `.inN(17:00)` matches
         // release 1 only.
         const t1 = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -475,7 +475,7 @@ describe(ctx.label, () => {
     })
     */
 
-    test('customLocalTime-between-not-between', async () => {
+    test('ownLocalTime-between-not-between', async () => {
         // `.between(16:30, 18:00)` matches release 1 (17:00); releases 2 (18:30)
         // and 3 (16:00) are out of range. `.notBetween(...)` matches 2 and 3.
         const lo = new Date(Date.UTC(1970, 0, 1, 16, 30, 0))
@@ -514,11 +514,11 @@ describe(ctx.label, () => {
         expect(notRows).toEqual(expectedNot)
     })
 
-    // customLocalDateTime — tProjectRelease.signedOffAt ('SignOffStamp',
+    // LocalDateTimesType — tProjectRelease.signedOffAt ('SignOffStamp',
     // optional): release 1 -> 2024-01-14 12:30:00, 2 -> NULL,
     //   3 -> 2024-02-28 09:00:00.
 
-    test('customLocalDateTime-equals-not-equals', async () => {
+    test('ownLocalDateTime-equals-not-equals', async () => {
         // `.equals(2024-01-14 12:30)` matches release 1; `.notEquals(...)`
         // matches release 3 (release 2 is NULL -> excluded by NULL semantics).
         const dt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
@@ -554,7 +554,7 @@ describe(ctx.label, () => {
         expect(ne).toEqual(expectedNe)
     })
 
-    test('customLocalDateTime-in-array-in-n', async () => {
+    test('ownLocalDateTime-in-array-in-n', async () => {
         // `.in([2024-01-14 12:30, 2024-02-28 09:00])` matches releases 1 and 3;
         // `.inN(2024-01-14 12:30)` matches release 1 only.
         const dt1 = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
@@ -592,7 +592,7 @@ describe(ctx.label, () => {
         expect(inNRows).toEqual(expectedInN)
     })
 
-    test('customLocalDateTime-between-not-between', async () => {
+    test('ownLocalDateTime-between-not-between', async () => {
         // `.between(2024-01-01, 2024-02-01)` matches release 1 (2024-01-14);
         // release 3 (2024-02-28) is out of range and release 2 is NULL.
         // `.notBetween(...)` matches release 3 (NULL excluded by NULL semantics).
@@ -632,14 +632,14 @@ describe(ctx.label, () => {
         expect(notRows).toEqual(expectedNot)
     })
 
-    // customLocalDateTime — tProjectRelease.publishedAt ('PublishStamp',
+    // LocalDateTimesType — tProjectRelease.publishedAt ('PublishStamp',
     // REQUIRED-on-read): release 1 -> 2024-01-16 09:00:00. The direct-fluent
-    // date/time getter surface on a REQUIRED custom-localDateTime receiver (the
+    // date/time getter surface on a REQUIRED own-localDateTime receiver (the
     // required twin of the optional signedOffAt getters), so each getter is a
     // required `number` leaf (not `?: number`).
 
-    test('customLocalDateTime-required-getters', async () => {
-        // All 9 localDateTime getters on the REQUIRED custom-localDateTime
+    test('ownLocalDateTime-required-getters', async () => {
+        // All 9 localDateTime getters on the REQUIRED own-localDateTime
         // column publishedAt — every getter is a required `number` leaf. Release 1:
         // published_at 2024-01-16 09:00:00 (a Tuesday) -> year 2024, month 0
         // (January, JS 0-indexed), date 16, day-of-week 2, hours 9, minutes 0,
@@ -671,12 +671,12 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // View customLocalTime — vReleaseOverview.cutoffClock ('CutoffClock',
+    // View LocalTimesType — vReleaseOverview.cutoffClock ('CutoffClock',
     // required): the release's cutoff_time surfaced through the view. Release 1
-    // -> 17:00:00. The custom-localTime getter surface on a VIEW receiver.
+    // -> 17:00:00. The own-localTime getter surface on a VIEW receiver.
 
-    test('view-customLocalTime-getters', async () => {
-        // The 4 localTime getters on the REQUIRED View custom-localTime
+    test('view-ownLocalTime-getters', async () => {
+        // The 4 localTime getters on the REQUIRED View own-localTime
         // column cutoffClock — each is a required `number` leaf. Release 1:
         // cutoff_clock 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
         const expected = [{ h: 17, m: 0, s: 0, ms: 0 }]
@@ -700,8 +700,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // custom-source `.asOptional()` getter — tProjectRelease.releasedOn
-    // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
+    // own-source `.asOptional()` getter — tProjectRelease.releasedOn
+    // ('ReleaseDay', LocalDatesType) demoted to optional via `.asOptional()`
     // then a getter. asOptional() propagates the optional marker to the getter's
     // number leaf (`?: number`).
     // Release 1 -> released_on 2024-01-15 -> year 2024.
@@ -740,7 +740,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('view-required-customLocalDateTime-getters', async () => {
+    test('view-required-ownLocalDateTime-getters', async () => {
         // All 9 localDateTime getters on the REQUIRED custom View
         // localDateTime column publishStamp ('PublishStamp') — every getter is a
         // required `number` leaf. Release 1: published_stamp 2024-01-16 09:00:00
@@ -772,8 +772,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-source-asOptional-getter', async () => {
-        // `.asOptional().getFullYear()` on the required custom-localDate column
+    test('own-source-asOptional-getter', async () => {
+        // `.asOptional().getFullYear()` on the required own-localDate column
         // releasedOn — asOptional() carries the optional marker through to the
         // getter leaf (`?: number`). Release 1: released_on 2024-01-15 -> year 2024.
         const expected = [{ y: 2024 }]
@@ -849,16 +849,16 @@ describe(ctx.label, () => {
         })
     })
 
-    // custom-source `.asOptional()` getters — tProjectRelease.releasedOn
-    // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
+    // own-source `.asOptional()` getters — tProjectRelease.releasedOn
+    // ('ReleaseDay', LocalDatesType) demoted to optional via `.asOptional()`
     // then fed the LocalDate getters. asOptional() carries the optional
     // marker to each getter's number leaf (`?: number`). Release 1
     // -> released_on 2024-01-15 (a Monday) -> month 0 (January, JS 0-indexed),
     // date 15, day-of-week 1.
 
-    test('custom-localDate-asOptional-getters', async () => {
+    test('own-localDate-asOptional-getters', async () => {
         // The `getMonth`/`getDate`/`getDay` localDate getters on the
-        // custom-localDate column releasedOn demoted via `.asOptional()` — each carries the
+        // own-localDate column releasedOn demoted via `.asOptional()` — each carries the
         // optional marker to a `number | undefined` leaf. Release 1: released_on
         // 2024-01-15 (a Monday) -> month 0 (January, JS 0-indexed), date 15,
         // day-of-week 1.
@@ -882,14 +882,14 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // custom-source `.asOptional()` getters — tProjectRelease.cutoffTime
-    // ('CutoffClock', customLocalTime) demoted to optional via `.asOptional()`
+    // own-source `.asOptional()` getters — tProjectRelease.cutoffTime
+    // ('CutoffClock', LocalTimesType) demoted to optional via `.asOptional()`
     // then fed the LocalTime getters. asOptional() carries the optional marker
     // to each getter's number leaf (`?: number`). Release 1 ->
     // cutoff_time 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
 
-    test('custom-localTime-asOptional-getters', async () => {
-        // The 4 localTime getters on the custom-localTime column
+    test('own-localTime-asOptional-getters', async () => {
+        // The 4 localTime getters on the own-localTime column
         // cutoffTime demoted via `.asOptional()` — each carries the optional
         // marker to a `number | undefined` leaf. Release 1: cutoff_time 17:00:00
         // -> hours 17, minutes 0, seconds 0, milliseconds 0.
@@ -914,8 +914,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('view-custom-localDate-asOptional-getters', async () => {
-        // The 4 localDate getters on the View custom-localDate column
+    test('view-own-localDate-asOptional-getters', async () => {
+        // The 4 localDate getters on the View own-localDate column
         // releasedOn demoted via `.asOptional()` — each carries the optional
         // marker to a `number | undefined` leaf. Release 1: released_on 2024-01-15
         // (a Monday) -> year 2024, month 0 (January, JS 0-indexed), date 15,
@@ -941,16 +941,16 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // View custom-source `.asOptional()` getters — vReleaseOverview.cutoffClock
-    // ('CutoffClock', customLocalTime) surfaced through the view then demoted to
+    // View own-source `.asOptional()` getters — vReleaseOverview.cutoffClock
+    // ('CutoffClock', LocalTimesType) surfaced through the view then demoted to
     // optional via `.asOptional()` before the LocalTime getters (the View read
     // path, distinct from the Table read path). asOptional() carries the optional
     // marker to each getter's number leaf (`?: number`). Release 1
     // through the view: cutoff_clock 17:00:00 -> hours 17, minutes 0, seconds 0,
     // milliseconds 0.
 
-    test('view-custom-localTime-asOptional-getters', async () => {
-        // The 4 localTime getters on the View custom-localTime column
+    test('view-own-localTime-asOptional-getters', async () => {
+        // The 4 localTime getters on the View own-localTime column
         // cutoffClock demoted via `.asOptional()` — each carries the optional
         // marker to a `number | undefined` leaf. Release 1: cutoff_clock 17:00:00
         // -> hours 17, minutes 0, seconds 0, milliseconds 0.
@@ -1039,8 +1039,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customLocalTime-is-is-not', async () => {
-        // `.is` / `.isNot` (null-safe equality) on a required custom-localTime
+    test('ownLocalTime-is-is-not', async () => {
+        // `.is` / `.isNot` (null-safe equality) on a required own-localTime
         // column. `.is(17:00)` matches release 1; `.isNot(17:00)` matches
         // releases 2 and 3 (cutoff_time is non-null on every release).
         const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -1079,14 +1079,14 @@ describe(ctx.label, () => {
     // ==================================================================
     // Single-bound ordered comparisons (greaterThan / lessOrEqual), membership
     // variadics (inN / notInN / notIn-array) and the *IfValue family on the
-    // custom-temporal Comparable leaves:
-    //   customLocalDate — tProjectRelease.releasedOn ('ReleaseDay'):
+    // own-temporal Comparable leaves:
+    //   LocalDatesType — tProjectRelease.releasedOn ('ReleaseDay'):
     //     release 1 -> 2024-01-15, 2 -> 2024-02-20, 3 -> 2024-03-01.
-    //   customLocalTime — tProjectRelease.cutoffTime ('CutoffClock'):
+    //   LocalTimesType — tProjectRelease.cutoffTime ('CutoffClock'):
     //     release 1 -> 17:00:00, 2 -> 18:30:00, 3 -> 16:00:00.
     // ==================================================================
 
-    test('customLocalDate-single-bound-greater-than-less-or-equal', async () => {
+    test('ownLocalDate-single-bound-greater-than-less-or-equal', async () => {
         // `.greaterThan(2024-02-20)` matches release 3 (2024-03-01);
         // `.lessOrEqual(2024-02-20)` matches releases 1 and 2.
         const mid = new Date(Date.UTC(2024, 1, 20))
@@ -1122,7 +1122,7 @@ describe(ctx.label, () => {
         expect(le).toEqual(expectedLe)
     })
 
-    test('customLocalDate-in-array-in-n', async () => {
+    test('ownLocalDate-in-array-in-n', async () => {
         // `.in([2024-01-15, 2024-03-01])` matches releases 1 and 3; `.inN(
         // 2024-02-20)` matches release 2.
         const d1 = new Date(Date.UTC(2024, 0, 15))
@@ -1161,7 +1161,7 @@ describe(ctx.label, () => {
         expect(inNRows).toEqual(expectedInN)
     })
 
-    test('customLocalDate-not-in-array-not-in-n', async () => {
+    test('ownLocalDate-not-in-array-not-in-n', async () => {
         // `.notIn([2024-01-15])` and `.notInN(2024-01-15)` both match releases 2
         // and 3.
         const d1 = new Date(Date.UTC(2024, 0, 15))
@@ -1196,8 +1196,8 @@ describe(ctx.label, () => {
         expect(notInNRows).toEqual(expected)
     })
 
-    test('customLocalDate-if-value-family-fires-and-elides', async () => {
-        // The *IfValue family on customLocalDate: each fires with the same SQL as
+    test('ownLocalDate-if-value-family-fires-and-elides', async () => {
+        // The *IfValue family on LocalDatesType: each fires with the same SQL as
         // its direct sibling when given a value, and elides (drops the sole WHERE)
         // when given `undefined`.
         const d1 = new Date(Date.UTC(2024, 0, 15))
@@ -1269,7 +1269,7 @@ describe(ctx.label, () => {
         expect(inElide).toEqual(all)
     })
 
-    test('customLocalTime-single-bound-greater-than-less-or-equal', async () => {
+    test('ownLocalTime-single-bound-greater-than-less-or-equal', async () => {
         // `.greaterThan(17:00)` matches release 2 (18:30); `.lessOrEqual(17:00)`
         // matches releases 1 (17:00) and 3 (16:00).
         const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -1305,7 +1305,7 @@ describe(ctx.label, () => {
         expect(le).toEqual(expectedLe)
     })
 
-    test('customLocalTime-not-in-array-not-in-n', async () => {
+    test('ownLocalTime-not-in-array-not-in-n', async () => {
         // `.notIn([17:00])` and `.notInN(17:00)` both match releases 2 and 3.
         const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         const expected = [{ id: 2 }, { id: 3 }]
@@ -1339,8 +1339,8 @@ describe(ctx.label, () => {
         expect(notInNRows).toEqual(expected)
     })
 
-    test('customLocalTime-if-value-family-fires-and-elides', async () => {
-        // The *IfValue family on customLocalTime: each fires with the same SQL as
+    test('ownLocalTime-if-value-family-fires-and-elides', async () => {
+        // The *IfValue family on LocalTimesType: each fires with the same SQL as
         // its direct sibling when given a value, and elides when given `undefined`.
         const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         const noTime: Date | undefined = undefined
@@ -1417,7 +1417,7 @@ describe(ctx.label, () => {
     // cutoff_time 17:00:00; organization 1 created_at 2023-06-15 08:00:00. Tests run
     // under TZ=UTC.
 
-    test('modifier-getter/customLocalDate-value-when-null-get-month-and-null-if-value-get-day', async () => {
+    test('modifier-getter/ownLocalDate-value-when-null-get-month-and-null-if-value-get-day', async () => {
         // `releasedOn.valueWhenNull(d).getMonth()` -> getMonth over coalesce(released_on, $1);
         // released_on is non-null so the coalesce yields it: month 0 (January, JS 0-indexed).
         // `releasedOn.nullIfValue(d2).getDay()` -> getDay over nullif(released_on, $2); the
@@ -1445,7 +1445,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('modifier-getter/customLocalTime-value-when-null-get-hours-and-null-if-value-get-seconds', async () => {
+    test('modifier-getter/ownLocalTime-value-when-null-get-hours-and-null-if-value-get-seconds', async () => {
         // `cutoffTime.valueWhenNull(t).getHours()` -> getHours over coalesce(cutoff_time, $1);
         // cutoff_time 17:00:00 is non-null so hours = 17.
         // `cutoffTime.nullIfValue(t2).getSeconds()` -> getSeconds over nullif(cutoff_time, $2);

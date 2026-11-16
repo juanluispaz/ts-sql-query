@@ -108,7 +108,7 @@ CREATE TABLE issue_worklog (
     duration_ms BIGINT NULL,
     billable BIT NULL,
     approved VARCHAR(1) NULL,
-    -- billed amount per worklog (customDouble 'Money') and an `invoiced`
+    -- billed amount per worklog (ownDouble 'Money') and an `invoiced`
     -- flag stored as int 1/0 (numeric CustomBooleanTypeAdapter overload).
     billed_amount FLOAT NOT NULL DEFAULT 0,
     invoiced INT NOT NULL DEFAULT 0,
@@ -135,7 +135,7 @@ CREATE TABLE calendar_year (
     year_label VARCHAR(64) NOT NULL
 );
 
--- Exact decimals (customDecimal): a value of 30 significant digits and one with the scale 2.
+-- Exact decimals (DecimalsType): a value of 30 significant digits and one with the scale 2.
 CREATE TABLE exact_amount (
     id INT PRIMARY KEY,
     amount DECIMAL(38,10),
@@ -168,7 +168,7 @@ CREATE TABLE project_release (
     released_on DATE NOT NULL,
     cutoff_time TIME NOT NULL,
     signed_off_at DATETIME NULL,
-    -- REQUIRED customLocalDateTime twin of signed_off_at.
+    -- REQUIRED ownLocalDateTime twin of signed_off_at.
     published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_signed BIT,
     download_count BIGINT,
@@ -353,7 +353,7 @@ FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
 GO
 
--- release_draft: OPTIONAL enum/custom/customComparable columns so the
+-- release_draft: OPTIONAL enum/custom/ownComparable columns so the
 -- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
 CREATE TABLE release_draft (
     id INT PRIMARY KEY,

@@ -1,7 +1,7 @@
 // Brand/customness surviving a structural remap: a left join, aggregateAsArray,
 // compound (UNION), CTE and View left-join each preserve a branded column's
 // value type while remapping optionality. The value type is the underlying TS
-// type — `version` (customComparable) is `string`, `channel` (custom) is the
+// type — `version` (ComparableType) is `string`, `channel` (custom) is the
 // `ReleaseChannel` union, `activity` (enum) is `WorklogActivity`; the
 // distinctive assertion is that the literal union survives instead of widening
 // to `string`.
@@ -19,7 +19,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('table-left-join-preserves-custom-comparable-and-custom-brand', async () => {
+    test('table-left-join-preserves-own-comparable-and-own-brand', async () => {
         // `tProjectRelease.forUseInLeftJoin()` widens its required columns to
         // `originallyRequired` (projected `?: T`) while keeping their value
         // types: `version` stays `string`, `channel` stays the `ReleaseChannel`
@@ -135,7 +135,7 @@ describe(ctx.label, () => {
 
     test('compound-union-carries-the-seed-brand-onto-the-result', async () => {
         // The compound result carries the LEFT seed's branded value type: a
-        // `channel` (custom `ReleaseChannel`) seed unioned with another channel
+        // `channel` (EqualableType `ReleaseChannel`) seed unioned with another channel
         // select keeps `channel: ReleaseChannel`. Project 1 -> {stable, beta};
         // project 2 -> {canary}; union -> 3 rows ordered by channel.
         const expected = [{ channel: 'beta' as ReleaseChannel }, { channel: 'canary' as ReleaseChannel }, { channel: 'stable' as ReleaseChannel }]
@@ -185,7 +185,7 @@ describe(ctx.label, () => {
 
     test('view-left-join-preserves-branded-column-and-virtual', async () => {
         // A View left-join (`vReleaseOverview.forUseInLeftJoin()`) carrying a
-        // branded `version` (customComparable -> string) plus a
+        // branded `version` (ComparableType -> string) plus a
         // `virtualColumnFromFragment` (`versionUpper`), both widened to `?: T`.
         // Joined to project 1's '1.3.0-beta.1' release: versionUpper is its
         // upper-cased form.
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('recursive-union-all-preserves-custom-brand', async () => {
+    test('recursive-union-all-preserves-own-brand', async () => {
         // `recursiveUnionAll(...)` carries the anchor's branded value type onto the
         // recursive result: `channel` (custom) stays the `ReleaseChannel` union
         // instead of widening to `string`. The recursive arm can never match — its

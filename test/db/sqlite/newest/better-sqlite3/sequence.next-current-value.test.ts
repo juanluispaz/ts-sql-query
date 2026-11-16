@@ -102,14 +102,14 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection
     // does not expose `connection.sequence(...)`, so these bodies cannot run.
     /*
-    test('sequence-custom-int-value-type', async () => {
+    test('sequence-own-int-value-type', async () => {
         await ctx.withCommit(async () => {
             // `release_tag_seq` is declared
-            // over a branded `customInt` (`ReleaseTag`) rather than the plain
+            // over a branded `IntegersType` (`ReleaseTag`) rather than the plain
             // int / bigint of the sequences above. The emitted SQL is identical
             // to the int form (the value type only changes the type adapter);
             // the assertion pins that `nextValue()` projects the branded
-            // customInt value source.
+            // IntegersType value source.
             ctx.mockNext(7)
             const next = await ctx.conn.selectFromNoTable()
                 .selectOneColumn(ctx.conn.releaseTagSeq.nextValue())
@@ -151,11 +151,11 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection does not expose connection.sequence(...), so these bodies cannot run.
     /*
-    test('sequence-custom-int-current-value-type', async () => {
+    test('sequence-own-int-current-value-type', async () => {
         await ctx.withCommit(async () => {
-            // `currentValue()` over a branded `customInt` sequence
+            // `currentValue()` over a branded `IntegersType` sequence
             // (release_tag_seq / ReleaseTag): the result is the branded
-            // customInt value source, like nextValue.
+            // IntegersType value source, like nextValue.
             ctx.mockNext(7)
             if (ctx.realDbEnabled) {
                 await ctx.conn.selectFromNoTable()
@@ -224,9 +224,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection
     // does not expose `connection.sequence(...)`, so these bodies cannot run.
     /*
-    test('sequence-custom-int-next-value-with-trailing-adapter', async () => {
+    test('sequence-own-int-next-value-with-trailing-adapter', async () => {
         await ctx.withCommit(async () => {
-            // releaseTagSeqOffset carries the CUSTOM-kind (customInt / ReleaseTag)
+            // releaseTagSeqOffset carries the CUSTOM-kind (IntegersType / ReleaseTag)
             // value type AND a trailing TypeAdapter (plusOffsetAdapter, read +1000).
             // nextValue() projects the branded ReleaseTag AND shifts the read value:
             // raw 42 -> 1042.
@@ -248,9 +248,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection
     // does not expose `connection.sequence(...)`, so these bodies cannot run.
     /*
-    test('sequence-custom-int-current-value-with-trailing-adapter', async () => {
+    test('sequence-own-int-current-value-with-trailing-adapter', async () => {
         await ctx.withCommit(async () => {
-            // currentValue() over the custom-kind + adapter sequence: branded
+            // currentValue() over the own-kind + adapter sequence: branded
             // ReleaseTag AND read shifted +1000. currval is session-scoped, so a
             // prior nextValue primes it on the real DB.
             ctx.mockNext(41)
@@ -321,12 +321,12 @@ describe(ctx.label, () => {
         })
     })
     */
-    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/customDoubleSeq is not typed on its connection.
+    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/ownDoubleSeq is not typed on its connection.
     /*
     // The genuinely-distinct marshalled-result-type block: doubleSeq reuses the
-    // int sequence issue_id_seq and customDoubleSeq reuses the bigint sequence
+    // int sequence issue_id_seq and ownDoubleSeq reuses the bigint sequence
     // audit_tag_seq, but each draws the value marshalled as the WIDER double /
-    // customDouble kind. The emitted SQL is identical to issueIdSeq / auditTagSeq
+    // RealsType kind. The emitted SQL is identical to issueIdSeq / auditTagSeq
     // (the value type only changes the read marshaller, not the keyword); the
     // marshalled result type is a plain `number` on both.
     test('sequence-double-next-value', async () => {
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/customDoubleSeq is not typed on its connection.
+    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/ownDoubleSeq is not typed on its connection.
     /*
     test('sequence-double-current-value', async () => {
         await ctx.withCommit(async () => {
@@ -374,17 +374,17 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/customDoubleSeq is not typed on its connection.
+    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/ownDoubleSeq is not typed on its connection.
     /*
-    test('sequence-customdouble-next-value', async () => {
+    test('sequence-own-double-next-value', async () => {
         await ctx.withCommit(async () => {
-            // customDoubleSeq reuses audit_tag_seq but its value type is the
-            // customDouble kind bound to the 'Money' typeName (marshalled to double
+            // ownDoubleSeq reuses audit_tag_seq but its value type is the
+            // RealsType kind bound to the 'Money' typeName (marshalled to double
             // via baseTypeForCustom). The value type is a plain `number`, so
             // nextValue() surfaces a `number`. Same SQL as auditTagSeq.
             ctx.mockNext(42)
             const next = await ctx.conn.selectFromNoTable()
-                .selectOneColumn(ctx.conn.customDoubleSeq.nextValue())
+                .selectOneColumn(ctx.conn.ownDoubleSeq.nextValue())
                 .executeSelectOne()
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
@@ -396,22 +396,22 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/customDoubleSeq is not typed on its connection.
+    // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/ownDoubleSeq is not typed on its connection.
     /*
-    test('sequence-customdouble-current-value', async () => {
+    test('sequence-own-double-current-value', async () => {
         await ctx.withCommit(async () => {
-            // currentValue() over the same customDouble ('Money') sequence: the
+            // currentValue() over the same RealsType ('Money') sequence: the
             // emitted SQL is the currval form of audit_tag_seq; the value type only
             // changes the marshaller. currval is session-scoped, so a prior
             // nextValue primes it on the real DB.
             ctx.mockNext(41)
             if (ctx.realDbEnabled) {
                 await ctx.conn.selectFromNoTable()
-                    .selectOneColumn(ctx.conn.customDoubleSeq.nextValue())
+                    .selectOneColumn(ctx.conn.ownDoubleSeq.nextValue())
                     .executeSelectOne()
             }
             const curr = await ctx.conn.selectFromNoTable()
-                .selectOneColumn(ctx.conn.customDoubleSeq.currentValue())
+                .selectOneColumn(ctx.conn.ownDoubleSeq.currentValue())
                 .executeSelectOne()
 
             expect(ctx.lastSql).toMatchInlineSnapshot()

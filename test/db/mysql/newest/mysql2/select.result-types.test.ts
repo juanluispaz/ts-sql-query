@@ -11,7 +11,7 @@ import { getQueryContext } from '../../../../../src/QueryContext.js'
 import { tColMatrixOptional, tIssue, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
-// A type shown by its name, and a custom one with its custom type: `int`, `Money (customInt)`
+// A type shown by its name, and a custom one with its type of the user: `int`, `Money (IntegersType)`
 function typeLabel(type: QueryResultColumn['originalType']): string {
     return type.type
 }

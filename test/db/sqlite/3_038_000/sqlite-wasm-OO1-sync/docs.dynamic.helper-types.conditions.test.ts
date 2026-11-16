@@ -119,9 +119,9 @@ describe(ctx.label, () => {
         type Definition = {
             string: 'string'; uuid: 'uuid'; int: 'int'; double: 'double'; bigint: 'bigint'; boolean: 'boolean'
             localDate: 'localDate'; localTime: 'localTime'; localDateTime: 'localDateTime'
-            enum: EnumType<'a' | 'b', string>; custom: EqualableType<'a' | 'b', string>; customComparable: ComparableType<'a' | 'b', string>
-            customInt: IntegersType<'a' | 'b', string>; customDouble: RealsType<'a' | 'b', string>; customUuid: UuidsType<'a' | 'b', string>
-            customLocalDate: LocalDatesType<'a' | 'b', string>; customLocalTime: LocalTimesType<'a' | 'b', string>; customLocalDateTime: LocalDateTimesType<'a' | 'b', string>
+            enum: EnumType<'a' | 'b', string>; custom: EqualableType<'a' | 'b', string>; ownComparable: ComparableType<'a' | 'b', string>
+            ownInt: IntegersType<'a' | 'b', string>; ownDouble: RealsType<'a' | 'b', string>; ownUuid: UuidsType<'a' | 'b', string>
+            ownLocalDate: LocalDatesType<'a' | 'b', string>; ownLocalTime: LocalTimesType<'a' | 'b', string>; ownLocalDateTime: LocalDateTimesType<'a' | 'b', string>
         }
         type Filter = DynamicCondition<Definition>
         assertType<Exact<NonNullable<Filter['string']>, StringFilter>>()
@@ -135,13 +135,13 @@ describe(ctx.label, () => {
         assertType<Exact<NonNullable<Filter['localDateTime']>, DateTimeFilter>>()
         assertType<Exact<NonNullable<Filter['enum']>, EqualableFilter<'a' | 'b'>>>()
         assertType<Exact<NonNullable<Filter['custom']>, EqualableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customComparable']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customInt']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customDouble']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customUuid']>, UuidsFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customLocalDate']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customLocalTime']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['customLocalDateTime']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['ownComparable']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['ownInt']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['ownDouble']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['ownUuid']>, UuidsFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['ownLocalDate']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['ownLocalTime']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['ownLocalDateTime']>, ComparableFilter<'a' | 'b'>>>()
     })
 
     test('docs-extra:utilities-conditions/a-branded-property-has-equality-and-comparison', () => {

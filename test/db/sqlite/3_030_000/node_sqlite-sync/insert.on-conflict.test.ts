@@ -612,8 +612,8 @@ describe(ctx.label, () => {
     })
 
 
-    test('on-conflict-on-id-do-update-optional-custom-columns', async () => {
-        // DO UPDATE of the optional custom-kind columns (enum / custom / customComparable) via
+    test('on-conflict-on-id-do-update-optional-own-type-columns', async () => {
+        // DO UPDATE of the optional own-kind columns (enum / EqualableType / ComparableType) via
         // `onConflictOn(<pk>).doUpdateSet(...)`. Inserting id=1 collides with the seeded draft 1
         // (release_draft PK), so the row is updated: stage → 'final', channel → 'stable', minVersion →
         // '3.0.0'. The upsert produces a row, so `executeInsert` returns 1.

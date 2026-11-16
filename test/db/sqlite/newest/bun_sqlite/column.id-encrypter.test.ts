@@ -1,4 +1,4 @@
-// Ids encrypted by the connection: a `customComparable` type 'encryptedID' whose
+// Ids encrypted by the connection: a `ComparableType` type 'encryptedID' whose
 // `transformValueToDB` decrypts the text with `IDEncrypter` and sends the number as
 // a bigint, and whose `transformValueFromDB` reads the number as a bigint and hands
 // back its encrypted text. The tables below are the domain's organization, project

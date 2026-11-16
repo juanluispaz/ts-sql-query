@@ -12,8 +12,8 @@
 // `::date`, `::time`, `::timestamp`.
 //
 // The closing block (`const-custom-* …`) exercises the value-shape
-// fallback: `customInt`,
-// `customDouble`, `customLocalDate`, `custom` etc. drop through the
+// fallback: `IntegersType`,
+// `RealsType`, `LocalDatesType`, `EqualableType` etc. drop through the
 // type switch and the cast is picked from `typeof valueSentToDB`
 // (`bigint → ::int8`; `number` int32 → `::int4`; `number` int64 →
 // `::int8`; `number` float → `::float8`; anything else → no cast).
@@ -138,8 +138,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-int-is-cast-as-int4', async () => {
-        // A `customInt` is cast as an `int`: `::int4`.
+    test('const-own-int-is-cast-as-int4', async () => {
+        // An `IntegersType` is cast as an `int`: `::int4`.
         // Realistic shape: a branded ID type tagged as `IssueId`.
         type IssueId = number & { readonly __brand: 'IssueId' }
         abstract class IssueIdType extends IntegersType<IssueId, 'IssueId'> { static override readonly type = 'IssueId' }
@@ -156,8 +156,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-double-is-cast-as-float8', async () => {
-        // A `customDouble` is cast as a `double`: `::float8`.
+    test('const-own-double-is-cast-as-float8', async () => {
+        // A `RealsType` is cast as a `double`: `::float8`.
         type Money = number & { readonly __brand: 'Money' }
         abstract class MoneyType extends RealsType<Money, 'Money'> { static override readonly type = 'Money' }
         const amount = 19.99 as Money
@@ -173,8 +173,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-without-category-is-not-cast', async () => {
-        // A `custom` has no category to cast by, and its value is a
+    test('const-own-without-category-is-not-cast', async () => {
+        // A `EqualableType` has no category to cast by, and its value is a
         // string: no cast. Realistic shape: a branded slug carried through
         // a domain helper.
         type Slug = string & { readonly __brand: 'Slug' }
@@ -192,8 +192,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-localdate-is-cast-as-date', async () => {
-        // A `customLocalDate` is cast as a `localDate`: `::date`.
+    test('const-own-localdate-is-cast-as-date', async () => {
+        // A `LocalDatesType` is cast as a `localDate`: `::date`.
         type SettlementDate = Date & { readonly __brand: 'SettlementDate' }
         abstract class SettlementDateType extends LocalDatesType<SettlementDate, 'SettlementDate'> { static override readonly type = 'SettlementDate' }
         const d = new Date('2024-02-20T00:00:00Z') as SettlementDate
@@ -209,8 +209,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-comparable-is-not-cast', async () => {
-        // A `customComparable` has no category to cast by, and its value is
+    test('const-own-comparable-is-not-cast', async () => {
+        // A `ComparableType` has no category to cast by, and its value is
         // a string: no cast.
         type SemVer = string & { readonly __brand: 'SemVer' }
         abstract class SemVerType extends ComparableType<SemVer, 'SemVer'> { static override readonly type = 'SemVer' }
@@ -227,8 +227,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-uuid-is-cast-as-uuid', async () => {
-        // A `customUuid` is cast as a `uuid`: `::uuid`.
+    test('const-own-uuid-is-cast-as-uuid', async () => {
+        // An `UuidsType` is cast as a `uuid`: `::uuid`.
         type ReleaseId = string & { readonly __brand: 'ReleaseId' }
         abstract class ReleaseIdType extends UuidsType<ReleaseId, 'ReleaseId'> { static override readonly type = 'ReleaseId' }
         const id = 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' as ReleaseId
@@ -244,8 +244,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-localtime-is-cast-as-time', async () => {
-        // A `customLocalTime` is cast as a `localTime`: `::time`.
+    test('const-own-localtime-is-cast-as-time', async () => {
+        // A `LocalTimesType` is cast as a `localTime`: `::time`.
         type CutoffClock = Date & { readonly __brand: 'CutoffClock' }
         abstract class CutoffClockType extends LocalTimesType<CutoffClock, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
         const t = new Date('1970-01-01T17:00:00Z') as CutoffClock
@@ -261,8 +261,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('const-custom-localdatetime-is-cast-as-timestamp', async () => {
-        // A `customLocalDateTime` is cast as a `localDateTime`: `::timestamp`.
+    test('const-own-localdatetime-is-cast-as-timestamp', async () => {
+        // A `LocalDateTimesType` is cast as a `localDateTime`: `::timestamp`.
         type SignOffStamp = Date & { readonly __brand: 'SignOffStamp' }
         abstract class SignOffStampType extends LocalDateTimesType<SignOffStamp, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
         const ts = new Date('2024-01-14T12:30:00Z') as SignOffStamp

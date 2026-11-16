@@ -38,8 +38,8 @@ const tProjectForcedCast = new class TProjectForcedCast extends Table<DBConnecti
     constructor() { super('project') }
 }()
 
-// The `issue` table with `view_count` as a `customInt` and `estimated_hours` as a
-// `customDouble`, both wrapped in the same adapter: the type given to the
+// The `issue` table with `view_count` as an `IntegersType` and `estimated_hours` as a
+// `RealsType`, both wrapped in the same adapter: the type given to the
 // database is the one of their category (int and double).
 const tIssueForcedCast = new class TIssueForcedCast extends Table<DBConnection, 'TIssueForcedCast'> {
     id             = this.column('id', 'int')
@@ -150,8 +150,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1 }])
     })
 
-    test('force-type-cast-adapter-on-a-custom-int-column-in-where', async () => {
-        // `view_count` is a `customInt` wrapped in a `ForceTypeCast`: the value
+    test('force-type-cast-adapter-on-a-own-int-column-in-where', async () => {
+        // `view_count` is an `IntegersType` wrapped in a `ForceTypeCast`: the value
         // compared with it is given the type of an int (a no-op where the engine
         // infers types, see the snapshot). Every seeded issue has view_count 0;
         // issue 1 is 'Update hero copy'.
@@ -173,8 +173,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('force-type-cast-adapter-on-a-custom-double-column-in-where', async () => {
-        // `estimated_hours` is a `customDouble` wrapped in a `ForceTypeCast`: the
+    test('force-type-cast-adapter-on-a-own-double-column-in-where', async () => {
+        // `estimated_hours` is a `RealsType` wrapped in a `ForceTypeCast`: the
         // value compared with it is given the type of a double (a no-op where the
         // engine infers types, see the snapshot). The seed leaves every estimate
         // null, so issue 2 gets 2.5 inside the rollback and is found by it.

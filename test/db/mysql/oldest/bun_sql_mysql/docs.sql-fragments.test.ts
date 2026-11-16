@@ -318,7 +318,7 @@ describe(ctx.label, () => {
         expect(usersWithName).toEqual([])
     })
 
-    test('docs:sql-fragments/declared-custom-type', async () => {
+    test('docs:sql-fragments/declared-own-type', async () => {
         // Section "The type you declare".
         const expected = [
             { id: 1, sizeGroup: 'first' as const },

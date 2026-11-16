@@ -41,7 +41,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         return params
     }
 
-    test('a-custom-decimal-column-is-fetched-as-text', async () => {
+    test('a-own-decimal-column-is-fetched-as-text', async () => {
         const row = await runner!.executeQuery('selectOneRow', sql, paramsExpecting([decimal('amount'), decimal('price'), double('plain')]))
         expect(row).toEqual({ amount: '12345678901234567890.1234567891', price: '-.25', plain: 1.5 })
     })

@@ -392,8 +392,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; ref?: string }>>>()
         expect(rows).toEqual(expected)
     })
-    test('customuuid-asString-on-optional-column', async () => {
-        // `.asString()` on a branded `customUuid` column erases both the brand
+    test('own-uuid-asString-on-optional-column', async () => {
+        // `.asString()` on a branded `UuidsType` column erases both the brand
         // and the uuid value type to a plain `string`. `signing_key` is optional,
         // so the single-column select resolves to `string | null`. Release 1
         // carries a signing key.
@@ -412,8 +412,8 @@ describe(ctx.label, () => {
         expect(key).toEqual(SIGNING_KEY1)
     })
 
-    test('customuuid-comparison-surface-in-where', async () => {
-        // notEquals / in on an equality-only `customUuid` column filter the
+    test('own-uuid-comparison-surface-in-where', async () => {
+        // notEquals / in on an equality-only `UuidsType` column filter the
         // rows. Release 3's signing key matches the IN list and differs from
         // release 1's key.
         const expected = [{ id: 3 }]
@@ -475,7 +475,7 @@ describe(ctx.label, () => {
         expect(ref).toEqual(REF2)
     })
 
-    test('custom-uuid-receiver-null-if-value-literal', async () => {
+    test('own-uuid-receiver-null-if-value-literal', async () => {
         // `nullIfValue(literal)` on the CustomUuid receiver (signingKey /
         // 'SigningKey') directly — result optional. Release 1's signing key
         // (SIGNING_KEY1) ≠ the probe (SIGNING_KEY3), so the value is kept.
@@ -495,7 +495,7 @@ describe(ctx.label, () => {
         expect(key).toEqual(SIGNING_KEY1)
     })
 
-    test('custom-uuid-receiver-value-when-null-literal-on-null-row', async () => {
+    test('own-uuid-receiver-value-when-null-literal-on-null-row', async () => {
         // `valueWhenNull(literal)` on the CustomUuid receiver directly —
         // result required. Release 2 has a NULL signing_key → the literal
         // fallback wins.
@@ -515,7 +515,7 @@ describe(ctx.label, () => {
         expect(key).toEqual(UUID_VALUE)
     })
 
-    test('custom-uuid-receiver-value-when-null-optional-value-source', async () => {
+    test('own-uuid-receiver-value-when-null-optional-value-source', async () => {
         // `valueWhenNull(optional value source)` on the CustomUuid receiver: the
         // optional VS default keeps the result optional. The default is
         // `.asOptional()` on the same column, present at runtime. Release 1's
@@ -536,7 +536,7 @@ describe(ctx.label, () => {
     })
 
     // Nullable-family modifiers (the modifier trio + value-source valueWhenNull /
-    // nullIfValue) on the uuid and customUuid leaves.
+    // nullIfValue) on the uuid and UuidsType leaves.
 
     test('uuid-receiver-modifier-trio', async () => {
         // The modifier trio on a uuid column (externalRef). asRequiredInOptionalObject()
@@ -640,8 +640,8 @@ describe(ctx.label, () => {
         expect(ref).toEqual(REF1)
     })
 
-    test('custom-uuid-receiver-modifier-trio', async () => {
-        // The modifier trio on a customUuid column (signingKey / 'SigningKey' branded).
+    test('own-uuid-receiver-modifier-trio', async () => {
+        // The modifier trio on an UuidsType column (signingKey / 'SigningKey' branded).
         // asRequiredInOptionalObject() keeps the mapped string (req?: string); the two
         // NULL-substitution modifiers drop own / ign to absent. Release 1 signing_key
         // SIGNING_KEY1.
@@ -666,9 +666,9 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('custom-uuid-receiver-null-if-value-source', async () => {
-        // nullIfValue(value source) on the customUuid receiver: the probe is a const
-        // customUuid value source (SIGNING_KEY3, a different key), so release 1's
+    test('own-uuid-receiver-null-if-value-source', async () => {
+        // nullIfValue(value source) on the UuidsType receiver: the probe is a const
+        // UuidsType value source (SIGNING_KEY3, a different key), so release 1's
         // signing_key (SIGNING_KEY1) is kept.
         ctx.mockNext(SIGNING_KEY1)
         const key = await ctx.conn.selectFrom(tProjectRelease)

@@ -2,7 +2,7 @@
 // structural engine (`not`, `or`) paired with its direct equivalent (identical
 // SQL+params), a model-derived filter (`DynamicConditionForModel<M, EXT>`)
 // carrying an extension rule run end-to-end, the aggregated-array empty-filter
-// no-op, `OrderByForModel` over a branded/custom-Date/optional scalar leaf, and
+// no-op, `OrderByForModel` over a branded/own-Date/optional scalar leaf, and
 // an extension key shadowing a built-in operator.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -45,8 +45,8 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('custom-column-under-not-equals-the-direct-negate', async () => {
-        // A `custom` column (`channel`) filtered under the structural `not`,
+    test('own-type-column-under-not-equals-the-direct-negate', async () => {
+        // A `EqualableType` column (`channel`) filtered under the structural `not`,
         // paired with the direct `.negate()` — both emit identical SQL+params.
         const selectFields = { id: tProjectRelease.id, channel: tProjectRelease.channel }
 
@@ -76,8 +76,8 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('custom-comparable-column-under-or-equals-the-direct-or', async () => {
-        // A `customComparable` column (`version`) filtered under the structural
+    test('own-comparable-column-under-or-equals-the-direct-or', async () => {
+        // A `ComparableType` column (`version`) filtered under the structural
         // `or`, paired with the direct `.or(...)` chain — identical SQL+params.
         const selectFields = { id: tProjectRelease.id, version: tProjectRelease.version }
 
@@ -164,13 +164,13 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('order-by-for-model-classifies-branded-custom-date-and-optional-scalar', () => {
+    test('order-by-for-model-classifies-branded-own-date-and-optional-scalar', () => {
         // `OrderByForModel<M>` classifies a branded string, a `Date`
-        // (custom-date) and an optional scalar leaf as orderable (type-only).
+        // (own-date) and an optional scalar leaf as orderable (type-only).
         type Semver = string & { readonly __brand: 'Semver' }
         interface ReleaseOrderModel {
             version:    Semver   // branded string
-            releasedOn: Date     // custom-date scalar
+            releasedOn: Date     // own-date scalar
             estimate?:  number   // optional scalar
         }
         const clauses: OrderByForModel<ReleaseOrderModel>[] = [

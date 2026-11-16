@@ -814,7 +814,7 @@ a column it comes back right (`100:00:00`), but written into JSON on 5.7.44, 8.0
 
 **What this means** — the library's `localTime` is a time of day: a stored `100:00:00` is
 rejected when read (`INVALID_VALUE_RECEIVED_FROM_DATABASE`, hours above 23), so no library
-data type carries such a value. Only a custom type over a `TIME` used as a duration would meet
+data type carries such a value. Only a type of the user over a `TIME` used as a duration would meet
 it, inside an aggregated array on MySQL before 26. No test covers it.
 
 ### MySQL 8.0 doesn't find a `TIME` in a prepared `in` list of several values
@@ -875,7 +875,7 @@ correct, standard SQL identical to `newest` — this is purely the older server.
 **What this means for tests** — per the engine-support policy at the top of this
 file, "the lib emits SQL the older server evaluates differently" belongs here, not in
 `BUGS.md`. The `localTime-in-n-mixed-const-and-value-source` and
-`customLocalTime-in-n-mixed-const-and-value-source` tests in
+`ownLocalTime-in-n-mixed-const-and-value-source` tests in
 `select.value-source.equality-comparison-by-type.test.ts` are commented with
 `NOT-SUPPORTED` (full canonical body preserved) on the MySQL cells whose engine
 is below MySQL 9 (today `8_000_017`, `8_000_000`, `oldest` — `mysql:8.0` / `5.7`
@@ -892,7 +892,7 @@ while `= ?`, `IN (?)` and `IN (cast(? as time), …)` work. Verified on 8.0.46 �
 `mysql2.execute()` returns 0 where `mysql2.query()` returns 1 — and correct on
 26.10. The `mysql2` connector is not affected (text protocol); **Bun SQL always
 prepares the statement**. So `localTime-in-n-multi-const` and
-`customLocalTime-in-array-in-n` are commented out with `// NOT-SUPPORTED:` in
+`ownLocalTime-in-array-in-n` are commented out with `// NOT-SUPPORTED:` in
 the `bun_sql_mysql` cells whose engine is MySQL 8.0 (`8_000_017`, `8_000_000`)
 and run live on `newest` and on `mysql2`. Verified with `--docker-version
 closest`.
@@ -1025,17 +1025,17 @@ within-dialect divergence, so the same test typically runs live on a
 sibling connector of the same database — which is exactly what makes it a
 driver boundary and not a dialect one.
 
-## `tedious` rejects a bare `NULL` bound as a custom-typed parameter
+## `tedious` rejects a bare `NULL` bound as a own-typed parameter
 
 The `mssql` driver (tedious) resolves a parameter's TDS type from the bound
-**value**. For an explicit `null` on an enum / custom / customComparable
+**value**. For an explicit `null` on an enum / EqualableType / ComparableType
 column there is no value to read the type from, so the bind fails with
 `EPARAM` (*"Validation failed for parameter … not implemented"*) before the
 statement reaches SQL Server. Omitting the column instead (so the engine
 stores its `NULL`) works, and that outcome is what
-`insert-optional-custom-columns-omitted` validates; only the
-**explicit-null bind** is unsupported. `insert-optional-custom-columns-set-to-null`
-in `sqlserver/*/mssql/insert.optional-custom-columns.test.ts` is therefore
+`insert-optional-own-type-columns-omitted` validates; only the
+**explicit-null bind** is unsupported. `insert-optional-own-type-columns-set-to-null`
+in `sqlserver/*/mssql/insert.optional-own-type-columns.test.ts` is therefore
 commented out with `// NOT-SUPPORTED:` (full canonical body preserved).
 
 ## MariaDB discards placeholder values in a prepared `VALUES (...)` table constructor (Bun SQL)
@@ -1089,11 +1089,11 @@ with 4 over a `decimal(30,10)` gives `12345678901234567890.1235000000`). The tex
 protocol, and a literal number of decimals, give the scale of the rounding
 (`…1235`), and so does MySQL 5.7 even when prepared (verified on 5.7.44, 8.0.46
 and 26.10.0 with `mysql2` `query` and `execute`, and Bun SQL). It is the same
-number with another text: a `customDecimal` or `stringDecimal` read through Bun
+number with another text: a `DecimalsType` or `stringDecimal` read through Bun
 SQL has the trailing zeros. The `mysql2` connector is not affected; **Bun SQL
 always prepares the statement**.
 
-`abs-ceil-floor-round-and-modulo-keep-every-digit` in `select.custom-decimal` and
+`abs-ceil-floor-round-and-modulo-keep-every-digit` in `select.own-decimal` and
 `select.string-decimal` expects the scale of the column in the `bun_sql_mysql`
 cells of MySQL 8.0 and later. The `oldest` cell (MySQL 5.7) expects the scale of
 the rounding on its own engine (`--docker-version closest`) and the scale of the

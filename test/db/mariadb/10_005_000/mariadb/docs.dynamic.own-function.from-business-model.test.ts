@@ -218,7 +218,7 @@ describe(ctx.label, () => {
         ])
     })
 
-    test('docs:from-business-model/custom-types', () => {
+    test('docs:from-business-model/own-types', () => {
         // doc-start
         type Money = number & { readonly brand: 'Money' }
 
@@ -335,7 +335,7 @@ describe(ctx.label, () => {
         ).toThrow('ORDER_BY_COLUMN_NOT_IN_SELECT')
     })
 
-    test('docs-extra:from-business-model/a-plain-type-on-a-custom-column-rejects-an-operator-the-column-has-not', async () => {
+    test('docs-extra:from-business-model/a-plain-type-on-a-own-type-column-rejects-an-operator-the-column-has-not', async () => {
         interface ReleaseFilterRow {
             id: number
             version: string
@@ -354,7 +354,7 @@ describe(ctx.label, () => {
                 .executeSelectMany()
         }
 
-        // The column is a customComparable: it has no contains, even if the model says the property is a string
+        // The column is a ComparableType: it has no contains, even if the model says the property is a string
         await expect(filterReleases({ version: { contains: '1.2' } })).rejects.toThrow('Unknown operation with name "contains" for the column "version"')
     })
 

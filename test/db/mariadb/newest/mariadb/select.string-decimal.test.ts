@@ -458,7 +458,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('string-decimal/a-dynamic-condition-filters-with-a-custom-decimal-filter', async () => {
+    test('string-decimal/a-dynamic-condition-filters-with-a-own-decimal-filter', async () => {
         ctx.mockNext([1])
         ctx.mockNext([1])
         type Condition = DynamicCondition<{ price: 'stringDecimal' }>

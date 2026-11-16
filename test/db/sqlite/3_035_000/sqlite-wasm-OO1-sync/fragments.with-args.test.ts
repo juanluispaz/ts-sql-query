@@ -783,11 +783,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('arg-keyword-custom-comparable', async () => {
+    test('arg-keyword-own-comparable', async () => {
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const rows = sync(ctx.conn.selectFrom(tProjectRelease)
-            .where(ctx.conn.customComparableEq(tProjectRelease.version, '1.2.0'))
+            .where(ctx.conn.ownComparableEq(tProjectRelease.version, '1.2.0'))
             .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -798,11 +798,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('arg-keyword-custom', async () => {
+    test('arg-keyword-own-equalable', async () => {
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const rows = sync(ctx.conn.selectFrom(tProjectRelease)
-            .where(ctx.conn.customEq(tProjectRelease.channel, 'stable'))
+            .where(ctx.conn.ownEq(tProjectRelease.channel, 'stable'))
             .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -828,11 +828,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('arg-keyword-custom-uuid', async () => {
+    test('arg-keyword-own-uuid', async () => {
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const rows = sync(ctx.conn.selectFrom(tProjectRelease)
-            .where(ctx.conn.customUuidEq(tProjectRelease.signingKey, '0a8f9c1e-1111-4222-8333-444455556666'))
+            .where(ctx.conn.ownUuidEq(tProjectRelease.signingKey, '0a8f9c1e-1111-4222-8333-444455556666'))
             .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = ?1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -905,8 +905,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ r: 10 }])
     })
 
-    test('custom-arg-trailing-adapter-scales-the-bound-placeholder', async () => {
-        // scaledCustomArgFragment's `arg` is a CUSTOM kind (customInt 'Cents')
+    test('own-arg-trailing-adapter-scales-the-bound-placeholder', async () => {
+        // scaledCustomArgFragment's `arg` is a CUSTOM kind (IntegersType 'Cents')
         // carrying a trailing TypeAdapter (scaledTenthAdapter, x10 on the write
         // path) — the combined-mode (`adapter2`) slot on the CUSTOM-kind arm of
         // `arg`. Calling it with the literal 1 binds the SCALED placeholder 10; the
@@ -925,8 +925,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ r: 10 }])
     })
 
-    test('custom-value-arg-trailing-adapter-scales-the-bound-placeholder', async () => {
-        // scaledCustomThresholdFragment's `valueArg` is a CUSTOM kind (customInt
+    test('own-value-arg-trailing-adapter-scales-the-bound-placeholder', async () => {
+        // scaledCustomThresholdFragment's `valueArg` is a CUSTOM kind (IntegersType
         // 'Cents') carrying scaledTenthAdapter (x10 on the write path) — the
         // combined-mode (`adapter2`) slot on the CUSTOM-kind arm of `valueArg`.
         // Calling it with the threshold 1 binds the SCALED placeholder 10, so

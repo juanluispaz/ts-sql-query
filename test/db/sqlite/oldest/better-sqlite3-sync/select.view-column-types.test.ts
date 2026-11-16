@@ -1,7 +1,7 @@
 // per-type ValueSource dispatch on a VIEW source rather than a Table.
 // `vReleaseOverview` is a `class extends View` whose columns are mapped with
-// the branded `customComparable` (version) / `customLocalDate` (releasedOn)
-// kinds, an optional `customLocalDateTime` (signedOffAt) and a
+// the branded `ComparableType` (version) / `LocalDatesType` (releasedOn)
+// kinds, an optional `LocalDateTimesType` (signedOffAt) and a
 // `virtualColumnFromFragment` (versionUpper). This mirrors the table-side
 // coverage in select.column-factory-types.test.ts through the View mapping,
 // confirming the same projection/marshalling fires for View columns.
@@ -19,11 +19,11 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('view-side-custom-and-date-time-columns-project-as-their-types', async () => {
-        // Release 1 surfaced through the view: version '1.2.0' (customComparable
-        // → string), released_on 2024-01-15 (customLocalDate → Date normalised
+    test('view-side-own-and-date-time-columns-project-as-their-types', async () => {
+        // Release 1 surfaced through the view: version '1.2.0' (ComparableType
+        // → string), released_on 2024-01-15 (LocalDatesType → Date normalised
         // to 10:00 UTC), signed_off_at 2024-01-14 12:30:00 (optional
-        // customLocalDateTime → Date), and the virtual versionUpper =
+        // LocalDateTimesType → Date), and the virtual versionUpper =
         // upper(version).
         const expected = [{
             id:           1,
@@ -63,8 +63,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('view-side-custom-comparable-column-supports-ordering-operators', async () => {
-        // The customComparable `version` on the View confers `<` / orderBy
+    test('view-side-own-comparable-column-supports-ordering-operators', async () => {
+        // The ComparableType `version` on the View confers `<` / orderBy
         // (an equalable value source could not). Releases below 1.3.0: 1 (1.2.0)
         // and 3 (0.9.0), ordered descending.
         const expected = [
@@ -133,9 +133,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('view-side-custom-local-time-column-projects-as-date', async () => {
-        // `cutoffClock` is a customLocalTime VIEW column (the View
-        // side of the customLocalTime kind). Release 1's cutoff_time is 17:00:00,
+    test('view-side-own-local-time-column-projects-as-date', async () => {
+        // `cutoffClock` is a LocalTimesType VIEW column (the View
+        // side of the LocalTimesType kind). Release 1's cutoff_time is 17:00:00,
         // read as a Date normalised to 1970-01-01 17:00 UTC (TZ=UTC forced).
         const expected = [{ id: 1, cutoffClock: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }]
         ctx.mockNext(expected)
@@ -184,9 +184,9 @@ describe(ctx.label, () => {
         expect('channelBracketed' in rows[1]!).toBe(false)
     })
 
-    test('view-side-optional-custom-kind-adapter-column-reads-present-and-absent', async () => {
+    test('view-side-optional-own-kind-adapter-column-reads-present-and-absent', async () => {
         // `optionalReleaseOrdinal` is an OPTIONAL VIEW column of a CUSTOM kind
-        // (customInt / ReleaseTag) carrying a trailing plusOffsetAdapter (read +1000).
+        // (IntegersType / ReleaseTag) carrying a trailing plusOffsetAdapter (read +1000).
         // The view computes it as the release id when download_count is present, else
         // NULL. release 1 (download present) → id 1 → +1000 → 1001; release 2
         // (download NULL) → NULL → the optional key is absent (the adapter passes the
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
 
     test('view-side-plain-columns-read-as-their-types', async () => {
         // Reading release 1 through the View: plain boolean / bigint / double / uuid /
-        // localDate / localTime columns plus a custom-kind column carrying a trailing
+        // localDate / localTime columns plus a own-kind column carrying a trailing
         // adapter. is_signed TRUE, download_count 4200000042, avg_rating 4.5,
         // signing_key <uuid>, released_on 2024-01-15, cutoff_time 17:00:00; releaseOrdinal
         // reads id 1 shifted +1000 → 1001 (plusOffsetAdapter), so the mock is primed with
@@ -296,7 +296,7 @@ describe(ctx.label, () => {
         // The nullable plain-kind View columns read ABSENT when their source is
         // NULL. Release 2 has is_signed / download_count / avg_rating / signing_key
         // all NULL, so those keys are dropped; the required localDate/localTime and
-        // the custom-kind+adapter columns stay present (released_on 2024-02-20,
+        // the own-kind+adapter columns stay present (released_on 2024-02-20,
         // cutoff_time 18:30:00, id 2 → releaseOrdinal 1002).
         const expected = {
             releaseDayPlain: new Date(Date.UTC(2024, 1, 20, 10, 0, 0)),

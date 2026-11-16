@@ -1,7 +1,7 @@
 // How MssqlPoolQueryRunner binds each parameter: with the type declared for the
-// name of its type in typesByName, then by its type and its custom type, and
+// name of its type in typesByName, then by its type and its type of the user, and
 // otherwise (a parameter added without them, or an enum, a custom or a
-// customComparable) with a type inferred from the JavaScript value. The value read
+// ComparableType) with a type inferred from the JavaScript value. The value read
 // back proves the binding.
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
@@ -85,7 +85,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         }
     })
 
-    test('the-type-and-the-custom-type-decide', async () => {
+    test('the-type-and-the-own-type-decide', async () => {
         const cases: [unknown, string | DataTypeClass, string][] = [
             [1, 'boolean', 'bit'], [1, 'int', 'int'], [1, 'bigint', 'bigint'],
             [1, 'double', 'float'], ['12', 'string', 'nvarchar'],
@@ -101,7 +101,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         }
     })
 
-    test('a-custom-type-sends-a-text-as-text', async () => {
+    test('a-own-type-sends-a-text-as-text', async () => {
         const cases: [unknown, string | DataTypeClass, string][] = [
             ['1.2', SemverType, 'nvarchar'], ['12', ReleaseChannelType, 'nvarchar'],
             ['2026-01-02', StageType, 'nvarchar'], [7, 'aCustomTypeName', 'int'], ['constructor', 'constructor', 'nvarchar'],
@@ -127,7 +127,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
             const read = await declared.executeQuery('selectManyRows', `select cast(v as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs from rt_exact_decimal where v = ${placeholder}`, selectParams)
             expect(read).toEqual([{ v: exactDecimal, boundAs: 'nvarchar' }])
 
-            // Without the declaration, a customDouble is bound as a float, which loses digits
+            // Without the declaration, a RealsType is bound as a float, which loses digits
             const floatParams: any[] = []
             const asFloat = await runner!.executeQuery('selectOneColumnOneRow', `select cast(cast(${addParam(runner!, floatParams, exactDecimal, ExactDecimalType, false)} as decimal(38,10)) as nvarchar(50))`, floatParams)
             expect(asFloat).not.toBe(exactDecimal)
@@ -181,7 +181,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         expect(await declared.executeQuery('selectOneRow', `select ${placeholder} as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs`, params)).toEqual({ v: exactDecimal, boundAs: 'nvarchar' })
     })
 
-    test('customDecimal/hand-written-sql-adds-two-parameters-as-numbers', async () => {
+    test('ownDecimal/hand-written-sql-adds-two-parameters-as-numbers', async () => {
         // Bound as nvarchar, two parameters would be concatenated as text: each is cast to a decimal with its digits
         const params: any[] = []
         const first = addParam(runner!, params, exactDecimal, AmountType, false)
@@ -190,7 +190,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         expect(await runner!.executeQuery('selectOneColumnOneRow', `select cast(${first} + ${second} as nvarchar(50))`, params)).toBe('12345678901234567890.1234567892')
     })
 
-    test('customDecimal/hand-written-sql-rejects-a-value-beyond-38-digits', () => {
+    test('ownDecimal/hand-written-sql-rejects-a-value-beyond-38-digits', () => {
         const params: any[] = []
         let error: unknown
         try {

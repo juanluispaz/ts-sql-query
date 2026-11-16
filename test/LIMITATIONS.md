@@ -21,13 +21,13 @@ made it read as a mountain of debt nobody could pay down. Those moved to
 out: an entry that lands here should be one someone on this project could
 sit down and close.
 
-## Custom types inside an array aggregate need their conversion
+## Types of the user inside an array aggregate need their conversion
 
-The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. A `customInt`, `customDouble`, `customUuid` or `customLocal*` is converted as the built-in type of its custom type (a `customInt` as an `int`), so it needs nothing registered; an `enum`, a `custom` or a `customComparable` must register its conversion, the best place being the connection. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. The domain of the tests registers it through `baseTypeForCustom`.
+The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. An `IntegersType`, `RealsType`, `UuidsType` or `LocalDates/Times/DateTimesType` is converted as the built-in type of its family (an `IntegersType` as an `int`), so it needs nothing registered; an `enum`, an `EqualableType` or a `ComparableType` must register its conversion, the best place being the connection. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. The domain of the tests registers it through `baseTypeForCustom`.
 
-## A `customDouble` holding an exact decimal
+## A `RealsType` holding an exact decimal
 
-By default a `customDouble` is converted as a `double`, typed as `float8` on PostgreSQL and bound as `Float` on SQL Server, so an exact decimal kept as text loses digits. The user registers the conversion of the type and declares the type of its parameters in the `typesByName` option of the query runner (`'numeric'` for pg and Bun SQL, oid `1700` for postgres.js and PGlite, `TYPES.NVarChar` for mssql), as the cells of `docs:type-adapters/exact-decimal-kept-as-text` do. A default that needs no declaration is deferred by the maintainer: see [`DEFERRED.md`](./DEFERRED.md).
+By default a `RealsType` is converted as a `double`, typed as `float8` on PostgreSQL and bound as `Float` on SQL Server, so an exact decimal kept as text loses digits. The user registers the conversion of the type and declares the type of its parameters in the `typesByName` option of the query runner (`'numeric'` for pg and Bun SQL, oid `1700` for postgres.js and PGlite, `TYPES.NVarChar` for mssql), as the cells of `docs:type-adapters/exact-decimal-kept-as-text` do. A default that needs no declaration is deferred by the maintainer: see [`DEFERRED.md`](./DEFERRED.md).
 
 ## The golden rule: no closing a gap with a query of its own
 

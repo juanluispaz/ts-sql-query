@@ -1,6 +1,6 @@
 // The Equalable + Comparable base methods (equals, notEquals, is, isNot, between,
 // notBetween, in([..]), inN(..), in(select)/notIn(select)) on the `bigint`, `double`,
-// `customInt`, `customDouble` and `uuid` leaf types.
+// `IntegersType`, `RealsType` and `uuid` leaf types.
 //
 // Every test filters in the WHERE clause and projects the int primary key, so the
 // result type is `Array<{ id: number }>` regardless of the receiver's optionality —
@@ -431,10 +431,10 @@ describe(ctx.label, () => {
         })
     })
 
-    // customInt — tIssueWorklog.costCents ('Cents', required, marshalled int):
+    // IntegersType — tIssueWorklog.costCents ('Cents', required, marshalled int):
     //   worklog 1 -> 100, 2 -> 100, 3 -> 400.
 
-    test('customInt-equals-not-equals', async () => {
+    test('ownInt-equals-not-equals', async () => {
         // `.equals(400)` matches worklog 3; `.notEquals(400)` matches worklogs
         // 1 and 2.
         const expected = [{ id: 3 }]
@@ -469,8 +469,8 @@ describe(ctx.label, () => {
         expect(ne).toEqual(expectedNe)
     })
 
-    test('customInt-is-is-not', async () => {
-        // `.is` / `.isNot` on a (required) customInt column. cost_cents is
+    test('ownInt-is-is-not', async () => {
+        // `.is` / `.isNot` on a (required) IntegersType column. cost_cents is
         // non-null on every worklog, so `.is(400)` matches worklog 3 and
         // `.isNot(400)` matches worklogs 1 and 2.
         const expected = [{ id: 3 }]
@@ -505,7 +505,7 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customInt-between-not-between', async () => {
+    test('ownInt-between-not-between', async () => {
         // `.between(50, 200)` matches worklogs 1 and 2 (cost 100); worklog 3
         // (400) is out of range. `.notBetween(50, 200)` matches worklog 3.
         const expected = [{ id: 1 }, { id: 2 }]
@@ -542,7 +542,7 @@ describe(ctx.label, () => {
         expect(notRows).toEqual(expectedNot)
     })
 
-    test('customInt-in-array-in-n', async () => {
+    test('ownInt-in-array-in-n', async () => {
         // `.in([400])` matches worklog 3; `.inN(100)` matches worklogs 1 and 2.
         const expectedIn = [{ id: 3 }]
         ctx.mockNext(expectedIn)
@@ -576,8 +576,8 @@ describe(ctx.label, () => {
         expect(inNRows).toEqual(expectedInN)
     })
 
-    test('customInt-in-subquery-not-in-subquery', async () => {
-        // The subquery overload of IN / NOT IN over a customInt ('Cents')
+    test('ownInt-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over an IntegersType ('Cents')
         // column. The inner query selects worklog 3's cost_cents (400); the
         // outer keeps worklogs whose cost_cents is in / not in that set.
         const costOfWorklog3 = ctx.conn.selectFrom(tIssueWorklog)
@@ -616,10 +616,10 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    // customDouble — tIssueWorklog.billedAmount ('Money', required,
+    // RealsType — tIssueWorklog.billedAmount ('Money', required,
     // marshalled double): worklog 1 -> 200, 2 -> 50, 3 -> 200.
 
-    test('customDouble-equals-not-equals', async () => {
+    test('ownDouble-equals-not-equals', async () => {
         // `.equals(50)` matches worklog 2; `.notEquals(50)` matches worklogs 1
         // and 3.
         const expected = [{ id: 2 }]
@@ -654,8 +654,8 @@ describe(ctx.label, () => {
         expect(ne).toEqual(expectedNe)
     })
 
-    test('customDouble-is-is-not', async () => {
-        // `.is` / `.isNot` on a (required) customDouble column. billed_amount is
+    test('ownDouble-is-is-not', async () => {
+        // `.is` / `.isNot` on a (required) RealsType column. billed_amount is
         // non-null on every worklog, so `.is(50)` matches worklog 2 and
         // `.isNot(50)` matches worklogs 1 and 3.
         const expected = [{ id: 2 }]
@@ -690,7 +690,7 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customDouble-between-not-between', async () => {
+    test('ownDouble-between-not-between', async () => {
         // `.between(100, 300)` matches worklogs 1 and 3 (200); worklog 2 (50) is
         // out of range. `.notBetween(100, 300)` matches worklog 2.
         const expected = [{ id: 1 }, { id: 3 }]
@@ -727,7 +727,7 @@ describe(ctx.label, () => {
         expect(notRows).toEqual(expectedNot)
     })
 
-    test('customDouble-in-array-in-n', async () => {
+    test('ownDouble-in-array-in-n', async () => {
         // `.in([50])` matches worklog 2; `.inN(200)` matches worklogs 1 and 3.
         const expectedIn = [{ id: 2 }]
         ctx.mockNext(expectedIn)
@@ -959,8 +959,8 @@ describe(ctx.label, () => {
         `)
         expect(notInRows).toEqual(expectedNotIn)
     })
-    test('customUuid-in-subquery-not-in-subquery', async () => {
-        // The subquery overload of IN / NOT IN over a customUuid ('SigningKey')
+    test('ownUuid-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over an UuidsType ('SigningKey')
         // column. Inner: signing_key of release 1; outer keeps releases whose
         // signing_key is in / not in that set (release 2 is NULL).
         const keyOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
@@ -999,8 +999,8 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    test('customComparable-is-is-not', async () => {
-        // `.is` / `.isNot` (null-safe equality) on a customComparable ('Semver')
+    test('ownComparable-is-is-not', async () => {
+        // `.is` / `.isNot` (null-safe equality) on a ComparableType ('Semver')
         // column. `.is('1.2.0')` matches release 1; `.isNot('1.2.0')` matches
         // releases 2 and 3.
         const expected = [{ id: 1 }]
@@ -1035,8 +1035,8 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customComparable-in-subquery-not-in-subquery', async () => {
-        // The subquery overload of IN / NOT IN over a customComparable ('Semver')
+    test('ownComparable-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a ComparableType ('Semver')
         // column. Inner: version of release 1 ('1.2.0'); outer keeps releases
         // whose version is in / not in that set.
         const verOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
@@ -1075,8 +1075,8 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    test('custom-is-is-not', async () => {
-        // `.is` / `.isNot` on the `custom` column channel ('ReleaseChannel').
+    test('own-is-is-not', async () => {
+        // `.is` / `.isNot` on the `EqualableType` column channel ('ReleaseChannel').
         // `.is('stable')` matches release 1; `.isNot('stable')` matches releases
         // 2 and 3.
         const expected = [{ id: 1 }]
@@ -1163,13 +1163,13 @@ describe(ctx.label, () => {
 
     // ==================================================================
     // Direct-fluent arms on existing leaves:
-    // customUuid is/isNot + value-source operand, plain-string ordered
-    // comparison + between, customComparable greaterOrEqual + notBetween,
-    // uuid single-bound ordered comparison, customDouble in/notIn subquery.
+    // UuidsType is/isNot + value-source operand, plain-string ordered
+    // comparison + between, ComparableType greaterOrEqual + notBetween,
+    // uuid single-bound ordered comparison, RealsType in/notIn subquery.
     // ==================================================================
 
-    test('customUuid-is-is-not-and-value-source-operand', async () => {
-        // `.is` / `.isNot` (null-safe equality) on the OPTIONAL customUuid
+    test('ownUuid-is-is-not-and-value-source-operand', async () => {
+        // `.is` / `.isNot` (null-safe equality) on the OPTIONAL UuidsType
         // ('SigningKey') column signingKey, plus the value-source-operand
         // overload of `.equals`. signing_key: release 1 -> 0a8f9c1e-…,
         // 2 -> NULL, 3 -> 7b3e9d20-…. `.is(<key1>)` matches release 1;
@@ -1319,8 +1319,8 @@ describe(ctx.label, () => {
         expect(between).toEqual(expectedBetween)
     })
 
-    test('customComparable-greater-or-equal-and-not-between', async () => {
-        // The two remaining Comparable arms on a customComparable ('Semver')
+    test('ownComparable-greater-or-equal-and-not-between', async () => {
+        // The two remaining Comparable arms on a ComparableType ('Semver')
         // column. version (stored as text): 1 '1.2.0', 2 '1.3.0-beta.1',
         // 3 '0.9.0'. Lexical order: 3 < 1 < 2. `.greaterOrEqual('1.2.0')`
         // matches releases 1 and 2. `.notBetween('1.0.0','1.2.5')` matches
@@ -1431,8 +1431,8 @@ describe(ctx.label, () => {
         expect(ge).toEqual(expectedGe)
     })
 
-    test('customDouble-in-subquery-not-in-subquery', async () => {
-        // The subquery overload of IN / NOT IN over a customDouble ('Money')
+    test('ownDouble-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a RealsType ('Money')
         // column. The inner query selects worklog 2's billed_amount (50); the
         // outer keeps worklogs whose billed_amount is in / not in that set.
         // billed_amount: worklog 1 -> 200, 2 -> 50, 3 -> 200.
@@ -1631,7 +1631,7 @@ describe(ctx.label, () => {
 
     // ==================================================================
     // The Equalable + Comparable surface on the REQUIRED
-    // custom-temporal / localTime receivers publishedAt (customLocalDateTime
+    // own-temporal / localTime receivers publishedAt (LocalDateTimesType
     // 'PublishStamp') and reviewTime (plain localTime). Each test
     // exercises equals / is / between / a single-bound ordered comparison / in
     // with CONST operands so the whole comparison surface per receiver is
@@ -1640,7 +1640,7 @@ describe(ctx.label, () => {
     // TZ-shifted temporal VALUE is read back.
     // ==================================================================
 
-    test('required-customLocalDateTime-equalable-comparable-surface', async () => {
+    test('required-ownLocalDateTime-equalable-comparable-surface', async () => {
         // publishedAt ('PublishStamp', required): release 1 -> 2024-01-16 09:00,
         // 2 -> 2024-02-21 10:00, 3 -> 2024-03-02 11:00. `.equals(rel1)` /
         // `.is(rel1)` match release 1; `.between(2024-02-01, 2024-03-01)` matches
@@ -1943,7 +1943,7 @@ describe(ctx.label, () => {
         expect(notNullRows).toEqual(expectedNotNull)
     })
 
-    test('optional-customUuid-is-null-is-not-null', async () => {
+    test('optional-ownUuid-is-null-is-not-null', async () => {
         // signing_key ('SigningKey'): release 1,3 set; release 2 NULL.
         // `.isNull()` matches release 2; `.isNotNull()` matches releases 1,3.
         const expectedNull = [{ id: 2 }]
@@ -1970,7 +1970,7 @@ describe(ctx.label, () => {
         expect(notNullRows).toEqual(expectedNotNull)
     })
 
-    test('optional-customLocalDateTime-is-null-is-not-null', async () => {
+    test('optional-ownLocalDateTime-is-null-is-not-null', async () => {
         // signed_off_at ('SignOffStamp'): release 1,3 set; release 2 NULL.
         // `.isNull()` matches release 2; `.isNotNull()` matches releases 1,3.
         const expectedNull = [{ id: 2 }]
@@ -1997,8 +1997,8 @@ describe(ctx.label, () => {
         expect(notNullRows).toEqual(expectedNotNull)
     })
 
-    test('optional-customInt-is-null-is-not-null', async () => {
-        // `isNull` / `isNotNull` on an optional customInt column. `optional_release_ordinal`
+    test('optional-ownInt-is-null-is-not-null', async () => {
+        // `isNull` / `isNotNull` on an optional IntegersType column. `optional_release_ordinal`
         // ('ReleaseTag') on the release_overview view is the release id when download_count
         // is present, else NULL — release 1 -> 1, release 2 -> NULL, release 3 -> 3.
         // `.isNull()` matches release 2; `.isNotNull()` matches releases 1,3.
@@ -2026,8 +2026,8 @@ describe(ctx.label, () => {
         expect(notNullRows).toEqual(expectedNotNull)
     })
 
-    test('required-customInt-is-null-is-not-null', async () => {
-        // `isNull` / `isNotNull` on a required-on-read customInt column. `cost_cents`
+    test('required-ownInt-is-null-is-not-null', async () => {
+        // `isNull` / `isNotNull` on a required-on-read IntegersType column. `cost_cents`
         // ('Cents') is set on every seeded worklog (100, 100, 400), so `.isNull()` matches
         // none and `.isNotNull()` matches all three — the methods are declared on a
         // required leaf too (always false / always true).
@@ -2156,7 +2156,7 @@ describe(ctx.label, () => {
     // `is [not] distinct from` arm.
     // ==================================================================
 
-    test('customLocalDateTime-is-if-value-is-not-if-value-fires-and-elides', async () => {
+    test('ownLocalDateTime-is-if-value-is-not-if-value-fires-and-elides', async () => {
         // signed_off_at ('SignOffStamp'): release 1 -> 2024-01-14 12:30, 2 ->
         // NULL, 3 -> 2024-02-28 09:00. `.isIfValue(rel1)` fires and matches
         // release 1 — identical SQL to the direct `.is(rel1)`. `.isNotIfValue(
@@ -2549,13 +2549,13 @@ describe(ctx.label, () => {
 
     // ==================================================================
     // The value-source-operand overloads of equals / notEquals on a
-    // non-int / non-string leaf (customLocalDateTime signed_off_at). The operand
+    // non-int / non-string leaf (LocalDateTimesType signed_off_at). The operand
     // is a scalar subquery selecting release 1's signed_off_at; `.equals(sub)`
     // matches release 1, `.notEquals(sub)` matches release 3 (release 2 is NULL,
     // excluded by NULL semantics).
     // ==================================================================
 
-    test('customLocalDateTime-equals-not-equals-value-source-operand', async () => {
+    test('ownLocalDateTime-equals-not-equals-value-source-operand', async () => {
         const signOffOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(tProjectRelease.signedOffAt)
@@ -2620,14 +2620,14 @@ describe(ctx.label, () => {
 
     // ==================================================================
     // The value-source-operand overload of `is` (null-safe equality)
-    // on the enum / custom / customUuid leaves. The operand is the column itself
+    // on the enum / EqualableType / UuidsType leaves. The operand is the column itself
     // (a column-vs-column self-comparison): `activity.is(activity)` matches every
     // worklog (activity is required); `channel.is(channel)` matches every release
     // (channel is required); `signingKey.is(signingKey)` matches every release —
     // NULL is not distinct from NULL under `is`, so release 2 (NULL) matches too.
     // ==================================================================
 
-    test('is-value-source-operand-enum-custom-customUuid', async () => {
+    test('is-value-source-operand-enum-own-ownUuid', async () => {
         const expectedWorklogs = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(expectedWorklogs)
         const enumRows = await ctx.conn.selectFrom(tIssueWorklog)
@@ -2642,27 +2642,27 @@ describe(ctx.label, () => {
 
         const expectedReleases = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(expectedReleases)
-        const customRows = await ctx.conn.selectFrom(tProjectRelease)
+        const ownRows = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.channel.is(tProjectRelease.channel))
             .select({ id: tProjectRelease.id })
             .orderBy('id')
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <=> channel order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        expect(customRows).toEqual(expectedReleases)
+        expect(ownRows).toEqual(expectedReleases)
 
         ctx.mockNext(expectedReleases)
-        const customUuidRows = await ctx.conn.selectFrom(tProjectRelease)
+        const ownUuidRows = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.signingKey.is(tProjectRelease.signingKey))
             .select({ id: tProjectRelease.id })
             .orderBy('id')
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <=> signing_key order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        expect(customUuidRows).toEqual(expectedReleases)
+        expect(ownUuidRows).toEqual(expectedReleases)
     })
-    test('customInt-ordered-comparison-and-mixed-between-value-source-operand', async () => {
-        // customInt cost_cents: worklog 1 -> 100, 2 -> 100, 3 -> 400. loSub
+    test('ownInt-ordered-comparison-and-mixed-between-value-source-operand', async () => {
+        // IntegersType cost_cents: worklog 1 -> 100, 2 -> 100, 3 -> 400. loSub
         // selects worklog 1's cost (100), hiSub worklog 3's cost (400). The
         // four ordered comparisons and the three mixed `between` overloads all
         // take a scalar-subquery value-source in at least one operand position.
@@ -2891,8 +2891,8 @@ describe(ctx.label, () => {
         expect(vv).toEqual(expectedBetween)
     })
 
-    test('customComparable-ordered-comparison-value-source-operand', async () => {
-        // customComparable version ('Semver'): release 1 -> 1.2.0, 2 ->
+    test('ownComparable-ordered-comparison-value-source-operand', async () => {
+        // ComparableType version ('Semver'): release 1 -> 1.2.0, 2 ->
         // 1.3.0-beta.1, 3 -> 0.9.0. Lexical order 3 < 1 < 2. sub selects
         // release 1's version ('1.2.0').
         const sub = ctx.conn.selectFrom(tProjectRelease)
@@ -2934,8 +2934,8 @@ describe(ctx.label, () => {
         expect(lt).toEqual(expectedLt)
     })
 
-    test('customLocalDateTime-ordered-comparison-value-source-operand', async () => {
-        // customLocalDateTime published_at ('PublishStamp'): release 1 ->
+    test('ownLocalDateTime-ordered-comparison-value-source-operand', async () => {
+        // LocalDateTimesType published_at ('PublishStamp'): release 1 ->
         // 2024-01-16 09:00, 2 -> 2024-02-21 10:00, 3 -> 2024-03-02 11:00.
         // sub selects release 2's published_at.
         const sub = ctx.conn.selectFrom(tProjectRelease)
@@ -3028,16 +3028,16 @@ describe(ctx.label, () => {
         })
     })
 
-    test('customInt-customDouble-if-value-fires-and-elides', async () => {
-        // The `*IfValue` shape family has no customInt / customDouble coverage.
-        // customInt cost_cents: worklog 3 -> 400. customDouble billed_amount:
+    test('ownInt-ownDouble-if-value-fires-and-elides', async () => {
+        // The `*IfValue` shape family has no IntegersType / RealsType coverage.
+        // IntegersType cost_cents: worklog 3 -> 400. RealsType billed_amount:
         // worklog 2 -> 50. `.equalsIfValue(v)` with a present value emits the
         // same predicate as direct `.equals(v)` (pinned by the same snapshot);
         // `.equalsIfValue(undefined)` elides the predicate, reducing to the bare
         // SELECT.
         const noNum: number | undefined = undefined
 
-        // customInt fires -> worklog 3, identical to direct .equals(400).
+        // IntegersType fires -> worklog 3, identical to direct .equals(400).
         const expectedCost = [{ id: 3 }]
         ctx.mockNext(expectedCost)
         const costIf = await ctx.conn.selectFrom(tIssueWorklog)
@@ -3068,7 +3068,7 @@ describe(ctx.label, () => {
         `)
         expect(costDirect).toEqual(expectedCost)
 
-        // customInt elides -> every worklog.
+        // IntegersType elides -> every worklog.
         const expectedAll = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(expectedAll)
         const costElide = await ctx.conn.selectFrom(tIssueWorklog)
@@ -3080,7 +3080,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(costElide).toEqual(expectedAll)
 
-        // customDouble fires -> worklog 2, identical to direct .equals(50).
+        // RealsType fires -> worklog 2, identical to direct .equals(50).
         const expectedBilled = [{ id: 2 }]
         ctx.mockNext(expectedBilled)
         const billedIf = await ctx.conn.selectFrom(tIssueWorklog)
@@ -3096,7 +3096,7 @@ describe(ctx.label, () => {
         `)
         expect(billedIf).toEqual(expectedBilled)
 
-        // customDouble elides -> every worklog.
+        // RealsType elides -> every worklog.
         ctx.mockNext(expectedAll)
         const billedElide = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.billedAmount.equalsIfValue(noNum))
@@ -3108,12 +3108,12 @@ describe(ctx.label, () => {
         expect(billedElide).toEqual(expectedAll)
     })
 
-    test('numeric-custom-equals-value-source-operand', async () => {
+    test('numeric-own-equals-value-source-operand', async () => {
         // The `.equals(value-source)` overload on the numeric-custom leaves
         // (the const-operand `.equals` is covered above; the value-source
         // overload is covered elsewhere only on temporal / string leaves).
-        // customInt cost_cents: worklog 3 -> 400; sub selects it, so
-        // `.equals(sub)` matches worklog 3. customDouble billed_amount: worklog
+        // IntegersType cost_cents: worklog 3 -> 400; sub selects it, so
+        // `.equals(sub)` matches worklog 3. RealsType billed_amount: worklog
         // 2 -> 50; sub selects it, so `.equals(sub)` matches worklog 2.
         const costSub = ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(3))
@@ -3155,17 +3155,17 @@ describe(ctx.label, () => {
         expect(billedRows).toEqual(expectedBilled)
     })
 
-    // customUuid ordered-Comparable arm — tProjectRelease.signingKey
-    // (optional customUuid 'SigningKey'): release 1 -> 0a8f9c1e-…, 2 -> NULL,
+    // UuidsType ordered-Comparable arm — tProjectRelease.signingKey
+    // (optional UuidsType 'SigningKey'): release 1 -> 0a8f9c1e-…, 2 -> NULL,
     // 3 -> 7b3e9d20-…. between / notBetween / single ordered bounds on this
     // branded leaf. The operands are value-source SUBQUERIES over the same
-    // customUuid column (release 1's key = loSub, release 3's key = hiSub) so both
+    // UuidsType column (release 1's key = loSub, release 3's key = hiSub) so both
     // sides marshal identically and the comparison rests only on release1 < release3
     // — true under every engine's uuid ordering (the leading nibble 0a<7b and the
     // SQL Server / Oracle byte-group order agree), unlike string-literal bounds,
     // whose lexical assumption diverges from the engine-native uuid ordering.
 
-    test('customUuid-ordered-comparison-value-source-operand', async () => {
+    test('ownUuid-ordered-comparison-value-source-operand', async () => {
         // loSub = release 1's signing_key (0a…), hiSub = release 3's (7b…).
         // greaterThan(loSub) -> release 3; lessThan(hiSub) -> release 1; between
         // [loSub, hiSub] -> releases 1 and 3 (inclusive); notBetween -> none
@@ -3305,7 +3305,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('equals-value-source-operand-enum-custom', async () => {
+    test('equals-value-source-operand-enum-own-equalable', async () => {
         // The value-source-operand overload of `.equals(...)` on the branded
         // Equalable leaves: comparing the column to itself is trivially true for
         // every row, and pins `activity = activity` / `channel = channel` emission.
@@ -3323,14 +3323,14 @@ describe(ctx.label, () => {
 
         const allReleases = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(allReleases)
-        const customRows = await ctx.conn.selectFrom(tProjectRelease)
+        const ownRows = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.channel.equals(tProjectRelease.channel))
             .select({ id: tProjectRelease.id })
             .orderBy('id')
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = channel order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        expect(customRows).toEqual(allReleases)
+        expect(ownRows).toEqual(allReleases)
     })
 
     test('enum-not-equals-if-value-not-in-if-value-fires-and-elides', async () => {
@@ -3388,7 +3388,7 @@ describe(ctx.label, () => {
         expect(notInElide).toEqual(all)
     })
 
-    test('custom-in-n-not-in-n', async () => {
+    test('own-in-n-not-in-n', async () => {
         // `.inN('stable')` matches release 1; `.notInN('canary')` matches releases
         // 1 ('stable') and 2 ('beta').
         const expectedIn = [{ id: 1 }]
@@ -3423,8 +3423,8 @@ describe(ctx.label, () => {
         expect(notInN).toEqual(expectedNotIn)
     })
 
-    test('custom-in-subquery-not-in-subquery', async () => {
-        // The subquery IN / NOT IN overload on a `custom` (ReleaseChannel) column.
+    test('own-in-subquery-not-in-subquery', async () => {
+        // The subquery IN / NOT IN overload on an `EqualableType` (ReleaseChannel) column.
         // The inner query selects the channel of release 1 ('stable'); the outer
         // keeps releases whose channel is in / not in that set.
         const channelOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
@@ -3463,7 +3463,7 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    test('custom-equals-if-value-not-in-if-value-fires-and-elides', async () => {
+    test('own-equals-if-value-not-in-if-value-fires-and-elides', async () => {
         // `.equalsIfValue('stable')` fires -> release 1; `.notInIfValue(['canary'])`
         // fires -> releases 1, 2. Passing `undefined` elides each.
         const expectedEq = [{ id: 1 }]
@@ -3729,8 +3729,8 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    test('customLocalDate-in-subquery-not-in-subquery', async () => {
-        // The subquery overload of IN / NOT IN over a customLocalDate ('ReleaseDay')
+    test('ownLocalDate-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a LocalDatesType ('ReleaseDay')
         // column (released_on). The inner query selects release 1's released_on; the
         // outer keeps releases whose released_on is in / not in that set. released_on
         // is distinct (1 -> 2024-01-15, 2 -> 2024-02-20, 3 -> 2024-03-01).
@@ -3770,8 +3770,8 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    test('customLocalTime-in-subquery-not-in-subquery', async () => {
-        // The subquery overload of IN / NOT IN over a customLocalTime ('CutoffClock')
+    test('ownLocalTime-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a LocalTimesType ('CutoffClock')
         // column (cutoff_time). The inner query selects release 1's cutoff_time; the
         // outer keeps releases whose cutoff_time is in / not in that set. cutoff_time
         // is distinct (1 -> 17:00, 2 -> 18:30, 3 -> 16:00).
@@ -3811,8 +3811,8 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    test('customLocalDateTime-in-subquery-not-in-subquery', async () => {
-        // The subquery overload of IN / NOT IN over a customLocalDateTime
+    test('ownLocalDateTime-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a LocalDateTimesType
         // ('PublishStamp') column (published_at). The inner query selects release 1's
         // published_at; the outer keeps releases whose published_at is in / not in
         // that set. published_at is distinct and non-null (1 -> 2024-01-16 09:00,
@@ -4295,8 +4295,8 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customInt-not-equals-is-is-not-value-source-operand', async () => {
-        // customInt cost_cents (non-null): worklog 1 -> 100, 2 -> 100, 3 -> 400.
+    test('ownInt-not-equals-is-is-not-value-source-operand', async () => {
+        // IntegersType cost_cents (non-null): worklog 1 -> 100, 2 -> 100, 3 -> 400.
         // sub selects worklog 3's cost (400). `.notEquals(sub)` / `.isNot(sub)`
         // match worklogs 1, 2 (both 100); `.is(sub)` matches worklog 3.
         const sub = ctx.conn.selectFrom(tIssueWorklog)
@@ -4351,8 +4351,8 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customLocalTime-equals-not-equals-is-is-not-value-source-operand', async () => {
-        // customLocalTime cutoff_time ('CutoffClock', distinct, non-null): release 1
+    test('ownLocalTime-equals-not-equals-is-is-not-value-source-operand', async () => {
+        // LocalTimesType cutoff_time ('CutoffClock', distinct, non-null): release 1
         // -> 17:00, 2 -> 18:30, 3 -> 16:00. sub selects release 1's cutoff_time.
         // `.equals(sub)` / `.is(sub)` match release 1; `.notEquals(sub)` /
         // `.isNot(sub)` match releases 2, 3.
@@ -4423,12 +4423,12 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customComparable-equals-not-equals-value-source-operand', async () => {
-        // customComparable version ('Semver', distinct, non-null): release 1 ->
+    test('ownComparable-equals-not-equals-value-source-operand', async () => {
+        // ComparableType version ('Semver', distinct, non-null): release 1 ->
         // '1.2.0', 2 -> '1.3.0-beta.1', 3 -> '0.9.0'. sub selects release 1's
         // version. (The is/isNot arms are covered with const operands by
-        // customComparable-is-is-not; the ordered arms by
-        // customComparable-ordered-comparison-value-source-operand.) `.equals(sub)`
+        // ownComparable-is-is-not; the ordered arms by
+        // ownComparable-ordered-comparison-value-source-operand.) `.equals(sub)`
         // matches release 1; `.notEquals(sub)` matches releases 2, 3.
         const sub = ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
@@ -4915,7 +4915,7 @@ describe(ctx.label, () => {
 
     // ==================================================================
     // The remaining direct-fluent equality / comparison
-    // arms per leaf — customDouble ordered-const, string membership +
+    // arms per leaf — RealsType ordered-const, string membership +
     // notBetween, plain / custom localDateTime ordered comparison (const +
     // value-source operand) and the `notInN` / `inN` variadic siblings
     // across every leaf not yet carrying them. Each filters in the WHERE and
@@ -4924,8 +4924,8 @@ describe(ctx.label, () => {
     // inline SQL snapshot.
     // ==================================================================
 
-    test('customDouble-less-or-equal-const', async () => {
-        // customDouble billed_amount ('Money', required): worklog 1 -> 200,
+    test('ownDouble-less-or-equal-const', async () => {
+        // RealsType billed_amount ('Money', required): worklog 1 -> 200,
         // 2 -> 50, 3 -> 200. `.lessOrEqual(50)` matches worklog 2.
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
@@ -4944,8 +4944,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customDouble-greater-or-equal-const', async () => {
-        // customDouble billed_amount: worklog 1 -> 200, 2 -> 50, 3 -> 200.
+    test('ownDouble-greater-or-equal-const', async () => {
+        // RealsType billed_amount: worklog 1 -> 200, 2 -> 50, 3 -> 200.
         // `.greaterOrEqual(200)` matches worklogs 1 and 3.
         const expected = [{ id: 1 }, { id: 3 }]
         ctx.mockNext(expected)
@@ -5094,7 +5094,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customLocalDateTime-less-or-equal-const', async () => {
+    test('ownLocalDateTime-less-or-equal-const', async () => {
         // signed_off_at ('SignOffStamp', optional): release 1 -> 2024-01-14
         // 12:30, 2 -> NULL, 3 -> 2024-02-28 09:00. `.lessOrEqual(2024-02-01)`
         // matches release 1 (release 3 is later, release 2 is NULL).
@@ -5133,7 +5133,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customLocalDateTime-less-or-equal-value-source-operand', async () => {
+    test('ownLocalDateTime-less-or-equal-value-source-operand', async () => {
         // published_at ('PublishStamp', required): release 1 -> 2024-01-16 09:00,
         // 2 -> 2024-02-21 10:00, 3 -> 2024-03-02 11:00. sub selects release 2's
         // published_at; `.lessOrEqual(sub)` matches releases 1 and 2 (the equal
@@ -5207,7 +5207,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('customInt-not-in-n', async () => {
+    test('ownInt-not-in-n', async () => {
         // cost_cents ('Cents', required): worklog 1 -> 100, 2 -> 100, 3 -> 400.
         // `.notInN(100)` matches worklog 3.
         const expected = [{ id: 3 }]
@@ -5227,7 +5227,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customDouble-not-in-n', async () => {
+    test('ownDouble-not-in-n', async () => {
         // billed_amount ('Money'): worklog 1 -> 200, 2 -> 50, 3 -> 200.
         // `.notInN(200)` matches worklog 2.
         const expected = [{ id: 2 }]
@@ -5266,7 +5266,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customUuid-not-in-n', async () => {
+    test('ownUuid-not-in-n', async () => {
         // signing_key ('SigningKey', optional): release 1 -> 0a8f…, 2 -> NULL,
         // 3 -> 7b3e…. `.notInN(<key1>)` matches release 3 (release 2 is NULL).
         const key1 = '0a8f9c1e-1111-4222-8333-444455556666'
@@ -5350,7 +5350,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customLocalDateTime-not-in-n', async () => {
+    test('ownLocalDateTime-not-in-n', async () => {
         // signed_off_at: release 1 -> 2024-01-14 12:30, 2 -> NULL, 3 ->
         // 2024-02-28 09:00. `.notInN(2024-01-14 12:30)` matches release 3.
         const dt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
@@ -5371,7 +5371,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customUuid-in-n', async () => {
+    test('ownUuid-in-n', async () => {
         // signing_key: release 1 -> 0a8f…, 2 -> NULL, 3 -> 7b3e….
         // `.inN(<key1>)` matches release 1.
         const key1 = '0a8f9c1e-1111-4222-8333-444455556666'
@@ -5392,7 +5392,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customComparable-in-n', async () => {
+    test('ownComparable-in-n', async () => {
         // version ('Semver'): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1, 3 -> 0.9.0.
         // `.inN('1.2.0')` matches release 1.
         const expected = [{ id: 1 }]
@@ -5552,8 +5552,8 @@ describe(ctx.label, () => {
         expect(notInN).toEqual(none)
     })
 
-    test('customInt-column-operand-comparable-membership', async () => {
-        // cost_cents ('Cents' customInt): worklog 1 -> 100, 2 -> 100, 3 -> 400.
+    test('ownInt-column-operand-comparable-membership', async () => {
+        // cost_cents ('Cents' IntegersType): worklog 1 -> 100, 2 -> 100, 3 -> 400.
         // Every row is non-null, so every reflexive comparison keeps all rows.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const none: Array<{ id: number }> = []
@@ -5665,8 +5665,8 @@ describe(ctx.label, () => {
     // row result fixed by the column's NULL pattern.
     // ==================================================================
 
-    test('customDouble-column-operand-comparable-membership', async () => {
-        // billed_amount ('Money' customDouble): worklog 1 -> 200, 2 -> 50, 3 -> 200.
+    test('ownDouble-column-operand-comparable-membership', async () => {
+        // billed_amount ('Money' RealsType): worklog 1 -> 200, 2 -> 50, 3 -> 200.
         // Every row is non-null, so every reflexive comparison keeps all rows.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -5989,8 +5989,8 @@ describe(ctx.label, () => {
         expect(notInNv).toEqual(none)
     })
 
-    test('customComparable-column-operand-comparable-membership', async () => {
-        // version ('Semver' customComparable): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1, 3 -> 0.9.0.
+    test('ownComparable-column-operand-comparable-membership', async () => {
+        // version ('Semver' ComparableType): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1, 3 -> 0.9.0.
         // All rows non-null, so every reflexive comparison keeps all rows.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -6097,8 +6097,8 @@ describe(ctx.label, () => {
         expect(notInNv).toEqual(none)
     })
 
-    test('customLocalTime-column-operand-comparable-membership', async () => {
-        // cutoff_time ('CutoffClock' customLocalTime): release 1 -> 17:00, 2 -> 18:30, 3 -> 16:00.
+    test('ownLocalTime-column-operand-comparable-membership', async () => {
+        // cutoff_time ('CutoffClock' LocalTimesType): release 1 -> 17:00, 2 -> 18:30, 3 -> 16:00.
         // All rows non-null, so every reflexive comparison keeps all rows.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -6205,8 +6205,8 @@ describe(ctx.label, () => {
         expect(notInNv).toEqual(none)
     })
 
-    test('customLocalDate-column-operand-comparable-membership', async () => {
-        // released_on ('ReleaseDay' customLocalDate): release 1 -> 2024-01-15, 2 -> 2024-02-20, 3 -> 2024-03-01.
+    test('ownLocalDate-column-operand-comparable-membership', async () => {
+        // released_on ('ReleaseDay' LocalDatesType): release 1 -> 2024-01-15, 2 -> 2024-02-20, 3 -> 2024-03-01.
         // All rows non-null, so every reflexive comparison keeps all rows.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -6313,8 +6313,8 @@ describe(ctx.label, () => {
         expect(notInNv).toEqual(none)
     })
 
-    test('customLocalDateTime-column-operand-comparable-membership', async () => {
-        // signed_off_at ('SignOffStamp' customLocalDateTime): release 1 -> 2024-01-14 12:30,
+    test('ownLocalDateTime-column-operand-comparable-membership', async () => {
+        // signed_off_at ('SignOffStamp' LocalDateTimesType): release 1 -> 2024-01-14 12:30,
         // 2 -> NULL, 3 -> 2024-02-28 09:00. Non-null rows {1,3} satisfy every reflexive
         // comparison; the null row 2 only survives the null-safe `is`.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -6740,10 +6740,10 @@ describe(ctx.label, () => {
         expect(notInNv).toEqual(none)
     })
 
-    test('customUuid-column-operand-comparable-membership', async () => {
-        // signing_key ('SigningKey' customUuid): release 1,3 carry a uuid; release 2 is NULL.
+    test('ownUuid-column-operand-comparable-membership', async () => {
+        // signing_key ('SigningKey' UuidsType): release 1,3 carry a uuid; release 2 is NULL.
         // Non-null rows {1,3} satisfy every reflexive comparison. (`is` has a column-operand
-        // test in is-value-source-operand-enum-custom-customUuid.)
+        // test in is-value-source-operand-enum-own-ownUuid.)
         const nn = [{ id: 1 }, { id: 3 }]
         const none: Array<{ id: number }> = []
         const c = tProjectRelease.signingKey
@@ -6841,10 +6841,10 @@ describe(ctx.label, () => {
         expect(notInNv).toEqual(none)
     })
 
-    test('custom-column-operand-equality-membership', async () => {
+    test('own-type-column-operand-equality-membership', async () => {
         // channel ('ReleaseChannel' custom, equality-only): all rows non-null. `equals` / `is`
         // have column-operand tests in equals-value-source-operand-enum-custom /
-        // is-value-source-operand-enum-custom-customUuid; this covers the negated / membership twins.
+        // is-value-source-operand-enum-own-ownUuid; this covers the negated / membership twins.
         const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const none: Array<{ id: number }> = []
         const c = tProjectRelease.channel
@@ -7088,7 +7088,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(niv)
     })
 
-    test('customComparable-value-when-null-nullif-value-column-arg', async () => {
+    test('ownComparable-value-when-null-nullif-value-column-arg', async () => {
         // coalesce(version, version) reproduces the required Semver (present on
         // every release); nullif(version, version) is always NULL -> the
         // projected optional Semver leaf is dropped on every release.
@@ -8140,8 +8140,8 @@ describe(ctx.label, () => {
         expect(notInE).toEqual(all)
     })
 
-    test('customInt-if-value-twins-fires-and-elides', async () => {
-        // cost_cents ('Cents' customInt): worklog 1 -> 100, 2 -> 100, 3 -> 400. Each
+    test('ownInt-if-value-twins-fires-and-elides', async () => {
+        // cost_cents ('Cents' IntegersType): worklog 1 -> 100, 2 -> 100, 3 -> 400. Each
         // `*IfValue` (all but the covered `equalsIfValue`) fires against 100; `undefined`
         // elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -8310,8 +8310,8 @@ describe(ctx.label, () => {
         expect(notInE).toEqual(all)
     })
 
-    test('customDouble-if-value-twins-fires-and-elides', async () => {
-        // billed_amount ('Money' customDouble): worklog 1 -> 200, 2 -> 50, 3 -> 200. Each
+    test('ownDouble-if-value-twins-fires-and-elides', async () => {
+        // billed_amount ('Money' RealsType): worklog 1 -> 200, 2 -> 50, 3 -> 200. Each
         // `*IfValue` (all but the covered `equalsIfValue`) fires against 200; `undefined`
         // elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -8480,8 +8480,8 @@ describe(ctx.label, () => {
         expect(notInE).toEqual(all)
     })
 
-    test('customComparable-if-value-twins-fires-and-elides', async () => {
-        // version ('Semver' customComparable): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1, 3 -> 0.9.0.
+    test('ownComparable-if-value-twins-fires-and-elides', async () => {
+        // version ('Semver' ComparableType): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1, 3 -> 0.9.0.
         // Each `*IfValue` fires against '1.2.0'; `undefined` elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const sv = '1.2.0'
@@ -8578,7 +8578,7 @@ describe(ctx.label, () => {
         expect(notInE).toEqual(all)
     })
 
-    test('custom-is-if-value-is-not-if-value-fires-and-elides', async () => {
+    test('own-is-if-value-is-not-if-value-fires-and-elides', async () => {
         // channel ('ReleaseChannel' custom): release 1 -> stable. `isIfValue`/`isNotIfValue`
         // fire against 'stable'; `undefined` elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -8664,8 +8664,8 @@ describe(ctx.label, () => {
         expect(isNotE).toEqual(all)
     })
 
-    test('customUuid-if-value-twins-fires-and-elides', async () => {
-        // signing_key ('SigningKey' customUuid): release 1 -> 0a8f..., 2 -> NULL, 3 -> 7b3e...
+    test('ownUuid-if-value-twins-fires-and-elides', async () => {
+        // signing_key ('SigningKey' UuidsType): release 1 -> 0a8f..., 2 -> NULL, 3 -> 7b3e...
         // Each `*IfValue` (all but the covered `equalsIfValue`) fires against 0a8f...;
         // `undefined` elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -8835,8 +8835,8 @@ describe(ctx.label, () => {
         expect(notInE).toEqual(all)
     })
 
-    test('customLocalDate-is-if-value-is-not-if-value-fires-and-elides', async () => {
-        // released_on ('ReleaseDay' customLocalDate): release 1 -> 2024-01-15.
+    test('ownLocalDate-is-if-value-is-not-if-value-fires-and-elides', async () => {
+        // released_on ('ReleaseDay' LocalDatesType): release 1 -> 2024-01-15.
         // `isIfValue`/`isNotIfValue` fire against it; `undefined` elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const rd = new Date(Date.UTC(2024, 0, 15))
@@ -8879,8 +8879,8 @@ describe(ctx.label, () => {
         expect(isNotE).toEqual(all)
     })
 
-    test('customLocalTime-is-if-value-is-not-if-value-fires-and-elides', async () => {
-        // cutoff_time ('CutoffClock' customLocalTime): release 1 -> 17:00.
+    test('ownLocalTime-is-if-value-is-not-if-value-fires-and-elides', async () => {
+        // cutoff_time ('CutoffClock' LocalTimesType): release 1 -> 17:00.
         // `isIfValue`/`isNotIfValue` fire against it; `undefined` elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
         const ct = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -8923,8 +8923,8 @@ describe(ctx.label, () => {
         expect(isNotE).toEqual(all)
     })
 
-    test('customLocalDateTime-if-value-twins-fires-and-elides', async () => {
-        // signed_off_at ('SignOffStamp' customLocalDateTime): release 1 -> 2024-01-14 12:30,
+    test('ownLocalDateTime-if-value-twins-fires-and-elides', async () => {
+        // signed_off_at ('SignOffStamp' LocalDateTimesType): release 1 -> 2024-01-14 12:30,
         // 2 -> NULL, 3 -> 2024-02-28 09:00. Each `*IfValue` fires against release 1's stamp;
         // `undefined` elides each.
         const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -9165,10 +9165,10 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customComparable-optional-is-not-null-is-null', async () => {
-        // min_version ('Semver' customComparable, nullable) on tReleaseDraft:
+    test('ownComparable-optional-is-not-null-is-null', async () => {
+        // min_version ('Semver' ComparableType, nullable) on tReleaseDraft:
         // draft 1 -> 1.0.0, draft 2 -> NULL. The Nullable family on a bare-base
-        // customComparable leaf: `isNotNull` keeps draft 1, `isNull` keeps draft 2.
+        // ComparableType leaf: `isNotNull` keeps draft 1, `isNull` keeps draft 2.
         const notNull = [{ id: 1 }]
         ctx.mockNext(notNull)
         const nn = await ctx.conn.selectFrom(tReleaseDraft).where(tReleaseDraft.minVersion.isNotNull())
@@ -9320,9 +9320,9 @@ describe(ctx.label, () => {
         expect(nivRows).toEqual(allDropped)
     })
 
-    test('customUuid-nullif-value-column-arg', async () => {
+    test('ownUuid-nullif-value-column-arg', async () => {
         // nullif(signing_key, signing_key) is always NULL -> the projected
-        // optional customUuid leaf is dropped on every release (no uuid value
+        // optional UuidsType leaf is dropped on every release (no uuid value
         // materialises, so no uuid-string decoding runs).
         const allDropped = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(allDropped)
@@ -9497,8 +9497,8 @@ describe(ctx.label, () => {
         expect(ne).toEqual(expectedNe)
     })
 
-    test('customDouble-is-is-not-value-source-operand', async () => {
-        // billed_amount ('Money' customDouble, required): worklog 1 -> 200, 2 -> 50,
+    test('ownDouble-is-is-not-value-source-operand', async () => {
+        // billed_amount ('Money' RealsType, required): worklog 1 -> 200, 2 -> 50,
         // 3 -> 200. sub selects worklog 2's billed_amount (50). `.is(sub)` matches
         // worklog 2; `.isNot(sub)` matches worklogs 1 and 3 (both 200).
         const sub = ctx.conn.selectFrom(tIssueWorklog)
@@ -9538,8 +9538,8 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customComparable-is-is-not-value-source-operand', async () => {
-        // version ('Semver' customComparable, required): release 1 -> 1.2.0,
+    test('ownComparable-is-is-not-value-source-operand', async () => {
+        // version ('Semver' ComparableType, required): release 1 -> 1.2.0,
         // 2 -> 1.3.0-beta.1, 3 -> 0.9.0. sub selects release 1's version.
         // `.is(sub)` matches release 1; `.isNot(sub)` matches releases 2 and 3.
         const sub = ctx.conn.selectFrom(tProjectRelease)
@@ -9579,8 +9579,8 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('customLocalDateTime-is-is-not-value-source-operand', async () => {
-        // signed_off_at ('SignOffStamp' customLocalDateTime, optional): release 1 ->
+    test('ownLocalDateTime-is-is-not-value-source-operand', async () => {
+        // signed_off_at ('SignOffStamp' LocalDateTimesType, optional): release 1 ->
         // 2024-01-14 12:30, 2 -> NULL, 3 -> 2024-02-28 09:00. sub selects release 1's
         // signed_off_at. `.is(sub)` matches release 1; `.isNot(sub)` matches releases
         // 2 (NULL, distinct) and 3 (different value).
@@ -9822,8 +9822,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customInt-in-n-mixed-const-and-value-source', async () => {
-        // cost_cents ('Cents' customInt): worklog 1 -> 100, 2 -> 100, 3 -> 400. sub
+    test('ownInt-in-n-mixed-const-and-value-source', async () => {
+        // cost_cents ('Cents' IntegersType): worklog 1 -> 100, 2 -> 100, 3 -> 400. sub
         // selects worklog 1's cost_cents (100). `.inN(400, sub)` -> cost_cents in
         // (400, 100): worklog 3 (const arm, 400) and worklogs 1, 2 (subquery arm,
         // 100).
@@ -9850,8 +9850,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customDouble-in-n-mixed-const-and-value-source', async () => {
-        // billed_amount ('Money' customDouble): worklog 1 -> 200, 2 -> 50, 3 -> 200.
+    test('ownDouble-in-n-mixed-const-and-value-source', async () => {
+        // billed_amount ('Money' RealsType): worklog 1 -> 200, 2 -> 50, 3 -> 200.
         // sub selects worklog 2's billed_amount (50). `.inN(200, sub)` -> billed_amount
         // in (200, 50): worklogs 1, 3 (const arm) and worklog 2 (subquery arm).
         const sub = ctx.conn.selectFrom(tIssueWorklog)
@@ -9877,8 +9877,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customComparable-in-n-mixed-const-and-value-source', async () => {
-        // version ('Semver' customComparable): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1,
+    test('ownComparable-in-n-mixed-const-and-value-source', async () => {
+        // version ('Semver' ComparableType): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1,
         // 3 -> 0.9.0. sub selects release 3's version. `.inN('1.2.0', sub)` matches
         // releases 1 and 3.
         const sub = ctx.conn.selectFrom(tProjectRelease)
@@ -9904,7 +9904,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-in-n-mixed-const-and-value-source', async () => {
+    test('own-in-n-mixed-const-and-value-source', async () => {
         // channel ('ReleaseChannel' custom): release 1 -> stable, 2 -> beta, 3 ->
         // canary. sub selects release 3's channel. `.inN('stable', sub)` matches
         // releases 1 and 3.
@@ -9958,8 +9958,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customUuid-in-n-mixed-const-and-value-source', async () => {
-        // signing_key ('SigningKey' customUuid, optional): release 1 -> 0a8f…,
+    test('ownUuid-in-n-mixed-const-and-value-source', async () => {
+        // signing_key ('SigningKey' UuidsType, optional): release 1 -> 0a8f…,
         // 2 -> NULL, 3 -> 7b3e…. sub selects release 3's signing_key. `.inN('0a8f…',
         // sub)` matches releases 1 (0a8f…) and 3 (7b3e…); release 2 NULL is excluded.
         const sub = ctx.conn.selectFrom(tProjectRelease)
@@ -9985,8 +9985,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customLocalDate-in-n-mixed-const-and-value-source', async () => {
-        // released_on ('ReleaseDay' customLocalDate): release 1 -> 2024-01-15,
+    test('ownLocalDate-in-n-mixed-const-and-value-source', async () => {
+        // released_on ('ReleaseDay' LocalDatesType): release 1 -> 2024-01-15,
         // 2 -> 2024-02-20, 3 -> 2024-03-01. sub selects release 3's released_on.
         // `.inN(2024-01-15, sub)` matches releases 1 and 3.
         const sub = ctx.conn.selectFrom(tProjectRelease)
@@ -10012,8 +10012,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customLocalTime-in-n-mixed-const-and-value-source', async () => {
-        // cutoff_time ('CutoffClock' customLocalTime): release 1 -> 17:00:00,
+    test('ownLocalTime-in-n-mixed-const-and-value-source', async () => {
+        // cutoff_time ('CutoffClock' LocalTimesType): release 1 -> 17:00:00,
         // 2 -> 18:30:00, 3 -> 16:00:00. sub selects release 3's cutoff_time.
         // `.inN(17:00:00, sub)` matches releases 1 and 3.
         const sub = ctx.conn.selectFrom(tProjectRelease)
@@ -10039,8 +10039,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('customLocalDateTime-in-n-mixed-const-and-value-source', async () => {
-        // signed_off_at ('SignOffStamp' customLocalDateTime, optional): release 1 ->
+    test('ownLocalDateTime-in-n-mixed-const-and-value-source', async () => {
+        // signed_off_at ('SignOffStamp' LocalDateTimesType, optional): release 1 ->
         // 2024-01-14 12:30, 2 -> NULL, 3 -> 2024-02-28 09:00. sub selects release 3's
         // signed_off_at. `.inN(release-1 instant, sub)` matches releases 1 and 3;
         // release 2 NULL is excluded.

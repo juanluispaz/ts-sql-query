@@ -57,7 +57,7 @@ Each entry says what it is, why it waits, and what is already known.
 
 ## Type system: converting an exact decimal to another number
 
-- **What:** decide whether the exact decimals (`stringDecimal`, `customDecimal`)
+- **What:** decide whether the exact decimals (`stringDecimal`, `DecimalsType`)
   get `asInt`, `asBigint` and `asDouble`.
 - **Why deferred:** the maintainer will decide it with the rest of the type
   system and the decimal libraries that will extend `DecimalsType`.
@@ -67,8 +67,8 @@ Each entry says what it is, why it waits, and what is already known.
   `int`. With the commitment of `asInt`, an `asInt` or an `asBigint` of a decimal
   would round (`cast(round(x) as integer)`, as for a `double`), and an
   `asDouble` would say in its name or its documentation that it loses digits.
-  The integers that work only with themselves (`bigint`, `customInt`,
-  `customBigint`) have no `asInt` or `asDouble` either.
+  The integers that work only with themselves (`bigint`, `IntegersType`,
+  `IntegersType of 8 bytes`) have no `asInt` or `asDouble` either.
 
 ## A data type name the library doesn't know, at run time
 
@@ -87,14 +87,14 @@ Each entry says what it is, why it waits, and what is already known.
 
 - **What:** two divisions whose name says what happens when the query is
   written: an integer division for the integer types (`int`, `bigint`,
-  `customInt`, `customBigint`), and for `customDecimal` a division that says it
+  `IntegersType`, `IntegersType of 8 bytes`), and for `DecimalsType` a division that says it
   loses precision and returns a `double` (a name like `divideAsDouble`, to be
   chosen then).
 - **Why deferred:** the plain `divide` of a bigint doesn't give a bigint, and
   the division of two decimals isn't exact, so neither `bigint` nor
-  `customDecimal` offers `divide`: a plain `divide` on an exact type is never
+  `DecimalsType` offers `divide`: a plain `divide` on an exact type is never
   silently lossy. The explicit operations need their own design.
-- **Known:** `customDecimal` has no `divide`; its rejection is in the
+- **Known:** `DecimalsType` has no `divide`; its rejection is in the
   `types.negative` cells (`expressions.test.ts`).
 
 ## Splitting an insert by the parameter limit of each engine

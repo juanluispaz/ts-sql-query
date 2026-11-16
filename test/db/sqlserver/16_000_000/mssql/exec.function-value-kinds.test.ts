@@ -385,7 +385,7 @@ describe(ctx.label, () => {
     })
 
     // ── custom (cm_str, ReleaseChannel) ─────────────────────────────────
-    test('custom-required', async () => {
+    test('own-required', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustom()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -393,7 +393,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, ReleaseChannel>>()
         expect(v).toBe('hello')
     })
-    test('custom-optional', async () => {
+    test('own-optional', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -401,7 +401,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, ReleaseChannel | null>>()
         expect(v).toBe('hello')
     })
-    test('custom-required-adapter', async () => {
+    test('own-required-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -409,7 +409,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, ReleaseChannel>>()
         expect(v).toBe('[hello]')
     })
-    test('custom-optional-adapter', async () => {
+    test('own-optional-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -418,8 +418,8 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
 
-    // ── customComparable (cm_str, Semver) ───────────────────────────────
-    test('custom-comparable-required', async () => {
+    // ── ComparableType (cm_str, Semver) ───────────────────────────────
+    test('own-comparable-required', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparable()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -427,7 +427,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, string>>()
         expect(v).toBe('hello')
     })
-    test('custom-comparable-optional', async () => {
+    test('own-comparable-optional', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparableOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -435,7 +435,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, string | null>>()
         expect(v).toBe('hello')
     })
-    test('custom-comparable-required-adapter', async () => {
+    test('own-comparable-required-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparableAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -443,7 +443,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, string>>()
         expect(v).toBe('[hello]')
     })
-    test('custom-comparable-optional-adapter', async () => {
+    test('own-comparable-optional-adapter', async () => {
         ctx.mockNext('hello')
         const v = await ctx.conn.callCmCustomComparableOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_str()"`)
@@ -452,8 +452,8 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
 
-    // ── customInt (cm_int, Cents) ───────────────────────────────────────
-    test('custom-int-required', async () => {
+    // ── IntegersType (cm_int, Cents) ───────────────────────────────────────
+    test('own-int-required', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomInt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_int()"`)
@@ -461,7 +461,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(42)
     })
-    test('custom-int-optional', async () => {
+    test('own-int-optional', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomIntOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_int()"`)
@@ -469,7 +469,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, number | null>>()
         expect(v).toBe(42)
     })
-    test('custom-int-required-adapter', async () => {
+    test('own-int-required-adapter', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomIntAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_int()"`)
@@ -477,7 +477,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(420)
     })
-    test('custom-int-optional-adapter', async () => {
+    test('own-int-optional-adapter', async () => {
         ctx.mockNext(42)
         const v = await ctx.conn.callCmCustomIntOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_int()"`)
@@ -486,8 +486,8 @@ describe(ctx.label, () => {
         expect(v).toBe(420)
     })
 
-    // ── customUuid (cm_uuid, SigningKey) ────────────────────────────────
-    test('custom-uuid-required', async () => {
+    // ── UuidsType (cm_uuid, SigningKey) ────────────────────────────────
+    test('own-uuid-required', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuid()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_uuid()"`)
@@ -495,7 +495,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, string>>()
         expect(v).toBe(UUID)
     })
-    test('custom-uuid-optional', async () => {
+    test('own-uuid-optional', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_uuid()"`)
@@ -503,7 +503,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, string | null>>()
         expect(v).toBe(UUID)
     })
-    test('custom-uuid-required-adapter', async () => {
+    test('own-uuid-required-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_uuid()"`)
@@ -511,7 +511,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, string>>()
         expect(v).toBe(BRACKET_UUID)
     })
-    test('custom-uuid-optional-adapter', async () => {
+    test('own-uuid-optional-adapter', async () => {
         ctx.mockNext(UUID)
         const v = await ctx.conn.callCmCustomUuidOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_uuid()"`)
@@ -520,8 +520,8 @@ describe(ctx.label, () => {
         expect(v).toBe(BRACKET_UUID)
     })
 
-    // ── customDouble (cm_double, Money) ─────────────────────────────────
-    test('custom-double-required', async () => {
+    // ── RealsType (cm_double, Money) ─────────────────────────────────
+    test('own-double-required', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDouble()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_double()"`)
@@ -529,7 +529,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(3.5)
     })
-    test('custom-double-optional', async () => {
+    test('own-double-optional', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDoubleOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_double()"`)
@@ -537,7 +537,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, number | null>>()
         expect(v).toBe(3.5)
     })
-    test('custom-double-required-adapter', async () => {
+    test('own-double-required-adapter', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDoubleAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_double()"`)
@@ -545,7 +545,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, number>>()
         expect(v).toBe(35)
     })
-    test('custom-double-optional-adapter', async () => {
+    test('own-double-optional-adapter', async () => {
         ctx.mockNext(3.5)
         const v = await ctx.conn.callCmCustomDoubleOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_double()"`)
@@ -554,8 +554,8 @@ describe(ctx.label, () => {
         expect(v).toBe(35)
     })
 
-    // ── customLocalDate (cm_date, ReleaseDay) — temporal ────────────────
-    test('custom-local-date-required', async () => {
+    // ── LocalDatesType (cm_date, ReleaseDay) — temporal ────────────────
+    test('own-local-date-required', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDate()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_date()"`)
@@ -563,7 +563,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date>>()
         expect(v).toBeInstanceOf(Date)
     })
-    test('custom-local-date-optional', async () => {
+    test('own-local-date-optional', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDateOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_date()"`)
@@ -571,7 +571,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date | null>>()
         expect(v).toBeInstanceOf(Date)
     })
-    test('custom-local-date-required-adapter', async () => {
+    test('own-local-date-required-adapter', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDateAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_date()"`)
@@ -579,7 +579,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date>>()
         expect(v).toEqual(CM_DATE_1H)
     })
-    test('custom-local-date-optional-adapter', async () => {
+    test('own-local-date-optional-adapter', async () => {
         ctx.mockNext(CM_DATE)
         const v = await ctx.conn.callCmCustomLocalDateOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_date()"`)
@@ -588,8 +588,8 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_DATE_1H)
     })
 
-    // ── customLocalTime (cm_time, CutoffClock) ──────────────────────────
-    test('custom-local-time-required', async () => {
+    // ── LocalTimesType (cm_time, CutoffClock) ──────────────────────────
+    test('own-local-time-required', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTime()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_time()"`)
@@ -597,7 +597,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date>>()
         expect(v).toBeInstanceOf(Date)
     })
-    test('custom-local-time-optional', async () => {
+    test('own-local-time-optional', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTimeOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_time()"`)
@@ -605,7 +605,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date | null>>()
         expect(v).toBeInstanceOf(Date)
     })
-    test('custom-local-time-required-adapter', async () => {
+    test('own-local-time-required-adapter', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTimeAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_time()"`)
@@ -613,7 +613,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date>>()
         expect(v).toEqual(CM_TIME_1H)
     })
-    test('custom-local-time-optional-adapter', async () => {
+    test('own-local-time-optional-adapter', async () => {
         ctx.mockNext(CM_TIME)
         const v = await ctx.conn.callCmCustomLocalTimeOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_time()"`)
@@ -622,8 +622,8 @@ describe(ctx.label, () => {
         expect(v).toEqual(CM_TIME_1H)
     })
 
-    // ── customLocalDateTime (cm_datetime, SignOffStamp) ─────────────────
-    test('custom-local-date-time-required', async () => {
+    // ── LocalDateTimesType (cm_datetime, SignOffStamp) ─────────────────
+    test('own-local-date-time-required', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTime()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_datetime()"`)
@@ -631,7 +631,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date>>()
         expect(v).toBeInstanceOf(Date)
     })
-    test('custom-local-date-time-optional', async () => {
+    test('own-local-date-time-optional', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTimeOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_datetime()"`)
@@ -639,7 +639,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date | null>>()
         expect(v).toBeInstanceOf(Date)
     })
-    test('custom-local-date-time-required-adapter', async () => {
+    test('own-local-date-time-required-adapter', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTimeAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_datetime()"`)
@@ -647,7 +647,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date>>()
         expect(v).toEqual(CM_DATETIME_1H)
     })
-    test('custom-local-date-time-optional-adapter', async () => {
+    test('own-local-date-time-optional-adapter', async () => {
         ctx.mockNext(CM_DATETIME)
         const v = await ctx.conn.callCmCustomLocalDateTimeOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.cm_datetime()"`)

@@ -1,18 +1,18 @@
 // Numeric value-source methods by operand shape and receiver leaf:
 //
 //   1. Value-SOURCE (column RHS) operands for minValue / maxValue / valueWhenNull /
-//      nullIfValue on bigint / customInt / customDouble, and subtract on customInt /
-//      customDouble.
+//      nullIfValue on bigint / IntegersType / RealsType, and subtract on IntegersType /
+//      RealsType.
 //   2. Const operands for logn / divide / atan2 on a double, divide on a
-//      customDouble, and modulo on both.
-//   3. ceil / floor / round on a customDouble.
-//   4. asRequiredInOptionalObject / onlyWhenOrNull / ignoreWhenAsNull on a custom-numeric
+//      RealsType, and modulo on both.
+//   3. ceil / floor / round on a RealsType.
+//   4. asRequiredInOptionalObject / onlyWhenOrNull / ignoreWhenAsNull on a own-numeric
 //      column.
 //
 // Receivers and seeded values (all deterministic):
 //   - tIssue.viewCount   — bigint, seed default 0 for every issue.
-//   - tIssueWorklog.costCents    — customInt 'Cents', worklog 1 = 100.
-//   - tIssueWorklog.billedAmount — customDouble 'Money', worklog 1 = 200.
+//   - tIssueWorklog.costCents    — IntegersType 'Cents', worklog 1 = 100.
+//   - tIssueWorklog.billedAmount — RealsType 'Money', worklog 1 = 200.
 // The custom leaves' typeNames are marshalled through their base type on the
 // connection, so every arm round-trips as a number whatever representation its
 // expression produces.
@@ -59,9 +59,9 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('value-source-rhs/customint-arithmetic-and-clamps', async () => {
+    test('value-source-rhs/own-int-arithmetic-and-clamps', async () => {
         // subtract / minValue / maxValue / valueWhenNull / nullIfValue on a
-        // customInt with a value-SOURCE (column) RHS. The RHS is the same
+        // IntegersType with a value-SOURCE (column) RHS. The RHS is the same
         // `cost_cents` column (= 100 for worklog 1): subtract(self) = 0, the clamps
         // are 100, valueWhenNull keeps 100, nullIfValue(self) collapses to NULL ->
         // absent.
@@ -90,9 +90,9 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('value-source-rhs/customdouble-arithmetic-and-clamps', async () => {
+    test('value-source-rhs/own-double-arithmetic-and-clamps', async () => {
         // subtract / minValue / maxValue / valueWhenNull / nullIfValue on a
-        // customDouble with a value-SOURCE (column) RHS. The RHS is the same
+        // RealsType with a value-SOURCE (column) RHS. The RHS is the same
         // `billed_amount` column (= 200 for worklog 1): subtract(self) = 0, the
         // clamps are 200, valueWhenNull keeps 200, nullIfValue(self) collapses to
         // NULL -> absent.
@@ -161,8 +161,8 @@ describe(ctx.label, () => {
         }
     })
 
-    test('const-rhs/customdouble-divide', async () => {
-        // divide on a customDouble with a CONST RHS: `billed_amount` ('Money',
+    test('const-rhs/own-double-divide', async () => {
+        // divide on a RealsType with a CONST RHS: `billed_amount` ('Money',
         // marshalled) = 200 for worklog 1, and divide(4) = 50; the divisor is a
         // plain number.
         const expected = [{ id: 1, di: 50 }]
@@ -193,7 +193,7 @@ describe(ctx.label, () => {
     })
 
     test('const-rhs/double-modulo', async () => {
-        // modulo on a customDouble (billed_amount = 200 for worklog 1) and a plain
+        // modulo on a RealsType (billed_amount = 200 for worklog 1) and a plain
         // double (issue_id cast to double = 1) with a CONST RHS: 200 % 3 = 2, 1 %
         // 3 = 1. A fractional `%` can't run on a float on every engine, so the
         // emitted form casts to numeric / uses mod(...).
@@ -225,11 +225,11 @@ describe(ctx.label, () => {
         }
     })
 
-    // ── 3. customDouble ceil / floor / round ──────────────────────────────
+    // ── 3. RealsType ceil / floor / round ──────────────────────────────
 
-    test('customdouble-rounding', async () => {
-        // ceil / floor / round over a customDouble operand take the dedicated
-        // customDouble arm and keep the customDouble type. `billed_amount` ('Money', marshalled) = 200 for worklog 1, already a
+    test('own-double-rounding', async () => {
+        // ceil / floor / round over a RealsType operand take the dedicated
+        // RealsType arm and keep the RealsType type. `billed_amount` ('Money', marshalled) = 200 for worklog 1, already a
         // whole number, so all three return 200 as a clean number.
         const expected = [{ id: 1, c: 200, f: 200, r: 200 }]
         ctx.mockNext(expected)
@@ -250,8 +250,8 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number; c: number; f: number; r: number }>>>()
         // ceil/floor come back as clean numbers on every dialect. round over a
-        // customDouble can leak the driver's raw value as a string on the
-        // postgres drivers (the `round(...::numeric)` form a custom type is not
+        // RealsType can leak the driver's raw value as a string on the
+        // postgres drivers (the `round(...::numeric)` form a type of the user is not
         // marshalled out of), so the real-DB branch coerces `r` through
         // Number(...); the mock keeps the exact shared shape.
         if (ctx.realDbEnabled) {
@@ -264,10 +264,10 @@ describe(ctx.label, () => {
         }
     })
 
-    // ── 4. Projection modifiers on a custom-numeric column ────────────────
+    // ── 4. Projection modifiers on a own-numeric column ────────────────
 
-    test('projection-modifiers/customint-as-required-in-optional-object', async () => {
-        // `asRequiredInOptionalObject()` on a customInt column keeps the brand
+    test('projection-modifiers/own-int-as-required-in-optional-object', async () => {
+        // `asRequiredInOptionalObject()` on an IntegersType column keeps the brand
         // and re-imposes the `requiredInOptionalObject` marker, projected as a
         // direct leaf `?: number`. `cost_cents` = 100 for worklog 1; the column is required, so
         // the leaf is always present.
@@ -290,8 +290,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('projection-modifiers/customint-only-when-or-null', async () => {
-        // `onlyWhenOrNull(false)` on a customInt column replaces the projection
+    test('projection-modifiers/own-int-only-when-or-null', async () => {
+        // `onlyWhenOrNull(false)` on an IntegersType column replaces the projection
         // with a NULL literal at SQL-build time and widens the leaf to optional
         // while keeping the brand. The mock returns the shape the driver yields for a NULL
         // column — the property is absent under optional-as-undefined.
@@ -313,8 +313,8 @@ describe(ctx.label, () => {
         expect(result).toEqual([{ id: 1 }])
     })
 
-    test('projection-modifiers/customdouble-ignore-when-as-null-passthrough', async () => {
-        // `ignoreWhenAsNull(false)` on a customDouble column is the
+    test('projection-modifiers/own-double-ignore-when-as-null-passthrough', async () => {
+        // `ignoreWhenAsNull(false)` on a RealsType column is the
         // pass-through branch: the column flows through unchanged but the leaf
         // is still widened to optional, keeping the brand. `billed_amount` = 200 for
         // worklog 1, so the leaf is present.
@@ -490,8 +490,8 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('value-source-rhs/customint-add-cross-table-operand', async () => {
-        // customInt arithmetic (add) with a value-source operand drawn from a
+    test('value-source-rhs/own-int-add-cross-table-operand', async () => {
+        // IntegersType arithmetic (add) with a value-source operand drawn from a
         // DIFFERENT table (a joined alias): `worklog2` is a self-join alias joined
         // on the same id, so `cost_cents + worklog2.cost_cents` is a cross-table
         // operand. Worklog 1: cost_cents 100 -> 100 + 100 = 200.
@@ -548,8 +548,8 @@ describe(ctx.label, () => {
         }
     })
 
-    test('value-source-rhs/customdouble-add-cross-table-operand', async () => {
-        // customDouble `add` with a value-source operand from a self-join alias:
+    test('value-source-rhs/own-double-add-cross-table-operand', async () => {
+        // RealsType `add` with a value-source operand from a self-join alias:
         // `worklog2` is joined on the same id, so `billed_amount +
         // worklog2.billed_amount` uses qualified columns from two instances of the
         // worklog table. billed_amount ('Money', marshalled) = 200 for worklog 1, so
@@ -604,7 +604,7 @@ describe(ctx.label, () => {
 
     // ── 8. valueWhenNull / nullIfValue with a CROSS-TABLE value-source operand ─
 
-    test('value-source-rhs/customint-value-when-null-cross-table-operand', async () => {
+    test('value-source-rhs/own-int-value-when-null-cross-table-operand', async () => {
         // `valueWhenNull` with a value-source operand drawn from a DIFFERENT
         // table (a self-join alias): `worklog2` is joined on the same id, so
         // `coalesce(issue_worklog.cost_cents, worklog2.cost_cents)` qualifies
@@ -632,7 +632,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('value-source-rhs/customint-null-if-value-cross-table-operand', async () => {
+    test('value-source-rhs/own-int-null-if-value-cross-table-operand', async () => {
         // `nullIfValue` with a value-source operand from a self-join alias:
         // `nullif(issue_worklog.cost_cents, worklog2.cost_cents)` qualifies both
         // operands with distinct table aliases. worklog2 joins on the same id, so
@@ -659,7 +659,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('value-source-rhs/customdouble-value-when-null-cross-table-operand', async () => {
+    test('value-source-rhs/own-double-value-when-null-cross-table-operand', async () => {
         // `valueWhenNull` with a value-source operand from a self-join alias:
         // `coalesce(issue_worklog.billed_amount, worklog2.billed_amount)`
         // qualifies both operands with distinct table aliases. billed_amount
@@ -686,7 +686,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('value-source-rhs/customdouble-null-if-value-cross-table-operand', async () => {
+    test('value-source-rhs/own-double-null-if-value-cross-table-operand', async () => {
         // `nullIfValue` with a value-source operand from a self-join alias:
         // `nullif(issue_worklog.billed_amount, worklog2.billed_amount)` qualifies
         // both operands with distinct table aliases. worklog2 joins on the same

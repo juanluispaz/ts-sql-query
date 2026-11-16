@@ -65,7 +65,7 @@ describe(ctx.label, () => {
         expect(Math.abs(rows[0]!.t - Date.UTC(2024, 0, 15, 12, 31, 0))).toBeLessThanOrEqual(1)
     })
     test('column-shifthour-adapter-datetime-getters-drop-adapter', async () => {
-        // All 9 getters on shiftedStamp (customLocalDateTime + shiftHourAdapter),
+        // All 9 getters on shiftedStamp (LocalDateTimesType + shiftHourAdapter),
         // DEFAULT '2024-06-01 10:00:00' (a Saturday). getHours() reports the RAW 10,
         // NOT the adapter-shifted 11 — the adapter is dropped at the getter. So year
         // 2024, month 5 (June, JS 0-indexed), date 1, day-of-week 6, hours 10,
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
     test('column-shifthour-adapter-date-getters-drop-adapter', async () => {
-        // The 4 LocalDate getters on shiftedReleaseDay (customLocalDate +
+        // The 4 LocalDate getters on shiftedReleaseDay (LocalDatesType +
         // shiftHourAdapter), DEFAULT '2025-03-01' (a Saturday). The getter drops the
         // adapter and reports the raw date components: year 2025, month 2 (March, JS
         // 0-indexed), date 1, day-of-week 6. Every leaf is a required unbranded
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
     test('column-shifthour-adapter-time-getters-drop-adapter', async () => {
-        // The 4 LocalTime getters on shiftedCutoff (customLocalTime +
+        // The 4 LocalTime getters on shiftedCutoff (LocalTimesType +
         // shiftHourAdapter), DEFAULT '09:00:00'. getHours() reports the RAW 9, NOT
         // the adapter-shifted 10 — the adapter is dropped at the getter. So hours 9,
         // minutes 0, seconds 0, milliseconds 0. Every leaf is a required unbranded

@@ -86,7 +86,7 @@ function _typeNegatives() {
         body:      tIssue.body,
         createdAt: tIssue.createdAt,
         viewCount: tIssue.viewCount,
-        version:   tProjectRelease.version,    // customComparable
+        version:   tProjectRelease.version,    // ComparableType
         billable:  tIssueWorklog.billable,
     }
 
@@ -124,9 +124,9 @@ function _typeNegatives() {
     // @ts-expect-error number passed to a bigint column's equals
     void connection.dynamicConditionFor(moreFields).withValues({ viewCount: { equals: 1 } })
 
-    // Rule: a customComparable column is comparable but offers no string operators.
+    // Rule: a ComparableType column is comparable but offers no string operators.
     void connection.dynamicConditionFor(moreFields).withValues({ version: { greaterThan: '1.0.0' } })
-    // @ts-expect-error like is not an operator of a customComparable column's ComparableFilter
+    // @ts-expect-error like is not an operator of a ComparableType column's ComparableFilter
     void connection.dynamicConditionFor(moreFields).withValues({ version: { like: '1.%' } })
 
     // Rule: `isNull` / `isNotNull` take a boolean flag.

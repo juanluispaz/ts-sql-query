@@ -671,7 +671,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Optional-receiver unary math on the bigint / customInt / customDouble
+    // Optional-receiver unary math on the bigint / IntegersType / RealsType
     // leaves: `abs()` keeps the leaf type (`?: bigint` / `?: ReleaseTag` /
     // `?: Money`) while `sign()` narrows to a number leaf (`?: number`).
 
@@ -698,8 +698,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('optional-custom-int-receiver-unary-math', async () => {
-        // `optionalReleaseOrdinal` is an OPTIONAL customInt View column (ReleaseTag,
+    test('optional-own-int-receiver-unary-math', async () => {
+        // `optionalReleaseOrdinal` is an OPTIONAL IntegersType View column (ReleaseTag,
         // plusOffsetAdapter read +1000). Release 1 resolves optional_release_ordinal
         // to id 1 (download_count present). abs keeps the data type and the adapter,
         // so 1 reads back as the ReleaseTag 1001; sign gives a plain number without
@@ -724,8 +724,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('optional-custom-double-receiver-unary-math', async () => {
-        // `billedAmount.asOptional()` is an OPTIONAL customDouble receiver (Money,
+    test('optional-own-double-receiver-unary-math', async () => {
+        // `billedAmount.asOptional()` is an OPTIONAL RealsType receiver (Money,
         // no adapter). Worklog 1 billed_amount 200. abs keeps the branded leaf
         // (?: Money); sign returns a number leaf.
         const expected = { id: 1, a: 200, s: 1 }

@@ -260,8 +260,8 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('fragment-with-type-uuid-and-custom-comparable', async () => {
-        // The `uuid` arm (-> string leaf) and the `customComparable` arm
+    test('fragment-with-type-uuid-and-own-comparable', async () => {
+        // The `uuid` arm (-> string leaf) and the `ComparableType` arm
         // (-> string leaf, carrying the 'Semver' TYPE_NAME). The uuid fragment
         // coalesces release 1's signing key; the comparable fragment surfaces
         // its version.
@@ -324,9 +324,9 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
-    test('custom-typed-fragment-then-operator', async () => {
-        // A `customInt` typed fragment is a first-class value source —
-        // applying `.add(...)` keeps the customInt brand. `IssueId` is
+    test('own-typed-fragment-then-operator', async () => {
+        // An `IntegersType` typed fragment is a first-class value source —
+        // applying `.add(...)` keeps the IntegersType brand. `IssueId` is
         // marshalled to int, so it surfaces a clean number. Issue 1 priority
         // 2 -> priority + 1 = 3.
         const expected = [{ id: 1, n: 3 }]

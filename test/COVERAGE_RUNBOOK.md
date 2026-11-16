@@ -564,7 +564,7 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 4. **Apply the EXTERNAL_CAVEATS re-wrap list from §4.5 / §7.** Block-comment
    the relevant tests in the affected cells with the canonical body
-   preserved and the documented reason header. `customUuid` needs no wrap:
+   preserved and the documented reason header. `UuidsType` needs no wrap:
    the domain's `uuidStrategy` is `'string'`, so no SQLite cell depends on a
    UUID extension.
 

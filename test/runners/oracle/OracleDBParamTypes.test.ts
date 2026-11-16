@@ -185,7 +185,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     })
 })
 
-describe('OracleDBQueryRunner: a customDecimal parameter in hand-written SQL', () => {
+describe('OracleDBQueryRunner: an exact decimal parameter in hand-written SQL', () => {
     test('a-value-beyond-38-significant-digits-is-rejected', () => {
         // The number of the database keeps 38 significant digits: the runner rejects it before anything is sent, so
         // no connection is needed

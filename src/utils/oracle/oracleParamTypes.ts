@@ -1,5 +1,5 @@
 import type { DataTypeClass } from '../../TypeAdapter.js'
-import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
+import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalParams.js'
 import { __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
@@ -13,9 +13,9 @@ export function checkOracleParam(index: number, value: unknown, requestedType: D
     if (__typeSqlDataTypeOf(requestedType)?.family !== 'exact numeric') {
         return
     }
-    const digits = customDecimalDigitsOf(value)
+    const digits = exactDecimalDigitsOf(value)
     if (digits && digits.significantDigits > 38) {
-        rejectCustomDecimalParam(value, requestedType?.type ?? '', index, 'a number of 38 significant digits')
+        rejectExactDecimalParam(value, requestedType?.type ?? '', index, 'a number of 38 significant digits')
     }
 }
 

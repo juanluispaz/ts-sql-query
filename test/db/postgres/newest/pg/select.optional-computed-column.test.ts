@@ -50,7 +50,7 @@ describe(ctx.label, () => {
             | 'booleanVirtual' | 'booleanVirtualOptional' | 'bigintVirtual' | 'bigintVirtualOptional'
             | 'doubleVirtual' | 'doubleVirtualOptional' | 'localDateVirtual' | 'localDateVirtualOptional'
             | 'localTimeVirtual' | 'localTimeVirtualOptional' | 'intVirtual' | 'intVirtualOptional'
-            | 'customDoubleVirtual' | 'customDoubleVirtualOptional'>>()
+            | 'ownDoubleVirtual' | 'ownDoubleVirtualOptional'>>()
         // …but NOT in WritableColumnKeys (computed/virtual columns are excluded
         // from the writable surface, which is otherwise non-empty).
         assertType<Exact<WritableColumnKeys<typeof tIssueWorklog>,

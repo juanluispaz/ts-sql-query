@@ -211,12 +211,12 @@ aDate.lessThan(aDateTime)
 
 // The enumerations and the other types of the user
 declare const aStatus: ValueSource<'s1/', EnumType<'a' | 'b', 'Status'>, 'required'>
-declare const customStatus: ValueSource<'s1/', EqualableType<'a' | 'b', 'Status'>, 'required'>
+declare const ownStatus: ValueSource<'s1/', EqualableType<'a' | 'b', 'Status'>, 'required'>
 aStatus.equals('a')
 aStatus.in(['a', 'b'])
 // The NType is the type name, whatever the family: two data types of the same type name are one for TypeScript (an
 // error of the user)
-aStatus.equals(customStatus)
+aStatus.equals(ownStatus)
 // @ts-expect-error an enumeration has no order
 aStatus.lessThan('a')
 
@@ -373,7 +373,7 @@ class FamiliesTable extends Table<ProbeConnection, 'FamiliesTable'> {
     // @ts-expect-error a family has no type name of its own
     family = this.column('family', AdditiveTypeClass)
     // @ts-expect-error nor a family
-    customFamily = this.column('family', IntegersTypeClass)
+    ownFamily = this.column('family', IntegersTypeClass)
     constructor() {
         super('families')
     }

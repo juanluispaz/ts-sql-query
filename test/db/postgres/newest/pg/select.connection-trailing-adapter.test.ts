@@ -122,8 +122,8 @@ const shiftHourFromDb: TypeAdapter = {
     },
 }
 
-// The string marshaller family (`string` / `enum` / `custom` / `customComparable`
-// and — through the string base — `customUuid`) yields a `string`; wrap it in
+// The string marshaller family (`string` / `enum` / `EqualableType` / `ComparableType`
+// and — through the string base — `UuidsType`) yields a `string`; wrap it in
 // `[...]` on read so the adapter's effect on a string const/fragment is
 // observable. `transformValueToDB` delegates to `next`, so the value is sent
 // verbatim and the emitted placeholder/cast is unchanged.
@@ -442,14 +442,14 @@ describe(ctx.label, () => {
         expect(v).toBe(40n)
     })
 
-    // ── const/optionalConst(value, 'customX', typeName, adapter) ────────
+    // ── const/optionalConst(value, type, adapter) ────────
     // The CUSTOM-kind overload places the trailing TypeAdapter in the
     // `adapter2` slot (the 4th positional arg, after the typeName), a distinct
     // runtime branch from the plain-kind `const(value, kind, adapter)` above. The
-    // custom kind is `customDouble` ('Money'), so the value marshals through
+    // type of the user is `RealsType` ('Money'), so the value marshals through
     // `double` and the adapter's `* 10` read transform is observable.
 
-    test('const/custom-double-adapter-transforms-read-value', async () => {
+    test('const/own-double-adapter-transforms-read-value', async () => {
         // `const(2.5, MoneyType, doubleTimesTen)`. Raw 2.5 read
         // back as 25 through the adapter parked in the `adapter2` slot.
         ctx.mockNext(2.5)
@@ -466,7 +466,7 @@ describe(ctx.label, () => {
         expect(v).toBe(25)
     })
 
-    test('optional-const/custom-double-adapter-transforms-read-value', async () => {
+    test('optional-const/own-double-adapter-transforms-read-value', async () => {
         // `optionalConst(2.5, MoneyType, doubleTimesTen)` — same
         // transform through the `adapter2` slot; the optional overload widens
         // the leaf to `number | null`.
@@ -484,7 +484,7 @@ describe(ctx.label, () => {
         expect(v).toBe(25)
     })
 
-    test('optional-const/custom-double-adapter-passes-null-through', async () => {
+    test('optional-const/own-double-adapter-passes-null-through', async () => {
         // The adapter delegates `null` to `next`, so a null custom const reads
         // back as null (the `* 10` branch is skipped) — the `adapter2` slot is
         // on the hot path but does not fabricate a value.
@@ -623,12 +623,12 @@ describe(ctx.label, () => {
     // every driver (some return a non-ISO format the marshaller rejects — see
     // select.value-source.required-const.test.ts), so the shifted value is
     // asserted mock-only and the presence-as-Date structurally on the real DB.
-    // ── const/optionalConst(value, 'customX', typeName, adapter2) ────────
-    // The custom-kind overloads park the trailing TypeAdapter in the `adapter2`
+    // ── const/optionalConst(value, type, adapter2) ────────
+    // The own-kind overloads park the trailing TypeAdapter in the `adapter2`
     // slot (4th positional, after the typeName). One const + optionalConst per
-    // remaining custom kind, each routing its base marshaller through the adapter.
+    // remaining type of the user, each routing its base marshaller through the adapter.
 
-    test('const/custom-int-adapter-transforms-read-value', async () => {
+    test('const/own-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(5, CentsType, intTimesTen))
@@ -643,7 +643,7 @@ describe(ctx.label, () => {
         expect(v).toBe(50)
     })
 
-    test('optional-const/custom-int-adapter-transforms-read-value', async () => {
+    test('optional-const/own-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(5, CentsType, intTimesTen))
@@ -658,7 +658,7 @@ describe(ctx.label, () => {
         expect(v).toBe(50)
     })
 
-    test('const/custom-uuid-adapter-transforms-read-value', async () => {
+    test('const/own-uuid-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(UUID_LOWER, SigningKeyType, uuidBracket))
@@ -673,7 +673,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[' + UUID_LOWER + ']')
     })
 
-    test('optional-const/custom-uuid-adapter-transforms-read-value', async () => {
+    test('optional-const/own-uuid-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.optionalConst(UUID_LOWER, SigningKeyType, uuidBracket))
@@ -817,7 +817,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[coding]')
     })
 
-    test('fragment-with-type/custom-int-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(CentsType, 'required', intTimesTen).sql`${ctx.conn.const(5, CentsType)}`)
@@ -832,7 +832,7 @@ describe(ctx.label, () => {
         expect(v).toBe(50)
     })
 
-    test('fragment-with-type/custom-int-optional-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-int-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext(5)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(CentsType, 'optional', intTimesTen).sql`${ctx.conn.const(5, CentsType)}`)
@@ -847,7 +847,7 @@ describe(ctx.label, () => {
         expect(v).toBe(50)
     })
 
-    test('fragment-with-type/custom-double-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-double-adapter-transforms-read-value', async () => {
         ctx.mockNext(2.5)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(MoneyType, 'required', doubleTimesTen).sql`${ctx.conn.const(2.5, MoneyType)}`)
@@ -862,7 +862,7 @@ describe(ctx.label, () => {
         expect(v).toBe(25)
     })
 
-    test('fragment-with-type/custom-double-optional-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-double-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext(2.5)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(MoneyType, 'optional', doubleTimesTen).sql`${ctx.conn.const(2.5, MoneyType)}`)
@@ -877,7 +877,7 @@ describe(ctx.label, () => {
         expect(v).toBe(25)
     })
 
-    test('fragment-with-type/custom-comparable-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-comparable-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.0.0')
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(SemverType, 'required', stringBracket).sql`${ctx.conn.const('1.0.0', SemverType)}`)
@@ -892,7 +892,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[1.0.0]')
     })
 
-    test('fragment-with-type/custom-comparable-optional-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-comparable-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.0.0')
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(SemverType, 'optional', stringBracket).sql`${ctx.conn.const('1.0.0', SemverType)}`)
@@ -907,7 +907,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[1.0.0]')
     })
 
-    test('fragment-with-type/custom-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(ReleaseChannelType, 'required', stringBracket).sql`${ctx.conn.const('stable', ReleaseChannelType)}`)
@@ -922,7 +922,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[stable]')
     })
 
-    test('fragment-with-type/custom-optional-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(ReleaseChannelType, 'optional', stringBracket).sql`${ctx.conn.const('stable', ReleaseChannelType)}`)
@@ -937,7 +937,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[stable]')
     })
 
-    test('fragment-with-type/custom-uuid-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-uuid-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(SigningKeyType, 'required', uuidBracket).sql`${ctx.conn.const(UUID_LOWER, SigningKeyType)}`)
@@ -952,7 +952,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[' + UUID_LOWER + ']')
     })
 
-    test('fragment-with-type/custom-uuid-optional-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-uuid-optional-adapter-transforms-read-value', async () => {
         ctx.mockNext(UUID_LOWER)
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.fragmentWithType(SigningKeyType, 'optional', uuidBracket).sql`${ctx.conn.const(UUID_LOWER, SigningKeyType)}`)
@@ -967,7 +967,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[' + UUID_LOWER + ']')
     })
 
-    test('fragment-with-type/custom-local-time-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-local-time-adapter-transforms-read-value', async () => {
         const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         ctx.mockNext(lt)
         const v = await ctx.conn.selectFromNoTable()
@@ -983,7 +983,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
     })
 
-    test('fragment-with-type/custom-local-time-optional-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-local-time-optional-adapter-transforms-read-value', async () => {
         const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         ctx.mockNext(lt)
         const v = await ctx.conn.selectFromNoTable()
@@ -999,7 +999,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
     })
 
-    test('fragment-with-type/custom-local-date-time-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-local-date-time-adapter-transforms-read-value', async () => {
         const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
         ctx.mockNext(ldt)
         const v = await ctx.conn.selectFromNoTable()
@@ -1015,7 +1015,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
     })
 
-    test('fragment-with-type/custom-local-date-time-optional-adapter-transforms-read-value', async () => {
+    test('fragment-with-type/own-local-date-time-optional-adapter-transforms-read-value', async () => {
         const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
         ctx.mockNext(ldt)
         const v = await ctx.conn.selectFromNoTable()
@@ -1038,7 +1038,7 @@ describe(ctx.label, () => {
     // use max(priority) (=3, deterministic → ×10 = 30); the string / temporal
     // kinds aggregate a non-deterministic seed column, so the transformed value
     // is asserted mock-only and structurally on the real DB.
-    // NOTE: uuid / customUuid are omitted from this max()-based fan-out — max()
+    // NOTE: uuid / UuidsType are omitted from this max()-based fan-out — max()
     // over them is not portable across dialects.
 
     test('aggregate-fragment-with-type/double-adapter-transforms-read-value', async () => {
@@ -1052,7 +1052,7 @@ describe(ctx.label, () => {
         expect(v).toBe(30)
     })
 
-    test('aggregate-fragment-with-type/custom-int-adapter-transforms-read-value', async () => {
+    test('aggregate-fragment-with-type/own-int-adapter-transforms-read-value', async () => {
         ctx.mockNext(3)
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType(CentsType, 'required', intTimesTen).sql`max(${tIssue.priority})`)
@@ -1063,7 +1063,7 @@ describe(ctx.label, () => {
         expect(v).toBe(30)
     })
 
-    test('aggregate-fragment-with-type/custom-double-adapter-transforms-read-value', async () => {
+    test('aggregate-fragment-with-type/own-double-adapter-transforms-read-value', async () => {
         ctx.mockNext(3)
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType(MoneyType, 'required', doubleTimesTen).sql`max(${tIssue.priority})`)
@@ -1098,7 +1098,7 @@ describe(ctx.label, () => {
         else expect(typeof v).toBe('string')
     })
 
-    test('aggregate-fragment-with-type/custom-adapter-transforms-read-value', async () => {
+    test('aggregate-fragment-with-type/own-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType(ReleaseChannelType, 'required', stringBracket).sql`max(${tIssue.title})`)
@@ -1110,7 +1110,7 @@ describe(ctx.label, () => {
         else expect(typeof v).toBe('string')
     })
 
-    test('aggregate-fragment-with-type/custom-comparable-adapter-transforms-read-value', async () => {
+    test('aggregate-fragment-with-type/own-comparable-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.0.0')
         const v = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.aggregateFragmentWithType(SemverType, 'required', stringBracket).sql`max(${tIssue.title})`)
@@ -1123,10 +1123,10 @@ describe(ctx.label, () => {
     })
 
     // const/optionalConst + trailing adapter for the remaining value kinds. The
-    // string-backed kinds (enum / custom / customComparable) route through stringBracket
-    // and are fully real-validated; the temporal / customLocal kinds route a Date
+    // string-backed kinds (enum / EqualableType / ComparableType) route through stringBracket
+    // and are fully real-validated; the temporal / local types of the user route a Date
     // through shiftHourFromDb and assert the +1h transform mock-only + Date presence on
-    // the real DB (some drivers do not round-trip a date-only / custom-temporal const).
+    // the real DB (some drivers do not round-trip a date-only / own-temporal const).
 
     test('const/enum-adapter-transforms-read-value', async () => {
         ctx.mockNext('coding')
@@ -1143,7 +1143,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[coding]')
     })
 
-    test('const/custom-adapter-transforms-read-value', async () => {
+    test('const/own-adapter-transforms-read-value', async () => {
         ctx.mockNext('stable')
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const('stable', ReleaseChannelType, stringBracket))
@@ -1158,7 +1158,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[stable]')
     })
 
-    test('const/custom-comparable-adapter-transforms-read-value', async () => {
+    test('const/own-comparable-adapter-transforms-read-value', async () => {
         ctx.mockNext('1.2.0')
         const v = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const('1.2.0', SemverType, stringBracket))
@@ -1192,9 +1192,9 @@ describe(ctx.label, () => {
     // date-only const round-tripped through selectFromNoTable is not read-parsable on
     // the pg driver (the marshaller rejects PG's `...+00:00` echo, throwing
     // INVALID_VALUE_RECEIVED_FROM_DATABASE), the exact non-round-trippable case the B1
-    // comment above warns about. The customLocal kinds below DO round-trip.
+    // comment above warns about. The local types of the user below DO round-trip.
 
-    test('const/custom-local-time-adapter-transforms-read-value', async () => {
+    test('const/own-local-time-adapter-transforms-read-value', async () => {
         const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
         ctx.mockNext(lt)
         const v = await ctx.conn.selectFromNoTable()
@@ -1211,11 +1211,11 @@ describe(ctx.label, () => {
         else expect(v instanceof Date).toBe(true)
     })
 
-    // NOTE: `const(date, 'customLocalDate', ...)` is omitted for the same reason as the
+    // NOTE: `const(date, 'LocalDatesType', ...)` is omitted for the same reason as the
     // plain localDate above — the underlying localDate marshaller rejects PG's date-only
-    // echo. The time / date-time customLocal kinds (above and below) round-trip fine.
+    // echo. The time / date-time local types of the user (above and below) round-trip fine.
 
-    test('const/custom-local-date-time-adapter-transforms-read-value', async () => {
+    test('const/own-local-date-time-adapter-transforms-read-value', async () => {
         const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
         ctx.mockNext(ldt)
         const v = await ctx.conn.selectFromNoTable()

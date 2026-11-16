@@ -1,6 +1,6 @@
 // DELETE … RETURNING reading an ADAPTER / virtual column through
 // `returningOneColumn(...)`. The update side already covers this
-// (update.custom-columns.test.ts: `returningOneColumn(activityTagged)` and the
+// (update.own-type-columns.test.ts: `returningOneColumn(activityTagged)` and the
 // branded `channel`); the delete side did not. Each target carries a non-identity
 // TypeAdapter, so reading it back through RETURNING applies `transformValueFromDB`:
 // the mock is primed with the RAW db value and the adapter transforms it on the

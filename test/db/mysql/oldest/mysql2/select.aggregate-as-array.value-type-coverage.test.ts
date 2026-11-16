@@ -523,7 +523,7 @@ describe(ctx.label, () => {
     })
     test('aggregate-of-one-column-optional-branded-adapter-strips-null', async () => {
         // The scalar-aggregate NULL strip over a branded custom column carrying a value-transform
-        // adapter — `vReleaseOverview.optionalReleaseOrdinal` (optional customInt `ReleaseTag`,
+        // adapter — `vReleaseOverview.optionalReleaseOrdinal` (optional IntegersType `ReleaseTag`,
         // read +1000). The per-element adapter fires (raw 1 → 1001) and the element type keeps the
         // `ReleaseTag` newtype. Project 1 groups releases 1 (download present → ordinal 1) and 2
         // (download NULL → ordinal NULL), so the raw `[1, null]` becomes `[1001]` after the adapter
@@ -781,14 +781,14 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
-    test('aggregate-of-custom-double-column-as-wrapped-array', async () => {
-        // WRAPPED single-column aggregate of a `customDouble` (branded `Money`)
-        // column — pins the `customDouble` wrapped JSON-leaf case (quoted, lossless
-        // style-3 convert). `tIssueWorklog.customDoubleVirtual` is `billed_amount`
+    test('aggregate-of-own-double-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `RealsType` (branded `Money`)
+        // column — pins the `RealsType` wrapped JSON-leaf case (quoted, lossless
+        // style-3 convert). `tIssueWorklog.ownDoubleVirtual` is `billed_amount`
         // branded Money; issue 1's worklogs 1 and 3 both have billed_amount 200.
         const amounts = ctx.conn.subSelectUsing(tIssue).from(tIssueWorklog)
             .where(tIssueWorklog.issueId.equals(tIssue.id))
-            .selectOneColumn(tIssueWorklog.customDoubleVirtual)
+            .selectOneColumn(tIssueWorklog.ownDoubleVirtual)
             .orderBy('result')
             .forUseAsInlineAggregatedArrayValue()
 
@@ -809,15 +809,15 @@ describe(ctx.label, () => {
     })
     */
 
-    test('aggregate-of-custom-double-column-as-array', async () => {
-        // NON-wrapped aggregate of the same `customDouble` column — pins the
-        // non-wrapped `customDouble` JSON-leaf case. Issue 1's worklogs 1 and 3.
+    test('aggregate-of-own-double-column-as-array', async () => {
+        // NON-wrapped aggregate of the same `RealsType` column — pins the
+        // non-wrapped `RealsType` JSON-leaf case. Issue 1's worklogs 1 and 3.
         ctx.mockNext([{ issueId: 1, amounts: [200, 200] }])
         const rows = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.issueId.equals(1))
             .select({
                 issueId: tIssueWorklog.issueId,
-                amounts: ctx.conn.aggregateAsArrayOfOneColumn(tIssueWorklog.customDoubleVirtual),
+                amounts: ctx.conn.aggregateAsArrayOfOneColumn(tIssueWorklog.ownDoubleVirtual),
             })
             .groupBy('issueId')
             .executeSelectMany()
@@ -865,9 +865,9 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
-    test('aggregate-of-custom-uuid-column-as-wrapped-array', async () => {
-        // WRAPPED single-column aggregate of a `customUuid` column — pins the
-        // `customUuid` wrapped JSON-leaf case (nvarchar(36) convert). Project 1 owns
+    test('aggregate-of-own-uuid-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of an `UuidsType` column — pins the
+        // `UuidsType` wrapped JSON-leaf case (nvarchar(36) convert). Project 1 owns
         // releases 1 and 2; release 1's `signing_key` is a uuid, release 2's is NULL,
         // and the optional aggregate strips the null — one element remains.
         const keys = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
@@ -895,9 +895,9 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
-    test('aggregate-of-custom-local-date-column-as-wrapped-array', async () => {
-        // WRAPPED single-column aggregate of a `customLocalDate` column — pins the
-        // `customLocalDate` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
+    test('aggregate-of-own-local-date-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `LocalDatesType` column — pins the
+        // `LocalDatesType` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
         // `released_on` 2024-01-15 and 2024-02-20.
         const days = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
             .where(tProjectRelease.projectId.equals(tProject.id))
@@ -925,9 +925,9 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
-    test('aggregate-of-custom-local-time-column-as-wrapped-array', async () => {
-        // WRAPPED single-column aggregate of a `customLocalTime` column — pins the
-        // `customLocalTime` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
+    test('aggregate-of-own-local-time-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `LocalTimesType` column — pins the
+        // `LocalTimesType` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
         // `cutoff_time` 17:00:00 and 18:30:00.
         const cutoffs = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
             .where(tProjectRelease.projectId.equals(tProject.id))
@@ -955,9 +955,9 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — aggregateAsArray emits json_arrayagg over a correlated derived table, which needs MySQL 8.0.14+ (outer references in derived tables); MySQL 5.7 rejects it (1054).
     /*
-    test('aggregate-of-custom-local-date-time-column-as-wrapped-array', async () => {
-        // WRAPPED single-column aggregate of a `customLocalDateTime` column — pins
-        // the `customLocalDateTime` wrapped JSON-leaf case. Project 1's releases 1 and
+    test('aggregate-of-own-local-date-time-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `LocalDateTimesType` column — pins
+        // the `LocalDateTimesType` wrapped JSON-leaf case. Project 1's releases 1 and
         // 2: `signed_off_at` is 2024-01-14 12:30:00 for release 1 and NULL for release
         // 2, and the optional aggregate strips the null — one element remains.
         const signoffs = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
@@ -1151,7 +1151,7 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-of-object-with-custom-booleans-of-inline-subqueries', async () => {
-        // Inline subqueries returning custom-adapter booleans as elements of a
+        // Inline subqueries returning own-adapter booleans as elements of a
         // top-level `aggregateAsArray`: the optional `approved` ('A'/'R') and the
         // numeric `invoiced` (1/0) of the same worklog. Seeded worklogs: 1 =
         // approved 'A', invoiced 1; 2 = approved 'R', invoiced 0; 3 = approved
@@ -1200,7 +1200,7 @@ describe(ctx.label, () => {
     })
 
     test('inline-aggregate-of-object-with-custom-booleans-expressions-cte-columns-and-inline-values', async () => {
-        // The same custom-adapter booleans as elements of an inline aggregated
+        // The same own-adapter booleans as elements of an inline aggregated
         // array (`forUseAsInlineAggregatedArrayValue`), ordered by id, read from a
         // select without table. The order by wraps the select in a derived table,
         // so each flag is projected there and read back by the JSON builder.

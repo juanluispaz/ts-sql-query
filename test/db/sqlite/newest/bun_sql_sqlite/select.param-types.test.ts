@@ -1,4 +1,4 @@
-// Each parameter of a query goes with its original type, the name of its type and which custom type it is, read from the context of the query
+// Each parameter of a query goes with its original type, the name of its type and which type of the user it is, read from the context of the query
 // (getQueryContext) at its index: the type of the column it's compared with, or the type of the argument when
 // a function takes another one, like the positions of a substring.
 

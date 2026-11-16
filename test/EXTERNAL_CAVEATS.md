@@ -230,7 +230,7 @@ When one is added to the main matrix:
 
 ## Connection-subclass patterns and the `docs.*` tests
 
-A handful of features documented in `docs/` require a custom `DBConnection`
+A handful of features documented in `docs/` require an EqualableType `DBConnection`
 subclass — they extend `transformValueFromDB` / `transformValueToDB` or expose
 typed helper methods built with `buildFragmentWithArgs`. The shared domain
 (`test/db/<db>/domain/connection.ts`) carries what the matrix covers of them, and
@@ -245,7 +245,7 @@ those tests live outside the `docs.*` files:
   example.
 - **Globally Encrypted ID (id-manipulation.md)** — needs a
   DBConnection subclass overriding `transformValueFromDB` /
-  `transformValueToDB` and a per-table `ID_<prefix>` custom type.
+  `transformValueToDB` and a per-table `ID_<prefix>` type of the user.
   The `IDEncrypter` itself is exercised directly (`docs:id-manipulation/encrypter-with-prefix`,
   `docs-extra:id-manipulation/encrypter-prefix-disambiguates-tables`)
   to lock its round-trip contract.

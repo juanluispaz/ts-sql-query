@@ -330,11 +330,11 @@ function _typeNegatives() {
             tCountry.code.equals('US')
         )
 
-    // Rule: the customInt `valueWhenNull<VALUE>` / `nullIfValue<VALUE>` value-source
+    // Rule: the IntegersType `valueWhenNull<VALUE>` / `nullIfValue<VALUE>` value-source
     // overloads union the OPERAND column's source into the result (like CustomDouble /
     // Bigint / Number and the base value sources), so the "column not in FROM" net
-    // covers the operand for customInt too. `tIssueWorklog.costCents` is a
-    // `customInt 'Cents'` column; `worklog2` is a distinct self-aliased source of the
+    // covers the operand for IntegersType too. `tIssueWorklog.costCents` is a
+    // `IntegersType 'Cents'` column; `worklog2` is a distinct self-aliased source of the
     // same TYPE_NAME.
     const worklog2 = tIssueWorklog.as('worklog2')
     // Positive control: with both the receiver's and the operand's source joined,
@@ -356,7 +356,7 @@ function _typeNegatives() {
             x: tIssueWorklog.costCents.nullIfValue(worklog2.costCents),
         })
 
-    // Rule: the customInt ARITHMETIC value-source overloads (add / subtract /
+    // Rule: the IntegersType ARITHMETIC value-source overloads (add / subtract /
     // modulo / minValue / maxValue) union the OPERAND column's source into the
     // result, the same table-tracking as valueWhenNull / nullIfValue above — so
     // an operand from a table not in the FROM must not compile.
@@ -390,7 +390,7 @@ function _typeNegatives() {
     // valueWhenNull / nullIfValue / arithmetic overloads union the operand's
     // source too. Only CustomInt was previously locked (the comment above even
     // asserts "like CustomDouble" without a CustomDouble lock). billedAmount is a
-    // customDouble 'Money' column; worklog2.billedAmount is a distinct self-alias
+    // RealsType 'Money' column; worklog2.billedAmount is a distinct self-alias
     // of the same TYPE_NAME.
     void connection.selectFrom(tIssueWorklog)
         .select({
@@ -408,17 +408,17 @@ function _typeNegatives() {
             x: tIssueWorklog.billedAmount.add(worklog2.billedAmount),
         })
 
-    // Rule: a customDouble deliberately OMITS the numeric CAST methods
+    // Rule: a RealsType deliberately OMITS the numeric CAST methods
     // asInt / asDouble / asBigint — a custom double carries its own brand +
     // TYPE_NAME, and casting it to a plain int/double/bigint would erase that
     // brand, so those casts are int/double-only (commented out in the
-    // customDouble data type). Each must stay absent so an accidental
-    // un-comment would be caught here. billedAmount is a customDouble 'Money' column.
-    // @ts-expect-error asInt is an int/double-only cast, absent on customDouble
+    // RealsType data type). Each must stay absent so an accidental
+    // un-comment would be caught here. billedAmount is a RealsType 'Money' column.
+    // @ts-expect-error asInt is an int/double-only cast, absent on RealsType
     void tIssueWorklog.billedAmount.asInt()
-    // @ts-expect-error asDouble is an int/double-only cast, absent on customDouble
+    // @ts-expect-error asDouble is an int/double-only cast, absent on RealsType
     void tIssueWorklog.billedAmount.asDouble()
-    // @ts-expect-error asBigint is an int/double-only cast, absent on customDouble
+    // @ts-expect-error asBigint is an int/double-only cast, absent on RealsType
     void tIssueWorklog.billedAmount.asBigint()
 
     // Rule: a bigint deliberately OMITS divide and the float-only math
@@ -449,48 +449,48 @@ function _typeNegatives() {
     // @ts-expect-error sin is not a bigint method
     void tIssue.viewCount.sin()
 
-    // Rule: a customInt — like a bigint — OMITS the float-only
+    // Rule: an IntegersType — like a bigint — OMITS the float-only
     // math methods so a custom INT stays exact: exp / ln / log10 / sqrt / cbrt, the
     // trigonometric acos / asin / atan / cos / cot / sin / tan, and power / logn /
     // roundn / divide / atan2 are all absent (commented out in the interface). Only
     // the integer-preserving arithmetic (add / subtract / multiply / modulo /
     // minValue / maxValue) plus abs / ceil / floor / round / sign are offered — so
-    // `multiply` is NOT locked here (it is active on customInt, unlike on bigint).
+    // `multiply` is NOT locked here (it is active on IntegersType, unlike on bigint).
     // Each absent method must stay absent so an accidental un-comment is caught.
-    // costCents is a customInt 'Cents' column.
-    // @ts-expect-error exp is not a customInt method
+    // costCents is an IntegersType 'Cents' column.
+    // @ts-expect-error exp is not an IntegersType method
     void tIssueWorklog.costCents.exp()
-    // @ts-expect-error ln is not a customInt method
+    // @ts-expect-error ln is not an IntegersType method
     void tIssueWorklog.costCents.ln()
-    // @ts-expect-error log10 is not a customInt method
+    // @ts-expect-error log10 is not an IntegersType method
     void tIssueWorklog.costCents.log10()
-    // @ts-expect-error sqrt is not a customInt method
+    // @ts-expect-error sqrt is not an IntegersType method
     void tIssueWorklog.costCents.sqrt()
-    // @ts-expect-error cbrt is not a customInt method
+    // @ts-expect-error cbrt is not an IntegersType method
     void tIssueWorklog.costCents.cbrt()
-    // @ts-expect-error acos is not a customInt method
+    // @ts-expect-error acos is not an IntegersType method
     void tIssueWorklog.costCents.acos()
-    // @ts-expect-error asin is not a customInt method
+    // @ts-expect-error asin is not an IntegersType method
     void tIssueWorklog.costCents.asin()
-    // @ts-expect-error atan is not a customInt method
+    // @ts-expect-error atan is not an IntegersType method
     void tIssueWorklog.costCents.atan()
-    // @ts-expect-error cos is not a customInt method
+    // @ts-expect-error cos is not an IntegersType method
     void tIssueWorklog.costCents.cos()
-    // @ts-expect-error cot is not a customInt method
+    // @ts-expect-error cot is not an IntegersType method
     void tIssueWorklog.costCents.cot()
-    // @ts-expect-error sin is not a customInt method
+    // @ts-expect-error sin is not an IntegersType method
     void tIssueWorklog.costCents.sin()
-    // @ts-expect-error tan is not a customInt method
+    // @ts-expect-error tan is not an IntegersType method
     void tIssueWorklog.costCents.tan()
-    // @ts-expect-error power is not a customInt method
+    // @ts-expect-error power is not an IntegersType method
     void tIssueWorklog.costCents.power(2)
-    // @ts-expect-error logn is not a customInt method
+    // @ts-expect-error logn is not an IntegersType method
     void tIssueWorklog.costCents.logn(2)
-    // @ts-expect-error roundn is not a customInt method
+    // @ts-expect-error roundn is not an IntegersType method
     void tIssueWorklog.costCents.roundn(2)
-    // @ts-expect-error divide is not a customInt method
+    // @ts-expect-error divide is not an IntegersType method
     void tIssueWorklog.costCents.divide(2)
-    // @ts-expect-error atan2 is not a customInt method
+    // @ts-expect-error atan2 is not an IntegersType method
     void tIssueWorklog.costCents.atan2(2)
 
     // Rule: numeric arithmetic requires operands of the SAME leaf kind — a bigint
@@ -541,28 +541,28 @@ function _typeNegatives() {
     // value-source class. Each `@ts-expect-error` sits on the `.equals(...)`
     // line because that is where the overload-mismatch error lands.
     void connection.const(7, ReleaseTagType)
-        // @ts-expect-error customInt 'ReleaseTag' is not equals-comparable with customInt 'Cents'
+        // @ts-expect-error IntegersType 'ReleaseTag' is not equals-comparable with IntegersType 'Cents'
         .equals(connection.const(5, CentsType))
     void connection.const(1.5, MoneyType)
-        // @ts-expect-error customDouble 'Money' is not equals-comparable with customDouble 'Rate'
+        // @ts-expect-error RealsType 'Money' is not equals-comparable with RealsType 'Rate'
         .equals(connection.const(2.5, RateType))
     void connection.const('0a8f9c1e-1111-4222-8333-444455556666', SigningKeyType)
-        // @ts-expect-error customUuid 'SigningKey' is not equals-comparable with customUuid 'SessionKey'
+        // @ts-expect-error UuidsType 'SigningKey' is not equals-comparable with UuidsType 'SessionKey'
         .equals(connection.const('0a8f9c1e-1111-4222-8333-444455556666', SessionKeyType))
     void connection.const('1.0.0', SemverType)
-        // @ts-expect-error customComparable 'Semver' is not equals-comparable with customComparable 'Calver'
+        // @ts-expect-error ComparableType 'Semver' is not equals-comparable with ComparableType 'Calver'
         .equals(connection.const('2024.01', CalverType))
     void connection.const('stable', ReleaseChannelType)
         // @ts-expect-error custom 'ReleaseChannel' is not equals-comparable with custom 'Tier'
         .equals(connection.const('gold', TierType))
     void connection.const(new Date(), ReleaseDayType)
-        // @ts-expect-error customLocalDate 'ReleaseDay' is not equals-comparable with customLocalDate 'SprintDay'
+        // @ts-expect-error LocalDatesType 'ReleaseDay' is not equals-comparable with LocalDatesType 'SprintDay'
         .equals(connection.const(new Date(), SprintDayType))
     void connection.const(new Date(), CutoffClockType)
-        // @ts-expect-error customLocalTime 'CutoffClock' is not equals-comparable with customLocalTime 'ShiftClock'
+        // @ts-expect-error LocalTimesType 'CutoffClock' is not equals-comparable with LocalTimesType 'ShiftClock'
         .equals(connection.const(new Date(), ShiftClockType))
     void connection.const(new Date(), SignOffStampType)
-        // @ts-expect-error customLocalDateTime 'SignOffStamp' is not equals-comparable with customLocalDateTime 'PublishStamp'
+        // @ts-expect-error LocalDateTimesType 'SignOffStamp' is not equals-comparable with LocalDateTimesType 'PublishStamp'
         .equals(connection.const(new Date(), PublishStampType))
 
     // Positive control: the SAME brand on the same kind IS equals-comparable and
@@ -601,11 +601,11 @@ function _typeNegatives() {
     // getDay), never the time-of-day getters or `getTime`; a `localTime` leaf offers
     // only the time getters (getHours / getMinutes / getSeconds / getMilliseconds),
     // never the date getters or `getTime`. Only a `localDateTime` leaf carries the
-    // full set plus `getTime`. The custom-branded twins (customLocalDate /
-    // customLocalTime) mirror the same split. Each getter absent on a given leaf must
+    // full set plus `getTime`. The own-branded twins (LocalDatesType /
+    // LocalTimesType) mirror the same split. Each getter absent on a given leaf must
     // stay absent so an accidental widening is caught. workDate is localDate,
-    // startedAt is localTime, releasedOn is customLocalDate ('ReleaseDay'),
-    // cutoffTime is customLocalTime ('CutoffClock').
+    // startedAt is localTime, releasedOn is LocalDatesType ('ReleaseDay'),
+    // cutoffTime is LocalTimesType ('CutoffClock').
     // @ts-expect-error getHours is a time getter, absent on a localDate leaf
     void tIssueWorklog.workDate.getHours()
     // @ts-expect-error getTime is a localDateTime-only getter, absent on a localDate leaf
@@ -614,9 +614,9 @@ function _typeNegatives() {
     void tIssueWorklog.startedAt.getFullYear()
     // @ts-expect-error getTime is a localDateTime-only getter, absent on a localTime leaf
     void tIssueWorklog.startedAt.getTime()
-    // @ts-expect-error getHours is a time getter, absent on a customLocalDate leaf
+    // @ts-expect-error getHours is a time getter, absent on a LocalDatesType leaf
     void tProjectRelease.releasedOn.getHours()
-    // @ts-expect-error getFullYear is a date getter, absent on a customLocalTime leaf
+    // @ts-expect-error getFullYear is a date getter, absent on a LocalTimesType leaf
     void tProjectRelease.cutoffTime.getFullYear()
 
 

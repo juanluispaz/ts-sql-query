@@ -206,8 +206,8 @@ The type of a PostgreSQL param by data type (the cast, and the OID of postgres.j
 (§7.3). For a type of the user whose family converts nothing or a value without a built-in type it comes from the JS value: a bigint
 `int8`, an integer number `int4` or `int8` by range, another number `float8`, anything else none.
 
-Tests: `test/runners/postgres/PostgreSqlParamTypes.test.ts`, `test/runners/mysql/MySqlCustomDecimalParams.test.ts`,
-`test/runners/mariadb/MariaDBCustomDecimalParams.test.ts`, `test/runners/sqlserver/MssqlParamTypes.test.ts`,
+Tests: `test/runners/postgres/PostgreSqlParamTypes.test.ts`, `test/runners/mysql/MySqlExactDecimalParams.test.ts`,
+`test/runners/mariadb/MariaDBExactDecimalParams.test.ts`, `test/runners/sqlserver/MssqlParamTypes.test.ts`,
 `test/runners/oracle/OracleDBParamTypes.test.ts`, `test/runners/sqlite/Sqlite3WasmOO1Numbers.test.ts`.
 
 ### 2.3 What the params hold
@@ -417,7 +417,7 @@ silent.
 
 Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyString`. Tests:
 `marshalling.transform-validation.test.ts` (`from-db-validation/*`), `select.string-decimal.test.ts`,
-`select.custom-decimal.test.ts` in each cell.
+`select.own-decimal.test.ts` in each cell.
 
 | Conversion type | Accepts → result | `PRECISION_LOST` | Rejects |
 |---|---|---|---|

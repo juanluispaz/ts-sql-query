@@ -89,7 +89,7 @@ function _typeNegatives() {
     void t.mInt.add(t.mStr)
     // @ts-expect-error a bigint column is not a number operand
     void t.mInt.add(t.mBigint)
-    // @ts-expect-error a customInt column is not a number operand
+    // @ts-expect-error an IntegersType column is not a number operand
     void t.mInt.add(t.cents)
     void t.mDouble.modulo(t.mInt)
     // @ts-expect-error a bigint column is not a number operand of modulo
@@ -262,73 +262,73 @@ function _typeNegatives() {
     // @ts-expect-error add does not exist on a localDate value source
     void t.mDate.add(1)
 
-    // -------------------------------------------------- custom data types vs their base
+    // -------------------------------------------------- data types of the user vs their base
 
-    // Rule: a custom data type is not comparable with the native data type it
+    // Rule: a data type of the user is not comparable with the native data type it
     // is stored as.
     void t.cents.equals(1)
-    // @ts-expect-error an int column is not comparable with a customInt
+    // @ts-expect-error an int column is not comparable with an IntegersType
     void t.cents.equals(t.mInt)
     void t.money.equals(1.5)
-    // @ts-expect-error a double column is not comparable with a customDouble
+    // @ts-expect-error a double column is not comparable with a RealsType
     void t.money.equals(t.mDouble)
     void t.signingKey.asString()
-    // @ts-expect-error a uuid column is not comparable with a customUuid
+    // @ts-expect-error a uuid column is not comparable with an UuidsType
     void t.signingKey.equals(t.mUuid)
     void t.releaseDay.equals(new Date())
-    // @ts-expect-error a localDate column is not comparable with a customLocalDate
+    // @ts-expect-error a localDate column is not comparable with a LocalDatesType
     void t.releaseDay.equals(t.mDate)
     void t.cutoffClock.equals(new Date())
-    // @ts-expect-error a localTime column is not comparable with a customLocalTime
+    // @ts-expect-error a localTime column is not comparable with a LocalTimesType
     void t.cutoffClock.equals(t.mTime)
     void t.signOff.equals(new Date())
-    // @ts-expect-error a localDateTime column is not comparable with a customLocalDateTime
+    // @ts-expect-error a localDateTime column is not comparable with a LocalDateTimesType
     void t.signOff.equals(t.mDatetime)
     void t.semver.equals('1.0.0')
-    // @ts-expect-error a customComparable column is not comparable with a string column
+    // @ts-expect-error a ComparableType column is not comparable with a string column
     void t.mStr.equals(t.semver)
 
-    // Rule: custom arithmetic takes operands of the same custom data type.
+    // Rule: custom arithmetic takes operands of the same data type of the user.
     void t.cents.add(1)
-    // @ts-expect-error an int column is not a customInt operand
+    // @ts-expect-error an int column is not an IntegersType operand
     void t.cents.add(t.mInt)
-    // @ts-expect-error a customDouble column is not a customInt operand
+    // @ts-expect-error a RealsType column is not an IntegersType operand
     void t.cents.add(t.money)
     void connection.const(1, MoneyType).add(t.money)
-    // @ts-expect-error a double column is not a customDouble operand
+    // @ts-expect-error a double column is not a RealsType operand
     void t.money.add(t.mDouble)
 
-    // Rule: a customDecimal takes operands of its own type, and the functions that can't be exact give a double.
+    // Rule: a DecimalsType takes operands of its own type, and the functions that can't be exact give a double.
     const amount = connection.const('1.50', AmountType)
     void amount.add('0.01')
     void amount.add(amount)
-    // @ts-expect-error a customDouble column is not a customDecimal operand
+    // @ts-expect-error a RealsType column is not a DecimalsType operand
     void amount.add(t.money)
-    // @ts-expect-error a double column is not a customDecimal operand
+    // @ts-expect-error a double column is not a DecimalsType operand
     void amount.add(t.mDouble)
-    // @ts-expect-error a customDecimal is not comparable with a double column
+    // @ts-expect-error a DecimalsType is not comparable with a double column
     void amount.equals(t.mDouble)
     void amount.power(2)
-    // @ts-expect-error the exponent of power is a number, not a customDecimal
+    // @ts-expect-error the exponent of power is a number, not a DecimalsType
     void amount.power(amount)
-    // @ts-expect-error a customDecimal has no divide: the division of two decimals isn't exact
+    // @ts-expect-error a DecimalsType has no divide: the division of two decimals isn't exact
     void amount.divide('2')
     void amount.sqrt().equals(t.mDouble)
-    // @ts-expect-error sqrt gives a double, not a customDecimal
+    // @ts-expect-error sqrt gives a double, not a DecimalsType
     void amount.sqrt().equals(amount)
     void amount.roundn(2).equals(amount)
-    // @ts-expect-error asDouble is an int/double-only cast, absent on customDecimal
+    // @ts-expect-error asDouble is an int/double-only cast, absent on DecimalsType
     void amount.asDouble()
 
-    // Rule: a stringDecimal takes operands of its own type or a string, and isn't comparable with a customDecimal,
+    // Rule: a stringDecimal takes operands of its own type or a string, and isn't comparable with a DecimalsType,
     // a string or a double; the functions that can't be exact give a double.
     const exact = connection.const('1.50', 'stringDecimal')
     void exact.add('0.01')
     void exact.add(exact)
     void exact.equals('1.5')
-    // @ts-expect-error a customDecimal is not a stringDecimal operand
+    // @ts-expect-error a DecimalsType is not a stringDecimal operand
     void exact.add(amount)
-    // @ts-expect-error a stringDecimal is not comparable with a customDecimal
+    // @ts-expect-error a stringDecimal is not comparable with a DecimalsType
     void exact.equals(amount)
     // @ts-expect-error a stringDecimal is not comparable with a string value source
     void exact.equals(connection.const('1.50', 'string'))
@@ -343,14 +343,14 @@ function _typeNegatives() {
     void connection.const(1.5, 'stringDecimal')
 
     // Rule: asString is offered on uuid data types only.
-    // @ts-expect-error asString does not exist on a customInt value source
+    // @ts-expect-error asString does not exist on an IntegersType value source
     void t.cents.asString()
 
-    // ------------------------------------------------ enum / custom / customComparable
+    // ------------------------------------------------ enum / EqualableType / ComparableType
 
-    // Rule: the string functions are absent on a customComparable value source.
+    // Rule: the string functions are absent on a ComparableType value source.
     void t.semver.lessThan('2.0.0')
-    // @ts-expect-error like does not exist on a customComparable value source
+    // @ts-expect-error like does not exist on a ComparableType value source
     void t.semver.like('1%')
 
     // Rule: custom and enum data types are only equalable, not ordered.
@@ -429,14 +429,14 @@ function _typeNegatives() {
     // @ts-expect-error const does not take null; use optionalConst
     void connection.const(null, 'int')
 
-    // Rule: a custom data type constant takes its class, which has its type name.
+    // Rule: a data type of the user constant takes its class, which has its type name.
     void connection.const(1, CentsType)
-    // @ts-expect-error 'customInt' is a family of custom data types, not a data type
-    void connection.const(1, 'customInt')
+    // @ts-expect-error 'IntegersType' is a family of data types of the user, not a data type
+    void connection.const(1, 'ownInt')
 
     // Rule: the type name keeps custom constants apart.
     void connection.const(1, CentsType).equals(t.cents)
-    // @ts-expect-error a customInt 'Other' constant is not comparable with customInt 'Cents'
+    // @ts-expect-error an IntegersType 'Other' constant is not comparable with IntegersType 'Cents'
     void connection.const(1, OtherType).equals(t.cents)
     void connection.const('coding', WorklogActivityType).equals(t.activity)
     // @ts-expect-error an enum 'ReleaseChannel' constant is not comparable with enum 'WorklogActivity'

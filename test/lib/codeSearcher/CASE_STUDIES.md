@@ -1061,7 +1061,7 @@ The residue also reconfirmed where the searcher should **not** go — the same w
   across N cells, verifying a count dropped to 0) → **grep**.
 - **Prose / comment & string literals** (keyed-by text, `EXTERNAL_CAVEATS.md`, `test('name')` strings
   to edit) → **grep**.
-- **Literals inside a `switch`** (`case 'customInt'`) → **grep**; not a symbol, and TS adds no precision.
+- **Literals inside a `switch`** (`case 'IntegersType'`) → **grep**; not a symbol, and TS adds no precision.
 
 The through-line of J–L mirrors A–I's discipline: **build the case, verify against the tool, and let
 the verification — not the proposal — decide.** Most of this residue was indiscipline (J) or honest

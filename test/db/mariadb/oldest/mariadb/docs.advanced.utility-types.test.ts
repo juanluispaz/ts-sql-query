@@ -352,9 +352,9 @@ describe(ctx.label, () => {
         assertType<Exact<ColumnKeys<typeof tProjectRelease>,
             'id' | 'projectId' | 'version' | 'channel' | 'signingKey'
             | 'releasedOn' | 'cutoffTime' | 'signedOffAt' | 'publishedAt' | 'notes' | 'versionTag'
-            | 'customComparableVirtual' | 'customComparableVirtualOptional' | 'customVirtual' | 'customVirtualOptional'
-            | 'customUuidVirtual' | 'customUuidVirtualOptional' | 'customLocalDateVirtual' | 'customLocalDateVirtualOptional'
-            | 'customLocalTimeVirtual' | 'customLocalTimeVirtualOptional' | 'customLocalDateTimeVirtual' | 'customLocalDateTimeVirtualOptional'
+            | 'ownComparableVirtual' | 'ownComparableVirtualOptional' | 'ownVirtual' | 'ownVirtualOptional'
+            | 'ownUuidVirtual' | 'ownUuidVirtualOptional' | 'ownLocalDateVirtual' | 'ownLocalDateVirtualOptional'
+            | 'ownLocalTimeVirtual' | 'ownLocalTimeVirtualOptional' | 'ownLocalDateTimeVirtual' | 'ownLocalDateTimeVirtualOptional'
             | 'uuidVirtual' | 'uuidVirtualOptional' | 'localDateTimeVirtual' | 'localDateTimeVirtualOptional'>>()
         assertType<Exact<WritableColumnKeys<typeof tProjectRelease>,
             'id' | 'projectId' | 'version' | 'channel' | 'signingKey'
@@ -365,7 +365,7 @@ describe(ctx.label, () => {
     })
     test('docs-extra:utility-types/release-value-shapes-resolve-branded-leaves', () => {
         // The insert/update/select VALUE shapes over tProjectRelease — a
-        // writable table mixing branded customs with a computedColumn (`notes`)
+        // writable table mixing branded types of the user with a computedColumn (`notes`)
         // and a virtualColumnFromFragment (`versionTag`). The computed/virtual
         // columns are not WritableDBColumn, so they are absent from the
         // insert/update value shapes but present in the full SelectedRow. The
@@ -416,18 +416,18 @@ describe(ctx.label, () => {
             publishedAt: Date
             notes: string
             versionTag: string
-            customComparableVirtual: string
-            customComparableVirtualOptional?: string
-            customVirtual: ReleaseChannel
-            customVirtualOptional?: ReleaseChannel
-            customUuidVirtual: string
-            customUuidVirtualOptional?: string
-            customLocalDateVirtual: Date
-            customLocalDateVirtualOptional?: Date
-            customLocalTimeVirtual: Date
-            customLocalTimeVirtualOptional?: Date
-            customLocalDateTimeVirtual: Date
-            customLocalDateTimeVirtualOptional?: Date
+            ownComparableVirtual: string
+            ownComparableVirtualOptional?: string
+            ownVirtual: ReleaseChannel
+            ownVirtualOptional?: ReleaseChannel
+            ownUuidVirtual: string
+            ownUuidVirtualOptional?: string
+            ownLocalDateVirtual: Date
+            ownLocalDateVirtualOptional?: Date
+            ownLocalTimeVirtual: Date
+            ownLocalTimeVirtualOptional?: Date
+            ownLocalDateTimeVirtual: Date
+            ownLocalDateTimeVirtualOptional?: Date
             uuidVirtual: string
             uuidVirtualOptional?: string
             localDateTimeVirtual: Date

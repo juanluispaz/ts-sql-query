@@ -132,7 +132,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('dynamic-utilities/pick-values-path-of-a-view-keeps-custom-and-virtual-columns', async () => {
+    test('dynamic-utilities/pick-values-path-of-a-view-keeps-own-and-virtual-columns', async () => {
         const fields = {
             id:      vReleaseOverview.id,
             version: vReleaseOverview.version,

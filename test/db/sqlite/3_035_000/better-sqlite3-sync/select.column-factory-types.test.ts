@@ -6,9 +6,9 @@
 //   - a nullable bigint
 //   - a plain `enum` column (not virtual)
 //   - an `optionalColumnWithDefaultValue` (omittable + nullable)
-//   - branded `customLocalDate/Time/DateTime` columns
-//   - a `custom` (equality-only) column
-//   - a `customComparable` column (confers `<` / between / orderBy)
+//   - branded `LocalDatesType/LocalTimesType/LocalDateTimesType` columns
+//   - an `EqualableType` (equality-only) column
+//   - a `ComparableType` column (confers `<` / between / orderBy)
 //
 // Each round-trips: the projected TYPE (`assertType`), the emitted SQL
 // (snapshot) and — where the value is driver-stable — the runtime value.
@@ -228,13 +228,13 @@ describe(ctx.label, () => {
         })
     })
 
-    test('custom-local-date-time-columns-project-as-date', async () => {
-        // branded `customLocalDate` / `customLocalTime` /
-        // `customLocalDateTime` columns project as JS Date (the optional one
+    test('own-local-date-time-columns-project-as-date', async () => {
+        // branded `LocalDatesType` / `LocalTimesType` /
+        // `LocalDateTimesType` columns project as JS Date (the optional one
         // as `Date | undefined`). Release 1: released_on 2024-01-15,
         // cutoff_time 17:00:00, signed_off_at 2024-01-14 12:30:00.
         // Same normalisation as the plain localDate/localTime columns above
-        // (the branded customLocal* types marshal through their native base
+        // (the branded LocalDates/Times/DateTimesType types marshal through their native base
         // localDate / localTime / localDateTime); one deep-equality assertion
         // holds in both modes.
         const expected = [{
@@ -264,7 +264,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('custom-equality-only-column-projects-as-its-branded-type', async () => {
+    test('own-equality-only-column-projects-as-its-branded-type', async () => {
         // `column(name, ReleaseChannelType)` → a TypeAdapter
         // backed equalable value source carrying the branded `ReleaseChannel`
         // type; equality is the available operator. Release 1 channel
@@ -285,7 +285,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1, channel: 'stable' }])
     })
 
-    test('custom-comparable-column-confers-ordering-operators', async () => {
+    test('own-comparable-column-confers-ordering-operators', async () => {
         // `column(name, SemverType)` → a
         // comparable value source: `lessThan` / `between` / `orderBy` are all
         // available at the column site (an equalable value source could not
@@ -313,8 +313,8 @@ describe(ctx.label, () => {
             { id: 3, version: '0.9.0' },
         ])
     })
-    test('custom-comparable-comparison-surface', async () => {
-        // lessOrEqual / between / in / notEquals on a `customComparable` column
+    test('own-comparable-comparison-surface', async () => {
+        // lessOrEqual / between / in / notEquals on a `ComparableType` column
         // all yield a plain boolean (the brand does not survive a predicate),
         // projected as boolean columns. Release 1 version '1.2.0' satisfies all
         // four.
@@ -346,8 +346,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1, le: true, bt: true, isin: true, ne: true }])
     })
 
-    test('custom-equality-only-non-equals-surface', async () => {
-        // in / notIn / notEquals on an equality-only `custom` column all yield
+    test('own-equality-only-non-equals-surface', async () => {
+        // in / notIn / notEquals on an equality-only `EqualableType` column all yield
         // a plain boolean. Release 1 channel 'stable' is in {stable,beta}, not
         // in {canary}, and != 'canary'.
         ctx.mockNext([{ id: 1, isin: true, notin: true, ne: true }])
@@ -375,11 +375,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1, isin: true, notin: true, ne: true }])
     })
 
-    test('custom-brand-survives-nullable-and-optionality-modifiers', async () => {
+    test('own-brand-survives-nullable-and-optionality-modifiers', async () => {
         // valueWhenNull / asOptional return the same branded value source,
-        // flipping only optionality. valueWhenNull on the optional customUuid
+        // flipping only optionality. valueWhenNull on the optional UuidsType
         // `signingKey` makes it required (leaf `string`); asOptional on the
-        // required customLocalDate `releasedOn` makes it optional (leaf `Date`,
+        // required LocalDatesType `releasedOn` makes it optional (leaf `Date`,
         // projected `ro?: Date`). Release 2 has a NULL signing_key (so the
         // fallback wins) and released_on 2024-02-20 (normalised to 10:00 UTC).
         const NIL_UUID = '00000000-0000-0000-0000-000000000000'
@@ -404,8 +404,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; key: string; ro?: Date }>>>()
         expect(rows).toEqual([{ id: 2, key: NIL_UUID, ro }])
     })
-    test('const-sourced-custom-comparable-operator', async () => {
-        // An operator on a const-sourced custom value: a `customComparable`
+    test('const-sourced-own-comparable-operator', async () => {
+        // An operator on a const-sourced custom value: a `ComparableType`
         // const is the receiver, compared to the typed `version` column to keep
         // the SQL resolvable on every engine ('0.5.0' < version). Release 1
         // version 1.2.0 -> true.

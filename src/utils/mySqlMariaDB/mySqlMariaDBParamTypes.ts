@@ -1,5 +1,5 @@
 import type { DataTypeClass } from '../../TypeAdapter.js'
-import { customDecimalDigitsOf, rejectCustomDecimalParam } from '../customDecimalParams.js'
+import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalParams.js'
 import { __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
@@ -16,12 +16,12 @@ export function mySqlMariaDBPlaceholder(placeholder: string, params: any[], inde
     if (__typeSqlDataTypeOf(requestedType)?.family !== 'exact numeric') {
         return placeholder
     }
-    const digits = customDecimalDigitsOf(value)
+    const digits = exactDecimalDigitsOf(value)
     if (!digits) {
         return placeholder
     }
     if (digits.precision > 65 || digits.scale > 30) {
-        rejectCustomDecimalParam(value, requestedType?.type ?? '', index, 'decimal(65, 30)')
+        rejectExactDecimalParam(value, requestedType?.type ?? '', index, 'decimal(65, 30)')
     }
     if ((existingParamContextOf(params, index)?.isValueForColumn === true)) {
         return placeholder

@@ -52,7 +52,7 @@ const M_TIME = new Date(Date.UTC(1970, 0, 1, 9, 15, 0))
 const M_DATETIME = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
 
 // The full seeded row as every tColMatrix* factory class projects it (id + one
-// property per kind). The custom-string kinds (semver / channel / activity) all
+// property per kind). The own-string kinds (semver / channel / activity) all
 // read the same plain 'hello' — the read passes the value through, so the
 // distinct typed leaf is what each observes.
 const matrixRow = {

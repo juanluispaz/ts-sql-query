@@ -21,7 +21,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tProjectRelease, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomUuidType } from '../../../../../src/exports/v2/index.js'
+import { UuidsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
 
 const UUID_VALUE = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
 const REF1 = '0a8f9c1e-1111-4222-8333-444455556666' // issue 1
@@ -672,7 +675,7 @@ describe(ctx.label, () => {
         ctx.mockNext(SIGNING_KEY1)
         const key = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
-            .selectOneColumn(tProjectRelease.signingKey.nullIfValue(ctx.conn.const(SIGNING_KEY3, CustomUuidType.of<string, 'SigningKey'>('SigningKey'))))
+            .selectOneColumn(tProjectRelease.signingKey.nullIfValue(ctx.conn.const(SIGNING_KEY3, SigningKeyType)))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(nullif(signing_key, uuid_to_raw(:0))) as "result" from project_release where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

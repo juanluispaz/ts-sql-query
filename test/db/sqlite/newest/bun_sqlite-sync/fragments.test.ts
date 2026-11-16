@@ -19,7 +19,11 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tAppUser, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import { CustomComparableType, CustomIntType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, IntegersType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
+abstract class IssueIdType extends IntegersType<number, 'IssueId'> { static override readonly type = 'IssueId' }
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -270,7 +274,7 @@ describe(ctx.label, () => {
             .select({
                 u: connection.fragmentWithType('uuid', 'required')
                     .sql`coalesce(${tProjectRelease.signingKey}, ${tProjectRelease.signingKey})`,
-                v: connection.fragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'required')
+                v: connection.fragmentWithType(SemverType, 'required')
                     .sql`${tProjectRelease.version}`,
             })
             .executeSelectMany())
@@ -332,7 +336,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({
                 id: tIssue.id,
-                n:  connection.fragmentWithType(CustomIntType.of<number, 'IssueId'>('IssueId'), 'required')
+                n:  connection.fragmentWithType(IssueIdType, 'required')
                         .sql`${tIssue.priority}`.add(1),
             })
             .executeSelectMany())

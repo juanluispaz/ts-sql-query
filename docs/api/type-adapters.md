@@ -41,7 +41,7 @@ type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
 A value has two types in the context, so that what was declared and what is sent or read never get confused:
 
-- The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
+- The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType` a class that extends `LocalDatesType<ReleaseDay, 'ReleaseDay'>`, or `const(1, 'int')`. It never changes.
 - The **requested type**, `requestedType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
 `originalType` and `requestedType` are the class of the type, like `IntType` or `ReleaseDayType`. What the context reads of the class is `DataTypeClass`, exported from `ts-sql-query`: `type` is the name of the type, like `'int'` or `'ReleaseDay'`, and `customType` says which custom type it is, the family of its class (`'customLocalDate'` for a `CustomLocalDateType`), `undefined` for a built-in type:
@@ -58,7 +58,7 @@ type CustomType = 'customInt' | 'customBigint' | 'customDouble' | 'customDecimal
     | 'enum' | 'custom' | 'customComparable'
 ```
 
-A custom type is converted as the built-in type it is based on (see [Custom types](../configuration/data-types.md#custom-types)) unless its conversion is registered.
+A custom type is converted as the built-in type it is based on (see [Custom types](../configuration/data-types.md#your-own-types)) unless its conversion is registered.
 
 Compare the type with its class, `context.requestedType === ReleaseDayType` (`of` gives the same class for the same name), or its name, `context.requestedType.type === 'ReleaseDay'`. A comparison with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile.
 

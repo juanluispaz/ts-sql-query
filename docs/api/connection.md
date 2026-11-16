@@ -8,7 +8,7 @@ This interface exposes all the methods required to interact with the database vi
 
 To learn how to create and configure a connection and declare its tables, see [Connection](../configuration/connection.md) and [Mapping](../configuration/mapping.md); for transactions, [Transaction](../queries/transaction.md); for constants and fragments, [Basic query structure](../queries/basic-query-structure.md) and [SQL Fragments](../queries/sql-fragments.md); and for the conversion of the values, [Type adapters](../advanced/type-adapters.md).
 
-A method that takes a type takes it by its name, like `'int'`, or by its class: the class of a built-in type, like `IntType` for `'int'`, or the class of a custom type, made by the `of` of its family, like `CustomIntType.of<Cents, 'Cents'>('Cents')`; below, `CustomIntType<T, TYPE_NAME>` is such a class (see [Data types](../configuration/data-types.md)).
+A method that takes a type takes it by its name, like `'int'`, or by its class: the class of a built-in type, like `IntType` for `'int'`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`; below, `CustomIntType<T, TYPE_NAME>` stands for an integer of yours (see [Data types](../configuration/data-types.md)).
 
 ```typescript
 interface Connection {

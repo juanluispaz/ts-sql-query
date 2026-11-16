@@ -11,7 +11,25 @@
 import { test, expect } from '../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../lib/assertType.js'
 import { type DBConnection, tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tProjectReview } from '../domain/connection.js'
-import { CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType } from '../../../../src/exports/v2/index.js'
+import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ReleaseChannelType extends EqualableType<string, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
+abstract class ReleaseTagType extends IntegersType<number, 'ReleaseTag'> { static override readonly type = 'ReleaseTag' }
+abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
+abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
+abstract class RateType extends RealsType<number, 'Rate'> { static override readonly type = 'Rate' }
+abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
+abstract class SessionKeyType extends UuidsType<string, 'SessionKey'> { static override readonly type = 'SessionKey' }
+abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
+abstract class CalverType extends ComparableType<string, 'Calver'> { static override readonly type = 'Calver' }
+abstract class TierType extends EqualableType<string, 'Tier'> { static override readonly type = 'Tier' }
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
+abstract class SprintDayType extends LocalDatesType<Date, 'SprintDay'> { static override readonly type = 'SprintDay' }
+abstract class CutoffClockType extends LocalTimesType<Date, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
+abstract class ShiftClockType extends LocalTimesType<Date, 'ShiftClock'> { static override readonly type = 'ShiftClock' }
+abstract class SignOffStampType extends LocalDateTimesType<Date, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
+abstract class PublishStampType extends LocalDateTimesType<Date, 'PublishStamp'> { static override readonly type = 'PublishStamp' }
 
 // `connection` is type-only — the function below is checked by tsc but
 // never invoked at runtime, so we don't need a real instance and don't
@@ -527,7 +545,7 @@ function _typeNegatives() {
     // @ts-expect-error enum is not ordered-comparable — no between
     void tIssueWorklog.activity.between('coding', 'review')
     // @ts-expect-error custom (branded union) is not ordered-comparable — no lessThan
-    void connection.const('stable', CustomEqualableType.of<string, 'ReleaseChannel'>('ReleaseChannel')).lessThan('beta')
+    void connection.const('stable', ReleaseChannelType).lessThan('beta')
 
     // Rule: equalsInsensitive / notEqualsInsensitive are string-only (case
     // folding is meaningless off a string value source), so they must not exist on
@@ -548,35 +566,35 @@ function _typeNegatives() {
     // guard keeping distinct domains from mixing. One lock per branded
     // value-source class. Each `@ts-expect-error` sits on the `.equals(...)`
     // line because that is where the overload-mismatch error lands.
-    void connection.const(7, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag'))
+    void connection.const(7, ReleaseTagType)
         // @ts-expect-error customInt 'ReleaseTag' is not equals-comparable with customInt 'Cents'
-        .equals(connection.const(5, CustomIntType.of<number, 'Cents'>('Cents')))
-    void connection.const(1.5, CustomDoubleType.of<number, 'Money'>('Money'))
+        .equals(connection.const(5, CentsType))
+    void connection.const(1.5, MoneyType)
         // @ts-expect-error customDouble 'Money' is not equals-comparable with customDouble 'Rate'
-        .equals(connection.const(2.5, CustomDoubleType.of<number, 'Rate'>('Rate')))
-    void connection.const('0a8f9c1e-1111-4222-8333-444455556666', CustomUuidType.of<string, 'SigningKey'>('SigningKey'))
+        .equals(connection.const(2.5, RateType))
+    void connection.const('0a8f9c1e-1111-4222-8333-444455556666', SigningKeyType)
         // @ts-expect-error customUuid 'SigningKey' is not equals-comparable with customUuid 'SessionKey'
-        .equals(connection.const('0a8f9c1e-1111-4222-8333-444455556666', CustomUuidType.of<string, 'SessionKey'>('SessionKey')))
-    void connection.const('1.0.0', CustomComparableType.of<string, 'Semver'>('Semver'))
+        .equals(connection.const('0a8f9c1e-1111-4222-8333-444455556666', SessionKeyType))
+    void connection.const('1.0.0', SemverType)
         // @ts-expect-error customComparable 'Semver' is not equals-comparable with customComparable 'Calver'
-        .equals(connection.const('2024.01', CustomComparableType.of<string, 'Calver'>('Calver')))
-    void connection.const('stable', CustomEqualableType.of<string, 'ReleaseChannel'>('ReleaseChannel'))
+        .equals(connection.const('2024.01', CalverType))
+    void connection.const('stable', ReleaseChannelType)
         // @ts-expect-error custom 'ReleaseChannel' is not equals-comparable with custom 'Tier'
-        .equals(connection.const('gold', CustomEqualableType.of<string, 'Tier'>('Tier')))
-    void connection.const(new Date(), CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+        .equals(connection.const('gold', TierType))
+    void connection.const(new Date(), ReleaseDayType)
         // @ts-expect-error customLocalDate 'ReleaseDay' is not equals-comparable with customLocalDate 'SprintDay'
-        .equals(connection.const(new Date(), CustomLocalDateType.of<Date, 'SprintDay'>('SprintDay')))
-    void connection.const(new Date(), CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'))
+        .equals(connection.const(new Date(), SprintDayType))
+    void connection.const(new Date(), CutoffClockType)
         // @ts-expect-error customLocalTime 'CutoffClock' is not equals-comparable with customLocalTime 'ShiftClock'
-        .equals(connection.const(new Date(), CustomLocalTimeType.of<Date, 'ShiftClock'>('ShiftClock')))
-    void connection.const(new Date(), CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'))
+        .equals(connection.const(new Date(), ShiftClockType))
+    void connection.const(new Date(), SignOffStampType)
         // @ts-expect-error customLocalDateTime 'SignOffStamp' is not equals-comparable with customLocalDateTime 'PublishStamp'
-        .equals(connection.const(new Date(), CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp')))
+        .equals(connection.const(new Date(), PublishStampType))
 
     // Positive control: the SAME brand on the same kind IS equals-comparable and
     // must keep compiling — proves the brand lock is not over-broad.
-    void connection.const(7, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag'))
-        .equals(connection.const(5, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag')))
+    void connection.const(7, ReleaseTagType)
+        .equals(connection.const(5, ReleaseTagType))
     // Rule: Oracle's recursive CTE only supports UNION ALL, so the DISTINCT
     // `recursiveUnion` / `recursiveUnionOn` are typed `never` on this dialect — only the
     // `*All` variants are reachable.

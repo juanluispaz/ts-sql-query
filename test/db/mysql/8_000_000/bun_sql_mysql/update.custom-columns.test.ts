@@ -8,7 +8,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tCountry, tIssueWorklog, tProjectRelease, tProjectReview, tReleaseDraft } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomComparableType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
 
 // tIssueWorklog is referenced only by the commented-out test below.
 void tIssueWorklog
@@ -26,7 +29,7 @@ describe(ctx.label, () => {
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
             const updated = await ctx.conn.update(tProjectRelease)
-                .set({ version: ctx.conn.const('1.2.1', CustomComparableType.of<string, 'Semver'>('Semver')) })
+                .set({ version: ctx.conn.const('1.2.1', SemverType) })
                 .where(tProjectRelease.id.equals(1))
                 .executeUpdate()
 

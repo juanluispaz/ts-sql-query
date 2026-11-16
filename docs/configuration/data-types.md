@@ -22,17 +22,7 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `localDate`                     | `Date`               | Date without time                                                 |
 | `localTime`                     | `Date`               | Time without date                                                 |
 | `localDateTime`                 | `Date`               | Date with time                                                    |
-| `CustomIntType.of(...)`         | *custom*             | Your type, with the operations of `int`                           |
-| `CustomBigintType.of(...)`      | *custom*             | Your type, with the operations of `bigint`                        |
-| `CustomDoubleType.of(...)`      | *custom*             | Your type, with the operations of `double`                        |
-| `CustomDecimalType.of(...)`     | *custom*             | Your type: an exact decimal number, sent and read as its text      |
-| `CustomUuidType.of(...)`        | *custom*             | Your type, with the operations of `uuid`                          |
-| `CustomLocalDateType.of(...)`   | *custom*             | Your type, with the operations of `localDate`                     |
-| `CustomLocalTimeType.of(...)`   | *custom*             | Your type, with the operations of `localTime`                     |
-| `CustomLocalDateTimeType.of(...)`| *custom*             | Your type, with the operations of `localDateTime`                 |
-| `EnumType.of(...)`              | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
-| `CustomEqualableType.of(...)`   | *custom*             | Your type: can be compared for equality, like `equals` and `in`   |
-| `CustomComparableType.of(...)`  | *custom*             | Your type: also can be ordered, like `lessThan` and `between`     |
+| A class of yours                | *yours*              | Your type, with the operations of the family it extends: see [Your own types](#your-own-types) |
 
 A column is defined with these types as follows, and each method of [Kinds of columns](mapping.md#kinds-of-columns) takes them in the same way:
 
@@ -48,34 +38,29 @@ this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
 this.column('ColumnName', MyIntDataType)
-this.column('ColumnName', MyBigintDataType)
-this.column('ColumnName', MyDoubleDataType)
-this.column('ColumnName', MyDecimalDataType)
-this.column('ColumnName', MyUuidDataType)
-this.column('ColumnName', MyDateDataType)
-this.column('ColumnName', MyTimeDataType)
-this.column('ColumnName', MyDateTimeDataType)
 this.column('ColumnName', MyEnumDataType)
-this.column('ColumnName', MyCustomDataType)
-this.column('ColumnName', MyCustomComparableDataType)
 ```
 
-A custom type is a class, made once with the `of` of its family and used wherever a value of that type goes: in each column, [constant](../queries/basic-query-structure.md), [SQL fragment](../queries/sql-fragments.md) and argument of a fragment. `of` takes two generic arguments, your TypeScript type and its type name, and the type name again as its argument:
+A type of yours is a class that extends the family of what its values can do, declared once and used wherever a value of that type goes: in each column, [constant](../queries/basic-query-structure.md), [SQL fragment](../queries/sql-fragments.md) and argument of a fragment. The family takes two generic arguments, your TypeScript type and its type name, and the class says the type name again in `type`:
 
 ```typescriptreact
-import { CustomIntType, EnumType } from 'ts-sql-query'
+import { IntegersType, EnumType } from 'ts-sql-query'
 
-const MyIntDataType = CustomIntType.of<MyIntType, 'MyIntTypeName'>('MyIntTypeName')
-const MyEnumDataType = EnumType.of<MyEnumType, 'MyEnumTypeName'>('MyEnumTypeName')
+abstract class MyIntDataType extends IntegersType<MyIntType, 'MyIntTypeName'> {
+    static override readonly type = 'MyIntTypeName'
+}
+abstract class MyEnumDataType extends EnumType<MyEnumType, 'MyEnumTypeName'> {
+    static override readonly type = 'MyEnumTypeName'
+}
 ```
 
-Calling `of` again with the same type name gives the same class, so a module can make it where it uses it.
+The type name in the generic is the one TypeScript uses; `type` is the one the library uses when the query runs: in the messages of the errors, in `typesByName` of a query runner and in what a [type adapter](../advanced/type-adapters.md) receives. Without `type`, it's the name of the class (`MyIntDataType`). The class is `abstract`, as its family is. Declare it once and import it where you use it: each declaration is a class of its own, and `is` says yes only to the values of its own class.
 
 The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name. Two classes with the same type name and different TypeScript types are a mistake that nothing detects: give each type a name of its own.
 
-The built-in types have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families of the custom types. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
+The built-in types have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
 
-Each of these classes has a type guard, `is`, that says whether a value source, like a column or an expression, is of its type: `MyIntDataType.is(value)`. A class with more than one type, like a family, says yes to any of its types: `CustomIntType.is(value)` is true for every `customInt`. A condition made by an `*IfValue` method is a `boolean` there. The value source keeps its source and its optionality: from a union of value sources, `is` leaves the ones of its type, and a value source of a wider type, like a `NumberType` asked with `IntType.is`, becomes one of the type asked. A value that may not be a value source is asked with `instanceof` (`value instanceof IntType`), which says only its class.
+Each of these classes has a type guard, `is`, that says whether a value source, like a column or an expression, is of its type: `MyIntDataType.is(value)`. A class with more than one type, like a family, says yes to any of its types: `IntegersType.is(value)` is true for a `bigint` and for every integer of yours. A condition made by an `*IfValue` method is a `boolean` there. The value source keeps its source and its optionality: from a union of value sources, `is` leaves the ones of its type, and a value source of a wider type, like a `NumberType` asked with `IntType.is`, becomes one of the type asked. A value that may not be a value source is asked with `instanceof` (`value instanceof IntType`), which says only its class.
 
 !!! tip "Generating UUIDs"
 
@@ -95,7 +80,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
 | A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
-| The same, with your own type for it, like the one of a decimal library | `CustomDecimalType` | `customDecimal` | Your type, with a [conversion](#custom-types) from and to the text of the number. |
+| The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType` | Your type, with a [conversion](#your-own-types) from and to the text of the number. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
@@ -103,67 +88,88 @@ Choose by the values your code handles, not only by the type of the column in th
 | A time with no date, like an opening time | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
 | A date with time, like the moment something happened | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
 | One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
-| A value your code gives a type of its own, like an id with a TypeScript brand | The `custom...` type with the operations it needs | It's converted as the built-in type its [custom type](#custom-types) is based on, like a `customInt` as an `int`. |
-| A value that only your code understands, like a JSON document | `custom`, or `customComparable` if the database can order it | With the [conversion registered](#custom-types). |
+| A value your code gives a type of its own, like an id with a TypeScript brand | A class of the [family](#your-own-types) with the operations it needs | It's converted as its family says, like an `IntegersType` as an `int`. |
+| A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](#your-own-types). |
 
 On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#working-with-date-and-time), the default, a `localTime` and a `localDateTime` hold the stored text in their local getters instead: see [Time zones](time-zones.md#the-rule-every-value-in-the-database-is-in-utc).
 
-## Custom types
+## Your own types
 
-A custom type gives a column your own TypeScript type, and its type name (the one given to `of`, like `'Cents'`) identifies it. The family whose `of` made it is which custom type it is, a `CustomType` (`customInt`, `customBigint`, `customDouble`, `customDecimal`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`, `enum`, `custom` or `customComparable`): it says which operations the column offers in a query, and how its values are converted. A [type adapter](../advanced/type-adapters.md) receives the class of the type, with its type name in `type` and which custom type it is in `customType`.
+A type of yours gives a column your own TypeScript type, and its type name identifies it. The family its class extends says which operations the column offers in a query, its type in the database (its [SQL data type](../advanced/sql-data-types.md)), and how its values are converted:
 
-| Family | Custom type | Its values are converted as |
+| Family | What its values can do | Its values are converted as |
 |---|---|---|
-| `CustomIntType` | `customInt` | `int` |
-| `CustomBigintType` | `customBigint` | `bigint` |
-| `CustomDoubleType` | `customDouble` | `double` |
-| `customDecimal` | A decimal number as text: see [Exact decimals](#exact-decimals) |
-| `CustomUuidType` | `customUuid` | `uuid` |
-| `CustomLocalDateType` | `customLocalDate` | `localDate` |
-| `CustomLocalTimeType` | `customLocalTime` | `localTime` |
-| `CustomLocalDateTimeType` | `customLocalDateTime` | `localDateTime` |
-| `EnumType`, `CustomEqualableType` and `CustomComparableType` | `enum`, `custom` and `customComparable` | Not converted: the value is returned as it comes |
+| `IntegersType` | An integer: added, subtracted, multiplied, compared | An `int`, or a `bigint` when its SQL data type doesn't fit in a `number` (see below) |
+| `DecimalsType` | An exact decimal: also rounded; what can't be exact gives a `double` | A decimal number as text: see [Exact decimals](#exact-decimals) |
+| `RealsType` | A floating point number: also divided and rounded, with the mathematical functions | `double` |
+| `AdditiveType` | A number only added and subtracted, like a sum of money | Not converted |
+| `MultipliableType` | Also multiplied | Not converted |
+| `DivisibleType` | Also divided | Not converted |
+| `UuidsType` | A UUID | `uuid` |
+| `LocalDatesType`, `LocalTimesType`, `LocalDateTimesType` | A date, a time, both | `localDate`, `localTime`, `localDateTime` |
+| `EnumType` | One of a list of values, compared for equality | Not converted |
+| `EqualableType` | Compared for equality | Not converted |
+| `ComparableType` | Also ordered, like `lessThan` and `between` | Not converted |
 
-The custom type decides, whatever the name you give it: a `customLocalDate` named `'localDateTime'` is converted as a `localDate`.
+A type of yours works only with values of its own type: `add`, `equals`, `minValue` and the rest take and give that type.
 
 So an int with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
 
 ```typescriptreact
 type Cents = number & { readonly __brand: 'Cents' }
 
-const CentsType = CustomIntType.of<Cents, 'Cents'>('Cents')
+abstract class CentsType extends IntegersType<Cents, 'Cents'> {
+    static override readonly type = 'Cents'
+}
 
 costCents = this.column('cost_cents', CentsType)
 ```
 
+An integer of yours is an `int` of 4 bytes. Its class says another size with its SQL data type, and the size decides the value in your code: one that fits in a `number` (up to 6 bytes, or 15 digits) is a `number`, and a wider one a `bigint`, which keeps every digit:
+
+```typescriptreact
+type Downloads = bigint & { readonly __brand: 'Downloads' }
+
+abstract class DownloadsType extends IntegersType<Downloads, 'Downloads'> {
+    static override readonly type = 'Downloads'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
+}
+```
+
+The TypeScript type has to be the one of that value: a `bigint` for an integer wider than a `number`.
+
 !!! important
 
-    Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on, like a `customDouble` kept as text. Without it, an `enum`, a `custom` or a `customComparable` is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
+    Register the conversion of a type whose family doesn't convert it (`AdditiveType`, `MultipliableType`, `DivisibleType`, `EnumType`, `EqualableType` and `ComparableType`), and of a type whose values in your code aren't those its family converts, like a floating point number kept as text. Without it, such a value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The conversion is written in the connection, so it applies everywhere that type is used, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md), which also covers how to send a value of a custom type with another SQL type, like a `customDouble` kept as text.
+The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md), which also covers how to send a value of your type with another SQL type, like a floating point number kept as text.
+
+The custom types made with `of` (`CustomIntType.of<Cents, 'Cents'>('Cents')`, …) are classes of these families too; a class that extends the family replaces them.
 
 ## Exact decimals
 
 JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:
 
 - `stringDecimal`: the value is a `string`. Choose it when a string is enough in your code.
-- `customDecimal`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](../advanced/type-adapters.md).
+- A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](../advanced/type-adapters.md).
 
 ```typescriptreact
 amount = this.optionalColumn('amount', 'stringDecimal')
 
 type Amount = string & { readonly __brand: 'Amount' }
-const AmountType = CustomDecimalType.of<Amount, 'Amount'>('Amount')
+abstract class AmountType extends DecimalsType<Amount, 'Amount'> {
+    static override readonly type = 'Amount'
+}
 price = this.optionalColumn('price', AmountType)
 ```
 
-A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, and a `customDecimal` only with values of its own type, so the two don't mix.
+A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, and a decimal of yours only with values of its own type, so the two don't mix.
 
 The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A text read from the database is returned as it comes, with a `0` added before a leading point (`.5` is `'0.5'`).
 
-The operations that keep the value exact return the same type, `stringDecimal` or `customDecimal`: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
+The operations that keep the value exact return the same type, `stringDecimal` or yours: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
 
-A query with a `customDecimal` column, here `tExactAmount` with `amount` as a `decimal(38, 10)` and `price` as a `decimal(10, 2)`:
+A query with a decimal column of yours, here `tExactAmount` with `amount` as a `decimal(38, 10)` and `price` as a `decimal(10, 2)`:
 
 ```ts
 const rows = await connection.selectFrom(tExactAmount)
@@ -272,7 +278,7 @@ Oracle's numbers keep 38 significant digits: a computation with a value of more 
 
 Oracle reads the text with a point as the decimal separator, the one the library always sends. A session that uses another separator (`NLS_NUMERIC_CHARACTERS`) rejects the value with `ORA-01722`.
 
-SQLite has no exact decimal type, and a column declared `decimal` turns the text into a floating point number when it stores it: store a `customDecimal` in a `TEXT` column of a `STRICT` table. How the library computes and compares it is the decimal strategy of the connection, and every strategy is exact or rejects the query. By default it writes the functions of SQLite's decimal extension, plain SQL and a few functions of the library, which you register in the connection of the driver, and it stores and reads every value in its canonical text (`1.50` as `1.5`), which compares as text. See [Exact decimals: the decimal strategies](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies), and [SQLite functions and extensions](supported-databases/sqlite-extensions.md) for registering those functions or loading SQLite's extension.
+SQLite has no exact decimal type, and a column declared `decimal` turns the text into a floating point number when it stores it: store an exact decimal in a `TEXT` column of a `STRICT` table. How the library computes and compares it is the decimal strategy of the connection, and every strategy is exact or rejects the query. By default it writes the functions of SQLite's decimal extension, plain SQL and a few functions of the library, which you register in the connection of the driver, and it stores and reads every value in its canonical text (`1.50` as `1.5`), which compares as text. See [Exact decimals: the decimal strategies](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies), and [SQLite functions and extensions](supported-databases/sqlite-extensions.md) for registering those functions or loading SQLite's extension.
 
 ## How a value is sent to the database
 
@@ -294,7 +300,7 @@ Each parameter of a query goes with its type, the one requested for it: by defau
 
 PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these types is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
 
-So the type also says how big the value can be in the database: a `customInt` is a 32-bit integer, like an `int`, and a value of your own type that needs 64 bits goes in a `customBigint`; a `customDouble` is a floating point number, and an exact decimal is a [`customDecimal`](#exact-decimals).
+So the type also says how big the value can be in the database: an integer of yours is a 32-bit integer, like an `int`, unless its class says another SQL data type, like 64 bits; a `RealsType` is a floating point number, and an exact decimal a [`DecimalsType`](#exact-decimals).
 
 The `typesByName` option of the query runners of PostgreSQL, SQL Server and Oracle sends the parameters of a type name, the name of the type requested for them, with the type you declare instead; each query runner's page has its shape. For what the type of the column in the database already says, declare that type instead (next section).
 

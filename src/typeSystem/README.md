@@ -172,7 +172,9 @@ A data type of the user extends the family of what its values can do, with its t
 convention, in its static `type`: `class MoneyType extends AdditiveType<Money, 'Money'> { static override readonly type
 = 'Money' }`. The family gives it its methods, its SQL data type (`IntegersType` an int of 4 bytes, `DecimalsType` an
 exact number, `RealsType` a double, `UuidsType` and the dates theirs; the others none) and how the connection converts
-its values (the family it extends, by `instanceof`, in `dataTypeQuestions.ts`). Outside the group number, a data type
+its values (the family it extends, by `instanceof`, in `dataTypeQuestions.ts`; an integer is a `number` when the SQL
+data type of its class fits in one, up to 6 bytes or 15 digits, and a `bigint` otherwise: what its values are says how
+they are kept in JavaScript, so a class of the user says 8 bytes to have a `bigint`). Outside the group number, a data type
 works only with itself: what it takes and what it gives is its data type (the exceptions: `sign` gives an int, an
 exact decimal gives a double for what can't be exact, and the number of decimals of `roundn` is a number). The custom
 data types (`CustomIntType`, ...) are subclasses of these families that keep their `of` and `customType` until they go.

@@ -623,7 +623,7 @@ Compared with a view:
 
 Every database can use it in a select. What changes between them:
 
-- **PostgreSQL**: the values are written with a cast, so [your custom types need a valid one](data-types.md#custom-types).
+- **PostgreSQL**: the values are written with a cast, so [your custom types need a valid one](data-types.md#your-own-types).
 - **MySQL**: it needs MySQL 8.0.19. With a `compatibilityVersion` below `8_000_000`, [the query is rejected](supported-databases/mysql.md#compatibility-version).
 - **Oracle**: below `compatibilityVersion` `23_004_000`, it's written with `select ... from dual union all` instead of `values`. In the `from` of an update and the `using` of a delete, the database rejects it.
 - **MariaDB and MySQL**: in an update or a delete, they use their multi-table forms. On MariaDB that needs MariaDB 12.3, and [with Bun SQL it can't be used](query-runners/recommended/bun_sql_mysql.md).

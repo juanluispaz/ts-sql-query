@@ -21,7 +21,11 @@ import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, Ty
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDecimalType, CustomUuidType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, UuidsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class AmountType extends DecimalsType<Amount, 'Amount'> { static override readonly type = 'Amount' }
+abstract class IssueRefType extends UuidsType<IssueRef, 'IssueRef'> { static override readonly type = 'IssueRef' }
 
 type IssueRef = string & { readonly __brand: 'IssueRef' }
 type Amount = string & { readonly __brand: 'Amount' }
@@ -64,7 +68,7 @@ const markedAmount: TypeAdapter = {
 
 const tMarkedAmount = new class TMarkedAmount extends Table<DBConnection, 'TMarkedAmount'> {
     id    = this.primaryKey('id', 'int')
-    price = this.optionalColumn('price', CustomDecimalType.of<Amount, 'Amount'>('Amount'), markedAmount)
+    price = this.optionalColumn('price', AmountType, markedAmount)
     constructor() { super('exact_amount') }
 }()
 
@@ -74,7 +78,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     function issueRefOf(conn: DBConnection) {
-        return conn.fragmentWithType(CustomUuidType.of<IssueRef, 'IssueRef'>('IssueRef'), 'required', upperUuid).sql`uuid_blob(${tIssue.externalRef})`
+        return conn.fragmentWithType(IssueRefType, 'required', upperUuid).sql`uuid_blob(${tIssue.externalRef})`
     }
 
     test('transform-projection-decoded/uuid: the adapter wraps the uuid read with uuid_str in a column of the result', async () => {
@@ -189,7 +193,7 @@ describe(ctx.label, () => {
 
     test('transform-projection-decoded/decimal: the adapter wraps the canonical text of a computed customDecimal in a column of the result', async () => {
         // The fragment gives 1.50 and 00, read in their canonical text 1.5 and 0
-        const padded = ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'optional', markedAmount).sql`${tMarkedAmount.price} || '0'`
+        const padded = ctx.conn.fragmentWithType(AmountType, 'optional', markedAmount).sql`${tMarkedAmount.price} || '0'`
         ctx.mockNext([
             { id: 1, price: '#1.5', padded: '#1.5' },
             { id: 3, price: '#0', padded: '#0' },
@@ -222,7 +226,7 @@ describe(ctx.label, () => {
     })
 
     test('transform-projection-decoded/decimal: the adapter wraps the canonical text of a computed customDecimal inside an aggregated array', async () => {
-        const padded = ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'optional', markedAmount).sql`${tMarkedAmount.price} || '0'`
+        const padded = ctx.conn.fragmentWithType(AmountType, 'optional', markedAmount).sql`${tMarkedAmount.price} || '0'`
         ctx.mockNext({
             prices:  ['#1.5', '#0', '#0'],
             amounts: [

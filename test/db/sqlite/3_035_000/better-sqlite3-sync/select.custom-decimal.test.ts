@@ -12,14 +12,17 @@ import type { CustomDecimalFilter, DynamicCondition } from '../../../../../src/d
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import { CustomDecimalType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class AmountType extends DecimalsType<Amount, 'Amount'> { static override readonly type = 'Amount' }
 
 type Amount = string & { readonly __brand: 'Amount' }
 
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id     = this.primaryKey('id', 'int')
-    amount = this.optionalColumn('amount', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
-    price  = this.optionalColumn('price', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
+    amount = this.optionalColumn('amount', AmountType)
+    price  = this.optionalColumn('price', AmountType)
     constructor() { super('exact_amount') }
 }()
 
@@ -73,10 +76,10 @@ describe(ctx.label, () => {
           ]
         `)
         const params = ctx.lastParams
-        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.customType])).toEqual([
-            ['Amount', 'customDecimal'],
-            ['Amount', 'customDecimal'],
-            ['Amount', 'customDecimal'],
+        expect(params.map((_value, index) => getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type)).toEqual([
+            'Amount',
+            'Amount',
+            'Amount',
         ])
         assertType<Exact<typeof ids, number[]>>()
         expect(ids).toEqual([2, 1, 5])
@@ -347,14 +350,15 @@ describe(ctx.label, () => {
     test('custom-decimal/a-value-wider-than-the-decimals-of-the-database', async () => {
         // 65 digits before the point and one after, which the text and the functions of the decimal strategy keep
         const wide = '12345678901234567890123456789012345678901234567890123456789012345.5' as Amount
+        abstract class AmountDecimalsType extends DecimalsType<typeof wide, 'Amount'> { static override readonly type = 'Amount' }
         ctx.mockNext(wide)
         ctx.mockNext('12345678901234567890123456789012345678901234567890123456789012346')
         ctx.mockNext(1)
         const outcomes: (Amount | number | TsSqlErrorReason | { reason: string, errorType: string | undefined } | undefined)[] = []
         await ctx.withRollback(async () => {
             for (const query of [
-                () => sync(ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, CustomDecimalType.of<typeof wide, 'Amount'>('Amount'))).executeSelectOne()),
-                () => sync(ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, CustomDecimalType.of<typeof wide, 'Amount'>('Amount')).add('0.5' as Amount)).executeSelectOne()),
+                () => sync(ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, AmountDecimalsType)).executeSelectOne()),
+                () => sync(ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, AmountDecimalsType).add('0.5' as Amount)).executeSelectOne()),
                 () => sync(ctx.conn.insertInto(tExactAmount).set({ id: 6, amount: wide }).executeInsert()),
             ]) {
                 try {
@@ -489,7 +493,7 @@ describe(ctx.label, () => {
         let withExponent: unknown
         try {
             sync(ctx.conn.selectFromNoTable()
-                .select({ value: ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'required').sql`'1e3'` })
+                .select({ value: ctx.conn.fragmentWithType(AmountType, 'required').sql`'1e3'` })
                 .executeSelectOne())
         } catch (e) {
             withExponent = e
@@ -497,7 +501,7 @@ describe(ctx.label, () => {
         let aNumber: unknown
         try {
             sync(ctx.conn.selectFromNoTable()
-                .select({ value: ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'required').sql`1.5e0` })
+                .select({ value: ctx.conn.fragmentWithType(AmountType, 'required').sql`1.5e0` })
                 .executeSelectOne())
         } catch (e) {
             aNumber = e

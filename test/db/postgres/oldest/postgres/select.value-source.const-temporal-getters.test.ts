@@ -14,7 +14,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssueWorklog, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomLocalDateType } from '../../../../../src/exports/v2/index.js'
+import { LocalDatesType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -530,7 +533,7 @@ describe(ctx.label, () => {
         const d = new Date('2024-02-20T00:00:00Z')
         ctx.mockNext(2024)
         const year = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(d, CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay')).getFullYear())
+            .selectOneColumn(ctx.conn.const(d, ReleaseDayType).getFullYear())
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from $1) as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

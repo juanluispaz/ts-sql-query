@@ -16,7 +16,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomEqualableType, CustomIntType } from '../../../../../src/exports/v2/index.js'
+import { EqualableType, IntegersType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ScoreCountType extends IntegersType<number, 'ScoreCount'> { static override readonly type = 'ScoreCount' }
+abstract class MyEqualableType extends EqualableType<string, 'MyType'> { static override readonly type = 'MyType' }
 
 function reasonOf(e: unknown): string | undefined {
     if (e instanceof TsSqlError) return e.errorReason.reason
@@ -70,13 +74,13 @@ describe(ctx.label, () => {
         // The string-`typeName` overload of `optionalConst` (custom typed
         // value source). Purely client-side: the type name does not change
         // emitted SQL, and the literal reads back unchanged.
-        const value = ctx.conn.optionalConst(7, CustomIntType.of<number, 'ScoreCount'>('ScoreCount'))
+        const value = ctx.conn.optionalConst(7, ScoreCountType)
         expect(value.isConstValue()).toBe(true)
         expect(value.getConstValue()).toBe(7)
     })
 
     test('optional-const-custom-type-null-is-const-null', () => {
-        const value = ctx.conn.optionalConst(null, CustomEqualableType.of('MyType'))
+        const value = ctx.conn.optionalConst(null, MyEqualableType)
         expect(value.isConstValue()).toBe(true)
         expect(value.getConstValue()).toBe(null)
     })

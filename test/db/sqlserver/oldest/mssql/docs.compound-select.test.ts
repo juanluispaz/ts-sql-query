@@ -6,6 +6,9 @@ import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
 
+// The data types of the values of the user, each one a class of the family of its values
+abstract class OrgOrProjectType extends EnumType<'organization' | 'project', 'orgOrProject'> { static override readonly type = 'orgOrProject' }
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -30,13 +33,13 @@ describe(ctx.label, () => {
             .select({
                 id:   tOrganization.id,
                 name: tOrganization.name,
-                kind: connection.const('organization', EnumType.of<'organization' | 'project', 'orgOrProject'>('orgOrProject')),
+                kind: connection.const('organization', OrgOrProjectType),
             }).unionAll(
                 connection.selectFrom(tProject)
                 .select({
                     id:   tProject.id,
                     name: tProject.name,
-                    kind: connection.const('project', EnumType.of<'organization' | 'project', 'orgOrProject'>('orgOrProject')),
+                    kind: connection.const('project', OrgOrProjectType),
                 }),
             ).executeSelectMany()
         // doc-end

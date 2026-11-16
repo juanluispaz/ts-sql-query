@@ -14,7 +14,7 @@ import { sync } from '../../../../../src/extras/sync.js'
 
 // A type shown by its name, and a custom one with its custom type: `int`, `Money (customInt)`
 function typeLabel(type: QueryResultColumn['originalType']): string {
-    return type.customType === undefined ? type.type : type.type + ' (' + type.customType + ')'
+    return type.type
 }
 
 // A result column with its types shown by typeLabel
@@ -106,62 +106,62 @@ describe(ctx.label, () => {
             },
             {
               "name": "cents",
-              "originalType": "Cents (customInt)",
+              "originalType": "Cents",
               "path": "cents",
-              "requestedType": "Cents (customInt)",
+              "requestedType": "Cents",
             },
             {
               "name": "money",
-              "originalType": "Money (customDouble)",
+              "originalType": "Money",
               "path": "money",
-              "requestedType": "Money (customDouble)",
+              "requestedType": "Money",
             },
             {
               "name": "signingKey",
-              "originalType": "SigningKey (customUuid)",
+              "originalType": "SigningKey",
               "path": "signingKey",
-              "requestedType": "SigningKey (customUuid)",
+              "requestedType": "SigningKey",
             },
             {
               "name": "semver",
-              "originalType": "Semver (customComparable)",
+              "originalType": "Semver",
               "path": "semver",
-              "requestedType": "Semver (customComparable)",
+              "requestedType": "Semver",
             },
             {
               "name": "channel",
-              "originalType": "ReleaseChannel (custom)",
+              "originalType": "ReleaseChannel",
               "path": "channel",
-              "requestedType": "ReleaseChannel (custom)",
+              "requestedType": "ReleaseChannel",
             },
             {
               "name": "releaseDay",
-              "originalType": "ReleaseDay (customLocalDate)",
+              "originalType": "ReleaseDay",
               "path": "releaseDay",
-              "requestedType": "ReleaseDay (customLocalDate)",
+              "requestedType": "ReleaseDay",
             },
             {
               "name": "cutoffClock",
-              "originalType": "CutoffClock (customLocalTime)",
+              "originalType": "CutoffClock",
               "path": "cutoffClock",
-              "requestedType": "CutoffClock (customLocalTime)",
+              "requestedType": "CutoffClock",
             },
             {
               "name": "signOff",
-              "originalType": "SignOffStamp (customLocalDateTime)",
+              "originalType": "SignOffStamp",
               "path": "signOff",
-              "requestedType": "SignOffStamp (customLocalDateTime)",
+              "requestedType": "SignOffStamp",
             },
             {
               "name": "activity",
-              "originalType": "WorklogActivity (enum)",
+              "originalType": "WorklogActivity",
               "path": "activity",
-              "requestedType": "WorklogActivity (enum)",
+              "requestedType": "WorklogActivity",
             },
           ]
         `)
         const money = getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('money')
-        expect(money && { ...money, originalType: typeLabel(money.originalType), requestedType: typeLabel(money.requestedType) }).toEqual({ name: 'money', path: 'money', originalType: 'Money (customDouble)', requestedType: 'Money (customDouble)' })
+        expect(money && { ...money, originalType: typeLabel(money.originalType), requestedType: typeLabel(money.requestedType) }).toEqual({ name: 'money', path: 'money', originalType: 'Money', requestedType: 'Money' })
         expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('unknown')).toBeUndefined()
         // Hidden: the params list only the values sent to the database
         expect(Object.keys(ctx.lastParams)).toEqual(['0'])

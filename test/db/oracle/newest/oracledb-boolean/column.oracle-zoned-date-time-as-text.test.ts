@@ -15,7 +15,10 @@ import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, Ty
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomComparableType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ZonedDateTimeType extends ComparableType<ZonedDateTime, 'ZonedDateTime'> { static override readonly type = 'ZonedDateTime' }
 
 // A date and time with the zone it was written with, as text, like '2024-07-01T10:30:15.123456000+09:00'
 type ZonedDateTime = string
@@ -67,8 +70,8 @@ function instantOf(text: ZonedDateTime): number {
 
 const tFlightLeg = new class TFlightLeg extends Table<DBConnection, 'TFlightLeg'> {
     id        = this.primaryKey('id', 'int')
-    departsAt = this.column('departs_at', CustomComparableType.of<ZonedDateTime, 'ZonedDateTime'>('ZonedDateTime'), new ZonedDateTimeAsTextTypeAdapter('TZH:TZM'))
-    arrivesAt = this.optionalColumn('arrives_at', CustomComparableType.of<ZonedDateTime, 'ZonedDateTime'>('ZonedDateTime'), new ZonedDateTimeAsTextTypeAdapter(' TZR'))
+    departsAt = this.column('departs_at', ZonedDateTimeType, new ZonedDateTimeAsTextTypeAdapter('TZH:TZM'))
+    arrivesAt = this.optionalColumn('arrives_at', ZonedDateTimeType, new ZonedDateTimeAsTextTypeAdapter(' TZR'))
     constructor() { super('flight_leg') }
 }()
 

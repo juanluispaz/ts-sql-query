@@ -80,7 +80,12 @@ import postgres from 'postgres'
 import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQueryRunner.js'
 
 import { TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
-import { CustomDecimalType, CustomLocalDateType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { EnumType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, LocalDatesType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class BirthdayType extends LocalDatesType<Date, 'Birthday'> { static override readonly type = 'Birthday' }
+abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
 
 const SQL = null as any
 // Bun types are not loaded here: the Bun SQL examples use these
@@ -201,7 +206,7 @@ class DayAsTextTypeAdapter implements TypeAdapter {
 
 const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
     id = this.primaryKey('id', 'int')
-    birthday = this.optionalColumn('birthday', CustomLocalDateType.of<Date, 'Birthday'>('Birthday'), new DayAsTextTypeAdapter())
+    birthday = this.optionalColumn('birthday', BirthdayType, new DayAsTextTypeAdapter())
     companyId = this.column('company_id', 'int')
     constructor() {
         super('customer')
@@ -283,8 +288,8 @@ void [emailService, fileStorage, customerCache, outboxRelay, logger, jobQueue, r
 // A decimal number kept exact as its text (docs/configuration/data-types.md, Exact decimals)
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id = this.primaryKey('id', 'int')
-    amount = this.optionalColumn('amount', CustomDecimalType.of<string, 'Amount'>('Amount'))
-    price = this.optionalColumn('price', CustomDecimalType.of<string, 'Amount'>('Amount'))
+    amount = this.optionalColumn('amount', AmountType)
+    price = this.optionalColumn('price', AmountType)
     constructor() {
         super('exact_amount')
     }

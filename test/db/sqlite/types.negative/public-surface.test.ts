@@ -17,6 +17,10 @@ import type * as BetterSqlite3QueryRunnerModule from '../../../../src/queryRunne
 import type * as Sqlite3WasmOO1QueryRunnerModule from '../../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
 import type { Database as Sqlite3WasmDatabase } from '@sqlite.org/sqlite-wasm'
 import { tCountry } from '../domain/connection.js'
+import { LocalDatesType } from '../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
 
 // Never called: it only has to compile, so the modules of the query runners come as parameters and nothing is loaded
 function _typeNegatives(betterSqlite3: typeof BetterSqlite3QueryRunnerModule, sqlite3WasmOO1: typeof Sqlite3WasmOO1QueryRunnerModule, wasmDb: Sqlite3WasmDatabase) {
@@ -99,7 +103,7 @@ function _typeNegatives(betterSqlite3: typeof BetterSqlite3QueryRunnerModule, sq
             return next.transformValueFromDB(value, context)
         },
         transformValueToDB(value, context, next) {
-            context.setRequestedType(root.CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+            context.setRequestedType(ReleaseDayType)
             context.resetRequestedType()
             // @ts-expect-error the original type is read-only
             context.originalType = root.StringType

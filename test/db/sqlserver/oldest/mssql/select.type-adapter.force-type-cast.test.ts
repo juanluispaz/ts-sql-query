@@ -21,7 +21,11 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection, tProject, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { CustomDoubleType, CustomIntType } from '../../../../../src/exports/v2/index.js'
+import { IntegersType, RealsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ViewCountType extends IntegersType<number, 'ViewCount'> { static override readonly type = 'ViewCount' }
+abstract class EstimatedHoursType extends RealsType<number, 'EstimatedHours'> { static override readonly type = 'EstimatedHours' }
 
 // A single ForceTypeCast instance is stateless (it only flips the
 // force-cast flag), so the same adapter can back every column.
@@ -39,8 +43,8 @@ const tProjectForcedCast = new class TProjectForcedCast extends Table<DBConnecti
 const tIssueForcedCast = new class TIssueForcedCast extends Table<DBConnection, 'TIssueForcedCast'> {
     id             = this.column('id', 'int')
     title          = this.column('title', 'string')
-    viewCount      = this.column('view_count', CustomIntType.of<number, 'ViewCount'>('ViewCount'), forceCast)
-    estimatedHours = this.optionalColumn('estimated_hours', CustomDoubleType.of<number, 'EstimatedHours'>('EstimatedHours'), forceCast)
+    viewCount      = this.column('view_count', ViewCountType, forceCast)
+    estimatedHours = this.optionalColumn('estimated_hours', EstimatedHoursType, forceCast)
     constructor() { super('issue') }
 }()
 

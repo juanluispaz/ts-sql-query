@@ -67,6 +67,23 @@ export {
 } from '../../typeSystem/logical.js'
 
 export {
+    EqualableType,
+} from '../../typeSystem/equalable.js'
+
+export {
+    ComparableType,
+} from '../../typeSystem/comparable.js'
+
+export {
+    AdditiveType,
+    ArithmeticType,
+    DivisibleType,
+    IntegersType,
+    MultipliableType,
+    RealsType,
+} from '../../typeSystem/numeric.js'
+
+export {
     DoubleType,
     IntType,
 } from '../../typeSystem/number.js'
@@ -81,6 +98,7 @@ export {
 } from '../../typeSystem/customNumber.js'
 
 export {
+    DecimalsType,
     StringDecimalType,
 } from '../../typeSystem/decimals.js'
 
@@ -94,6 +112,7 @@ export {
 
 export {
     UuidType,
+    UuidsType,
 } from '../../typeSystem/uuids.js'
 
 export {
@@ -102,8 +121,11 @@ export {
 
 export {
     LocalDateTimeType,
+    LocalDateTimesType,
     LocalDateType,
+    LocalDatesType,
     LocalTimeType,
+    LocalTimesType,
 } from '../../typeSystem/localDates.js'
 
 export {

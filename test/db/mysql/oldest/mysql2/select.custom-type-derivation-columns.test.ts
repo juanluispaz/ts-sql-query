@@ -39,7 +39,11 @@ import {
     vDerivedColumn,
 } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDoubleType, CustomIntType } from '../../../../../src/exports/v2/index.js'
+import { IntegersType, RealsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
+abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
 
 // The same conditional adapter the shared fixtures carry, declared here for the
 // `Values` views below (a `Values` subclass is declared where it is used).
@@ -63,12 +67,12 @@ const scaledByTypeName: TypeAdapter = {
 // a constant VALUES view. The tuple carries cents 5 (bound scaled as 500) and
 // money 1 (bound scaled as 100).
 class VDerivedBilling extends Values<DBConnection, 'derivedBilling'> {
-    cents = this.column(CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
-    money = this.column(CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
+    cents = this.column(CentsType, scaledByTypeName)
+    money = this.column(MoneyType, scaledByTypeName)
 }
 class VDerivedBillingOptional extends Values<DBConnection, 'derivedBillingOpt'> {
-    cents = this.optionalColumn(CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
-    money = this.optionalColumn(CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
+    cents = this.optionalColumn(CentsType, scaledByTypeName)
+    money = this.optionalColumn(MoneyType, scaledByTypeName)
 }
 
 // VDerivedBilling and VDerivedBillingOptional are referenced only by the

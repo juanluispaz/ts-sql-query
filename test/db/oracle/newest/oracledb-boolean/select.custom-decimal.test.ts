@@ -10,14 +10,17 @@ import { TsSqlError, type TsSqlErrorReason } from '../../../../../src/TsSqlError
 import type { CustomDecimalFilter, DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDecimalType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class AmountType extends DecimalsType<Amount, 'Amount'> { static override readonly type = 'Amount' }
 
 type Amount = string & { readonly __brand: 'Amount' }
 
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id     = this.primaryKey('id', 'int')
-    amount = this.optionalColumn('amount', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
-    price  = this.optionalColumn('price', CustomDecimalType.of<Amount, 'Amount'>('Amount'))
+    amount = this.optionalColumn('amount', AmountType)
+    price  = this.optionalColumn('price', AmountType)
     constructor() { super('exact_amount') }
 }()
 
@@ -71,10 +74,10 @@ describe(ctx.label, () => {
           ]
         `)
         const params = ctx.lastParams
-        expect(params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.customType])).toEqual([
-            ['Amount', 'customDecimal'],
-            ['Amount', 'customDecimal'],
-            ['Amount', 'customDecimal'],
+        expect(params.map((_value, index) => getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type)).toEqual([
+            'Amount',
+            'Amount',
+            'Amount',
         ])
         assertType<Exact<typeof ids, number[]>>()
         expect(ids).toEqual([2, 1, 5])
@@ -350,17 +353,19 @@ describe(ctx.label, () => {
         // 65 digits before the point and one after, and a number of the database keeps 38 significant digits: the value
         // is rejected before it is sent. A value of 30 digits alone and added to another one keeps every digit
         const wide = '12345678901234567890123456789012345678901234567890123456789012345.5' as Amount
+        abstract class AmountDecimalsType extends DecimalsType<typeof wide, 'Amount'> { static override readonly type = 'Amount' }
         const fits = '12345678901234567890.1234567891' as Amount
+        abstract class Amount2Type extends DecimalsType<typeof fits, 'Amount'> { static override readonly type = 'Amount' }
         ctx.mockNext(fits)
         ctx.mockNext('12345678901234567890.6234567891')
         const outcomes: (Amount | number | TsSqlErrorReason | { reason: string, errorType: string | undefined } | undefined)[] = []
         await ctx.withRollback(async () => {
             for (const query of [
-                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, CustomDecimalType.of<typeof wide, 'Amount'>('Amount'))).executeSelectOne(),
-                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, CustomDecimalType.of<typeof wide, 'Amount'>('Amount')).add('0.5' as Amount)).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, AmountDecimalsType)).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(wide, AmountDecimalsType).add('0.5' as Amount)).executeSelectOne(),
                 () => ctx.conn.insertInto(tExactAmount).set({ id: 6, amount: wide }).executeInsert(),
-                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, CustomDecimalType.of<typeof fits, 'Amount'>('Amount'))).executeSelectOne(),
-                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, CustomDecimalType.of<typeof fits, 'Amount'>('Amount')).add('0.5' as Amount)).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, Amount2Type)).executeSelectOne(),
+                () => ctx.conn.selectFromNoTable().selectOneColumn(ctx.conn.const(fits, Amount2Type).add('0.5' as Amount)).executeSelectOne(),
             ]) {
                 try {
                     outcomes.push(await query())
@@ -496,13 +501,13 @@ describe(ctx.label, () => {
         let withExponent: unknown
         try {
             await ctx.conn.selectFromNoTable()
-                .select({ value: ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'required').sql`'1e3'` })
+                .select({ value: ctx.conn.fragmentWithType(AmountType, 'required').sql`'1e3'` })
                 .executeSelectOne()
         } catch (e) {
             withExponent = e
         }
         const aNumber = await ctx.conn.selectFromNoTable()
-            .select({ value: ctx.conn.fragmentWithType(CustomDecimalType.of<Amount, 'Amount'>('Amount'), 'required').sql`1.5d` })
+            .select({ value: ctx.conn.fragmentWithType(AmountType, 'required').sql`1.5d` })
             .executeSelectOne()
         expect(withExponent instanceof TsSqlError ? withExponent.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: '1e3', typeName: 'Amount', columnPath: 'value' })
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1.5d as "value" from dual"`)

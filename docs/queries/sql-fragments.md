@@ -201,13 +201,17 @@ A typed fragment is a value like any other: you can select it, compare it and ca
 
 ### The type you declare
 
-`fragmentWithType(type, 'required' | 'optional', adapter?)` takes the same [data types as a column](../configuration/data-types.md). For a custom type or an enum, it also takes a name and the TypeScript type, as a column does:
+`fragmentWithType(type, 'required' | 'optional', adapter?)` takes the same [data types as a column](../configuration/data-types.md). For a type of yours, like an enum, it takes its class, as a column does:
 
 ```ts
+abstract class AgeGroupType extends EnumType<'adult' | 'minor', 'ageGroup'> {
+    static override readonly type = 'ageGroup'
+}
+
 const customersWithAgeGroup = connection.selectFrom(tCustomer)
     .select({
         id: tCustomer.id,
-        ageGroup: connection.fragmentWithType(EnumType.of<'adult' | 'minor', 'ageGroup'>('ageGroup'), 'required')
+        ageGroup: connection.fragmentWithType(AgeGroupType, 'required')
             .sql`case when ${tCustomer.id} > 100 then 'adult' else 'minor' end`
     })
     .executeSelectMany();

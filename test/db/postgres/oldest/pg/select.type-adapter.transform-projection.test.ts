@@ -16,7 +16,11 @@ import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, Ty
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDecimalType, CustomLocalDateType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, LocalDatesType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ReleaseDayType extends LocalDatesType<ReleaseDay, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
+abstract class AmountType extends DecimalsType<Amount, 'Amount'> { static override readonly type = 'Amount' }
 
 type ReleaseDay = Date & { readonly __brand: 'ReleaseDay' }
 type Amount = string & { readonly __brand: 'Amount' }
@@ -129,45 +133,45 @@ const lowered: TypeAdapter = {
 // project_release: 1 released on 2024-01-15, 2 on 2024-02-20, 3 on 2024-03-01
 const tReleaseDay = new class TReleaseDay extends Table<DBConnection, 'TReleaseDay'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), dayMonthYear)
+    releasedOn = this.column('released_on', ReleaseDayType, dayMonthYear)
     constructor() { super('project_release') }
 }()
 
 const tReleaseIsoDay = new class TReleaseIsoDay extends Table<DBConnection, 'TReleaseIsoDay'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), isoDay)
+    releasedOn = this.column('released_on', ReleaseDayType, isoDay)
     constructor() { super('project_release') }
 }()
 
 const tReleaseDayOfColumn = new class TReleaseDayOfColumn extends Table<DBConnection, 'TReleaseDayOfColumn'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), dayMonthYearOfColumn)
+    releasedOn = this.column('released_on', ReleaseDayType, dayMonthYearOfColumn)
     constructor() { super('project_release') }
 }()
 
 const tReleaseDayDelegating = new class TReleaseDayDelegating extends Table<DBConnection, 'TReleaseDayDelegating'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), delegating)
+    releasedOn = this.column('released_on', ReleaseDayType, delegating)
     constructor() { super('project_release') }
 }()
 
 const tReleaseDayPlain = new class TReleaseDayPlain extends Table<DBConnection, 'TReleaseDayPlain'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'))
+    releasedOn = this.column('released_on', ReleaseDayType)
     constructor() { super('project_release') }
 }()
 
 // issue_worklog: 1 on 2024-03-04, 2 on 2024-03-05, 3 on 2024-03-06
 const tWorkMonth = new class TWorkMonth extends Table<DBConnection, 'TWorkMonth'> {
     id       = this.primaryKey('id', 'int')
-    workDate = this.column('work_date', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), monthYear)
+    workDate = this.column('work_date', ReleaseDayType, monthYear)
     constructor() { super('issue_worklog') }
 }()
 
 // exact_amount: 1 has the price 1.50
 const tPriceDelegating = new class TPriceDelegating extends Table<DBConnection, 'TPriceDelegating'> {
     id    = this.primaryKey('id', 'int')
-    price = this.optionalColumn('price', CustomDecimalType.of<Amount, 'Amount'>('Amount'), delegating)
+    price = this.optionalColumn('price', AmountType, delegating)
     constructor() { super('exact_amount') }
 }()
 

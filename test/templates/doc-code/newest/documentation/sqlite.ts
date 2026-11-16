@@ -30,7 +30,11 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
-import { CustomDecimalType, CustomLocalDateType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { CustomLocalDateType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
 
 const BetterSqlite3QueryRunner = null as any
 const BunSqliteQueryRunner = null as any
@@ -169,8 +173,8 @@ let options: any = {}
 // A decimal number kept exact as its text (docs/configuration/data-types.md, Exact decimals)
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id = this.primaryKey('id', 'int')
-    amount = this.optionalColumn('amount', CustomDecimalType.of<string, 'Amount'>('Amount'))
-    price = this.optionalColumn('price', CustomDecimalType.of<string, 'Amount'>('Amount'))
+    amount = this.optionalColumn('amount', AmountType)
+    price = this.optionalColumn('price', AmountType)
     constructor() {
         super('exact_amount')
     }

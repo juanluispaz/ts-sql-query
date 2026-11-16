@@ -10,7 +10,7 @@ To learn how to declare and use constant values as a view, see [Mapping constant
 
 A class of values doesn't declare a constructor: the one it inherits receives the name and an `OpaqueValues`, a type exported from `ts-sql-query` that only `Values.create` gives, so an instance is always created with `Values.create(...)`.
 
-A method that takes a type takes it by its name, like `'int'`, or by its class: the class of a built-in type, like `IntType` for `'int'`, or the class of a custom type, made by the `of` of its family, like `CustomIntType.of<Cents, 'Cents'>('Cents')`; below, `CustomIntType<T, TYPE_NAME>` is such a class (see [Data types](../configuration/data-types.md)).
+A method that takes a type takes it by its name, like `'int'`, or by its class: the class of a built-in type, like `IntType` for `'int'`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`; below, `CustomIntType<T, TYPE_NAME>` stands for an integer of yours (see [Data types](../configuration/data-types.md)).
 
 ```typescript
 interface Values {

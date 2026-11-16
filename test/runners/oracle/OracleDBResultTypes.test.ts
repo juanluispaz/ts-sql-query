@@ -10,10 +10,11 @@ import type { QueryResultColumn, QueryRunner } from '../../../src/queryRunners/Q
 import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
 import { queryContextOf } from '../../../src/internal/QueryContextImpl.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
-import { BigintType, CustomDecimalType, DoubleType } from '../../../src/exports/v2/index.js'
+import { BigintType, DoubleType } from '../../../src/exports/v2/index.js'
 import { acquireRunnerTestDatabase } from '../../db/oracle/runners.js'
+import { DecimalsType } from '../../../src/exports/v2/index.js'
 
-const AmountType = CustomDecimalType.of<string, 'Amount'>('Amount')
+abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
 
 describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('OracleDBQueryRunner: result types', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined

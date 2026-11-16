@@ -16,6 +16,10 @@ import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js
 import { Values } from '../../../../src/Values.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tCountry, tProject, vProjectOverview } from '../domain/connection.js'
+import { LocalDatesType } from '../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
 
 declare const connection: DBConnection
 
@@ -95,7 +99,7 @@ function _typeNegatives() {
             return next.transformValueFromDB(value, context)
         },
         transformValueToDB(value, context, next) {
-            context.setRequestedType(root.CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+            context.setRequestedType(ReleaseDayType)
             context.resetRequestedType()
             // @ts-expect-error the original type is read-only
             context.originalType = root.StringType

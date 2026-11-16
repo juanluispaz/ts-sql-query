@@ -35,7 +35,14 @@ import { Values } from '../../../../../src/Values.js'
 import { TsSqlProcessingError } from '../../../../../src/TsSqlError.js'
 import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDoubleType, CustomIntType, CustomUuidType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { EnumType } from '../../../../../src/exports/v2/index.js'
+import { IntegersType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class IssueIdType extends IntegersType<IssueId, 'IssueId'> { static override readonly type = 'IssueId' }
+abstract class MoneyType extends RealsType<Money, 'Money'> { static override readonly type = 'Money' }
+abstract class OrderStateType extends EnumType<OrderState, 'OrderState'> { static override readonly type = 'OrderState' }
+abstract class BillingRefType extends UuidsType<string, 'BillingRef'> { static override readonly type = 'BillingRef' }
 
 class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
     id   = this.column('int')
@@ -58,18 +65,18 @@ type OrderState = 'open' | 'paid' | 'void'
 class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
     // `column(CustomIntType.of<T, 'IssueId'>('IssueId'))` reaches — the
     // `typeof adapter === 'string'` branch of the column impl.
-    issueId  = this.column(CustomIntType.of<IssueId, 'IssueId'>('IssueId'))
+    issueId  = this.column(IssueIdType)
     // `optionalColumn(CustomDoubleType.of<T, 'Money'>('Money'))` reaches —
     // the optional sibling of the same branch.
-    amount   = this.optionalColumn(CustomDoubleType.of<Money, 'Money'>('Money'))
+    amount   = this.optionalColumn(MoneyType)
     // `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
     // declare computed columns over the values row. They are NOT emitted
     // as VALUES tuple members; reading the field inlines the fragment SQL
     // wherever it's selected. The fragments are bare literals (no `${…}`
     // interpolation) — the canonical shape now that the overload
     // resolution accepts a no-table-required fragment source.
-    state     = this.virtualColumnFromFragment(EnumType.of<OrderState, 'OrderState'>('OrderState'), fragment => fragment.sql`'open'`)
-    billingRef = this.optionalVirtualColumnFromFragment(CustomUuidType.of<string, 'BillingRef'>('BillingRef'), fragment => fragment.sql`null`)
+    state     = this.virtualColumnFromFragment(OrderStateType, fragment => fragment.sql`'open'`)
+    billingRef = this.optionalVirtualColumnFromFragment(BillingRefType, fragment => fragment.sql`null`)
 }
 
 // the BASE-TYPE (non-custom) `optionalVirtualColumnFromFragment`
@@ -381,8 +388,8 @@ describe(ctx.label, () => {
         // has issues 101 and 102; the joined view only has 101, so 102's joined
         // leaf is absent.
         class VIssueBillingJoin extends Values<DBConnection, 'issueBillingJoin'> {
-            issueId = this.column(CustomIntType.of<IssueId, 'IssueId'>('IssueId'))
-            amount  = this.optionalColumn(CustomDoubleType.of<Money, 'Money'>('Money'))
+            issueId = this.column(IssueIdType)
+            amount  = this.optionalColumn(MoneyType)
         }
         const expected = [
             { base: 101 as IssueId, joined: 101 as IssueId },

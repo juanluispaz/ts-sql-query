@@ -18,7 +18,16 @@ import { MariaDBConnection } from '../../../../src/connections/MariaDBConnection
 import { Table } from '../../../../src/Table.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tColMatrixColumn as t } from '../domain/connection.js'
-import { CustomDecimalType, CustomDoubleType, CustomIntType, EnumType } from '../../../../src/exports/v2/index.js'
+import { EnumType } from '../../../../src/exports/v2/index.js'
+import { DecimalsType, IntegersType, RealsType } from '../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
+abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
+abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
+abstract class OtherType extends IntegersType<number, 'Other'> { static override readonly type = 'Other' }
+abstract class WorklogActivityType extends EnumType<string, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class ReleaseChannelType extends EnumType<string, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
 
 // A second connection with its own table: value sources of a different
 // connection must not mix with the ones of `DBConnection`.
@@ -285,12 +294,12 @@ function _typeNegatives() {
     void t.cents.add(t.mInt)
     // @ts-expect-error a customDouble column is not a customInt operand
     void t.cents.add(t.money)
-    void connection.const(1, CustomDoubleType.of<number, 'Money'>('Money')).add(t.money)
+    void connection.const(1, MoneyType).add(t.money)
     // @ts-expect-error a double column is not a customDouble operand
     void t.money.add(t.mDouble)
 
     // Rule: a customDecimal takes operands of its own type, and the functions that can't be exact give a double.
-    const amount = connection.const('1.50', CustomDecimalType.of<string, 'Amount'>('Amount'))
+    const amount = connection.const('1.50', AmountType)
     void amount.add('0.01')
     void amount.add(amount)
     // @ts-expect-error a customDouble column is not a customDecimal operand
@@ -421,17 +430,17 @@ function _typeNegatives() {
     void connection.const(null, 'int')
 
     // Rule: a custom data type constant takes its class, which has its type name.
-    void connection.const(1, CustomIntType.of<number, 'Cents'>('Cents'))
+    void connection.const(1, CentsType)
     // @ts-expect-error 'customInt' is a family of custom data types, not a data type
     void connection.const(1, 'customInt')
 
     // Rule: the type name keeps custom constants apart.
-    void connection.const(1, CustomIntType.of<number, 'Cents'>('Cents')).equals(t.cents)
+    void connection.const(1, CentsType).equals(t.cents)
     // @ts-expect-error a customInt 'Other' constant is not comparable with customInt 'Cents'
-    void connection.const(1, CustomIntType.of<number, 'Other'>('Other')).equals(t.cents)
-    void connection.const('coding', EnumType.of<string, 'WorklogActivity'>('WorklogActivity')).equals(t.activity)
+    void connection.const(1, OtherType).equals(t.cents)
+    void connection.const('coding', WorklogActivityType).equals(t.activity)
     // @ts-expect-error an enum 'ReleaseChannel' constant is not comparable with enum 'WorklogActivity'
-    void connection.const('coding', EnumType.of<string, 'ReleaseChannel'>('ReleaseChannel')).equals(t.activity)
+    void connection.const('coding', ReleaseChannelType).equals(t.activity)
 
     // --------------------------------------- allowWhen / disallowWhen / onlyWhen / ignoreWhen
 

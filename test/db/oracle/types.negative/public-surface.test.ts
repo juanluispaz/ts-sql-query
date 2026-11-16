@@ -14,6 +14,10 @@ import { type ConnectionConfiguration, type QueryResultColumn } from '../../../.
 import { getQueryContext } from '../../../../src/QueryContext.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
 import { tCountry } from '../domain/connection.js'
+import { LocalDatesType } from '../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
 
 function _typeNegatives() {
     // Rule: the configuration of the connection a query runner reads has the settings of the connection, and only them.
@@ -87,7 +91,7 @@ function _typeNegatives() {
             return next.transformValueFromDB(value, context)
         },
         transformValueToDB(value, context, next) {
-            context.setRequestedType(root.CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'))
+            context.setRequestedType(ReleaseDayType)
             context.resetRequestedType()
             // @ts-expect-error the original type is read-only
             context.originalType = root.StringType

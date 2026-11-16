@@ -27,7 +27,12 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
-import { CustomComparableType, CustomDecimalType, CustomLocalDateType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { CustomLocalDateType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, DecimalsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
+abstract class ZonedDateTimeType extends ComparableType<ZonedDateTime, 'ZonedDateTime'> { static override readonly type = 'ZonedDateTime' }
 
 class DBConnection extends SqlServerConnection<'DBConnection'> { 
     // insensitiveCollation = 'acs'
@@ -152,8 +157,8 @@ const connection = new DBConnection(docCodeMock)
 // A decimal number kept exact as its text (docs/configuration/data-types.md, Exact decimals)
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id = this.primaryKey('id', 'int')
-    amount = this.optionalColumn('amount', CustomDecimalType.of<string, 'Amount'>('Amount'))
-    price = this.optionalColumn('price', CustomDecimalType.of<string, 'Amount'>('Amount'))
+    amount = this.optionalColumn('amount', AmountType)
+    price = this.optionalColumn('price', AmountType)
     constructor() {
         super('exact_amount')
     }
@@ -193,7 +198,7 @@ class ZonedDateTimeTypeAdapter implements TypeAdapter {
 }
 const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {
     id = this.primaryKey('id', 'int')
-    departsAt = this.column('departs_at', CustomComparableType.of<ZonedDateTime, 'ZonedDateTime'>('ZonedDateTime'), new ZonedDateTimeTypeAdapter())
+    departsAt = this.column('departs_at', ZonedDateTimeType, new ZonedDateTimeTypeAdapter())
     constructor() {
         super('flight'); // table name in the database
     }

@@ -9,7 +9,19 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { tIssue, tIssueWorklog, tProjectRelease, tOrganization, type ReleaseChannel, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { EnumType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class ReleaseChannelType extends EqualableType<ReleaseChannel, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
+abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
+abstract class CutoffClockType extends LocalTimesType<Date, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
+abstract class SignOffStampType extends LocalDateTimesType<Date, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
+abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
+abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
+abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
 
 // A non-identity TypeAdapter: brackets any string read from the DB so the
 // adapter's effect is observable in the result value. Used to prove the
@@ -74,7 +86,7 @@ describe(ctx.label, () => {
             .select({
                 wd:  c.fragmentWithType('localDate', 'required').sql`${tIssueWorklog.workDate}`,
                 st:  c.fragmentWithType('localTime', 'required').sql`${tIssueWorklog.startedAt}`,
-                act: c.fragmentWithType(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'required').sql`${tIssueWorklog.activity}`,
+                act: c.fragmentWithType(WorklogActivityType, 'required').sql`${tIssueWorklog.activity}`,
             })
             .executeSelectMany()
 
@@ -108,11 +120,11 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .select({
                 avg:  c.fragmentWithType('double', 'required').sql`1.5`,
-                ch:   c.fragmentWithType(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'required').sql`${tProjectRelease.channel}`,
-                key:  c.fragmentWithType(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'required').sql`${tProjectRelease.signingKey}`,
-                rOn:  c.fragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required').sql`${tProjectRelease.releasedOn}`,
-                cut:  c.fragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required').sql`${tProjectRelease.cutoffTime}`,
-                soff: c.fragmentWithType(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'required').sql`${tProjectRelease.signedOffAt}`,
+                ch:   c.fragmentWithType(ReleaseChannelType, 'required').sql`${tProjectRelease.channel}`,
+                key:  c.fragmentWithType(SigningKeyType, 'required').sql`${tProjectRelease.signingKey}`,
+                rOn:  c.fragmentWithType(ReleaseDayType, 'required').sql`${tProjectRelease.releasedOn}`,
+                cut:  c.fragmentWithType(CutoffClockType, 'required').sql`${tProjectRelease.cutoffTime}`,
+                soff: c.fragmentWithType(SignOffStampType, 'required').sql`${tProjectRelease.signedOffAt}`,
             })
             .executeSelectMany()
 
@@ -147,7 +159,7 @@ describe(ctx.label, () => {
                 v:   c.fragmentWithType('string', 'optional').sql`${tProjectRelease.version}`,
                 avg: c.fragmentWithType('double', 'optional').sql`1.5`,
                 key: c.fragmentWithType('uuid', 'optional').sql`${tProjectRelease.signingKey}`,
-                ch:  c.fragmentWithType(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional').sql`${tProjectRelease.channel}`,
+                ch:  c.fragmentWithType(ReleaseChannelType, 'optional').sql`${tProjectRelease.channel}`,
             })
             .executeSelectMany()
 
@@ -253,9 +265,9 @@ describe(ctx.label, () => {
         const custom = await c.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(-1))
             .select({
-                mcld:  c.aggregateFragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'optional').sql`max(${tProjectRelease.releasedOn})`,
-                mclt:  c.aggregateFragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'optional').sql`max(${tProjectRelease.cutoffTime})`,
-                mcldt: c.aggregateFragmentWithType(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'optional').sql`max(${tProjectRelease.signedOffAt})`,
+                mcld:  c.aggregateFragmentWithType(ReleaseDayType, 'optional').sql`max(${tProjectRelease.releasedOn})`,
+                mclt:  c.aggregateFragmentWithType(CutoffClockType, 'optional').sql`max(${tProjectRelease.cutoffTime})`,
+                mcldt: c.aggregateFragmentWithType(SignOffStampType, 'optional').sql`max(${tProjectRelease.signedOffAt})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(released_on) as mcld, max(cutoff_time) as mclt, max(signed_off_at) as mcldt from project_release where id = $1"`)
@@ -273,9 +285,9 @@ describe(ctx.label, () => {
         const wl = await c.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(-1))
             .select({
-                mci: c.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'optional').sql`max(${tIssueWorklog.costCents})`,
-                mcd: c.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'optional').sql`max(${tIssueWorklog.billedAmount})`,
-                men: c.aggregateFragmentWithType(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional').sql`max(${tIssueWorklog.activity})`,
+                mci: c.aggregateFragmentWithType(CentsType, 'optional').sql`max(${tIssueWorklog.costCents})`,
+                mcd: c.aggregateFragmentWithType(MoneyType, 'optional').sql`max(${tIssueWorklog.billedAmount})`,
+                men: c.aggregateFragmentWithType(WorklogActivityType, 'optional').sql`max(${tIssueWorklog.activity})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(cost_cents) as mci, max(billed_amount) as mcd, max(activity) as men from issue_worklog where id = $1"`)
@@ -286,8 +298,8 @@ describe(ctx.label, () => {
         const rel = await c.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(-1))
             .select({
-                mcc: c.aggregateFragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'optional').sql`max(${tProjectRelease.version})`,
-                mc:  c.aggregateFragmentWithType(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'optional').sql`max(${tProjectRelease.channel})`,
+                mcc: c.aggregateFragmentWithType(SemverType, 'optional').sql`max(${tProjectRelease.version})`,
+                mc:  c.aggregateFragmentWithType(ReleaseChannelType, 'optional').sql`max(${tProjectRelease.channel})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as mcc, max(channel) as mc from project_release where id = $1"`)
@@ -306,7 +318,7 @@ describe(ctx.label, () => {
         const actRow = await c.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.issueId.equals(1))
             .select({
-                maxActivity: c.aggregateFragmentWithType(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'required').sql`max(${tIssueWorklog.activity})`,
+                maxActivity: c.aggregateFragmentWithType(WorklogActivityType, 'required').sql`max(${tIssueWorklog.activity})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(activity) as "maxActivity" from issue_worklog where issue_id = $1"`)
@@ -322,7 +334,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expectedCh)
         const chRow = await c.selectFrom(tProjectRelease)
             .select({
-                maxChannel: c.aggregateFragmentWithType(CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel'), 'required').sql`max(${tProjectRelease.channel})`,
+                maxChannel: c.aggregateFragmentWithType(ReleaseChannelType, 'required').sql`max(${tProjectRelease.channel})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(channel) as "maxChannel" from project_release"`)
@@ -343,7 +355,7 @@ describe(ctx.label, () => {
         const amtRow = await c.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
-                amt: c.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required').sql`${tIssueWorklog.billedAmount}`,
+                amt: c.fragmentWithType(MoneyType, 'required').sql`${tIssueWorklog.billedAmount}`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select billed_amount as amt from issue_worklog where id = $1"`)
@@ -431,7 +443,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .select({
-                v: ctx.conn.fragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'required', bracketAdapter).sql`${tProjectRelease.version}`,
+                v: ctx.conn.fragmentWithType(SemverType, 'required', bracketAdapter).sql`${tProjectRelease.version}`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as v from project_release where id = $1"`)
@@ -454,7 +466,7 @@ describe(ctx.label, () => {
         const expected = { v: '[1.3.0-beta.1]' }
         const row = await ctx.conn.selectFrom(tProjectRelease)
             .select({
-                v: ctx.conn.aggregateFragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'required', bracketAdapter).sql`max(${tProjectRelease.version})`,
+                v: ctx.conn.aggregateFragmentWithType(SemverType, 'required', bracketAdapter).sql`max(${tProjectRelease.version})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as v from project_release"`)
@@ -512,7 +524,7 @@ describe(ctx.label, () => {
         const expected = { mct: new Date(Date.UTC(1970, 0, 1, 19, 30, 0)) }
         const row = await ctx.conn.selectFrom(tProjectRelease)
             .select({
-                mct: ctx.conn.aggregateFragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required', shiftHourAdapter).sql`max(${tProjectRelease.cutoffTime})`,
+                mct: ctx.conn.aggregateFragmentWithType(CutoffClockType, 'required', shiftHourAdapter).sql`max(${tProjectRelease.cutoffTime})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(cutoff_time) as mct from project_release"`)
@@ -529,7 +541,7 @@ describe(ctx.label, () => {
         const expected = { mcdt: new Date(Date.UTC(2024, 1, 28, 10, 0, 0)) }
         const row = await ctx.conn.selectFrom(tProjectRelease)
             .select({
-                mcdt: ctx.conn.aggregateFragmentWithType(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'required', shiftHourAdapter).sql`max(${tProjectRelease.signedOffAt})`,
+                mcdt: ctx.conn.aggregateFragmentWithType(SignOffStampType, 'required', shiftHourAdapter).sql`max(${tProjectRelease.signedOffAt})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(signed_off_at) as mcdt from project_release"`)
@@ -574,7 +586,7 @@ describe(ctx.label, () => {
         const expected = { mcd: new Date(Date.UTC(2024, 2, 1, 11, 0, 0)) }
         const row = await ctx.conn.selectFrom(tProjectRelease)
             .select({
-                mcd: ctx.conn.aggregateFragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required', shiftHourAdapter).sql`max(${tProjectRelease.releasedOn})`,
+                mcd: ctx.conn.aggregateFragmentWithType(ReleaseDayType, 'required', shiftHourAdapter).sql`max(${tProjectRelease.releasedOn})`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(released_on) as mcd from project_release"`)
@@ -610,9 +622,9 @@ describe(ctx.label, () => {
                 bill: c.fragmentWithType('boolean', 'optional').sql`${tIssueWorklog.billable}`,
                 wd:   c.fragmentWithType('localDate', 'optional').sql`${tIssueWorklog.workDate}`,
                 st:   c.fragmentWithType('localTime', 'optional').sql`${tIssueWorklog.startedAt}`,
-                cost: c.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'optional').sql`${tIssueWorklog.costCents}`,
-                amt:  c.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'optional').sql`${tIssueWorklog.billedAmount}`,
-                act:  c.fragmentWithType(EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity'), 'optional').sql`${tIssueWorklog.activity}`,
+                cost: c.fragmentWithType(CentsType, 'optional').sql`${tIssueWorklog.costCents}`,
+                amt:  c.fragmentWithType(MoneyType, 'optional').sql`${tIssueWorklog.billedAmount}`,
+                act:  c.fragmentWithType(WorklogActivityType, 'optional').sql`${tIssueWorklog.activity}`,
             })
             .executeSelectMany()
 
@@ -649,11 +661,11 @@ describe(ctx.label, () => {
         const rows = await c.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .select({
-                key:  c.fragmentWithType(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'optional').sql`${tProjectRelease.signingKey}`,
-                rOn:  c.fragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'optional').sql`${tProjectRelease.releasedOn}`,
-                cut:  c.fragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'optional').sql`${tProjectRelease.cutoffTime}`,
-                soff: c.fragmentWithType(CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp'), 'optional').sql`${tProjectRelease.signedOffAt}`,
-                v:    c.fragmentWithType(CustomComparableType.of<string, 'Semver'>('Semver'), 'optional').sql`${tProjectRelease.version}`,
+                key:  c.fragmentWithType(SigningKeyType, 'optional').sql`${tProjectRelease.signingKey}`,
+                rOn:  c.fragmentWithType(ReleaseDayType, 'optional').sql`${tProjectRelease.releasedOn}`,
+                cut:  c.fragmentWithType(CutoffClockType, 'optional').sql`${tProjectRelease.cutoffTime}`,
+                soff: c.fragmentWithType(SignOffStampType, 'optional').sql`${tProjectRelease.signedOffAt}`,
+                v:    c.fragmentWithType(SemverType, 'optional').sql`${tProjectRelease.version}`,
             })
             .executeSelectMany()
 
@@ -801,7 +813,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .select({
-                rOn: ctx.conn.fragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required', shiftHourAdapter).sql`${tProjectRelease.releasedOn}`,
+                rOn: ctx.conn.fragmentWithType(ReleaseDayType, 'required', shiftHourAdapter).sql`${tProjectRelease.releasedOn}`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select released_on as "rOn" from project_release where id = $1"`)

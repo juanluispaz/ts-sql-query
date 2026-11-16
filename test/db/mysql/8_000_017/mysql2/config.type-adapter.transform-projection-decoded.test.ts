@@ -12,7 +12,10 @@ import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, Ty
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomUuidType } from '../../../../../src/exports/v2/index.js'
+import { UuidsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class IssueRefType extends UuidsType<IssueRef, 'IssueRef'> { static override readonly type = 'IssueRef' }
 
 type IssueRef = string & { readonly __brand: 'IssueRef' }
 
@@ -38,7 +41,7 @@ const tIssueRef = new class TIssueRef extends Table<DBConnection, 'TIssueRef'> {
     id        = this.primaryKey('id', 'int')
     projectId = this.column('project_id', 'int')
     title     = this.column('title', 'string')
-    ref       = this.optionalColumn('external_ref', CustomUuidType.of<IssueRef, 'IssueRef'>('IssueRef'), upperUuid)
+    ref       = this.optionalColumn('external_ref', IssueRefType, upperUuid)
     constructor() { super('issue') }
 }()
 

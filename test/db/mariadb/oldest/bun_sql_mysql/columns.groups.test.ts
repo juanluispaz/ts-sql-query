@@ -11,7 +11,10 @@ import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { type DBConnection, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomEqualableType } from '../../../../../src/exports/v2/index.js'
+import { EqualableType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class JsonTextType extends EqualableType<{ a: number }, 'jsonText'> { static override readonly type = 'jsonText' }
 
 const jsonAdapter: TypeAdapter = {
     transformValueFromDB(value, context, next) {
@@ -71,7 +74,7 @@ class TIssueWithObjectValue extends Table<DBConnection, 'TIssueWithObjectValue'>
     title = this.column('title', 'string')
     status = this.column('status', 'string')
     priority = this.column('priority', 'int')
-    body = this.optionalColumn('body', CustomEqualableType.of<{ a: number }, 'jsonText'>('jsonText'), jsonAdapter)
+    body = this.optionalColumn('body', JsonTextType, jsonAdapter)
     constructor() { super('issue') }
 }
 const tObjectValue = new TIssueWithObjectValue()

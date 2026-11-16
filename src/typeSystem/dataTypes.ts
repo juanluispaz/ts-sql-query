@@ -75,6 +75,21 @@ export function __isIntegerSql(typeClass: DataTypeClass | undefined): boolean {
     return sqlDataType?.family === 'exact numeric' && sqlDataType.scale === 0
 }
 
+/**
+ * Whether the integers of a data type, by its SQL data type, fit in a number of JavaScript without losing digits (up
+ * to 6 bytes, or 15 digits): an integer that doesn't (8 bytes, more digits, a precision without limit) is a bigint
+ */
+export function __fitsInANumberSql(typeClass: DataTypeClass | undefined): boolean {
+    const sqlDataType = typeClass?.sqlDataType
+    if (sqlDataType?.family !== 'exact numeric') {
+        return true
+    }
+    if (sqlDataType.bytes !== undefined) {
+        return sqlDataType.bytes <= 6
+    }
+    return sqlDataType.precision !== undefined && sqlDataType.precision <= 15
+}
+
 /** Whether a data type is a JSON document, by its SQL data type: an aggregated array */
 export function __isJsonDocumentSql(typeClass: DataTypeClass | undefined): boolean {
     const sqlDataType = typeClass?.sqlDataType

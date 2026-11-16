@@ -11,6 +11,9 @@ import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
 
+// The data types of the values of the user, each one a class of the family of its values
+abstract class SizeGroupType extends EnumType<'first' | 'other', 'sizeGroup'> { static override readonly type = 'sizeGroup' }
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -329,7 +332,7 @@ describe(ctx.label, () => {
         const organizationsWithGroup = sync(connection.selectFrom(tOrganization)
             .select({
                 id:        tOrganization.id,
-                sizeGroup: connection.fragmentWithType(EnumType.of<'first' | 'other', 'sizeGroup'>('sizeGroup'), 'required')
+                sizeGroup: connection.fragmentWithType(SizeGroupType, 'required')
                     .sql`case when ${tOrganization.id} = 1 then 'first' else 'other' end`,
             })
             .orderBy('id')

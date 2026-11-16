@@ -18,25 +18,12 @@
 import { InterceptorQueryRunner } from '../../src/queryRunners/InterceptorQueryRunner.js'
 import type { BeginTransactionOpts, QueryRunner, QueryType } from '../../src/queryRunners/QueryRunner.js'
 import { getQueryContext } from '../../src/QueryContext.js'
+import { BaseType } from '../../src/typeSystem/base.js'
 
-const BUILT_IN_TYPES = new Set<string>([
-    'boolean', 'int', 'bigint', 'double', 'stringDecimal', 'string', 'uuid', 'localDate', 'localTime', 'localDateTime',
-])
-const CUSTOM_TYPES = new Set<string>([
-    'customInt', 'customBigint', 'customDouble', 'customDecimal', 'customUuid', 'customLocalDate', 'customLocalTime',
-    'customLocalDateTime', 'enum', 'custom', 'customComparable',
-])
-
-// A type is its name with, for a custom one, which custom type it is; without it, the name is the one of a built-in
-// type (or of the internal ones given)
-function isKnownType(type: unknown, customType: unknown, internalTypes: readonly string[] = []): boolean {
-    if (typeof type !== 'string') {
-        return false
-    }
-    if (customType === undefined) {
-        return BUILT_IN_TYPES.has(type) || internalTypes.includes(type)
-    }
-    return typeof customType === 'string' && CUSTOM_TYPES.has(customType)
+// A type is the class of a data type, with its type name: a built-in one, one of the user, or one only the library
+// uses (the boolean of a condition, an aggregated array)
+function isKnownType(typeClass: unknown): boolean {
+    return typeof typeClass === 'function' && typeClass.prototype instanceof BaseType && typeof (typeClass as { type?: unknown }).type === 'string'
 }
 
 // Every parameter the library adds goes with its original type, the one requested for it and its forceTypeCast, kept
@@ -45,7 +32,7 @@ function isKnownType(type: unknown, customType: unknown, internalTypes: readonly
 function checkParamTypes(query: string, params: unknown[]): void {
     for (let index = 0; index < params.length; index++) {
         const param = getQueryContext(query, params as any[]).getParam(index)
-        if (!param || !isKnownType(param.originalType?.type, param.originalType?.customType) || !isKnownType(param.requestedType?.type, param.requestedType?.customType) || typeof param.forceTypeCast !== 'boolean') {
+        if (!param || !isKnownType(param.originalType) || !isKnownType(param.requestedType) || typeof param.forceTypeCast !== 'boolean') {
             throw new Error('The parameter ' + index + ' of the query has no type (original: ' + String(param?.originalType?.type) + ' ' + String(param?.originalType?.customType) + ', requested: ' + String(param?.requestedType?.type) + ' ' + String(param?.requestedType?.customType) + ', forceTypeCast: ' + String(param?.forceTypeCast) + '): ' + query)
         }
     }
@@ -82,8 +69,8 @@ function checkResultColumns(queryType: QueryType, query: string, params: unknown
     }
     for (const column of columns) {
         const valid = typeof column.name === 'string' && typeof column.path === 'string'
-            && isKnownType(column.originalType.type, column.originalType.customType, ['aggregatedArray'])
-            && isKnownType(column.requestedType.type, column.requestedType.customType, ['aggregatedArray'])
+            && isKnownType(column.originalType)
+            && isKnownType(column.requestedType)
         if (!valid) {
             throw new Error('A result column of the query has no type (' + JSON.stringify(column) + '): ' + query)
         }

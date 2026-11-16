@@ -9,9 +9,9 @@ import { tProjectRelease, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
-function paramTypes(): Array<[string | undefined, string | undefined]> {
+function paramTypes(): Array<string | undefined> {
     const params = ctx.lastParams
-    return params.map((_value, index) => [getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type, getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.customType])
+    return params.map((_value, index) => getQueryContext(ctx.lastSql, params).getParam(index)?.originalType?.type)
 }
 
 describe(ctx.label, () => {
@@ -35,17 +35,17 @@ describe(ctx.label, () => {
             .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where id = ?1 and version = ?2 and channel = ?3 and signing_key = ?4 and released_on = ?5 and cutoff_time = ?6 and signed_off_at = ?7 and upper(channel) = ?8 and substr(upper(channel), ?9, ?10) = ?11"`)
         expect(paramTypes()).toEqual([
-            ['int', undefined],
-            ['Semver', 'customComparable'],
-            ['ReleaseChannel', 'custom'],
-            ['SigningKey', 'customUuid'],
-            ['ReleaseDay', 'customLocalDate'],
-            ['CutoffClock', 'customLocalTime'],
-            ['SignOffStamp', 'customLocalDateTime'],
-            ['string', undefined],
-            ['int', undefined],
-            ['int', undefined],
-            ['string', undefined],
+            'int',
+            'Semver',
+            'ReleaseChannel',
+            'SigningKey',
+            'ReleaseDay',
+            'CutoffClock',
+            'SignOffStamp',
+            'string',
+            'int',
+            'int',
+            'string',
         ])
         assertType<Exact<typeof rows, { id: number }[]>>()
         expect(rows).toEqual([{ id: 1 }])
@@ -61,9 +61,9 @@ describe(ctx.label, () => {
             .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from release_overview where is_signed = ?1 and download_count = ?2 and avg_rating = ?3"`)
         expect(paramTypes()).toEqual([
-            ['boolean', undefined],
-            ['bigint', undefined],
-            ['double', undefined],
+            'boolean',
+            'bigint',
+            'double',
         ])
         assertType<Exact<typeof rows, { id: number }[]>>()
         expect(rows).toEqual([{ id: 1 }])

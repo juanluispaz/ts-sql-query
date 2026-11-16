@@ -22,8 +22,12 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssueWorklog, tProjectRelease, DBConnection } from '../../domain/connection.js'
 import type { ReleaseChannel, WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomComparableType, BigintType, BooleanType, IntType } from '../../../../../src/exports/v2/index.js'
+import { BigintType, BooleanType, IntType } from '../../../../../src/exports/v2/index.js'
 import { Table } from '../../../../../src/Table.js'
+import { ComparableType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
 
 // issue_worklog with its built-in data types given by their classes instead of their names
 const tWorklogByClass = new class TWorklogByClass extends Table<DBConnection, 'TWorklogByClass'> {
@@ -409,7 +413,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .select({
                 id: tProjectRelease.id,
-                lt: ctx.conn.const('0.5.0', CustomComparableType.of<string, 'Semver'>('Semver'))
+                lt: ctx.conn.const('0.5.0', SemverType)
                     .lessThan(tProjectRelease.version),
             })
             .executeSelectMany()

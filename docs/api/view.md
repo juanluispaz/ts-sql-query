@@ -8,7 +8,7 @@ This API defines the structure of database views within `ts-sql-query`. It provi
 
 To learn how to declare a view and its columns, see [Mapping](../configuration/mapping.md); to choose the type of each column, [Data types](../configuration/data-types.md).
 
-A method that takes a type takes it by its name, like `'int'`, or by its class: the class of a built-in type, like `IntType` for `'int'`, or the class of a custom type, made by the `of` of its family, like `CustomIntType.of<Cents, 'Cents'>('Cents')`; below, `CustomIntType<T, TYPE_NAME>` is such a class (see [Data types](../configuration/data-types.md)).
+A method that takes a type takes it by its name, like `'int'`, or by its class: the class of a built-in type, like `IntType` for `'int'`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`; below, `CustomIntType<T, TYPE_NAME>` stands for an integer of yours (see [Data types](../configuration/data-types.md)).
 
 ```typescript
 interface View {

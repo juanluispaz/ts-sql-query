@@ -19,7 +19,19 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { type ReleaseChannel, type WorklogActivity, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomBigintType, CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalTimeType, CustomUuidType, EnumType } from '../../../../../src/exports/v2/index.js'
+import { EnumType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalTimesType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
+import type { SqlDataType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class ReleaseChannelType extends EqualableType<ReleaseChannel, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
+abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
+abstract class ReleaseTagType extends IntegersType<number, 'ReleaseTag'> { static override readonly type = 'ReleaseTag' }
+abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
+abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
+abstract class CutoffClockType extends LocalTimesType<Date, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
+abstract class SignOffStampType extends LocalDateTimesType<Date, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
 
 const UUID_V = '0a8f9c1e-1111-4222-8333-444455556666'
 
@@ -76,9 +88,9 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFromNoTable()
             .select({
                 u:  ctx.conn.const(UUID_V, 'uuid'),
-                e:  ctx.conn.const('coding', EnumType.of<WorklogActivity, 'WorklogActivity'>('WorklogActivity')),
-                c:  ctx.conn.const('stable', CustomEqualableType.of<ReleaseChannel, 'ReleaseChannel'>('ReleaseChannel')),
-                cc: ctx.conn.const('1.2.0', CustomComparableType.of<string, 'Semver'>('Semver')),
+                e:  ctx.conn.const('coding', WorklogActivityType),
+                c:  ctx.conn.const('stable', ReleaseChannelType),
+                cc: ctx.conn.const('1.2.0', SemverType),
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as u, ? as e, ? as c, ? as cc"`)
@@ -102,9 +114,9 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const row = await ctx.conn.selectFromNoTable()
             .select({
-                ci: ctx.conn.const(7, CustomIntType.of<number, 'ReleaseTag'>('ReleaseTag')),
-                cd: ctx.conn.const(1.5, CustomDoubleType.of<number, 'Money'>('Money')),
-                cu: ctx.conn.const(UUID_V, CustomUuidType.of<string, 'SigningKey'>('SigningKey')),
+                ci: ctx.conn.const(7, ReleaseTagType),
+                cd: ctx.conn.const(1.5, MoneyType),
+                cu: ctx.conn.const(UUID_V, SigningKeyType),
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as ci, ? as cd, ? as cu"`)
@@ -132,8 +144,8 @@ describe(ctx.label, () => {
             .select({
                 lt:   ctx.conn.const(lt, 'localTime'),
                 ldt:  ctx.conn.const(ldt, 'localDateTime'),
-                clt:  ctx.conn.const(lt, CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock')),
-                cldt: ctx.conn.const(ldt, CustomLocalDateTimeType.of<Date, 'SignOffStamp'>('SignOffStamp')),
+                clt:  ctx.conn.const(lt, CutoffClockType),
+                cldt: ctx.conn.const(ldt, SignOffStampType),
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as lt, ? as ldt, ? as clt, ? as cldt"`)
@@ -199,10 +211,14 @@ describe(ctx.label, () => {
         // A customBigint const past int32 (9 999 999 999), selected alone, comes back as a bigint of the same value,
         // typed as its brand.
         type AuditPosition = bigint & { readonly __brand: 'AuditPosition' }
+        abstract class AuditPositionType extends IntegersType<AuditPosition, 'AuditPosition'> {
+            static override readonly type = 'AuditPosition'
+            static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
+        }
         const pos = 9_999_999_999n as AuditPosition
         ctx.mockNext('9999999999')
         const result = await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(pos, CustomBigintType.of<AuditPosition, 'AuditPosition'>('AuditPosition')))
+            .selectOneColumn(ctx.conn.const(pos, AuditPositionType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

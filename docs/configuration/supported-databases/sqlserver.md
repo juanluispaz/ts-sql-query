@@ -189,9 +189,13 @@ class ZonedDateTimeTypeAdapter implements TypeAdapter {
     }
 }
 
+abstract class ZonedDateTimeType extends ComparableType<ZonedDateTime, 'ZonedDateTime'> {
+    static override readonly type = 'ZonedDateTime'
+}
+
 const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {
     id = this.primaryKey('id', 'int')
-    departsAt = this.column('departs_at', CustomComparableType.of<ZonedDateTime, 'ZonedDateTime'>('ZonedDateTime'), new ZonedDateTimeTypeAdapter())
+    departsAt = this.column('departs_at', ZonedDateTimeType, new ZonedDateTimeTypeAdapter())
     constructor() {
         super('flight'); // table name in the database
     }

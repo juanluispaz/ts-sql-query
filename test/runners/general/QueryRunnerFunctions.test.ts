@@ -5,11 +5,15 @@
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
 import { queryContextOf, queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
-import { CustomDoubleType, IntType, StringType } from '../../../src/exports/v2/index.js'
+import { IntType, StringType } from '../../../src/exports/v2/index.js'
 import type { DataTypeClass } from '../../../src/TypeAdapter.js'
 import {
     getFunctionExecutingQuery, getQueryExecutionMetadata, getQueryExecutionName, getQueryExecutionStack, isSelectPageCountQuery,
 } from '../../../src/exports/v1/queryRunners/QueryRunner.js'
+import { RealsType } from '../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
 
 function paramsBuiltAt(stack: string): any[] {
     const source = new Error('source')
@@ -55,17 +59,17 @@ describe('QueryRunner functions', () => {
             param.forceTypeCast = forceTypeCast
         }
         setType(0, IntType, true)
-        setType(2, CustomDoubleType.of<number, 'Money'>('Money'), false)
+        setType(2, MoneyType, false)
         // A type adapter requested to send the third one as a text
         queryParamContextOf(params, 2).requestedType = StringType
         const context = getQueryContext('q', params)
         expect([0, 1, 2].map(index => {
             const param = context.getParam(index)
-            return [param?.originalType?.type, param?.originalType?.customType, param?.requestedType?.type, param?.requestedType?.customType, param?.forceTypeCast, param?.isValueForColumn]
+            return [param?.originalType, param?.requestedType, param?.forceTypeCast, param?.isValueForColumn]
         })).toEqual([
-            ['int', undefined, 'int', undefined, true, false],
-            [undefined, undefined, undefined, undefined, undefined, undefined],
-            ['Money', 'customDouble', 'string', undefined, false, false],
+            [IntType, IntType, true, false],
+            [undefined, undefined, undefined, undefined],
+            [MoneyType, StringType, false, false],
         ])
         expect(Object.keys(params)).toEqual(['0', '1', '2'])
     })

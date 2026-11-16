@@ -67,7 +67,9 @@ class RgbColorTypeAdapter implements TypeAdapter {
 And you can define the column as:
 
 ```typescriptreact
-const RgbColorType = CustomEqualableType.of<RgbColor, 'RgbColor'>('RgbColor')
+abstract class RgbColorType extends EqualableType<RgbColor, 'RgbColor'> {
+    static override readonly type = 'RgbColor'
+}
 
 this.column('ColumnName', RgbColorType, new RgbColorTypeAdapter())
 ```
@@ -172,7 +174,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ### A custom type kept as text
 
-Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on: without it, the value is converted as the [data type](../configuration/data-types.md#custom-types) says.
+Register the conversion of an `enum`, a `custom` or a `customComparable`, and of a custom type whose values in your code aren't those of the type it is based on: without it, the value is converted as the [data type](../configuration/data-types.md#your-own-types) says.
 
 Write it in the connection, as above, so it applies everywhere that type is used:
 
@@ -217,7 +219,7 @@ async function main() {
 }
 ```
 
-Then `connection.const(amount, CustomDoubleType.of<ExactDecimal, 'ExactDecimal'>('ExactDecimal'))` selected on its own is written `select $1::numeric as result`, with the parameter `[ '12345678901234567890.123456789' ]`, and the result keeps every digit. `pg` and Bun SQL write the cast only where the query needs a type; compared with a `numeric` column, the column gives it. With postgres.js and PGlite, declare the oid of `numeric`, `typesByName: { ExactDecimal: 1700 }`: the parameter is sent as a `numeric` everywhere, and the SQL is `select $1 as result`.
+Then `connection.const(amount, ExactDecimalType)`, with `ExactDecimalType` a class that extends `RealsType<ExactDecimal, 'ExactDecimal'>`, selected on its own is written `select $1::numeric as result`, with the parameter `[ '12345678901234567890.123456789' ]`, and the result keeps every digit. `pg` and Bun SQL write the cast only where the query needs a type; compared with a `numeric` column, the column gives it. With postgres.js and PGlite, declare the oid of `numeric`, `typesByName: { ExactDecimal: 1700 }`: the parameter is sent as a `numeric` everywhere, and the SQL is `select $1 as result`.
 
 On SQL Server, a `customDouble` is sent as a `float`, which loses digits too. Declare the type `nvarchar`: the text arrives with all its digits, and SQL Server converts it where a `decimal` is expected, like in an insert or a comparison with a `decimal` column:
 
@@ -248,7 +250,7 @@ async function main() {
 
 A value has two types in the context, so that what was declared and what is sent or read never get confused:
 
-- The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType = CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay')`, or `const(1, 'int')`. It never changes.
+- The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType` a class that extends `LocalDatesType<ReleaseDay, 'ReleaseDay'>`, or `const(1, 'int')`. It never changes.
 - The **requested type**, `requestedType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
 `originalType` and `requestedType` are the class of the type: `IntType` for `const(1, 'int')`, `ReleaseDayType` for the column above. The class has the name of the type in `type`, like `'int'` or `'ReleaseDay'`, and in `customType` which custom type it is, the family of the class (`'customLocalDate'` for a `CustomLocalDateType`), `undefined` for a built-in type.
@@ -292,9 +294,13 @@ const dayMonthYear: TypeAdapter = {
     },
 }
 
+abstract class BirthdayType extends LocalDatesType<Date, 'Birthday'> {
+    static override readonly type = 'Birthday'
+}
+
 const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
     id = this.primaryKey('id', 'int')
-    birthday = this.optionalColumn('birthday', CustomLocalDateType.of<Date, 'Birthday'>('Birthday'), dayMonthYear)
+    birthday = this.optionalColumn('birthday', BirthdayType, dayMonthYear)
     constructor() {
         super('customer')
     }
@@ -366,9 +372,13 @@ class DayAsTextTypeAdapter implements TypeAdapter {
     }
 }
 
+abstract class BirthdayType extends LocalDatesType<Date, 'Birthday'> {
+    static override readonly type = 'Birthday'
+}
+
 const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
     id = this.primaryKey('id', 'int')
-    birthday = this.optionalColumn('birthday', CustomLocalDateType.of<Date, 'Birthday'>('Birthday'), new DayAsTextTypeAdapter())
+    birthday = this.optionalColumn('birthday', BirthdayType, new DayAsTextTypeAdapter())
     companyId = this.column('company_id', 'int')
     constructor() {
         super('customer')

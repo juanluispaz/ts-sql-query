@@ -47,7 +47,15 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDoubleType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType } from '../../../../../src/exports/v2/index.js'
+import { IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
+abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
+abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
+abstract class CutoffClockType extends LocalTimesType<Date, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
+abstract class PublishStampType extends LocalDateTimesType<Date, 'PublishStamp'> { static override readonly type = 'PublishStamp' }
+abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
 
 // Scales a number by 100 in both directions, but ONLY when the type name it is
 // handed is `Cents` or `Money`; every other type name is delegated to
@@ -86,7 +94,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .abs(),
             )
@@ -108,7 +116,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .sign(),
             )
@@ -132,7 +140,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .add(9),
             )
@@ -155,7 +163,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .add(0.5),
             )
@@ -179,7 +187,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .add(tIssueWorklog.centsFromId),
             )
@@ -200,7 +208,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .subtract(9),
             )
@@ -223,9 +231,9 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
-                    .subtract(ctx.conn.const(0.6, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)),
+                    .subtract(ctx.conn.const(0.6, CentsType, scaledByTypeName)),
             )
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) - @0 as result from issue_worklog where id = @1"`)
@@ -247,7 +255,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .multiply(2),
             )
@@ -270,7 +278,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .modulo(7),
             )
@@ -295,7 +303,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .modulo(0.6),
             )
@@ -318,9 +326,9 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
-                    .modulo(ctx.conn.const(0.6, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)),
+                    .modulo(ctx.conn.const(0.6, CentsType, scaledByTypeName)),
             )
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cost_cents) % @0 as result from issue_worklog where id = @1"`)
@@ -341,7 +349,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .minValue(3),
             )
@@ -365,7 +373,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .minValue(tIssueWorklog.centsFromId),
             )
@@ -387,7 +395,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .maxValue(3),
             )
@@ -411,7 +419,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .maxValue(tIssueWorklog.centsFromId),
             )
@@ -435,7 +443,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .select({
                 av: ctx.conn.average(
-                    ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                    ctx.conn.fragmentWithType(CentsType, 'required', scaledByTypeName)
                         .sql`${tIssueWorklog.costCents}`,
                 ),
             })
@@ -454,7 +462,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .ceil(),
             )
@@ -475,7 +483,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .floor(),
             )
@@ -496,7 +504,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .round(),
             )
@@ -518,7 +526,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .abs(),
             )
@@ -540,7 +548,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .sign(),
             )
@@ -563,7 +571,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .add(5),
             )
@@ -586,7 +594,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .add(0.5),
             )
@@ -609,7 +617,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .add(tIssueWorklog.billedAmount),
             )
@@ -630,7 +638,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .subtract(0.5),
             )
@@ -653,9 +661,9 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
-                    .subtract(ctx.conn.const(1.5, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)),
+                    .subtract(ctx.conn.const(1.5, MoneyType, scaledByTypeName)),
             )
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (billed_amount) - @0 as result from issue_worklog where id = @1"`)
@@ -677,7 +685,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .multiply(0.02),
             )
@@ -702,7 +710,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .divide(2),
             )
@@ -726,7 +734,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .modulo(3),
             )
@@ -749,7 +757,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .modulo(0.7),
             )
@@ -772,9 +780,9 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
-                    .modulo(ctx.conn.const(1.5, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)),
+                    .modulo(ctx.conn.const(1.5, MoneyType, scaledByTypeName)),
             )
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(billed_amount as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as result from issue_worklog where id = @1"`)
@@ -795,7 +803,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .minValue(3),
             )
@@ -819,9 +827,9 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
-                    .maxValue(ctx.conn.const(1.5, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)),
+                    .maxValue(ctx.conn.const(1.5, MoneyType, scaledByTypeName)),
             )
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select iif(billed_amount < @0, billed_amount, @1) as result from issue_worklog where id = @2"`)
@@ -843,7 +851,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .maxValue(3),
             )
@@ -868,7 +876,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .roundn(2),
             )
@@ -892,7 +900,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .roundn(tIssueWorklog.issueId),
             )
@@ -917,7 +925,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .select({
                 av: ctx.conn.average(
-                    ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                    ctx.conn.fragmentWithType(MoneyType, 'required', scaledByTypeName)
                         .sql`${tIssueWorklog.billedAmount}`,
                 ),
             })
@@ -938,7 +946,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
-                v: ctx.conn.fragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'optional', scaledByTypeName)
+                v: ctx.conn.fragmentWithType(CentsType, 'optional', scaledByTypeName)
                     .sql`${tIssueWorklog.costCents}`
                     .add(9),
             })
@@ -963,7 +971,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
-                v: ctx.conn.fragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'optional', scaledByTypeName)
+                v: ctx.conn.fragmentWithType(MoneyType, 'optional', scaledByTypeName)
                     .sql`${tIssueWorklog.billedAmount}`
                     .minValue(3),
             })
@@ -988,7 +996,7 @@ describe(ctx.label, () => {
         ctx.mockNext(600)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
                     .abs(),
             )
@@ -1004,7 +1012,7 @@ describe(ctx.label, () => {
         ctx.mockNext(500)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
                     .subtract(1),
             )
@@ -1025,7 +1033,7 @@ describe(ctx.label, () => {
         ctx.mockNext(1200)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
                     .multiply(2),
             )
@@ -1045,7 +1053,7 @@ describe(ctx.label, () => {
         ctx.mockNext(600)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
                     .modulo(7),
             )
@@ -1066,7 +1074,7 @@ describe(ctx.label, () => {
         ctx.mockNext(900)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
                     .minValue(9),
             )
@@ -1088,7 +1096,7 @@ describe(ctx.label, () => {
         ctx.mockNext(600)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(CentsType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
                     .maxValue(9),
             )
@@ -1111,7 +1119,7 @@ describe(ctx.label, () => {
         ctx.mockNext(450)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.billedAmount})`
                     .roundn(2),
             )
@@ -1132,7 +1140,7 @@ describe(ctx.label, () => {
         ctx.mockNext(900)
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .selectOneColumn(
-                ctx.conn.aggregateFragmentWithType(CustomDoubleType.of<number, 'Money'>('Money'), 'required', scaledByTypeName)
+                ctx.conn.aggregateFragmentWithType(MoneyType, 'required', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.billedAmount})`
                     .minValue(9),
             )
@@ -1155,7 +1163,7 @@ describe(ctx.label, () => {
         ctx.mockNext({ v: 1500 })
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .select({
-                v: ctx.conn.aggregateFragmentWithType(CustomIntType.of<number, 'Cents'>('Cents'), 'optional', scaledByTypeName)
+                v: ctx.conn.aggregateFragmentWithType(CentsType, 'optional', scaledByTypeName)
                     .sql`sum(${tIssueWorklog.costCents})`
                     .add(9),
             })
@@ -1179,7 +1187,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.const(1, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+                ctx.conn.const(1, CentsType, scaledByTypeName)
                     .abs(),
             )
             .executeSelectOne()
@@ -1202,7 +1210,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.const(0.6, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+                ctx.conn.const(0.6, CentsType, scaledByTypeName)
                     .add(tIssueWorklog.costCents),
             )
             .executeSelectOne()
@@ -1224,7 +1232,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.const(1.4, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+                ctx.conn.const(1.4, CentsType, scaledByTypeName)
                     .modulo(tIssueWorklog.costCents),
             )
             .executeSelectOne()
@@ -1246,7 +1254,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.const(0.5, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+                ctx.conn.const(0.5, CentsType, scaledByTypeName)
                     .minValue(tIssueWorklog.costCents),
             )
             .executeSelectOne()
@@ -1270,7 +1278,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(
-                ctx.conn.const(5, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
+                ctx.conn.const(5, MoneyType, scaledByTypeName)
                     .modulo(tIssueWorklog.billedAmount),
             )
             .executeSelectOne()
@@ -1293,7 +1301,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
-                v: ctx.conn.optionalConst(0.6, CustomIntType.of<number, 'Cents'>('Cents'), scaledByTypeName)
+                v: ctx.conn.optionalConst(0.6, CentsType, scaledByTypeName)
                     .add(tIssueWorklog.costCents),
             })
             .executeSelectOne()
@@ -1317,7 +1325,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .select({
-                v: ctx.conn.optionalConst(5, CustomDoubleType.of<number, 'Money'>('Money'), scaledByTypeName)
+                v: ctx.conn.optionalConst(5, MoneyType, scaledByTypeName)
                     .maxValue(tIssueWorklog.billedAmount),
             })
             .executeSelectOne()
@@ -1343,7 +1351,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(ReleaseDayType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.releasedOn}`
                     .getFullYear(),
             )
@@ -1365,7 +1373,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(ReleaseDayType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.releasedOn}`
                     .getMonth(),
             )
@@ -1387,7 +1395,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(ReleaseDayType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.releasedOn}`
                     .getDate(),
             )
@@ -1409,7 +1417,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalDateType.of<Date, 'ReleaseDay'>('ReleaseDay'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(ReleaseDayType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.releasedOn}`
                     .getDay(),
             )
@@ -1431,7 +1439,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CutoffClockType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.cutoffTime}`
                     .getHours(),
             )
@@ -1452,7 +1460,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CutoffClockType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.cutoffTime}`
                     .getMinutes(),
             )
@@ -1473,7 +1481,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalTimeType.of<Date, 'CutoffClock'>('CutoffClock'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(CutoffClockType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.cutoffTime}`
                     .getSeconds(),
             )
@@ -1495,7 +1503,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(PublishStampType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.publishedAt}`
                     .getHours(),
             )
@@ -1517,7 +1525,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomLocalDateTimeType.of<Date, 'PublishStamp'>('PublishStamp'), 'required', scaledByTypeName)
+                ctx.conn.fragmentWithType(PublishStampType, 'required', scaledByTypeName)
                     .sql`${tProjectRelease.publishedAt}`
                     .getMinutes(),
             )
@@ -1542,7 +1550,7 @@ describe(ctx.label, () => {
         ctx.mockNext(1)
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.signingKey.equals(
-                ctx.conn.const('0a8f9c1e-1111-4222-8333-444455556666', CustomUuidType.of<string, 'SigningKey'>('SigningKey')),
+                ctx.conn.const('0a8f9c1e-1111-4222-8333-444455556666', SigningKeyType),
             ))
             .selectOneColumn(tProjectRelease.id)
             .executeSelectOne()
@@ -1564,7 +1572,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'required')
+                ctx.conn.fragmentWithType(SigningKeyType, 'required')
                     .sql`${tProjectRelease.signingKey}`,
             )
             .executeSelectOne()
@@ -1587,7 +1595,7 @@ describe(ctx.label, () => {
         const v = await ctx.conn.selectFrom(tProjectRelease)
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(
-                ctx.conn.fragmentWithType(CustomUuidType.of<string, 'SigningKey'>('SigningKey'), 'required')
+                ctx.conn.fragmentWithType(SigningKeyType, 'required')
                     .sql`${tProjectRelease.signingKey}`
                     .asString()
                     .toUpperCase(),

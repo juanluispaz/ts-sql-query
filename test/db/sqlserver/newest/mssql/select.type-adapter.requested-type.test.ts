@@ -8,11 +8,17 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { CustomLocalDateType, getQueryContext, StringType } from '../../../../../src/exports/v2/index.js'
+import { getQueryContext, StringType } from '../../../../../src/exports/v2/index.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { LocalDatesType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class ReleaseDayType extends LocalDatesType<ReleaseDay, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
+abstract class LocalDateTimeType extends LocalDatesType<ReleaseDay, 'localDateTime'> { static override readonly type = 'localDateTime' }
+abstract class ReleaseDayLocalDatesType extends LocalDatesType<ReturnType<typeof dayOf>, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }
 
 type ReleaseDay = Date & { readonly __brand: 'ReleaseDay' }
 
@@ -27,7 +33,7 @@ function dateOfDayMonthYearText(placeholder: string): string {
 }
 
 // What transformPlaceholder sees of the types of the parameter
-const seenByThePlaceholder: Array<[string, string | undefined, string, string | undefined]> = []
+const seenByThePlaceholder: Array<[string, string]> = []
 
 // Sends a ReleaseDay as its text DD/MM/YYYY
 const dayMonthYear: TypeAdapter = {
@@ -44,7 +50,7 @@ const dayMonthYear: TypeAdapter = {
         return next.transformValueToDB(value, context)
     },
     transformPlaceholder(placeholder, context, next) {
-        seenByThePlaceholder.push([context.originalType.type, context.originalType.customType, context.requestedType.type, context.requestedType.customType])
+        seenByThePlaceholder.push([context.originalType.type, context.requestedType.type])
         if (context.requestedType.type === 'string') {
             return dateOfDayMonthYearText(placeholder)
         }
@@ -54,7 +60,7 @@ const dayMonthYear: TypeAdapter = {
 
 const tReleaseDayAsText = new class TReleaseDayAsText extends Table<DBConnection, 'TReleaseDayAsText'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), dayMonthYear)
+    releasedOn = this.column('released_on', ReleaseDayType, dayMonthYear)
     constructor() { super('project_release') }
 }()
 
@@ -62,7 +68,7 @@ const tReleaseDayAsText = new class TReleaseDayAsText extends Table<DBConnection
 // localDate
 const tReleaseDayNamedLikeABuiltIn = new class TReleaseDayNamedLikeABuiltIn extends Table<DBConnection, 'TReleaseDayNamedLikeABuiltIn'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'localDateTime'>('localDateTime'))
+    releasedOn = this.column('released_on', LocalDateTimeType)
     constructor() { super('project_release') }
 }()
 
@@ -87,7 +93,7 @@ const dayMonthYearByClass: TypeAdapter = {
 
 const tReleaseDayAsTextByClass = new class TReleaseDayAsTextByClass extends Table<DBConnection, 'TReleaseDayAsTextByClass'> {
     id         = this.primaryKey('id', 'int')
-    releasedOn = this.column('released_on', CustomLocalDateType.of<ReleaseDay, 'ReleaseDay'>('ReleaseDay'), dayMonthYearByClass)
+    releasedOn = this.column('released_on', ReleaseDayType, dayMonthYearByClass)
     constructor() { super('project_release') }
 }()
 
@@ -112,9 +118,9 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual([{ id: 1 }])
         // The placeholder and the query runner see both types of the parameter
-        expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'customLocalDate', 'string', undefined]])
+        expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'string']])
         const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
-        expect([param?.originalType?.type, param?.originalType?.customType, param?.requestedType?.type, param?.requestedType?.customType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])
+        expect([param?.originalType?.type, param?.requestedType?.type]).toEqual(['ReleaseDay', 'string'])
     })
 
     test('requested-type/a-type-requested-by-its-class', async () => {
@@ -134,9 +140,9 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual([{ id: 1 }])
-        expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'customLocalDate', 'string', undefined]])
+        expect(seenByThePlaceholder).toEqual([['ReleaseDay', 'string']])
         const param = getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)
-        expect([param?.originalType?.type, param?.originalType?.customType, param?.requestedType?.type, param?.requestedType?.customType]).toEqual(['ReleaseDay', 'customLocalDate', 'string', undefined])
+        expect([param?.originalType?.type, param?.requestedType?.type]).toEqual(['ReleaseDay', 'string'])
     })
 
     test('requested-type/a-value-sent-as-the-type-the-adapter-requests-where-the-database-receives-its-type', async () => {
@@ -145,7 +151,7 @@ describe(ctx.label, () => {
             .where(tReleaseDayAsText.id.equals(1))
             .select({
                 id: tReleaseDayAsText.id,
-                day: ctx.conn.const(dayOf(2024, 1, 15), CustomLocalDateType.of<ReturnType<typeof dayOf>, 'ReleaseDay'>('ReleaseDay'), dayMonthYear),
+                day: ctx.conn.const(dayOf(2024, 1, 15), ReleaseDayLocalDatesType, dayMonthYear),
             })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(date, @0, 103) as day from project_release where id = @1"`)

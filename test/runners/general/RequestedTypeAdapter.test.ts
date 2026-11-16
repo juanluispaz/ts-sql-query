@@ -6,8 +6,9 @@ import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import { CustomIntType, IntType, StringType, Table } from '../../../src/exports/v2/index.js'
+import { IntType, StringType, Table } from '../../../src/exports/v2/index.js'
 import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../src/TypeAdapter.js'
+import { IntegersType } from '../../../src/exports/v2/index.js'
 
 // Writes what each step does, in the order it happens
 const steps: string[] = []
@@ -54,7 +55,7 @@ const itself: TypeAdapter = {
     },
 }
 
-const CodeType = CustomIntType.of<number, 'Code'>('Code')
+abstract class CodeType extends IntegersType<number, 'Code'> { static override readonly type = 'Code' }
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {}
 

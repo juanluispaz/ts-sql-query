@@ -24,7 +24,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
-import { CustomComparableType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -142,10 +142,11 @@ describe(ctx.label, () => {
         // A `customInt` is cast as an `int`: `::int4`.
         // Realistic shape: a branded ID type tagged as `IssueId`.
         type IssueId = number & { readonly __brand: 'IssueId' }
+        abstract class IssueIdType extends IntegersType<IssueId, 'IssueId'> { static override readonly type = 'IssueId' }
         const id = 42 as IssueId
         ctx.mockNext(id)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(id, CustomIntType.of<IssueId, 'IssueId'>('IssueId')))
+            .selectOneColumn(ctx.conn.const(id, IssueIdType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -158,10 +159,11 @@ describe(ctx.label, () => {
     test('const-custom-double-is-cast-as-float8', async () => {
         // A `customDouble` is cast as a `double`: `::float8`.
         type Money = number & { readonly __brand: 'Money' }
+        abstract class MoneyType extends RealsType<Money, 'Money'> { static override readonly type = 'Money' }
         const amount = 19.99 as Money
         ctx.mockNext(amount)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(amount, CustomDoubleType.of<Money, 'Money'>('Money')))
+            .selectOneColumn(ctx.conn.const(amount, MoneyType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -176,10 +178,11 @@ describe(ctx.label, () => {
         // string: no cast. Realistic shape: a branded slug carried through
         // a domain helper.
         type Slug = string & { readonly __brand: 'Slug' }
+        abstract class SlugType extends EqualableType<Slug, 'Slug'> { static override readonly type = 'Slug' }
         const s = 'marketing-site' as Slug
         ctx.mockNext(s)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(s, CustomEqualableType.of<Slug, 'Slug'>('Slug')))
+            .selectOneColumn(ctx.conn.const(s, SlugType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -192,10 +195,11 @@ describe(ctx.label, () => {
     test('const-custom-localdate-is-cast-as-date', async () => {
         // A `customLocalDate` is cast as a `localDate`: `::date`.
         type SettlementDate = Date & { readonly __brand: 'SettlementDate' }
+        abstract class SettlementDateType extends LocalDatesType<SettlementDate, 'SettlementDate'> { static override readonly type = 'SettlementDate' }
         const d = new Date('2024-02-20T00:00:00Z') as SettlementDate
         ctx.mockNext(d)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(d, CustomLocalDateType.of<SettlementDate, 'SettlementDate'>('SettlementDate')))
+            .selectOneColumn(ctx.conn.const(d, SettlementDateType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -209,10 +213,11 @@ describe(ctx.label, () => {
         // A `customComparable` has no category to cast by, and its value is
         // a string: no cast.
         type SemVer = string & { readonly __brand: 'SemVer' }
+        abstract class SemVerType extends ComparableType<SemVer, 'SemVer'> { static override readonly type = 'SemVer' }
         const v = '1.2.0' as SemVer
         ctx.mockNext(v)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(v, CustomComparableType.of<SemVer, 'SemVer'>('SemVer')))
+            .selectOneColumn(ctx.conn.const(v, SemVerType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -225,10 +230,11 @@ describe(ctx.label, () => {
     test('const-custom-uuid-is-cast-as-uuid', async () => {
         // A `customUuid` is cast as a `uuid`: `::uuid`.
         type ReleaseId = string & { readonly __brand: 'ReleaseId' }
+        abstract class ReleaseIdType extends UuidsType<ReleaseId, 'ReleaseId'> { static override readonly type = 'ReleaseId' }
         const id = 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' as ReleaseId
         ctx.mockNext(id)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(id, CustomUuidType.of<ReleaseId, 'ReleaseId'>('ReleaseId')))
+            .selectOneColumn(ctx.conn.const(id, ReleaseIdType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -241,10 +247,11 @@ describe(ctx.label, () => {
     test('const-custom-localtime-is-cast-as-time', async () => {
         // A `customLocalTime` is cast as a `localTime`: `::time`.
         type CutoffClock = Date & { readonly __brand: 'CutoffClock' }
+        abstract class CutoffClockType extends LocalTimesType<CutoffClock, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
         const t = new Date('1970-01-01T17:00:00Z') as CutoffClock
         ctx.mockNext(t)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(t, CustomLocalTimeType.of<CutoffClock, 'CutoffClock'>('CutoffClock')))
+            .selectOneColumn(ctx.conn.const(t, CutoffClockType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -257,10 +264,11 @@ describe(ctx.label, () => {
     test('const-custom-localdatetime-is-cast-as-timestamp', async () => {
         // A `customLocalDateTime` is cast as a `localDateTime`: `::timestamp`.
         type SignOffStamp = Date & { readonly __brand: 'SignOffStamp' }
+        abstract class SignOffStampType extends LocalDateTimesType<SignOffStamp, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
         const ts = new Date('2024-01-14T12:30:00Z') as SignOffStamp
         ctx.mockNext(ts)
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const(ts, CustomLocalDateTimeType.of<SignOffStamp, 'SignOffStamp'>('SignOffStamp')))
+            .selectOneColumn(ctx.conn.const(ts, SignOffStampType))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

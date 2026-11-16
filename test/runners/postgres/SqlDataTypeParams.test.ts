@@ -14,7 +14,15 @@ import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunn
 import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
-import { CustomDecimalType, CustomEqualableType, EnumType, IntType, StringType, UuidType } from '../../../src/exports/v2/index.js'
+import { EnumType, IntType, StringType, UuidType } from '../../../src/exports/v2/index.js'
+import { DecimalsType, EqualableType } from '../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class PayloadType extends EqualableType<string, 'Payload'> { static override readonly type = 'Payload' }
+abstract class AddressType extends EqualableType<string, 'Address'> { static override readonly type = 'Address' }
+abstract class MoodType extends EnumType<string, 'Mood'> { static override readonly type = 'Mood' }
+abstract class PriceType extends DecimalsType<string, 'Price'> { static override readonly type = 'Price' }
+abstract class FlagsType extends EqualableType<string, 'Flags'> { static override readonly type = 'Flags' }
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 
@@ -45,10 +53,10 @@ function describeSqlDataTypeParams(label: string, enabled: boolean, typesThePara
         test('a-constant-selected-gets-the-type-of-its-sql-data-type', async () => {
             const conn = new DBConnection(created!.runner)
             const query = conn.selectFromNoTable().select({
-                payload: conn.const('{"a": 1}', CustomEqualableType.of<string, 'Payload'>('Payload'), payload),
-                address: conn.const('10.0.0.1', CustomEqualableType.of<string, 'Address'>('Address'), address),
-                mood: conn.const('happy', EnumType.of<string, 'Mood'>('Mood'), mood),
-                price: conn.const('1.23456', CustomDecimalType.of<string, 'Price'>('Price'), price),
+                payload: conn.const('{"a": 1}', PayloadType, payload),
+                address: conn.const('10.0.0.1', AddressType, address),
+                mood: conn.const('happy', MoodType, mood),
+                price: conn.const('1.23456', PriceType, price),
             })
             expect(query.query()).toBe(typesTheParam
                 // Typed by the oid: the SQL has no cast
@@ -64,7 +72,7 @@ function describeSqlDataTypeParams(label: string, enabled: boolean, typesThePara
             const conn = new DBConnection(created!.runner)
             const query = conn.selectFromNoTable().select({
                 code: conn.const('abcde', StringType, code),
-                flags: conn.const('101', CustomEqualableType.of<string, 'Flags'>('Flags'), flags),
+                flags: conn.const('101', FlagsType, flags),
                 small: conn.const(7, IntType, small),
             })
             // A char or a bit without its length would be of length 1, and cut the value: a bpchar or a varbit holds any

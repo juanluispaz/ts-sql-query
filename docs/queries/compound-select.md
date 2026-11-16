@@ -34,7 +34,9 @@ These are the results when the first select returns the rows `1, 2, 2, 2, 3` and
 All the customers and all the companies in a single list. A customer and a company can have the same id and the same name, but the `type` column makes them different rows, so `unionAll` is enough:
 
 ```ts
-const CustomerOrCompanyType = EnumType.of<'customer' | 'company', 'customerOrCompany'>('customerOrCompany');
+abstract class CustomerOrCompanyType extends EnumType<'customer' | 'company', 'customerOrCompany'> {
+    static override readonly type = 'customerOrCompany'
+}
 
 const allDataWithName = connection.selectFrom(tCustomer)
     .select({

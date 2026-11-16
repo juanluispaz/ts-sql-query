@@ -6,14 +6,19 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { CustomDecimalType, CustomEqualableType, CustomIntType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, EqualableType, IntegersType } from '../../../../../src/exports/v2/index.js'
+
+// The data types of the values of the user, each one a class of the family of its values
+abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
+abstract class UnitsType extends IntegersType<Units, 'Units'> { static override readonly type = 'Units' }
+abstract class TagType extends EqualableType<string, 'Tag'> { static override readonly type = 'Tag' }
 
 type Units = number & { readonly __brand: 'Units' }
 
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
     id = this.primaryKey('id', 'int')
-    amount = this.optionalColumn('amount', CustomDecimalType.of<string, 'Amount'>('Amount'))
-    price = this.optionalColumn('price', CustomDecimalType.of<string, 'Amount'>('Amount'))
+    amount = this.optionalColumn('amount', AmountType)
+    price = this.optionalColumn('price', AmountType)
     constructor() {
         super('exact_amount')
     }
@@ -29,8 +34,8 @@ describe(ctx.label, () => {
         ctx.mockNext({ units: '42', tag: '42' })
         const row = await ctx.conn.selectFromNoTable()
             .select({
-                units: ctx.conn.fragmentWithType(CustomIntType.of<Units, 'Units'>('Units'), 'required').sql`'42'`,
-                tag: ctx.conn.fragmentWithType(CustomEqualableType.of<string, 'Tag'>('Tag'), 'required').sql`'42'`,
+                units: ctx.conn.fragmentWithType(UnitsType, 'required').sql`'42'`,
+                tag: ctx.conn.fragmentWithType(TagType, 'required').sql`'42'`,
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select '42' as "units", '42' as "tag" from dual"`)

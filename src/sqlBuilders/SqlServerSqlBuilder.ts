@@ -20,7 +20,7 @@ import { __isCondition } from '../typeSystem/logical.js'
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
-import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -672,9 +672,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         result += ', '
         if (value instanceof UuidTextType) {
-            result += this._uuidAsText(this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)))
+            result += this._uuidAsText(this._appendValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)))
         } else {
-            result += this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+            result += this._appendValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
         }
         result += ')'
         return result
@@ -950,7 +950,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // only type family `%` accepts for fractional values — so the
             // operator resolves regardless of which side is the double. The
             // integer / bigint receivers and operands keep the plain `%` form below.
-            return 'cast(' + this._appendSql(valueSource, context, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ' as numeric(38, 16))'
+            return 'cast(' + this._appendSql(valueSource, context, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ' as numeric(38, 16))'
         }
         return super._modulo(context, valueSource, value, typeClass)
     }
@@ -1026,7 +1026,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (__sqlFamilyOf(typeClass) !== 'approximate numeric') {
             base = this._appendCastAsDouble(base)
         }
-        return 'power(' + base + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'power(' + base + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     override _ln(context: SqlBuildContext, valueSource: ToSql): string {
         return 'log(' + this._appendSql(valueSource, context, false) + ')'
@@ -1036,10 +1036,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _logn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // SQL Server's LOG is `LOG(value, base)` — value first — unlike every other backend.
-        return 'log(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'log(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     override _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'atn2(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'atn2(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     override _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // maxValue(x) — the SMALLER of the two. Native `least` / `greatest` and the `iif`
@@ -1146,18 +1146,18 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return 'string_agg(distinct ' + this._appendSqlMaybeUuidText(value, context) + ', ' + this._appendUnsafeLiteralValue(separator, context) + ')'
         }
     }
-    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+    override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         if (typeof value === 'number' && value < 0) {
             // `substring()` has no negative-start semantics at all on this dialect — it just
             // reads a negative start as 1. `right()` is exactly `String.prototype.substr`'s
             // negative start, out-of-range clamp included, and it needs no version gate.
-            return 'right(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'right(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(-value, context, __registeredDataType('int'), false) + ')'
         }
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
             if (typeof value === 'number') {
-                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __registeredDataType('int'), false) + ')'
             } else {
-                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1)'
+                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1)'
             }
         }
         // Pre-2025 `substring()` has no 2-argument form, so "to the end" is spelled with a
@@ -1167,12 +1167,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // Both arms must agree with the >= 17_000_000 arm above on the VALUE, not just be
         // valid SQL.
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __registeredDataType('int'), false) + ', 2147483647)'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1, 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1, 2147483647)'
         }
     }
-    override _substringToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+    override _substringToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         // `String.prototype.substring` clamps a negative index to 0 rather than counting from
         // the end, so the clamp lands before the `+ 1` and the SQL is a plain start-of-string.
         if (typeof value === 'number' && value < 0) {
@@ -1180,9 +1180,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
             if (typeof value === 'number') {
-                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __registeredDataType('int'), false) + ')'
             } else {
-                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1)'
+                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1)'
             }
         }
         // Pre-2025 `substring()` has no 2-argument form, so "to the end" is spelled with a
@@ -1192,37 +1192,37 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // Both arms must agree with the >= 17_000_000 arm above on the VALUE, not just be
         // valid SQL.
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __registeredDataType('int'), false) + ', 2147483647)'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1, 2147483647)'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1, 2147483647)'
         }
     }
-    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+    override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'left(right(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + '), ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'left(right(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(-value, context, __registeredDataType('int'), false) + '), ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
         }
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(value + 1, context, __registeredDataType('int'), false) + ', ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1, ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1, ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
         }
     }
-    override _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+    override _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
         if (typeof value === 'number' && typeof value2 === 'number') {
             // `String.prototype.substring` clamps both indexes to 0 and SWAPS them when
             // start > end, so `substring(2, 0)` is a legal call meaning `substring(0, 2)`.
             const [start, end] = this._clampAndOrderSubstringBounds(value, value2)
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(start + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', ' + this._appendValue(end - start, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(start + 1, context, __registeredDataType('int'), false) + ', ' + this._appendValue(end - start, context, __registeredDataType('int'), false) + ')'
         }
         if (typeof value === 'number') {
             const start = value < 0 ? 0 : value
             if (start === 0) {
-                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', 1, ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+                return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', 1, ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
             }
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(start + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' - ' + this._appendValue(start, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValue(start + 1, context, __registeredDataType('int'), false) + ', ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ' - ' + this._appendValue(start, context, __registeredDataType('int'), false) + ')'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1, ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' - ' + this._appendValue(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substring(' + this._appendSqlMaybeUuidText(valueSource, context) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1, ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ' - ' + this._appendValue(value, context, __registeredDataType('int'), false) + ')'
         }
     }
     _useForJsonInAggreagteArrayWhenPossible = true

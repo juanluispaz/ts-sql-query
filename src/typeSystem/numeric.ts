@@ -1,5 +1,3 @@
-import type { CustomType } from '../TypeAdapter.js'
-import { __isBigint, __isExactDecimal } from './dataTypes.js'
 import { ComparableType } from './comparable.js'
 import type { IntType } from './number.js'
 import type { INumberValue, IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
@@ -17,10 +15,6 @@ import { __keptClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** A numeric data type that works only with itself */
 export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
-    /** Whether a type and a custom type are of a number that works only with itself: a bigint, a stringDecimal or a custom number */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return __isBigint(type, customType) || __isExactDecimal(type, customType) || customType === 'customInt' || customType === 'customDouble'
-    }
 
     abs(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     abs(): any {
@@ -76,19 +70,11 @@ export abstract class NumericType</*in|out*/ VALUE_TYPE> extends ComparableType<
 
 /** An integer number that works only with itself (bigint, customInt, customBigint) */
 export abstract class IntegersType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
-    /** Whether a type and a custom type are of an integer number that works only with itself: a bigint, a customInt or a customBigint */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return __isBigint(type, customType) || customType === 'customInt'
-    }
 
 }
 
 /** A floating point number that works only with itself (customDouble): its floating point functions keep its data type */
 export abstract class RealsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
-    /** Whether a type and a custom type are of a floating point number that works only with itself: a customDouble */
-    protected static override __isOfGroup(_type: string, customType: CustomType | undefined): boolean {
-        return customType === 'customDouble'
-    }
 
     exp(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     exp(): any {

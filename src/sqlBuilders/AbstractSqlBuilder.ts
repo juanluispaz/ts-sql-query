@@ -10,7 +10,7 @@ import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITable
 import { DefaultImpl } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import type { CustomType, DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, DataTypeClass } from '../TypeAdapter.js'
+import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { __createSequence, __typeClassOf, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isColumn } from '../typeSystem/valueSourceFactory.js'
@@ -22,7 +22,7 @@ import { getWithData, hasWithData } from './SqlBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { __isExactDecimal, __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf } from '../typeSystem/dataTypes.js'
+import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSource, __isStringValueSource, isValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
@@ -32,7 +32,7 @@ import type { CustomEqualableType } from '../typeSystem/customEqualable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
-import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
@@ -2263,8 +2263,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
-        const type = columnPrivate.__type
-        const customType = columnPrivate.__customType
 
         if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
@@ -2294,28 +2292,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 } else {
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                        return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -3470,25 +3468,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' = ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _notEquals(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' <> ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is not distinct from ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' is not distinct from ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is not distinct from ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is distinct from ' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' is distinct from ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' is distinct from ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _equalsInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         const collation = this._connectionConfiguration.insensitiveCollation
@@ -3511,16 +3509,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _lessThan(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesis(valueSource, context, false) + ' < ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' < ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _greaterThan(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesis(valueSource, context, false) + ' > ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' > ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _lessOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesis(valueSource, context, false) + ' <= ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' <= ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _greaterOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesis(valueSource, context, false) + ' >= ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' >= ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _in(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // An empty array can never match, so short-circuit to the false constant.
@@ -3530,7 +3528,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (Array.isArray(value) && value.length <= 0) {
             return this._falseValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' in ' + this._appendSpreadValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' in ' + this._appendSpreadValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _notIn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // An empty array excludes nothing, so short-circuit to the true constant
@@ -3538,7 +3536,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (Array.isArray(value) && value.length <= 0) {
             return this._trueValueForCondition
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' not in ' + this._appendSpreadValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not in ' + this._appendSpreadValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     // Escape clause appended to the LIKE expressions built by the comparison predicates
     // below (`_like` … `_notContainsInsensitive`). `_escapeLikeWildcard` escapes the
@@ -3705,19 +3703,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // Both bounds are compared against the SAME receiver, so they are widened together: one
         // fractional bound decides the data type of the pair.
         const bounds = [value, value2]
-        const boundType = this._getWidenedArgumentType(typeClass.type, typeClass.customType, bounds)
-        const boundCustomType = this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, bounds)
-        const boundNeedsTypeCast = this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, bounds)
-        return this._appendSqlParenthesis(valueSource, context, false) + ' between ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, boundType, boundCustomType), boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, context, __argumentClassOf(typeClass, boundType, boundCustomType), boundNeedsTypeCast)
+        const boundClass = __valueOperandClassOf(typeClass, bounds)
+        const boundNeedsTypeCast = this._operandClassNeedsTypeCast(typeClass, boundClass)
+        return this._appendSqlParenthesis(valueSource, context, false) + ' between ' + this._appendValueParenthesis(value, context, boundClass, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, context, boundClass, boundNeedsTypeCast)
     }
     _notBetween(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         // Both bounds are compared against the SAME receiver, so they are widened together: one
         // fractional bound decides the data type of the pair.
         const bounds = [value, value2]
-        const boundType = this._getWidenedArgumentType(typeClass.type, typeClass.customType, bounds)
-        const boundCustomType = this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, bounds)
-        const boundNeedsTypeCast = this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, bounds)
-        return this._appendSqlParenthesis(valueSource, context, false) + ' not between ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, boundType, boundCustomType), boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, context, __argumentClassOf(typeClass, boundType, boundCustomType), boundNeedsTypeCast)
+        const boundClass = __valueOperandClassOf(typeClass, bounds)
+        const boundNeedsTypeCast = this._operandClassNeedsTypeCast(typeClass, boundClass)
+        return this._appendSqlParenthesis(valueSource, context, false) + ' not between ' + this._appendValueParenthesis(value, context, boundClass, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, context, boundClass, boundNeedsTypeCast)
     }
     // SqlOperationStatic0
     _pi(_context: SqlBuildContext): string {
@@ -4032,10 +4028,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlFunction1
     _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'coalesce(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'coalesce(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     _nullIfValue(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'nullif(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'nullif(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     _and(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         context.resultingOperation = undefined
@@ -4176,101 +4172,42 @@ export class AbstractSqlBuilder implements SqlBuilder {
     //
     // A value-source index cannot be resolved at build time (the sign is unknown until the
     // query runs) and keeps the `+ 1`: see LIMITATIONS.md.
-    _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+    _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         if (typeof value === 'number') {
             if (value < 0) {
                 // SQLite counts a negative start from the end and clamps an out-of-range one
                 // to the whole string, which is exactly `String.prototype.substr`.
-                return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+                return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __registeredDataType('int'), false) + ')'
             }
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value + 1, context, __registeredDataType('int'), false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1)'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1)'
         }
     }
-    _substringToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+    _substringToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         if (typeof value === 'number') {
             // `String.prototype.substring` clamps a negative index to 0 — unlike `substr`,
             // it never counts from the end — so the clamp is applied before the `+ 1` and
             // the emitted SQL is the same one a 0 would have produced.
             const start = value < 0 ? 0 : value
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, __registeredDataType('int'), false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1)'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1)'
         }
     }
-    /** The type of the argument of a math operation; its custom type is _getMathArgumentCustomType */
-    _getMathArgumentType(type: string, customType: CustomType | undefined, value: any): string {
-        if (this._mathArgumentKeepsItsType(type, customType, value)) {
-            return type
-        }
-        if (typeof value === 'number') {
-            if (!Number.isInteger(value)) {
-                return 'double'
-            }
-            return 'int'
-        }
-        if (typeof value === 'bigint') {
-            return 'bigint'
-        }
-        return type
+    /**
+     * Whether a value given to an operation needs its type written in the SQL: the class of the data type of the
+     * operation says it is an integer and the value is sent as a floating point number (a fraction compared with an
+     * int, see the operand classes of the data types). PostgreSQL resolves a bare `$n` from the operator around it
+     * (`int4 = $n` pins `$n` to int4) and refuses the fraction before it sees the value; only PostgreSQL acts on
+     * `forceTypeCast`, so every other dialect writes the same SQL
+     */
+    _operandNeedsTypeCast(typeClass: DataTypeClass, value: any): boolean {
+        return this._operandClassNeedsTypeCast(typeClass, __valueOperandClassOf(typeClass, value))
     }
-    /** The custom type of the argument of a math operation; its type is _getMathArgumentType */
-    _getMathArgumentCustomType(type: string, customType: CustomType | undefined, value: any): CustomType | undefined {
-        if (this._mathArgumentKeepsItsType(type, customType, value)) {
-            return customType
-        }
-        if (typeof value === 'number' || typeof value === 'bigint') {
-            return undefined
-        }
-        return customType
-    }
-    /** A custom number keeps its type; the value of a decimal isn't a JavaScript number: a number is the argument of `roundn` */
-    _mathArgumentKeepsItsType(type: string, customType: CustomType | undefined, value: any): boolean {
-        return customType === 'customInt' || customType === 'customBigint' || customType === 'customDouble' || (__isExactDecimal(type, customType) && typeof value !== 'number')
-    }
-    _getWidenedArgumentType(type: string, customType: CustomType | undefined, value: any): string {
-        // The data type an OPERAND is bound with. It is the receiver's own, except where that type cannot
-        // hold the value the caller gave: an `int` receiver and a fractional JS number. The library PICKS
-        // this type, so a mismatch here is the library's own bad choice, not an invalid state to report —
-        // refusing the value would only preempt the engine, which is the one that understands queries.
-        // Widened, `coalesce(<int>, 0.5)` returns the fraction and `<int> < 2.5` answers, both correctly.
-        //
-        // Positions whose data type is FIXED BY WHAT THE POSITION MEANS do NOT come through here, and must
-        // not: a value written into a declared column, a row count (`limit` / `offset`), a character index
-        // (`substr` / `substring`). Those would be typed `int` if TypeScript had one, with no `double`
-        // overload — nobody CHOOSES their type — so the marshaller's check there is not the library
-        // preempting the engine, it is the type check the type system cannot perform.
-        if (this._isWidenedArgument(type, customType, value)) {
-            return 'double'
-        }
-        return type
-    }
-    /** The custom type an operand is bound with: see _getWidenedArgumentType */
-    _getWidenedArgumentCustomType(type: string, customType: CustomType | undefined, value: any): CustomType | undefined {
-        if (this._isWidenedArgument(type, customType, value)) {
-            return undefined
-        }
-        return customType
-    }
-    /** An `int` receiver and a fractional JS number: the operand is bound as a double */
-    _isWidenedArgument(type: string, customType: CustomType | undefined, value: any): boolean {
-        return customType === undefined && type === 'int' && this._isFractionalNumberOperand(value)
-    }
-    _widenedArgumentNeedsTypeCast(type: string, customType: CustomType | undefined, value: any): boolean {
-        // The operand resolved WIDER than the receiver. The parameter has to carry that type in the SQL, not
-        // just in the marshaller — PostgreSQL resolves a bare `$n` from the operator around it (parsing
-        // `int4 + $n` pins `$n` to int4) and then refuses the fractional bind before it ever sees the value,
-        // so without this the engine never gets to judge the query at all. Only PostgreSQL acts on
-        // `forceTypeCast`, so every other dialect emits exactly what it emitted before.
-        return this._isWidenedArgument(type, customType, value)
-    }
-    /** `in` / `notIn` hand over the whole list and `between` two bounds; one fractional member widens them all. */
-    _isFractionalNumberOperand(value: any): boolean {
-        if (Array.isArray(value)) {
-            return value.some(element => this._isFractionalNumberOperand(element))
-        }
-        return typeof value === 'number' && !Number.isInteger(value)
+    /** Whether a value of the class given, in an operation of the data type of typeClass, needs its type written: see _operandNeedsTypeCast */
+    _operandClassNeedsTypeCast(typeClass: DataTypeClass, operandClass: DataTypeClass): boolean {
+        return operandClass !== typeClass && __isIntegerSql(typeClass) && __sqlFamilyOf(operandClass) === 'approximate numeric'
     }
     _moduloRequiresFloatHandling(typeClass: DataTypeClass, value: any): boolean {
         // `_modulo` only receives the receiver's column type, but the
@@ -4291,13 +4228,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return typeof value === 'number' && !Number.isInteger(value)
     }
     _power(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'power(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'power(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     _logn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // The public API `value.logn(n)` means log base n of value, i.e. `log_n(value)`.
         // PostgreSQL, MariaDB, MySQL, SQLite and Oracle all spell this as `LOG(base, value)`
         // — base first. SQL Server's LOG is `LOG(value, base)` and overrides this method.
-        return 'log(' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ', ' + this._appendSql(valueSource, context, false) + ')'
+        return 'log(' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ', ' + this._appendSql(valueSource, context, false) + ')'
     }
     _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         return 'round(' + this._appendSql(valueSource, context, false) + ', ' + this._appendRoundnScale(value, context, typeClass) + ')'
@@ -4309,9 +4246,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * usePlatformDependentRound
      */
     _roundnScale(value: any, typeClass: DataTypeClass): { value: any, typeClass: DataTypeClass } {
-        const argumentType = this._getMathArgumentType(typeClass.type, typeClass.customType, value)
-        const argumentCustomType = this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)
-        const argumentClass = __argumentClassOf(typeClass, argumentType, argumentCustomType)
+        const argumentClass = __arithmeticOperandClassOf(typeClass, value)
         if (typeof value === 'number' && !this._connectionConfiguration.usePlatformDependentRound) {
             const sent = this._transformParamToDB(value, argumentClass)
             if (typeof sent === 'number' && Number.isFinite(sent) && !Number.isInteger(sent)) {
@@ -4354,10 +4289,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return sql
     }
     _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'least(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'least(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'greatest(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'greatest(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     /**
      * Shared min/max builder for the dialects whose native `least`/`greatest` (or
@@ -4393,28 +4328,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * expensive value-source receiver.
      */
     _minAndMaxValueBetweenTwoValuesPoisoningNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, userFunction: string | undefined, functionName: string): string {
-        const argumentType = this._getMathArgumentType(typeClass.type, typeClass.customType, value)
-        const argumentCustomType = this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)
-        const argumentNeedsTypeCast = this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)
+        const argumentClass = __arithmeticOperandClassOf(typeClass, value)
+        const argumentNeedsTypeCast = this._operandClassNeedsTypeCast(typeClass, argumentClass)
         if (this._connectionConfiguration.ignoreNullInMinAndMaxValue) {
             // Opt-out: keep the engine's native least/greatest, which ignores a NULL operand.
-            return this._minAndMaxValueSelection(context, valueSource, value, __argumentClassOf(typeClass, argumentType, argumentCustomType), functionName, argumentNeedsTypeCast)
+            return this._minAndMaxValueSelection(context, valueSource, value, argumentClass, functionName, argumentNeedsTypeCast)
         }
         if (userFunction) {
             // Opt-in: a user-provided null-propagating function; it poisons NULL itself, no CASE.
-            return userFunction + '(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, argumentType, argumentCustomType), argumentNeedsTypeCast) + ')'
+            return userFunction + '(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, argumentClass, argumentNeedsTypeCast) + ')'
         }
         if (this._isNullValue(valueSource) || this._isNullValue(value)) {
             // A NULL operand poisons the result, and this operand is already known to be NULL
             // here, so the result is NULL: asking the database to compute a value it cannot
             // reach is pure noise.
-            return this._asNullValue(context, __argumentClassOf(typeClass, argumentType, argumentCustomType))
+            return this._asNullValue(context, argumentClass)
         }
         const receiverOptional = this._canBeNullWhenTheQueryRuns(valueSource)
         const operandOptional = this._canBeNullWhenTheQueryRuns(value)
         if (!receiverOptional && !operandOptional) {
             // Nothing can be null, emit the bare native form.
-            return this._minAndMaxValueSelection(context, valueSource, value, __argumentClassOf(typeClass, argumentType, argumentCustomType), functionName, argumentNeedsTypeCast)
+            return this._minAndMaxValueSelection(context, valueSource, value, argumentClass, functionName, argumentNeedsTypeCast)
         }
         // Build the null check first so its parameters are appended before the inner's.
         let nullCheck: string
@@ -4425,7 +4359,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             nullCheck = this._isNull(context, value)
         }
-        return 'case when ' + nullCheck + ' then null else ' + this._minAndMaxValueSelection(context, valueSource, value, __argumentClassOf(typeClass, argumentType, argumentCustomType), functionName, argumentNeedsTypeCast) + ' end'
+        return 'case when ' + nullCheck + ' then null else ' + this._minAndMaxValueSelection(context, valueSource, value, argumentClass, functionName, argumentNeedsTypeCast) + ' end'
     }
     /**
      * The bare two-value min/max selection with NO null handling: `<functionName>(a, b)`,
@@ -4437,13 +4371,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return functionName + '(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, argumentClass, argumentNeedsTypeCast) + ')'
     }
     _add(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesisExcluding(valueSource, context, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), '_add', this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, context, __arithmeticOperandClassOf(typeClass, value), '_add', this._operandNeedsTypeCast(typeClass, value))
     }
     _subtract(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesisExcluding(valueSource, context, '_subtract', false) + ' - ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_subtract', false) + ' - ' + this._appendValueParenthesis(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _multiply(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesisExcluding(valueSource, context, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), '_multiply', this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, context, __arithmeticOperandClassOf(typeClass, value), '_multiply', this._operandNeedsTypeCast(typeClass, value))
     }
     _divide(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // `divide` always yields a double — it mirrors JavaScript's `/`, which has no
@@ -4454,17 +4388,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // point on every dialect, so the cast is emitted only when neither operand is
         // already known to be one.
         const dividend = this._appendSqlParenthesis(valueSource, context, false)
-        const divisor = this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        const divisor = this._appendValueParenthesis(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
         if (this._numericKindOf(valueSource) === 'approximate' || this._numericKindOf(value) === 'approximate') {
             return dividend + ' / ' + divisor
         }
         return this._appendCastAsDouble(dividend) + ' / ' + divisor
     }
     _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendSqlParenthesis(valueSource, context, false) + ' % ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' % ' + this._appendValueParenthesis(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'atan2(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'atan2(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     // SqlFunction2
     /**
@@ -4480,7 +4414,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return count
     }
-    _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+    _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number') {
             if (value < 0) {
@@ -4490,30 +4424,30 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 // 2-argument form — which clamps — and the count applied to that tail. This
                 // nests rather than guarding with `max(start, -length(x))` so the receiver is
                 // still referenced ONCE: a guard would emit it (and bind it) twice.
-                return 'substr(substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + '), 1, ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+                return 'substr(substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __registeredDataType('int'), false) + '), 1, ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
             }
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value + 1, context, __registeredDataType('int'), false) + ', ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1, ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1, ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
         }
     }
-    _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+    _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
         if (typeof value === 'number' && typeof value2 === 'number') {
             // `String.prototype.substring` clamps both indexes to 0 and SWAPS them when
             // start > end: `'abcdef'.substring(2, 0)` is 'ab', not an error. Emitting the
             // arguments as given produced a negative length, which PostgreSQL rejects
             // outright ("negative substring length not allowed") — a crash on a legal call.
             const [start, end] = this._clampAndOrderSubstringBounds(value, value2)
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', ' + this._appendValue(end - start, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, __registeredDataType('int'), false) + ', ' + this._appendValue(end - start, context, __registeredDataType('int'), false) + ')'
         }
         if (typeof value === 'number') {
             const start = value < 0 ? 0 : value
             if (start === 0) {
-                return 'substr(' + this._appendSql(valueSource, context, false) + ', 1, ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+                return 'substr(' + this._appendSql(valueSource, context, false) + ', 1, ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
             }
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, __argumentClassOf(typeClass, 'int', undefined), false) + ', ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' - ' + this._appendValue(start, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(start + 1, context, __registeredDataType('int'), false) + ', ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ' - ' + this._appendValue(start, context, __registeredDataType('int'), false) + ')'
         } else {
-            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' + 1, ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ' - ' + this._appendValue(value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'substr(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValueParenthesis(value, context, __registeredDataType('int'), false) + ' + 1, ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ' - ' + this._appendValue(value, context, __registeredDataType('int'), false) + ')'
         }
     }
     /**

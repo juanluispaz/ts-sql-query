@@ -3,7 +3,6 @@ import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAgg
 import { computedType } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'

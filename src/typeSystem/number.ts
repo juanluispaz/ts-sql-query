@@ -1,9 +1,9 @@
-import type { CustomType, SqlDataType } from '../TypeAdapter.js'
+import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { BigintType } from './bigint.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
+import { arithmeticOperandClass, operandTypeName, typeName, valueOperandClass } from '../utils/symbols.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -39,9 +39,19 @@ export const intSqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, 
 export const doubleSqlDataType: SqlDataType = { family: 'approximate numeric', precision: 53 }
 
 export abstract class NumberType extends ComparableType<number> {
-    /** Whether a type and a custom type are of the group number: an int or a double */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return customType === undefined && (type === 'int' || type === 'double')
+    /**
+     * A number given to an arithmetic operation of a number is an int when it is an integer and a double otherwise, as
+     * TypeScript can't tell 2 from 2.5; a bigint is a bigint
+     */
+    static [arithmeticOperandClass](value: unknown): DataTypeClass | undefined {
+        if (typeof value === 'number') {
+            const valueClass = Number.isInteger(value) ? IntType : DoubleType
+            return isOfClass(this, valueClass) ? undefined : valueClass
+        }
+        if (typeof value === 'bigint') {
+            return BigintType
+        }
+        return undefined
     }
 
     declare [typeName]: `type:${string}:number:`
@@ -195,6 +205,11 @@ export abstract class IntType extends NumberType {
     static override readonly sqlDataType: SqlDataType = intSqlDataType
     declare [typeName]: 'type:int:number:'
 
+    /** A value with a fraction compared with an int (or given as its fallback, ...) is a double; with a list or two bounds, any of them */
+    static [valueOperandClass](value: unknown): DataTypeClass | undefined {
+        return hasFraction(value) ? DoubleType : undefined
+    }
+
     /** An int is already an int */
     override asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     override asInt(): any {
@@ -220,6 +235,24 @@ export abstract class DoubleType extends NumberType {
     static override readonly customType = undefined
     static override readonly sqlDataType: SqlDataType = doubleSqlDataType
     declare [typeName]: 'type:double:number:'
+}
+
+/** Whether the class is the one given or extends it */
+function isOfClass(typeClass: object, base: abstract new (...args: any) => any): boolean {
+    return typeClass === base || (typeClass as { prototype: unknown }).prototype instanceof base
+}
+
+/** Whether a number given as a value has a fraction; a list (`in`) or the two bounds of `between`, any of them */
+function hasFraction(value: unknown): boolean {
+    if (Array.isArray(value)) {
+        for (let i = 0, length = value.length; i < length; i++) {
+            if (hasFraction(value[i])) {
+                return true
+            }
+        }
+        return false
+    }
+    return typeof value === 'number' && !Number.isInteger(value)
 }
 
 /**

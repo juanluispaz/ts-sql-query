@@ -1,5 +1,4 @@
-import type { CustomType, SqlDataType } from '../TypeAdapter.js'
-import { __isString } from './dataTypes.js'
+import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import { BooleanConditionType, type BooleanType, type IfValueSource } from './logical.js'
@@ -23,10 +22,6 @@ export type IStringValue = IValueWithType<'type:string:'>
 export const stringSqlDataType: SqlDataType = { family: 'character string' }
 
 export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
-    /** Whether a type and a custom type are of a text */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return __isString(type, customType)
-    }
 
     // SqlComparator 1
     equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>

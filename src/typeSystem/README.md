@@ -15,10 +15,10 @@ Read this before changing anything here. The code is the reference; this file sa
   (a `BooleanConditionType`), which has them.
 - **A value source is an instance of the class of its data type**: `column('price', MoneyType)` is a `MoneyType`,
   `int.add(0.5)` a `DoubleType`, a comparison a `BooleanType` (a condition too). The library creates it with
-  `new typeClass(...)` (the `abstract` is only for TypeScript), and its constructor fills `__type` and `__customType`
-  from the statics `type` and `customType` of the class: the run time knows a data type by those two strings (for a
-  custom data type, `__type` is its type name and `__customType` its family, e.g. `'Money'` / `'customInt'`). The
-  questions about them (`__isInt`, `__isLocalDate`, `__isExactDecimal`, ...) are in [`dataTypes.ts`](./dataTypes.ts).
+  `new typeClass(...)` (the `abstract` is only for TypeScript), and its constructor fills `__type` from the static
+  `type` of the class, the name of the data type for the messages of the errors. The run time knows a data type by its
+  class: what a value is, by the SQL data type of the class (below), and how the connection converts it, by the family
+  the class extends (`instanceof`, in [`dataTypeQuestions.ts`](./dataTypeQuestions.ts), which only the connections ask).
   **Nothing at run time reads the NType** below: it exists only for TypeScript.
 - **The conversions of the values of a data type** are statics of its class, with the names and parameters of a type
   adapter (`transformValueFromDB`, `transformValueToDB`, `transformPlaceholder`, `transformProjection`), in `BaseType`:
@@ -39,7 +39,7 @@ Read this before changing anything here. The code is the reference; this file sa
   for `valueWhenNull` of an int with a double). A class that extends a base, also one of the user, needs nothing more.
   A family that can import a data type imports it (`StringsType` the `IntType` of `length`).
 - **The registry of the data types** ([`dataTypeRegistry.ts`](./dataTypeRegistry.ts)) has the class of each data type
-  by its name (the built-in ones, and `condition`, only for the run time) and the family of each custom type; it
+  by its name (the built-in ones, and `condition`, only for the run time); it
   imports no class, and a name can be registered only once. It is filled by
   [`registerDataTypes.ts`](./registerDataTypes.ts), **the only module of the library with side effects**: it registers
   the data types of the library the same way as any other one, it is declared in `sideEffects` of `package.json`, and
@@ -67,8 +67,8 @@ Read this before changing anything here. The code is the reference; this file sa
   runtime is not typed by the data type: the code that calls them declares what it creates. They receive the class of
   the data type: a method that takes a data type turns a name of a built-in one into its class once, with
   `__dataTypeClassFrom` of [`dataTypeClasses.ts`](./dataTypeClasses.ts), and a value source of the data type of another
-  one takes its class (`__typeClassOf`). `dataTypeClasses.ts` also gives the class of a type and a custom type (the
-  custom ones with the `of` of their family), reading the registry. No class of a data type imports it.
+  one takes its class (`__typeClassOf`). `dataTypeClasses.ts` also gives the class a value given to an operation is sent
+  with (see "The class of a value given to an operation"). No class of a data type imports it.
 
 ## The operations that disappear without a value (`*IfValue`)
 
@@ -269,6 +269,23 @@ class. The class is the only way to give a custom data type. A class without a t
 `string | undefined`, a class with a type narrows it, and `TypeClass` requires a `string`. `TypeClass` has no `is`:
 TypeScript infers the data type from `prototype`, and a generic `is` there would make the inference fail.
 
+## The class of a value given to an operation
+
+A value given to an operation is sent with the class of the data type of the operation, with its type adapter (a value
+compared with a column takes the SQL data type of the column), unless the data type says another class for that value,
+in two statics of its class (keyed by the symbols `valueOperandClass` and `arithmeticOperandClass`), which give
+`undefined` when the value is of the data type:
+
+| Position | Static | Who says another class |
+|---|---|---|
+| a value of the data type (`equals`, `in`, `between`, `valueWhenNull`, `nullIfValue`, ...) | `[valueOperandClass]` | `IntType`: a fraction (in a list or in the bounds of `between`, any of them) is a double |
+| a number given to an arithmetic operation (`add`, `minValue`, `power`, the decimals of `roundn`, ...) | `[arithmeticOperandClass]` | `NumberType`: an integer is an int, a fraction a double; `DecimalsType`: a number of JavaScript is an int or a double |
+
+The SQL builder asks them through `__valueOperandClassOf` and `__arithmeticOperandClassOf` of
+[`dataTypeClasses.ts`](./dataTypeClasses.ts) and never decides a class itself; it writes the type of the parameter
+(`forceTypeCast`, which only PostgreSQL acts on) when the data type of the operation is an integer and the value is sent
+as a floating point number, a question of their SQL data types.
+
 ## The type guard: `is`
 
 Each data type of a value source has a static `is(value: any)`, a type guard: whether the value is a value source of
@@ -277,10 +294,8 @@ that data type, of any source and optionality (`value is ValueSource<any, TYPE, 
 `of` made. A class that extends another answers by inheritance: `NumberType.is` says yes to an int and to a double,
 `CustomIntType.is` to any customInt, `MoneyType.is` only to a customInt named `'Money'`.
 
-At run time it reads the type and the custom type of the value source: a class with a type compares both, a family
-class (a custom type and no type) its custom type, and the classes that group data types answer with their
-`__isOfGroup` (direct questions about the type and the custom type, as in [`dataTypes.ts`](./dataTypes.ts)). What only
-TypeScript tells apart, `is` can't: a condition is a boolean at run time, so the condition classes have no `is` (they
+At run time it is `instanceof` the class: a value source is an instance of the class of its data type (or of the
+subclass that carries its type adapter). What only TypeScript tells apart, `is` can't: a condition is a boolean at run time, so the condition classes have no `is` (they
 don't extend `ValueSourceBaseType`) and `BooleanType.is` says yes to a condition, also to the neutral (no condition,
 recognised by its node); the two classes of an aggregated array
 are one. A value that is not a value source is `false`.
@@ -327,7 +342,7 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
    operand NType, its `static type` / `customType`, its `static sqlDataType` (the type in the database of its values,
    by which the query runners send and read them; a custom family takes the one of the built-in type it is based on),
    and its own methods with the result types the runtime gives.
-2. A custom one: its static `of`. A class that groups data types without a type of its own: its `__isOfGroup`.
+2. A custom one: its static `of`.
 3. A built-in one: its entry in each map of `builtInDataTypes.ts`.
 4. A built-in one: its registration in `registerDataTypes.ts`; a new family of custom data types: its family there.
 5. Its questions in `dataTypes.ts` and its handling in the runtime, as for any data type of the library.

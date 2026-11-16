@@ -90,9 +90,8 @@ A few methods of a value source depend on its node and not only on its data type
 
 [`valueSourceRoot.ts`](./valueSourceRoot.ts) has the class every value source is an instance of at run time:
 
-- its fields: `__type` and `__customType` (filled by its constructor from the statics `type` and `customType` of the
-  class created, so a value source knows its data type by them at run time), its optionality, the fields of an
-  aggregated array, and `__node`;
+- its fields: `__type` (filled by its constructor from the static `type` of the class created, the name of its data
+  type for the messages of the errors), its optionality, the fields of an aggregated array, and `__node`;
 - its type adapter, `__typeAdapter`, read from its class: a value source with a type adapter is an instance of a
   subclass of the class of its data type that carries the adapter, created once for each class and adapter
   ([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)). A creation receives only that class, already carrying its

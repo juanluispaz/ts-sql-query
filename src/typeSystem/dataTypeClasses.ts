@@ -1,16 +1,16 @@
-import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import { arithmeticOperandClass, valueOperandClass } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import type { __ValueSourcePrivate } from './valueSource.js'
-import { __registeredCustomDataTypeFamily, __registeredDataType } from './dataTypeRegistry.js'
+import { __registeredDataType } from './dataTypeRegistry.js'
 import { __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
-// The class of the data type a value source is created from, by the names the library knows a data type by at run time:
-// the type, and the custom type of a custom data type, as the registry has them (dataTypeRegistry.ts).
+// The class of the data type a value source is created from (a built-in one by its name, as the registry has it,
+// dataTypeRegistry.ts), and the class a value given to one of its operations is sent with.
 
 /** The class a method that takes a data type gets: the class itself, or the class of a built-in data type by its name */
 export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass {
-    return typeof type === 'string' ? __dataTypeClassOf(type, undefined) : type
+    return typeof type === 'string' ? __registeredDataType(type) : type
 }
 
 /**
@@ -23,28 +23,28 @@ export function __projectedTypeClassOf(valueSource: __ValueSourcePrivate): DataT
     return typeClass === __registeredDataType('condition') ? __registeredDataType('boolean') : typeClass
 }
 
-/** The class of the data type of a type and a custom type */
-export function __dataTypeClassOf(type: string, customType: CustomType | undefined): DataTypeClass {
-    if (customType === undefined) {
-        return __registeredDataType(type)
-    }
-    const family = __registeredCustomDataTypeFamily(customType)
-    if (!family) {
-        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unknown data type: ' + type + ' of ' + customType)
-    }
-    return family.of(type)
+/** The data type class with the operand class hooks (statics of the class, see symbols.ts) */
+interface OperandClassHooks {
+    [valueOperandClass]?: (value: unknown) => DataTypeClass | undefined
+    [arithmeticOperandClass]?: (value: unknown) => DataTypeClass | undefined
 }
 
 /**
- * The class of an argument of an operation, of the type and custom type given: the class of the receiver, with its type
- * adapter, when the argument has its data type (a value compared with a column takes the SQL data type of the column);
- * the class of that data type, without the adapter, when the argument is of another one (the double of an int
- * receiver with a fraction, the int position of a substring)
+ * The class a value of the data type given to an operation (`equals`, `in`, `between`, `valueWhenNull`, ...) is sent
+ * with: the class given, with its type adapter (a value compared with a column takes the SQL data type of the column),
+ * unless the data type says another one for that value (a fraction compared with an int is a double)
  */
-export function __argumentClassOf(receiverClass: DataTypeClass, type: string, customType: CustomType | undefined): DataTypeClass {
-    const unadapted = __unadaptedClassOf(receiverClass)
-    if (unadapted.type === type && unadapted.customType === customType) {
-        return receiverClass
-    }
-    return __dataTypeClassOf(type, customType)
+export function __valueOperandClassOf(typeClass: DataTypeClass, value: unknown): DataTypeClass {
+    const hooks = __unadaptedClassOf(typeClass) as unknown as OperandClassHooks
+    return hooks[valueOperandClass]?.(value) ?? typeClass
+}
+
+/**
+ * The class a value given to an arithmetic operation (`add`, `minValue`, `power`, the decimals of `roundn`, ...) is
+ * sent with: the class given, with its type adapter, unless the data type says another one for that value (a number of
+ * JavaScript given to an exact decimal is an int or a double)
+ */
+export function __arithmeticOperandClassOf(typeClass: DataTypeClass, value: unknown): DataTypeClass {
+    const hooks = __unadaptedClassOf(typeClass) as unknown as OperandClassHooks
+    return hooks[arithmeticOperandClass]?.(value) ?? typeClass
 }

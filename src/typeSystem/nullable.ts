@@ -1,5 +1,3 @@
-import type { CustomType } from '../TypeAdapter.js'
-import { __isAggregatedArray } from './dataTypes.js'
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
 import { __registeredDataType } from './dataTypeRegistry.js'
@@ -12,7 +10,6 @@ import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource } from '../nodes/operations.js'
 import { type ValueSourceRoot, __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
 import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
-import { __isDouble } from './dataTypes.js'
 import { OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { __adaptedTypeClassOf, __keptClassOf, __sqlDataTypeOf, __classOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
@@ -31,10 +28,6 @@ export type CoalesceTypeOf<X, OPERAND> =
 
 /** A data type whose value can be null */
 export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
-    /** Whether a type and a custom type are of a data type with a null value: every one but an aggregated array */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return !__isAggregatedArray(type, customType)
-    }
 
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {
@@ -63,13 +56,12 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         //
         // A fractional NUMBER LITERAL widens for exactly the same reason. TypeScript cannot tell
         // `2` from `2.5` — both are `number`, there is no integer literal type — so vs decision
-        // belongs to the runtime half, which has the value in hand; `_getWidenedArgumentType` binds
-        // the operand with the matching type, and the two have to agree or the fraction is rejected
+        // belongs to the runtime half, which has the value in hand; the int binds the operand with
+        // the matching type, and the two have to agree or the fraction is rejected
         // on one of the two crossings.
-        if (vs.__customType === undefined && vs.__type === 'int') {
+        if (vs instanceof (__registeredDataType('int') as unknown as abstract new () => unknown)) {
             if (isValueSource(value)) {
-                const operandPrivate = __getValueSourcePrivate(value)
-                if (__isDouble(operandPrivate.__type, operandPrivate.__customType)) {
+                if (value instanceof (__registeredDataType('double') as unknown as abstract new () => unknown)) {
                     typeClass = __registeredDataType('double')
                 }
             } else if (typeof value === 'number' && !Number.isInteger(value)) {

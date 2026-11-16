@@ -1,5 +1,3 @@
-import type { CustomType } from '../TypeAdapter.js'
-import { __isAggregatedArray, __isBoolean } from './dataTypes.js'
 import type { IValueWithType, OptionalOf, SourceOf, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { IfValueSource } from './logical.js'
@@ -21,10 +19,6 @@ export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> ex
 /** A data type whose values have an order */
 export abstract class ComparableType</*in|out*/ VALUE_TYPE> extends EqualableType<VALUE_TYPE> {
     /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
-    /** Whether a type and a custom type are of a comparable data type: every one but a boolean, an enum, a custom and an aggregated array */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return !__isBoolean(type, customType) && !__isAggregatedArray(type, customType) && customType !== 'enum' && customType !== 'custom'
-    }
 
     declare [comparableValueSource]: 'ComparableValueSource'
     lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>

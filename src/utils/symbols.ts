@@ -37,6 +37,12 @@ export const comparableValueSource: unique symbol = Symbol('comparableValueSourc
 // The class a value source computed from one of this data type gets, when it is not the same (the text of a uuid gives a
 // text): a static of the class
 export const computedType: unique symbol = Symbol('computedType')
+// The class a value given to an operation of a value source of this data type is sent with, when it is not the data
+// type of the value source (the fraction compared with an int is a double): statics of the class, with the value, which
+// give undefined when the value is of the data type. For a value of the data type (`equals`, `valueWhenNull`, ...):
+export const valueOperandClass: unique symbol = Symbol('valueOperandClass')
+// For a number given to an arithmetic operation (`add`, `minValue`, `power`, the decimals of `roundn`, ...):
+export const arithmeticOperandClass: unique symbol = Symbol('arithmeticOperandClass')
 
 // Opaque types
 export const dontCallConstructor: unique symbol = Symbol('dontCallConstructor')

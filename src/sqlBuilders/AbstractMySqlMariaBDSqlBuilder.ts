@@ -16,7 +16,7 @@ import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSourc
 import type { ILogicalValueSource } from '../typeSystem/base.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
-import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 
 /** One assignment of the set of an update: the property of the values, the column of the table and its value */
 interface UpdateAssignment {
@@ -693,13 +693,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' <=>' + this._appendRawColumnName(value, context)
         }
-        return this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value))
+        return this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'not (' + this._appendRawColumnName(valueSource, context) + ' <=> ' + this._appendRawColumnName(value, context) + ')'
         }
-        return 'not (' + this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'not (' + this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     override _appendCastAsDouble(sql: string): string {
         if (this._connectionConfiguration.compatibilityVersion >= this._castAsDoubleMinCompatibilityVersion) {
@@ -744,7 +744,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'round(' + this._appendRoundOperandAsExact(context, valueSource) + ', ' + this._appendRoundnScale(value, context, typeClass) + ')'
     }
     override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return 'ifnull(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getWidenedArgumentType(typeClass.type, typeClass.customType, value), this._getWidenedArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')'
+        return 'ifnull(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     override _escapeLikeWildcard(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
@@ -876,14 +876,14 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     // arms are overridden; the rest of the family is the base's.
     override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (typeof value === 'number' && value < 0) {
-            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __registeredDataType('int'), false) + ')'
         }
         return super._substrToEnd(context, valueSource, value, typeClass)
     }
     override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + '), ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __registeredDataType('int'), false) + '), ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
         }
         return super._substr(context, valueSource, value, value2, typeClass)
     }

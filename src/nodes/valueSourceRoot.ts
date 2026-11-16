@@ -8,8 +8,7 @@ import { valueType as valueType_, optionalType as optionalType_, typeName, isVal
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
-import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { type DataTypeValueSource, type NodeStrategy } from './NodeStrategy.js'
@@ -28,7 +27,6 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
 
     [isValueSourceObject]: true = true
     __type: string
-    __customType: CustomType | undefined
     __optionalType: OptionalType
     __isAggregate?: boolean | undefined
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
@@ -39,7 +37,6 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
         // The class created is the one of the data type (src/typeSystem), which extends this one at run time
         const typeClass = new.target as unknown as DataTypeClass
         this.__type = typeClass.type
-        this.__customType = typeClass.customType
         this.__optionalType = optionalType
         if (aggregatedArrayColumns) {
             this.__aggregatedArrayColumns = aggregatedArrayColumns

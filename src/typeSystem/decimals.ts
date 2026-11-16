@@ -1,12 +1,11 @@
-import type { CustomType, SqlDataType } from '../TypeAdapter.js'
-import { __isExactDecimal } from './dataTypes.js'
+import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { NumericType } from './numeric.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
 import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import type { MergeOptional } from './valueSource.js'
-import { operandTypeName, typeName } from '../utils/symbols.js'
-import { DoubleType } from './number.js'
+import { arithmeticOperandClass, operandTypeName, typeName } from '../utils/symbols.js'
+import { DoubleType, IntType } from './number.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /*
@@ -22,9 +21,15 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 export const decimalSqlDataType: SqlDataType = { family: 'exact numeric' }
 
 export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
-    /** Whether a type and a custom type are of an exact decimal: a stringDecimal or a customDecimal */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return __isExactDecimal(type, customType)
+    /**
+     * A number of JavaScript given to an arithmetic operation of an exact decimal (the decimals of `roundn`, the exponent
+     * of `power`, ...) is an int when it is an integer and a double otherwise; a decimal is given as its text
+     */
+    static [arithmeticOperandClass](value: unknown): DataTypeClass | undefined {
+        if (typeof value === 'number') {
+            return Number.isInteger(value) ? IntType : DoubleType
+        }
+        return undefined
     }
 
 

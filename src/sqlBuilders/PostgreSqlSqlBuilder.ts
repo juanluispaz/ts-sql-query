@@ -17,7 +17,7 @@ import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '
 import { __isColumn } from '../typeSystem/valueSourceFactory.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
-import { __dataTypeClassOf, __argumentClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __arithmeticOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -315,8 +315,6 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
-        const type = columnPrivate.__type
-        const customType = columnPrivate.__customType
 
         if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
@@ -346,28 +344,28 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 } else {
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                        return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), true) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), true) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__dataTypeClassOf(type, customType), columnTypeAdapter), true) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), true) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -418,7 +416,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             // Cast both operands to numeric so `mod(numeric, numeric)` resolves
             // (the same numeric-cast strategy `_logn` / `_roundn` use). Pure
             // integer / bigint receivers and operands keep the plain `%` form below.
-            return 'mod((' + this._appendSql(valueSource, context, false) + ')::numeric, (' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')::numeric)'
+            return 'mod((' + this._appendSql(valueSource, context, false) + ')::numeric, (' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')::numeric)'
         }
         return super._modulo(context, valueSource, value, typeClass)
     }
@@ -433,7 +431,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // fails at runtime with `function log(unknown, double precision)
         // does not exist`. Cast both operands to numeric so the overload
         // resolves regardless of how the chain was built.
-        return 'log((' + this._appendValue(value, context, __argumentClassOf(typeClass, this._getMathArgumentType(typeClass.type, typeClass.customType, value), this._getMathArgumentCustomType(typeClass.type, typeClass.customType, value)), this._widenedArgumentNeedsTypeCast(typeClass.type, typeClass.customType, value)) + ')::numeric, (' + this._appendSql(valueSource, context, false) + ')::numeric)'
+        return 'log((' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')::numeric, (' + this._appendSql(valueSource, context, false) + ')::numeric)'
     }
     override _roundn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // PostgreSQL only has the `round(numeric, integer)` overload — there is
@@ -616,14 +614,14 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     // arms are overridden; the rest of the family is the base's.
     override _substrToEnd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (typeof value === 'number' && value < 0) {
-            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __registeredDataType('int'), false) + ')'
         }
         return super._substrToEnd(context, valueSource, value, typeClass)
     }
     override _substr(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
         value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number' && value < 0) {
-            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __argumentClassOf(typeClass, 'int', undefined), false) + '), ' + this._appendValue(value2, context, __argumentClassOf(typeClass, 'int', undefined), false) + ')'
+            return 'left(right(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(-value, context, __registeredDataType('int'), false) + '), ' + this._appendValue(value2, context, __registeredDataType('int'), false) + ')'
         }
         return super._substr(context, valueSource, value, value2, typeClass)
     }

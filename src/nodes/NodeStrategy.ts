@@ -6,7 +6,6 @@ import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { typeName } from '../utils/symbols.js'
-import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 

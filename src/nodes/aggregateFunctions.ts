@@ -4,7 +4,6 @@ import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrVie
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
-import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'

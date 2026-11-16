@@ -8,8 +8,6 @@ import { valueType as valueType_, optionalType as optionalType_, typeName, isVal
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isDouble, __isExactDecimal, __isUuid } from '../typeSystem/dataTypes.js'
-import type { CustomType } from '../TypeAdapter.js'
 import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 
@@ -21,7 +19,6 @@ export class TableOrViewRawFragmentValueSource implements TypedValueSource<any, 
 
     [isValueSourceObject]: true = true
     __type: string = ''
-    __customType: CustomType | undefined = undefined
     __optionalType: OptionalType = 'required'
     /** It has no data type, and no type adapter */
     get __typeAdapter(): TypeAdapter | undefined {

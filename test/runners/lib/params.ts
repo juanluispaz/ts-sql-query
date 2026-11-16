@@ -6,13 +6,21 @@
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { CustomType, DataTypeClass } from '../../../src/TypeAdapter.js'
 import { queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
-import { __dataTypeClassOf } from '../../../src/typeSystem/dataTypeClasses.js'
+import { __registeredDataType } from '../../../src/typeSystem/dataTypeRegistry.js'
 import '../../../src/typeSystem/registerDataTypes.js'
+import { CustomBigintType, CustomComparableType, CustomDecimalType, CustomDoubleType, CustomEqualableType, CustomIntType, CustomLocalDateTimeType, CustomLocalDateType, CustomLocalTimeType, CustomUuidType, EnumType } from '../../../src/exports/v2/index.js'
+
+// The family of each custom type, which gives the class of each type name
+const customFamilies: { [customType: string]: { of(typeName: string): DataTypeClass } } = {
+    customInt: CustomIntType, customBigint: CustomBigintType, customDouble: CustomDoubleType, customDecimal: CustomDecimalType,
+    customUuid: CustomUuidType, customLocalDate: CustomLocalDateType, customLocalTime: CustomLocalTimeType,
+    customLocalDateTime: CustomLocalDateTimeType, enum: EnumType, custom: CustomEqualableType, customComparable: CustomComparableType,
+}
 
 // The class of the type, as the library gives it; a type the library doesn't know, or none (''), only by its names
 function classOf(type: string, customType: CustomType | undefined): DataTypeClass {
     try {
-        return __dataTypeClassOf(type, customType)
+        return customType === undefined ? __registeredDataType(type) : customFamilies[customType]!.of(type)
     } catch {
         return { type, customType }
     }

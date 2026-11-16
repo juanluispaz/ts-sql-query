@@ -1,5 +1,4 @@
-import type { CustomType, SqlDataType } from '../TypeAdapter.js'
-import { __isAggregatedArray } from './dataTypes.js'
+import type { SqlDataType } from '../TypeAdapter.js'
 import type { OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
 import type { ColumnMarkersOf } from './valueSource.js'
@@ -15,10 +14,6 @@ const aggregatedArraySqlDataType: SqlDataType = { family: 'document', format: 'j
 
 export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
     static override readonly sqlDataType: SqlDataType = aggregatedArraySqlDataType
-    /** Whether a type and a custom type are of an aggregated array */
-    protected static override __isOfGroup(type: string, customType: CustomType | undefined): boolean {
-        return __isAggregatedArray(type, customType)
-    }
 
     useEmptyArrayForNoValue(): ValueSource<SourceOf<this>, TypeOf<this>, 'required'>
     useEmptyArrayForNoValue(): any {

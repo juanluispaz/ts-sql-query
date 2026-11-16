@@ -274,6 +274,8 @@ create table exact_amount (
 ) strict;
 ```
 
+An integer of yours wider than the 64 bits of SQLite, like one whose SQL data type is `{ family: 'exact numeric', precision: 30, scale: 0 }`, is an exact number too: it's sent as its text, kept in a `TEXT` column, computed and compared with the decimal strategy below, and read as a `bigint`.
+
 SQLite compares and orders that text as text, and computes with it in floating point. The decimal strategy of the connection says how the library writes the operations of a `stringDecimal` or a `DecimalsType` of yours; everything below applies to both. In every strategy an operation is exact, or the library rejects the query with `UNSUPPORTED_QUERY` before sending it; it never gives a number that has lost digits nor rows compared as texts. There are three strategies, each in two variants:
 
 | Strategy | What the library writes | What it needs | What is rejected |

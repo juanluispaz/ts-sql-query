@@ -135,11 +135,13 @@ CREATE TABLE calendar_year (
     year_label VARCHAR(64) NOT NULL
 );
 
--- Exact decimals (DecimalsType): a value of 30 significant digits and one with the scale 2.
+-- Exact numbers: a decimal (DecimalsType) of 30 significant digits, one with the scale 2, and an integer of 30 digits
+-- (an IntegersType wider than 64 bits).
 CREATE TABLE exact_amount (
     id INT PRIMARY KEY,
     amount DECIMAL(38,10),
-    price DECIMAL(10,2)
+    price DECIMAL(10,2),
+    units DECIMAL(30,0)
 );
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).

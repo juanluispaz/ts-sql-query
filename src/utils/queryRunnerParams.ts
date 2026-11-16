@@ -7,7 +7,7 @@ import type { QueryRunnerName } from '../queryRunners/MockQueryRunner.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { checkOracleParam, oraclePlaceholder } from './oracle/oracleParamTypes.js'
-import { mySqlMariaDBPlaceholder } from './mySqlMariaDB/mySqlMariaDBParamTypes.js'
+import { bunSqlMySqlSendsAsText, mySqlMariaDBPlaceholder } from './mySqlMariaDB/mySqlMariaDBParamTypes.js'
 import { isPostgreSqlZonedParam, postgreSqlParamTypeOfSqlDataType, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSql/postgreSqlParamTypes.js'
 import { sqlServerPlaceholder } from './sqlServer/sqlServerParamTypes.js'
 
@@ -63,6 +63,13 @@ const mySql: ParamBinding = (params, value) => {
     add(params, value)
     return placeholder
 }
+/** Bun SQL sends a bigint beyond 64 bits as its text (bunSqlMySqlDriverParams): its placeholder is the one of an exact number sent as text */
+const bunSqlMySql: ParamBinding = (params, value) => {
+    const param = existingParamContextOf(params, params.length)
+    const placeholder = mySqlMariaDBPlaceholder('?', params, params.length, bunSqlMySqlSendsAsText(value) ? value.toString() : value, param?.requestedType)
+    add(params, value)
+    return placeholder
+}
 const sqlServer: ParamBinding = (params, value) => {
     const param = existingParamContextOf(params, params.length)
     const placeholder = sqlServerPlaceholder('@' + params.length, params, params.length, value, param?.requestedType)
@@ -95,7 +102,7 @@ export const queryRunnerParamBindings: { readonly [name in QueryRunnerName]: Par
     MySql2PoolQueryRunner: mySql,
     MariaDBQueryRunner: mySql,
     MariaDBPoolQueryRunner: mySql,
-    BunSqlMySqlQueryRunner: mySql,
+    BunSqlMySqlQueryRunner: bunSqlMySql,
     MssqlPoolQueryRunner: sqlServer,
     MssqlPoolPromiseQueryRunner: sqlServer,
     OracleDBQueryRunner: oracle,

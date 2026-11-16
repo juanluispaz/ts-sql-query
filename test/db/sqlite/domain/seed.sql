@@ -61,7 +61,7 @@ INSERT INTO project_review (id, project_id, reviewer_code, score, review_date, r
 
 INSERT INTO webhook_event (issue_id, event_type) VALUES (1, 'created'), (2, 'updated');
 INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (2024, 'FY2024');
-INSERT INTO exact_amount (id, amount, price) VALUES (1, '12345678901234567890.1234567891', '1.5'), (2, '-0.25', '-0.25'), (3, '0', '0'), (4, NULL, NULL), (5, '98765432109876543210.987654321', '1234.56');
+INSERT INTO exact_amount (id, amount, price, units) VALUES (1, '12345678901234567890.1234567891', '1.5', '123456789012345678901234567890'), (2, '-0.25', '-0.25', '-987654321098765432109876543210'), (3, '0', '0', '0'), (4, NULL, NULL, NULL), (5, '98765432109876543210.987654321', '1234.56', '999999999999999999999999999999');
 -- invoice_no is stored x10 by the scaledTenthAdapter, so 100 reads back as logical invoice 10.
 INSERT INTO invoice (invoice_no, total) VALUES (100, 500);
 -- ledger_entry: amount/memo stored x10 by scaledTenthAdapter (250 reads 25, 70 reads 7);

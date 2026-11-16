@@ -13,7 +13,8 @@ import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggr
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBigintClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isExactDecimalSql } from '../typeSystem/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
@@ -483,6 +484,14 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueToDB(value, context)
+        }
+        if (__isBigintClass(context.requestedType) && __isExactDecimalSql(context.requestedType)) {
+            // An integer whose SQL data type is wider than the 64 bits of SQLite is an exact number kept as its text, as
+            // an exact decimal is: the SQL of the library computes and compares it with the decimal functions
+            if (typeof value === 'bigint') {
+                return value.toString()
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, 'Invalid bigint value to send to the db: ' + value)
         }
         if (__isLocalDateClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {

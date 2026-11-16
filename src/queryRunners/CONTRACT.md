@@ -157,7 +157,7 @@ Every rejection is `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 |---|---|---|---|
 | `boolean` | `boolean` | anything else | the boolean. Oracle: `1` / `0`; with `booleanStorage: 'boolean'` the boolean |
 | `int` | an integer `number` (not checked for the safe range) | non-integer number, non-number | the number |
-| `bigint` | `bigint` | anything else (a `number` too) | the bigint |
+| `bigint` | `bigint` | anything else (a `number` too) | the bigint. SQLite: the text of a bigint of a type whose SQL data type is wider than 64 bits (an exact number, computed with the decimal strategy) |
 | `double` | any `number` (`NaN`, `Infinity` included) | non-number | the number |
 | `stringDecimal`, `DecimalsType` | a string matching `^-?(\d+(\.\d+)?\|\.\d+)$` (point separator, no exponent) | other strings, non-strings | the text |
 | `string` | `string` | non-string | the string |
@@ -192,7 +192,7 @@ temporal type, and `addParam` checks a decimal only when it is plain decimal tex
 | `Sqlite3WasmOO1QueryRunner` | `?N`; an integer `number` ≥ 2^63 or < −2^63 as `cast(?N as real)`, the param holding `String(value)` (the driver would wrap it) | — |
 | `PgQueryRunner`, `PgPoolQueryRunner`, `BunSqlPostgresQueryRunner`; a mock on PostgreSQL | `$N`, plus `::<cast>` when `forceTypeCast` and a type is known (the one of `typesByName` for the type name first, then the one of the data type, below); with a database outside UTC, `::timestamptz` on a `localDateTime` and `::timestamptz::time` on a `localTime`, forced or not, whatever `typesByName` declares (§7.3) | — |
 | `PostgresQueryRunner`, `PgLiteQueryRunner` | `$N`, no cast (the type goes with the param, §2.4); with a database outside UTC, `$N::time` on a `localTime` (§7.3) | — |
-| `MySql2QueryRunner`, `MySql2PoolQueryRunner`, `MariaDBQueryRunner`, `MariaDBPoolQueryRunner`, `BunSqlMySqlQueryRunner`; a mock on MySQL or MariaDB | `?`, or `cast(? as decimal(p, s))` for a decimal outside the value of a column | a decimal with precision > 65 or scale > 30 |
+| `MySql2QueryRunner`, `MySql2PoolQueryRunner`, `MariaDBQueryRunner`, `MariaDBPoolQueryRunner`, `BunSqlMySqlQueryRunner`; a mock on MySQL or MariaDB | `?`, or `cast(? as decimal(p, s))` for a decimal outside the value of a column; `BunSqlMySqlQueryRunner` also for a bigint beyond 64 bits, which it sends as text | a decimal with precision > 65 or scale > 30 |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner`; a mock on SQL Server | `@N` (0-based), or `cast(@N as decimal(p, s))` for a decimal outside the value of a column | a decimal with precision > 38 |
 | `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner`; a mock on Oracle | `:N` (0-based); with a database outside UTC, the casts of §7.3 | a decimal with > 38 significant digits |
 | a mock on `noopDB` | `$N` (0-based) | — |
@@ -267,7 +267,7 @@ What the drivers of each database receive, as a copy of the params when a value 
 | `BunSqlPostgresQueryRunner` | `sql.unsafe(query, params)` with the values above | cast text |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `query({ ...queryOptions, sql }, params)` with the values above | — |
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `query({ ...queryOptions, sql }, params)` with the values above | — |
-| `BunSqlMySqlQueryRunner` | `sql.unsafe(query, params)` with the values above | — |
+| `BunSqlMySqlQueryRunner` | `sql.unsafe(query, params)` with the values above, a bigint beyond 64 bits (signed or unsigned), which Bun SQL can't bind, as its text | — |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.input('<i>', type, value)` for each param, then `request.query(query)`. Type: `typesByName` (a factory or a type with arguments) → by its data type → a type of the user without a SQL data type infers it from the value (a string is `NVarChar`) → a param without type infers it from the value (a `Date` the library read keeps its data type for that). tedious writes a `Date` with the UTC getters (`useUTC`, true by default) | `ISqlTypeFactory` / `ISqlType` |
 | `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: `typesByName` → `{ val, type }`; in `executeProcedure`, or in any query with `booleanStorage: 'boolean'`, a boolean param (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version); a boolean RETURNING OUT bind gets `DB_TYPE_BOOLEAN` only with `booleanStorage: 'boolean'` (with `'number'` it has no type and comes back as text); a temporal `Date` as above; a null of a number or temporal type → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`{ dir: BIND_OUT, type }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one declared in `typesByName` (`{ type, maxSize }`), else the `returningMaxSize` of the runner, else 32767. A `Lob` OUT value (a CLOB declared in `typesByName`) is read whole | `DbType` or `{ type, maxSize }`, also for OUT binds |
 | `BetterSqlite3QueryRunner` | `prepare(query).all/run({ 1: p0, 2: p1, … })` | — |

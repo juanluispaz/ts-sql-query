@@ -133,12 +133,14 @@ CREATE TABLE calendar_year (
     year_label VARCHAR(64) NOT NULL
 );
 
--- Exact decimals (DecimalsType): a value of 30 significant digits and one with the scale 2.
+-- Exact numbers: a decimal (DecimalsType) of 30 significant digits, one with the scale 2, and an integer of 30 digits
+-- (an IntegersType wider than 64 bits).
 -- SQLite has no exact decimal type: a STRICT table with TEXT columns keeps the text as given.
 CREATE TABLE exact_amount (
     id INTEGER PRIMARY KEY,
     amount TEXT,
-    price TEXT
+    price TEXT,
+    units TEXT
 ) STRICT;
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).

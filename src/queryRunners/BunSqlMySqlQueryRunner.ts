@@ -7,7 +7,7 @@ import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlMySqlErrorReason, isBunSqlMySqlAnyError } from './connectorErrorMappers/BunSqlMySqlErrorMapper.js'
 import { isTransactionOpenAfterMySqlMariaDBError } from '../utils/mySqlMariaDB/mySqlMariaDBTransactionRollback.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
+import { bunSqlMySqlDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
 
 /** The options of BunSqlMySqlQueryRunner */
 export interface BunSqlMySqlQueryRunnerConfig {
@@ -59,7 +59,7 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         return isTransactionOpenAfterMySqlMariaDBError(this.getErrorReason(error))
     }
     protected override driverParams(params: any[]): any[] {
-        return mySqlMariaDBDriverParams(params)
+        return bunSqlMySqlDriverParams(params)
     }
     override addParam(params: any[], value: any): string {
         // The same binding MockQueryRunner uses to imitate this query runner

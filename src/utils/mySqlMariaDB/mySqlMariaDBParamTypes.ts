@@ -75,3 +75,28 @@ export function mySqlMariaDBDriverParams(params: any[]): any[] {
     }
     return result ?? params
 }
+
+/**
+ * Whether Bun SQL can't bind a value as an integer of MySQL and MariaDB: a bigint beyond a signed or an unsigned 64-bit
+ * integer, like one of 30 digits. It goes as its text, and is cast to a decimal where the database would compute with it
+ * in double precision (mySqlMariaDBPlaceholder), as any exact number sent as text.
+ */
+export function bunSqlMySqlSendsAsText(value: unknown): value is bigint {
+    return typeof value === 'bigint' && (value < -9223372036854775808n || value > 18446744073709551615n)
+}
+
+/** The params as Bun SQL receives them on MySQL and MariaDB: those of mySqlMariaDBDriverParams, a bigint it can't bind as its text */
+export function bunSqlMySqlDriverParams(params: any[]): any[] {
+    let result = mySqlMariaDBDriverParams(params)
+    for (let i = 0, length = result.length; i < length; i++) {
+        const value = result[i]
+        if (bunSqlMySqlSendsAsText(value)) {
+            if (result === params) {
+                result = params.slice()
+            }
+            result[i] = value.toString()
+        }
+    }
+    return result
+}
+

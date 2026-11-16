@@ -138,6 +138,8 @@ abstract class DownloadsType extends IntegersType<Downloads, 'Downloads'> {
 
 The TypeScript type has to be the one of that value: a `bigint` for an integer wider than a `number`.
 
+An integer wider than the integer types of the databases, like `{ family: 'exact numeric', precision: 30, scale: 0 }`, keeps every digit too: it's read, compared, computed and summed as an exact number. SQLite, whose integers have 64 bits, keeps it as its text, as an [exact decimal](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies).
+
 !!! important
 
     Register the conversion of a type whose family doesn't convert it (`AdditiveType`, `MultipliableType`, `DivisibleType`, `EnumType`, `EqualableType` and `ComparableType`), and of a type whose values in your code aren't those its family converts, like a floating point number kept as text. Without it, such a value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.

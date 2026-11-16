@@ -1,6 +1,8 @@
-// An IntegersType of 8 bytes column: a bigint with a type of its own. Its values are converted as those of a bigint, read from a
-// column, from the JSON of an array aggregate and back after an update, and its parameters go as bigint values with
-// the IntegersType of 8 bytes category. project_release.download_count is a 64-bit integer; release 1 has 4200000042, past int32.
+// An integer of the user wider than a number of JavaScript: its values are bigint values. One of 8 bytes,
+// project_release.download_count, a 64-bit integer (release 1 has 4200000042, past int32), and one of 30 digits,
+// exact_amount.units, wider than any integer type of a database (rows 1, 2, 3 and 5 have 123456789012345678901234567890,
+// -987654321098765432109876543210, 0 and 999999999999999999999999999999; row 4 null). Their values are read from a
+// column, from the JSON of an array aggregate and back after an update, compared, computed and summed with every digit.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -24,6 +26,18 @@ const tReleaseDownloads = new class TReleaseDownloads extends Table<DBConnection
     projectId = this.column('project_id', 'int')
     downloads = this.optionalColumn('download_count', DownloadsType)
     constructor() { super('project_release') }
+}()
+
+// An integer of 30 digits
+abstract class UnitsType extends IntegersType<bigint, 'Units'> {
+    static override readonly type = 'Units'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }
+}
+
+const tExactUnits = new class TExactUnits extends Table<DBConnection, 'TExactUnits'> {
+    id    = this.primaryKey('id', 'int')
+    units = this.optionalColumn('units', UnitsType)
+    constructor() { super('exact_amount') }
 }()
 
 describe(ctx.label, () => {
@@ -103,6 +117,111 @@ describe(ctx.label, () => {
                 .executeSelectOne()
             assertType<Exact<typeof downloads, Downloads | null>>()
             expect(downloads).toBe(9999999999n)
+        })
+    })
+
+    test('own-bigint/an-integer-of-30-digits-is-read-compared-and-computed-with-every-digit', async () => {
+        ctx.mockNext([
+            { id: 1, units: '123456789012345678901234567890', previous: '123456789012345678901234567889' },
+            { id: 5, units: '999999999999999999999999999999', previous: '999999999999999999999999999998' },
+        ])
+        const rows = await ctx.conn.selectFrom(tExactUnits)
+            .where(tExactUnits.units.greaterThan(100000000000000000000000000000n))
+            .select({
+                id: tExactUnits.id,
+                units: tExactUnits.units,
+                previous: tExactUnits.units.subtract(1n),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, units as units, (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select case when units is null then null else decimal_sub(units, ?1) end as tsq_v)) as previous from exact_amount where decimal_cmp(units, ?2) > 0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1",
+            "100000000000000000000000000000",
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; units?: bigint; previous?: bigint }[]>>()
+        expect(rows).toEqual([
+            { id: 1, units: 123456789012345678901234567890n, previous: 123456789012345678901234567889n },
+            { id: 5, units: 999999999999999999999999999999n, previous: 999999999999999999999999999998n },
+        ])
+    })
+
+    test('own-bigint/an-integer-of-30-digits-is-found-by-its-exact-value', async () => {
+        ctx.mockNext([{ id: 2 }])
+        // 123456789012345678901234567891 differs from row 1 only in its last digit, which a double doesn't keep
+        const rows = await ctx.conn.selectFrom(tExactUnits)
+            .where(tExactUnits.units.in([-987654321098765432109876543210n, 123456789012345678901234567891n]))
+            .select({ id: tExactUnits.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from exact_amount where units in (?1, ?2)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "-987654321098765432109876543210",
+            "123456789012345678901234567891",
+          ]
+        `)
+        expect(rows).toEqual([{ id: 2 }])
+    })
+
+    test('own-bigint/an-integer-of-30-digits-is-summed-with-every-digit', async () => {
+        ctx.mockNext('-864197532086419753208641975320')
+        const total = await ctx.conn.selectFrom(tExactUnits)
+            .where(tExactUnits.id.in([1, 2]))
+            .selectOneColumn(ctx.conn.sum(tExactUnits.units))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select case when count(units) = 0 then null else decimal_sum(units) end as tsq_v)) as result from exact_amount where id in (?1, ?2)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof total, bigint | null>>()
+        expect(total).toBe(-864197532086419753208641975320n)
+    })
+
+    test('own-bigint/an-array-aggregate-reads-an-integer-of-30-digits-from-the-json', async () => {
+        ctx.mockNext('[123456789012345678901234567890, -987654321098765432109876543210]')
+        const units = await ctx.conn.selectFrom(tExactUnits)
+            .where(tExactUnits.id.in([1, 2]))
+            .selectOneColumn(ctx.conn.aggregateAsArrayOfOneColumn(tExactUnits.units))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(units) as result from exact_amount where id in (?1, ?2)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof units, bigint[]>>()
+        expect([...units].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))).toEqual([-987654321098765432109876543210n, 123456789012345678901234567890n])
+    })
+
+    test('own-bigint/an-update-sends-an-integer-of-30-digits-and-reads-it-back', async () => {
+        ctx.mockNext(1)
+        ctx.mockNext('-999999999999999999999999999999')
+        await ctx.withRollback(async () => {
+            const updated = await ctx.conn.update(tExactUnits)
+                .set({ units: -999999999999999999999999999999n })
+                .where(tExactUnits.id.equals(3))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update exact_amount set units = ?1 where id = ?2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "-999999999999999999999999999999",
+                3,
+              ]
+            `)
+            expect(updated).toBe(1)
+
+            const units = await ctx.conn.selectFrom(tExactUnits)
+                .where(tExactUnits.id.equals(3))
+                .selectOneColumn(tExactUnits.units)
+                .executeSelectOne()
+            assertType<Exact<typeof units, bigint | null>>()
+            expect(units).toBe(-999999999999999999999999999999n)
         })
     })
 })

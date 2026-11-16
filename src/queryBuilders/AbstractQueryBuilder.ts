@@ -12,7 +12,7 @@ import type { ProjectionOutput } from '../TypeAdapter.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __classOf, __unadaptedClassOf, __valueSqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -570,7 +570,7 @@ function resultColumnOf(name: string, path: string, valueSource: AnyValueSource,
         projectedBy._resolveRequestedTypeOfProjection(valueSource, 'resultColumn', types)
     }
     // The SQL data type of the column, and the one its transformProjection requests
-    const originalSqlDataType = __valueSqlDataTypeOf(__classOf(valueSourcePrivate))
+    const originalSqlDataType = __sqlDataTypeOf(__classOf(valueSourcePrivate))
     const requestedSqlDataType = projectedBy ? types.requestedSqlDataType : originalSqlDataType
     if (originalSqlDataType === undefined && requestedSqlDataType === undefined) {
         return { name, path, originalType: types.originalType!, requestedType: types.requestedType! }

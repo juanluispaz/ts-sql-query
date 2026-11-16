@@ -301,19 +301,18 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 
 ### 2.6 The SQL data type of a parameter
 
-Every parameter and every column of the result carries the type of its value in the database, its SQL data type: a
-family (`'exact numeric'`, `'character string'`, `'datetime'`, …) with the properties that refine it (precision, scale,
-length, `national`, fractional seconds, `bytes` of an integer, …) and, optionally, the name of the type in each
-database (`native`). It is the one a type adapter says (`sqlDataType`, set with `withSqlDataType`): the one of the
-column, for the value of the column in an insert or an update, a value compared with the column (`equals`, `in`,
-`between`, …) and the OUT params of a `returning` of that column. Otherwise it is the one of the data type of the
-value (the static `sqlDataType` of its class), marked with `typeDefault`: an integer of 4 bytes for an `int`, an exact
-number without precision for a decimal, a text, a date, …; none for an `enum`, a `custom` or a `customComparable`,
-whose values only the user knows. The context of the query has two, as the types: the original one
-(`originalSqlDataType`) and the requested one (`requestedSqlDataType`). When an adapter requests another type, the
-requested one is the original one if it describes the type requested (the same family), and otherwise the one of the
-type requested: a date sent as a text has the one of a text. An adapter requests another with
-`setRequestedSqlDataType`.
+A value has two SQL data types (a family, `'exact numeric'`, `'character string'`, `'datetime'`, …, with the
+properties that refine it, precision, scale, length, `national`, fractional seconds, `bytes` of an integer, …, and,
+optionally, the name of the type in each database, `native`), apart:
+
+- **The one of its data type**, the static `sqlDataType` of its class, in `originalType` and `requestedType` of the
+  context: what the value is (an integer of 4 bytes for an `int`, an exact number without precision for a decimal, a
+  text, a uuid, a date, …); none for an `enum`, a `custom` or a `customComparable`, whose values only the user knows.
+- **The one declared**, `originalSqlDataType` and `requestedSqlDataType` of each parameter and column of the result:
+  the one a type adapter says (`withSqlDataType`), the one of the column, for the value of the column in an insert or
+  an update, a value compared with the column (`equals`, `in`, `between`, …) and the OUT params of a `returning` of
+  that column; the requested one is the original one unless an adapter requests another (`setRequestedSqlDataType`).
+  `undefined` when none is declared.
 
 **The runners decide by the SQL data type of the type requested**, never by knowing a data type: the type of the
 driver a value is bound with and the cast of its placeholder (an integer of up to 4 bytes is an `int4`, an `Int`, a
@@ -322,11 +321,14 @@ number a `float8`, a `Float`; a date, a time or a timestamp the type of the data
 date given to the driver, the check and the cast of an exact number sent as its text, and which columns of the result
 are fetched as text (an exact number that isn't an integer of up to 4 bytes, on Oracle). A class of the user that
 says its own SQL data type is sent and read by it. A value without a SQL data type (an `enum`, a `custom`, a value of
-SQL written by hand) is bound by its JavaScript value. What only the SQL data type of the column says, more precise
-than the one of the type (the length of a text, a large object, a `datetime` of SQL Server, a JSON, the native name
-of a PostgreSQL type), is used only when it describes the requested type (an adapter that sends a date as a text
-doesn't make the text a date); the one of a type is written as the runner writes that type (`$1::int4`, not
-`$1::integer`).
+SQL written by hand) is bound by its JavaScript value. What only the declared one says, more precise than the one of
+the type (the length of a text, a large object, a `datetime` of SQL Server, a JSON, the native name of a PostgreSQL
+type, the precision of a number read as text), is used only when it describes the value: when it is of the family of
+the one of the requested type (any number or a money for a number; any family but a number, a boolean, a date, a time
+or a binary for a text; any for a type without one). One that doesn't is how a database that emulates the type keeps
+it (the `char(36)` of a uuid, the `NUMBER(1)` of a boolean, the `TEXT` of a date on SQLite) or the one of a value
+sent as another type (an adapter that sends a date as a text doesn't make the text a date): it says nothing of the
+value, and the value is sent and read as without it.
 
 The rule that keeps the meaning: **a SQL data type never narrows a value.** A cast or a bind type takes the type of
 the column only when the value fits in it; otherwise the runner does what it does without it.

@@ -109,7 +109,7 @@ Every family also takes `domain`, the name of the domain the column is declared 
 
 ## The SQL data type of a data type
 
-The class of a data type says the SQL data type of its values when nothing more precise is known, in its static `sqlDataType`. A value without the SQL data type of a column has the one of its data type: a constant, a computed value like `price.add(1)` or `name.concat('!')`, and the value of a column whose type adapter says none. The query runners send and read a value by it, so a SQL data type is always there for the values of the types the library knows:
+The class of a data type says what its values are in the database, in its static `sqlDataType`: `IntType.sqlDataType`. The query runners send and read every value by the one of its data type, also a constant or a computed value like `price.add(1)` or `name.concat('!')`, and use the one of the column, when it describes the value, for what only the column says (the length of a text, a large object, the native name). They are two things apart, and the context has both: `originalSqlDataType` and `requestedSqlDataType` are the one declared (by the type adapter of the column, or requested with `setRequestedSqlDataType`), `undefined` when none is, and `originalType.sqlDataType` and `requestedType.sqlDataType` the one of the data type:
 
 | Data type | Its SQL data type |
 |---|---|
@@ -125,9 +125,13 @@ The class of a data type says the SQL data type of its values when nothing more 
 | `localDateTime`, `customLocalDateTime` | `{ family: 'datetime', fields: 'timestamp' }` |
 | `enum`, `custom`, `customComparable` | none: only you know what the value is, and it's sent as its value in JavaScript |
 
-The one of a data type has `typeDefault: true`, so a query runner of yours can tell it from the one of a column; the library sets it, on a copy when the class gives its own without it. A class that extends a data type can give its own, like `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }` for an integer of 30 digits: the query runners send and read its values by it without knowing the class.
+A class that extends a data type can give its own, like `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }` for an integer of 30 digits: the query runners send and read its values by it without knowing the class.
 
-When a type adapter requests another type for the value (`setRequestedType`), the SQL data type requested is the one of the column when it describes the type requested, and otherwise the one of the type requested: a date sent as its text has the SQL data type of a text. `setRequestedSqlDataType` after it requests another one.
+The SQL data type of a column describes the value when it is of the family of the one of the data type: the same family for a boolean, a uuid, a date, a time or a timestamp; any number or a money for a number; any family but a number, a boolean, a date, a time or a binary for a text; any for a type without one. When a type adapter requests another type for the value (`setRequestedType`), the one of the column describes it or not by the same rule: a date sent as its text is sent as a text.
+
+### A type the database emulates
+
+Where a database has no type of its own for a value, the library keeps it in another, by the strategy of the connection: a uuid as a `char(36)` or a `binary(16)` on MySQL and MariaDB, as a `RAW(16)` on Oracle, as a `TEXT` or a `BLOB` on SQLite; a boolean as a `NUMBER(1)` on Oracle; a date or a time as a text or a number on SQLite. The SQL data type of a data type says what the value is (`{ family: 'uuid' }`), and the connection writes it as its strategy keeps it (`nativeSqlDataTypeOf` gives that type). The SQL data type of such a column, read from the catalogue (`sqlDataTypeFrom('char(36)')` for a uuid column), says how the database keeps the value, not what it is: it doesn't describe the value, and changes nothing of the query, which is the same as without it.
 
 ## What the library does with it
 

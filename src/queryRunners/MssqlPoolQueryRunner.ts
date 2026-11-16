@@ -6,7 +6,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSq
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
-import { __isSqlDataTypeOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
+import { __sqlDataTypeDescribes, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
@@ -297,7 +297,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
 
     /**
      * The type of the parameter from the SQL data type requested for it, when it describes the value
-     * (`__isSqlDataTypeOf`), where it gives a better query than the type of its data type; undefined otherwise:
+     * (`__sqlDataTypeDescribes`), where it gives a better query than the type of its data type; undefined otherwise:
      * - A text of a column that isn't national (a varchar or a char) goes as a varchar: compared as a nvarchar, SQL
      *   Server converts the column, and with a SQL collation it reads its whole index. Only for an ASCII text, the same in
      *   every code page: tedious writes a varchar in the code page of the database, and a character it lacks becomes
@@ -310,7 +310,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     private getTypeOfSqlDataType(params: any[], index: number): ISqlType | undefined {
         const param = existingParamContextOf(params, index)
         const sqlDataType = param?.requestedSqlDataType
-        if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)) {
+        if (sqlDataType === undefined || !__sqlDataTypeDescribes(sqlDataType, param!.requestedType)) {
             return undefined
         }
         const value: unknown = params[index]

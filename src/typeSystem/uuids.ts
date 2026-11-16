@@ -9,7 +9,7 @@ import { __operation0 } from '../nodes/operations.js'
 
 /** A uuid: comparable, but not a text; its text is asked with asString */
 /** The type in the database of a uuid */
-export const uuidSqlDataType: SqlDataType = { family: 'uuid', typeDefault: true }
+export const uuidSqlDataType: SqlDataType = { family: 'uuid' }
 
 export abstract class UuidsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
     /** Whether a type and a custom type are of a uuid or a customUuid */

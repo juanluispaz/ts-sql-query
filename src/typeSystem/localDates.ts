@@ -20,9 +20,9 @@ function datePartOf(valueSource: DataTypeValueSource, operation: keyof SqlFuncti
 
 /** A date without a zone */
 /** The types in the database of a localDate, a localTime and a localDateTime */
-export const localDateSqlDataType: SqlDataType = { family: 'datetime', fields: 'date', typeDefault: true }
-export const localTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'time', typeDefault: true }
-export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'timestamp', typeDefault: true }
+export const localDateSqlDataType: SqlDataType = { family: 'datetime', fields: 'date' }
+export const localTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'time' }
+export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'timestamp' }
 
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
     /** Whether a type and a custom type are of a localDate or a customLocalDate */

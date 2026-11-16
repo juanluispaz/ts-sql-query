@@ -6,7 +6,7 @@ import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { Default } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext } from '../TypeAdapter.js'
-import { __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
+import { __sqlDataTypeDescribes, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {
@@ -34,7 +34,8 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * number of its SQL data type that isn't an integer of a fixed size (the driver gives a bigint as its text)
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        const sqlDataType = context.requestedSqlDataType ?? __typeSqlDataTypeOf(context.requestedType)
+        const declared = context.requestedSqlDataType
+        const sqlDataType = declared !== undefined && __sqlDataTypeDescribes(declared, context.requestedType) ? declared : __typeSqlDataTypeOf(context.requestedType)
         if (context.output === 'resultColumn' && sqlDataType?.family === 'exact numeric' && !(sqlDataType.scale === 0 && sqlDataType.bytes !== undefined)) {
             // The text of a decimal orders as a text, not as the number; two equal decimals of a column give the same
             // text, but of two columns of different scales (in the arms of a compound query) not, 1.5 and 1.50

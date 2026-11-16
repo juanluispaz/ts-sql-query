@@ -4,7 +4,6 @@ import { QueryParamContextImpl, type QueryContextImpl } from './QueryContextImpl
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
 import type { BuiltInDataType } from '../typeSystem/builtInDataTypes.js'
 import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
-import { __requestedSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { __typeAdapterOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** Who gives the type a `transformProjection` requests for a value (the SQL builder) */
@@ -146,17 +145,13 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
     }
     setRequestedType(type: BuiltInDataType | DataTypeClass, typeAdapter?: TypeAdapter): void {
         this.pendingProjection = undefined
-        const state = this.state
-        const requestedType = __unadaptedClassOf(__dataTypeClassFrom(type))
-        state.requestedType = requestedType
-        state.requestedSqlDataType = __requestedSqlDataTypeOf(state.originalSqlDataType, requestedType)
+        this.state.requestedType = __unadaptedClassOf(__dataTypeClassFrom(type))
         this.requestedTypeAdapter = typeAdapter
     }
     resetRequestedType(): void {
         this.pendingProjection = undefined
         const state = this.state
         state.requestedType = state.originalType
-        state.requestedSqlDataType = state.originalSqlDataType
         this.requestedTypeAdapter = undefined
     }
     get originalSqlDataType(): SqlDataType | undefined {

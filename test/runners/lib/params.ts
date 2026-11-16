@@ -7,7 +7,6 @@ import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import type { CustomType, DataTypeClass } from '../../../src/TypeAdapter.js'
 import { queryParamContextOf } from '../../../src/internal/QueryContextImpl.js'
 import { __dataTypeClassOf } from '../../../src/typeSystem/dataTypeClasses.js'
-import { __typeSqlDataTypeOf } from '../../../src/typeSystem/dataTypes.js'
 import '../../../src/typeSystem/registerDataTypes.js'
 
 // The class of the type, as the library gives it; a type the library doesn't know, or none (''), only by its names
@@ -23,7 +22,6 @@ function keepParamType(params: any[], type: string, customType: CustomType | und
     const paramContext = queryParamContextOf(params, params.length)
     const typeClass = classOf(type, customType)
     paramContext.setOriginalType(typeClass)
-    paramContext.setOriginalSqlDataType(__typeSqlDataTypeOf(typeClass))
     paramContext.forceTypeCast = forceTypeCast
 }
 

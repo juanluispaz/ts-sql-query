@@ -8,7 +8,7 @@ import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } 
 import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
-import { __isSqlDataTypeOf, __temporalFieldsOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
+import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import type { QueryParamContext } from '../QueryContext.js'
@@ -114,7 +114,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         let names: Set<string> | undefined
         if (columns) {
             for (const column of columns) {
-                if (!isReadAsText(column.requestedSqlDataType ?? __typeSqlDataTypeOf(column.requestedType))) {
+                const declared = column.requestedSqlDataType
+                if (!isReadAsText(declared !== undefined && __sqlDataTypeDescribes(declared, column.requestedType) ? declared : __typeSqlDataTypeOf(column.requestedType))) {
                     continue
                 }
                 if (column.name) {
@@ -204,7 +205,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
                 // A text of a column its SQL data type says (withSqlDataType) is a large object is returned as a CLOB
                 // (a VARCHAR2 can't hold it, ORA-22835), and one of a known length in a buffer of that length
-                const sqlDataType = param?.requestedSqlDataType?.family === 'character string' && __isSqlDataTypeOf(param.requestedSqlDataType, typeName, requestedType?.customType) ? param.requestedSqlDataType : undefined
+                const sqlDataType = param?.requestedSqlDataType?.family === 'character string' && __sqlDataTypeDescribes(param.requestedSqlDataType, requestedType) ? param.requestedSqlDataType : undefined
                 const lob = sqlDataType?.largeObject ? (sqlDataType.national ? oracleDb.DB_TYPE_NCLOB : oracleDb.DB_TYPE_CLOB) : undefined
                 const dbType = declared ?? lob ?? (__temporalFieldsOf(requestedType) !== undefined ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(requestedType, nativeBoolean))
                 // A text, or a value received as one, is returned in a buffer of maxSize bytes; a character of a text
@@ -497,5 +498,5 @@ function oracleFetchTypeHandler(metadata: Metadata<any>): FetchTypeResponse {
 /** Whether the SQL data type requested for the parameter is a JSON document that describes its value */
 function isJsonSqlDataTypeOf(param: QueryParamContext | undefined): boolean {
     const sqlDataType = param?.requestedSqlDataType
-    return sqlDataType !== undefined && sqlDataType.family === 'document' && sqlDataType.format === 'json' && __isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)
+    return sqlDataType !== undefined && sqlDataType.family === 'document' && sqlDataType.format === 'json' && __sqlDataTypeDescribes(sqlDataType, param!.requestedType)
 }

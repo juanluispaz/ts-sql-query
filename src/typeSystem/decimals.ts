@@ -19,7 +19,7 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
  * double. Its data types are stringDecimal and the custom ones; a decimal of a library extends it
  */
 /** The type in the database of an exact decimal: a number with every digit, of any precision and scale */
-export const decimalSqlDataType: SqlDataType = { family: 'exact numeric', typeDefault: true }
+export const decimalSqlDataType: SqlDataType = { family: 'exact numeric' }
 
 export abstract class DecimalsType</*in|out*/ VALUE_TYPE> extends NumericType<VALUE_TYPE> {
     /** Whether a type and a custom type are of an exact decimal: a stringDecimal or a customDecimal */

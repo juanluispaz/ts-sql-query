@@ -1,5 +1,5 @@
 import type { DataTypeClass } from '../../TypeAdapter.js'
-import { __isSqlDataTypeOf, __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
+import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { connectionClassIdOf, keepDerivedOfSqlDataType, keptDerivedOfSqlDataType } from '../sqlDataTypeNames.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { postgreSqlZonedParam } from '../metadataSymbols.js'
@@ -44,14 +44,16 @@ const paramTypeOfSqlDataTypeKey: unique symbol = Symbol('postgreSqlParamTypeOfSq
 
 /**
  * The PostgreSQL type of the parameter at that index from the SQL data type requested for it, when it describes the
- * value (`__isSqlDataTypeOf`), the one of its column or of its data type: its native name without the arguments
+ * value (`__sqlDataTypeDescribes`), the one of its column or the one requested for it, or otherwise the one of the
+ * type requested: its native name without the arguments
  * (castWithoutArguments), because a cast with them would round or cut a value that doesn't fit, silently; and its oid,
  * when the type has a fixed one. Derived once for each SQL data type and class of connection
  */
 export function postgreSqlParamTypeOfSqlDataType(params: any[], index: number): PostgreSqlParamType | undefined {
     const param = existingParamContextOf(params, index)
-    const sqlDataType = param?.requestedSqlDataType
-    if (sqlDataType === undefined || !__isSqlDataTypeOf(sqlDataType, param!.requestedType?.type, param!.requestedType?.customType)) {
+    const declared = param?.requestedSqlDataType
+    const sqlDataType = declared !== undefined && __sqlDataTypeDescribes(declared, param?.requestedType) ? declared : __typeSqlDataTypeOf(param?.requestedType)
+    if (sqlDataType === undefined) {
         return undefined
     }
     // A localTime has no zone: a cast to a time with time zone would complete it with the zone of the session

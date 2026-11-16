@@ -14,7 +14,7 @@ import { PostgresQueryRunner } from '../../../src/queryRunners/PostgresQueryRunn
 import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
-import { CustomDecimalType, CustomEqualableType, EnumType, IntType, StringType } from '../../../src/exports/v2/index.js'
+import { CustomDecimalType, CustomEqualableType, EnumType, IntType, StringType, UuidType } from '../../../src/exports/v2/index.js'
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 
@@ -27,6 +27,8 @@ const price = withSqlDataType({ family: 'exact numeric', precision: 18, scale: 4
 const code = withSqlDataType({ family: 'character string', length: 5, fixed: true })
 const flags = withSqlDataType({ family: 'bit string', length: 3, fixed: true })
 const small = withSqlDataType({ family: 'exact numeric', scale: 0, bytes: 2 })
+// How a uuid is kept where the database emulates it: here it says nothing of the value, a uuid
+const uuidAsText = withSqlDataType({ family: 'character string', length: 36, fixed: true })
 
 function describeSqlDataTypeParams(label: string, enabled: boolean, typesTheParam: boolean, jsonbAsText: boolean, create: () => Promise<{ runner: QueryRunner, raw(sql: string): Promise<unknown>, close(): Promise<unknown> }>): void {
     describe.skipIf(!enabled)(label + ': the type of a parameter from its SQL data type', () => {
@@ -70,6 +72,15 @@ function describeSqlDataTypeParams(label: string, enabled: boolean, typesThePara
                 ? 'select $1 as code, $2 as flags, $3 as small'
                 : 'select $1::bpchar as code, $2::varbit as flags, $3::int2 as small')
             expect(await query.executeSelectOne()).toEqual({ code: 'abcde', flags: '101', small: 7 })
+        })
+
+        test('a-sql-data-type-that-does-not-describe-the-value-says-nothing-of-it', async () => {
+            const conn = new DBConnection(created!.runner)
+            const id = '1d2b5e7a-1c3f-4b6a-8d9e-0f1a2b3c4d5e'
+            const query = conn.selectFromNoTable().select({ id: conn.const(id, UuidType, uuidAsText) })
+            // Sent as the uuid it is, not as the char(36) a database that emulates it keeps it as
+            expect(query.query()).toBe(typesTheParam ? 'select $1 as id' : 'select $1::uuid as id')
+            expect(await query.executeSelectOne()).toEqual({ id })
         })
     })
 }

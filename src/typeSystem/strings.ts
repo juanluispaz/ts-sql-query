@@ -20,7 +20,7 @@ export type IStringValue = IValueWithType<'type:string:'>
 
 /** The family of the texts: what every text offers */
 /** The type in the database of a text */
-export const stringSqlDataType: SqlDataType = { family: 'character string', typeDefault: true }
+export const stringSqlDataType: SqlDataType = { family: 'character string' }
 
 export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE> {
     /** Whether a type and a custom type are of a text */

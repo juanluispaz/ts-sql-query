@@ -247,11 +247,6 @@ export interface SqlDataTypeCommon {
     readonly native?: SqlDataTypeNative | undefined
     /** The name of the domain the type is defined by, when it is one; the family is the type the domain is over */
     readonly domain?: string | undefined
-    /**
-     * Whether it is the SQL data type a data type gives its values when nothing more precise is known (the
-     * `sqlDataType` of its class), not the type of a column; the library sets it on the one of a class
-     */
-    readonly typeDefault?: boolean | undefined
 }
 
 /** An exact number: an integer (`scale` 0, and `bytes` of its storage when it is one) or a decimal */

@@ -17,19 +17,11 @@ function typeLabel(type: QueryResultColumn['originalType']): string {
     return type.customType === undefined ? type.type : type.type + ' (' + type.customType + ')'
 }
 
-// A result column with its types shown by typeLabel, and its SQL data types as they say it (a copy: a SQL data type keeps
-// hidden what a connection derives from it)
-type ShownResultColumn = Omit<QueryResultColumn, 'originalType' | 'requestedType' | 'originalSqlDataType' | 'requestedSqlDataType'> & { originalType: string, requestedType: string, originalSqlDataType?: QueryResultColumn['originalSqlDataType'], requestedSqlDataType?: QueryResultColumn['requestedSqlDataType'] }
+// A result column with its types shown by typeLabel
+type ShownResultColumn = Omit<QueryResultColumn, 'originalType' | 'requestedType'> & { originalType: string, requestedType: string }
 
 function resultColumns(params = ctx.lastParams): ShownResultColumn[] | undefined {
-    return getQueryContext(ctx.lastSql, params).resultColumns?.map(column => {
-        const shown: ShownResultColumn = { ...column, originalType: typeLabel(column.originalType), requestedType: typeLabel(column.requestedType) }
-        if (column.originalSqlDataType !== undefined || column.requestedSqlDataType !== undefined) {
-            shown.originalSqlDataType = column.originalSqlDataType && { ...column.originalSqlDataType }
-            shown.requestedSqlDataType = column.requestedSqlDataType && { ...column.requestedSqlDataType }
-        }
-        return shown
-    })
+    return getQueryContext(ctx.lastSql, params).resultColumns?.map(column => ({ ...column, originalType: typeLabel(column.originalType), requestedType: typeLabel(column.requestedType) }))
 }
 
 describe(ctx.label, () => {
@@ -54,210 +46,80 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "id",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
               "name": "mInt",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "mInt",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
               "name": "mBigint",
-              "originalSqlDataType": {
-                "bytes": 8,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "bigint",
               "path": "mBigint",
-              "requestedSqlDataType": {
-                "bytes": 8,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "bigint",
             },
             {
               "name": "mDouble",
-              "originalSqlDataType": {
-                "family": "approximate numeric",
-                "precision": 53,
-                "typeDefault": true,
-              },
               "originalType": "double",
               "path": "mDouble",
-              "requestedSqlDataType": {
-                "family": "approximate numeric",
-                "precision": 53,
-                "typeDefault": true,
-              },
               "requestedType": "double",
             },
             {
               "name": "mBool",
-              "originalSqlDataType": {
-                "family": "boolean",
-                "typeDefault": true,
-              },
               "originalType": "boolean",
               "path": "mBool",
-              "requestedSqlDataType": {
-                "family": "boolean",
-                "typeDefault": true,
-              },
               "requestedType": "boolean",
             },
             {
               "name": "mUuid",
-              "originalSqlDataType": {
-                "family": "uuid",
-                "typeDefault": true,
-              },
               "originalType": "uuid",
               "path": "mUuid",
-              "requestedSqlDataType": {
-                "family": "uuid",
-                "typeDefault": true,
-              },
               "requestedType": "uuid",
             },
             {
               "name": "mDate",
-              "originalSqlDataType": {
-                "family": "datetime",
-                "fields": "date",
-                "typeDefault": true,
-              },
               "originalType": "localDate",
               "path": "mDate",
-              "requestedSqlDataType": {
-                "family": "datetime",
-                "fields": "date",
-                "typeDefault": true,
-              },
               "requestedType": "localDate",
             },
             {
               "name": "mTime",
-              "originalSqlDataType": {
-                "family": "datetime",
-                "fields": "time",
-                "typeDefault": true,
-              },
               "originalType": "localTime",
               "path": "mTime",
-              "requestedSqlDataType": {
-                "family": "datetime",
-                "fields": "time",
-                "typeDefault": true,
-              },
               "requestedType": "localTime",
             },
             {
               "name": "mDatetime",
-              "originalSqlDataType": {
-                "family": "datetime",
-                "fields": "timestamp",
-                "typeDefault": true,
-              },
               "originalType": "localDateTime",
               "path": "mDatetime",
-              "requestedSqlDataType": {
-                "family": "datetime",
-                "fields": "timestamp",
-                "typeDefault": true,
-              },
               "requestedType": "localDateTime",
             },
             {
               "name": "mStr",
-              "originalSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "originalType": "string",
               "path": "mStr",
-              "requestedSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "requestedType": "string",
             },
             {
               "name": "cents",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "Cents (customInt)",
               "path": "cents",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "Cents (customInt)",
             },
             {
               "name": "money",
-              "originalSqlDataType": {
-                "family": "approximate numeric",
-                "precision": 53,
-                "typeDefault": true,
-              },
               "originalType": "Money (customDouble)",
               "path": "money",
-              "requestedSqlDataType": {
-                "family": "approximate numeric",
-                "precision": 53,
-                "typeDefault": true,
-              },
               "requestedType": "Money (customDouble)",
             },
             {
               "name": "signingKey",
-              "originalSqlDataType": {
-                "family": "uuid",
-                "typeDefault": true,
-              },
               "originalType": "SigningKey (customUuid)",
               "path": "signingKey",
-              "requestedSqlDataType": {
-                "family": "uuid",
-                "typeDefault": true,
-              },
               "requestedType": "SigningKey (customUuid)",
             },
             {
@@ -274,50 +136,20 @@ describe(ctx.label, () => {
             },
             {
               "name": "releaseDay",
-              "originalSqlDataType": {
-                "family": "datetime",
-                "fields": "date",
-                "typeDefault": true,
-              },
               "originalType": "ReleaseDay (customLocalDate)",
               "path": "releaseDay",
-              "requestedSqlDataType": {
-                "family": "datetime",
-                "fields": "date",
-                "typeDefault": true,
-              },
               "requestedType": "ReleaseDay (customLocalDate)",
             },
             {
               "name": "cutoffClock",
-              "originalSqlDataType": {
-                "family": "datetime",
-                "fields": "time",
-                "typeDefault": true,
-              },
               "originalType": "CutoffClock (customLocalTime)",
               "path": "cutoffClock",
-              "requestedSqlDataType": {
-                "family": "datetime",
-                "fields": "time",
-                "typeDefault": true,
-              },
               "requestedType": "CutoffClock (customLocalTime)",
             },
             {
               "name": "signOff",
-              "originalSqlDataType": {
-                "family": "datetime",
-                "fields": "timestamp",
-                "typeDefault": true,
-              },
               "originalType": "SignOffStamp (customLocalDateTime)",
               "path": "signOff",
-              "requestedSqlDataType": {
-                "family": "datetime",
-                "fields": "timestamp",
-                "typeDefault": true,
-              },
               "requestedType": "SignOffStamp (customLocalDateTime)",
             },
             {
@@ -329,9 +161,7 @@ describe(ctx.label, () => {
           ]
         `)
         const money = getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('money')
-        // A custom double without a SQL data type of its column has the one of its data type
-        const doubleOfType = { family: 'approximate numeric', precision: 53, typeDefault: true }
-        expect(money && { ...money, originalType: typeLabel(money.originalType), requestedType: typeLabel(money.requestedType) }).toEqual({ name: 'money', path: 'money', originalType: 'Money (customDouble)', requestedType: 'Money (customDouble)', originalSqlDataType: doubleOfType, requestedSqlDataType: doubleOfType })
+        expect(money && { ...money, originalType: typeLabel(money.originalType), requestedType: typeLabel(money.requestedType) }).toEqual({ name: 'money', path: 'money', originalType: 'Money (customDouble)', requestedType: 'Money (customDouble)' })
         expect(getQueryContext(ctx.lastSql, ctx.lastParams).getResultColumn('unknown')).toBeUndefined()
         // Hidden: the params list only the values sent to the database
         expect(Object.keys(ctx.lastParams)).toEqual(['0'])
@@ -357,66 +187,26 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "id",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
               "name": "detail.title",
-              "originalSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "originalType": "string",
               "path": "detail.title",
-              "requestedSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "requestedType": "string",
             },
             {
               "name": "parent.id",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "parent.id",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
               "name": "parent.title",
-              "originalSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "originalType": "string",
               "path": "parent.title",
-              "requestedSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "requestedType": "string",
             },
           ]
@@ -435,34 +225,14 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "id",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
               "name": "aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier",
-              "originalSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "originalType": "string",
               "path": "aVeryLongPropertyNameThatGoesBeyondTheSixtyThreeBytesOfAnIdentifier",
-              "requestedSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "requestedType": "string",
             },
           ]
@@ -480,16 +250,8 @@ describe(ctx.label, () => {
           [
             {
               "name": "result",
-              "originalSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "originalType": "string",
               "path": "result",
-              "requestedSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "requestedType": "string",
             },
           ]
@@ -505,20 +267,8 @@ describe(ctx.label, () => {
           [
             {
               "name": "result",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "result",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
           ]
@@ -545,54 +295,22 @@ describe(ctx.label, () => {
             [
               {
                 "name": "id",
-                "originalSqlDataType": {
-                  "bytes": 4,
-                  "family": "exact numeric",
-                  "scale": 0,
-                  "typeDefault": true,
-                },
                 "originalType": "int",
                 "path": "id",
-                "requestedSqlDataType": {
-                  "bytes": 4,
-                  "family": "exact numeric",
-                  "scale": 0,
-                  "typeDefault": true,
-                },
                 "requestedType": "int",
               },
               {
                 "name": "name",
-                "originalSqlDataType": {
-                  "family": "character string",
-                  "typeDefault": true,
-                },
                 "originalType": "string",
                 "path": "name",
-                "requestedSqlDataType": {
-                  "family": "character string",
-                  "typeDefault": true,
-                },
                 "requestedType": "string",
               },
             ],
             [
               {
                 "name": "",
-                "originalSqlDataType": {
-                  "bytes": 4,
-                  "family": "exact numeric",
-                  "scale": 0,
-                  "typeDefault": true,
-                },
                 "originalType": "int",
                 "path": "",
-                "requestedSqlDataType": {
-                  "bytes": 4,
-                  "family": "exact numeric",
-                  "scale": 0,
-                  "typeDefault": true,
-                },
                 "requestedType": "int",
               },
             ],
@@ -618,34 +336,14 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "id",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
               "name": "label",
-              "originalSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "originalType": "string",
               "path": "label",
-              "requestedSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "requestedType": "string",
             },
           ]
@@ -665,20 +363,8 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "id",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
@@ -703,34 +389,14 @@ describe(ctx.label, () => {
           [
             {
               "name": "id",
-              "originalSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "originalType": "int",
               "path": "id",
-              "requestedSqlDataType": {
-                "bytes": 4,
-                "family": "exact numeric",
-                "scale": 0,
-                "typeDefault": true,
-              },
               "requestedType": "int",
             },
             {
               "name": "shout",
-              "originalSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "originalType": "string",
               "path": "shout",
-              "requestedSqlDataType": {
-                "family": "character string",
-                "typeDefault": true,
-              },
               "requestedType": "string",
             },
           ]
@@ -749,20 +415,8 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "",
-                  "originalSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "originalType": "int",
                   "path": "",
-                  "requestedSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "requestedType": "int",
                 },
               ]
@@ -782,20 +436,8 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "",
-                  "originalSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "originalType": "int",
                   "path": "",
-                  "requestedSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "requestedType": "int",
                 },
               ]
@@ -841,34 +483,14 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "id",
-                  "originalSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "originalType": "int",
                   "path": "id",
-                  "requestedSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "requestedType": "int",
                 },
                 {
                   "name": "name",
-                  "originalSqlDataType": {
-                    "family": "character string",
-                    "typeDefault": true,
-                  },
                   "originalType": "string",
                   "path": "name",
-                  "requestedSqlDataType": {
-                    "family": "character string",
-                    "typeDefault": true,
-                  },
                   "requestedType": "string",
                 },
               ]
@@ -894,16 +516,8 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "name",
-                  "originalSqlDataType": {
-                    "family": "character string",
-                    "typeDefault": true,
-                  },
                   "originalType": "string",
                   "path": "name",
-                  "requestedSqlDataType": {
-                    "family": "character string",
-                    "typeDefault": true,
-                  },
                   "requestedType": "string",
                 },
               ]
@@ -923,34 +537,14 @@ describe(ctx.label, () => {
               [
                 {
                   "name": "id",
-                  "originalSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "originalType": "int",
                   "path": "id",
-                  "requestedSqlDataType": {
-                    "bytes": 4,
-                    "family": "exact numeric",
-                    "scale": 0,
-                    "typeDefault": true,
-                  },
                   "requestedType": "int",
                 },
                 {
                   "name": "name",
-                  "originalSqlDataType": {
-                    "family": "character string",
-                    "typeDefault": true,
-                  },
                   "originalType": "string",
                   "path": "name",
-                  "requestedSqlDataType": {
-                    "family": "character string",
-                    "typeDefault": true,
-                  },
                   "requestedType": "string",
                 },
               ]

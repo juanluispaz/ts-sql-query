@@ -1,5 +1,4 @@
 import type { DataTypeClass, SqlDataType, TypeAdapter } from '../TypeAdapter.js'
-import { __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 
 // The type adapter of a value source is part of its class: a value source with a type adapter is an instance of a
 // subclass of the class of its data type that carries the adapter. That subclass is created once for each class and
@@ -97,14 +96,6 @@ export function __typeAdapterOf(typeClass: DataTypeClass): TypeAdapter | undefin
 export function __sqlDataTypeOf(typeClass: DataTypeClass): SqlDataType | undefined {
     const adaptable = typeClass as AdaptableClass
     return adaptable[keepsSqlDataType] ? adaptable[typeAdapterOfClass]?.sqlDataType : undefined
-}
-
-/**
- * The SQL data type of a value of a class of a data type: the one its type adapter says, unless it is a computed value,
- * or the default of its data type
- */
-export function __valueSqlDataTypeOf(typeClass: DataTypeClass): SqlDataType | undefined {
-    return __sqlDataTypeOf(typeClass) ?? __typeSqlDataTypeOf(__unadaptedClassOf(typeClass))
 }
 
 /**

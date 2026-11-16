@@ -86,73 +86,40 @@ export function __isAggregatedArray(type: string | undefined, customType: Custom
     return customType === undefined && type === 'aggregatedArray'
 }
 
-/**
- * Whether a SQL data type describes a value of that requested type, so a query runner can send the value with it: a
- * boolean is a boolean; a number, a numeric or a money; a text, any family but a number, a boolean, a date or a time,
- * and a binary; a uuid, a uuid; a localDate, a date; a localTime, a time; a localDateTime, a timestamp. An `enum`, a
- * `custom`, a `customComparable` or a value without a built-in type, whose value the library doesn't know, any family.
- * An adapter that sends a value as another type (a date as its text) requests the SQL data type of what it sends
- */
-export function __isSqlDataTypeOf(sqlDataType: SqlDataType, type: string | undefined, customType: CustomType | undefined): boolean {
-    const family = sqlDataType.family
-    if (__isBoolean(type, customType)) {
-        return family === 'boolean'
-    }
-    if (__isInt(type, customType) || __isBigint(type, customType) || __isDouble(type, customType) || __isExactDecimal(type, customType)) {
-        return family === 'exact numeric' || family === 'approximate numeric' || family === 'money'
-    }
-    if (__isUuid(type, customType)) {
-        return family === 'uuid'
-    }
-    if (__isLocalDate(type, customType)) {
-        return family === 'datetime' && sqlDataType.fields === 'date'
-    }
-    if (__isLocalTime(type, customType)) {
-        return family === 'datetime' && sqlDataType.fields === 'time'
-    }
-    if (__isLocalDateTime(type, customType)) {
-        return family === 'datetime' && sqlDataType.fields === 'timestamp'
-    }
-    if (__isString(type, customType)) {
-        return family !== 'boolean' && family !== 'exact numeric' && family !== 'approximate numeric' && family !== 'datetime' && family !== 'binary string'
-    }
-    return !__isAggregatedArray(type, customType)
-}
-
-/** Where the SQL data type of a class keeps, hidden, its copy marked as the default of the data type */
-const typeDefaultCopyKey: unique symbol = Symbol('typeDefaultSqlDataType')
 
 /**
- * The SQL data type a data type gives its values when nothing more precise is known: the `sqlDataType` of its class,
- * marked as the default of the type (`typeDefault`); the one a user writes without the mark is copied once, and the
- * copy kept hidden in it
+ * The SQL data type a data type gives its values: the `sqlDataType` of its class; undefined for one whose values only
+ * the user knows (an enum, a custom one)
  */
 export function __typeSqlDataTypeOf(typeClass: DataTypeClass | undefined): SqlDataType | undefined {
-    const sqlDataType = typeClass?.sqlDataType
-    if (sqlDataType === undefined || sqlDataType.typeDefault) {
-        return sqlDataType
-    }
-    const holder = sqlDataType as { [typeDefaultCopyKey]?: SqlDataType | undefined }
-    const kept = holder[typeDefaultCopyKey]
-    if (kept !== undefined) {
-        return kept
-    }
-    const marked: SqlDataType = { ...sqlDataType, typeDefault: true }
-    if (Object.isExtensible(sqlDataType)) {
-        Object.defineProperty(sqlDataType, typeDefaultCopyKey, { value: marked })
-    }
-    return marked
+    return typeClass?.sqlDataType
 }
 
 /**
- * The SQL data type requested for a value when another type is requested for it: the one of its column, when it
- * describes the type requested, or the default of the type requested
+ * Whether a SQL data type declared for a value (the one of its column, or one requested for it) describes a value of
+ * that requested type, comparing it with the SQL data type of the type: the same family, for a boolean, a uuid, a date,
+ * a time and a timestamp (by its fields); any number or a money, for a number; any family but a number, a boolean, a
+ * date or a time, and a binary, for a text; any, for a type without one (an enum, a custom one). One that doesn't is
+ * how the database keeps a value it emulates (the char(36) of a uuid, the NUMBER(1) of a boolean), or the one of a
+ * value sent as another type: it says nothing of the value sent
  */
-export function __requestedSqlDataTypeOf(originalSqlDataType: SqlDataType | undefined, requestedType: DataTypeClass): SqlDataType | undefined {
-    if (originalSqlDataType !== undefined && !originalSqlDataType.typeDefault && __isSqlDataTypeOf(originalSqlDataType, requestedType.type, requestedType.customType)) {
-        return originalSqlDataType
+export function __sqlDataTypeDescribes(declared: SqlDataType, requestedType: DataTypeClass | undefined): boolean {
+    const ofType = requestedType?.sqlDataType
+    if (ofType === undefined) {
+        return true
     }
-    return __typeSqlDataTypeOf(requestedType)
+    const family = declared.family
+    switch (ofType.family) {
+        case 'exact numeric':
+        case 'approximate numeric':
+            return family === 'exact numeric' || family === 'approximate numeric' || family === 'money'
+        case 'character string':
+            return family !== 'boolean' && family !== 'exact numeric' && family !== 'approximate numeric' && family !== 'datetime' && family !== 'binary string'
+        case 'datetime':
+            return family === 'datetime' && declared.fields === ofType.fields
+        default:
+            return family === ofType.family
+    }
 }
 
 /**

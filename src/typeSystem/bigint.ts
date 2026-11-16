@@ -4,7 +4,7 @@ import type { operandTypeName, typeName } from '../utils/symbols.js'
 
 /** An integer number of 64 bits, a JavaScript bigint */
 /** The type in the database of a bigint: an integer of 8 bytes */
-export const bigintSqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8, typeDefault: true }
+export const bigintSqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
 
 export abstract class BigintType extends IntegersType<bigint> {
     static override readonly type = 'bigint'

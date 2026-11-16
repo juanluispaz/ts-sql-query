@@ -33,10 +33,10 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
 
 /** The int and the double, the numbers of JavaScript */
 /** The type in the database of an int: an integer of 4 bytes */
-export const intSqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 4, typeDefault: true }
+export const intSqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 4 }
 
 /** The type in the database of a double: a floating point number of double precision */
-export const doubleSqlDataType: SqlDataType = { family: 'approximate numeric', precision: 53, typeDefault: true }
+export const doubleSqlDataType: SqlDataType = { family: 'approximate numeric', precision: 53 }
 
 export abstract class NumberType extends ComparableType<number> {
     /** Whether a type and a custom type are of the group number: an int or a double */

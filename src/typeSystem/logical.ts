@@ -23,7 +23,7 @@ export type IBooleanValue = IValueWithType<'type:boolean:logical:'>
 
 /** A boolean value */
 /** The type in the database of a boolean */
-export const booleanSqlDataType: SqlDataType = { family: 'boolean', typeDefault: true }
+export const booleanSqlDataType: SqlDataType = { family: 'boolean' }
 
 export abstract class BooleanType extends EqualableType<boolean> {
     /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */

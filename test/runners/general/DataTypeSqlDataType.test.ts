@@ -48,17 +48,17 @@ function mock() {
 }
 
 describe('DataTypeSqlDataType', () => {
-    test('the-runner-receives-the-sql-data-type-of-the-class-marked-as-the-default-of-the-type', async () => {
+    test('the-runner-reads-the-sql-data-type-of-the-class-and-the-one-declared-apart', async () => {
         const conn = new PostgreSqlDB(mock())
         rowsToReturn = [{ big: '123456789012345678901234567890' }]
         const rows = await conn.selectFrom(tThing).where(tThing.big.equals(5n)).select({ big: tThing.big }).executeSelectMany()
         expect(rows).toEqual([{ big: 123456789012345678901234567890n }])
-        const ofType = { ...thirtyDigits, typeDefault: true }
         const queryContext = getQueryContext(lastQuery, lastParams)
-        expect(queryContext.getParam(0)?.requestedSqlDataType).toEqual(ofType)
-        expect(queryContext.getResultColumn('big')?.requestedSqlDataType).toEqual(ofType)
-        // The object of the class is not changed: the library marks a copy of it
-        expect(JSON.stringify(thirtyDigits)).toBe('{"family":"exact numeric","precision":30,"scale":0}')
+        // The one of the type is in its class; none is declared for the column
+        expect(queryContext.getParam(0)?.requestedType?.sqlDataType).toBe(thirtyDigits)
+        expect(queryContext.getParam(0)?.requestedSqlDataType).toBeUndefined()
+        expect(queryContext.getResultColumn('big')?.requestedType.sqlDataType).toBe(thirtyDigits)
+        expect(queryContext.getResultColumn('big')?.requestedSqlDataType).toBeUndefined()
     })
 
     test('postgresql-casts-a-value-by-the-sql-data-type-of-its-class', async () => {

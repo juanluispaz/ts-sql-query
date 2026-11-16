@@ -26,8 +26,9 @@ type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
 type Argument<_T, _TYPE_NAME extends string = string> = any
-// The name of a built-in data type, and the class of a data type: a built-in one, like `StringType`, or one of the user
-type BuiltInType = 'boolean' | 'int' | 'bigint' | 'double' | 'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime'
+// The name of a data type (a built-in one, or one of the user registered), and the class of a data type: a built-in one,
+// like `StringType`, or one of the user
+type DataTypeName = 'boolean' | 'int' | 'bigint' | 'double' | 'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime' | (string & {})
 type DataTypeClass = any
 type DynamicFilter = any
 type Filterable = any
@@ -46,7 +47,7 @@ void function (
     _ojs: OuterJoinSource,
     _a: Argument<any, any>,
     _dtc: DataTypeClass,
-    _bit: BuiltInType,
+    _dtn: DataTypeName,
     _df: DynamicFilter,
     _f: Filterable,
     _dce: DynamicConditionExtension,

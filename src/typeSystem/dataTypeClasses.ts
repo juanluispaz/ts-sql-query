@@ -2,7 +2,7 @@ import type { DataTypeClass } from '../TypeAdapter.js'
 import { arithmeticOperandClass, valueOperandClass } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import type { __ValueSourcePrivate } from './valueSource.js'
-import { __registeredDataType } from './dataTypeRegistry.js'
+import { __internalDataType, __registeredDataType } from './dataTypeRegistry.js'
 import { __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
 // The class of the data type a value source is created from (a built-in one by its name, as the registry has it,
@@ -20,7 +20,7 @@ export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass
  */
 export function __projectedTypeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
     const typeClass = __sameTypeClassOf(valueSource)
-    return typeClass === __registeredDataType('condition') ? __registeredDataType('boolean') : typeClass
+    return typeClass === __internalDataType('condition') ? __registeredDataType('boolean') : typeClass
 }
 
 /** The data type class with the operand class hooks (statics of the class, see symbols.ts) */

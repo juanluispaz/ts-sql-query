@@ -618,10 +618,10 @@ interface Connection {
     false(): BooleanValueSource
 
     // Methods that create a value source with a constant value
-    const<T>(value: T, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    const<T>(value: T, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Methods that create a value source with an optional constant value
-    optionalConst<T>(value: T | null | undefined, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalConst<T>(value: T | null | undefined, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // The exists and not exists of a subquery
     exists(select: Subquery): BooleanValueSource
@@ -672,10 +672,10 @@ interface Connection {
     aggregateAsArrayOfOneColumnDistinct<T, TYPE_NAME extends string>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
 
     // Methods that create SQL fragments
-    fragmentWithType(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
 
     // Same as fragmentWithType, but the produced value is treated as an aggregate
-    aggregateFragmentWithType(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    aggregateFragmentWithType(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
 
     /** 
      * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
@@ -687,21 +687,21 @@ interface Connection {
 
     // Protected methods that call a function. Any failure rejects the promise.
     // With 'optional' the promise also resolves to null; to simplify, that isn't written in the signatures below.
-    executeFunction<T>(functionName: string, params: AnyValueSource[], returnType: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T>(functionName: string, params: AnyValueSource[], returnType: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
     // Protected methods to define a sequence (only available on MariaDB, Oracle, PostgreSQL and SQL Server)
-    sequence<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): Sequence<ValueSource<T>>
+    sequence<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): Sequence<ValueSource<T>>
 
     // Protected methods to define reusable fragments
     /**
      * Defines an argument that accepts a value or a value source of the specified type
      */
-    arg<T>(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
+    arg<T>(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
 
     /**
      * Defines an argument that accepts a value of the specified type, but not a value source
      */
-    valueArg<T>(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
+    valueArg<T>(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
 
     /*
      * These protected methods receive the argument definitions that you create with arg or valueArg.
@@ -1063,41 +1063,41 @@ interface Table {
     valuesForInsert(): this
 
     // Protected methods that create a required column that doesn't admit null
-    column<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    column<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column that admits null
-    optionalColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalColumn<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // Protected methods that create a required column that doesn't admit null and has a default value on insert
-    columnWithDefaultValue<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    columnWithDefaultValue<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // Protected methods that create an optional column that admits null and has a default value on insert
-    optionalColumnWithDefaultValue<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalColumnWithDefaultValue<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // Protected methods that create a primary key column autogenerated in the database
     // When you insert you don't need to specify this column
-    autogeneratedPrimaryKey<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    autogeneratedPrimaryKey<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a primary key column not automatically generated
     // When you insert you must specify this column
-    primaryKey<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    primaryKey<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
       
     // Protected methods that create a primary key column generated by a sequence
     // When you insert you don't need to specify this column, it will be added automatically by ts-sql-query
     // Only available on MariaDB, Oracle, PostgreSQL and SQL Server
-    autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a computed column that doesn't admit null
-    computedColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    computedColumn<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional computed column that admits null
-    optionalComputedColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalComputedColumn<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a column from a sql fragment in the table
-    virtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    virtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column from a sql fragment in the table
-    optionalVirtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    optionalVirtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 }
 
 
@@ -1113,16 +1113,16 @@ interface View {
     forUseInLeftJoinAs(as: string): this & OuterJoinSource
 
     // Protected methods that create a required column that doesn't admit null
-    column<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    column<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column that admits null
-    optionalColumn<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalColumn<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a column from a sql fragment in the view
-    virtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    virtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column from a sql fragment in the view
-    optionalVirtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    optionalVirtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 }
 
 
@@ -1147,16 +1147,16 @@ interface Values {
     create<T extends Values>(type: new (name: string, values: any) => T, name: string, values: { [columnName: string]: any }[]): T
 
     // Protected methods that create a required column that doesn't admit null
-    column<T>(type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    column<T>(type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column that admits null
-    optionalColumn<T>(type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalColumn<T>(type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a column from a sql fragment in the view
-    virtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    virtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column from a sql fragment in the view
-    optionalVirtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    optionalVirtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 }
 
 
@@ -2167,8 +2167,19 @@ type CompoundableSubquery = SelectExpression
 
 
 
-type BuiltInType = 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime'
-/** The class of a data type: a built-in one, like `StringType`, or one the `of` of a family of custom types made */
+/**
+ * The data type of each type name (here, the value source it gives): the built-in ones, and the ones of the user
+ * registered with registerDataType and declared here (`declare module 'ts-sql-query' { interface DataTypes { Cents: CentsType } }`)
+ */
+interface DataTypes {
+    boolean: BooleanValueSource, int: NumberValueSource, bigint: BigintValueSource, double: NumberValueSource,
+    stringDecimal: StringDecimalValueSource, string: StringValueSource, uuid: UuidValueSource,
+    localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource
+}
+type DataTypeName = keyof DataTypes
+/** Registers a data type of the user by the type name of its class (its static type) */
+declare function registerDataType(dataType: DataTypeClass): void
+/** The class of a data type: a built-in one, like `StringType`, or one of the user that extends a family */
 type DataTypeClass = { readonly type: string, readonly sqlDataType?: SqlDataType | undefined }
 
 interface TypeAdapter {
@@ -2187,7 +2198,7 @@ type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 /** The original type of a value never changes; the requested one, by default the original, is the one the next adapter and the library decide by */
 interface TypeAdapterContext {
     readonly connectionConfiguration: ConnectionConfiguration
-    /** The class of the original type (IntType, the class of a custom type) */
+    /** The class of the original type (IntType, the class of a type of the user) */
     readonly originalType: DataTypeClass
     /** The class of the requested type */
     readonly requestedType: DataTypeClass
@@ -2198,8 +2209,8 @@ interface TypeAdapterContext {
 }
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
-    setRequestedType(type: BuiltInType | DataTypeClass): void
-    setRequestedType(type: BuiltInType | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the parameter */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2222,8 +2233,8 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
-    setRequestedType(type: BuiltInType | DataTypeClass): void
-    setRequestedType(type: BuiltInType | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     /** The SQL data type the query runner receives with the column of the result */
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
@@ -2235,8 +2246,8 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
-    setRequestedType(type: BuiltInType | DataTypeClass): void
-    setRequestedType(type: BuiltInType | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
     resetRequestedSqlDataType(): void

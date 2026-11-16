@@ -2,7 +2,7 @@ import { oracleDateParam } from './utils/metadataSymbols.js'
 import type { ConnectionConfiguration, DatabaseType } from './queryRunners/QueryRunner.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
 import { __temporalFieldsOf } from './typeSystem/dataTypes.js'
-import type { BuiltInDataType } from './typeSystem/builtInDataTypes.js'
+import type { DataTypeName } from './typeSystem/dataTypeNames.js'
 
 /**
  * Where a value leaves the database, given to `transformProjection`: `'resultColumn'` is a column of the result of the
@@ -74,12 +74,12 @@ export interface TypeAdapterValueToDBContext extends TypeAdapterContext {
      * `setRequestedType(ReleaseDayType)`: the next type adapter and the conversion of the library decide by it. It can
      * be called again
      */
-    setRequestedType(type: BuiltInDataType | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
     /**
      * Requests a type with a type adapter: when this adapter calls `next`, the value goes through that adapter, and
      * then through the conversion of the library (once; not the adapter already converting the value)
      */
-    setRequestedType(type: BuiltInDataType | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -147,12 +147,12 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
      * `setRequestedType(ReleaseDayType)`: the next type adapter and the conversion of the library decide by it. It can
      * be called again
      */
-    setRequestedType(type: BuiltInDataType | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
     /**
      * Requests a type with a type adapter: when this adapter calls `next`, the value goes through that adapter, and
      * then through the conversion of the library (once; not the adapter already converting the value)
      */
-    setRequestedType(type: BuiltInDataType | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**
@@ -191,12 +191,12 @@ export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
      * `setRequestedType(ReleaseDayType)`: the next type adapter and the conversion of the library decide by it. It can
      * be called again
      */
-    setRequestedType(type: BuiltInDataType | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
     /**
      * Requests a type with a type adapter: when this adapter calls `next`, the value goes through that adapter, and
      * then through the conversion of the library (once; not the adapter already converting the value)
      */
-    setRequestedType(type: BuiltInDataType | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     /** Requests the original type again */
     resetRequestedType(): void
     /**

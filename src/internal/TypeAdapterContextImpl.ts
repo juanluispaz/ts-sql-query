@@ -2,7 +2,7 @@ import type { DataTypeClass, DefaultTypeAdapter, TypeAdapter, ProjectionComparis
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { QueryParamContextImpl, type QueryContextImpl } from './QueryContextImpl.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
-import type { BuiltInDataType } from '../typeSystem/builtInDataTypes.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
 import { __typeAdapterOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 
@@ -143,7 +143,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.resolvePendingProjection()
         return this.state.requestedType!
     }
-    setRequestedType(type: BuiltInDataType | DataTypeClass, typeAdapter?: TypeAdapter): void {
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter?: TypeAdapter): void {
         this.pendingProjection = undefined
         this.state.requestedType = __unadaptedClassOf(__dataTypeClassFrom(type))
         this.requestedTypeAdapter = typeAdapter

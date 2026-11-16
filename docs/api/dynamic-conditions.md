@@ -18,7 +18,7 @@ A dynamic condition allows you to create a condition whose structure is defined 
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
 ```
 
-The utility type `DynamicCondition`, from `ts-sql-query`, is the type of the dynamic criteria. It receives a map with the name of each field, and as value the name of its type, its data type (the class of a type of yours, like `MoneyType`), a value source to get the type from, or a nested map. [Dynamic conditions](../dynamic/helper-types/conditions.md) shows how to use it and the other helper types.
+The utility type `DynamicCondition`, from `ts-sql-query`, is the type of the dynamic criteria. It receives a map with the name of each field, and as value the name of its type (a built-in one, or one of yours [registered](../configuration/data-types.md#giving-your-type-by-its-name), like `'Money'`), its data type (the class of a type of yours, like `MoneyType`), a value source to get the type from, or a nested map. [Dynamic conditions](../dynamic/helper-types/conditions.md) shows how to use it and the other helper types.
 
 For the filter definition:
 

@@ -56,6 +56,8 @@ Other methods throw at the moment you call them, because they return no promise:
 | `executeBeforeNextCommit`, `executeAfterNextCommit`, `executeAfterNextRollback` and `getTransactionMetadata` | `TsSqlProcessingError` with `NOT_IN_TRANSACTION` or `NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED` |
 | `getConstValue` | `TsSqlProcessingError` with `EXPRESSION_IS_NOT_CONST` |
 | Creating the connection or the query runner | `TsSqlProcessingError` with `UNSUPPORTED_DATABASE` or `INVALID_CONFIGURATION` |
+| `registerDataType` | `TsSqlProcessingError` with `DATA_TYPE_ALREADY_REGISTERED` or `DATA_TYPE_WITHOUT_TYPE_NAME` |
+| A column, a constant or another method given a type name nobody registered | `TsSqlProcessingError` with `UNKNOWN_DATA_TYPE` |
 
 With [synchronous query runners](../../advanced/synchronous-query-runners.md), `sync(...)` throws the error the promise rejected with.
 

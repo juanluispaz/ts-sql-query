@@ -13,6 +13,7 @@ import type { UuidType, UuidsType } from '../typeSystem/uuids.js'
 import type { ComparableType } from '../typeSystem/comparable.js'
 import type { EqualableType } from '../typeSystem/equalable.js'
 import type { valueSourceType } from '../utils/symbols.js'
+import type { DataTypeName, DataTypeOfName } from '../typeSystem/dataTypeNames.js'
 
 export interface Filter {
 }
@@ -145,17 +146,19 @@ export type FilterTypeOf<TYPE> =
     TYPE extends 'localDate' ? DateFilter :
     TYPE extends 'localTime' ? TimeFilter :
     TYPE extends 'localDateTime' ? DateTimeFilter :
+    // The name of a data type of the user (`total: 'Money'`): the filter of a value source of it
+    TYPE extends DataTypeName ? MapValueSourceToFilter<ValueSource<any, DataTypeOfName<TYPE>, 'required'>> :
     TYPE extends AnyValueSource ? MapValueSourceToFilter<TYPE> :
     // A data type, like the class of a type of the user (`total: MoneyType`): the filter of a value source of it
     TYPE extends AnyType ? MapValueSourceToFilter<ValueSource<any, TYPE, 'required'>> :
     never
 
 /**
- * How the definition of a dynamic condition declares a column without its value source: by the name of a built-in data
- * type (`'int'`), or by its data type (`MoneyType`, the class of a type of the user)
+ * How the definition of a dynamic condition declares a column without its value source: by the name of a data type
+ * (`'int'`, or the type name of a data type of the user registered with registerDataType, `'Money'`), or by its data
+ * type (`MoneyType`, the class of a data type of the user)
  */
-export type DynamicColumnType = 'boolean' | 'int' | 'bigint' | 'double' |
-    'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime' | AnyType
+export type DynamicColumnType = DataTypeName | AnyType
 
 // The definition of a dynamic condition: up to 5 levels, as a complex projection; the last level only has columns
 export type DynamicDefinition = {

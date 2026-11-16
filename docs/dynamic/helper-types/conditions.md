@@ -238,7 +238,7 @@ The executed query is:
 
 The parameters are: `[ 'smi', 'smi' ]`
 
-This table has every filter and the type it belongs to: the name of a built-in type, or the family a class of yours extends, given in the definition as the class (`total: MoneyType`). A column or expression in the map gets the filter of its type in the same way.
+This table has every filter and the type it belongs to: the name of a built-in type, or the family a class of yours extends, given in the definition as the class (`total: MoneyType`) or, once [registered](../../configuration/data-types.md#giving-your-type-by-its-name), as its type name (`total: 'Money'`). A column or expression in the map gets the filter of its type in the same way.
 
 | Filter | Type in the definition | Operators |
 |---|---|---|

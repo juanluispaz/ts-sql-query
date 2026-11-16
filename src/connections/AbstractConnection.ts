@@ -34,7 +34,7 @@ import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDouble
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
-import type { BuiltInDataType, BuiltInDataTypes, BuiltInDataTypeValues, BuiltInDataTypeValueSources, BuiltInDataTypeFragments } from '../typeSystem/builtInDataTypes.js'
+import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources, DataTypeFragments } from '../typeSystem/dataTypeNames.js'
 import { DoubleType, IntType } from '../typeSystem/number.js'
 import type { IAnyAdditiveValueSource } from '../typeSystem/numeric.js'
 import type { IAnyComparableValueSource } from '../typeSystem/comparable.js'
@@ -625,13 +625,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return __createStatic0('_currentTimestamp', LocalDateTimeType, 'required')
     }
 
-    const<TYPE extends BuiltInDataType>(value: BuiltInDataTypeValues[TYPE], type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
+    const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
     const<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE>, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'required'>
     const(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'required')
     }
 
-    optionalConst<TYPE extends BuiltInDataType>(value: BuiltInDataTypeValues[TYPE] | null | undefined, type: TYPE, adapter?: TypeAdapter): BuiltInDataTypeValueSources<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
+    optionalConst<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE> | null | undefined, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
     optionalConst<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE> | null | undefined, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'optional'>
     optionalConst(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'optional')
@@ -671,9 +671,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    protected executeFunction<TYPE extends BuiltInDataType>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'required', adapter?: TypeAdapter): Promise<BuiltInDataTypeValues[TYPE]>
+    protected executeFunction<TYPE extends DataTypeName>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'required', adapter?: TypeAdapter): Promise<DataTypeValueOfName<TYPE>>
     protected executeFunction<TYPE extends NullableType<any>>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): Promise<ValueTypeOf<TYPE>>
-    protected executeFunction<TYPE extends BuiltInDataType>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'optional', adapter?: TypeAdapter): Promise<BuiltInDataTypeValues[TYPE] | null>
+    protected executeFunction<TYPE extends DataTypeName>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'optional', adapter?: TypeAdapter): Promise<DataTypeValueOfName<TYPE> | null>
     protected executeFunction<TYPE extends NullableType<any>>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): Promise<ValueTypeOf<TYPE> | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: string | AnyTypeClass, required: string, adapter?: TypeAdapter): Promise<any> {
         const source = new QueryExecutionSource('Query executed at')
@@ -725,25 +725,25 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, queryRunner.getErrorReason(error), error))
     }
 
-    fragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
+    fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
     fragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'required'>
-    fragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
+    fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
     fragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'optional'>
     fragmentWithType(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
         return new FragmentQueryBuilder(__dataTypeClassFrom(type), required as any, adapter)
     }
 
-    protected arg<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'required', 'combined'>
+    protected arg<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<DataTypeOfName<TYPE>, 'required', 'combined'>
     protected arg<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): Argument<TYPE, 'required', 'combined'>
-    protected arg<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'optional', 'combined'>
+    protected arg<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<DataTypeOfName<TYPE>, 'optional', 'combined'>
     protected arg<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): Argument<TYPE, 'optional', 'combined'>
     protected arg(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
         return new Argument(__dataTypeClassFrom(type), required as any, 'combined', adapter)
     }
 
-    protected valueArg<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'required', 'value'>
+    protected valueArg<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): Argument<DataTypeOfName<TYPE>, 'required', 'value'>
     protected valueArg<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): Argument<TYPE, 'required', 'value'>
-    protected valueArg<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<BuiltInDataTypes[TYPE], 'optional', 'value'>
+    protected valueArg<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): Argument<DataTypeOfName<TYPE>, 'optional', 'value'>
     protected valueArg<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): Argument<TYPE, 'optional', 'value'>
     protected valueArg(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
         return new Argument(__dataTypeClassFrom(type), required as any, 'value', adapter)
@@ -784,9 +784,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // value source carries the aggregate marker (NAggregate<DB> in its source
     // + __isAggregate at runtime), so a custom aggregate written as a fragment
     // is rejected outside aggregate-legal clauses, just like a built-in aggregate.
-    aggregateFragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'required', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>[TYPE]
+    aggregateFragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>[TYPE]
     aggregateFragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'required', NAggregate<DB>>
-    aggregateFragmentWithType<TYPE extends BuiltInDataType>(type: TYPE, required: 'optional', adapter?: TypeAdapter): BuiltInDataTypeFragments<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>[TYPE]
+    aggregateFragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>[TYPE]
     aggregateFragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
         return new FragmentQueryBuilder(__dataTypeClassFrom(type), required as any, adapter, true)

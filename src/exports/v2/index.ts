@@ -62,6 +62,15 @@ export {
 } from '../../TypeAdapter.js'
 
 export {
+    registerDataType,
+} from '../../typeSystem/dataTypeRegistry.js'
+
+export {
+    type DataTypeName,
+    type DataTypes,
+} from '../../typeSystem/dataTypeNames.js'
+
+export {
     BooleanType,
 } from '../../typeSystem/logical.js'
 

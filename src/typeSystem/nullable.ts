@@ -1,6 +1,6 @@
 import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
-import { __registeredDataType } from './dataTypeRegistry.js'
+import { __internalDataType, __registeredDataType } from './dataTypeRegistry.js'
 import type { BooleanType } from './logical.js'
 import type { DoubleType, IntType, NumberType } from './number.js'
 import type { ColumnMarkersOf } from './valueSource.js'
@@ -32,12 +32,12 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperationIsNullValueSource('_isNull', vs, __registeredDataType('condition'), 'required')
+        return __newSqlOperationIsNullValueSource('_isNull', vs, __internalDataType('condition'), 'required')
     }
     isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNotNull(): any {
         const vs = this as unknown as ValueSourceRoot
-        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __registeredDataType('condition'), 'required')
+        return __newSqlOperationIsNullValueSource('_isNotNull', vs, __internalDataType('condition'), 'required')
     }
     valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
     valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, TypeOf<VALUE>>, OptionalOf<VALUE>>

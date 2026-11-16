@@ -9,7 +9,7 @@ import { Table } from '../../../../src/Table.js'
 import { View } from '../../../../src/View.js'
 import { Values } from '../../../../src/Values.js'
 import { DBConnection } from '../domain/connection.js'
-import { IntegersType } from '../../../../src/exports/v2/index.js'
+import { IntegersType, registerDataType } from '../../../../src/exports/v2/index.js'
 
 type Money = number & { readonly __money: unique symbol }
 
@@ -130,6 +130,16 @@ function _typeNegatives(connection: DBConnection, money: Money) {
     connection.aggregateFragmentWithType(MoneyType, 'required')
     // @ts-expect-error a family has no type name: a class that extends it is the data type
     connection.aggregateFragmentWithType(IntegersType, 'required')
+
+    // Rule: a data type of the user is given by its type name only once registered and declared in DataTypes; it is
+    // registered by its class, with its type name.
+    // @ts-expect-error a type name not declared in DataTypes
+    connection.const(money, 'Money')
+    // @ts-expect-error a type name not declared in DataTypes
+    connection.fragmentWithType('Money', 'required')
+    registerDataType(MoneyType)
+    // @ts-expect-error a family has no type name: a class that extends it is the data type
+    registerDataType(IntegersType)
 
     // Rule: the type name is part of the type: a column of the same TypeScript type
     // with another type name can be neither compared with it nor assigned to it.

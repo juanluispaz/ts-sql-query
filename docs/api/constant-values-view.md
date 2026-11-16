@@ -10,7 +10,7 @@ To learn how to declare and use constant values as a view, see [Mapping constant
 
 A class of values doesn't declare a constructor: the one it inherits receives the name and an `OpaqueValues`, a type exported from `ts-sql-query` that only `Values.create` gives, so an instance is always created with `Values.create(...)`.
 
-A method that takes a type takes it by its name (`BuiltInType`: `'boolean'`, `'int'`, `'bigint'`, `'double'`, `'string'`, `'uuid'`, `'stringDecimal'`, `'localDate'`, `'localTime'` or `'localDateTime'`) or by its class (`DataTypeClass`): the class of a built-in type, like `IntType` for `'int'`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`. The value source it gives has the methods of that type, and `T` is the type of its values: see [Data types](../configuration/data-types.md) and [Value expressions](value-expressions.md).
+A method that takes a type takes it by its class (`DataTypeClass`): the class of a built-in type, like `IntType`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`. It takes it by its name too (`DataTypeName`): the name of a built-in type (`'boolean'`, `'int'`, `'bigint'`, `'double'`, `'string'`, `'uuid'`, `'stringDecimal'`, `'localDate'`, `'localTime'` or `'localDateTime'`), or the type name of a class of yours [registered](../configuration/data-types.md#giving-your-type-by-its-name), like `'Cents'`. The value source it gives has the methods of that type, and `T` is the type of its values: see [Data types](../configuration/data-types.md) and [Value expressions](value-expressions.md).
 
 ```typescript
 interface Values {
@@ -30,15 +30,15 @@ interface Values {
     create<T extends Values>(type: new (name: string, values: any) => T, name: string, values: { [columnName: string]: any }[]): T
 
     // Protected methods that create a required column that doesn't admit null
-    column<T>(type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    column<T>(type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column that admits null
-    optionalColumn<T>(type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalColumn<T>(type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create a column from a sql fragment in the view
-    virtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    virtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 
     // Protected methods that create an optional column from a sql fragment in the view
-    optionalVirtualColumnFromFragment<T>(type: BuiltInType | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
+    optionalVirtualColumnFromFragment<T>(type: DataTypeName | DataTypeClass, fn: (fragment: FragmentExpression) => ValueSource<T>, adapter?: TypeAdapter): ValueSource<T>
 }
 ```

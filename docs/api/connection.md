@@ -8,7 +8,7 @@ This interface exposes all the methods required to interact with the database vi
 
 To learn how to create and configure a connection and declare its tables, see [Connection](../configuration/connection.md) and [Mapping](../configuration/mapping.md); for transactions, [Transaction](../queries/transaction.md); for constants and fragments, [Basic query structure](../queries/basic-query-structure.md) and [SQL Fragments](../queries/sql-fragments.md); and for the conversion of the values, [Type adapters](../advanced/type-adapters.md).
 
-A method that takes a type takes it by its name (`BuiltInType`: `'boolean'`, `'int'`, `'bigint'`, `'double'`, `'string'`, `'uuid'`, `'stringDecimal'`, `'localDate'`, `'localTime'` or `'localDateTime'`) or by its class (`DataTypeClass`): the class of a built-in type, like `IntType` for `'int'`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`. The value source it gives has the methods of that type, and `T` is the type of its values: see [Data types](../configuration/data-types.md) and [Value expressions](value-expressions.md).
+A method that takes a type takes it by its class (`DataTypeClass`): the class of a built-in type, like `IntType`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`. It takes it by its name too (`DataTypeName`): the name of a built-in type (`'boolean'`, `'int'`, `'bigint'`, `'double'`, `'string'`, `'uuid'`, `'stringDecimal'`, `'localDate'`, `'localTime'` or `'localDateTime'`), or the type name of a class of yours [registered](../configuration/data-types.md#giving-your-type-by-its-name), like `'Cents'`. The value source it gives has the methods of that type, and `T` is the type of its values: see [Data types](../configuration/data-types.md) and [Value expressions](value-expressions.md).
 
 ```typescript
 interface Connection {
@@ -78,10 +78,10 @@ interface Connection {
     false(): BooleanValueSource
 
     // Methods that create a value source with a constant value
-    const<T>(value: T, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    const<T>(value: T, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
 
     // Methods that create a value source with an optional constant value
-    optionalConst<T>(value: T | null | undefined, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
+    optionalConst<T>(value: T | null | undefined, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): ValueSource<T>
     
     // The exists and not exists of a subquery
     exists(select: Subquery): BooleanValueSource
@@ -131,10 +131,10 @@ interface Connection {
     aggregateAsArrayOfOneColumnDistinct<T, TYPE_NAME extends string>(value: ValueSource<T, TYPE_NAME>): AggregatedArrayValueSource<T>
 
     // Methods that create SQL fragments
-    fragmentWithType(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
 
     // Same as fragmentWithType, but the produced value is treated as an aggregate
-    aggregateFragmentWithType(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    aggregateFragmentWithType(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
 
     /** 
      * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
@@ -146,21 +146,21 @@ interface Connection {
 
     // Protected methods that call a function. Any failure rejects the promise.
     // With 'optional' the promise also resolves to null; to simplify, that isn't written in the signatures below.
-    executeFunction<T>(functionName: string, params: AnyValueSource[], returnType: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T>(functionName: string, params: AnyValueSource[], returnType: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
     // Protected methods to define a sequence (only available on MariaDB, Oracle, PostgreSQL and SQL Server)
-    sequence<T>(name: string, type: BuiltInType | DataTypeClass, adapter?: TypeAdapter): Sequence<ValueSource<T>>
+    sequence<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): Sequence<ValueSource<T>>
 
     // Protected methods to define reusable fragments
     /**
      * Defines an argument that accepts a value or a value source of the specified type
      */
-    arg<T>(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
+    arg<T>(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
 
     /**
      * Defines an argument that accepts a value of the specified type, but not a value source
      */
-    valueArg<T>(type: BuiltInType | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
+    valueArg<T>(type: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Argument<T>
 
     /*
      * These protected methods receive the argument definitions that you create with arg or valueArg.

@@ -146,6 +146,30 @@ An integer wider than the integer types of the databases, like `{ family: 'exact
 
 The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md), which also covers how to send a value of your type with another SQL type, like a floating point number kept as text.
 
+### Giving your type by its name
+
+A column takes your type by its class. It can take it by its type name too, as a built-in type (`'int'`): register the class with `registerDataType`, in the module of the class, so it is registered before a table uses it, and declare the name in `DataTypes`, so TypeScript knows the type it gives:
+
+```typescriptreact
+import { IntegersType, registerDataType } from 'ts-sql-query'
+
+export abstract class CentsType extends IntegersType<Cents, 'Cents'> {
+    static override readonly type = 'Cents'
+}
+
+registerDataType(CentsType)
+
+declare module 'ts-sql-query' {
+    interface DataTypes {
+        Cents: CentsType
+    }
+}
+```
+
+Then the name goes wherever a type goes: a column, `this.column('cost_cents', 'Cents')`, a constant, `connection.const(price, 'Cents')`, a fragment, an argument, the type a type adapter requests, `setRequestedType('Cents')`, and a field of a [dynamic condition](../dynamic/helper-types/conditions.md), `DynamicCondition<{ cost: 'Cents' }>`. A column given the name is the one given the class: the same type, the same SQL and the same parameters.
+
+The name is the `static type` of the class, which the class must say: without it, the class is named after the name of its class, which a minifier can change, and registering it is an error, `DATA_TYPE_WITHOUT_TYPE_NAME`. A name is registered once: registering the same class again does nothing, and another class with a name already registered, also the name of a built-in type, is an error, `DATA_TYPE_ALREADY_REGISTERED`. A name that isn't in `DataTypes` doesn't compile, and one that is but nobody registered is an error when it is used, `UNKNOWN_DATA_TYPE`.
+
 ## Exact decimals
 
 JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:

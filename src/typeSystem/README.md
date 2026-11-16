@@ -33,15 +33,21 @@ Read this before changing anything here. The code is the reference; this file sa
   `DataTypeValueSource` (see the README of the nodes).
 - A method gives a value source of the same data type with `this.constructor`. A base can't import at run time the
   data types that extend it (see below): it asks the registry of the data types for them when the method is called
-  (`__registeredDataType('condition')`, the boolean of a condition its comparisons give; `'int'` for `sign`; `'double'`
+  (`__internalDataType('condition')`, the boolean of a condition its comparisons give; `'int'` for `sign`; `'double'`
   for `valueWhenNull` of an int with a double). A class that extends a base, also one of the user, needs nothing more.
   A family that can import a data type imports it (`StringsType` the `IntType` of `length`).
 - **The registry of the data types** ([`dataTypeRegistry.ts`](./dataTypeRegistry.ts)) has the class of each data type
-  by its name (the built-in ones, and `condition`, only for the run time); it
-  imports no class, and a name can be registered only once. It is filled by
+  by its type name: the built-in ones and the ones the user registers with the public `registerDataType(MoneyType)`,
+  which takes the class's own `static type` (a class without one, which has only the name of its class, is an error)
+  and needs the name declared in the public interface `DataTypes` (`dataTypeNames.ts`) for TypeScript. A type name is
+  registered once: the same class again does nothing, another class is an error, and a name nobody registered is
+  `UNKNOWN_DATA_TYPE`. Nothing registers on its own: two classes with the same type name are only a problem for the
+  user who registers them. `condition` (the boolean of a condition, only for the run time) is kept apart
+  (`__internalDataType`), so it is no type name. The registry imports no class. It is filled by
   [`registerDataTypes.ts`](./registerDataTypes.ts), **the only module of the library with side effects**: it registers
   the data types of the library the same way as any other one, it is declared in `sideEffects` of `package.json`, and
-  the modules a user always starts from import it (`AbstractConnection`, `Table`, `View` and `Values`).
+  the modules a user always starts from import it (`AbstractConnection`, `Table`, `View` and `Values`). The user's own
+  registration is a call in the user's code, not a side effect of the library.
 - A data type can say, in `static [computedType]`, the class a value computed from it gets, when it is not its own:
   the text of a uuid (`UuidTextType`, [`uuidText.ts`](./uuidText.ts), only for the run time: TypeScript sees a
   `StringType`) is still the uuid in SQL, and the SQL builder converts it where it meets another text. A method gives
@@ -306,10 +312,12 @@ a condition, also to the neutral (no condition, recognised by its node).
 
 ## The data types by their names
 
-[`builtInDataTypes.ts`](./builtInDataTypes.ts) maps the name of each built-in data type (`'int'`, `'string'`, ...) to its
-class (`BuiltInDataTypes`), the type of its value, its value source, what a position that takes it accepts and its
-fragment expression. The methods that take a data type by its name (`column`, `const`, `arg`, `fragmentWithType`,
-`executeFunction`, `sequence`, ...) have one generic overload for the built-in ones over these maps. A union of names
+[`dataTypeNames.ts`](./dataTypeNames.ts) has the public interface `DataTypes`, from each type name to its data type: the
+built-in ones (`'int'`, `'string'`, ...) and the ones the user declares there with a module augmentation, after
+registering their class. From it come the type of the value of a name (`DataTypeValueOfName`), its value source, what a
+position that takes it accepts and its fragment expression. The methods that take a data type by its name (`column`,
+`const`, `arg`, `fragmentWithType`, `executeFunction`, `sequence`, `setRequestedType`, a column of a dynamic condition,
+...) have one generic overload over these maps, so a name the user declares works in all of them. A union of names
 (`t: 'int' | 'string'`) compiles and gives a union of value sources, on purpose: at run time the value is one of
 them, so a union in gives a union out (the maintainer's decision; nothing rejects it).
 
@@ -345,6 +353,6 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
    do with its type name (`extends IntegersType<bigint, 'bigint'>`, which gives its NType), its `static type`, its
    `static sqlDataType` when it isn't the one of its family (the type in the database of its values, by which the query
    runners send and read them), and its own methods with the result types the runtime gives.
-2. A built-in one: its entry in each map of `builtInDataTypes.ts`, and its registration in `registerDataTypes.ts`.
+2. A built-in one: its entry in `DataTypes` of `dataTypeNames.ts`, and its registration in `registerDataTypes.ts`.
 3. Its question in `dataTypeQuestions.ts`, if the connection converts it in its own way.
 4. Its cases in the probe, and its tests in the matrix.

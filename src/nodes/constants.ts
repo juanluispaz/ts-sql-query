@@ -167,7 +167,7 @@ export interface SequenceValueSource extends NodeValueSource {
 export const sequenceValueSourceNode: NodeStrategy<SequenceValueSource> = {
     ...valueSourceNode,
     __toSql(vs: SequenceValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, vs.__sequenceName, vs.__type, vs.__customType)
+        return sqlBuilder[vs.__operation](context, vs.__sequenceName, vs.constructor as unknown as DataTypeClass)
     },
 }
 

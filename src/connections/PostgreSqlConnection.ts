@@ -3,7 +3,7 @@ import { argumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlData
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
 import type { IntervalSqlDataTypeFields, SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isLocalDateTime, __isLocalTime } from '../typeSystem/dataTypes.js'
+import { __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
@@ -65,7 +65,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if (this.isDatabaseOutsideUtc()) {
-            if (__isLocalDateTime(context.requestedType.type, context.requestedType.customType) || __isLocalTime(context.requestedType.type, context.requestedType.customType)) {
+            if (__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType)) {
                 context.setMetadata(postgreSqlZonedParam, true)
             }
         }

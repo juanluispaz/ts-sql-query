@@ -7,19 +7,15 @@ import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnect
 import { SqlServerConnection } from '../../../src/connections/SqlServerConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
-import { IntType, Table, withSqlDataType } from '../../../src/exports/v2/index.js'
+import { CustomBigintType, IntType, Table, withSqlDataType } from '../../../src/exports/v2/index.js'
 import type { SqlDataType } from '../../../src/TypeAdapter.js'
-import { IntegersType } from '../../../src/typeSystem/numeric.js'
-import { operandTypeName, typeName } from '../../../src/utils/symbols.js'
 
 // An integer of 30 digits, read and sent as a bigint of JavaScript
 const thirtyDigits: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }
-abstract class BigIntegerType extends IntegersType<bigint> {
+abstract class BigIntegerType extends CustomBigintType<bigint, 'BigInteger'> {
     static override readonly type = 'BigInteger'
     static override readonly customType = 'customBigint'
     static override readonly sqlDataType: SqlDataType = thirtyDigits
-    declare [typeName]: 'type:BigInteger:customBigint:'
-    declare [operandTypeName]: 'type:BigInteger:customBigint:'
 }
 
 class PostgreSqlDB extends PostgreSqlConnection<'PostgreSqlDB'> {}

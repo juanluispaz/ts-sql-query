@@ -341,7 +341,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         // parameter added without one, like one of a query written by hand, gets a type inferred from its value
         const param = existingParamContextOf(params, index)
         const requestedType = param?.requestedType
-        if (!requestedType?.type && !requestedType?.customType) {
+        if (!requestedType?.type) {
             return this.inferType(params[index])
         }
         const sqlDataType = __typeSqlDataTypeOf(requestedType)

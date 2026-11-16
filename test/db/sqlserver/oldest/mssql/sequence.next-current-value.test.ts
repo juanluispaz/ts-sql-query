@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.releaseTagSeq.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as int) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof curr, ReleaseTag>>()
             if (!ctx.realDbEnabled) expect(curr).toBe(7 as ReleaseTag)
@@ -236,7 +236,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.releaseTagSeqOffset.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'release_tag_seq') as int) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof curr, ReleaseTag>>()
             if (!ctx.realDbEnabled) expect(curr).toBe(1041 as ReleaseTag)
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
                 .selectOneColumn(ctx.conn.customDoubleSeq.currentValue())
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as bigint) as result"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select current_value from sys.sequences where name = 'audit_tag_seq') as float) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof curr, number>>()
             if (!ctx.realDbEnabled) expect(curr).toBe(41)

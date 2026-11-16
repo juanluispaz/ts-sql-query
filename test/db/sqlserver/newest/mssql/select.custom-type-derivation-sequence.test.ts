@@ -126,7 +126,7 @@ describe(ctx.label, () => {
             const v = await ctx.conn.selectFrom(tDerivedColumn)
                 .selectOneColumn(ctx.conn.derivedTagSeq.currentValue().multiply(0).add(tDerivedColumn.releaseTag))
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast((select current_value from sys.sequences where name = 'release_tag_seq') as bigint) * @0) + m_int as result from col_matrix"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast((select current_value from sys.sequences where name = 'release_tag_seq') as int) * @0) + m_int as result from col_matrix"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 0,

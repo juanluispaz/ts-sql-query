@@ -10,7 +10,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBoolean, __isLocalDateTime, __isLocalTime } from '../typeSystem/dataTypes.js'
+import { __isBooleanClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
@@ -197,12 +197,10 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * converts with its session (the zone of the database) into the wall clock it stores or compares with
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const type = context.requestedType.type
-        const customType = context.requestedType.customType
-        if ((__isLocalDateTime(type, customType) || __isLocalTime(type, customType)) && this.isDatabaseOutsideUtc()) {
+        if ((__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
         }
-        if (__isBoolean(type, customType) && typeof value === 'boolean' && this.booleanStorage !== 'boolean') {
+        if (__isBooleanClass(context.requestedType) && typeof value === 'boolean' && this.booleanStorage !== 'boolean') {
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);
         }

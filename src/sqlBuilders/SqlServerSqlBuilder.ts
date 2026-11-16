@@ -12,7 +12,6 @@ import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { isSqlServerReservedWord } from '../utils/sqlServer/sqlServerReservedWords.js'
-import type { CustomType } from '../TypeAdapter.js'
 import { __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
@@ -44,27 +43,28 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return isSqlServerReservedWord(word)
     }
-    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined) {
+    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _typeClass: DataTypeClass) {
         return 'next value for ' + this._escape(sequenceName, false)
     }
-    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, type: string, customType: CustomType | undefined): string {
+    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, typeClass: DataTypeClass): string {
         // SQL Server has no `currval`; the current value is read from the catalog, where it is
         // typed `sql_variant`. SQL Server refuses to convert that implicitly, so anything doing
         // arithmetic over it (or handing it to a numeric function) is rejected with "Implicit
         // conversion from data type sql_variant to int is not allowed" — the cast is what makes
         // the value composable, and it asks for the data type the sequence was declared with.
-        return 'cast((select current_value from sys.sequences where name = \'' + sequenceName + '\') as ' + this._sqlServerSequenceValueType(type, customType) + ')'
+        return 'cast((select current_value from sys.sequences where name = \'' + sequenceName + '\') as ' + this._sqlServerSequenceValueType(typeClass) + ')'
     }
-    private _sqlServerSequenceValueType(type: string, customType: CustomType | undefined): string {
-        if (customType === undefined && type === 'int') {
+    private _sqlServerSequenceValueType(typeClass: DataTypeClass): string {
+        // The data type of its values, by its SQL data type: an integer of up to 4 bytes is an int, a floating point
+        // number a float. A SQL Server sequence is always integer-typed, so every other declaration reads a bigint: the
+        // only width that cannot overflow the value
+        const sqlDataType = typeClass.sqlDataType
+        if (sqlDataType?.family === 'exact numeric' && sqlDataType.scale === 0 && sqlDataType.bytes !== undefined && sqlDataType.bytes <= 4) {
             return 'int'
         }
-        if (customType === undefined && type === 'double') {
+        if (sqlDataType?.family === 'approximate numeric') {
             return 'float'
         }
-        // A SQL Server sequence is always integer-typed, so every remaining declaration reads one: `bigint` is the
-        // only width that cannot overflow the value, and it is what a custom data type gets too, since its own width
-        // is the user's to know.
         return 'bigint'
     }
     override _trueValue = 'convert(bit, 1)'

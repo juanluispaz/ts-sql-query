@@ -30,7 +30,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArray, __isBigint, __isBoolean, __isDouble, __isExactDecimal, __isInt, __isLocalDate, __isLocalDateTime, __isLocalTime, __isString, __isUuid } from '../typeSystem/dataTypes.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isStringClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
@@ -973,7 +973,6 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     /** Converts a value received from the database as the requested type */
     protected transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
         const type = context.requestedType.type
-        const customType = context.requestedType.customType
         if (value === undefined) {
             return null
         }
@@ -983,7 +982,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (value === '' && !this.allowEmptyString) {
             return null
         }
-        if (__isBoolean(type, customType)) {
+        if (__isBooleanClass(context.requestedType)) {
             if (typeof value === 'boolean') {
                 return value
             }
@@ -1014,7 +1013,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid boolean value received from the db: ' + value)
         }
-        if (__isInt(type, customType)) {
+        if (__isIntClass(context.requestedType)) {
             if (typeof value === 'number') {
                 if (!Number.isInteger(value)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
@@ -1050,7 +1049,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
         }
-        if (__isBigint(type, customType)) {
+        if (__isBigintClass(context.requestedType)) {
             if (typeof value === 'number') {
                 if (!Number.isInteger(value)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
@@ -1085,7 +1084,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
         }
-        if (__isDouble(type, customType)) {
+        if (__isDoubleClass(context.requestedType)) {
             if (typeof value === 'number') {
                 return value
             }
@@ -1108,7 +1107,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
         }
-        if (__isExactDecimal(type, customType)) {
+        if (__isExactDecimalClass(context.requestedType)) {
             if (typeof value === 'string') {
                 // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
                 // before the point (`.5`, as Oracle writes it) gets it
@@ -1133,19 +1132,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid customDecimal value received from the db: ' + value)
         }
-        if (__isString(type, customType)) {
+        if (__isStringClass(context.requestedType)) {
             if (typeof value === 'string') {
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid string value received from the db: ' + value)
         }
-        if (__isUuid(type, customType)) {
+        if (__isUuidClass(context.requestedType)) {
             if (typeof value === 'string') {
                 return this.__normalizeUuidText(value)
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid uuid value received from the db: ' + value)
         }
-        if (__isLocalDate(type, customType)) {
+        if (__isLocalDateClass(context.requestedType)) {
             // Every value in the database is in UTC: the day of a Date received is the one of its UTC getters, and
             // a text is read as UTC (or as its instant, when it has an offset). Some engines write a date with a
             // time (Oracle's DATE inside a JSON aggregate is "2024-01-15T00:00:00"): only its day is kept.
@@ -1164,7 +1163,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             result.___type___ = 'localDate'
             return result
         }
-        if (__isLocalTime(type, customType)) {
+        if (__isLocalTimeClass(context.requestedType)) {
             // The time of a Date received is the one of its UTC getters, and a text is read as UTC (or as its
             // instant, when it has an offset). Some engines write a time with a date (Oracle's TIMESTAMP inside a
             // JSON aggregate is "1970-01-01T09:15:00"): only its time is kept, on 1970-01-01.
@@ -1178,7 +1177,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             result.___type___ = 'localTime'
             return result
         }
-        if (__isLocalDateTime(type, customType)) {
+        if (__isLocalDateTimeClass(context.requestedType)) {
             // A Date received is kept: the query runner gives the UTC digits of a value without zone in its UTC
             // getters, and the instant of a zoned one. A text is read as UTC, or as its instant when it has an offset.
             const received = this.__receivedDate(value)
@@ -1188,7 +1187,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             (received as any).___type___ = 'localDateTime'
             return received
         }
-        if (__isAggregatedArray(type, customType)) {
+        if (__isAggregatedArrayClass(context.requestedType)) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays coming from the database')
         }
         return value
@@ -1209,7 +1208,6 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     /** Converts a value to send to the database as the requested type */
     protected transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         const type = context.requestedType.type
-        const customType = context.requestedType.customType
         if (value === undefined) {
             return null
         }
@@ -1219,13 +1217,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (value === '' && !this.allowEmptyString) {
             return null
         }
-        if (__isBoolean(type, customType)) {
+        if (__isBooleanClass(context.requestedType)) {
             if (typeof value === 'boolean') {
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid boolean value to send to the db: ' + value)
         }
-        if (__isInt(type, customType)) {
+        if (__isIntClass(context.requestedType)) {
             if (typeof value === 'number') {
                 if (!Number.isInteger(value)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
@@ -1234,19 +1232,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
         }
-        if (__isBigint(type, customType)) {
+        if (__isBigintClass(context.requestedType)) {
             if (typeof value === 'bigint') {
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
         }
-        if (__isDouble(type, customType)) {
+        if (__isDoubleClass(context.requestedType)) {
             if (typeof value === 'number') {
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + value)
         }
-        if (__isExactDecimal(type, customType)) {
+        if (__isExactDecimalClass(context.requestedType)) {
             // A decimal is sent as its text, with a point as the decimal separator and without an exponent, so every
             // database reads it with all its digits
             if (typeof value === 'string') {
@@ -1257,25 +1255,25 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid customDecimal value to send to the db: ' + value)
         }
-        if (__isString(type, customType)) {
+        if (__isStringClass(context.requestedType)) {
             if (typeof value === 'string') {
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid string value to send to the db: ' + value)
         }
-        if (__isUuid(type, customType)) {
+        if (__isUuidClass(context.requestedType)) {
             if (typeof value === 'string') {
                 return this.__normalizeUuidText(value)
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid uuid value to send to the db: ' + value)
         }
-        if (__isLocalDate(type, customType)) {
+        if (__isLocalDateClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDate value to send to the db: ' + value)
         }
-        if (__isLocalTime(type, customType)) {
+        if (__isLocalTimeClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 if (this.isDatabaseOutsideUtc()) {
                     // With a databaseTimeZone other than UTC a localTime is the instant of a time on its own day, as it
@@ -1289,13 +1287,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localTime value to send to the db: ' + value)
         }
-        if (__isLocalDateTime(type, customType)) {
+        if (__isLocalDateTimeClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDateTime value to send to the db: ' + value)
         }
-        if (__isAggregatedArray(type, customType)) {
+        if (__isAggregatedArrayClass(context.requestedType)) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')
         }
         return value

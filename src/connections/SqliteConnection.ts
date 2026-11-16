@@ -13,7 +13,7 @@ import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggr
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isLocalDate, __isLocalDateTime, __isLocalTime } from '../typeSystem/dataTypes.js'
+import { __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
@@ -212,11 +212,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
-        const customType = context.requestedType.customType
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueFromDB(value, context)
         }
-        if (__isLocalDate(context.requestedType.type, customType)) {
+        if (__isLocalDateClass(context.requestedType)) {
             if (typeof value === 'string') {
                 const valueAsNumber = +value
                 if (!isNaN(valueAsNumber)) {
@@ -304,7 +303,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
             result.setUTCMinutes(600)
             return result
         }
-        if (__isLocalTime(context.requestedType.type, customType)) {
+        if (__isLocalTimeClass(context.requestedType)) {
             if (typeof value === 'string') {
                 const valueAsNumber = +value
                 if (!isNaN(valueAsNumber)) {
@@ -404,7 +403,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
             result.setFullYear(1970, 0, 1)
             return result
         }
-        if (__isLocalDateTime(context.requestedType.type, customType)) {
+        if (__isLocalDateTimeClass(context.requestedType)) {
             if (typeof value === 'string') {
                 const valueAsNumber = +value
                 if (!isNaN(valueAsNumber)) {
@@ -482,11 +481,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
         return super.transformValueFromDB(value, context)
     }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        const customType = context.requestedType.customType
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueToDB(value, context)
         }
-        if (__isLocalDate(context.requestedType.type, customType)) {
+        if (__isLocalDateClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 const dateTimeFormat = this.getDateTimeFormat('date')
                 switch (dateTimeFormat) {
@@ -515,7 +513,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, `Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
         }
-        if (__isLocalTime(context.requestedType.type, customType)) {
+        if (__isLocalTimeClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 const dateTimeFormat = this.getDateTimeFormat('time')
                 switch (dateTimeFormat) {
@@ -549,7 +547,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, `Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
         }
-        if (__isLocalDateTime(context.requestedType.type, customType)) {
+        if (__isLocalDateTimeClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
                 const dateTimeFormat = this.getDateTimeFormat('dateTime')
                 switch (dateTimeFormat) {

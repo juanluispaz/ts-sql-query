@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
-import type { CustomType, DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
@@ -351,10 +351,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return isOracleReservedWord(word)
     }
-    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined) {
+    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _typeClass: DataTypeClass) {
         return this._escape(sequenceName, false) + '.nextval'
     }
-    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined): string {
+    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _typeClass: DataTypeClass): string {
         return this._escape(sequenceName, false) + '.currval'
     }
     override _fromNoTable() {
@@ -916,7 +916,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const rowIndex = i
             const sets = multiple[i]!
             let columns = ''
-            const sequences: Array<{ name: string, type: string, customType: CustomType | undefined }> = []
+            const sequences: Array<{ name: string, typeClass: DataTypeClass }> = []
             for (const columnName of __columnPathsOf(table)) {
                 if (columnsInShape) {
                     if (columnName in columnsInShape) {
@@ -941,7 +941,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
     
                 columns += this._appendSql(column, context, false)
-                sequences.push({ name: columnPrivate.__sequenceName, type: columnPrivate.__type, customType: columnPrivate.__customType })
+                sequences.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
             }
             if (shape) { // Follow shape order
                 const properties = Object.getOwnPropertyNames(shape)
@@ -994,7 +994,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     values += ', '
                 }
 
-                values += this._nextSequenceValue(context, sequence.name, sequence.type, sequence.customType)
+                values += this._nextSequenceValue(context, sequence.name, sequence.typeClass)
             }
             if (shape) { // Follow shape order
                 const properties = Object.getOwnPropertyNames(shape)
@@ -1122,7 +1122,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
             const columnPrivate = __getColumnPrivate(column)
             if (columnPrivate.__sequenceName) {
-                values += this._nextSequenceValue(context, columnPrivate.__sequenceName, columnPrivate.__type, columnPrivate.__customType)
+                values += this._nextSequenceValue(context, columnPrivate.__sequenceName, __classOf(columnPrivate))
             } else {
                 values += 'default'
             }

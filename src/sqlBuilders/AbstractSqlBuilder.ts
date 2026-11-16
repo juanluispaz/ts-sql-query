@@ -2158,7 +2158,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         let columns = ''
-        const nextSequenceValues: Array<{ name: string, type: string, customType: CustomType | undefined }> = []
+        const nextSequenceValues: Array<{ name: string, typeClass: DataTypeClass }> = []
         for (const columnName of __columnPathsOf(table)) {
             if (columnName in usedColumns) {
                 // Set in at least one row: emitted with the used columns, a row that doesn't set it gets the next
@@ -2179,7 +2179,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, context)
-            nextSequenceValues.push({ name: columnPrivate.__sequenceName, type: columnPrivate.__type, customType: columnPrivate.__customType })
+            nextSequenceValues.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
         }
         for (let columnName in usedColumns) {
             const column = __getColumnOfObject(table, columnName)
@@ -2207,7 +2207,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     values += ', '
                 }
                 const sequence = nextSequenceValues[j]!
-                values += this._nextSequenceValue(context, sequence.name, sequence.type, sequence.customType)
+                values += this._nextSequenceValue(context, sequence.name, sequence.typeClass)
             }
 
             const sets = multiple[i]!
@@ -2235,7 +2235,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnPrivate = __getColumnPrivate(column)
                 const sequenceName = columnPrivate.__sequenceName
                 if (!(setPropertyName in sets) && sequenceName) {
-                    values += this._nextSequenceValue(context, sequenceName, columnPrivate.__type, columnPrivate.__customType)
+                    values += this._nextSequenceValue(context, sequenceName, __classOf(columnPrivate))
                 } else {
                     values += this._appendSetValue(setPropertyName, i, column, value, context)
                 }
@@ -2387,7 +2387,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         insertQuery += this._appendTableOrViewName(table, context)
 
         let columns = ''
-        const sequences: Array<{ name: string, type: string, customType: CustomType | undefined }> = []
+        const sequences: Array<{ name: string, typeClass: DataTypeClass }> = []
         for (const columnName of __columnPathsOf(table)) {
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
@@ -2403,7 +2403,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, context)
-            sequences.push({ name: columnPrivate.__sequenceName, type: columnPrivate.__type, customType: columnPrivate.__customType })
+            sequences.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
         }
 
         if (columns) {
@@ -2418,7 +2418,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 values += ', '
             }
 
-            values += this._nextSequenceValue(context, sequence.name, sequence.type, sequence.customType)
+            values += this._nextSequenceValue(context, sequence.name, sequence.typeClass)
         }
 
         if (values) {
@@ -2477,7 +2477,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         let columns = ''
-        const sequences: Array<{ name: string, type: string, customType: CustomType | undefined }> = []
+        const sequences: Array<{ name: string, typeClass: DataTypeClass }> = []
         for (const columnName of __columnPathsOf(table)) {
             if (columnsInShape) {
                 if (columnName in columnsInShape) {
@@ -2502,7 +2502,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, context)
-            sequences.push({ name: columnPrivate.__sequenceName, type: columnPrivate.__type, customType: columnPrivate.__customType })
+            sequences.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
         }
         if (shape) { // Follow shape order
             const properties = Object.getOwnPropertyNames(shape)
@@ -2555,7 +2555,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 values += ', '
             }
 
-            values += this._nextSequenceValue(context, sequence.name, sequence.type, sequence.customType)
+            values += this._nextSequenceValue(context, sequence.name, sequence.typeClass)
         }
 
         if (shape) { // Follow shape order
@@ -2912,10 +2912,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(context, oldSafeTableOrView)
         return result
     }
-    _nextSequenceValue( _context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined) {
+    _nextSequenceValue( _context: SqlBuildContext, sequenceName: string, _typeClass: DataTypeClass) {
         return "nextval('" + sequenceName + "')"
     }
-    _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined): string {
+    _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _typeClass: DataTypeClass): string {
         return "currval('" + sequenceName + "')"
     }
     _buildUpdate(query: UpdateData, context: SqlBuildContext): string {

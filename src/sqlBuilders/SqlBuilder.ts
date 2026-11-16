@@ -14,7 +14,6 @@ import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
 import type { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
-import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
@@ -530,8 +529,8 @@ export interface SqlFunction2 {
 }
 
 export interface SqlSequenceOperation {
-    _nextSequenceValue(context: SqlBuildContext, sequenceName: string, type: string, customType: CustomType | undefined): string
-    _currentSequenceValue(context: SqlBuildContext, sequenceName: string, type: string, customType: CustomType | undefined): string
+    _nextSequenceValue(context: SqlBuildContext, sequenceName: string, typeClass: DataTypeClass): string
+    _currentSequenceValue(context: SqlBuildContext, sequenceName: string, typeClass: DataTypeClass): string
 }
 
 export interface SqlFragmentOperation {

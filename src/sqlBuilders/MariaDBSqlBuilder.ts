@@ -7,7 +7,6 @@ import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { isMariaDBReservedWord } from '../utils/mySqlMariaDB/mariaDBReservedWords.js'
-import type { CustomType } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
@@ -119,13 +118,13 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return super._appendRawColumnName(column, context)
     }
-    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined): string {
+    override _nextSequenceValue(_context: SqlBuildContext, sequenceName: string, _typeClass: DataTypeClass): string {
         // MariaDB sequences (MDEV-10139, MariaDB 10.3.0) expose NEXTVAL(seq) for the
         // function form and the SQL-standard NEXT VALUE FOR seq alias; we emit the
         // function form because it accepts a regular (back-tick-escaped) identifier.
         return 'nextval(' + this._escape(sequenceName, false) + ')'
     }
-    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _type: string, _customType: CustomType | undefined): string {
+    override _currentSequenceValue(_context: SqlBuildContext, sequenceName: string, _typeClass: DataTypeClass): string {
         // LASTVAL(seq) returns the most recent NEXTVAL(seq) issued in the current
         // connection (NULL if none); equivalent to PostgreSQL's currval() and to
         // the SQL-standard PREVIOUS VALUE FOR seq.

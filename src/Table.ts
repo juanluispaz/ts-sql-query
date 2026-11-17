@@ -139,7 +139,7 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected optionalComputedColumn<TYPE extends DataTypeName>(name: string, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<SOURCE, 'optional'>[TYPE]
     protected optionalComputedColumn<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'>
     protected optionalComputedColumn(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
-        return __asOptionalComputedColumn(__asOptionalColumn(__createDBColumn(this, name, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter))))
+        return __asOptionalComputedColumn(__createDBColumn(this, name, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter)))
     }
 
     protected virtualColumnFromFragment<TYPE extends DataTypeName>(type: TYPE, fn: (fragment: DataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => DataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): DataTypeValueSources<SOURCE, 'required'>[TYPE]

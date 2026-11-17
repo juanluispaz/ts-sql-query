@@ -6,7 +6,7 @@ import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource } from './NodeStrategy.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource, type InCreation } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __addInlineQueryWiths, type InlineSelectData } from './inlineSelect.js'
 import { __adaptedTypeClassOf, __classOf } from './adaptedTypeClass.js'
@@ -20,29 +20,29 @@ import { __adaptedTypeClassOf, __classOf } from './adaptedTypeClass.js'
 
 /** The fields every aggregate as array has */
 export interface AggregatedArrayValueSource extends NodeValueSource {
-    __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
-    __aggregatedArrayMode: __AggregatedArrayMode
+    readonly __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
+    readonly __aggregatedArrayMode: __AggregatedArrayMode
     /** Set by `allowWhen` / `disallowWhen` */
-    __allowed?: boolean | undefined
-    __error?: Error | undefined
+    readonly __allowed?: boolean | undefined
+    readonly __error?: Error | undefined
 }
 
 /** A select used as an aggregated array */
 export interface AggregateSelectValueSource extends AggregatedArrayValueSource {
-    __operation: '_inlineSelectAsValue'
-    __selectData: InlineSelectData
+    readonly __operation: '_inlineSelectAsValue'
+    readonly __selectData: InlineSelectData
 }
 
 /** An aggregate function of the database that gives an array */
 export interface AggregateValueAsArrayValueSource extends AggregatedArrayValueSource {
-    __operation: '_aggregateValueAsArray'
-    __aggregatedArrayDistinct: boolean
+    readonly __operation: '_aggregateValueAsArray'
+    readonly __aggregatedArrayDistinct: boolean
 }
 
 /** An aggregate function that gives an array, guarded by `allowWhen` / `disallowWhen` */
 export interface AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsArrayValueSource {
-    __allowed: boolean
-    __error: Error
+    readonly __allowed: boolean
+    readonly __error: Error
 }
 
 /**
@@ -89,7 +89,7 @@ function nullAggregateToSql(vs: AggregatedArrayValueSource, sqlBuilder: SqlBuild
 }
 
 function newAggregateSelect(node: NodeStrategy<AggregateSelectValueSource>, typeClass: DataTypeClass, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateSelectValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as AggregateSelectValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<AggregateSelectValueSource>
     vs.__node = node
     vs.__operation = '_inlineSelectAsValue'
     vs.__selectData = selectData
@@ -185,7 +185,7 @@ export function __newAggregateSelectValueSource(typeClass: DataTypeClass, select
 }
 
 function newAggregateValueAsArray(node: NodeStrategy<AggregateValueAsArrayValueSource>, typeClass: DataTypeClass, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateValueAsArrayValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as AggregateValueAsArrayValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<AggregateValueAsArrayValueSource>
     vs.__node = node
     vs.__operation = '_aggregateValueAsArray'
     vs.__aggregatedArrayColumns = aggregatedArrayColumns

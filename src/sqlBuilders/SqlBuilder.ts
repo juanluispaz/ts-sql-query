@@ -362,7 +362,7 @@ export function hasToSql(value: any): value is ToSql {
 }
 
 export interface HasOperation {
-    __operation: keyof SqlOperation
+    readonly __operation: keyof SqlOperation
 }
 
 export function operationOf(value: any): keyof SqlOperation | null {

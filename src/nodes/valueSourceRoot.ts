@@ -19,7 +19,7 @@ import { typeAdapterOfClass, __adaptedTypeClassOf, __keptClassOf } from './adapt
 export class ValueSourceRoot implements NodeValueSource {
     /** The mark of a value source for TypeScript (AnyValueSource); nothing at run time */
     declare readonly [isValueSourceObject]: true
-    __optionalType: OptionalType
+    readonly __optionalType: OptionalType
 
     constructor(optionalType: OptionalType) {
         this.__optionalType = optionalType
@@ -29,7 +29,7 @@ export class ValueSourceRoot implements NodeValueSource {
         return (this.constructor as { [typeAdapterOfClass]?: TypeAdapter | undefined })[typeAdapterOfClass]
     }
     /** How this value source is written and what it reaches: the strategy of its node, shared by every value source of that node */
-    declare __node: NodeStrategy<any>
+    declare readonly __node: NodeStrategy<any>
     __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         return this.__node.__toSql(this, sqlBuilder, context, forceTypeCast)
     }

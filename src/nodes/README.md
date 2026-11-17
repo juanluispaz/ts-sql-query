@@ -216,7 +216,10 @@ operation it is and passes its parts, and never writes the SQL of a database.
   optionality, another mark or another shape gives a new value source, and the original stays as it was: the hooks of
   a node create one (`projectingOptionalValuesAsNullable` of an aggregated array), and what must say something else of
   a value source it didn't create, like the result of the function of a fragment, which can be one of its arguments,
-  changes a copy (`__copyOfValueSource`).
+  changes a copy (`__copyOfValueSource`). The compiler keeps it: the fields of `NodeValueSource` and of every node are
+  `readonly`, a creation writes them through `InCreation<VS>` (`new typeClass(...) as InCreation<...>`), and what
+  finishes a creation made elsewhere says it with `__inCreation(vs)` (the marks of a column, the columns of a copy of a
+  table or of a `with`).
 - **A node never imports a class of a data type, nor `ValueSourceRoot`.** It types a value source as a
   `NodeValueSource` and creates it with the class it receives. `ValueSourceRoot` and the classes of the data types
   import the nodes, never the other way round, and the files of this folder don't import each other in a cycle.

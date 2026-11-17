@@ -9,15 +9,15 @@ import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 
 export interface FragmentValueSource extends NodeValueSource {
-    __operation: keyof SqlFragmentOperation
-    __sql: TemplateStringsArray
-    __sqlParams: AnyValueSource[]
+    readonly __operation: keyof SqlFragmentOperation
+    readonly __sql: TemplateStringsArray
+    readonly __sqlParams: AnyValueSource[]
 }
 
 export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
@@ -97,7 +97,7 @@ export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
 }
 
 export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType, isAggregate?: boolean): FragmentValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as FragmentValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<FragmentValueSource>
     vs.__node = fragmentValueSourceNode
     vs.__operation = '_fragment' // Needed to detect if parenthesis is required
 
@@ -114,8 +114,8 @@ export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: A
  * select, so the result is converted by its type as a column is (like the uuid of a database that stores it in binary)
  */
 export interface FunctionCallValueSource extends NodeValueSource {
-    __functionName: string
-    __functionParams: AnyValueSource[]
+    readonly __functionName: string
+    readonly __functionParams: AnyValueSource[]
 }
 
 export const functionCallValueSourceNode: NodeStrategy<FunctionCallValueSource> = {
@@ -126,7 +126,7 @@ export const functionCallValueSourceNode: NodeStrategy<FunctionCallValueSource> 
 }
 
 export function __newFunctionCallValueSource(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): FunctionCallValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as FunctionCallValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<FunctionCallValueSource>
     vs.__node = functionCallValueSourceNode
 
     vs.__functionName = functionName
@@ -185,7 +185,7 @@ export const valueSourceFromBuilderNode: NodeStrategy<ValueSourceFromBuilder> = 
 }
 
 export function __newValueSourceFromBuilder(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, typeClass: DataTypeClass, optionalType: OptionalType): ValueSourceFromBuilder {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as ValueSourceFromBuilder
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<ValueSourceFromBuilder>
     vs.__node = valueSourceFromBuilderNode
     vs.__builder = builder
     vs.__fragmentBuilder = fragmentBuilder

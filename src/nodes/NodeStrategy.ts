@@ -15,27 +15,39 @@ import type { AnyType, ILogicalValue } from '../typeSystem/base.js'
  */
 export interface NodeValueSource extends AnyValueSource, IQueryDataDiscovery, ToSql {
     /** How the value source is written and what it reaches */
-    __node: NodeStrategy<any>
-    __optionalType: OptionalType
+    readonly __node: NodeStrategy<any>
+    readonly __optionalType: OptionalType
     /** The type adapter of the class of the value source */
     readonly __typeAdapter: TypeAdapter | undefined
     /**
      * Only on a value source the user declared an aggregate (an aggregate fragment, the result of a function of
      * aggregate fragments): the aggregates of the library say it in their node (`__hasAggregation`)
      */
-    __isAggregate?: boolean | undefined
+    readonly __isAggregate?: boolean | undefined
     /**
      * Only on an aggregated array (and on what keeps one: `allowWhen`, the column of a `with`, ...): the shape of its
      * elements, which the result reads
      */
-    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
-    __aggregatedArrayMode?: __AggregatedArrayMode | undefined
-    __aggregatedProjectingOptionalValuesAsNullable?: boolean | undefined
+    readonly __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
+    readonly __aggregatedArrayMode?: __AggregatedArrayMode | undefined
+    readonly __aggregatedProjectingOptionalValuesAsNullable?: boolean | undefined
     /** Only on an aggregate function that gives an array (`aggregateAsArray`, ...) */
-    __aggregatedArrayDistinct?: boolean | undefined
+    readonly __aggregatedArrayDistinct?: boolean | undefined
 
     isConstValue(): boolean
     getConstValue(): any
+}
+
+/**
+ * A value source while it is created: its fields can be written. A value source doesn't change once created, so its
+ * fields are readonly; only its creation, and whoever finishes it (the marks of a column, the columns of a copy of a
+ * table or of a `with`, a copy of a value source), writes them, through this view
+ */
+export type InCreation<VS> = { -readonly [K in keyof VS]: VS[K] }
+
+/** The value source as it is while it is created: only where its creation is finished */
+export function __inCreation<VS extends NodeValueSource>(valueSource: VS): InCreation<VS> {
+    return valueSource
 }
 
 /**
@@ -50,14 +62,14 @@ export function __asNodeValueSource(valueSource: AnyValueSource | ILogicalValue 
  * A value source equal to the one given: its class, its node and its fields. A value source is written only while it is
  * created; what must say something else of an existing one (another optionality, ...) changes its copy
  */
-export function __copyOfValueSource<VS extends NodeValueSource>(valueSource: VS): VS {
+export function __copyOfValueSource<VS extends NodeValueSource>(valueSource: VS): InCreation<VS> {
     const copy = Object.create(Object.getPrototypeOf(valueSource))
     Object.assign(copy, valueSource)
     return copy
 }
 
 /** The value source keeps the shape of the elements of `source` when it is an aggregated array */
-export function __keepAggregatedArrayShape(valueSource: NodeValueSource, source: NodeValueSource): void {
+export function __keepAggregatedArrayShape(valueSource: InCreation<NodeValueSource>, source: NodeValueSource): void {
     if (source.__aggregatedArrayColumns) {
         valueSource.__aggregatedArrayColumns = source.__aggregatedArrayColumns
         valueSource.__aggregatedArrayMode = source.__aggregatedArrayMode

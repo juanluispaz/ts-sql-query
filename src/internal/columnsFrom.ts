@@ -6,7 +6,7 @@ import { CustomBooleanTypeAdapter, type DataTypeClass } from '../TypeAdapter.js'
 import type { OptionalType } from '../typeSystem/valueSource.js'
 import { __newDBColumn, type DBColumnValueSource } from '../nodes/column.js'
 import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
-import { type NodeValueSource, __asNodeValueSource, isValueSource, __keepAggregatedArrayShape } from '../nodes/NodeStrategy.js'
+import { type NodeValueSource, type InCreation, __asNodeValueSource, __inCreation, isValueSource, __keepAggregatedArrayShape } from '../nodes/NodeStrategy.js'
 
 /**
  * The class of a column of a with or of a compound select: the value of the expression of the select, with its type
@@ -24,7 +24,7 @@ export function projectedColumnClassOf(valueSource: NodeValueSource): DataTypeCl
 // object that mixes that value with others when it is null, while the type says the object is there.
 // Keep it in step with OptionalTypeForWith; it is not the place to apply the projection rules (those run again in the
 // query that uses the view, over these optionalities).
-function withColumnOptionalType(withColumn: DBColumnValueSource, optionalType: OptionalType): void {
+function withColumnOptionalType(withColumn: InCreation<DBColumnValueSource>, optionalType: OptionalType): void {
     withColumn.__optionalType = optionalType === 'required' ? 'required' : 'optional'
 }
 
@@ -35,7 +35,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
         const column = columns[property]!
         if (isValueSource(column)) {
             const nodeColumn = __asNodeValueSource(column)
-            const withColumn = __newDBColumn(projectedColumnClassOf(nodeColumn), table, property)
+            const withColumn = __inCreation(__newDBColumn(projectedColumnClassOf(nodeColumn), table, property))
             if (forWithView) {
                 withColumnOptionalType(withColumn, nodeColumn.__optionalType)
             } else {
@@ -58,7 +58,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
         const column = columns[property]!
         if (isValueSource(column)) {
             const nodeColumn = __asNodeValueSource(column)
-            const withColumn = __newDBColumn(projectedColumnClassOf(nodeColumn), table, prefix + property)
+            const withColumn = __inCreation(__newDBColumn(projectedColumnClassOf(nodeColumn), table, prefix + property))
             if (forWithView) {
                 withColumnOptionalType(withColumn, nodeColumn.__optionalType)
             } else {

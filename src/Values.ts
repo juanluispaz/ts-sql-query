@@ -4,7 +4,7 @@ import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import type { Column } from './utils/Column.js'
 import { __flattenSets } from './utils/columnPaths.js'
-import { __createDBColumn, __createValueSourceFromBuilder, __asColumn, __asOptionalColumn, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from './typeSystem/valueSourceFactory.js'
+import { __createDBColumn, __createValueSourceFromBuilder, __asColumn, __asOptionalColumn, __isColumn, __asDBColumnValueSource, __asNodeValueSource, __inCreation, isValueSource } from './typeSystem/valueSourceFactory.js'
 import { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'
@@ -152,7 +152,8 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
             }
             if (__isColumn(column)) {
                 const nodeColumn = __asDBColumnValueSource(column)
-                nodeColumn.__name = prefix + prop
+                // The columns of a copy of the values being created
+                __inCreation(nodeColumn).__name = prefix + prop
             } else if (isValueSource(column)) {
                 continue // Computed value
             } else {

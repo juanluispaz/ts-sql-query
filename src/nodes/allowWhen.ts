@@ -6,14 +6,14 @@ import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, __keepAggregatedArrayShape } from './NodeStrategy.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, __keepAggregatedArrayShape, type InCreation } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 
 export interface AllowWhenValueSource extends NodeValueSource {
-    __valueSource: NodeValueSource
-    __allowed: boolean
-    __error: Error
+    readonly __valueSource: NodeValueSource
+    readonly __allowed: boolean
+    readonly __error: Error
 }
 
 export const allowWhenValueSourceNode: NodeStrategy<AllowWhenValueSource> = {
@@ -88,7 +88,7 @@ export const allowWhenValueSourceNode: NodeStrategy<AllowWhenValueSource> = {
 }
 
 export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueSource: NodeValueSource, typeClass: DataTypeClass): AllowWhenValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(valueSource.__optionalType) as AllowWhenValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(valueSource.__optionalType) as InCreation<AllowWhenValueSource>
     vs.__node = allowWhenValueSourceNode
     // The result reads the shape of an aggregated array from the value source it finds in the columns: an aggregated
     // array guarded by `allowWhen` (a select of one aggregated column used as a value, then `allowWhen`) keeps it

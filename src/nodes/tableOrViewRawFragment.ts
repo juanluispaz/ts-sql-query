@@ -1,5 +1,5 @@
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import { valueSourceNode, type NodeStrategy, type NodeValueSource } from './NodeStrategy.js'
+import { valueSourceNode, type NodeStrategy, type NodeValueSource, type InCreation } from './NodeStrategy.js'
 import type { ValueSourceConstructor } from './dataTypeClassOf.js'
 
 /**
@@ -7,14 +7,14 @@ import type { ValueSourceConstructor } from './dataTypeClassOf.js'
  * of ValueSourceRoot itself
  */
 export interface TableOrViewRawFragmentValueSource extends NodeValueSource {
-    __tableOrView: AnyTableOrView
-    __operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'
+    readonly __tableOrView: AnyTableOrView
+    readonly __operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'
 }
 
 /** The name or the alias of a table or view guarded by `allowWhen` / `disallowWhen` */
 export interface AllowWhenTableOrViewRawFragmentValueSource extends TableOrViewRawFragmentValueSource {
-    __allowed: boolean
-    __error: Error
+    readonly __allowed: boolean
+    readonly __error: Error
 }
 
 /** The name or the alias of a table or view: it reaches nothing, and keeps being one when it is guarded */
@@ -44,7 +44,7 @@ export const allowWhenTableOrViewRawFragmentNode: NodeStrategy<AllowWhenTableOrV
 
 /** The name or the alias of a table or view; `rootClass` is ValueSourceRoot, which the factory gives */
 export function __newTableOrViewRawFragment(rootClass: ValueSourceConstructor, tableOrView: AnyTableOrView, operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'): TableOrViewRawFragmentValueSource {
-    const vs = new rootClass('required') as TableOrViewRawFragmentValueSource
+    const vs = new rootClass('required') as InCreation<TableOrViewRawFragmentValueSource>
     vs.__node = tableOrViewRawFragmentNode
     vs.__tableOrView = tableOrView
     vs.__operation = operation
@@ -52,7 +52,7 @@ export function __newTableOrViewRawFragment(rootClass: ValueSourceConstructor, t
 }
 
 function newAllowWhenTableOrViewRawFragment(guarded: TableOrViewRawFragmentValueSource, allowed: boolean, error: Error): AllowWhenTableOrViewRawFragmentValueSource {
-    const vs = new (guarded.constructor as ValueSourceConstructor)('required') as AllowWhenTableOrViewRawFragmentValueSource
+    const vs = new (guarded.constructor as ValueSourceConstructor)('required') as InCreation<AllowWhenTableOrViewRawFragmentValueSource>
     vs.__node = allowWhenTableOrViewRawFragmentNode
     vs.__tableOrView = guarded.__tableOrView
     vs.__operation = guarded.__operation

@@ -8,14 +8,14 @@ import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource, __keepAggregatedArrayShape } from './NodeStrategy.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource, __keepAggregatedArrayShape, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 
 export type InlineSelectData = SelectData & IQueryDataDiscovery
 
 export interface InlineSelectValueSource extends NodeValueSource, HasOperation {
-    __operation: '_inlineSelectAsValue'
-    __selectData: InlineSelectData
+    readonly __operation: '_inlineSelectAsValue'
+    readonly __selectData: InlineSelectData
 }
 
 export const inlineSelectValueSourceNode: NodeStrategy<InlineSelectValueSource> = {
@@ -50,7 +50,7 @@ export const inlineSelectValueSourceNode: NodeStrategy<InlineSelectValueSource> 
 }
 
 export function __newInlineSelectValueSource(selectData: InlineSelectData, required: boolean, typeClass: DataTypeClass): InlineSelectValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(required ? 'required' : 'optional') as InlineSelectValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(required ? 'required' : 'optional') as InCreation<InlineSelectValueSource>
     vs.__node = inlineSelectValueSourceNode
     // A select of one column used as a value is that column: an aggregated array keeps its shape
     __keepAggregatedArrayShape(vs, resultColumnOfInlineSelect(selectData))

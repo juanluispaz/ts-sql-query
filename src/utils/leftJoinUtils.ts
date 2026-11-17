@@ -1,6 +1,6 @@
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { isUsableValue } from '../sqlBuilders/SqlBuilder.js'
-import { __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __asNodeValueSource, __inCreation, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 export function __setColumnsForLeftJoin(columns: QueryColumns): void {
   for (const prop in columns) {
@@ -11,7 +11,8 @@ export function __setColumnsForLeftJoin(columns: QueryColumns): void {
       if (isValueSource(column)) {
           const nodeColumn = __asNodeValueSource(column)
           if (nodeColumn.__optionalType === 'required') {
-              nodeColumn.__optionalType = 'originallyRequired'
+              // The columns of a copy of the table being created
+              __inCreation(nodeColumn).__optionalType = 'originallyRequired'
           }
       } else {
           __setColumnsForLeftJoin(column)

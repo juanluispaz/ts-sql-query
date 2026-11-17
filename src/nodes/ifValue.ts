@@ -6,7 +6,7 @@ import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { sqlOperation1ValueSourceNode, sqlOperation2ValueSourceNode, sqlOperationInValueSourceNode } from './operations.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
@@ -86,8 +86,8 @@ function ifValueNode<VS extends IfValueOperation>(node: NodeStrategy<VS>, whenNo
 }
 
 export interface BooleanValueWhenNoValueValueSource extends NodeValueSource, HasOperation {
-    __valueSource: NodeValueSource
-    __operation: '_true' | '_false'
+    readonly __valueSource: NodeValueSource
+    readonly __operation: '_true' | '_false'
 }
 
 export const booleanValueWhenNoValueValueSourceNode: NodeStrategy<BooleanValueWhenNoValueValueSource> = {
@@ -138,7 +138,7 @@ export const booleanValueWhenNoValueValueSourceNode: NodeStrategy<BooleanValueWh
 }
 
 export function __newBooleanValueWhenNoValueValueSource(operation: '_true' | '_false', valueSource: AnyType | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): BooleanValueWhenNoValueValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as BooleanValueWhenNoValueValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<BooleanValueWhenNoValueValueSource>
     vs.__node = booleanValueWhenNoValueValueSourceNode
 
     vs.__valueSource = valueSource as NodeValueSource
@@ -147,8 +147,8 @@ export function __newBooleanValueWhenNoValueValueSource(operation: '_true' | '_f
 }
 
 export interface ValueWhenNoValueValueSource extends NodeValueSource {
-    __valueSource: NodeValueSource
-    __valueWhenNoValue: NodeValueSource & ToSql
+    readonly __valueSource: NodeValueSource
+    readonly __valueWhenNoValue: NodeValueSource & ToSql
 }
 
 export const valueWhenNoValueValueSourceNode: NodeStrategy<ValueWhenNoValueValueSource> = {
@@ -198,7 +198,7 @@ export const valueWhenNoValueValueSourceNode: NodeStrategy<ValueWhenNoValueValue
 }
 
 export function __newValueWhenNoValueValueSource(valueWhenNoValue: NodeValueSource & ToSql, valueSource: AnyType | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): ValueWhenNoValueValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as ValueWhenNoValueValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<ValueWhenNoValueValueSource>
     vs.__node = valueWhenNoValueValueSourceNode
 
     vs.__valueSource = valueSource as NodeValueSource
@@ -207,15 +207,15 @@ export function __newValueWhenNoValueValueSource(valueWhenNoValue: NodeValueSour
 }
 
 export interface SqlOperation1ValueSourceIfValueOrNoop extends NodeValueSource, HasOperation {
-    __valueSource: NodeValueSource
-    __operation: keyof SqlOperation1
-    __value: any
+    readonly __valueSource: NodeValueSource
+    readonly __operation: keyof SqlOperation1
+    readonly __value: any
 }
 
 export const sqlOperation1ValueSourceIfValueOrNoopNode: NodeStrategy<SqlOperation1ValueSourceIfValueOrNoop> = ifValueNode(sqlOperation1ValueSourceNode, 'neutral', 1)
 
 export function __newSqlOperation1ValueSourceIfValueOrNoop(operation: keyof SqlOperation1, valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSourceIfValueOrNoop {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation1ValueSourceIfValueOrNoop
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperation1ValueSourceIfValueOrNoop>
     vs.__node = sqlOperation1ValueSourceIfValueOrNoopNode
 
     vs.__valueSource = valueSource as NodeValueSource
@@ -225,15 +225,15 @@ export function __newSqlOperation1ValueSourceIfValueOrNoop(operation: keyof SqlO
 }
 
 export interface SqlOperationInValueSourceIfValueOrNoop extends NodeValueSource, HasOperation {
-    __valueSource: NodeValueSource
-    __operation: '_in' | '_notIn'
-    __value: any
+    readonly __valueSource: NodeValueSource
+    readonly __operation: '_in' | '_notIn'
+    readonly __value: any
 }
 
 export const sqlOperationInValueSourceIfValueOrNoopNode: NodeStrategy<SqlOperationInValueSourceIfValueOrNoop> = ifValueNode(sqlOperationInValueSourceNode, 'neutral', 1)
 
 export function __newSqlOperationInValueSourceIfValueOrNoop(operation: '_in' | '_notIn', valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationInValueSourceIfValueOrNoop {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationInValueSourceIfValueOrNoop
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperationInValueSourceIfValueOrNoop>
     vs.__node = sqlOperationInValueSourceIfValueOrNoopNode
 
     vs.__valueSource = valueSource as NodeValueSource
@@ -282,21 +282,21 @@ export const sqlOperationValueSourceIfValueAlwaysNoopNode: NodeStrategy<SqlOpera
  * Each site says which of the two cases it is.
  */
 export function __newSqlOperationValueSourceIfValueAlwaysNoop(typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationValueSourceIfValueAlwaysNoop {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationValueSourceIfValueAlwaysNoop
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperationValueSourceIfValueAlwaysNoop>
     vs.__node = sqlOperationValueSourceIfValueAlwaysNoopNode
     return vs
 }
 
 export interface SqlOperation1ValueSourceIfValueOrIgnore extends NodeValueSource, HasOperation {
-    __valueSource: NodeValueSource
-    __operation: keyof SqlOperation1
-    __value: any
+    readonly __valueSource: NodeValueSource
+    readonly __operation: keyof SqlOperation1
+    readonly __value: any
 }
 
 export const sqlOperation1ValueSourceIfValueOrIgnoreNode: NodeStrategy<SqlOperation1ValueSourceIfValueOrIgnore> = ifValueNode(sqlOperation1ValueSourceNode, 'receiver', 1)
 
 export function __newSqlOperation1ValueSourceIfValueOrIgnore(operation: keyof SqlOperation1, valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSourceIfValueOrIgnore {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation1ValueSourceIfValueOrIgnore
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperation1ValueSourceIfValueOrIgnore>
     vs.__node = sqlOperation1ValueSourceIfValueOrIgnoreNode
 
     vs.__valueSource = valueSource as NodeValueSource
@@ -306,16 +306,16 @@ export function __newSqlOperation1ValueSourceIfValueOrIgnore(operation: keyof Sq
 }
 
 export interface SqlOperation2ValueSourceIfValueOrIgnore extends NodeValueSource, HasOperation {
-    __valueSource: NodeValueSource
-    __operation: keyof SqlOperation2
-    __value: any
-    __value2: any
+    readonly __valueSource: NodeValueSource
+    readonly __operation: keyof SqlOperation2
+    readonly __value: any
+    readonly __value2: any
 }
 
 export const sqlOperation2ValueSourceIfValueOrIgnoreNode: NodeStrategy<SqlOperation2ValueSourceIfValueOrIgnore> = ifValueNode(sqlOperation2ValueSourceNode, 'receiver', 2)
 
 export function __newSqlOperation2ValueSourceIfValueOrIgnore(operation: keyof SqlOperation2, valueSource: AnyType | NodeValueSource, value: any, value2: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation2ValueSourceIfValueOrIgnore {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation2ValueSourceIfValueOrIgnore
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperation2ValueSourceIfValueOrIgnore>
     vs.__node = sqlOperation2ValueSourceIfValueOrIgnoreNode
 
     vs.__valueSource = valueSource as NodeValueSource

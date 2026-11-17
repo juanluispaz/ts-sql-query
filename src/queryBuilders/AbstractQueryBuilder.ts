@@ -129,7 +129,7 @@ export class AbstractQueryBuilder {
     __transformOneColumnValue(valueSource: AnyValueSource, value: any, index?: number): any {
         const nodeValueSource = __asNodeValueSource(valueSource)
         if (nodeValueSource.__aggregatedArrayColumns) {
-            return this.__transformAggregatedArray(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, '', valueSource, value, index)
+            return this.__transformAggregatedArray(!!nodeValueSource.__aggregatedProjectingOptionalValuesAsNullable, '', valueSource, value, index)
         }
         return this.__transformValueFromDB(valueSource, value, 'resultColumn', undefined, index)
     }
@@ -146,7 +146,7 @@ export class AbstractQueryBuilder {
             if (isValueSource(valueSource)) {
                 const nodeValueSource = __asNodeValueSource(valueSource)
                 if (nodeValueSource.__aggregatedArrayColumns) {
-                    transformed = this.__transformAggregatedArray(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + prop, valueSource, value, index)
+                    transformed = this.__transformAggregatedArray(!!nodeValueSource.__aggregatedProjectingOptionalValuesAsNullable, errorPrefix + prop, valueSource, value, index)
                 } else {
                     transformed = this.__transformValueFromDB(valueSource, value, output, errorPrefix + prop, index)
                 }
@@ -209,7 +209,7 @@ export class AbstractQueryBuilder {
             const nodeColumn = __asNodeValueSource(columns)
             if (nodeColumn.__aggregatedArrayColumns) {
                 for (let i = 0, lenght = json.length; i < lenght; i++) {
-                    const resultValue = this.__transformAggregatedArray(!!nodeColumn.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + ']', columns, json[i], index)
+                    const resultValue = this.__transformAggregatedArray(!!nodeColumn.__aggregatedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + ']', columns, json[i], index)
                     if (resultValue === null || resultValue === undefined) {
                         continue
                     }
@@ -227,7 +227,7 @@ export class AbstractQueryBuilder {
         } else if (nodeValueSource.__aggregatedArrayMode === 'ResultObject') {
             for (let i = 0, lenght = json.length; i < lenght; i++) {
                 let row = json[i]
-                const resultObject = this.__transformRootObject(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + '].', columns, row, 'aggregatedArrayValue', index)
+                const resultObject = this.__transformRootObject(!!nodeValueSource.__aggregatedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + '].', columns, row, 'aggregatedArrayValue', index)
                 if (resultObject === null || resultObject === undefined) {
                     continue
                 }
@@ -291,7 +291,7 @@ export class AbstractQueryBuilder {
             if (isValueSource(valueSource)) {
                 const nodeValueSource = __asNodeValueSource(valueSource)
                 if (nodeValueSource.__aggregatedArrayColumns) {
-                    transformed = this.__transformAggregatedArray(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, propName, valueSource, value, index)
+                    transformed = this.__transformAggregatedArray(!!nodeValueSource.__aggregatedProjectingOptionalValuesAsNullable, propName, valueSource, value, index)
                 } else {
                     transformed = this.__transformValueFromDB(valueSource, value, output, errorPrefix + propName, index)
                 }

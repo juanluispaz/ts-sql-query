@@ -7,7 +7,7 @@ import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newNoopValueSource } from '../nodes/operations.js'
 import { __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
 import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
-import { __asNodeValueSource } from '../nodes/NodeStrategy.js'
+import { __asNodeValueSource, __keepAggregatedArrayShape } from '../nodes/NodeStrategy.js'
 
 /** The family of the arrays an aggregate as array gives: what every one offers */
 /** The type in the database of an aggregated array: a JSON document */
@@ -24,11 +24,7 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
             return nodeWithOptionalType(vs, 'required')
         }
         const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'required')
-        if (vs.__aggregatedArrayColumns) {
-            result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
-            result.__aggregatedArrayMode = vs.__aggregatedArrayMode
-            result.__aggreagtedProjectingOptionalValuesAsNullable = vs.__aggreagtedProjectingOptionalValuesAsNullable
-        }
+        __keepAggregatedArrayShape(result, vs)
         return result
     }
     asOptionalNonEmptyArray(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
@@ -39,11 +35,7 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
             return nodeWithOptionalType(vs, 'optional')
         }
         const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'optional')
-        if (vs.__aggregatedArrayColumns) {
-            result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
-            result.__aggregatedArrayMode = vs.__aggregatedArrayMode
-            result.__aggreagtedProjectingOptionalValuesAsNullable = vs.__aggreagtedProjectingOptionalValuesAsNullable
-        }
+        __keepAggregatedArrayShape(result, vs)
         return result
     }
     asRequiredInOptionalObject(): ValueSource<SourceOf<this>, TypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>

@@ -19,11 +19,19 @@ export interface NodeValueSource extends AnyValueSource, IQueryDataDiscovery, To
     __optionalType: OptionalType
     /** The type adapter of the class of the value source */
     readonly __typeAdapter: TypeAdapter | undefined
-    /** Whether the value source is an aggregate: a function of aggregation, or a fragment declared as one */
+    /**
+     * Only on a value source the user declared an aggregate (an aggregate fragment, the result of a function of
+     * aggregate fragments): the aggregates of the library say it in their node (`__hasAggregation`)
+     */
     __isAggregate?: boolean | undefined
+    /**
+     * Only on an aggregated array (and on what keeps one: `allowWhen`, the column of a `with`, ...): the shape of its
+     * elements, which the result reads
+     */
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
-    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
+    __aggregatedProjectingOptionalValuesAsNullable?: boolean | undefined
+    /** Only on an aggregate function that gives an array (`aggregateAsArray`, ...) */
     __aggregatedArrayDistinct?: boolean | undefined
 
     isConstValue(): boolean
@@ -36,6 +44,15 @@ export interface NodeValueSource extends AnyValueSource, IQueryDataDiscovery, To
  */
 export function __asNodeValueSource(valueSource: AnyValueSource | ILogicalValue | AnyType): NodeValueSource {
     return valueSource as unknown as NodeValueSource
+}
+
+/** The value source keeps the shape of the elements of `source` when it is an aggregated array */
+export function __keepAggregatedArrayShape(valueSource: NodeValueSource, source: NodeValueSource): void {
+    if (source.__aggregatedArrayColumns) {
+        valueSource.__aggregatedArrayColumns = source.__aggregatedArrayColumns
+        valueSource.__aggregatedArrayMode = source.__aggregatedArrayMode
+        valueSource.__aggregatedProjectingOptionalValuesAsNullable = source.__aggregatedProjectingOptionalValuesAsNullable
+    }
 }
 
 /** Whether the value is a value source: it has a node */
@@ -92,7 +109,7 @@ export const valueSourceNode: Omit<NodeStrategy<NodeValueSource>, '__toSql'> = {
         return true
     },
     __hasAggregation(vs) {
-        return vs.__isAggregate ?? false
+        return vs.__isAggregate === true
     },
     isConstValue() {
         return false

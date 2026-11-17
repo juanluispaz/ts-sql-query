@@ -16,6 +16,10 @@ export interface AggregateFunctions0ValueSource extends NodeValueSource, HasOper
 
 export const aggregateFunctions0ValueSourceNode: NodeStrategy<AggregateFunctions0ValueSource> = {
     ...valueSourceNode,
+    // An aggregate function
+    __hasAggregation() {
+        return true
+    },
     __toSql(vs: AggregateFunctions0ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
         return sqlBuilder[vs.__operation](context)
     },
@@ -26,7 +30,6 @@ export function __newAggregateFunctions0ValueSource(operation: keyof AggregateFu
     vs.__node = aggregateFunctions0ValueSourceNode
 
     vs.__operation = operation
-    vs.__isAggregate = true
     return vs
 }
 
@@ -37,6 +40,10 @@ export interface AggregateFunctions1ValueSource extends NodeValueSource, HasOper
 
 export const aggregateFunctions1ValueSourceNode: NodeStrategy<AggregateFunctions1ValueSource> = {
     ...valueSourceNode,
+    // An aggregate function
+    __hasAggregation() {
+        return true
+    },
     __toSql(vs: AggregateFunctions1ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
         return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__value, [], vs.__operation))
     },
@@ -66,7 +73,6 @@ export function __newAggregateFunctions1ValueSource(operation: keyof AggregateFu
 
     vs.__operation = operation
     vs.__value = value
-    vs.__isAggregate = true
     return vs
 }
 
@@ -78,6 +84,10 @@ export interface AggregateFunctions1or2ValueSource extends NodeValueSource, HasO
 
 export const aggregateFunctions1or2ValueSourceNode: NodeStrategy<AggregateFunctions1or2ValueSource> = {
     ...valueSourceNode,
+    // An aggregate function
+    __hasAggregation() {
+        return true
+    },
     __toSql(vs: AggregateFunctions1or2ValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
         return sqlBuilder[vs.__operation](context, vs.__separator, vs.__value)
     },
@@ -108,6 +118,5 @@ export function __newAggregateFunctions1or2ValueSource(operation: keyof Aggregat
     vs.__operation = operation
     vs.__separator = separator
     vs.__value = value
-    vs.__isAggregate = true
     return vs
 }

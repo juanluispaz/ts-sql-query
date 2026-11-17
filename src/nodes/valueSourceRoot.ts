@@ -8,8 +8,8 @@ import type { DBColumn } from '../utils/Column.js'
 import type { isValueSourceObject } from '../utils/symbols.js'
 import type { AnyType } from '../typeSystem/base.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
+import type { OptionalType } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, type NodeValueSource, __asNodeValueSource, __keepAggregatedArrayShape } from './NodeStrategy.js'
 import { __newAllowWhenValueSource } from './allowWhen.js'
 import { __newNullValueSource } from './constants.js'
 import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
@@ -20,18 +20,9 @@ export class ValueSourceRoot implements NodeValueSource {
     /** The mark of a value source for TypeScript (AnyValueSource); nothing at run time */
     declare readonly [isValueSourceObject]: true
     __optionalType: OptionalType
-    __isAggregate?: boolean | undefined
-    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
-    __aggregatedArrayMode?: __AggregatedArrayMode | undefined
-    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
 
-    constructor(optionalType: OptionalType, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
+    constructor(optionalType: OptionalType) {
         this.__optionalType = optionalType
-        if (aggregatedArrayColumns) {
-            this.__aggregatedArrayColumns = aggregatedArrayColumns
-            this.__aggregatedArrayMode = aggregatedArrayMode
-            this.__aggreagtedProjectingOptionalValuesAsNullable = aggregatedProjectingOptionalValuesAsNullable
-        }
     }
     /** The type adapter of this value source: the one of its class (see adaptedTypeClass.ts) */
     get __typeAdapter(): TypeAdapter | undefined {
@@ -124,11 +115,7 @@ export function __asRequiredInOptionalObjectOf(valueSource: AnyType): any {
         return nodeAsRequiredInOptionalObject(vs)
     }
     const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'requiredInOptionalObject')
-    if (vs.__aggregatedArrayColumns) {
-        result.__aggregatedArrayColumns = vs.__aggregatedArrayColumns
-        result.__aggregatedArrayMode = vs.__aggregatedArrayMode
-        result.__aggreagtedProjectingOptionalValuesAsNullable = vs.__aggreagtedProjectingOptionalValuesAsNullable
-    }
+    __keepAggregatedArrayShape(result, vs)
     return result
 }
 

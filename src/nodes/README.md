@@ -90,7 +90,11 @@ A few methods of a value source depend on its node and not only on its data type
 
 [`valueSourceRoot.ts`](./valueSourceRoot.ts) has the class every value source is an instance of at run time:
 
-- its fields: its optionality, the fields of an aggregated array, and `__node` (its data type is its class);
+- its fields: its optionality and `__node` (its data type is its class). Every other field belongs to a node, and only
+  the value sources of that node have it: the shape of the elements of an aggregated array is on the aggregated arrays
+  and on what keeps one (`__keepAggregatedArrayShape`: `allowWhen`, the column of a `with`, ...), and `__isAggregate`
+  only on what the user declared an aggregate (an aggregate fragment); the aggregates of the library say it in their
+  node (`__hasAggregation`);
 - its type adapter, `__typeAdapter`, read from its class: a value source with a type adapter is an instance of a
   subclass of the class of its data type that carries the adapter, created once for each class and adapter
   ([`adaptedTypeClass.ts`](./adaptedTypeClass.ts)). A creation receives only that class, already carrying its

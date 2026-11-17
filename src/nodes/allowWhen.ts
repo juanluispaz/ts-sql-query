@@ -6,7 +6,7 @@ import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, __keepAggregatedArrayShape } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 
@@ -88,15 +88,11 @@ export const allowWhenValueSourceNode: NodeStrategy<AllowWhenValueSource> = {
 }
 
 export function __newAllowWhenValueSource(allowed: boolean, error: Error, valueSource: NodeValueSource, typeClass: DataTypeClass): AllowWhenValueSource {
-    // Carry the wrapped source's aggregated-array descriptor forward: the
-    // result projector reads `__aggregatedArrayColumns` / `__aggregatedArrayMode`
-    // / `__aggreagtedProjectingOptionalValuesAsNullable` directly off the value
-    // source it finds in the query columns, so an aggregate wrapped by an
-    // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
-    // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
-    // is mishandled at read time.
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(valueSource.__optionalType, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__aggreagtedProjectingOptionalValuesAsNullable) as AllowWhenValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(valueSource.__optionalType) as AllowWhenValueSource
     vs.__node = allowWhenValueSourceNode
+    // The result reads the shape of an aggregated array from the value source it finds in the columns: an aggregated
+    // array guarded by `allowWhen` (a select of one aggregated column used as a value, then `allowWhen`) keeps it
+    __keepAggregatedArrayShape(vs, valueSource)
     vs.__valueSource = valueSource
     vs.__error = error
     vs.__allowed = allowed

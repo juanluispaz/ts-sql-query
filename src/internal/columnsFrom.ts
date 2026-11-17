@@ -6,7 +6,7 @@ import { CustomBooleanTypeAdapter, type DataTypeClass } from '../TypeAdapter.js'
 import type { OptionalType } from '../typeSystem/valueSource.js'
 import { __newDBColumn, type DBColumnValueSource } from '../nodes/column.js'
 import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
-import { type NodeValueSource, __asNodeValueSource, isValueSource } from '../nodes/NodeStrategy.js'
+import { type NodeValueSource, __asNodeValueSource, isValueSource, __keepAggregatedArrayShape } from '../nodes/NodeStrategy.js'
 
 /**
  * The class of a column of a with or of a compound select: the value of the expression of the select, with its type
@@ -41,11 +41,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
             } else {
                 withColumn.__optionalType = nodeColumn.__optionalType
             }
-            if (nodeColumn.__aggregatedArrayColumns) {
-                withColumn.__aggregatedArrayColumns = nodeColumn.__aggregatedArrayColumns
-                withColumn.__aggregatedArrayMode = nodeColumn.__aggregatedArrayMode
-                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = nodeColumn.__aggreagtedProjectingOptionalValuesAsNullable
-            }
+            __keepAggregatedArrayShape(withColumn, nodeColumn)
             target[property] = withColumn
         } else {
             const newTarget = {}
@@ -97,11 +93,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
                 }
                 withColumn.__optionalType = optionalType
             }
-            if (nodeColumn.__aggregatedArrayColumns) {
-                withColumn.__aggregatedArrayColumns = nodeColumn.__aggregatedArrayColumns
-                withColumn.__aggregatedArrayMode = nodeColumn.__aggregatedArrayMode
-                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = nodeColumn.__aggreagtedProjectingOptionalValuesAsNullable
-            }
+            __keepAggregatedArrayShape(withColumn, nodeColumn)
             target[property] = withColumn
         } else {
             const newTarget = {}

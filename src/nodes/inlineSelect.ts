@@ -8,7 +8,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource } from './NodeStrategy.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource, __keepAggregatedArrayShape } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 
 export type InlineSelectData = SelectData & IQueryDataDiscovery
@@ -50,9 +50,10 @@ export const inlineSelectValueSourceNode: NodeStrategy<InlineSelectValueSource> 
 }
 
 export function __newInlineSelectValueSource(selectData: InlineSelectData, required: boolean, typeClass: DataTypeClass): InlineSelectValueSource {
-    const [optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable] = valueSourceInitializationForInlineSelect(selectData, required)
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as InlineSelectValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(required ? 'required' : 'optional') as InlineSelectValueSource
     vs.__node = inlineSelectValueSourceNode
+    // A select of one column used as a value is that column: an aggregated array keeps its shape
+    __keepAggregatedArrayShape(vs, resultColumnOfInlineSelect(selectData))
     vs.__operation = '_inlineSelectAsValue'
 
     vs.__selectData = selectData
@@ -89,7 +90,7 @@ export function isSelectQuery(value: any): value is InlineSelectData {
     return false
 }
 
-function valueSourceInitializationForInlineSelect(selectData: SelectData, required: boolean) {
+function resultColumnOfInlineSelect(selectData: SelectData): NodeValueSource {
     if (selectData.__asInlineAggregatedArrayValue) {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline aggregated array vaule')
     } else if (selectData.__oneColumn) {
@@ -97,8 +98,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
         if (!isValueSource(result)) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'Result column for a select one column not found')
         }
-        const nodeValueSource = __asNodeValueSource(result)
-        return [required ? 'required' : 'optional', nodeValueSource.__aggregatedArrayColumns, nodeValueSource.__aggregatedArrayMode, nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable] as const
+        return __asNodeValueSource(result)
     } else {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline select')
     }

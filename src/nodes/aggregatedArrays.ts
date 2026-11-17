@@ -83,11 +83,13 @@ function nullAggregateToSql(vs: AggregatedArrayValueSource, sqlBuilder: SqlBuild
 }
 
 function newAggregateSelect(node: NodeStrategy<AggregateSelectValueSource>, typeClass: DataTypeClass, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateSelectValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateSelectValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as AggregateSelectValueSource
     vs.__node = node
     vs.__operation = '_inlineSelectAsValue'
     vs.__selectData = selectData
-    vs.__isAggregate = node === aggregateSelectNode || node === allowWhenAggregateSelectNode
+    vs.__aggregatedArrayColumns = aggregatedArrayColumns
+    vs.__aggregatedArrayMode = aggregatedArrayMode
+    vs.__aggregatedProjectingOptionalValuesAsNullable = projectingOptionalValuesAsNullable
     if (error) {
         vs.__allowed = allowed
         vs.__error = error
@@ -98,6 +100,10 @@ function newAggregateSelect(node: NodeStrategy<AggregateSelectValueSource>, type
 /** A select used as an aggregated array */
 const aggregateSelectNode: NodeStrategy<AggregateSelectValueSource> = {
     ...valueSourceNode,
+    // An aggregate (its null, below, is not)
+    __hasAggregation() {
+        return true
+    },
     __toSql(vs, sqlBuilder, context) {
         return sqlBuilder._inlineSelectAsValue(vs.__selectData, context)
     },
@@ -123,19 +129,19 @@ const aggregateSelectNode: NodeStrategy<AggregateSelectValueSource> = {
         return vs.__selectData.__isAllowed(sqlBuilder)
     },
     withOptionalType(vs, optionalType) {
-        return newAggregateSelect(aggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, vs.__aggreagtedProjectingOptionalValuesAsNullable)
+        return newAggregateSelect(aggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, vs.__aggregatedProjectingOptionalValuesAsNullable)
     },
     asRequiredInOptionalObject(vs) {
-        return newAggregateSelect(aggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', vs.__aggreagtedProjectingOptionalValuesAsNullable)
+        return newAggregateSelect(aggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', vs.__aggregatedProjectingOptionalValuesAsNullable)
     },
     asNull(vs) {
         return newAggregateSelect(nullAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'optional', undefined)
     },
     allowWhen(vs, allowed, error) {
-        return newAggregateSelect(allowWhenAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggreagtedProjectingOptionalValuesAsNullable, allowed, error)
+        return newAggregateSelect(allowWhenAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedProjectingOptionalValuesAsNullable, allowed, error)
     },
     projectingOptionalValuesAsNullable(vs) {
-        vs.__aggreagtedProjectingOptionalValuesAsNullable = true
+        vs.__aggregatedProjectingOptionalValuesAsNullable = true
         return vs
     },
 }
@@ -171,11 +177,13 @@ export function __newAggregateSelectValueSource(typeClass: DataTypeClass, select
 }
 
 function newAggregateValueAsArray(node: NodeStrategy<AggregateValueAsArrayValueSource>, typeClass: DataTypeClass, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, optionalType: OptionalType, distinct: boolean, projectingOptionalValuesAsNullable: boolean | undefined, allowed?: boolean, error?: Error): AggregateValueAsArrayValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType, aggregatedArrayColumns, aggregatedArrayMode, projectingOptionalValuesAsNullable) as AggregateValueAsArrayValueSource
+    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as AggregateValueAsArrayValueSource
     vs.__node = node
     vs.__operation = '_aggregateValueAsArray'
+    vs.__aggregatedArrayColumns = aggregatedArrayColumns
+    vs.__aggregatedArrayMode = aggregatedArrayMode
+    vs.__aggregatedProjectingOptionalValuesAsNullable = projectingOptionalValuesAsNullable
     vs.__aggregatedArrayDistinct = distinct
-    vs.__isAggregate = node === aggregateValueAsArrayNode || node === allowWhenAggregateValueAsArrayNode
     if (error) {
         vs.__allowed = allowed
         vs.__error = error
@@ -270,6 +278,10 @@ function aggregatedColumnsIsAllowed(sqlBuilder: HasIsValue, aggregatedArrayColum
 /** An aggregate function of the database that gives an array */
 const aggregateValueAsArrayNode: NodeStrategy<AggregateValueAsArrayValueSource> = {
     ...valueSourceNode,
+    // An aggregate function (its null, below, is not)
+    __hasAggregation() {
+        return true
+    },
     __toSql(vs, sqlBuilder, context) {
         // The SQL builder types it as the value source its users see
         return sqlBuilder._aggregateValueAsArray(vs as any, context)
@@ -293,19 +305,19 @@ const aggregateValueAsArrayNode: NodeStrategy<AggregateValueAsArrayValueSource> 
         return aggregatedColumnsIsAllowed(sqlBuilder, vs.__aggregatedArrayColumns)
     },
     withOptionalType(vs, optionalType) {
-        return newAggregateValueAsArray(aggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, vs.__aggregatedArrayDistinct, vs.__aggreagtedProjectingOptionalValuesAsNullable)
+        return newAggregateValueAsArray(aggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, optionalType, vs.__aggregatedArrayDistinct, vs.__aggregatedProjectingOptionalValuesAsNullable)
     },
     asRequiredInOptionalObject(vs) {
-        return newAggregateValueAsArray(aggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', vs.__aggregatedArrayDistinct, vs.__aggreagtedProjectingOptionalValuesAsNullable)
+        return newAggregateValueAsArray(aggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'requiredInOptionalObject', vs.__aggregatedArrayDistinct, vs.__aggregatedProjectingOptionalValuesAsNullable)
     },
     asNull(vs) {
         return newAggregateValueAsArray(nullAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, 'optional', vs.__aggregatedArrayDistinct, undefined)
     },
     allowWhen(vs, allowed, error) {
-        return newAggregateValueAsArray(allowWhenAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedArrayDistinct, vs.__aggreagtedProjectingOptionalValuesAsNullable, allowed, error)
+        return newAggregateValueAsArray(allowWhenAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedArrayDistinct, vs.__aggregatedProjectingOptionalValuesAsNullable, allowed, error)
     },
     projectingOptionalValuesAsNullable(vs) {
-        vs.__aggreagtedProjectingOptionalValuesAsNullable = true
+        vs.__aggregatedProjectingOptionalValuesAsNullable = true
         return vs
     },
 }

@@ -109,19 +109,18 @@ A statement that fails leaves a PostgreSQL transaction failed, even if its error
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The second argument of `BunSqlPostgresQueryRunner`, optional, is an object of type `BunSqlPostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/bun-sql`, with one option, `typesByName`: it maps the name of a type, the one you give a type of yours or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The cast is the name in PostgreSQL of the [SQL data type](../../../advanced/sql-data-types.md) of its class, so a type the library doesn't know, like an enum of the database or a type of an extension, gets its cast when its class says it:
 
 ```ts
-import { SQL } from "bun";
-import { BunSqlPostgresQueryRunner } from "ts-sql-query/postgresql/bun-sql";
+import { EnumType, type SqlDataType } from "ts-sql-query";
 
-const sql = new SQL({ adapter: 'postgres' /* , configuration */ });
+type Feeling = 'happy' | 'sad'
 
-async function main() {
-    const connection = new DBConnection(new BunSqlPostgresQueryRunner(sql, { typesByName: { ExactDecimal: 'numeric' } }));
-    // A parameter of the type ExactDecimal, where the query needs a type: $1::numeric
-    connection // ...
+abstract class FeelingType extends EnumType<Feeling, 'Feeling'> {
+    static override readonly type = 'Feeling'
+    // create type feeling as enum ('happy', 'sad')
+    static override readonly sqlDataType: SqlDataType = { family: 'user-defined', name: 'feeling' }
 }
 ```
 
-The cast is written only where the query needs a type, as without the option; elsewhere, like compared with a column, the parameter goes as `$1` and the column gives it its type.
+Then `connection.const('happy', FeelingType)` selected on its own is `select $1::feeling as result`, with the parameter `[ 'happy' ]`, and a value the enum doesn't have is rejected by the database. The cast is written only where the query needs a type; elsewhere, like compared with a column, the parameter goes as `$1` and the column gives it its type.

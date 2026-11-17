@@ -5,7 +5,7 @@
 
 import { Pool } from 'pg'
 
-import { castTypesByName, createPgTestContext } from '../../runners.js'
+import { createPgTestContext } from '../../runners.js'
 import { PgPoolQueryRunner } from '../../../../../src/queryRunners/PgPoolQueryRunner.js'
 
 export const ctx = createPgTestContext({
@@ -14,7 +14,7 @@ export const ctx = createPgTestContext({
     async createRealRunner(uri) {
         const pool = new Pool({ connectionString: uri })
         return {
-            runner: new PgPoolQueryRunner(pool, { typesByName: castTypesByName }),
+            runner: new PgPoolQueryRunner(pool),
             shutdown: () => pool.end(),
         }
     },
@@ -23,7 +23,7 @@ export const ctx = createPgTestContext({
     createNestedTxRunner(uri) {
         const pool = new Pool({ connectionString: uri })
         return {
-            runner: new PgPoolQueryRunner(pool, { allowNestedTransactions: true, typesByName: castTypesByName }),
+            runner: new PgPoolQueryRunner(pool, { allowNestedTransactions: true }),
             shutdown: () => pool.end(),
         }
     },

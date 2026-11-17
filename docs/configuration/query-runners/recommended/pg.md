@@ -128,26 +128,25 @@ PostgreSQL doesn't nest them: see [what this option does](../../../queries/trans
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database): `pg` can't send a parameter with its type. The option `typesByName` maps the name of a type, the one you give a type of yours or a built-in one like `'int'`, to the cast written instead, for example `numeric` for an exact decimal kept as text:
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database): `pg` can't send a parameter with its type. The cast is the name in PostgreSQL of the [SQL data type](../../../advanced/sql-data-types.md) of its class, so a type the library doesn't know, like an enum of the database or a type of an extension, gets its cast when its class says it:
 
 ```ts
-import { Pool } from 'pg';
-import { PgPoolQueryRunner } from "ts-sql-query/postgresql/pg";
+import { EnumType, type SqlDataType } from "ts-sql-query";
 
-const pool = new Pool(/* configuration */);
+type Feeling = 'happy' | 'sad'
 
-async function main() {
-    const connection = new DBConnection(new PgPoolQueryRunner(pool, { typesByName: { ExactDecimal: 'numeric' } }));
-    // A parameter of the type ExactDecimal, where the query needs a type: $1::numeric
-    connection // ...
+abstract class FeelingType extends EnumType<Feeling, 'Feeling'> {
+    static override readonly type = 'Feeling'
+    // create type feeling as enum ('happy', 'sad')
+    static override readonly sqlDataType: SqlDataType = { family: 'user-defined', name: 'feeling' }
 }
 ```
 
-The cast is written only where the query needs a type, as without the option; elsewhere, like compared with a column, the parameter goes as `$1` and the column gives it its type.
+Then `connection.const('happy', FeelingType)` selected on its own is `select $1::feeling as result`, with the parameter `[ 'happy' ]`, and a value the enum doesn't have is rejected by the database. The cast is written only where the query needs a type; elsewhere, like compared with a column, the parameter goes as `$1` and the column gives it its type.
 
 ## Options of the query runner
 
 The second argument of the query runners, optional, is an object of options:
 
-- `PgPoolQueryRunner` takes a `PgPoolQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pg`, with **`allowNestedTransactions`** (see [Nested transactions](#nested-transactions)) and **`typesByName`** (see [The type of the parameters](#the-type-of-the-parameters)).
-- `PgQueryRunner` takes a `PgQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pg`, with **`allowNestedTransactions`**, **`typesByName`** and **`forUseInTransaction`** (see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages)).
+- `PgPoolQueryRunner` takes a `PgPoolQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pg`, with **`allowNestedTransactions`** (see [Nested transactions](#nested-transactions)).
+- `PgQueryRunner` takes a `PgQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pg`, with **`allowNestedTransactions`** and **`forUseInTransaction`** (see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages)).

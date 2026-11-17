@@ -194,7 +194,7 @@ temporal type, and `addParam` checks a decimal only when it is plain decimal tex
 |---|---|---|
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner`, `NodeSqliteQueryRunner`, `BunSqlSqliteQueryRunner`; a mock on SQLite | `?N` (1-based) | — |
 | `Sqlite3WasmOO1QueryRunner` | `?N`; an integer `number` ≥ 2^63 or < −2^63 as `cast(?N as real)`, the param holding `String(value)` (the driver would wrap it) | — |
-| `PgQueryRunner`, `PgPoolQueryRunner`, `BunSqlPostgresQueryRunner`; a mock on PostgreSQL | `$N`, plus `::<cast>` when `forceTypeCast` and a type is known (the one of `typesByName` for the type name first, then the one of the data type, below); with a database outside UTC, `::timestamptz` on a `localDateTime` and `::timestamptz::time` on a `localTime`, forced or not, whatever `typesByName` declares (§7.3) | — |
+| `PgQueryRunner`, `PgPoolQueryRunner`, `BunSqlPostgresQueryRunner`; a mock on PostgreSQL | `$N`, plus `::<cast>` when `forceTypeCast` and a type is known (the one of the SQL data type, then the one of the data type, below); with a database outside UTC, `::timestamptz` on a `localDateTime` and `::timestamptz::time` on a `localTime`, forced or not (§7.3) | — |
 | `PostgresQueryRunner`, `PgLiteQueryRunner` | `$N`, no cast (the type goes with the param, §2.4); with a database outside UTC, `$N::time` on a `localTime` (§7.3) | — |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner`, `MariaDBQueryRunner`, `MariaDBPoolQueryRunner`, `BunSqlMySqlQueryRunner`; a mock on MySQL or MariaDB | `?`, or `cast(? as decimal(p, s))` for a decimal outside the value of a column; `BunSqlMySqlQueryRunner` also for a bigint beyond 64 bits, which it sends as text | a decimal with precision > 65 or scale > 30 |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner`; a mock on SQL Server | `@N` (0-based), or `cast(@N as decimal(p, s))` for a decimal outside the value of a column | a decimal with precision > 38 |
@@ -263,23 +263,23 @@ What the drivers of each database receive, as a copy of the params when a value 
   New York, check the stored text and fail if it changes. Thick isn't covered by the tests. With a database outside
   UTC, see §7.3.
 
-| Runner | What the driver receives | `typesByName` |
+| Runner | What the driver receives | `driverTypeOf` |
 |---|---|---|
-| `PgQueryRunner`, `PgPoolQueryRunner` | `query({ text, values, types })` with the values above; the type is the cast in the SQL | cast text per type name |
-| `PostgresQueryRunner` | `sql.unsafe(query, params)` with the values above; a param of a `typesByName` name → `sql.typed(value, oid)` or the user's function; a forced param with a PostgreSQL type → `sql.typed(value, oid)`; others untyped. A throwing `typesByName` function rejects before sending | OID or function |
-| `PgLiteQueryRunner` | `db.query(query, params, { parsers, paramTypes })` with the values above; each param type is the `typesByName` OID, else the forced param's OID, else 0 | OID |
-| `BunSqlPostgresQueryRunner` | `sql.unsafe(query, params)` with the values above | cast text |
+| `PgQueryRunner`, `PgPoolQueryRunner` | `query({ text, values, types })` with the values above; the type is the cast in the SQL | — (the native name of the SQL data type gives the cast) |
+| `PostgresQueryRunner` | `sql.unsafe(query, params)` with the values above; a param `driverTypeOf` gives an OID → `sql.typed(value, oid)`, or the `Parameter` it gives; a forced param with a PostgreSQL type → `sql.typed(value, oid)`; others untyped. A throwing `driverTypeOf` rejects before sending | OID or `Parameter` |
+| `PgLiteQueryRunner` | `db.query(query, params, { parsers, paramTypes })` with the values above; each param type is the OID `driverTypeOf` gives, else the forced param's OID, else 0 | OID |
+| `BunSqlPostgresQueryRunner` | `sql.unsafe(query, params)` with the values above | — (as pg) |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `query({ ...queryOptions, sql }, params)` with the values above | — |
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `query({ ...queryOptions, sql }, params)` with the values above | — |
 | `BunSqlMySqlQueryRunner` | `sql.unsafe(query, params)` with the values above, a bigint beyond 64 bits (signed or unsigned), which Bun SQL can't bind, as its text | — |
-| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.input('<i>', type, value)` for each param, then `request.query(query)`. Type: `typesByName` (a factory or a type with arguments) → by its data type → a type of the user without a SQL data type infers it from the value (a string is `NVarChar`) → a param without type infers it from the value (a `Date` the library read keeps its data type for that). tedious writes a `Date` with the UTC getters (`useUTC`, true by default) | `ISqlTypeFactory` / `ISqlType` |
-| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: `typesByName` → `{ val, type }`; in `executeProcedure`, or in any query with `booleanStorage: 'boolean'`, a boolean param (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version); a boolean RETURNING OUT bind gets `DB_TYPE_BOOLEAN` only with `booleanStorage: 'boolean'` (with `'number'` it has no type and comes back as text); a temporal `Date` as above; a null of a number or temporal type → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`{ dir: BIND_OUT, type }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one declared in `typesByName` (`{ type, maxSize }`), else the `returningMaxSize` of the runner, else 32767. A `Lob` OUT value (a CLOB declared in `typesByName`) is read whole | `DbType` or `{ type, maxSize }`, also for OUT binds |
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.input('<i>', type, value)` for each param, then `request.query(query)`. Type: `driverTypeOf` (a factory or a type with arguments) → by its SQL data type → by its data type → a type of the user without a SQL data type infers it from the value (a string is `NVarChar`) → a param without type infers it from the value (a `Date` the library read keeps its data type for that). tedious writes a `Date` with the UTC getters (`useUTC`, true by default) | `ISqlTypeFactory` / `ISqlType` |
+| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: the type `driverTypeOf` gives → `{ val, type }`; in `executeProcedure`, or in any query with `booleanStorage: 'boolean'`, a boolean param (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version); a boolean RETURNING OUT bind gets `DB_TYPE_BOOLEAN` only with `booleanStorage: 'boolean'` (with `'number'` it has no type and comes back as text); a temporal `Date` as above; a null of a number or temporal type → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`{ dir: BIND_OUT, type }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one `driverTypeOf` gives (`{ type, maxSize }`), else the `returningMaxSize` of the runner, else 32767. A `Lob` OUT value (a CLOB `driverTypeOf` gives) is read whole | `DbType` or `{ type, maxSize }`, also for OUT binds |
 | `BetterSqlite3QueryRunner` | `prepare(query).all/run({ 1: p0, 2: p1, … })` | — |
 | `BunSqliteQueryRunner` | `prepare(query).all/run(...params)` | — |
 | `NodeSqliteQueryRunner` | `prepare(query).all/run(...params)` | — |
 | `BunSqlSqliteQueryRunner` | `sql.unsafe(query, params)` | — |
 | `Sqlite3WasmOO1QueryRunner` | `selectObjects(query, params)` / `exec({ sql, bind })` | — |
-| `MockQueryRunner` | nothing to a driver: the user's executor gets the SQL and params the named runner builds | cast text (`typesByName`, as pg and Bun SQL PostgreSQL) |
+| `MockQueryRunner` | nothing to a driver: the user's executor gets the SQL and params the named runner builds | — |
 
 Tests: `test/runners/oracle/OracleDBOutBinds.test.ts`, `test/runners/oracle/OracleDBReturningAndProcedures.test.ts`, and
 the tests of each runner in `test/runners/<db>/`. The wrappers (`ChainedQueryRunner` and its subclasses) delegate
@@ -342,11 +342,11 @@ the column only when the value fits in it; otherwise the runner does what it doe
 | Runner | What it does with it | Test |
 |---|---|---|
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | a text of a `character string` with `national: false` goes as `VarChar` of the length of the column (`VarChar(max)` when the text is longer), when it is ASCII, the same in every code page (tedious writes a `varchar` in the code page of the database: a character it lacks becomes `?`, also for a column of a UTF-8 collation, measured on 2025); otherwise `NVarChar`, as without it. As a `nvarchar`, SQL Server converts a `varchar` column, and with a SQL collation it scans its whole index (measured on 2025: Index Scan; as a `varchar`, Index Seek); a `datetime` or a `smalldatetime` (by its native name) goes as `DateTime` or `SmallDateTime` instead of `DateTime2`: compared with a `datetime2`, SQL Server converts the column with its exact fraction of 1/300 of a second, and an equality doesn't find a value with milliseconds (measured on 2025) | `test/runners/sqlserver/SqlDataTypeParams.test.ts` |
-| `OracleDB*QueryRunner` | a RETURNING OUT bind of a `character string` that is a `largeObject` is a `DB_TYPE_CLOB` (`DB_TYPE_NCLOB` when `national`), received whole (without it, a text longer than 4000 bytes fails with ORA-22835 unless `typesByName` declares the CLOB); of a known `length`, its `maxSize` is that length (4 bytes per character, or the octets); an object (not a `Date` nor a binary) of a `document` of format `json` is bound as `DB_TYPE_JSON` (without a type oracledb rejects an object, NJS-044) | `test/runners/oracle/SqlDataTypeOutBinds.test.ts` |
-| `PgQueryRunner`, `PgPoolQueryRunner`, `BunSqlPostgresQueryRunner`, `PostgresQueryRunner`, `PgLiteQueryRunner` | where the library forces the type of a parameter (`forceTypeCast`), and `typesByName` says none, the native type of the requested SQL data type without its arguments (a cast on pg and Bun SQL; the oid when the type has a fixed one on postgres.js and PGlite, but not a json or a jsonb for a text on postgres.js, which would serialize it as a JSON string); not for a `localTime` with a zoned time (it would get the zone of the session) | `test/runners/postgres/SqlDataTypeParams.test.ts` |
+| `OracleDB*QueryRunner` | a RETURNING OUT bind of a `character string` that is a `largeObject` is a `DB_TYPE_CLOB` (`DB_TYPE_NCLOB` when `national`), received whole (without it, a text longer than 4000 bytes fails with ORA-22835 unless `driverTypeOf` gives the CLOB); of a known `length`, its `maxSize` is that length (4 bytes per character, or the octets); an object (not a `Date` nor a binary) of a `document` of format `json` is bound as `DB_TYPE_JSON` (without a type oracledb rejects an object, NJS-044) | `test/runners/oracle/SqlDataTypeOutBinds.test.ts` |
+| `PgQueryRunner`, `PgPoolQueryRunner`, `BunSqlPostgresQueryRunner`, `PostgresQueryRunner`, `PgLiteQueryRunner` | where the library forces the type of a parameter (`forceTypeCast`), and `driverTypeOf` says none, the native type of the requested SQL data type without its arguments (a cast on pg and Bun SQL; the oid when the type has a fixed one on postgres.js and PGlite, but not a json or a jsonb for a text on postgres.js, which would serialize it as a JSON string); not for a `localTime` with a zoned time (it would get the zone of the session) | `test/runners/postgres/SqlDataTypeParams.test.ts` |
 | the others (MariaDB, MySQL, SQLite) | nothing yet; the SQL data type reaches a runner of the user in the context | — |
 
-`typesByName` of a runner wins over the SQL data type. Not done, on purpose: an `NVARCHAR` bind on Oracle for
+`driverTypeOf` of a runner wins over the SQL data type. Not done, on purpose: an `NVARCHAR` bind on Oracle for
 `national: true` (with the database in AL32UTF8 it gains nothing measurable, and on a `VARCHAR2` column it loses the
 index), a `Decimal` bind on SQL Server (tedious converts the text to a JavaScript number, losing digits), the
 precision in the decimal casts of MySQL and MariaDB (the column adds nothing where the value fits), and the precision
@@ -480,7 +480,7 @@ by hand (an empty context).
 
 | Of | Field | Written by | What it is for |
 |---|---|---|---|
-| each parameter | `originalType`, `requestedType` (the class of each type, with its `type` and `sqlDataType`), `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, `typesByName` lookups. A param added without them is sent as it is |
+| each parameter | `originalType`, `requestedType` (the class of each type, with its `type` and `sqlDataType`), `forceTypeCast` | the library before `addParam` / `addOutParam`; the requested type, by the type adapter (`setRequestedType`) | the type of each param at execution: the UTC text of a `Date` (PostgreSQL, MySQL/MariaDB), OIDs (postgres.js, PGlite), mssql types, Oracle bind types, what `driverTypeOf` receives. A param added without a type is sent as the driver infers it |
 | each parameter | `originalSqlDataType`, `requestedSqlDataType` | the type adapter the parameter is converted with (`withSqlDataType`), the one of the column for a value compared with it; the requested one, by the adapter (`setRequestedSqlDataType`) (§2.6) | the type of the column in the database, for the bind type or the buffer of the driver |
 | each parameter | `isValueForColumn` | the library before `addParam`, inside an insert's values or an update's set | the column gives the type: no decimal cast on MySQL/MariaDB and SQL Server; on Oracle with a database outside UTC, a bare placeholder (§7.3) |
 | each parameter | `getMetadata(key)`: a key of a type adapter or of the library | `transformValueToDB` of the type adapter and of the connection (`setMetadata`), before `addParam`, also for a `null` | `OracleDateAsTimestampTypeAdapter` marks its `localDateTime`/`localTime` parameters, which the Oracle runners bind as a `DATE` when of whole seconds, and as a `DATE` when `null` (§2.4); the connection marks the temporal values of a database outside UTC (§7.3) |
@@ -562,7 +562,7 @@ first query (§7.3; `test/runners/general/DatabaseTimeZone.test.ts`); and the er
 Sending:
 
 - The `Date` the user passes for a `localDate`/`localTime`/`localDateTime` has the intended digits in its UTC fields.
-- `typesByName`: the declared type fits the values.
+- `driverTypeOf`: the type given fits the values.
 - SQLite: every stored value in the configured `SqliteDateTimeFormat`.
 
 Reading:
@@ -776,9 +776,9 @@ arithmetic. With UTC the SQL doesn't change.
 
 - **PostgreSQL** (supported): each `localDateTime` and `localTime` parameter is sent as a `timestamptz` of its instant,
   forced or not (`$1::timestamptz` on pg and Bun SQL, OID 1184 on postgres.js and PGlite; a `localTime` with its own
-  day, and `::timestamptz::time` on pg and Bun SQL, `$1::time` on postgres.js and PGlite). A `typesByName` entry
-  for the type name doesn't apply to them, on every runner: the declared type would store the `…+00` text as UTC digits
-  instead of converting it to the zone of the database (`…-a-type-declared-in-types-by-name-keeps-the-zone-of-the-database`).
+  day, and `::timestamptz::time` on pg and Bun SQL, `$1::time` on postgres.js and PGlite). A type `driverTypeOf`
+  gives doesn't apply to them (postgres.js, PGlite): the declared type would store the `…+00` text as UTC digits
+  instead of converting it to the zone of the database.
   A parameter read back as it is (a constant selected) needs no conversion: `$1::timestamptz`; a column is read as `<sql>::timestamptz` (a no-op on a `timestamptz`), and as its text in the JSON of an
   aggregated array; the date functions take `(<sql>::timestamptz at time zone 'UTC')`, so they keep giving the parts
   in UTC. A `localTime` is completed with the `localTimeReferenceDate` (`'1970-01-01'` by default, a date, or
@@ -880,6 +880,6 @@ runner still works with params built by hand.
 | The columns of the result | `resultColumns`, `getResultColumn(name)` | the fetch types, the shape of the rows | §4 |
 | The configuration of the connection | `connectionConfiguration` | `compatibilityVersion`, the strategies, `booleanStorage`, `databaseTimeZone`, the date formats of SQLite; `sqlDataTypeFrom` and `nativeSqlDataTypeOf` of the connection (the native name of a SQL data type, built once) | §4, §7.3 |
 | Where and why the query runs | `executionSource`, `executionStack`, `functionExecutingQuery`, `executionName`, `executionMetadata`, `isSelectPageCount` | logs, errors | §4 |
-| The types declared by the user | `typesByName` of the runner, which wins over the SQL data type | a type of the driver per type name | §2.4 |
+| The types declared by the user | `driverTypeOf` of the runner (postgres.js, PGlite, mssql, Oracle), which wins over the SQL data type | a type of the driver for a parameter | §2.4 |
 | The runner a mock imitates | the `queryRunner` option of `MockQueryRunner` (the name of a runner) | the same placeholders and params | §2.3 |
 | The environment | `TZ` (the zone of the process), `ORA_SDTZ` | the checks of §5.2 | §5.2, §7.3 |

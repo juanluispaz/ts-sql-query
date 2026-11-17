@@ -10,6 +10,7 @@ import { __sqlDataTypeDescribes, __typeSqlDataTypeOf } from '../typeSystem/dataT
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
+import type { QueryParamContext } from '../QueryContext.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -24,11 +25,11 @@ const isolationLevelWords: { [level: number]: string } = {
 /** The options of MssqlPoolQueryRunner */
 export interface MssqlPoolQueryRunnerConfig {
     /**
-     * The type of mssql each parameter of a type name (the name of a type of the user, or of a built-in one) is bound
-     * with, instead of the one of its type: `TYPES.NVarChar` for an exact decimal kept as text, or
-     * `TYPES.Decimal(18, 4)`
+     * The type of mssql a parameter is bound with, for a type the library doesn't bind as you need, like `TYPES.Xml` or
+     * `TYPES.Money`: a type factory, or a type with its arguments; undefined to bind it as the library does. It receives
+     * what the library knows of the parameter (its type, its SQL data type, ...) and the value.
      */
-    typesByName?: { readonly [typeName: string]: ISqlTypeFactory | ISqlType } | undefined
+    driverTypeOf?: ((param: QueryParamContext, value: unknown) => ISqlTypeFactory | ISqlType | undefined) | undefined
 }
 
 /**
@@ -281,11 +282,11 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return request
     }
 
-    // The type the parameter is bound with: the one declared in typesByName for its type name, or the one getType gives
+    // The type the parameter is bound with: the one driverTypeOf gives, or the one of its SQL data type or of getType
     private getInputType(params: any[], index: number): ISqlType {
-        const typesByName = this.config?.typesByName
-        const type = existingParamContextOf(params, index)?.requestedType?.type
-        const declared = typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+        const driverTypeOf = this.config?.driverTypeOf
+        const param = existingParamContextOf(params, index)
+        const declared = driverTypeOf && param ? driverTypeOf(param, params[index]) : undefined
         if (declared) {
             if (typeof declared === 'function') {
                 // A type factory, like TYPES.NVarChar

@@ -62,16 +62,16 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         expect((await rejectionOf(r.executeQuery('insertReturningOneRow', longer.sql, longer.params)) as { code?: string }).code).toBe('NJS-016')
     })
 
-    test('a-type-name-in-types-by-name-gives-its-max-size', async () => {
-        const r = runner({ returningMaxSize: 300, typesByName: { LongText: { type: oracledb.DB_TYPE_VARCHAR, maxSize: 4000 } } })
+    test('driver-type-of-gives-the-max-size', async () => {
+        const r = runner({ returningMaxSize: 300, driverTypeOf: (param) => param.requestedType?.type === 'LongText' ? { type: oracledb.DB_TYPE_VARCHAR, maxSize: 4000 } : undefined })
         const { sql, params } = insertReturningText(r, 'x'.repeat(4000), 'LongText')
         expect(await r.executeQuery('insertReturningOneRow', sql, params)).toEqual({ v: 'x'.repeat(4000) })
     })
 
-    test('a-returning-of-a-clob-declared-in-types-by-name-is-read-as-text', async () => {
+    test('a-returning-of-a-clob-given-by-driver-type-of-is-read-as-text', async () => {
         // Oracle converts a CLOB returned as a VARCHAR2 up to 4000 bytes (ORA-22835 beyond); as a CLOB, oracledb gives
         // a Lob, read as its text
-        const r = runner({ typesByName: { LongText: oracledb.DB_TYPE_CLOB } })
+        const r = runner({ driverTypeOf: (param) => param.requestedType?.type === 'LongText' ? oracledb.DB_TYPE_CLOB : undefined })
         const text = 'z'.repeat(40000)
         const params: any[] = []
         const value = addParam(r, params, text, 'LongText', false)

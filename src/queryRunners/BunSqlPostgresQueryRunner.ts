@@ -10,25 +10,14 @@ import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
-/** The options of BunSqlPostgresQueryRunner */
-export interface BunSqlPostgresQueryRunnerConfig {
-    /**
-     * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
-     * custom type, or a built-in one) where the library writes a cast, instead of the one of its type
-     */
-    typesByName?: { readonly [typeName: string]: string } | undefined
-}
-
 /**
  * The query runner of PostgreSQL through Bun SQL, over a `SQL` created with the `postgres` adapter.
  */
 export class BunSqlPostgresQueryRunner extends AbstractBunSqlQueryRunner {
     protected override readonly transactionOutcome = new PostgresTransactionOutcome()
-    private config?: BunSqlPostgresQueryRunnerConfig | undefined
 
-    constructor(connection: SQL, config?: BunSqlPostgresQueryRunnerConfig) {
+    constructor(connection: SQL) {
         super(connection, 'postgreSql')
-        this.config = config
         const adapter = connection.options.adapter
         if (!(adapter == undefined || adapter == 'postgres')) {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlPostgresQueryRunner only supports Bun.SQL connections using the postgres adapter')
@@ -39,7 +28,7 @@ export class BunSqlPostgresQueryRunner extends AbstractBunSqlQueryRunner {
     }
     override addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.BunSqlPostgresQueryRunner(params, value, type, this.config?.typesByName)
+        return queryRunnerParamBindings.BunSqlPostgresQueryRunner(params, value, type)
     }
     protected override checkCommit(command: unknown): void {
         this.transactionOutcome.checkCommit(command)

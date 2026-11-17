@@ -159,14 +159,6 @@ function decoratePostgresContext(
 
 const DATABASE = 'postgres'
 
-// The PostgreSQL type of the types of the user of the tests, given to the runner of
-// every cell (`typesByName`): the cast pg and Bun SQL write, and the oid
-// postgres.js and PGlite send the parameter with. An `ExactDecimal` is a
-// `RealsType` that holds an exact decimal as text: as a `float8` it would
-// lose digits.
-export const castTypesByName = { ExactDecimal: 'numeric' }
-export const oidTypesByName = { ExactDecimal: 1700 }
-
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
@@ -470,7 +462,6 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
         database: 'postgreSql',
         realDbEnabled,
         mockQueryRunner: spec.mockQueryRunner ?? 'PgPoolQueryRunner',
-        mockTypesByName: castTypesByName,
         async createRealRunner(forceNew = false) {
             const container = await containers.getFor(image).acquire()
             const adminUri = container.getConnectionUri()
@@ -577,7 +568,7 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
             const db = await getOrCreatePglite()
             await applyPgliteSchemaAndSeed(db)
             return {
-                runner: new PgLiteQueryRunner(db, { typesByName: oidTypesByName }),
+                runner: new PgLiteQueryRunner(db),
                 // Don't close the db — the shared instance survives
                 // until the worker process exits (see comment on
                 // pgliteSharedDb).
@@ -588,7 +579,7 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
             const { PgLiteQueryRunner } = await import('../../../src/queryRunners/PgLiteQueryRunner.js')
             const db = await getOrCreatePglite()
             nestedTxConn = new DBConnection(
-                new CaptureInterceptor(new PgLiteQueryRunner(db, { allowNestedTransactions: true, typesByName: oidTypesByName })),
+                new CaptureInterceptor(new PgLiteQueryRunner(db, { allowNestedTransactions: true })),
                 spec.compatibilityVersion,
             )
         },
@@ -629,7 +620,6 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
         database: 'postgreSql',
         realDbEnabled,
         mockQueryRunner: 'BunSqlPostgresQueryRunner',
-        mockTypesByName: castTypesByName,
         async createRealRunner() {
             const container = await containers.getFor(image).acquire()
             workerUri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())

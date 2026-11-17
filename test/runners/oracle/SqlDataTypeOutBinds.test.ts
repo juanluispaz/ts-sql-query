@@ -1,5 +1,5 @@
 // What the Oracle runner does with the SQL data type of a column (withSqlDataType): the returning of a column that is a
-// large object of text is received in an OUT bind of a CLOB, whole, without declaring the type in typesByName, and a
+// large object of text is received in an OUT bind of a CLOB, whole, without giving the type in driverTypeOf, and a
 // text of a known length in a buffer of that length; an object of a JSON column is bound as a JSON.
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
@@ -78,7 +78,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         expect(outBinds.map(bind => ({ type: bind.type?.name, maxSize: bind.maxSize }))).toEqual([{ type: 'DB_TYPE_CLOB', maxSize: 32767 }, { type: undefined, maxSize: 40 }])
     }, LONG_TEXT_TIMEOUT)
 
-    test('without-a-sql-data-type-a-long-text-needs-types-by-name', async () => {
+    test('without-a-sql-data-type-a-long-text-is-rejected', async () => {
         const conn = new DBConnection(new OracleDBQueryRunner(connection!))
         let error: unknown
         try {

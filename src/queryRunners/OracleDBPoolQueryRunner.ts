@@ -10,7 +10,7 @@ import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 /** The options of OracleDBPoolQueryRunner, the ones of OracleDBQueryRunner that apply to a pool */
 export interface OracleDBPoolQueryRunnerConfig {
     /** See OracleDBQueryRunnerConfig */
-    typesByName?: OracleDBQueryRunnerConfig['typesByName']
+    driverTypeOf?: OracleDBQueryRunnerConfig['driverTypeOf']
     /** See OracleDBQueryRunnerConfig */
     returningMaxSize?: OracleDBQueryRunnerConfig['returningMaxSize']
 }

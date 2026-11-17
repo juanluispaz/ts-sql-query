@@ -9,12 +9,11 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
-import { EqualableType, LocalDatesType, RealsType } from '../../../../../src/exports/v2/index.js'
+import { EqualableType, LocalDatesType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
 abstract class RgbColorType extends EqualableType<RgbColor, 'RgbColor'> { static override readonly type = 'RgbColor' }
 abstract class BirthdayType extends LocalDatesType<Date, 'Birthday'> { static override readonly type = 'Birthday' }
-abstract class ExactDecimalType extends RealsType<ExactDecimal, 'ExactDecimal'> { static override readonly type = 'ExactDecimal' }
 
 interface RgbColor { r: number, g: number, b: number }
 
@@ -58,23 +57,6 @@ const tOrganizationColor = new class TOrganizationColor extends Table<DBConnecti
     color = this.column('plan', RgbColorType)
     constructor() { super('organization') }
 }()
-
-type ExactDecimal = string & { readonly __brand: 'ExactDecimal' }
-
-class ExactDecimalConnection extends DBConnection {
-    protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext) {
-        if (context.originalType.type === 'ExactDecimal' && value !== null && value !== undefined) {
-            return String(value)
-        }
-        return super.transformValueFromDB(value, context)
-    }
-    protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext) {
-        if (context.originalType.type === 'ExactDecimal') {
-            return value
-        }
-        return super.transformValueToDB(value, context)
-    }
-}
 
 class DayAsTextTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
@@ -241,25 +223,6 @@ describe(ctx.label, () => {
             ] },
             { companyId: 2, customers: [{ id: 3, birthday: new Date('2024-03-01T10:00:00Z') }] },
         ])
-    })
-
-    test('docs:type-adapters/exact-decimal-kept-as-text', async () => {
-        const amount = '12345678901234567890.123456789' as ExactDecimal
-        ctx.mockNext('12345678901234567890.123456789')
-        const connection = ctx.withConnection(ExactDecimalConnection)
-        // doc-start
-        const result = await connection.selectFromNoTable()
-            .selectOneColumn(connection.const(amount, ExactDecimalType))
-            .executeSelectOne()
-        // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "12345678901234567890.123456789",
-          ]
-        `)
-        assertType<Exact<typeof result, ExactDecimal>>()
-        expect(result).toBe('12345678901234567890.123456789')
     })
 
     test('docs:type-adapters/requested-type-date-sent-as-text', async () => {

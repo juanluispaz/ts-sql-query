@@ -12,11 +12,6 @@ import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 export interface PgPoolQueryRunnerConfig {
     /** Accept a transaction begun inside another one; rejected with `NESTED_TRANSACTION_NOT_SUPPORTED` by default */
     allowNestedTransactions?: boolean | undefined
-    /**
-     * The cast, like `'numeric'`, written after the placeholder of a parameter of each type name (the name given to a
-     * custom type, or a built-in one) where the library writes a cast, instead of the one of its type
-     */
-    typesByName?: { readonly [typeName: string]: string } | undefined
 }
 
 /**
@@ -50,7 +45,7 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     }
     addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PgPoolQueryRunner(params, value, type, this.config?.typesByName)
+        return queryRunnerParamBindings.PgPoolQueryRunner(params, value, type)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.connect().then(connection => {

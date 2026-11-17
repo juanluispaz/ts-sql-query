@@ -3,7 +3,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { PostgreSqlConnection } from '../../../../../src/connections/PostgreSqlConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, ForceTypeCast, withSqlDataType, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterProjectionContext, type TypeAdapterPlaceholderContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, ForceTypeCast, withSqlDataType, type SqlDataType, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterProjectionContext, type TypeAdapterPlaceholderContext } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
@@ -366,7 +366,7 @@ void InterceptorQueryRunner
 
 void getQueryContext
 void function(_tapc: TypeAdapterPlaceholderContext) {}
-void function(_qc: QueryContext, _qpc: QueryParamContext) {}
+void function(_qc: QueryContext, _qpc: QueryParamContext, _sdt: SqlDataType) {}
 void dynamicPick, 
 void dynamicPickPaths, 
 void fromRef

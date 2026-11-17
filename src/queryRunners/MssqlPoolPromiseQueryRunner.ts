@@ -10,7 +10,7 @@ import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 /** The options of MssqlPoolPromiseQueryRunner */
 export interface MssqlPoolPromiseQueryRunnerConfig {
     /** See MssqlPoolQueryRunnerConfig */
-    typesByName?: MssqlPoolQueryRunnerConfig['typesByName']
+    driverTypeOf?: MssqlPoolQueryRunnerConfig['driverTypeOf']
 }
 
 /**

@@ -271,8 +271,8 @@ own (a group such as `NumberType`, or a family such as `IntegersType`) is reject
 literal type name (`TypeNameOf`), and `TypeClass` then requires a `name` it can't have. `TypeClass` has no `is`:
 TypeScript infers the data type from `prototype`, and a generic `is` there would make the inference fail.
 
-The static `type` is the type name the run time knows a data type by (the messages of the errors, `typesByName` of a
-query runner, the context of a query): a class of the user says it by convention, the one of its NType; when it
+The static `type` is the type name the run time knows a data type by (the messages of the errors, the registry of the
+data types, the context of a query): a class of the user says it by convention, the one of its NType; when it
 doesn't, `BaseType` gives the name of the class (a getter, which the subclass that carries a type adapter answers with
 the class of its data type).
 

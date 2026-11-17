@@ -254,8 +254,6 @@ export interface TestContextOptions<CONN> {
      * params as the real pass, and tests assert one snapshot for both modes. The database's placeholders without it.
      */
     mockQueryRunner?: QueryRunnerName | undefined
-    /** The typesByName of the cell's runner, for a mock that imitates pg or Bun SQL on PostgreSQL */
-    mockTypesByName?: { readonly [typeName: string]: string } | undefined
     /** Optional one-shot seed step run during `up()` after the real runner is created. */
     onUp?: ((realInterceptor: CaptureInterceptor) => Promise<void>) | undefined
     /**
@@ -349,7 +347,6 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
     }, {
         database: opts.database,
         ...(opts.mockQueryRunner ? { queryRunner: opts.mockQueryRunner } : {}),
-        ...(opts.mockTypesByName ? { typesByName: opts.mockTypesByName } : {}),
         // Sync cells hand results back through SynchronousPromise so `sync()`
         // can unwrap them in the mock loop; every other cell omits it (native
         // Promise). Conditional spread because `exactOptionalPropertyTypes`

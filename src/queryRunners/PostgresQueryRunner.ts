@@ -12,15 +12,18 @@ import { postgreSqlOptionsTimeZone } from '../utils/postgreSql/postgreSqlSession
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
+import type { QueryParamContext } from '../QueryContext.js'
 
 /** The options of PostgresQueryRunner */
 export interface PostgresQueryRunnerConfig {
     /**
-     * The type each parameter of a type name (the name of a type of the user, or of a built-in one) is sent with, in every
-     * position: the oid of a PostgreSQL type, like `1700` for numeric, or a function that gives the parameter, like
-     * `value => sql.typed.money(value)` for a type declared in the `types` option of postgres.js
+     * The type a parameter is sent with, in every position, for a type the library doesn't know, like one of an
+     * extension: the oid of the PostgreSQL type, or the parameter itself, like `sql.typed(value, oid)` or a type declared
+     * in the `types` option of postgres.js; undefined to send it as the library does. It receives what the library knows
+     * of the parameter (its type, its SQL data type, ...) and the value as it would be sent. A localDateTime or a
+     * localTime of a database outside UTC is always sent as a timestamptz.
      */
-    typesByName?: { readonly [typeName: string]: number | ((value: any) => Parameter<any>) } | undefined
+    driverTypeOf?: ((param: QueryParamContext, value: unknown) => number | Parameter<any> | undefined) | undefined
 }
 
 /**
@@ -79,28 +82,26 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         return this.connection.reserve().then(reserved => fn(reserved).finally(() => reserved.release()))
     }
     /**
-     * The params as they are given to postgres.js: a parameter of a type name in typesByName is sent with the type
-     * declared there, and one whose type the database must receive (forceTypeCast) with the oid of its PostgreSQL
+     * The params as they are given to postgres.js: a parameter driverTypeOf gives a type is sent with it, and one whose type the database must receive (forceTypeCast) with the oid of its PostgreSQL
      * type, so the SQL needs no cast; the other params go untyped. A localDateTime or a localTime of a database outside
      * UTC goes as a timestamptz, whatever type is declared for it. A date or time goes as the text of
      * postgreSqlDriverParams. The params of the query are not changed.
      */
     private driverParams(sql: Sql | TransactionSql | ReservedSql, params: any[]): any[] {
-        const typesByName = this.config?.typesByName
+        const driverTypeOf = this.config?.driverTypeOf
         const values = postgreSqlDriverParams(params)
         let result: any[] | undefined = values === params ? undefined : values
         for (let i = 0, length = params.length; i < length; i++) {
             const value = values[i]
             const param = existingParamContextOf(params, i)
-            const type = param?.requestedType?.type
             // A value of a database outside UTC goes as a timestamptz, whatever type is declared for it
             const zoned = isPostgreSqlZonedParam(params, i)
-            const declared = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+            const declared = !zoned && driverTypeOf && param ? driverTypeOf(param, value) : undefined
             let typed: Parameter<any> | undefined
-            if (typeof declared === 'function') {
-                typed = declared(value)
-            } else if (declared !== undefined) {
+            if (typeof declared === 'number') {
                 typed = sql.typed(value, declared)
+            } else if (declared !== undefined) {
+                typed = declared
             } else if (param?.forceTypeCast || zoned) {
                 // The oid of its SQL data type, when it has a fixed one, or the one of its type. A text typed as a json or
                 // a jsonb would be serialized by postgres.js as a JSON string, not as the document it is
@@ -132,7 +133,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         try {
             driverParams = this.driverParams(sql, params)
         } catch (error) {
-            // A function of typesByName failed: nothing was sent
+            // driverTypeOf failed: nothing was sent
             return this.createRejectedPromise(error)
         }
         // then is called to ensure the query is executed

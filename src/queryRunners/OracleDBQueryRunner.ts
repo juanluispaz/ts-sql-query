@@ -21,11 +21,12 @@ export interface OracleDBQueryRunnerConfig {
     /** The connection is in a transaction that something else manages, and that something else ends: the statements don't commit, and none begins, commits or rolls back through this query runner */
     forUseInTransaction?: boolean | undefined
     /**
-     * The DbType of oracledb, like `oracledb.DB_TYPE_NUMBER`, each parameter of a type name (the name of a type of the user,
-     * type, or a built-in one) is bound with, also a RETURNING OUT bind, instead of the one oracledb gives its value;
-     * or an object with that DbType and the maxSize, in bytes, of a RETURNING OUT bind of that type name
+     * The DbType of oracledb a parameter is bound with, also a RETURNING OUT bind, for a type the library doesn't bind
+     * as you need, like `oracledb.DB_TYPE_NVARCHAR`; or an object with that DbType and the maxSize, in bytes, of a RETURNING
+     * OUT bind; undefined to bind it as the library does. It receives what the library knows of the parameter (its type,
+     * its SQL data type, ...) and the value, undefined for a RETURNING OUT bind.
      */
-    typesByName?: { readonly [typeName: string]: DbType | OracleDBBindType } | undefined
+    driverTypeOf?: ((param: QueryParamContext, value: unknown) => DbType | OracleDBBindType | undefined) | undefined
     /**
      * The maxSize, in bytes, of a RETURNING OUT bind of a text: the longest text a RETURNING of the library can give
      * (oracledb gives 200 bytes, and fails with NJS-016 beyond it). By default 32767, the longest VARCHAR2.
@@ -182,11 +183,11 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * The params as oracledb binds them by name: the placeholders this runner emits are named after the index of their
      * value (`:0`, `:1`, …), and binding by name gives every occurrence of a placeholder the same value, so the same
      * placeholder can be repeated in the query (an array binds one value per occurrence, in the order of the text).
-     * A parameter of a type name in typesByName is bound with the DbType declared there. With resolveOutBinds, a
+     * A parameter driverTypeOf gives a DbType is bound with it. With resolveOutBinds, a
      * RETURNING OUT bind also gets the DbType of its column. The params of the query are not changed.
      */
     protected bindParams(params: any[], resolveOutBinds: boolean = false, procedure: boolean = false): Record<string, any> {
-        const typesByName = this.config?.typesByName
+        const driverTypeOf = this.config?.driverTypeOf
         // With booleanStorage 'boolean' (Oracle 23ai) a boolean is bound as a BOOLEAN, as in a procedure
         const nativeBoolean = existingQueryContextOf(params)?.connectionConfiguration?.booleanStorage === 'boolean'
         const result: Record<string, any> = {}
@@ -196,10 +197,10 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             const value = params[i]
             const param = existingParamContextOf(params, i)
             const requestedType = param?.requestedType
-            const typeName = requestedType?.type
-            const declaredBind = typesByName && typeName !== undefined && Object.hasOwn(typesByName, typeName) ? typesByName[typeName] : undefined
+            const outBind = resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT
+            const declaredBind = driverTypeOf && param ? driverTypeOf(param, outBind ? undefined : value) : undefined
             const declared = isOracleDBBindType(declaredBind) ? declaredBind.type : declaredBind
-            if (resolveOutBinds && value && typeof value === 'object' && value.dir === oracleDb.BIND_OUT) {
+            if (outBind) {
                 // Each RETURNING OUT bind keeps the type of its column (addOutParam)
                 // A date or a time is returned as a timestamp with time zone: Oracle converts the value of a date or a
                 // timestamp column with the zone of the session (the zone of the database, see oracleSessionTimeZone), and oracledb
@@ -393,7 +394,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 }
 
-/** Whether an entry of typesByName is a DbType with a maxSize, and not a DbType alone */
+/** Whether what driverTypeOf gives is a DbType with a maxSize, and not a DbType alone */
 function isOracleDBBindType(value: DbType | OracleDBBindType | undefined): value is OracleDBBindType {
     return typeof value === 'object' && value !== null && 'type' in value && !('num' in value)
 }
@@ -421,7 +422,7 @@ function hasLobs(outBinds: any): boolean {
 
 /**
  * The OUT binds with each Lob read as its value (a text or a Buffer), in a copy: a RETURNING OUT bind declared a CLOB,
- * an NCLOB or a BLOB (in typesByName, or by the SQL data type of its column) gives a Lob, for a value of any length.
+ * an NCLOB or a BLOB (given by driverTypeOf, or by the SQL data type of its column) gives a Lob, for a value of any length.
  * Called only when hasLobs says there is one
  */
 function readLobsOfOutBinds(outBinds: any): Promise<any> {

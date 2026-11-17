@@ -32,9 +32,9 @@ transaction and its OUT binds (`oracle/OracleDBCommit.test.ts`,
 `oracle/OracleDBOutBinds.test.ts`), SQL Server's isolation level on the
 pooled connection and its parameter types
 (`sqlserver/MssqlPoolQueryRunner.test.ts`, `sqlserver/MssqlParamTypes.test.ts`),
-Oracle's `typesByName` (`oracle/OracleDBParamTypes.test.ts`), and how the
-PostgreSQL runners type a parameter, with a cast or sent typed, and their
-`typesByName` (`postgres/PostgreSqlParamTypes.test.ts`).
+Oracle's `driverTypeOf` (`oracle/OracleDBParamTypes.test.ts`), and how the
+PostgreSQL runners type a parameter, with a cast or sent typed, and the
+`driverTypeOf` of postgres.js and PGlite (`postgres/PostgreSqlParamTypes.test.ts`).
 
 One fix relies on driver internals and has a test watching each side of it:
 `MssqlPoolQueryRunner` flags the connection of a transaction the server

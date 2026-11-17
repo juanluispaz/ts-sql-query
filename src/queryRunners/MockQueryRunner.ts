@@ -47,11 +47,6 @@ export interface MockQueryRunnerConfig {
      * real query runner would send. Without it, the mock writes the placeholders of the database.
      */
     queryRunner?: QueryRunnerName | undefined
-    /**
-     * The typesByName of pg or Bun SQL on PostgreSQL, when queryRunner is one of them: the PostgreSQL type written as
-     * the cast of a parameter, by its type name
-     */
-    typesByName?: { readonly [typeName: string]: string } | undefined
     /** The provider of the promises, like `SynchronousPromise`; the global `Promise` by default */
     promise?: PromiseProvider | undefined
     /** Whether a transaction can begin inside another one; true by default */
@@ -91,7 +86,6 @@ export class MockQueryRunner extends AbstractQueryRunner {
     private currentDatabase: DatabaseType
     private readonly allowNestedTransactions: boolean
     private readonly paramBinding: ParamBinding | undefined
-    private readonly typesByName: { readonly [typeName: string]: string } | undefined
     private readonly queryRunnerName: QueryRunnerName | undefined
 
     /** A mock that answers every query as a database without rows, unless a subclass overrides executeMockedQuery */
@@ -126,7 +120,6 @@ export class MockQueryRunner extends AbstractQueryRunner {
             // The placeholders of the database, found when a parameter is added: an unknown database fails there
             this.paramBinding = undefined
         }
-        this.typesByName = config.typesByName
         if (config.promise) {
             this.promise = config.promise
         }
@@ -223,9 +216,9 @@ export class MockQueryRunner extends AbstractQueryRunner {
     addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         const paramBinding = this.paramBinding
         if (paramBinding) {
-            return paramBinding(params, value, type, this.typesByName)
+            return paramBinding(params, value, type)
         }
-        return databaseParamBinding(this.currentDatabase)(params, value, type, this.typesByName)
+        return databaseParamBinding(this.currentDatabase)(params, value, type)
     }
     /** An out parameter, as oracledb receives it: only on Oracle */
     override addOutParam(params: any[], name: string, type: DataTypeName | DataTypeClass | undefined): string {

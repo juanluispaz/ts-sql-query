@@ -424,7 +424,7 @@ the V8 byte-range coverage path replaces all of this; see
 ## `mockRunners/` — the mock of the doc SQL tests
 
 The cells don't subclass `MockQueryRunner` any more: each factory in `test/db/<db>/runners.ts` passes the name of its
-real runner in the `mockQueryRunner` option of `createTestContext` (and `mockTypesByName` for pg / Bun SQL), so the
+real runner in the `mockQueryRunner` option of `createTestContext`, so the
 public `MockQueryRunner` adds every parameter with the same function the real runner's `addParam` calls
 (`src/utils/queryRunnerParams.ts`), and the params `CaptureInterceptor` records are identical in mock and real modes:
 

@@ -80,12 +80,35 @@ A transaction that begins inside another one is rejected, unless you create the 
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`. The option `typesByName` maps the name of a type, the one you give a type of yours or a built-in one like `'int'`, to the oid of the PostgreSQL type every parameter of that name is sent with, wherever it is written: `new PgLiteQueryRunner(db, { typesByName: { ExactDecimal: 1700 } })` sends an exact decimal kept as text as a `numeric` (oid 1700), with every digit.
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`. The type comes from its [SQL data type](../../../advanced/sql-data-types.md), but only a type with an oid fixed in every database, like `numeric` (`1700`) or `jsonb`: an enum of the database or a type of an extension has an oid of its own in each database, and its parameter goes without a type. The option `driverTypeOf` is a function that receives what the library knows of each parameter (its type, its SQL data type, …, the same as [the context of the query](../../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)) and its value, and gives the oid it is sent with, wherever it is written; with `undefined`, as the library does:
+
+```ts
+import { PGlite } from '@electric-sql/pglite'
+import { EnumType } from "ts-sql-query";
+import { PgLiteQueryRunner } from 'ts-sql-query/postgresql/pglite';
+
+type Feeling = 'happy' | 'sad'
+
+abstract class FeelingType extends EnumType<Feeling, 'Feeling'> {
+    static override readonly type = 'Feeling'
+}
+
+async function main() {
+    const db = await PGlite.create()
+    // create type feeling as enum ('happy', 'sad'): its oid is the one of this database
+    const { rows } = await db.query<{ oid: number }>("select oid from pg_type where typname = 'feeling'")
+    const oid = rows[0]!.oid
+    const connection = new DBConnection(new PgLiteQueryRunner(db, {
+        driverTypeOf: (param) => param.requestedType === FeelingType ? oid : undefined
+    }));
+    connection // ...
+}
+```
 
 ## Options of the query runner
 
 The second argument of `PgLiteQueryRunner`, optional, is an object of type `PgLiteQueryRunnerConfig`, exported from `ts-sql-query/postgresql/pglite`:
 
 - **`allowNestedTransactions`**: see [Nested transactions](#nested-transactions).
-- **`typesByName`**: see [The type of the parameters](#the-type-of-the-parameters).
+- **`driverTypeOf`**: see [The type of the parameters](#the-type-of-the-parameters).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

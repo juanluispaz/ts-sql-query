@@ -3,12 +3,13 @@
 // created in Madrid), runs the queries of a database in Europe/Madrid declared in the connection and prints what was
 // stored and read; mode `firstQuery` builds the runner with its session in Madrid and prints the outcome of the first
 // query of a connection that declares the zone it is told; mode `timeWithTimeZone` reads a time with time zone with the
-// database and the session in UTC; mode `declaredTypes` sends a localDateTime and a localTime with a type declared for
-// them in the typesByName of the runner.
+// database and the session in UTC; mode `declaredTypes` sends a localDateTime and a localTime with a type that
+// driverTypeOf of the runner gives them (postgres.js, PGlite).
 
 import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
+import type { QueryParamContext } from '../../../../src/QueryContext.js'
 import { printResult, probeConfig } from '../../lib/localTemporalValuesProbe.js'
 import { reasonOf } from '../../../runners/lib/runnerContract.js'
 
@@ -24,9 +25,8 @@ const uri = config.connection?.uri ?? ''
 const compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
 // The zone of the session (PGlite: of its database): Madrid, or UTC with the option utc
 const zone = config.options.utc ? 'UTC' : 'Europe/Madrid'
-// The types of the runner, with declaredTypes: a timestamp and a time, as a cast (pg, Bun SQL) or an OID
-const castTypes = config.options.declaredTypes ? { typesByName: { localDateTime: 'timestamp', localTime: 'time' } } : undefined
-const oidTypes = config.options.declaredTypes ? { typesByName: { localDateTime: 1114, localTime: 1083 } } : undefined
+// The types of the runner, with declaredTypes: the OID of a timestamp and of a time
+const oidTypes = config.options.declaredTypes ? { driverTypeOf: (param: QueryParamContext) => param.requestedType?.type === 'localDateTime' ? 1114 : param.requestedType?.type === 'localTime' ? 1083 : undefined } : undefined
 
 class MadridConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
@@ -88,13 +88,13 @@ async function createRunner(): Promise<{ runner: QueryRunner, raw: (sql: string)
             const { PgQueryRunner } = await import('../../../../src/queryRunners/PgQueryRunner.js')
             const client = new pg.Client({ connectionString: uri, options: '-c TimeZone=' + zone })
             await client.connect()
-            return { runner: new PgQueryRunner(client, castTypes), raw: async (sql) => (await client.query(sql)).rows, close: () => client.end() }
+            return { runner: new PgQueryRunner(client), raw: async (sql) => (await client.query(sql)).rows, close: () => client.end() }
         }
         case 'PgPoolQueryRunner': {
             const { default: pg } = await import('pg')
             const { PgPoolQueryRunner } = await import('../../../../src/queryRunners/PgPoolQueryRunner.js')
             const pool = new pg.Pool({ connectionString: uri, max: 2, options: '-c TimeZone=' + zone })
-            return { runner: new PgPoolQueryRunner(pool, castTypes), raw: async (sql) => (await pool.query(sql)).rows, close: () => pool.end() }
+            return { runner: new PgPoolQueryRunner(pool), raw: async (sql) => (await pool.query(sql)).rows, close: () => pool.end() }
         }
         case 'PostgresQueryRunner': {
             const { default: postgres } = await import('postgres')
@@ -106,7 +106,7 @@ async function createRunner(): Promise<{ runner: QueryRunner, raw: (sql: string)
             const { SQL } = await import('bun')
             const { BunSqlPostgresQueryRunner } = await import('../../../../src/queryRunners/BunSqlPostgresQueryRunner.js')
             const sql = new SQL(uri, { max: 2, connection: { TimeZone: zone } })
-            return { runner: new BunSqlPostgresQueryRunner(sql, castTypes), raw: async (text) => [...await sql.unsafe(text)], close: () => sql.close() }
+            return { runner: new BunSqlPostgresQueryRunner(sql), raw: async (text) => [...await sql.unsafe(text)], close: () => sql.close() }
         }
         case 'PgLiteQueryRunner': {
             const { PGlite } = await import('@electric-sql/pglite')

@@ -54,7 +54,7 @@ abstract class MyEnumDataType extends EnumType<MyEnumType, 'MyEnumTypeName'> {
 }
 ```
 
-The type name in the generic is the one TypeScript uses; `type` is the one the library uses when the query runs: in the messages of the errors, in `typesByName` of a query runner and in what a [type adapter](../advanced/type-adapters.md) receives. Without `type`, it's the name of the class (`MyIntDataType`). The class is `abstract`, as its family is. Declare it once and import it where you use it: each declaration is a class of its own, and `is` says yes only to the values of its own class.
+The type name in the generic is the one TypeScript uses; `type` is the one the library uses when the query runs: in the messages of the errors, in [its name as a type](#giving-your-type-by-its-name) and in what a [type adapter](../advanced/type-adapters.md) and a query runner receive. Without `type`, it's the name of the class (`MyIntDataType`). The class is `abstract`, as its family is. Declare it once and import it where you use it: each declaration is a class of its own, and `is` says yes only to the values of its own class.
 
 The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name. Two classes with the same type name and different TypeScript types are a mistake that nothing detects: give each type a name of its own.
 
@@ -142,9 +142,9 @@ An integer wider than the integer types of the databases, like `{ family: 'exact
 
 !!! important
 
-    Register the conversion of a type whose family doesn't convert it (`AdditiveType`, `MultipliableType`, `DivisibleType`, `EnumType`, `EqualableType` and `ComparableType`), and of a type whose values in your code aren't those its family converts, like a floating point number kept as text. Without it, such a value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
+    Register the conversion of a type whose family doesn't convert it (`AdditiveType`, `MultipliableType`, `DivisibleType`, `EnumType`, `EqualableType` and `ComparableType`), and of a type whose values in your code aren't those its family converts, like a date kept as its text. Without it, such a value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md), which also covers how to send a value of your type with another SQL type, like a floating point number kept as text.
+The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md).
 
 ### Giving your type by its name
 
@@ -326,7 +326,7 @@ PostgreSQL gets the type only where it can't tell it from the rest of the query,
 
 So the type also says how big the value can be in the database: an integer of yours is a 32-bit integer, like an `int`, unless its class says another SQL data type, like 64 bits; a `RealsType` is a floating point number, and an exact decimal a [`DecimalsType`](#exact-decimals).
 
-The `typesByName` option of the query runners of PostgreSQL, SQL Server and Oracle sends the parameters of a type name, the name of the type requested for them, with the type you declare instead; each query runner's page has its shape. For what the type of the column in the database already says, declare that type instead (next section).
+For a type the library doesn't know, like an enum of the database, say its SQL data type in its class (next section). The query runners of postgres.js, PGlite, SQL Server and Oracle also take `driverTypeOf`, a function that gives the type of the driver a parameter is sent with, for what only that driver has; each query runner's page has its shape.
 
 ## The type of the column in the database
 
@@ -346,4 +346,4 @@ class TProduct extends Table<DBConnection, 'TProduct'> {
 }
 ```
 
-Leave `typesByName` for a type only one driver has. Everything else, the families of the types, writing the type as an object and what each database does with it, is in [The type of a column in the database](../advanced/sql-data-types.md).
+Leave `driverTypeOf` of a query runner for a type only one driver has. Everything else, the families of the types, writing the type as an object and what each database does with it, is in [The type of a column in the database](../advanced/sql-data-types.md).

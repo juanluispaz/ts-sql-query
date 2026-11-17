@@ -235,7 +235,6 @@ The second argument of the constructor is an object with these options:
 interface MockQueryRunnerConfig {
     database?: DatabaseType
     queryRunner?: QueryRunnerName
-    typesByName?: { readonly [typeName: string]: string }
     promise?: PromiseProvider
     allowNestedTransactions?: boolean
 }
@@ -243,7 +242,6 @@ interface MockQueryRunnerConfig {
 
 - **`database`**: the database to write the placeholders for (`$1`, `?`, `:0`, …). A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection. With `queryRunner`, it defaults to the database of that query runner.
 - **`queryRunner`**: the query runner of the library whose parameters the mock imitates, by the name of its class (`'PgPoolQueryRunner'`, `'BetterSqlite3QueryRunner'`, `'MssqlPoolQueryRunner'`, …). See [Imitating a query runner](#imitating-a-query-runner).
-- **`typesByName`**: with `queryRunner` set to `'PgQueryRunner'`, `'PgPoolQueryRunner'` or `'BunSqlPostgresQueryRunner'`, the `typesByName` you give that query runner: the PostgreSQL type written as the cast of a parameter, by its type name.
 - **`promise`**: another `Promise` provider, used by [synchronous query runners](../../../advanced/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
 - **`allowNestedTransactions`**: accepts a transaction inside another one. `true` by default.
 

@@ -104,19 +104,30 @@ async function main() {
 
 Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`.
 
-The second argument of `PostgresQueryRunner`, optional, is an object of type `PostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/postgres`, with one option, `typesByName`. It maps the name of a type, the one you give a type of yours or a built-in one like `'int'`, to the type every parameter of that name is sent with, wherever it is written: the oid of a PostgreSQL type, like `1700` for `numeric`, or a function that gives the parameter, like `value => sql.typed.money(value)` for a type declared in the `types` option of postgres.js.
+The type of a parameter comes from its [SQL data type](../../../advanced/sql-data-types.md), but only a type with an oid fixed in every database, like `numeric` (`1700`) or `jsonb`: an enum of the database or a type of an extension has an oid of its own in each database, and its parameter goes without a type. The second argument of `PostgresQueryRunner`, optional, is an object of type `PostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/postgres`, with one option, `driverTypeOf`: a function that receives what the library knows of each parameter (its type, its SQL data type, …, the same as [the context of the query](../../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)) and its value, and gives the oid it is sent with, or the parameter itself, like `sql.typed(value, oid)` or a type declared in the `types` option of postgres.js. The parameter is then sent with that type wherever it is written; with `undefined`, as the library does.
 
 ```ts
 import postgres from 'postgres'
+import { EnumType } from "ts-sql-query";
 import { PostgresQueryRunner } from 'ts-sql-query/postgresql/postgres';
+
+type Feeling = 'happy' | 'sad'
+
+abstract class FeelingType extends EnumType<Feeling, 'Feeling'> {
+    static override readonly type = 'Feeling'
+}
 
 const sql = postgres(/* configuration */);
 
 async function main() {
-    // 1700 is the oid of numeric: an exact decimal kept as text keeps every digit
-    const connection = new DBConnection(new PostgresQueryRunner(sql, { typesByName: { ExactDecimal: 1700 } }));
+    // create type feeling as enum ('happy', 'sad'): its oid is the one of this database
+    const rows = await sql`select oid from pg_type where typname = 'feeling'`
+    const oid = Number(rows[0]!['oid'])
+    const connection = new DBConnection(new PostgresQueryRunner(sql, {
+        driverTypeOf: (param) => param.requestedType === FeelingType ? oid : undefined
+    }));
     connection // ...
 }
 ```
 
-An error thrown by a function of `typesByName` rejects the query, and nothing is sent.
+An error thrown by `driverTypeOf` rejects the query, and nothing is sent.

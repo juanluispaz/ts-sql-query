@@ -1,5 +1,5 @@
-// How MssqlPoolQueryRunner binds each parameter: with the type declared for the
-// name of its type in typesByName, then by its type and its type of the user, and
+// How MssqlPoolQueryRunner binds each parameter: with the type driverTypeOf gives
+// it, then by its type and its type of the user, and
 // otherwise (a parameter added without them, or an enum, a custom or a
 // ComparableType) with a type inferred from the JavaScript value. The value read
 // back proves the binding.
@@ -13,7 +13,7 @@ import { MssqlPoolPromiseQueryRunner } from '../../../src/queryRunners/MssqlPool
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/sqlserver/runners.js'
 import { addParam, typeNameOf } from '../lib/params.js'
-import { ComparableType, DecimalsType, EnumType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../src/exports/v2/index.js'
+import { ComparableType, DecimalsType, EnumType, EqualableType, IntType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../src/exports/v2/index.js'
 import type { SqlDataType } from '../../../src/TypeAdapter.js'
 
 // The data types of the user the parameters are of, each one a class of the family of its values
@@ -26,7 +26,6 @@ abstract class DownloadsType extends IntegersType<bigint, 'Downloads'> {
     static override readonly type = 'Downloads'
     static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
 }
-abstract class ExactDecimalType extends RealsType<number, 'ExactDecimal'> { static override readonly type = 'ExactDecimal' }
 abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
 abstract class PriceType extends RealsType<number, 'Price'> { static override readonly type = 'Price' }
 abstract class ReleaseChannelType extends EqualableType<unknown, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
@@ -114,33 +113,39 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     // 30 digits, 10 of them decimals: a decimal(38,10) keeps all of them, a float doesn't
     const exactDecimal = '12345678901234567890.1234567891'
 
-    test('typesByName/an-exact-decimal-bound-as-text-keeps-every-digit', async () => {
-        const { TYPES } = db!.mssql
-        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { ExactDecimal: TYPES.NVarChar } })
-        await runner!.executeQuery('executeDatabaseSchemaModification', 'create table rt_exact_decimal (v decimal(38,10) not null)', [])
-        try {
-            const insertParams: any[] = []
-            const inserted = await declared.executeQuery('insert', `insert into rt_exact_decimal (v) values (${addParam(declared, insertParams, exactDecimal, ExactDecimalType, false)})`, insertParams)
-            expect(inserted).toBe(1)
-            const selectParams: any[] = []
-            const placeholder = addParam(declared, selectParams, exactDecimal, ExactDecimalType, false)
-            const read = await declared.executeQuery('selectManyRows', `select cast(v as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs from rt_exact_decimal where v = ${placeholder}`, selectParams)
-            expect(read).toEqual([{ v: exactDecimal, boundAs: 'nvarchar' }])
+    /** A query runner whose driverTypeOf gives the type of mssql of each class of the map */
+    function withDriverTypes(types: Map<unknown, import('mssql').ISqlTypeFactory | import('mssql').ISqlType>): QueryRunner {
+        return new MssqlPoolQueryRunner(pool!, { driverTypeOf: (param) => types.get(param.requestedType) })
+    }
 
-            // Without the declaration, a RealsType is bound as a float, which loses digits
-            const floatParams: any[] = []
-            const asFloat = await runner!.executeQuery('selectOneColumnOneRow', `select cast(cast(${addParam(runner!, floatParams, exactDecimal, ExactDecimalType, false)} as decimal(38,10)) as nvarchar(50))`, floatParams)
-            expect(asFloat).not.toBe(exactDecimal)
-        } finally {
-            await runner!.executeQuery('executeDatabaseSchemaModification', 'drop table rt_exact_decimal', [])
-        }
+    /** The base type SQL Server bound the parameter with, by a runner */
+    async function boundBy(r: QueryRunner, value: unknown, type: string | DataTypeClass): Promise<string> {
+        const params: any[] = []
+        const placeholder = addParam(r, params, value, type, false)
+        return await r.executeQuery('selectOneColumnOneRow', `select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
+    }
+
+    test('driverTypeOf/a-type-the-library-does-not-bind-as-you-need', async () => {
+        const { TYPES } = db!.mssql
+        expect(await boundBy(withDriverTypes(new Map([[MoneyType, TYPES.Money]])), 12.5, MoneyType)).toBe('money')
+        expect(await boundBy(runner!, 12.5, MoneyType)).toBe('float')
     })
 
-    test('typesByName/a-decimal-type-loses-the-digits-of-a-long-exact-decimal', async () => {
+    test('driverTypeOf/a-type-with-its-arguments', async () => {
+        // Decimal(18, 4) rounds to 4 decimals
+        const { TYPES } = db!.mssql
+        const declared = withDriverTypes(new Map([[PriceType, TYPES.Decimal(18, 4)]]))
+        const params: any[] = []
+        const placeholder = addParam(declared, params, 1.23456, PriceType, false)
+        const row = await declared.executeQuery('selectOneRow', `select cast(${placeholder} as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs, cast(sql_variant_property(${placeholder}, 'Scale') as int) as scale`, params)
+        expect(row).toEqual({ v: '1.2346', boundAs: 'decimal', scale: 4 })
+    })
+
+    test('driverTypeOf/a-decimal-type-loses-the-digits-of-a-long-exact-decimal', async () => {
         // The driver converts the value of a Decimal parameter to a JS number before sending it, so a long exact decimal
         // loses digits even declared with a scale that holds them; without a scale, Decimal is (18, 0)
         const { TYPES } = db!.mssql
-        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { Wide: TYPES.Decimal(38, 10), Bare: TYPES.Decimal } })
+        const declared = withDriverTypes(new Map<unknown, import('mssql').ISqlTypeFactory | import('mssql').ISqlType>([[WideType, TYPES.Decimal(38, 10)], [BareType, TYPES.Decimal]]))
         const sent = async (value: unknown, type: DataTypeClass) => {
             const params: any[] = []
             const placeholder = addParam(declared, params, value, type, false)
@@ -150,35 +155,18 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         expect(await sent('12.56789', BareType)).toBe('13')
     })
 
-    test('typesByName/a-type-with-its-arguments', async () => {
-        // Decimal(18, 4) rounds to 4 decimals
+    test('driverTypeOf/the-type-it-gives-wins-and-undefined-binds-as-the-library-does', async () => {
         const { TYPES } = db!.mssql
-        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { Price: TYPES.Decimal(18, 4) } })
-        const params: any[] = []
-        const placeholder = addParam(declared, params, 1.23456, PriceType, false)
-        const row = await declared.executeQuery('selectOneRow', `select cast(${placeholder} as nvarchar(50)) as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs, cast(sql_variant_property(${placeholder}, 'Scale') as int) as scale`, params)
-        expect(row).toEqual({ v: '1.2346', boundAs: 'decimal', scale: 4 })
+        const declared = withDriverTypes(new Map<unknown, import('mssql').ISqlTypeFactory | import('mssql').ISqlType>([[IntType, TYPES.BigInt], [CodeType, TYPES.Decimal(10, 2)]]))
+        expect(await boundBy(declared, 1, 'int')).toBe('bigint')
+        expect(await boundBy(declared, 12, CodeType)).toBe('decimal')
+        expect(await boundBy(declared, 12, CentsType)).toBe('int')
     })
 
-    test('typesByName/the-declared-type-wins-over-the-type-and-applies-to-that-name-only', async () => {
+    test('driverTypeOf/the-pool-promise-runner-passes-it-on', async () => {
         const { TYPES } = db!.mssql
-        const declared = new MssqlPoolQueryRunner(pool!, { typesByName: { int: TYPES.BigInt, Code: TYPES.Decimal(10, 2) } })
-        const boundBy = async (value: unknown, type: string | DataTypeClass) => {
-            const params: any[] = []
-            const placeholder = addParam(declared, params, value, type, false)
-            return await declared.executeQuery('selectOneColumnOneRow', `select cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30))`, params)
-        }
-        expect(await boundBy(1, 'int')).toBe('bigint')
-        expect(await boundBy(12, CodeType)).toBe('decimal')
-        expect(await boundBy(12, CentsType)).toBe('int')
-    })
-
-    test('typesByName/the-pool-promise-runner-passes-it-on', async () => {
-        const { TYPES } = db!.mssql
-        const declared = new MssqlPoolPromiseQueryRunner(Promise.resolve(pool!), { typesByName: { ExactDecimal: TYPES.NVarChar } })
-        const params: any[] = []
-        const placeholder = addParam(declared, params, exactDecimal, ExactDecimalType, false)
-        expect(await declared.executeQuery('selectOneRow', `select ${placeholder} as v, cast(sql_variant_property(${placeholder}, 'BaseType') as nvarchar(30)) as boundAs`, params)).toEqual({ v: exactDecimal, boundAs: 'nvarchar' })
+        const declared = new MssqlPoolPromiseQueryRunner(Promise.resolve(pool!), { driverTypeOf: (param) => param.requestedType === MoneyType ? TYPES.Money : undefined })
+        expect(await boundBy(declared, 12.5, MoneyType)).toBe('money')
     })
 
     test('ownDecimal/hand-written-sql-adds-two-parameters-as-numbers', async () => {

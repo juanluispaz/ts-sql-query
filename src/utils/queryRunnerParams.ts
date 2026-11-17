@@ -14,15 +14,12 @@ import { bunSqlMySqlSendsAsText, mySqlMariaDBPlaceholder } from './mySqlMariaDB/
 import { isPostgreSqlZonedParam, postgreSqlParamTypeOfSqlDataType, postgreSqlPlaceholder, postgreSqlZonedTimeCast } from './postgreSql/postgreSqlParamTypes.js'
 import { sqlServerPlaceholder } from './sqlServer/sqlServerParamTypes.js'
 
-/** The PostgreSQL type, by type name, written as the cast of a parameter (the typesByName of pg and Bun SQL) */
-export type CastTypesByName = { readonly [typeName: string]: string }
-
 /**
  * Adds the parameter to the params and returns its placeholder, as a query runner does in addParam: the type it is
  * sent with and forceTypeCast are in its context in the query, written by the library before; a parameter added by
  * hand gets the type given (paramContextWithType)
  */
-export type ParamBinding = (params: any[], value: any, type: DataTypeName | DataTypeClass | undefined, castTypesByName?: CastTypesByName | undefined) => string
+export type ParamBinding = (params: any[], value: any, type: DataTypeName | DataTypeClass | undefined) => string
 
 /**
  * The context of the parameter at that index, as the query runner reads it: the one the library wrote before adding
@@ -63,14 +60,14 @@ const sqliteWasm: ParamBinding = (params, value, type) => {
     return '?' + (add(params, value) + 1)
 }
 /** pg and Bun SQL can't send a parameter with its type: the type goes as a cast in the placeholder */
-const postgreSqlCast: ParamBinding = (params, value, type, castTypesByName) => {
+const postgreSqlCast: ParamBinding = (params, value, type) => {
     // A localDateTime or a localTime of a database outside UTC, marked by the connection before it is added, goes with
     // its type, a timestamptz
     const param = paramContextWithType(params, params.length, type)
     const zoned = isPostgreSqlZonedParam(params, params.length)
     const index = add(params, value)
     const forced = !!param?.forceTypeCast
-    return postgreSqlPlaceholder(index, value, param?.requestedType, forced, castTypesByName, zoned, forced && !zoned ? postgreSqlParamTypeOfSqlDataType(params, index) : undefined)
+    return postgreSqlPlaceholder(index, value, param?.requestedType, forced, zoned, forced && !zoned ? postgreSqlParamTypeOfSqlDataType(params, index) : undefined)
 }
 /** postgres.js and PGlite send the parameter with its type: the placeholder needs no cast */
 const postgreSqlTyped: ParamBinding = (params, value, type) => {

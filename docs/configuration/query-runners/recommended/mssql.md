@@ -106,13 +106,21 @@ async function main(mssqlPool: mssql.ConnectionPool) {
 
 Each parameter is sent with the SQL Server type of [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database), like `int` or `nvarchar`. A text compared with a `varchar` column goes as an `nvarchar`, which makes SQL Server convert the column, and with a SQL collation, like the default `SQL_Latin1_General_CP1_CI_AS`, read its whole index. The recommended way to avoid it is to declare the SQL data type of the column, `withSqlDataType({ family: 'character string', length: 50, national: false })`: its texts are then sent as a `varchar(50)`, and the index is sought (see [The type of a column in the database](../../../advanced/sql-data-types.md)).
 
-A `localDateTime` is sent as a `datetime2`. Compared with a `datetime` column, SQL Server converts the column to a `datetime2` with its exact fraction of 1/300 of a second, so an equality doesn't find a value with milliseconds: `10:00:00.123` is stored as `10:00:00.1233333`. Declare the SQL data type of such a column, `withSqlDataType(typesConnection.sqlDataTypeFrom('datetime'))`, and its values are sent as a `datetime` (also for `smalldatetime`), which finds them. The second argument of both query runners, optional, is an object with one option, `typesByName`: it maps the name of a type, the one you give a type of yours or a built-in one like `'int'`, to the mssql type every parameter of that name is sent with. The value is a type of `TYPES`, like `TYPES.NVarChar`, or one with its arguments, like `TYPES.Decimal(18, 4)`. Its types are `MssqlPoolPromiseQueryRunnerConfig` and `MssqlPoolQueryRunnerConfig`, exported from the module of each query runner.
+A `localDateTime` is sent as a `datetime2`. Compared with a `datetime` column, SQL Server converts the column to a `datetime2` with its exact fraction of 1/300 of a second, so an equality doesn't find a value with milliseconds: `10:00:00.123` is stored as `10:00:00.1233333`. Declare the SQL data type of such a column, `withSqlDataType(typesConnection.sqlDataTypeFrom('datetime'))`, and its values are sent as a `datetime` (also for `smalldatetime`), which finds them.
 
+The second argument of both query runners, optional, is an object with one option, `driverTypeOf`, for a type the library doesn't send as you need: a function that receives what the library knows of each parameter (its type, its SQL data type, …, the same as [the context of the query](../../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)) and its value, and gives the mssql type it is sent with: a type of `TYPES`, like `TYPES.Money` or `TYPES.Xml`, or one with its arguments, like `TYPES.Decimal(18, 4)`; with `undefined`, as the library does. Its types are `MssqlPoolPromiseQueryRunnerConfig` and `MssqlPoolQueryRunnerConfig`, exported from the module of each query runner.
+
+<!-- doc-code-snippet-template: sqlserver -->
 ```ts
 import mssql from 'mssql'
+import { AdditiveType } from "ts-sql-query";
 import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/sqlserver/mssql";
 
 const { ConnectionPool, TYPES } = mssql
+
+abstract class MoneyType extends AdditiveType<number, 'Money'> {
+    static override readonly type = 'Money'
+}
 
 const poolPromise = new ConnectionPool({
     user: '...',
@@ -123,10 +131,11 @@ const poolPromise = new ConnectionPool({
 
 async function main() {
     const connection = new DBConnection(new MssqlPoolPromiseQueryRunner(poolPromise, {
-        typesByName: { ExactDecimal: TYPES.NVarChar, Price: TYPES.Decimal(18, 4) }
+        // A value of MoneyType goes as a money, instead of the int or float of its JavaScript number
+        driverTypeOf: (param) => param.requestedType === MoneyType ? TYPES.Money : undefined
     }));
     connection // ...
 }
 ```
 
-`TYPES.Decimal(18, 4)` rounds a value to 4 decimals. For an exact decimal kept as text, use `TYPES.NVarChar`, and SQL Server converts the text where a `decimal` is expected: the driver turns the value of a `TYPES.Decimal` into a JavaScript number, so a long decimal loses digits, and `TYPES.Decimal` without arguments is `decimal(18, 0)`, which rounds the fraction away.
+`TYPES.Decimal(18, 4)` rounds a value to 4 decimals, and the driver turns the value of a `TYPES.Decimal` into a JavaScript number, so a long decimal loses digits; `TYPES.Decimal` without arguments is `decimal(18, 0)`, which rounds the fraction away. An exact decimal is a [`DecimalsType`](../../data-types.md#exact-decimals), sent with every digit without it.

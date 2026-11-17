@@ -10,16 +10,19 @@ import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
+import type { QueryParamContext } from '../QueryContext.js'
 
 /** The options of PgLiteQueryRunner */
 export interface PgLiteQueryRunnerConfig {
     /** Accept a transaction begun inside another one; rejected with `NESTED_TRANSACTION_NOT_SUPPORTED` by default */
     allowNestedTransactions?: boolean | undefined
     /**
-     * The oid of the PostgreSQL type, like `1700` for numeric, each parameter of a type name (the name of a type of the user,
-     * type, or a built-in one) is sent with, in every position
+     * The oid of the PostgreSQL type a parameter is sent with, in every position, for a type the library doesn't know,
+     * like one of an extension; undefined to send it as the library does. It receives what the library knows of the
+     * parameter (its type, its SQL data type, ...) and the value. A localDateTime or a localTime of a database outside UTC
+     * is always sent as a timestamptz.
      */
-    typesByName?: { readonly [typeName: string]: number } | undefined
+    driverTypeOf?: ((param: QueryParamContext, value: unknown) => number | undefined) | undefined
     /** The connection is in a transaction that something else began, and that something else ends: none begins on it */
     forUseInTransaction?: boolean | undefined
 }
@@ -64,20 +67,19 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
 
     /**
      * The query options: the parsers of the values received (see pgLiteParsers), and the types of the params, when one
-     * has a type: a parameter of a type name in typesByName is sent with the type declared there, and one whose type the
+     * has a type: a parameter driverTypeOf gives an oid is sent with it, and one whose type the
      * database must receive (forceTypeCast) with the oid of its PostgreSQL type, so the SQL needs no cast; the other
      * params go untyped (0). A localDateTime or a localTime of a database outside UTC goes as a timestamptz, whatever
      * type is declared for it.
      */
     private queryOptions(params: any[]): QueryOptions {
-        const typesByName = this.config?.typesByName
+        const driverTypeOf = this.config?.driverTypeOf
         let paramTypes: number[] | undefined = undefined
         for (let i = 0, length = params.length; i < length; i++) {
             const param = existingParamContextOf(params, i)
-            const type = param?.requestedType?.type
             // A value of a database outside UTC goes as a timestamptz, whatever type is declared for it
             const zoned = isPostgreSqlZonedParam(params, i)
-            let oid = !zoned && typesByName && type !== undefined && Object.hasOwn(typesByName, type) ? typesByName[type] : undefined
+            let oid = !zoned && driverTypeOf && param ? driverTypeOf(param, params[i]) : undefined
             if (oid === undefined && (param?.forceTypeCast || zoned)) {
                 // The oid of its SQL data type, when it has a fixed one, or the one of its type
                 oid = (zoned ? undefined : postgreSqlParamTypeOfSqlDataType(params, i)?.oid) ?? postgreSqlParamType(param?.requestedType, params[i], zoned)?.oid

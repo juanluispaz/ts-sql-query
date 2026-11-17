@@ -26,7 +26,7 @@ import {
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
-import { EnumType } from '../../../../../src/exports/v2/index.js'
+import { AdditiveType, EnumType } from '../../../../../src/exports/v2/index.js'
 import { ComparableType, DecimalsType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
@@ -249,6 +249,7 @@ void function(_dcfm: DynamicConditionForModel<any>, _obfm: OrderByForModel<any>)
 void fromRef
 
 void EnumType
+void AdditiveType
 void function(
     _dpp: DynamicPickPaths<any>,
     _dc: DynamicCondition<any>,

@@ -25,10 +25,6 @@ sit down and close.
 
 The JSON of an array aggregate is parsed keeping every number as its text, so that no precision is lost, and it's the transformation of the type that converts it. An `IntegersType`, `RealsType`, `UuidsType` or `LocalDates/Times/DateTimesType` is converted as the built-in type of its family (an `IntegersType` as an `int`), so it needs nothing registered; an `enum`, an `EqualableType` or a `ComparableType` must register its conversion, the best place being the connection. Without it, a number arrives in the array as text, while a plain select gives what the driver gives. The domain of the tests registers it through `baseTypeForCustom`.
 
-## A `RealsType` holding an exact decimal
-
-By default a `RealsType` is converted as a `double`, typed as `float8` on PostgreSQL and bound as `Float` on SQL Server, so an exact decimal kept as text loses digits. The user registers the conversion of the type and declares the type of its parameters in the `typesByName` option of the query runner (`'numeric'` for pg and Bun SQL, oid `1700` for postgres.js and PGlite, `TYPES.NVarChar` for mssql), as the cells of `docs:type-adapters/exact-decimal-kept-as-text` do. A default that needs no declaration is deferred by the maintainer: see [`DEFERRED.md`](./DEFERRED.md).
-
 ## The golden rule: no closing a gap with a query of its own
 
 The library sends to the database **only the query the user asked for**
@@ -246,7 +242,7 @@ closest`, and run live everywhere else.
 
 `OracleDBQueryRunner` binds a text or a number without a declared type
 (only a date, a boolean of a procedure, a null of a number or a date, and a
-type of `typesByName` get one) and lets oracledb infer the bind type.
+type `driverTypeOf` gives get one) and lets oracledb infer the bind type.
 oracledb's statement cache (`stmtCacheSize`, default
 30) keys on the **SQL text** and retains the bind-type metadata of the
 first execution, so re-executing one text with a differently-typed bind at

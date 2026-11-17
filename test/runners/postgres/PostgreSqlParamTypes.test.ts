@@ -2,16 +2,19 @@
 // the library asks it for (forceTypeCast): pg and Bun SQL can't send a typed
 // parameter, and write the type as a cast in the placeholder (`$1::int4`);
 // postgres.js and PGlite send the parameter with the oid of its type, and leave
-// the placeholder bare. pg_typeof shows the type the engine resolved. Each one
-// takes typesByName: the cast (pg, Bun SQL) written where the library asks for
-// the type, or the oid (postgres.js, PGlite; also a function giving the
-// parameter on postgres.js) sent with every parameter of that type name.
+// the placeholder bare. pg_typeof shows the type the engine resolved. postgres.js
+// and PGlite take driverTypeOf, for a type the library doesn't know, like an enum
+// of the database, whose oid is its own in each database: the oid (or, on
+// postgres.js, the parameter) it gives is sent with the parameter in every
+// position.
 
 import pg from 'pg'
 import postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { getQueryContext } from '../../../src/QueryContext.js'
+import type { SqlDataType } from '../../../src/TypeAdapter.js'
+import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import type { DataTypeClass } from '../../../src/TypeAdapter.js'
 import { PgQueryRunner } from '../../../src/queryRunners/PgQueryRunner.js'
 import { PgPoolQueryRunner } from '../../../src/queryRunners/PgPoolQueryRunner.js'
@@ -20,25 +23,25 @@ import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.j
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
 import { addParam, typeNameOf } from '../lib/params.js'
-import { ComparableType, EnumType, EqualableType, IntegersType, LocalDateType, RealsType } from '../../../src/exports/v2/index.js'
+import { ComparableType, EnumType, EqualableType, IntegersType, LocalDateType } from '../../../src/exports/v2/index.js'
 
 // The data types of the user the parameters are of, each one a class of the family of its values
 abstract class BigType extends EqualableType<unknown, 'Big'> { static override readonly type = 'Big' }
 abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
-abstract class ExactDecimalType extends RealsType<number, 'ExactDecimal'> { static override readonly type = 'ExactDecimal' }
+abstract class MoodType extends EnumType<'happy' | 'sad', 'Mood'> { static override readonly type = 'Mood' }
+// An enum of the database whose class says its SQL data type: the native name of a type the library doesn't know
+abstract class FeelingType extends EnumType<'happy' | 'sad', 'Feeling'> {
+    static override readonly type = 'Feeling'
+    static override readonly sqlDataType: SqlDataType = { family: 'user-defined', name: 'rt_feeling' }
+}
+class FeelingConnection extends PostgreSqlConnection<'FeelingConnection'> {}
 abstract class RatioType extends ComparableType<unknown, 'Ratio'> { static override readonly type = 'Ratio' }
 abstract class StatusType extends EnumType<unknown, 'Status'> { static override readonly type = 'Status' }
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 
-// 30 digits, 10 of them decimals: a numeric keeps all of them, a float8 doesn't
-const exactDecimal = '12345678901234567890.1234567891'
-
 interface Runners {
-    // Without typesByName
     plain: QueryRunner
-    // With typesByName: { ExactDecimal: <numeric> }
-    declared: QueryRunner
     close(): Promise<void>
 }
 
@@ -100,6 +103,27 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             expect(await runners!.plain.executeQuery('selectOneColumnOneRow', `select id from organization where name = ${placeholder}`, params)).toBe(1)
         })
 
+        test('a-type-the-library-does-not-know-is-cast-with-the-native-name-of-its-sql-data-type', async () => {
+            // pg and Bun SQL write the cast of a constant selected on its own with the native name of the SQL data type of
+            // its class, here an enum of the database: a value the enum doesn't have is rejected. postgres.js and PGlite
+            // send the oid of a type only when it is fixed, which the one of an enum isn't: it goes untyped, as a text
+            const r = runners!.plain
+            await r.executeQuery('executeDatabaseSchemaModification', 'drop type if exists rt_feeling', [])
+            await r.executeQuery('executeDatabaseSchemaModification', "create type rt_feeling as enum ('happy', 'sad')", [])
+            const conn = new FeelingConnection(r)
+            const happy = conn.selectFromNoTable().selectOneColumn(conn.const('happy', FeelingType))
+            expect(happy.query()).toBe(typesTheParam ? 'select $1 as result' : 'select $1::rt_feeling as result')
+            expect(await happy.executeSelectOne()).toBe('happy')
+            const other = conn.selectFromNoTable().selectOneColumn(conn.const('other' as 'happy', FeelingType))
+            let error: unknown
+            try {
+                await other.executeSelectOne()
+            } catch (e) {
+                error = e
+            }
+            expect(error === undefined).toBe(typesTheParam)
+        })
+
         test('a-param-compared-with-a-column-goes-untyped', async () => {
             const params: any[] = []
             const placeholder = addParam(runners!.plain, params, 1, 'int', false)
@@ -109,10 +133,10 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
 
         test('the-params-of-the-query-are-not-changed', async () => {
             const params: any[] = []
-            const placeholder = addParam(runners!.declared, params, 7, 'int', true)
-            const decimal = addParam(runners!.declared, params, exactDecimal, ExactDecimalType, false)
-            await runners!.declared.executeQuery('selectOneRow', `select ${placeholder} as a, ${decimal}::text as b`, params)
-            expect(params).toEqual([7, exactDecimal])
+            const placeholder = addParam(runners!.plain, params, 7, 'int', true)
+            const day = addParam(runners!.plain, params, new Date(Date.UTC(2024, 0, 15)), 'localDate', false)
+            await runners!.plain.executeQuery('selectOneRow', `select ${placeholder} as a, ${day}::text as b`, params)
+            expect(params).toEqual([7, new Date(Date.UTC(2024, 0, 15))])
         })
 
         test('a-typed-param-inside-a-transaction', async () => {
@@ -123,43 +147,6 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
             }, r)
             expect(type).toBe('integer')
         })
-
-        test('typesByName/an-exact-decimal-keeps-every-digit', async () => {
-            const r = runners!.declared
-            const params: any[] = []
-            const placeholder = addParam(r, params, exactDecimal, ExactDecimalType, true)
-            expect(placeholder).toBe(typesTheParam ? '$1' : '$1::numeric')
-            expect(await r.executeQuery('selectOneRow', `select (${placeholder})::text as v, pg_typeof(${placeholder})::text as t`, params)).toEqual({ v: exactDecimal, t: 'numeric' })
-
-            // Without the declaration, a RealsType gets the type of a double, which loses digits
-            const plainParams: any[] = []
-            const asDouble = await runners!.plain.executeQuery('selectOneColumnOneRow', `select (${addParam(runners!.plain, plainParams, exactDecimal, ExactDecimalType, true)})::text`, plainParams)
-            expect(asDouble).not.toBe(exactDecimal)
-        })
-
-        test('typesByName/inserted-into-and-compared-with-a-numeric-column', async () => {
-            const r = runners!.declared
-            await r.executeQuery('executeDatabaseSchemaModification', 'create table rt_exact_decimal (v numeric(38,10) not null)', [])
-            try {
-                const insertParams: any[] = []
-                expect(await r.executeQuery('insert', `insert into rt_exact_decimal (v) values (${addParam(r, insertParams, exactDecimal, ExactDecimalType, false)})`, insertParams)).toBe(1)
-                const params: any[] = []
-                const placeholder = addParam(r, params, exactDecimal, ExactDecimalType, true)
-                expect(await r.executeQuery('selectManyRows', `select v::text as v from rt_exact_decimal where v = ${placeholder}`, params)).toEqual([{ v: exactDecimal }])
-            } finally {
-                await r.executeQuery('executeDatabaseSchemaModification', 'drop table rt_exact_decimal', [])
-            }
-        })
-
-        test('typesByName/a-param-the-library-does-not-ask-the-type-of', async () => {
-            // The cast is written only where the library asks for the type; a typed param is sent typed everywhere
-            const params: any[] = []
-            const placeholder = addParam(runners!.declared, params, exactDecimal, ExactDecimalType, false)
-            expect(placeholder).toBe('$1')
-            if (typesTheParam) {
-                expect(await runners!.declared.executeQuery('selectOneColumnOneRow', `select pg_typeof(${placeholder})::text`, params)).toBe('numeric')
-            }
-        })
     })
 }
 
@@ -169,7 +156,6 @@ describeParamTypes('PgQueryRunner', isRealDbEnabled('postgres', 'docker', 'newes
     await client.connect()
     return {
         plain: new PgQueryRunner(client),
-        declared: new PgQueryRunner(client, { typesByName: { ExactDecimal: 'numeric' } }),
         close: async () => { await client.end(); await db.release() },
     }
 })
@@ -179,7 +165,6 @@ describeParamTypes('PgPoolQueryRunner', isRealDbEnabled('postgres', 'docker', 'n
     const pool = new pg.Pool({ connectionString: db.uri, max: 2 })
     return {
         plain: new PgPoolQueryRunner(pool),
-        declared: new PgPoolQueryRunner(pool, { typesByName: { ExactDecimal: 'numeric' } }),
         close: async () => { await pool.end(); await db.release() },
     }
 })
@@ -189,22 +174,6 @@ describeParamTypes('PostgresQueryRunner', isRealDbEnabled('postgres', 'docker', 
     const sql = postgres(db.uri, { max: 2, onnotice: () => {} })
     return {
         plain: new PostgresQueryRunner(sql),
-        declared: new PostgresQueryRunner(sql, { typesByName: { ExactDecimal: 1700 } }),
-        close: async () => { await sql.end(); await db.release() },
-    }
-})
-
-// A type declared in the types option of postgres.js, given by a function
-describeParamTypes('PostgresQueryRunner (a type of the types option)', isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'), true, async () => {
-    const db = await acquireRunnerTestDatabase()
-    const sql = postgres(db.uri, {
-        max: 2,
-        onnotice: () => {},
-        types: { exact: { to: 1700, from: [1700], serialize: (value: string) => value, parse: (value: string) => value } },
-    })
-    return {
-        plain: new PostgresQueryRunner(sql),
-        declared: new PostgresQueryRunner(sql, { typesByName: { ExactDecimal: (value: string) => sql.typed.exact(value) } }),
         close: async () => { await sql.end(); await db.release() },
     }
 })
@@ -215,7 +184,6 @@ describeParamTypes('PgLiteQueryRunner', isRealDbEnabled('postgres', 'wasm', 'new
     await db.exec("create table organization (id int primary key, name text not null); insert into organization values (1, 'Acme Corp')")
     return {
         plain: new PgLiteQueryRunner(db),
-        declared: new PgLiteQueryRunner(db, { typesByName: { ExactDecimal: 1700 } }),
         close: async () => { await db.close() },
     }
 })
@@ -227,7 +195,90 @@ describeParamTypes('BunSqlPostgresQueryRunner', isBun && isRealDbEnabled('postgr
     const sql = new SQL(db.uri, { max: 2 })
     return {
         plain: new BunSqlPostgresQueryRunner(sql),
-        declared: new BunSqlPostgresQueryRunner(sql, { typesByName: { ExactDecimal: 'numeric' } }),
         close: async () => { await sql.close(); await db.release() },
+    }
+})
+
+// An enum of the database: the library doesn't know its oid, which is its own in each database. The query runners that
+// send the parameter with its type take it from driverTypeOf, and send it so in every position; without it, a parameter
+// the library doesn't ask the type of goes untyped, and PostgreSQL can't work out its type where nothing gives it one.
+interface DriverTypeOfRunners {
+    // driverTypeOf gives the oid of the enum to a Mood
+    byOid: QueryRunner
+    // driverTypeOf gives the parameter itself, typed with that oid (postgres.js)
+    byParameter: QueryRunner | undefined
+    plain: QueryRunner
+    close(): Promise<void>
+}
+
+const createMoodType = "drop type if exists rt_mood; create type rt_mood as enum ('happy', 'sad')"
+
+function describeDriverTypeOf(label: string, enabled: boolean, create: () => Promise<DriverTypeOfRunners>): void {
+    describe.skipIf(!enabled)(label + ': driverTypeOf', () => {
+        let runners: DriverTypeOfRunners | undefined
+        beforeAll(async () => { runners = await create() }, 300_000)
+        afterAll(async () => { await runners?.close() }, 300_000)
+
+        async function resolvedType(r: QueryRunner): Promise<{ placeholder: string, type: unknown }> {
+            const params: any[] = []
+            const placeholder = r.addParam(params, 'happy', MoodType)
+            return { placeholder, type: await r.executeQuery('selectOneColumnOneRow', `select pg_typeof(${placeholder})::text`, params) }
+        }
+
+        test('driverTypeOf/an-enum-of-the-database-is-sent-with-its-oid', async () => {
+            expect(await resolvedType(runners!.byOid)).toEqual({ placeholder: '$1', type: 'rt_mood' })
+            // Without it, the parameter goes untyped, and PostgreSQL can't work its type out there
+            let error: unknown
+            try {
+                await resolvedType(runners!.plain)
+            } catch (e) {
+                error = e
+            }
+            expect(String(error)).toMatch(/could not determine data type of parameter \$1/)
+        })
+
+        test('driverTypeOf/the-parameter-it-gives-is-sent', async () => {
+            if (runners!.byParameter) {
+                expect(await resolvedType(runners!.byParameter)).toEqual({ placeholder: '$1', type: 'rt_mood' })
+            }
+        })
+
+        test('driverTypeOf/a-parameter-of-another-type-is-sent-as-the-library-does', async () => {
+            const params: any[] = []
+            const placeholder = addParam(runners!.byOid, params, 7, 'int', true)
+            expect(await runners!.byOid.executeQuery('selectOneColumnOneRow', `select pg_typeof(${placeholder})::text`, params)).toBe('integer')
+        })
+    })
+}
+
+/** The oid of the enum rt_mood, created in the database */
+async function moodOid(r: QueryRunner): Promise<number> {
+    await r.executeQuery('executeDatabaseSchemaModification', createMoodType, [])
+    return Number(await r.executeQuery('selectOneColumnOneRow', "select oid from pg_type where typname = 'rt_mood'", []))
+}
+
+describeDriverTypeOf('PostgresQueryRunner', isRealDbEnabled('postgres', 'docker', 'newest', 'postgres'), async () => {
+    const db = await acquireRunnerTestDatabase()
+    const sql = postgres(db.uri, { max: 2, onnotice: () => {} })
+    const plain = new PostgresQueryRunner(sql)
+    const oid = await moodOid(plain)
+    return {
+        byOid: new PostgresQueryRunner(sql, { driverTypeOf: (param) => param.requestedType === MoodType ? oid : undefined }),
+        byParameter: new PostgresQueryRunner(sql, { driverTypeOf: (param, value) => param.requestedType === MoodType ? sql.typed(value as string, oid) : undefined }),
+        plain,
+        close: async () => { await sql.end(); await db.release() },
+    }
+})
+
+describeDriverTypeOf('PgLiteQueryRunner', isRealDbEnabled('postgres', 'wasm', 'newest', 'pglite'), async () => {
+    const { PGlite } = await import('@electric-sql/pglite')
+    const db = await PGlite.create('memory://')
+    const plain = new PgLiteQueryRunner(db)
+    const oid = await moodOid(plain)
+    return {
+        byOid: new PgLiteQueryRunner(db, { driverTypeOf: (param) => param.requestedType === MoodType ? oid : undefined }),
+        byParameter: undefined,
+        plain,
+        close: async () => { await db.close() },
     }
 })

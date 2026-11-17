@@ -232,45 +232,36 @@ async function main(oracleConnection: oracledb.Connection) {
 The second argument of `OracleDBQueryRunner`, optional, is an object of type `OracleDBQueryRunnerConfig`, exported from `ts-sql-query/oracle/oracledb`:
 
 - **`forUseInTransaction`**: the connection is in a transaction that something else manages; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).
-- **`typesByName`**: the type each parameter of a type name is bound with; see [The type of the parameters](#the-type-of-the-parameters).
+- **`driverTypeOf`**: the type a parameter is bound with, for a type the library doesn't bind as you need; see [The type of the parameters](#the-type-of-the-parameters).
 - **`returningMaxSize`**: the longest text, in bytes, a `returning` gives back; 32767 by default, the longest `VARCHAR2`. A longer one fails with oracledb's `NJS-016`; see [Texts returned by returning](#texts-returned-by-returning).
 
-`OracleDBPoolQueryRunner` and `OracleDBPoolPromiseQueryRunner` take `typesByName` and `returningMaxSize` too, in an `OracleDBPoolQueryRunnerConfig` and an `OracleDBPoolPromiseQueryRunnerConfig`, and pass them on to the query runner of each connection.
+`OracleDBPoolQueryRunner` and `OracleDBPoolPromiseQueryRunner` take `driverTypeOf` and `returningMaxSize` too, in an `OracleDBPoolQueryRunnerConfig` and an `OracleDBPoolPromiseQueryRunnerConfig`, and pass them on to the query runner of each connection.
 
 ## The type of the parameters
 
-oracledb binds each value with the type it gives a JavaScript value; the query runner binds a `localDate` as a `DATE` and a `localTime` or `localDateTime` as a `TIMESTAMP`, with the digits of its UTC getters whatever the zone of the process, so a `DATE` or `TIMESTAMP` column compares with it as it is and an index of the column can be used. The option `typesByName` maps the name of a type, the one you give a type of yours or a built-in one like `'int'`, to the `DbType` of oracledb every parameter of that name is bound with, also its `null` and the value returned with `returning`:
+oracledb binds each value with the type it gives a JavaScript value; the query runner binds a `localDate` as a `DATE` and a `localTime` or `localDateTime` as a `TIMESTAMP`, with the digits of its UTC getters whatever the zone of the process, so a `DATE` or `TIMESTAMP` column compares with it as it is and an index of the column can be used. The option `driverTypeOf`, for a type the library doesn't bind as you need, is a function that receives what the library knows of each parameter (its type, its SQL data type, …, the same as [the context of the query](../../../advanced/query-execution-metadata.md#get-the-type-of-each-parameter)) and its value, and gives the `DbType` of oracledb it is bound with, also its `null` and the value returned with `returning`; with `undefined`, as the library does. For example, the library binds a text as a `VARCHAR2`, also one of an `NVARCHAR2` column: in a database whose character set lacks some of its characters, bind such a text as an `NVARCHAR`:
 
 ```ts
 import oracledb from 'oracledb';
 import { OracleDBPoolQueryRunner } from "ts-sql-query/oracle/oracledb";
 
 async function main(pool: oracledb.Pool) {
-    // A value of the type Day is bound as a DATE, not as a TIMESTAMP
-    const connection = new DBConnection(new OracleDBPoolQueryRunner(pool, { typesByName: { Day: oracledb.DB_TYPE_DATE } }));
+    // A text whose SQL data type says it is national, like the one of an NVARCHAR2 column, is bound as an NVARCHAR
+    const connection = new DBConnection(new OracleDBPoolQueryRunner(pool, {
+        driverTypeOf: (param) => {
+            const sqlDataType = param.requestedSqlDataType
+            return sqlDataType?.family === 'character string' && sqlDataType.national ? oracledb.DB_TYPE_NVARCHAR : undefined
+        }
+    }));
     connection // ...
 }
 ```
 
 ## Texts returned by returning
 
-A `returning` of an insert, an update or a delete is executed with `RETURNING ... INTO`, and oracledb receives each value in a buffer of a size given in advance. The query runner gives a text 32767 bytes, the longest `VARCHAR2`; `returningMaxSize` changes it for every text, and `typesByName` takes an object with the `DbType` and the `maxSize` of a type name. A longer text fails with oracledb's `NJS-016`, and, outside a transaction, the row is already written.
+A `returning` of an insert, an update or a delete is executed with `RETURNING ... INTO`, and oracledb receives each value in a buffer of a size given in advance. The query runner gives a text 32767 bytes, the longest `VARCHAR2`; `returningMaxSize` changes it for every text, and `driverTypeOf` can give an object with the `DbType` and the `maxSize` of a parameter. A longer text fails with oracledb's `NJS-016`, and, outside a transaction, the row is already written.
 
-Oracle returns a `CLOB` column as text only up to 4000 bytes (`ORA-22835` beyond). The recommended way is to declare the SQL data type of the column, `withSqlDataType({ family: 'character string', largeObject: true })`: its `returning` is then received as a `CLOB`, of any length, and a column of a known `length` gets a buffer of that length (see [The type of a column in the database](../../../advanced/sql-data-types.md)). Otherwise, declare its type name as `oracledb.DB_TYPE_CLOB` in `typesByName`, and the value returned is read as its text, of any length:
-
-```ts
-import oracledb from 'oracledb';
-import { OracleDBPoolQueryRunner } from "ts-sql-query/oracle/oracledb";
-
-async function main(pool: oracledb.Pool) {
-    // Texts returned up to 4000 bytes; a value of the type LongText, from a CLOB column, of any length
-    const connection = new DBConnection(new OracleDBPoolQueryRunner(pool, {
-        returningMaxSize: 4000,
-        typesByName: { LongText: oracledb.DB_TYPE_CLOB },
-    }));
-    connection // ...
-}
-```
+Oracle returns a `CLOB` column as text only up to 4000 bytes (`ORA-22835` beyond). Declare the SQL data type of the column, `withSqlDataType({ family: 'character string', largeObject: true })`: its `returning` is then received as a `CLOB`, of any length, and a column of a known `length` gets a buffer of that length (see [The type of a column in the database](../../../advanced/sql-data-types.md)).
 
 ## Procedures with a boolean parameter
 

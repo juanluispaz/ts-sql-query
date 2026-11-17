@@ -4,7 +4,7 @@
 
 import postgres from 'postgres'
 
-import { createPgTestContext, oidTypesByName } from '../../runners.js'
+import { createPgTestContext } from '../../runners.js'
 import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQueryRunner.js'
 
 export const ctx = createPgTestContext({
@@ -14,7 +14,7 @@ export const ctx = createPgTestContext({
     async createRealRunner(uri) {
         const sql = postgres(uri)
         return {
-            runner: new PostgresQueryRunner(sql, { typesByName: oidTypesByName }),
+            runner: new PostgresQueryRunner(sql),
             shutdown: () => sql.end(),
         }
     },

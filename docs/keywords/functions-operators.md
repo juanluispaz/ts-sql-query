@@ -46,7 +46,7 @@ Comparison and text methods have an `IfValue` form, like `.equalsIfValue(x)`, wh
 
 ## Searching in text
 
-Only `like` and its forms receive a pattern; the others receive the text to look for. The `Insensitive` forms ignore the case; to order ignoring the case, see the [order modes](../queries/select.md#the-order-modes).
+Only `like` and its forms receive a pattern; the others receive the text to look for. The `Insensitive` forms ignore the case; to order ignoring the case, see the [order modes](../queries/select.md#the-order-modes). A uuid has these methods too, which look in its text: `ref.startsWithInsensitive('0A8F')` is `ref.asString().startsWithInsensitive('0A8F')`.
 
 | SQL Keyword | ts-sql-query Equivalent | Notes | Link |
 |:---|:---|:---|:---|

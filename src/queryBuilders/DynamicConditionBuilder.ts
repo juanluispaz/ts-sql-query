@@ -7,7 +7,6 @@ import type { ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
-import { filterThrough } from '../utils/symbols.js'
 import { filterOperation } from '../typeSystem/filterOperations.js'
 
 // Joins an accumulated nested-filter path prefix with the next key using a dot
@@ -157,15 +156,9 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
             // The class of the data type of the column gives the method a name of a filter calls: one it exposes, or
             // the one an alias stands for, like a rule of version 1 that version 2 renamed
             const valueClass = __classOf(valueSource) as unknown as FilterOperationsClass
-            let operation = filterMethodOf(valueClass, key)
-            let through: FilterThrough | undefined
+            const operation = filterMethodOf(valueClass, key)
             if (operation === undefined) {
-                // An operation the data type doesn't expose applies to the value it filters through (the text of a uuid)
-                through = valueClass[filterThrough]
-                operation = through === undefined ? undefined : filterMethodOf(through.dataType, key)
-                if (operation === undefined) {
-                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
-                }
+                throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
             }
 
             if (!this.sqlBuilder._isValue(value)) {
@@ -173,17 +166,16 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     continue
                 }
             }
-            const receiver = through === undefined ? valueSource : valueSource[through.method]()
-            const method = operationFor(receiver, operation, column, key)
+            const method = operationFor(valueSource, operation, column, key)
             let condition: ValueSource<any, BooleanType, any>
             if (method.length === 0) {
                 // An operation without parameters: true applies it, false its negation
-                condition = conditionOf(method.call(receiver), value, column, key)
+                condition = conditionOf(method.call(valueSource), value, column, key)
                 if (!value) {
                     condition = condition.negate()
                 }
             } else {
-                condition = conditionOf(method.call(receiver, value), value, column, key)
+                condition = conditionOf(method.call(valueSource, value), value, column, key)
             }
             result = result.and(condition)
         }
@@ -265,13 +257,6 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
 /** A class of a data type, as a dynamic filter asks it which operations it exposes (see exposeFilterOperations) */
 interface FilterOperationsClass {
     [filterOperation]?: (operation: string) => string | undefined
-    [filterThrough]?: FilterThrough
-}
-
-/** The value a data type filters through: the method that gives it, and its data type */
-interface FilterThrough {
-    method: string
-    dataType: FilterOperationsClass
 }
 
 /** The method a name of a filter calls on a value of the class, or undefined when the class doesn't expose it */

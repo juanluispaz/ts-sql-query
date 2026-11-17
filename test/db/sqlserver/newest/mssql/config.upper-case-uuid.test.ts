@@ -91,4 +91,27 @@ describe(ctx.label, () => {
         assertType<Exact<typeof value, string | null>>()
         expect(value).toEqual(REF1.toUpperCase() + '-x')
     })
+
+    test('upper-case-uuid: the insensitive text operators find a uuid in any case, with the flag or without', async () => {
+        for (const conn of [ctx.conn, ctx.withConnection(UpperCaseUuidConnection)]) {
+            ctx.mockNext([1])
+            const lower = await conn.selectFrom(tIssue)
+                .where(tIssue.externalRef.startsWithInsensitive(REF1.slice(0, 8)))
+                .selectOneColumn(tIssue.id)
+                .executeSelectMany()
+            expect(lower).toEqual([1])
+            ctx.mockNext([1])
+            const upper = await conn.selectFrom(tIssue)
+                .where(tIssue.externalRef.equalsInsensitive(REF1.toUpperCase()))
+                .selectOneColumn(tIssue.id)
+                .executeSelectMany()
+            expect(upper).toEqual([1])
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from issue where lower(external_ref) = lower(@0)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0A8F9C1E-1111-4222-8333-444455556666",
+          ]
+        `)
+    })
 })

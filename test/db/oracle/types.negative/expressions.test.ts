@@ -227,9 +227,8 @@ function _typeNegatives() {
     // @ts-expect-error a string column is not comparable with a uuid column
     void t.mUuid.equals(t.mStr)
 
-    // Rule: the string functions are absent on a uuid value source.
+    // Rule: a uuid value source has the text operators, which apply to its text, but not the other string functions.
     void t.mUuid.asString().like('a%')
-    // @ts-expect-error like does not exist on a uuid value source
     void t.mUuid.like('a%')
     // @ts-expect-error concat does not exist on a uuid value source
     void t.mUuid.concat('x')

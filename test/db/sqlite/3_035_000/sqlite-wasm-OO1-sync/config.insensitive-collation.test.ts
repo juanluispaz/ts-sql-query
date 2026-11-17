@@ -20,9 +20,13 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import type { ILogicalValueSource, SourceOf } from '../../../../../src/typeSystem/base.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
+
+// A condition on the issues
+type IssueCondition = ILogicalValueSource<SourceOf<typeof tIssue.id>, any>
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -268,6 +272,25 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
             .where(tIssue.externalRef.asString().containsInsensitive('1111'))
             .select({ id: tIssue.id })
             .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like ('%' || ?1 || '%') escape '\\'"`)
+    })
+
+    test('collation: the insensitive text operators of a uuid are those of its text', async () => {
+        // The methods of the uuid give the SQL of the same methods on asString(), under a set collation and the empty one
+        for (const conn of [ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation), ctx.withInsensitiveCollation('')]) {
+            const ref = tIssue.externalRef
+            const sameSql = async (ofUuid: IssueCondition, ofText: IssueCondition) => {
+                sync(conn.selectFrom(tIssue).where(ofUuid).select({ id: tIssue.id }).executeSelectMany())
+                const uuidSql = ctx.lastSql
+                sync(conn.selectFrom(tIssue).where(ofText).select({ id: tIssue.id }).executeSelectMany())
+                expect(uuidSql).toBe(ctx.lastSql)
+            }
+            await sameSql(ref.equalsInsensitive('0A8F9C1E-1111-4222-8333-444455556666'), ref.asString().equalsInsensitive('0A8F9C1E-1111-4222-8333-444455556666'))
+            await sameSql(ref.likeInsensitive('0A8F%'), ref.asString().likeInsensitive('0A8F%'))
+            await sameSql(ref.startsWithInsensitive('0A8F'), ref.asString().startsWithInsensitive('0A8F'))
+            await sameSql(ref.notEndsWithInsensitive('6666'), ref.asString().notEndsWithInsensitive('6666'))
+            await sameSql(ref.containsInsensitive('1111'), ref.asString().containsInsensitive('1111'))
+        }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like ('%' || ?1 || '%') escape '\\'"`)
     })
 

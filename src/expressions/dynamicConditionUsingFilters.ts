@@ -2,7 +2,7 @@ import type { DataToProjectOf, DataToProjectOfAny, GetDataToProjectSource } from
 import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { AnyValueSource, IExecutableSelectQuery, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { AnyType, ILogicalValueSource, ValueSource } from '../typeSystem/base.js'
-import type { filterThrough, valueSourceType } from '../utils/symbols.js'
+import type { valueSourceType } from '../utils/symbols.js'
 import type { DataTypeName, DataTypeOfName } from '../typeSystem/dataTypeNames.js'
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { FilterOperationNamesOf } from '../typeSystem/filterOperations.js'
@@ -19,16 +19,9 @@ type FilterValueOf<METHOD> =
     METHOD extends () => any ? boolean :
     Exclude<ParameterOfOverloads<METHOD>, AnyValueSource | IExecutableSelectQuery<any, any, any>>
 
-/** The data type a data type filters through for the operations it doesn't expose (the text of a uuid) */
-type FilterThroughOf<TYPE> = TYPE extends { [filterThrough]: infer THROUGH } ? THROUGH : never
-
-/**
- * The filter of a data type: an optional property for each operation it exposes, with the value its method takes; and
- * the ones of the data type it filters through, which its own win over
- */
-export type FilterOf<TYPE> = FilterOfOperations<TYPE, FilterOperationNamesOf<TYPE>, FilterThroughOf<TYPE>>
-type FilterOfOperations<TYPE, OWN, THROUGH> = {
-    [K in (OWN & string) | FilterOperationNamesOf<THROUGH>]?: FilterValueOf<K extends OWN ? (K extends keyof TYPE ? TYPE[K] : never) : (K extends keyof THROUGH ? THROUGH[K] : never)>
+/** The filter of a data type: an optional property for each operation it exposes, with the value its method takes */
+export type FilterOf<TYPE> = {
+    [K in FilterOperationNamesOf<TYPE>]?: FilterValueOf<K extends keyof TYPE ? TYPE[K] : never>
 }
 
 /** The filter of each data type known by name, computed once */

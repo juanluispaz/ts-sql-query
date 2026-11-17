@@ -331,7 +331,7 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
   type says which of its methods a dynamic filter can call. Each family lists its own in its static `[filterOperation]`
   and declares it on the instance; `FilterOf` (in `src/expressions/dynamicConditionUsingFilters.ts`) reads the names
   from the instance and the value of each from the parameter of its method, and `DynamicConditionBuilder` asks the
-  class at run time. A uuid gives the operations it doesn't have to its text (`[filterThrough]`).
+  class at run time.
 - [`fragments.ts`](./fragments.ts): `FragmentExpression<NO_SOURCE, TYPE, OPTIONAL_TYPE, EXTRA_SOURCE>`, the SQL of a
   fragment of any data type. The builders of fragments with arguments stay in `src/expressions/fragment.ts`.
 - [`valueSource.ts`](./valueSource.ts): what every value source has whatever its data type: the optionality

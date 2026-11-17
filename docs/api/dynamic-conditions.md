@@ -73,7 +73,7 @@ type FilterType = {
 
 !!! note
 
-    For convenience, a `uuid` and a uuid of yours (a class that extends `UuidsType`) accept the text operators of a `string`, with a `string`, and they apply the `asString()` method before them.
+    A `uuid` and a uuid of yours (a class that extends `UuidsType`) have the text operators of a `string`, with a `string`: they apply to the text of the uuid, as its methods with the same names do.
 
 !!! tip "Deriving the filter type from a business model"
 

@@ -306,6 +306,43 @@ interface StringValueSource extends ComparableValueSource<string, 'string'> {
  */
 interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
     asString(): StringValueSource
+    /** The text operators: they apply to the text of the uuid, as on asString() */
+    equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    equalsInsensitive(value: string | StringValueSource): BooleanValueSource
+    notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notEqualsInsensitive(value: string | StringValueSource): BooleanValueSource
+    likeIfValue(value: string | null | undefined): IfValueSource
+    like(value: string | StringValueSource): BooleanValueSource
+    notLikeIfValue(value: string | null | undefined): IfValueSource
+    notLike(value: string | StringValueSource): BooleanValueSource
+    likeInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    likeInsensitive(value: string | StringValueSource): BooleanValueSource
+    notLikeInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notLikeInsensitive(value: string | StringValueSource): BooleanValueSource
+    startsWithIfValue(value: string | null | undefined): IfValueSource
+    startsWith(value: string | StringValueSource): BooleanValueSource
+    notStartsWithIfValue(value: string | null | undefined): IfValueSource
+    notStartsWith(value: string | StringValueSource): BooleanValueSource
+    endsWithIfValue(value: string | null | undefined): IfValueSource
+    endsWith(value: string | StringValueSource): BooleanValueSource
+    notEndsWithIfValue(value: string | null | undefined): IfValueSource
+    notEndsWith(value: string | StringValueSource): BooleanValueSource
+    startsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    startsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    notStartsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notStartsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    endsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    endsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    notEndsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notEndsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    containsIfValue(value: string | null | undefined): IfValueSource
+    contains(value: string | StringValueSource): BooleanValueSource
+    notContainsIfValue(value: string | null | undefined): IfValueSource
+    notContains(value: string | StringValueSource): BooleanValueSource
+    containsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    containsInsensitive(value: string | StringValueSource): BooleanValueSource
+    notContainsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notContainsInsensitive(value: string | StringValueSource): BooleanValueSource
 }
 ```
 
@@ -526,6 +563,43 @@ interface StringDecimalValueSource extends ComparableValueSource<string, 'string
  */
 interface UuidsValueSource<T, TYPE_NAME extends string> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
+    /** The text operators: they apply to the text of the uuid, as on asString() */
+    equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    equalsInsensitive(value: string | StringValueSource): BooleanValueSource
+    notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notEqualsInsensitive(value: string | StringValueSource): BooleanValueSource
+    likeIfValue(value: string | null | undefined): IfValueSource
+    like(value: string | StringValueSource): BooleanValueSource
+    notLikeIfValue(value: string | null | undefined): IfValueSource
+    notLike(value: string | StringValueSource): BooleanValueSource
+    likeInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    likeInsensitive(value: string | StringValueSource): BooleanValueSource
+    notLikeInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notLikeInsensitive(value: string | StringValueSource): BooleanValueSource
+    startsWithIfValue(value: string | null | undefined): IfValueSource
+    startsWith(value: string | StringValueSource): BooleanValueSource
+    notStartsWithIfValue(value: string | null | undefined): IfValueSource
+    notStartsWith(value: string | StringValueSource): BooleanValueSource
+    endsWithIfValue(value: string | null | undefined): IfValueSource
+    endsWith(value: string | StringValueSource): BooleanValueSource
+    notEndsWithIfValue(value: string | null | undefined): IfValueSource
+    notEndsWith(value: string | StringValueSource): BooleanValueSource
+    startsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    startsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    notStartsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notStartsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    endsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    endsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    notEndsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notEndsWithInsensitive(value: string | StringValueSource): BooleanValueSource
+    containsIfValue(value: string | null | undefined): IfValueSource
+    contains(value: string | StringValueSource): BooleanValueSource
+    notContainsIfValue(value: string | null | undefined): IfValueSource
+    notContains(value: string | StringValueSource): BooleanValueSource
+    containsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    containsInsensitive(value: string | StringValueSource): BooleanValueSource
+    notContainsInsensitiveIfValue(value: string | null | undefined): IfValueSource
+    notContainsInsensitive(value: string | StringValueSource): BooleanValueSource
 }
 ```
 

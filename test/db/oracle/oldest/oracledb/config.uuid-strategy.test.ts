@@ -142,4 +142,46 @@ describe(ctx.label, () => {
             expect(ref).toEqual(UPPER_UUID)
         })
     })
+
+    test('uuid-strategy: string as sent finds a uuid in another case with the insensitive operators', async () => {
+        // The uuid is stored as it was sent, in upper case: equals with its lower case doesn't find it, the insensitive
+        // operators do
+        const conn = ctx.withUuidStrategy('string as sent')
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await conn.update(tIssueTitleAsUuid)
+                .set({ ref: UPPER_UUID })
+                .where(tIssueTitleAsUuid.id.equals(1))
+                .executeUpdate()
+
+            ctx.mockNext([])
+            const byEquals = await conn.selectFrom(tIssueTitleAsUuid)
+                .where(tIssueTitleAsUuid.ref.equals(LOWER_UUID))
+                .selectOneColumn(tIssueTitleAsUuid.id)
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "result" from issue where title = :0"`)
+            expect(byEquals).toEqual([])
+
+            ctx.mockNext([1])
+            const byEqualsInsensitive = await conn.selectFrom(tIssueTitleAsUuid)
+                .where(tIssueTitleAsUuid.ref.equalsInsensitive(LOWER_UUID))
+                .selectOneColumn(tIssueTitleAsUuid.id)
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "result" from issue where lower(title) = lower(:0)"`)
+            expect(byEqualsInsensitive).toEqual([1])
+
+            ctx.mockNext([1])
+            const byStartsWithInsensitive = await conn.selectFrom(tIssueTitleAsUuid)
+                .where(tIssueTitleAsUuid.ref.startsWithInsensitive(LOWER_UUID.slice(0, 8)))
+                .selectOneColumn(tIssueTitleAsUuid.id)
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "result" from issue where lower(title) like lower(:0 || '%') escape '\\'"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "c733575e",
+              ]
+            `)
+            expect(byStartsWithInsensitive).toEqual([1])
+        })
+    })
 })

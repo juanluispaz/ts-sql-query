@@ -29,7 +29,14 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     static override readonly [filterOperation] = exposeFilterOperations(this, EqualableType, [
         'lessThanIfValue', 'lessThan', 'greaterThanIfValue', 'greaterThan', 'lessOrEqualIfValue', 'lessOrEqual',
         'greaterOrEqualIfValue', 'greaterOrEqual',
-    ])
+    ], {
+        // The names of version 1 that version 2 renamed: the systems that send a filter written for version 1 keep
+        // working
+        smaller: 'lessThan', smallerIfValue: 'lessThanIfValue', larger: 'greaterThan', largerIfValue: 'greaterThanIfValue',
+        smallAs: 'lessOrEqual', smallAsIfValue: 'lessOrEqualIfValue', largeAs: 'greaterOrEqual',
+        largeAsIfValue: 'greaterOrEqualIfValue', lessOrEquals: 'lessOrEqual', lessOrEqualsIfValue: 'lessOrEqualIfValue',
+        greaterOrEquals: 'greaterOrEqual', greaterOrEqualsIfValue: 'greaterOrEqualIfValue',
+    })
     declare [filterOperation]: (typeof ComparableType)[typeof filterOperation]
     lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     lessThanIfValue(value: any): any {

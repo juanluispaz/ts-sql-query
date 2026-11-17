@@ -276,6 +276,8 @@ What the filter gives each method:
 - A method without parameters receives `true` or `false`: `true` applies the condition, `isLeapDay()`, and `false` its negation, `isLeapDay().negate()`.
 - A value `null` or `undefined` adds no condition, as with the operations of the library, unless the name of the method is `is` or `isNot` or ends in `IfValue`: those receive it. See [Empty values in a filter](../dynamic/caller-decides/filters.md#empty-values-in-a-filter).
 
+A filter that another system writes keeps the names it was written with. When a method is renamed, the old name can stay as an alias, which `withValues` applies as the method it stands for, and which the type of the filter doesn't offer: the fourth argument of `exposeFilterOperations`, like `{ leapDay: 'isLeapDay' }`. A name the class or its family exposes wins over an alias with that name, and a class keeps the aliases of its family: the names that version 1 used for the comparisons, like `smaller` for `lessThan`, keep working on every data type with an order.
+
 `FilterOf<BirthdayType>`, from `ts-sql-query`, is the type of the filter of the column: the operations of `LocalDatesType` and `isLeapDay` and `inYear`. Without the `declare` line, the type of the filter doesn't have them, but a filter that arrives as data, like one parsed from JSON, can still use them: the class has them. A method that isn't in the list is rejected with `DYNAMIC_CONDITION_UNKNOWN_OPERATION`, and one that gives something that isn't a condition at run time, like a method whose type is `any`, with `DYNAMIC_CONDITION_INVALID_OPERATION_RETURN_TYPE`.
 
 ## Exact decimals

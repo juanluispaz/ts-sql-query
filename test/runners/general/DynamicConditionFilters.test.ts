@@ -277,6 +277,27 @@ abstract class LevelType extends IntegersType<number, 'Level'> {
 }
 
 describe('The filters of the data types', () => {
+    test('an-alias-gives-the-method-it-stands-for-and-never-hides-a-name-exposed', () => {
+        const methodOf = exposeFilterOperations(LevelType, IntegersType, ['isHigh'], { high: 'isHigh', equals: 'isHigh' })
+        // An alias of the class, and one of version 1 that its family keeps
+        expect(Reflect.apply(methodOf, undefined, ['high'])).toBe('isHigh')
+        expect(Reflect.apply(methodOf, undefined, ['smaller'])).toBe('lessThan')
+        // A name the family exposes wins over an alias with that name
+        expect(methodOf('equals')).toBe('equals')
+        // A class that exposes a name an alias of its family has: its own method
+        abstract class SmallerType extends IntegersType<number, 'Smaller'> {
+            static override readonly type = 'Smaller'
+            static override readonly [filterOperation] = exposeFilterOperations(this, IntegersType, ['smaller'])
+            declare [filterOperation]: (typeof SmallerType)[typeof filterOperation]
+            smaller() { return this.lessThan(10) }
+        }
+        expect(SmallerType[filterOperation]('smaller')).toBe('smaller')
+        // @ts-expect-error an alias stands for a name the class or its family exposes
+        exposeFilterOperations(LevelType, IntegersType, ['isHigh'], { high: 'withTwo' })
+        // The aliases are not in the types of the filter
+        assertType<Exact<'high' extends keyof FilterOf<LevelType> ? true : false, false>>()
+    })
+
     test('a-data-type-exposes-only-methods-that-give-a-condition-with-no-parameters-or-one-required', () => {
         // @ts-expect-error an optional parameter: the filter couldn't tell its value from true or false
         exposeFilterOperations(LevelType, IntegersType, ['withOptional'])
@@ -288,8 +309,9 @@ describe('The filters of the data types', () => {
         exposeFilterOperations(LevelType, IntegersType, ['twice'])
         // @ts-expect-error not a method of the class
         exposeFilterOperations(LevelType, IntegersType, ['nope'])
-        const exposes = exposeFilterOperations(LevelType, IntegersType, ['isHigh', 'atLeast'])
-        expect([exposes('isHigh'), exposes('atLeast'), exposes('lessThan'), exposes('twice' as never)]).toEqual([true, true, true, false])
+        const methodOf = exposeFilterOperations(LevelType, IntegersType, ['isHigh', 'atLeast'])
+        expect([methodOf('isHigh'), methodOf('atLeast'), methodOf('lessThan')]).toEqual(['isHigh', 'atLeast', 'lessThan'])
+        expect(Reflect.apply(methodOf, undefined, ['twice'])).toBe(undefined)
         assertType<Exact<keyof FilterOf<LevelType>, keyof FilterOf<IntegersType<number, 'Level'>> | 'isHigh' | 'atLeast'>>()
     })
 

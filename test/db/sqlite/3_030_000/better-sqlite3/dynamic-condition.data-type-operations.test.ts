@@ -1,9 +1,9 @@
 // A data type of the user exposes its own methods to a dynamic condition: `isUrgent()` (no parameter: `true` applies
 // it, `false` its negation) and `atLeast(value)` (the value of the filter). A method it doesn't expose (`isLow`) is
 // rejected; a class that exposes its methods without declaring them on its instance offers them only to a filter built
-// at run time (from JSON); an absent value adds no condition; a rule of version 1 that version 2 renamed still applies;
-// and an exposed method that gives no condition is an error. Each filter emits the same SQL and params as the methods
-// called directly.
+// at run time (from JSON); an absent value adds no condition; an alias of the class and a rule of version 1 that
+// version 2 renamed still apply; and an exposed method that gives no condition is an error. Each filter emits the same
+// SQL and params as the methods called directly.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -16,7 +16,8 @@ import { ctx } from './setup.js'
 // The priority of an issue: urgent from 3
 abstract class PriorityType extends IntegersType<number, 'Priority'> {
     static override readonly type = 'Priority'
-    static override readonly [filterOperation] = exposeFilterOperations(this, IntegersType, ['isUrgent', 'atLeast'])
+    // `urgent`, the name an older version of the class gave isUrgent
+    static override readonly [filterOperation] = exposeFilterOperations(this, IntegersType, ['isUrgent', 'atLeast'], { urgent: 'isUrgent' })
     declare [filterOperation]: (typeof PriorityType)[typeof filterOperation]
     isUrgent() {
         return this.greaterOrEqual(3)
@@ -178,6 +179,22 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
+          ]
+        `)
+    })
+
+    test('data-type-operations/an-alias-of-the-data-type-applies-the-method-it-stands-for', async () => {
+        // @ts-expect-error the types offer only the names of the methods, not their aliases
+        const typed: PriorityFilter = { priority: { urgent: true } }
+        expect(typed).toEqual({ priority: { urgent: true } })
+        // A filter of a system that still sends the old name
+        const fromJson: PriorityFilter = JSON.parse('{ "priority": { "urgent": true } }')
+        const urgent = await idsWhere(fromJson, [{ id: 3 }])
+        expect(urgent).toEqual([{ id: 3 }])
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority >= ?1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
           ]
         `)
     })

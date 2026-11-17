@@ -154,19 +154,16 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 continue
             }
 
-            // The class of the data type of the column answers which of its methods a filter can call; a rule of
-            // version 1 that version 2 renamed is still applied, with its name of version 2, when the class doesn't
-            // expose its name of version 1
+            // The class of the data type of the column gives the method a name of a filter calls: one it exposes, or
+            // the one an alias stands for, like a rule of version 1 that version 2 renamed
             const valueClass = __classOf(valueSource) as unknown as FilterOperationsClass
-            let operation = key
-            if (!exposesFilterOperation(valueClass, key) && Object.hasOwn(renamedOperations, key)) {
-                operation = renamedOperations[key]!
-            }
+            let operation = filterMethodOf(valueClass, key)
             let through: FilterThrough | undefined
-            if (!exposesFilterOperation(valueClass, operation)) {
+            if (operation === undefined) {
                 // An operation the data type doesn't expose applies to the value it filters through (the text of a uuid)
                 through = valueClass[filterThrough]
-                if (through === undefined || !exposesFilterOperation(through.dataType, operation)) {
+                operation = through === undefined ? undefined : filterMethodOf(through.dataType, key)
+                if (operation === undefined) {
                     throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
                 }
             }
@@ -265,24 +262,9 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
  * applied, so a filter written for version 1, like one sent by another system, keeps working. The types don't declare
  * them: a filter written in code uses the names of version 2
  */
-const renamedOperations: { readonly [operation: string]: string | undefined } = {
-    smaller: 'lessThan',
-    smallerIfValue: 'lessThanIfValue',
-    larger: 'greaterThan',
-    largerIfValue: 'greaterThanIfValue',
-    smallAs: 'lessOrEqual',
-    smallAsIfValue: 'lessOrEqualIfValue',
-    largeAs: 'greaterOrEqual',
-    largeAsIfValue: 'greaterOrEqualIfValue',
-    lessOrEquals: 'lessOrEqual',
-    lessOrEqualsIfValue: 'lessOrEqualIfValue',
-    greaterOrEquals: 'greaterOrEqual',
-    greaterOrEqualsIfValue: 'greaterOrEqualIfValue',
-}
-
 /** A class of a data type, as a dynamic filter asks it which operations it exposes (see exposeFilterOperations) */
 interface FilterOperationsClass {
-    [filterOperation]?: (operation: string) => boolean
+    [filterOperation]?: (operation: string) => string | undefined
     [filterThrough]?: FilterThrough
 }
 
@@ -292,9 +274,10 @@ interface FilterThrough {
     dataType: FilterOperationsClass
 }
 
-function exposesFilterOperation(valueClass: FilterOperationsClass, operation: string): boolean {
-    const exposes = valueClass[filterOperation]
-    return exposes !== undefined && exposes(operation)
+/** The method a name of a filter calls on a value of the class, or undefined when the class doesn't expose it */
+function filterMethodOf(valueClass: FilterOperationsClass, name: string): string | undefined {
+    const methodOf = valueClass[filterOperation]
+    return methodOf === undefined ? undefined : methodOf(name)
 }
 
 /**

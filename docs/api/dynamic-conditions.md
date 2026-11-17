@@ -167,10 +167,10 @@ An aggregated array has no operators.
 To offer methods of your own in a filter, a class of yours lists them with `exposeFilterOperations`, exported from `ts-sql-query` with the symbol `filterOperation`:
 
 ```tsx
-function exposeFilterOperations(dataType: Class, family: FamilyClass | undefined, names: readonly MethodName[]): (operation: Names) => boolean
+function exposeFilterOperations(dataType: Class, family: FamilyClass | undefined, names: readonly MethodName[], aliases?: { [alias: string]: Name }): (operation: Names) => string | undefined
 ```
 
-It's called in the static `[filterOperation]` of the class, which the instance declares (`declare [filterOperation]: (typeof MyType)[typeof filterOperation]`). `family` is the class it extends, whose operations it keeps, and each name is a method of the class that gives a condition and has no parameters or one required parameter.
+It's called in the static `[filterOperation]` of the class, which the instance declares (`declare [filterOperation]: (typeof MyType)[typeof filterOperation]`). `family` is the class it extends, whose operations and aliases it keeps, each name is a method of the class that gives a condition and has no parameters or one required parameter, and `aliases` gives other names a filter can use for them, which only `withValues` accepts: the types of the filter don't have them. The function it returns gives the method a name of a filter calls, or `undefined` when the class doesn't expose it.
 
 You can extend the set of rules defining your own. For this, you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. `withValues` accepts the rules in the filter, written in place or in a variable. If you use the `DynamicCondition` utility type, you must provide the type of your extension object as a second argument. See [Rules of your own](../dynamic/caller-decides/filters.md#rules-of-your-own).
 

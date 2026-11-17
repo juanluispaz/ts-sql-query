@@ -29,8 +29,8 @@ Read this before changing anything here. The code is the reference; this file sa
 - **What every value source has at run time** (its fields, its node, `isConstValue`, `allowWhen`, ...) is
   `ValueSourceRoot`, in [`src/nodes/`](../nodes/README.md). `BaseType` extends it through a cast that TypeScript doesn't
   see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the
-  classes. A method doesn't read those fields: it passes `this` to the functions of the nodes, which take it as a
-  `DataTypeValueSource` (see the README of the nodes).
+  classes. A method doesn't read those fields: it passes `this` to the functions of the nodes, which take it as its data
+  type (`AnyType`) and read the fields with `__asNodeValueSource` (see the README of the nodes).
 - A method gives a value source of the same data type with `this.constructor`. A base can't import at run time the
   data types that extend it (see below): it asks the registry of the data types for them when the method is called
   (`__internalDataType('condition')`, the boolean of a condition its comparisons give; `'int'` for `sign`; `'double'`
@@ -146,7 +146,7 @@ type ValueSource<SOURCE, TYPE, OPTIONAL_TYPE> = TYPE & ValueSourceOfType<SOURCE,
   optionality that is the union of all of them, and stop fitting anywhere.
 
 A **condition** (`IfValueSource`, `AlwaysIfValueSource`, in [`logical.ts`](./logical.ts)) is its data type plus
-`ConditionOfType`: it has a source and an optionality but **is not a value source** (no `isValueSourceObject` brand). It
+`ConditionOfType`: it has a source and an optionality but **is not a value source** (no `isValueSourceObject` mark, which exists only in the types). It
 can't be a column or be projected, and it has a value a boolean doesn't have, the neutral (no condition).
 
 ## The classes
@@ -330,8 +330,7 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
 - [`fragments.ts`](./fragments.ts): `FragmentExpression<NO_SOURCE, TYPE, OPTIONAL_TYPE, EXTRA_SOURCE>`, the SQL of a
   fragment of any data type. The builders of fragments with arguments stay in `src/expressions/fragment.ts`.
 - [`valueSource.ts`](./valueSource.ts): what every value source has whatever its data type: the optionality
-  (`OptionalType`, `MergeOptional`, ...), `AnyValueSource`, `TypedValueSource`, the private state
-  (`__ValueSourcePrivate`), how the library recognises one (`isValueSource`), the types of the value of a result
+  (`OptionalType`, `MergeOptional`, ...), `AnyValueSource`, `TypedValueSource`, the types of the value of a result
   (`ValueSourceValueType*`), and the executable queries.
 
 ## Checking a change

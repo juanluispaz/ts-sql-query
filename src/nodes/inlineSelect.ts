@@ -7,9 +7,8 @@ import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
+import type { __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 
 export type InlineSelectData = SelectData & IQueryDataDiscovery
@@ -98,8 +97,8 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
         if (!isValueSource(result)) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'Result column for a select one column not found')
         }
-        const valueSourcePrivate = __getValueSourcePrivate(result)
-        return [required ? 'required' : 'optional', valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
+        const nodeValueSource = __asNodeValueSource(result)
+        return [required ? 'required' : 'optional', nodeValueSource.__aggregatedArrayColumns, nodeValueSource.__aggregatedArrayMode, nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable] as const
     } else {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline select')
     }

@@ -4,7 +4,7 @@ import type { ResultObjectValues } from '../complexProjections/resultWithOptiona
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { Expand } from '../utils/objectUtils.js'
 import type { DeepPick } from '../extras/deepUtilities.js'
-import { isValueSource } from '../typeSystem/valueSource.js'
+import { isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 export type Pickable = DataToProjectOfAny
 export type DynamicPick<TYPE extends Pickable, MANDATORY extends PickablePaths<TYPE> = never> = Expand<PickingAsBooleanObjectMap<TYPE, MANDATORY>>

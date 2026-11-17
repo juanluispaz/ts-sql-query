@@ -8,23 +8,23 @@ import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
+import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { DefaultTypeAdapter, ProjectionComparison, ProjectionOutput, DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
-import { __createSequence, __typeClassOf, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __createSequence, __typeClassOf, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { hasToSql, operationOf } from './SqlBuilder.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject } from '../utils/Column.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { getWithData, hasWithData } from './SqlBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf } from '../typeSystem/dataTypes.js'
-import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourceOfObject, __getValueSourcePrivate, __isBooleanValueSource, __isStringValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
+import { __getValueSourceOfObject, __isBooleanValueSource, __isStringValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
@@ -204,24 +204,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return false
     }
     _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        const typeAdapter = columnPrivate.__typeAdapter
-        if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
+        const nodeColumn = __asDBColumnValueSource(column)
+        const typeAdapter = nodeColumn.__typeAdapter
+        if (__isBooleanValueSource(nodeColumn) && typeAdapter instanceof CustomBooleanTypeAdapter) {
             return '(' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
         }
         return this._appendRawColumnName(column, context)
     }
     _appendColumnNameForCondition(column: DBColumn, context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        const typeAdapter = columnPrivate.__typeAdapter
-        if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
+        const nodeColumn = __asDBColumnValueSource(column)
+        const typeAdapter = nodeColumn.__typeAdapter
+        if (__isBooleanValueSource(nodeColumn) && typeAdapter instanceof CustomBooleanTypeAdapter) {
             return this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context)
         }
         return this._appendRawColumnName(column, context)
     }
     _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        const tableOrView = columnPrivate.__tableOrView
+        const nodeColumn = __asDBColumnValueSource(column)
+        const tableOrView = nodeColumn.__tableOrView
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
 
         const forceAliasFor = context.forceAliasFor
@@ -233,28 +233,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         if (forceAliasFor === tableOrView && forceAliasAs) {
-            return this._escape(forceAliasAs, true) + '.' + this._escape(columnPrivate.__name, true)
+            return this._escape(forceAliasAs, true) + '.' + this._escape(nodeColumn.__name, true)
         }
 
         if (fakeNamesOf && fakeNamesOf.has(tableOrView)) {
             if (tablePrivate.__as) {
-                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + columnPrivate.__name), true)
+                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + nodeColumn.__name), true)
             } else {
-                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + columnPrivate.__name), true)
+                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + nodeColumn.__name), true)
             }
         }
 
         if (tablePrivate.__as) {
-            return this._escape(tablePrivate.__as, true) + '.' + this._escape(columnPrivate.__name, true)
+            return this._escape(tablePrivate.__as, true) + '.' + this._escape(nodeColumn.__name, true)
         } else if (context.safeTableOrView === tableOrView) {
-                return this._escape(columnPrivate.__name, true)
+                return this._escape(nodeColumn.__name, true)
         } else {
-            return this._escape(this._tableOrViewName(tablePrivate, context), false) + '.' + this._escape(columnPrivate.__name, true)
+            return this._escape(this._tableOrViewName(tablePrivate, context), false) + '.' + this._escape(nodeColumn.__name, true)
         }
     }
     _appendRawColumnNameForValuesForInsert(column: DBColumn, _context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        return 'excluded.' + this._escape(columnPrivate.__name, true)
+        const nodeColumn = __asDBColumnValueSource(column)
+        return 'excluded.' + this._escape(nodeColumn.__name, true)
     }
     /**
      * Emits a number or string as an inline SQL literal **without escaping**.
@@ -525,9 +525,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * requested type is the original one)
      */
     _prepareTypeAdapterReadContext(value: AnyValueSource, output: ProjectionOutput | undefined): TypeAdapterContextImpl {
-        const valueSourcePrivate = __getValueSourcePrivate(value)
+        const nodeValueSource = __asNodeValueSource(value)
         const result = this._typeAdapterReadContextOf()
-        result.prepareRead(__classOf(valueSourcePrivate), __sqlDataTypeOf(__classOf(valueSourcePrivate)), output ? this : undefined, value, output ?? 'resultColumn')
+        result.prepareRead(__classOf(nodeValueSource), __sqlDataTypeOf(__classOf(nodeValueSource)), output ? this : undefined, value, output ?? 'resultColumn')
         return result
     }
     _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
@@ -560,10 +560,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _addOutParam(context: SqlBuildContext, name: string, value: AnyValueSource, output: ProjectionOutput | undefined): string {
         const paramContext = context.queryContext.paramAt(context.params.length)
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        paramContext.setOriginalType(__unadaptedClassOf(__classOf(valueSourcePrivate)))
+        const nodeValueSource = __asNodeValueSource(value)
+        paramContext.setOriginalType(__unadaptedClassOf(__classOf(nodeValueSource)))
         // The SQL data type of the column; the requested one, the one its transformProjection requests
-        paramContext.setOriginalSqlDataType(__sqlDataTypeOf(__classOf(valueSourcePrivate)))
+        paramContext.setOriginalSqlDataType(__sqlDataTypeOf(__classOf(nodeValueSource)))
         if (output) {
             this._resolveRequestedTypeOfProjection(value, output, paramContext)
         }
@@ -590,7 +590,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // *inside* its parent's JSON and must stay a JSON array, not become a quoted string.
         // On the connectors that already hand the aggregate back as text (Oracle, SQL Server,
         // SQLite) `_finalizeAggregatedArrayResult` is the identity, so their SQL is untouched.
-        if (isOutermostQuery && isValueSource(value) && __isJsonDocumentSql(__classOf(__getValueSourcePrivate(value)))) {
+        if (isOutermostQuery && isValueSource(value) && __isJsonDocumentSql(__classOf(__asNodeValueSource(value)))) {
             return this._finalizeAggregatedArrayResult(sql)
         }
         return sql
@@ -676,8 +676,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return sql
         }
         const adapterContext = this._typeAdapterContextOf(undefined)
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        adapterContext.prepareProjection(__classOf(valueSourcePrivate), __sqlDataTypeOf(__classOf(valueSourcePrivate)), output, context?.queryContext)
+        const nodeValueSource = __asNodeValueSource(value)
+        adapterContext.prepareProjection(__classOf(nodeValueSource), __sqlDataTypeOf(__classOf(nodeValueSource)), output, context?.queryContext)
         return this._nextTypeAdapter.transformProjection(sql, adapterContext)
     }
     /**
@@ -903,8 +903,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (columns) {
                 columns += ', '
             }
-            const columnPrivate = __getColumnPrivate(column)
-            columns += this._appendColumnAlias(columnPrivate.__name, context)
+            const nodeColumn = __asDBColumnValueSource(column)
+            columns += this._appendColumnAlias(nodeColumn.__name, context)
         }
         result += '(' + columns + ')'
         result += ' as (values '
@@ -1883,9 +1883,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
             }
-            return __isStringValueSource(__getValueSourcePrivate(column))
+            return __isStringValueSource(__asNodeValueSource(column))
         } else if (isValueSource(expression)) {
-            return __isStringValueSource(__getValueSourcePrivate(expression))
+            return __isStringValueSource(__asNodeValueSource(expression))
         } else {
             return false
         }
@@ -2169,8 +2169,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 continue
             }
-            const columnPrivate = __getColumnPrivate(column)
-            if (!columnPrivate.__sequenceName) {
+            const nodeColumn = __asDBColumnValueSource(column)
+            if (!nodeColumn.__sequenceName) {
                 continue
             }
 
@@ -2179,7 +2179,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, context)
-            nextSequenceValues.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
+            nextSequenceValues.push({ name: nodeColumn.__sequenceName, typeClass: __classOf(nodeColumn) })
         }
         for (let columnName in usedColumns) {
             const column = __getColumnOfObject(table, columnName)
@@ -2232,10 +2232,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     setPropertyName = columnName
                 }
                 const value = sets[setPropertyName]
-                const columnPrivate = __getColumnPrivate(column)
-                const sequenceName = columnPrivate.__sequenceName
+                const nodeColumn = __asDBColumnValueSource(column)
+                const sequenceName = nodeColumn.__sequenceName
                 if (!(setPropertyName in sets) && sequenceName) {
-                    values += this._nextSequenceValue(context, sequenceName, __classOf(columnPrivate))
+                    values += this._nextSequenceValue(context, sequenceName, __classOf(nodeColumn))
                 } else {
                     values += this._appendSetValue(setPropertyName, i, column, value, context)
                 }
@@ -2261,10 +2261,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return insertQuery
     }
     _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
-        const columnPrivate = __getColumnPrivate(column)
-        const columnTypeAdapter = columnPrivate.__typeAdapter
+        const nodeColumn = __asDBColumnValueSource(column)
+        const columnTypeAdapter = nodeColumn.__typeAdapter
 
-        if (!__isBooleanValueSource(columnPrivate)) {
+        if (!__isBooleanValueSource(nodeColumn)) {
             return null // non-boolean
         }
 
@@ -2274,15 +2274,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
             if (__isColumn(value)) {
-                const valuePrivate = __getColumnPrivate(value)
-                const valueTypeAdapter = valuePrivate.__typeAdapter
+                const nodeValue = __asDBColumnValueSource(value)
+                const valueTypeAdapter = nodeValue.__typeAdapter
 
                 if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
                     if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
                         return this._appendRawColumnName(value, context) // same boolean as column
                     }
 
-                    if (columnPrivate.__optionalType === 'required') {
+                    if (nodeColumn.__optionalType === 'required') {
                         // remapped
                         return 'case when ' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
@@ -2290,30 +2290,30 @@ export class AbstractSqlBuilder implements SqlBuilder {
                         return 'case ' + this._appendRawColumnName(value, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 } else {
-                    if (columnPrivate.__optionalType === 'required') {
+                    if (nodeColumn.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                        return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' when ' + this._true(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._false(context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -2334,7 +2334,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 e.errorReason.columnPath = columnPath
                 e.errorReason.rowIndex = rowIndex
                 // The name in the database of the table, view or values the value goes to, as a database error names it
-                e.errorReason.tableName = __getTableOrViewPrivate(__getColumnPrivate(column).__tableOrView).__name
+                e.errorReason.tableName = __getTableOrViewPrivate(__asDBColumnValueSource(column).__tableOrView).__name
             }
             throw e
         }
@@ -2344,16 +2344,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (sql) {
             return sql
         }
-        const columnPrivate = __getColumnPrivate(column)
+        const nodeColumn = __asDBColumnValueSource(column)
         // A value given for a column of a table takes the type of the column, not the one of its parameter: its parameter
         // is marked so (isValueForColumn in the context of the parameter), which a query runner may use not to cast it
-        if (hasToSql(value) || __getTableOrViewPrivate(columnPrivate.__tableOrView).__type === 'values') {
-            return this._appendValue(value, context, __classOf(columnPrivate), forceTypeCast)
+        if (hasToSql(value) || __getTableOrViewPrivate(nodeColumn.__tableOrView).__type === 'values') {
+            return this._appendValue(value, context, __classOf(nodeColumn), forceTypeCast)
         }
         const oldAssigningValueToColumn = context.assigningValueToColumn
         context.assigningValueToColumn = true
         try {
-            return this._appendValue(value, context, __classOf(columnPrivate), forceTypeCast)
+            return this._appendValue(value, context, __classOf(nodeColumn), forceTypeCast)
         } finally {
             context.assigningValueToColumn = oldAssigningValueToColumn
         }
@@ -2391,8 +2391,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 continue
             }
-            const columnPrivate = __getColumnPrivate(column)
-            if (!columnPrivate.__sequenceName) {
+            const nodeColumn = __asDBColumnValueSource(column)
+            if (!nodeColumn.__sequenceName) {
                 continue
             }
 
@@ -2401,7 +2401,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, context)
-            sequences.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
+            sequences.push({ name: nodeColumn.__sequenceName, typeClass: __classOf(nodeColumn) })
         }
 
         if (columns) {
@@ -2490,8 +2490,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 continue
             }
-            const columnPrivate = __getColumnPrivate(column)
-            if (!columnPrivate.__sequenceName) {
+            const nodeColumn = __asDBColumnValueSource(column)
+            if (!nodeColumn.__sequenceName) {
                 continue
             }
 
@@ -2500,7 +2500,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             columns += this._appendRawColumnName(column, context)
-            sequences.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
+            sequences.push({ name: nodeColumn.__sequenceName, typeClass: __classOf(nodeColumn) })
         }
         if (shape) { // Follow shape order
             const properties = Object.getOwnPropertyNames(shape)
@@ -2657,14 +2657,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 continue
             }
-            const columnPrivate = __getColumnPrivate(column)
-            if (!columnPrivate.__sequenceName) {
+            const nodeColumn = __asDBColumnValueSource(column)
+            if (!nodeColumn.__sequenceName) {
                 continue
             }
 
             addedColumns.push(columnName)
             columnsForInsert[columnName] = column
-            const sequenceValue = __createSequence('_nextSequenceValue', columnPrivate.__sequenceName, __adaptedTypeClassOf(__typeClassOf(columnPrivate), columnPrivate.__typeAdapter), 'required')
+            const sequenceValue = __createSequence('_nextSequenceValue', nodeColumn.__sequenceName, __adaptedTypeClassOf(__typeClassOf(nodeColumn), nodeColumn.__typeAdapter), 'required')
             selectColumns[columnName] = sequenceValue
             flatSelectColumns[columnName] = sequenceValue
         }
@@ -2987,8 +2987,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     continue
                 }
 
-                const columnPrivate = __getColumnPrivate(column)
-                updatePrimaryKey = updatePrimaryKey || columnPrivate.__isPrimaryKey
+                const nodeColumn = __asDBColumnValueSource(column)
+                updatePrimaryKey = updatePrimaryKey || nodeColumn.__isPrimaryKey
 
                 if (columns) {
                     columns += ', '
@@ -3011,8 +3011,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     continue
                 }
     
-                const columnPrivate = __getColumnPrivate(column)
-                updatePrimaryKey = updatePrimaryKey || columnPrivate.__isPrimaryKey
+                const nodeColumn = __asDBColumnValueSource(column)
+                updatePrimaryKey = updatePrimaryKey || nodeColumn.__isPrimaryKey
     
                 if (columns) {
                     columns += ', '
@@ -3040,8 +3040,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (!column) {
                     continue
                 }
-                const columnPrivate = __getColumnPrivate(column)
-                if (!columnPrivate.__isPrimaryKey) {
+                const nodeColumn = __asDBColumnValueSource(column)
+                if (!nodeColumn.__isPrimaryKey) {
                     continue
                 }
                 const oldCoumn = __getValueSourceOfObject(oldValues, property)
@@ -3175,8 +3175,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return true
     }
     _appendColumnNameForUpdate(column: DBColumn, _context: SqlBuildContext) {
-        const columnPrivate = __getColumnPrivate(column)
-        return this._escape(columnPrivate.__name, true)
+        const nodeColumn = __asDBColumnValueSource(column)
+        return this._escape(nodeColumn.__name, true)
     }
     _appendUpdateOldValueForUpdate(query: UpdateData, updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _context: SqlBuildContext) {
         const oldValues = query.__oldValues
@@ -3234,8 +3234,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (requiredColumns) {
             const additionalColumns = Array.from(requiredColumns).sort((c1, c2) => {
-                const c1Private = __getColumnPrivate(c1)
-                const c2Private = __getColumnPrivate(c2)
+                const c1Private = __asDBColumnValueSource(c1)
+                const c2Private = __asDBColumnValueSource(c2)
                 const t1 = c1Private.__tableOrView
                 const t2 = c2Private.__tableOrView
                 const t1Private = __getTableOrViewPrivate(t1)
@@ -3264,12 +3264,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 from += this._appendSql(column, context, false)
                 from += ' as '
 
-                const columnPrivate = __getColumnPrivate(column)
-                const tablePrivate = __getTableOrViewPrivate(columnPrivate.__tableOrView)
+                const nodeColumn = __asDBColumnValueSource(column)
+                const tablePrivate = __getTableOrViewPrivate(nodeColumn.__tableOrView)
                 if (tablePrivate.__as) {
-                    from += this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + columnPrivate.__name), true)
+                    from += this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + nodeColumn.__name), true)
                 } else {
-                    from += this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + columnPrivate.__name), true)
+                    from += this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + nodeColumn.__name), true)
                 }
             }
         }
@@ -3414,7 +3414,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (value === null || value === undefined) {
             return true
         }
-        return isValueSource(value) && __getValueSourcePrivate(value).isConstValue()
+        return isValueSource(value) && __asNodeValueSource(value).isConstValue()
     }
     _isNullValue(value: any): boolean {
         if (!this._isValueKnownWhenTheQueryIsBuilt(value)) {
@@ -3423,7 +3423,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (value === null || value === undefined) {
             return true
         }
-        const valueSourceValue = __getValueSourcePrivate(value).getConstValue()
+        const valueSourceValue = __asNodeValueSource(value).getConstValue()
         return valueSourceValue === null || valueSourceValue === undefined
     }
     /**
@@ -3447,15 +3447,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!isValueSource(value)) {
             return false
         }
-        return __getValueSourcePrivate(value).__optionalType !== 'required'
+        return __asNodeValueSource(value).__optionalType !== 'required'
     }
     _hasSameBooleanTypeAdapter(valueSource: DBColumn, value: DBColumn): valueSource is DBColumn  {
         if (__isColumn(valueSource) && __isColumn(value)) {
-            const valueSourcePrivate = __getColumnPrivate(valueSource)
-            const valuePrivate = __getColumnPrivate(value)
-            if (__isBooleanValueSource(valueSourcePrivate) && __isBooleanValueSource(valuePrivate)) {
-                const valueSourceTypeAdapter = valueSourcePrivate.__typeAdapter
-                const valueTypeAdapter = valuePrivate.__typeAdapter
+            const nodeValueSource = __asDBColumnValueSource(valueSource)
+            const nodeValue = __asDBColumnValueSource(value)
+            if (__isBooleanValueSource(nodeValueSource) && __isBooleanValueSource(nodeValue)) {
+                const valueSourceTypeAdapter = nodeValueSource.__typeAdapter
+                const valueTypeAdapter = nodeValue.__typeAdapter
                 if (valueSourceTypeAdapter instanceof CustomBooleanTypeAdapter && valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
                     return valueSourceTypeAdapter.trueValue === valueTypeAdapter.trueValue && valueSourceTypeAdapter.falseValue === valueTypeAdapter.falseValue
                 }
@@ -3841,7 +3841,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!isValueSource(operand)) {
             return 'unknown'
         }
-        switch (__sqlFamilyOf(__classOf(__getValueSourcePrivate(operand)))) {
+        switch (__sqlFamilyOf(__classOf(__asNodeValueSource(operand)))) {
             case 'approximate numeric':
                 return 'approximate'
             case 'exact numeric':
@@ -4003,7 +4003,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendSqlForDatePartArgument(valueSource: ToSql, context: SqlBuildContext): string {
         // A const receiver is forced to carry its type cast: an untyped placeholder inside
         // `extract(... from $1)` has no type for the engine to resolve.
-        if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).isConstValue()) {
+        if (isValueSource(valueSource) && __asNodeValueSource(valueSource).isConstValue()) {
             return this._appendSql(this._typedOperand(valueSource, []), context, true)
         }
         return this._appendSql(valueSource, context, false)
@@ -4223,7 +4223,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return true
         }
         if (isValueSource(value)) {
-            return __sqlFamilyOf(__classOf(__getValueSourcePrivate(value))) === 'approximate numeric'
+            return __sqlFamilyOf(__classOf(__asNodeValueSource(value))) === 'approximate numeric'
         }
         return typeof value === 'number' && !Number.isInteger(value)
     }
@@ -4271,11 +4271,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return Number.isInteger(this._transformParamToDB(value, typeClass))
         }
         if (isValueSource(value)) {
-            const valuePrivate = __getValueSourcePrivate(value)
-            if (valuePrivate.isConstValue()) {
-                return Number.isInteger(this._transformParamToDB(valuePrivate.getConstValue(), __classOf(valuePrivate)))
+            const nodeValue = __asNodeValueSource(value)
+            if (nodeValue.isConstValue()) {
+                return Number.isInteger(this._transformParamToDB(nodeValue.getConstValue(), __classOf(nodeValue)))
             }
-            return __isIntegerSql(__classOf(valuePrivate))
+            return __isIntegerSql(__classOf(nodeValue))
         }
         return false
     }
@@ -4676,9 +4676,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _aggregateValueAsArray(valueSource: IValueSource<any, AggregatedArrayType<any>, any>, context: SqlBuildContext): string {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
-        const aggregatedArrayDistinct = valueSourcePrivate.__aggregatedArrayDistinct!
+        const nodeValueSource = __asNodeValueSource(valueSource)
+        const aggregatedArrayColumns = nodeValueSource.__aggregatedArrayColumns!
+        const aggregatedArrayDistinct = nodeValueSource.__aggregatedArrayDistinct!
         return this._appendAggregateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, context, undefined)
     }
     /**

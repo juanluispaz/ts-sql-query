@@ -10,7 +10,6 @@ export const using: unique symbol = Symbol('using')
 // Type marks
 export const isValueSourceObject: unique symbol = Symbol('isValueSourceObject')
 export const isTableOrViewObject: unique symbol = Symbol('isTableOrViewObject')
-export const isColumnObject: unique symbol = Symbol('isColumnObject')
 export const isSelectQueryObject: unique symbol = Symbol('isSelectQueryObject')
 
 // General Symbols
@@ -49,7 +48,6 @@ export const arithmeticOperandClass: unique symbol = Symbol('arithmeticOperandCl
 
 // Opaque types
 export const dontCallConstructor: unique symbol = Symbol('dontCallConstructor')
-export const neverUsedSymbol: unique symbol = Symbol('neverUsedSymbol')
 
 // Transaction
 export const transactionIsolationLevel: unique symbol = Symbol('transactionIsolationLevel')

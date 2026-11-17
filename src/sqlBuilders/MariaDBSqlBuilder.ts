@@ -4,14 +4,13 @@ import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder
 import type { FlatQueryColumns, InsertData, SelectData, ToSql } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
-import { __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { isMariaDBReservedWord } from '../utils/mySqlMariaDB/mariaDBReservedWords.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     // MariaDB 10.5+ reads a column of the row in its on duplicate key update with a subquery over a derived table of
@@ -99,8 +98,8 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         // ON DUPLICATE KEY UPDATE but VALUE() is the preferred form on every
         // version that recognises it.
         if (this._connectionConfiguration.compatibilityVersion >= 10_003_003) {
-            const columnPrivate = __getColumnPrivate(column)
-            return 'value(' + this._escape(columnPrivate.__name, true) + ')'
+            const nodeColumn = __asDBColumnValueSource(column)
+            return 'value(' + this._escape(nodeColumn.__name, true) + ')'
         }
         return super._appendRawColumnNameForValuesForInsert(column, _context)
     }
@@ -110,10 +109,10 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         // column references inside RETURNING already return the post-update value,
         // so no special handling is needed for the new-value side.
         if (this._connectionConfiguration.compatibilityVersion >= 13_000_001) {
-            const columnPrivate = __getColumnPrivate(column)
-            const tableOrView = columnPrivate.__tableOrView
+            const nodeColumn = __asDBColumnValueSource(column)
+            const tableOrView = nodeColumn.__tableOrView
             if (__getTableOrViewPrivate(tableOrView).__oldValues) {
-                return 'old_value(' + this._escape(columnPrivate.__name, true) + ')'
+                return 'old_value(' + this._escape(nodeColumn.__name, true) + ')'
             }
         }
         return super._appendRawColumnName(column, context)

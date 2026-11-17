@@ -6,18 +6,17 @@ import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, DynamicOnConflictDoUpdateWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, CustomizableExecutableInsertDefaultValues, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConflict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConflictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable, OnConflictDoInsertFromSelect } from '../expressions/insert.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf, __expandColumnNames, __flattenSets, __flattenShape, __tableWithColumnPaths } from '../utils/columnPaths.js'
-import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject } from '../utils/Column.js'
 import { TsSqlError, TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf, __unnamedResultColumn } from './AbstractQueryBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import type { AnyValueSource, IExecutableSelectQuery } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
-import { __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 
@@ -89,7 +88,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     if (value === undefined) {
                         value = null
                     }
-                    const idColumnPrivate = __getColumnPrivate(idColumn)
+                    const nodeIdColumn = __asDBColumnValueSource(idColumn)
                     let result
                     try {
                         // The id is read as it is: its SQL isn't converted
@@ -99,7 +98,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (e instanceof TsSqlError) {
                             throw e
                         } else {
-                            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: __valueSourceTypeNameOf(idColumnPrivate) }, e)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: __valueSourceTypeNameOf(nodeIdColumn) }, e)
                         }
                     }
                     // Without a conflict to skip the row, an id is always returned: a do nothing, a where of the
@@ -108,7 +107,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         if (result === undefined) {
                             throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                         } else if (result === null) {
-                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(idColumnPrivate) }, 'Expected a value as result of the insert returning last inserted id, but null value was found')
+                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(nodeIdColumn) }, 'Expected a value as result of the insert returning last inserted id, but null value was found')
                         }
                     }
                     if (this.__isMultiple) {
@@ -121,8 +120,8 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeQuery('insertReturningMultipleLastInsertedId', this.__query, executionParams).then((rows) => {
-                    const idColumnPrivate = __getColumnPrivate(idColumn)
-                    const idType = __valueSourceTypeNameOf(idColumnPrivate)
+                    const nodeIdColumn = __asDBColumnValueSource(idColumn)
+                    const idType = __valueSourceTypeNameOf(nodeIdColumn)
                     const defaultTypeAdapter = this.__sqlBuilder._nextTypeAdapter
                     const length = rows.length
                     const output = new Array(length)
@@ -142,7 +141,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             }
                         }
                         if (result === null || result === undefined) {
-                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(idColumnPrivate), rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
+                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(nodeIdColumn), rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                         }
                         output[index] = result
                     }
@@ -1668,8 +1667,8 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             if (!column) {
                 continue
             }
-            const columnPrivate = __getColumnPrivate(column)
-            if (!columnPrivate.__isAutogeneratedPrimaryKey) {
+            const nodeColumn = __asDBColumnValueSource(column)
+            if (!nodeColumn.__isAutogeneratedPrimaryKey) {
                 continue
             }
             if (this.__idColumn) {
@@ -1897,8 +1896,8 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
             }
             this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
-            const conditionPrivate = __getValueSourcePrivate(condition)
-            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
+            const nodeCondition = __asNodeValueSource(condition)
+            this.__valuesForInsert = this.__valuesForInsert || nodeCondition.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (this.__onConflictOnColumnsWhere) {
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
@@ -1917,8 +1916,8 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             } else {
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.and(asAlwaysIfValueSource(condition))
             }
-            const conditionPrivate = __getValueSourcePrivate(condition)
-            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
+            const nodeCondition = __asNodeValueSource(condition)
+            this.__valuesForInsert = this.__valuesForInsert || nodeCondition.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
                 this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
@@ -1938,8 +1937,8 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             } else {
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.or(asAlwaysIfValueSource(condition))
             }
-            const conditionPrivate = __getValueSourcePrivate(condition)
-            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
+            const nodeCondition = __asNodeValueSource(condition)
+            this.__valuesForInsert = this.__valuesForInsert || nodeCondition.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
                 this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)

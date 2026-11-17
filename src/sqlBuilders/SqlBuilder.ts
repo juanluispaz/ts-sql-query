@@ -15,11 +15,11 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
 import type { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { IValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import type { NumberType } from '../typeSystem/number.js'
+import { __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
@@ -76,7 +76,7 @@ export function isAllowedQueryColumns(columns: QueryColumns, sqlBuilder: HasIsVa
             continue
         }
         if (isValueSource(column)) {
-            const result = __getValueSourcePrivate(column).__isAllowed(sqlBuilder)
+            const result = __asNodeValueSource(column).__isAllowed(sqlBuilder)
             if (!result) {
                 return false
             }
@@ -97,7 +97,7 @@ export function hasAggregationQueryColumns(columns: QueryColumns, sqlBuilder: Ha
             continue
         }
         if (isValueSource(column)) {
-            if (__getValueSourcePrivate(column).__hasAggregation(sqlBuilder)) {
+            if (__asNodeValueSource(column).__hasAggregation(sqlBuilder)) {
                 return true
             }
         } else {

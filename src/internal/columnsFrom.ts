@@ -1,20 +1,19 @@
 import type { AnyTableOrView, HasIsValue } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerTableOrView } from '../utils/ITableOrView.js'
-import type { __ColumnPrivate } from '../utils/Column.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 import { CustomBooleanTypeAdapter, type DataTypeClass } from '../TypeAdapter.js'
-import type { OptionalType, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
+import type { OptionalType } from '../typeSystem/valueSource.js'
 import { __newDBColumn, type DBColumnValueSource } from '../nodes/column.js'
 import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
+import { type NodeValueSource, __asNodeValueSource, isValueSource } from '../nodes/NodeStrategy.js'
 
 /**
  * The class of a column of a with or of a compound select: the value of the expression of the select, with its type
  * adapter as it has it. A boolean of a column with a CustomBooleanTypeAdapter is projected as a boolean of the
  * database (the select writes it so), and has no adapter
  */
-export function projectedColumnClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
+export function projectedColumnClassOf(valueSource: NodeValueSource): DataTypeClass {
     const projected = __projectedTypeClassOf(valueSource)
     return valueSource.__typeAdapter instanceof CustomBooleanTypeAdapter ? projected : __keptClassOf(valueSource, projected)
 }
@@ -35,17 +34,17 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
     for (const property in columns) {
         const column = columns[property]!
         if (isValueSource(column)) {
-            const columnPrivate = __getValueSourcePrivate(column)
-            const withColumn = __newDBColumn(projectedColumnClassOf(columnPrivate), table, property)
+            const nodeColumn = __asNodeValueSource(column)
+            const withColumn = __newDBColumn(projectedColumnClassOf(nodeColumn), table, property)
             if (forWithView) {
-                withColumnOptionalType(withColumn, columnPrivate.__optionalType)
+                withColumnOptionalType(withColumn, nodeColumn.__optionalType)
             } else {
-                withColumn.__optionalType = columnPrivate.__optionalType
+                withColumn.__optionalType = nodeColumn.__optionalType
             }
-            if (columnPrivate.__aggregatedArrayColumns) {
-                withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
-                withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
-                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable
+            if (nodeColumn.__aggregatedArrayColumns) {
+                withColumn.__aggregatedArrayColumns = nodeColumn.__aggregatedArrayColumns
+                withColumn.__aggregatedArrayMode = nodeColumn.__aggregatedArrayMode
+                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = nodeColumn.__aggreagtedProjectingOptionalValuesAsNullable
             }
             target[property] = withColumn
         } else {
@@ -62,12 +61,12 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
     for (const property in columns) {
         const column = columns[property]!
         if (isValueSource(column)) {
-            const columnPrivate = __getValueSourcePrivate(column)
-            const withColumn = __newDBColumn(projectedColumnClassOf(columnPrivate), table, prefix + property)
+            const nodeColumn = __asNodeValueSource(column)
+            const withColumn = __newDBColumn(projectedColumnClassOf(nodeColumn), table, prefix + property)
             if (forWithView) {
-                withColumnOptionalType(withColumn, columnPrivate.__optionalType)
+                withColumnOptionalType(withColumn, nodeColumn.__optionalType)
             } else {
-                let optionalType = columnPrivate.__optionalType
+                let optionalType = nodeColumn.__optionalType
                 // DO NOT CHANGE these rules to fix a result that looks wrong without changing the types first: they are
                 // the runtime twin of the projection rules of the types (src/complexProjections/projectionRules.ts and
                 // resultWithOptionalsAsNull.ts / resultWithOptionalsAsUndefined.ts, rules 1 to 4), which decide the
@@ -98,10 +97,10 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
                 }
                 withColumn.__optionalType = optionalType
             }
-            if (columnPrivate.__aggregatedArrayColumns) {
-                withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
-                withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
-                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable
+            if (nodeColumn.__aggregatedArrayColumns) {
+                withColumn.__aggregatedArrayColumns = nodeColumn.__aggregatedArrayColumns
+                withColumn.__aggregatedArrayMode = nodeColumn.__aggregatedArrayMode
+                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = nodeColumn.__aggreagtedProjectingOptionalValuesAsNullable
             }
             target[property] = withColumn
         } else {
@@ -122,8 +121,8 @@ export function getInnerObjetRuleToApply(sqlBuilder: HasIsValue, columns: QueryC
     for (const property in columns) {
         const column = columns[property]!
         if (isValueSource(column)) {
-            const columnPrivate = __getValueSourcePrivate(column)
-            const optionalType = columnPrivate.__optionalType
+            const nodeColumn = __asNodeValueSource(column)
+            const optionalType = nodeColumn.__optionalType
 
             switch (optionalType) {
             case 'requiredInOptionalObject':
@@ -155,9 +154,9 @@ export function getInnerObjetRuleToApply(sqlBuilder: HasIsValue, columns: QueryC
                 continue
             }
 
-            const columnPrivate = __getValueSourcePrivate(column)
+            const nodeColumn = __asNodeValueSource(column)
             let valueSourceRequiredTables = new Set<AnyTableOrView>()
-            columnPrivate.__registerTableOrView(sqlBuilder, valueSourceRequiredTables)
+            nodeColumn.__registerTableOrView(sqlBuilder, valueSourceRequiredTables)
             if (valueSourceRequiredTables.size <= 0) {
                 // A value that doesn't come from a table, like a constant, says nothing about the left join
                 continue

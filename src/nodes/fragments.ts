@@ -8,9 +8,8 @@ import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
+import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
@@ -29,28 +28,28 @@ export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
     __addWiths(vs: FragmentValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
-            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const value = __asNodeValueSource(sqlParams[i]!)
             value.__addWiths(sqlBuilder, withs)
         }
     },
     __registerTableOrView(vs: FragmentValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
         const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
-            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const value = __asNodeValueSource(sqlParams[i]!)
             value.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         }
     },
     __registerRequiredColumn(vs: FragmentValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
-            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const value = __asNodeValueSource(sqlParams[i]!)
             value.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
     },
     __getOldValues(vs: FragmentValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
-            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const value = __asNodeValueSource(sqlParams[i]!)
             const result = value.__getOldValues(sqlBuilder)
             if (result) {
                 return result
@@ -61,7 +60,7 @@ export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
     __getValuesForInsert(vs: FragmentValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
-            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const value = __asNodeValueSource(sqlParams[i]!)
             const result = value.__getValuesForInsert(sqlBuilder)
             if (result) {
                 return result
@@ -72,7 +71,7 @@ export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
     __isAllowed(vs: FragmentValueSource, sqlBuilder: HasIsValue): boolean {
         const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
-            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const value = __asNodeValueSource(sqlParams[i]!)
             const result = value.__isAllowed(sqlBuilder)
             if (!result) {
                 return false
@@ -88,7 +87,7 @@ export const fragmentValueSourceNode: NodeStrategy<FragmentValueSource> = {
         }
         const sqlParams = vs.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
-            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const value = __asNodeValueSource(sqlParams[i]!)
             if (value.__hasAggregation(sqlBuilder)) {
                 return true
             }
@@ -143,8 +142,8 @@ function __builderOutputOf(vs: ValueSourceFromBuilder): AnyValueSource {
     return vs.__builderOutput
 }
 
-function __builderOutputPrivateOf(vs: ValueSourceFromBuilder): __ValueSourcePrivate {
-    return __getValueSourcePrivate(__builderOutputOf(vs))
+function __builderOutputPrivateOf(vs: ValueSourceFromBuilder): NodeValueSource {
+    return __asNodeValueSource(__builderOutputOf(vs))
 }
 
 export interface ValueSourceFromBuilder extends NodeValueSource {

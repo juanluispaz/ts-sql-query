@@ -5,14 +5,14 @@ import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAgg
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { type DataTypeValueSource, type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
+import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
 import { __typeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __addInlineQueryWiths, isSelectQuery } from './inlineSelect.js'
 import { getOptionalType2 } from './operands.js'
 import { __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
 import { __classOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
+import { type AnyType } from '../typeSystem/base.js'
 
 /**
  * The class the values given to an operation are converted with: the one of its result when it is of the data type of
@@ -34,7 +34,7 @@ function argumentClassOf(vs: NodeValueSource & { __valueSource: NodeValueSource,
 const scalarOperations = new Set(['_multiply', '_divide', '_roundn', '_power', '_logn', '_atan2'])
 
 /** The column of the previous row in a hierarchical query (`connect by prior` of Oracle) */
-export function __priorOf(valueSource: DataTypeValueSource | __ValueSourcePrivate): any {
+export function __priorOf(valueSource: AnyType | NodeValueSource): any {
     const vs = valueSource as unknown as NodeValueSource
     return __newSqlOperation0ValueSource('_prior', vs, __keptClassOf(vs, __typeClassOf(vs)), vs.__optionalType)
 }
@@ -72,7 +72,7 @@ export const sqlOperation0ValueSourceNode: NodeStrategy<SqlOperation0ValueSource
     },
 }
 
-export function __newSqlOperation0ValueSource(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: DataTypeValueSource | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation0ValueSource {
+export function __newSqlOperation0ValueSource(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: AnyType | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation0ValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation0ValueSource
     vs.__node = sqlOperation0ValueSourceNode
 
@@ -115,7 +115,7 @@ export const sqlOperationCollateValueSourceNode: NodeStrategy<SqlOperationCollat
     },
 }
 
-export function __newSqlOperationCollateValueSource(valueSource: DataTypeValueSource | NodeValueSource, collation: string, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationCollateValueSource {
+export function __newSqlOperationCollateValueSource(valueSource: AnyType | NodeValueSource, collation: string, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationCollateValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationCollateValueSource
     vs.__node = sqlOperationCollateValueSourceNode
     vs.__operation = '_collate'
@@ -158,7 +158,7 @@ export const sqlOperationIsNullValueSourceNode: NodeStrategy<SqlOperationIsNullV
     },
 }
 
-export function __newSqlOperationIsNullValueSource(operation: keyof SqlComparator0, valueSource: DataTypeValueSource | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationIsNullValueSource {
+export function __newSqlOperationIsNullValueSource(operation: keyof SqlComparator0, valueSource: AnyType | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationIsNullValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationIsNullValueSource
     vs.__node = sqlOperationIsNullValueSourceNode
 
@@ -204,7 +204,7 @@ export const sqlOperation1ValueSourceNode: NodeStrategy<SqlOperation1ValueSource
     },
 }
 
-export function __newSqlOperation1ValueSource(operation: keyof SqlOperation1, valueSource: DataTypeValueSource | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSource {
+export function __newSqlOperation1ValueSource(operation: keyof SqlOperation1, valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation1ValueSource
     vs.__node = sqlOperation1ValueSourceNode
 
@@ -333,7 +333,7 @@ export const sqlOperationInValueSourceNode: NodeStrategy<SqlOperationInValueSour
     },
 }
 
-export function __newSqlOperationInValueSource(operation: '_in' | '_notIn', valueSource: DataTypeValueSource | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationInValueSource {
+export function __newSqlOperationInValueSource(operation: '_in' | '_notIn', valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationInValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationInValueSource
     vs.__node = sqlOperationInValueSourceNode
 
@@ -380,7 +380,7 @@ export const sqlOperationValueWhenNullValueSourceNode: NodeStrategy<SqlOperation
     },
 }
 
-export function __newSqlOperationValueWhenNullValueSource(valueSource: DataTypeValueSource | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationValueWhenNullValueSource {
+export function __newSqlOperationValueWhenNullValueSource(valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationValueWhenNullValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationValueWhenNullValueSource
     vs.__node = sqlOperationValueWhenNullValueSourceNode
 
@@ -427,7 +427,7 @@ export const sqlOperation1NotOptionalValueSourceNode: NodeStrategy<SqlOperation1
     },
 }
 
-export function __newSqlOperation1NotOptionalValueSource(operation: keyof SqlOperation1, valueSource: DataTypeValueSource | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1NotOptionalValueSource {
+export function __newSqlOperation1NotOptionalValueSource(operation: keyof SqlOperation1, valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1NotOptionalValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation1NotOptionalValueSource
     vs.__node = sqlOperation1NotOptionalValueSourceNode
 
@@ -478,7 +478,7 @@ export const sqlOperation2ValueSourceNode: NodeStrategy<SqlOperation2ValueSource
     },
 }
 
-export function __newSqlOperation2ValueSource(operation: keyof SqlOperation2, valueSource: DataTypeValueSource | NodeValueSource, value: any, value2: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation2ValueSource {
+export function __newSqlOperation2ValueSource(operation: keyof SqlOperation2, valueSource: AnyType | NodeValueSource, value: any, value2: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation2ValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation2ValueSource
     vs.__node = sqlOperation2ValueSourceNode
 
@@ -521,7 +521,7 @@ export const noopValueSourceNode: NodeStrategy<NoopValueSource> = {
     },
 }
 
-export function __newNoopValueSource(valueSource: DataTypeValueSource | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): NoopValueSource {
+export function __newNoopValueSource(valueSource: AnyType | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): NoopValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as NoopValueSource
     vs.__node = noopValueSourceNode
 
@@ -530,13 +530,13 @@ export function __newNoopValueSource(valueSource: DataTypeValueSource | NodeValu
 }
 
 /** An operation of the value source alone, whose result has the class given (with its type adapter, if any) */
-export function __operation0(valueSource: DataTypeValueSource, operation: keyof SqlFunction0 | keyof SqlBoolean0, typeClass: DataTypeClass): any {
+export function __operation0(valueSource: AnyType, operation: keyof SqlFunction0 | keyof SqlBoolean0, typeClass: DataTypeClass): any {
     const vs = valueSource as unknown as NodeValueSource
     return __newSqlOperation0ValueSource(operation, vs, typeClass, vs.__optionalType)
 }
 
 /** An operation of the value source with a value, whose result has the class given (with its type adapter, if any) */
-export function __operation1(valueSource: DataTypeValueSource, operation: keyof SqlOperation1, value: any, typeClass: DataTypeClass): any {
+export function __operation1(valueSource: AnyType, operation: keyof SqlOperation1, value: any, typeClass: DataTypeClass): any {
     const vs = valueSource as unknown as NodeValueSource
     return __newSqlOperation1ValueSource(operation, vs, value, typeClass, getOptionalType2(vs, value))
 }

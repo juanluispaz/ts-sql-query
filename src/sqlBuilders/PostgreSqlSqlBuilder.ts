@@ -6,15 +6,15 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject } from '../utils/Column.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../typeSystem/valueSource.js'
-import { __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __isBooleanValueSource } from '../typeSystem/valueSource.js'
+import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf } from '../typeSystem/dataTypeClasses.js'
@@ -42,10 +42,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // emitted as `old.col` inside RETURNING. Bare references to the updated
         // table emit unqualified column names, which is the post-update value.
         if (this._connectionConfiguration.compatibilityVersion >= 18_000_000) {
-            const columnPrivate = __getColumnPrivate(column)
-            const tableOrView = columnPrivate.__tableOrView
+            const nodeColumn = __asDBColumnValueSource(column)
+            const tableOrView = nodeColumn.__tableOrView
             if (__getTableOrViewPrivate(tableOrView).__oldValues) {
-                return 'old.' + this._escape(columnPrivate.__name, true)
+                return 'old.' + this._escape(nodeColumn.__name, true)
             }
         }
         return super._appendRawColumnName(column, context)
@@ -93,8 +93,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return result + '_' + (hash >>> 0).toString(16)
     }
     override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        if (valueSourcePrivate.isConstValue()) {
+        const nodeValueSource = __asNodeValueSource(value)
+        if (nodeValueSource.isConstValue()) {
             return this._appendSql(value, context, true)
         }
         return super._appendColumnValue(value, context, isOutermostQuery)
@@ -109,13 +109,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (!isValueSource(operand)) {
             return operand
         }
-        const operandPrivate = __getValueSourcePrivate(operand)
-        if (!operandPrivate.isConstValue()) {
+        const nodeOperand = __asNodeValueSource(operand)
+        if (!nodeOperand.isConstValue()) {
             return operand
         }
         if (operation !== undefined) {
             // An aggregated array (`json_agg($1)`, `json_build_object('a', $1)`) has no operation and always needs it
-            if (__sqlFamilyOf(__classOf(operandPrivate)) === 'character string' || !this._operationNeedsTypedConst(operation, operand, __classOf(operandPrivate), otherOperands)) {
+            if (__sqlFamilyOf(__classOf(nodeOperand)) === 'character string' || !this._operationNeedsTypedConst(operation, operand, __classOf(nodeOperand), otherOperands)) {
                 return operand
             }
         }
@@ -172,7 +172,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (Array.isArray(operand)) {
             return operand.some(element => this._isTypedOperand(element))
         }
-        return isValueSource(operand) && !__getValueSourcePrivate(operand).isConstValue()
+        return isValueSource(operand) && !__asNodeValueSource(operand).isConstValue()
     }
     override _forceTypeCastInCallArguments(): boolean {
         // The drivers send the parameters untyped, and PostgreSQL can't choose an overload by an unknown type
@@ -190,8 +190,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             if (columns) {
                 columns += ', '
             }
-            const columnPrivate = __getColumnPrivate(column)
-            columns += this._appendColumnAlias(columnPrivate.__name, context)
+            const nodeColumn = __asDBColumnValueSource(column)
+            columns += this._appendColumnAlias(nodeColumn.__name, context)
         }
         result += '(' + columns + ')'
         result += ' as (values '
@@ -313,10 +313,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return super._appendAggregateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, context, query)
     }
     override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string | null {
-        const columnPrivate = __getColumnPrivate(column)
-        const columnTypeAdapter = columnPrivate.__typeAdapter
+        const nodeColumn = __asDBColumnValueSource(column)
+        const columnTypeAdapter = nodeColumn.__typeAdapter
 
-        if (!__isBooleanValueSource(columnPrivate)) {
+        if (!__isBooleanValueSource(nodeColumn)) {
             return null // non-boolean
         }
 
@@ -326,15 +326,15 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
             if (__isColumn(value)) {
-                const valuePrivate = __getColumnPrivate(value)
-                const valueTypeAdapter = valuePrivate.__typeAdapter
+                const nodeValue = __asDBColumnValueSource(value)
+                const valueTypeAdapter = nodeValue.__typeAdapter
 
                 if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
                     if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
                         return this._appendRawColumnName(value, context) // same boolean as column
                     }
 
-                    if (columnPrivate.__optionalType === 'required') {
+                    if (nodeColumn.__optionalType === 'required') {
                         // remapped
                         return 'case when ' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
@@ -342,30 +342,30 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                         return 'case ' + this._appendRawColumnName(value, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 } else {
-                    if (columnPrivate.__optionalType === 'required') {
+                    if (nodeColumn.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                        return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), true) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), true) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), true) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), true) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -640,8 +640,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (!this._isDatabaseOutsideUtc() || !isValueSource(valueSource)) {
             return sql
         }
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = postgreSqlZonedValueSql(sql, __classOf(valueSourcePrivate), this._connectionConfiguration.localTimeReferenceDate)
+        const nodeValueSource = __asNodeValueSource(valueSource)
+        const zoned = postgreSqlZonedValueSql(sql, __classOf(nodeValueSource), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? '(' + zoned + " at time zone 'UTC')" : sql
     }
 }

@@ -9,10 +9,10 @@ import { from, resultType, source, type, using } from '../utils/symbols.js'
 import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
+import { __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
     [source]: any
@@ -451,7 +451,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     return false
                 }
                 if (join.__on) {
-                    result = __getValueSourcePrivate(join.__on).__isAllowed(sqlBuilder)
+                    result = __asNodeValueSource(join.__on).__isAllowed(sqlBuilder)
                     if (!result) {
                         return false
                     }
@@ -459,7 +459,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             }
         }
         if (this.__where) {
-            result = __getValueSourcePrivate(this.__where).__isAllowed(sqlBuilder)
+            result = __asNodeValueSource(this.__where).__isAllowed(sqlBuilder)
             if (!result) {
                 return false
             }
@@ -495,12 +495,12 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (joins) {
             for (let i = 0, length = joins.length; i < length; i++) {
                 const join = joins[i]!
-                if (join.__on && __getValueSourcePrivate(join.__on).__hasAggregation(sqlBuilder)) {
+                if (join.__on && __asNodeValueSource(join.__on).__hasAggregation(sqlBuilder)) {
                     return true
                 }
             }
         }
-        if (this.__where && __getValueSourcePrivate(this.__where).__hasAggregation(sqlBuilder)) {
+        if (this.__where && __asNodeValueSource(this.__where).__hasAggregation(sqlBuilder)) {
             return true
         }
         if (this.__columns && hasAggregationQueryColumns(this.__columns, sqlBuilder)) {

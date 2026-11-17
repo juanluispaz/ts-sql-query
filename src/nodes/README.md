@@ -108,13 +108,32 @@ A few methods of a value source depend on its node and not only on its data type
 (`ValueSourceRoot as unknown as abstract new () => object`): every value source has these fields and methods at run
 time, and the public types and the `.d.ts` have only what the classes declare.
 
+## A value source for TypeScript and at run time
+
+TypeScript and the run time see a value source apart, and neither carries the other's members:
+
+- **For TypeScript** a value source is its data type with its source and its optionality (`ValueSource<SOURCE, TYPE,
+  OPTIONAL_TYPE>`, see the README of the type system): the NType, `[source]`, `[valueType]`, `[optionalType]` and the
+  mark `[isValueSourceObject]` of `AnyValueSource`, which a data type or a condition doesn't have. They are members of
+  the types only: no value source has them at run time.
+- **At run time** it is a `NodeValueSource` ([`NodeStrategy.ts`](./NodeStrategy.ts)): its node, its optionality, its
+  type adapter and the fields of its node. A column is a `DBColumnValueSource` ([`column.ts`](./column.ts)), which adds
+  its name, its table and the marks its table gave it. `__asNodeValueSource(valueSource)` and
+  `__asDBColumnValueSource(column)` give that view of a value source of the public types, of a condition (which
+  TypeScript doesn't take for a value source) or of `this` in a method of a class (which TypeScript sees as its data
+  type, `AnyType`).
+- **Whether a value is a value source** is a question to the node: `isValueSource(value)` is whether it has one. Which
+  node it has, the factory answers (`__isColumn`, `__isFragment`, ...).
+
+`NodeValueSource` and `ValueSourceRoot` declare the mark `[isValueSourceObject]` for TypeScript (the class with
+`declare`, which creates nothing): the value source of the run time goes back to the positions of the public types (the
+columns a query uses, the columns of a `with`).
+
 ## How a method of a data type creates its result
 
 A method of a class doesn't see the fields of the run time, so it passes `this` to the functions of the nodes, which
-take it as a **`DataTypeValueSource`** ([`NodeStrategy.ts`](./NodeStrategy.ts)): the value source as a method of a data
-type class passes it. It requires only the NType (`[typeName]`), the member `BaseType` declares for TypeScript, so
-`this` of any class of a data type fits and a plain object doesn't; the function casts it once to `NodeValueSource`
-where it reads a field. The class says the operation, its operands and the class of the result, with its type adapter,
+take it as its data type (**`AnyType`**, of `src/typeSystem/base.ts`), what TypeScript sees in a method of a class; the
+function reads the fields with `__asNodeValueSource`. The class says the operation, its operands and the class of the result, with its type adapter,
 and its optionality:
 
 ```ts
@@ -143,12 +162,12 @@ receiver otherwise (a value compared with a column takes the column's); a number
 receiver, without its type adapter.
 
 - **The creations** (`__newSqlOperation1ValueSource`, `__newSqlOperation1ValueSourceIfValueOrNoop`, `__newSqlOperationInValueSource`,
-  `__newNoopValueSource`, ...) take the value source they apply to as `DataTypeValueSource | NodeValueSource`: a class
+  `__newNoopValueSource`, ...) take the value source they apply to as `AnyType | NodeValueSource`: a class
   passes `this`, a node or the factory another value source.
 - **The operands** ([`operands.ts`](./operands.ts): `getOptionalType2`, `getOptionalType3`, `getRequiredType2`,
   `getOptionalTypeOfIn`, `getOptionalTypeN`) take the receiver the same way.
 - **The class of the result**: `__typeClassOf` and `__sameTypeClassOf` ([`dataTypeClassOf.ts`](./dataTypeClassOf.ts)) take a
-  `DataTypeValueSource` or the private state of a value source (`__ValueSourcePrivate`); the class of a data type that
+  data type (`this`) or a `NodeValueSource`; the class of a data type that
   extends the receiver's (the boolean of a condition, the int of `sign`) comes from the registry of the data types
   (`src/typeSystem/dataTypeRegistry.ts`).
 - **An operation of the receiver with its own optionality and type adapter**: `__operation0(this, operation, typeClass)`,
@@ -158,8 +177,7 @@ receiver, without its type adapter.
   ([`valueSourceRoot.ts`](./valueSourceRoot.ts)), and `__priorOf` (`operations.ts`).
 
 A method that passes a field of the receiver itself (its optionality or its type adapter where no function above takes
-them, its node for a hook, its type to decide a promotion) still reads it with `const vs = this as unknown as
-ValueSourceRoot`: `collate`, `isNull`, `isNotNull`, `asOptional`, `valueWhenNull`, `onlyWhen`, `ignoreWhen`,
+them, its node for a hook, its type to decide a promotion) still reads it with `const vs = __asNodeValueSource(this)`: `collate`, `isNull`, `isNotNull`, `asOptional`, `valueWhenNull`, `onlyWhen`, `ignoreWhen`,
 `trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue`, `asInt` and `asBigint` of a number, and
 `useEmptyArrayForNoValue`, `asOptionalNonEmptyArray` and `projectingOptionalValuesAsNullable` of an aggregated array;
 and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps only the type adapter of the receiver.
@@ -168,7 +186,7 @@ and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps onl
 
 | File | What it has |
 |---|---|
-| [`NodeStrategy.ts`](./NodeStrategy.ts) | `NodeStrategy`, `NodeValueSource` (a value source as its node sees it), `DataTypeValueSource` (a value source as a method of its class passes it) and `valueSourceNode` |
+| [`NodeStrategy.ts`](./NodeStrategy.ts) | `NodeStrategy`, `NodeValueSource` (a value source at run time), `__asNodeValueSource`, `isValueSource` and `valueSourceNode` |
 | [`valueSourceRoot.ts`](./valueSourceRoot.ts) | `ValueSourceRoot`, and the functions of the methods two families share |
 | [`dataTypeClassOf.ts`](./dataTypeClassOf.ts) | the class of the data type of a value source, and how a class creates one |
 | [`adaptedTypeClass.ts`](./adaptedTypeClass.ts) | the subclass of the class of a data type that carries a type adapter, kept in the adapter, and the conversions of the values of a class |
@@ -182,7 +200,7 @@ and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps onl
 | [`aggregatedArrays.ts`](./aggregatedArrays.ts) | the aggregates as array (a select used as an aggregated array, `aggregateAsArray`, ...), guarded or not, and the null that replaces them |
 | [`inlineSelect.ts`](./inlineSelect.ts) | a select used as a value |
 | [`column.ts`](./column.ts) | a column of a table, a view or values, and its marks (`__asPrimaryKey`, ...) |
-| [`tableOrViewRawFragment.ts`](./tableOrViewRawFragment.ts) | the name or the alias of a table in a raw fragment: the only value source that is not an instance of a class of a data type, because it has none |
+| [`tableOrViewRawFragment.ts`](./tableOrViewRawFragment.ts) | the name or the alias of a table in a raw fragment, guarded or not: the only value source without a data type, an instance of `ValueSourceRoot` itself |
 
 How a value source is written for each database is the SQL builder's (`sqlBuilder._abs(...)`, ...): a node says which
 operation it is and passes its parts, and never writes the SQL of a database.
@@ -204,7 +222,7 @@ operation it is and passes its parts, and never writes the SQL of a database.
 
 1. Its interface (the fields it needs, on a `NodeValueSource`), its strategy (`...valueSourceNode` and what it
    changes) and its creation, in the file of its group, or in a new file when it is a group of its own. A creation that
-   a method of a class calls takes the value source it applies to as `DataTypeValueSource | NodeValueSource`, so the
+   a method of a class calls takes the value source it applies to as `AnyType | NodeValueSource`, so the
    method passes `this`.
 2. Its creation in `valueSourceFactory.ts` if something outside the classes creates it, and a question there
    (`__isX(value)`, comparing `value.__node`) if something else must recognise it.

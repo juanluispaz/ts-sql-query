@@ -10,8 +10,8 @@ import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newSqlOperation1ValueSourceIfValueOrIgnore, __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperation2ValueSourceIfValueOrIgnore } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalType3, getRequiredType2 } from '../nodes/operands.js'
 import { __newSqlOperation1ValueSource, __newSqlOperation2ValueSource, __newSqlOperationCollateValueSource, __operation0 } from '../nodes/operations.js'
-import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 import { __keptClassOf, __adaptedTypeClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __asNodeValueSource } from '../nodes/NodeStrategy.js'
 
 
 /** What a position that takes a text accepts */
@@ -205,7 +205,7 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
      */
     collate(collation: string): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
     collate(collation: any): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newSqlOperationCollateValueSource(vs, collation, __keptClassOf(vs, __typeClassOf(vs)), vs.__optionalType)
     }
     toLowerCase(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>

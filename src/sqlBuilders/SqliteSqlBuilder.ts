@@ -7,11 +7,11 @@ import type { DBColumn } from '../utils/Column.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from '../connections/SqliteConfiguration.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment, __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __isConst, __isFragment, __isInlineSelect, __isTableOrViewRawFragment, __isColumn, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { __isExactDecimalSql, __sqlFamilyOf, __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
@@ -129,12 +129,12 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._decimalNormalForm(sql)
     }
     _isCustomDecimal(value: unknown): boolean {
-        return isValueSource(value) && __isExactDecimalSql(__classOf(__getValueSourcePrivate(value)))
+        return isValueSource(value) && __isExactDecimalSql(__classOf(__asNodeValueSource(value)))
     }
     /** A value that can be null: a value source that isn't required, or a null */
     _canBeNull(value: unknown): boolean {
         if (isValueSource(value)) {
-            return __getValueSourcePrivate(value).__optionalType !== 'required'
+            return __asNodeValueSource(value).__optionalType !== 'required'
         }
         return value === null || value === undefined
     }
@@ -727,15 +727,15 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _getValueSourceDateTimeFormat(valueSource: ToSql): SqliteDateTimeFormat {
         if (isValueSource(valueSource)) {
-            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (__isLocalDateValueSource(valueSourcePrivate)) {
+            const nodeValueSource = __asNodeValueSource(valueSource)
+            if (__isLocalDateValueSource(nodeValueSource)) {
                 return this._getDateTimeFormat('date')
-            } else if (__isLocalTimeValueSource(valueSourcePrivate)) {
+            } else if (__isLocalTimeValueSource(nodeValueSource)) {
                 return this._getDateTimeFormat('time')
-            } else if (__isLocalDateTimeValueSource(valueSourcePrivate)) {
+            } else if (__isLocalDateTimeValueSource(nodeValueSource)) {
                 return this._getDateTimeFormat('dateTime')
             } else {
-                throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE', typeName: __valueSourceTypeNameOf(valueSourcePrivate) }, 'Unknown date type: ' + __valueSourceTypeNameOf(valueSourcePrivate))
+                throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE', typeName: __valueSourceTypeNameOf(nodeValueSource) }, 'Unknown date type: ' + __valueSourceTypeNameOf(nodeValueSource))
             }
         }
         throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE' }, 'Unable to determine the value source type')
@@ -753,8 +753,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      */
     _dateFunctionArgument(context: SqlBuildContext, valueSource: ToSql): string {
         const format = this._getValueSourceDateTimeFormat(valueSource)
-        const isTime = isValueSource(valueSource) && __isLocalTimeValueSource(__getValueSourcePrivate(valueSource))
-        const isDate = isValueSource(valueSource) && __isLocalDateValueSource(__getValueSourcePrivate(valueSource))
+        const isTime = isValueSource(valueSource) && __isLocalTimeValueSource(__asNodeValueSource(valueSource))
+        const isDate = isValueSource(valueSource) && __isLocalDateValueSource(__asNodeValueSource(valueSource))
         const inApplicationZone = !!this._connectionConfiguration.sqliteRunsInApplicationTimeZone
             && !isDate
             && !isLocalTextFormat(format)
@@ -841,7 +841,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         let hasDecimal = false
         let hasAggregation = false
         for (const column of selectColumnsSql.keys()) {
-            hasAggregation = hasAggregation || __getValueSourcePrivate(column).__hasAggregation(this)
+            hasAggregation = hasAggregation || __asNodeValueSource(column).__hasAggregation(this)
             hasDecimal = hasDecimal || this._isCustomDecimal(column)
         }
         if (!hasDecimal) {
@@ -1268,7 +1268,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return this._canonicalDecimalSql(value, this._appendSql(value, context, false))
         }
         if (isOutermostQuery && this._getUuidStrategy() === 'uuid-extension') {
-            if (__isUuidValueSource(__getValueSourcePrivate(value))) {
+            if (__isUuidValueSource(__asNodeValueSource(value))) {
                 return 'uuid_str(' + this._appendSql(value, context, false) + ')'
             }
         }
@@ -1285,7 +1285,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
+            if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
                 return 'json_group_array(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
             }
             if (this._isCustomDecimal(aggregatedArrayColumns) && (aggregatedArrayDistinct || this._isCanonicalDecimalText())) {
@@ -1305,7 +1305,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'uuid-extension') {
+                if (__isUuidValueSource(__asNodeValueSource(column)) && this._getUuidStrategy() === 'uuid-extension') {
                     result += this._appendAggregatedArrayValueProjection(column, 'uuid_str(' + this._appendSql(column, context, false) + ')', context)
                 } else if (this._isCustomDecimal(column) && (aggregatedArrayDistinct || this._isCanonicalDecimalText())) {
                     result += this._appendAggregatedArrayValueProjection(column, this._decimalComparableText(column, this._appendSql(column, context, false)), context)
@@ -1319,7 +1319,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
+            if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
                 return 'json_group_array(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'uuid_str(a_' + aggregateId + '_.result)', context) + ')'
             }
             return 'json_group_array(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result', context) + ')'
@@ -1334,7 +1334,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'uuid-extension') {
+                if (__isUuidValueSource(__asNodeValueSource(column)) && this._getUuidStrategy() === 'uuid-extension') {
                     result += this._appendAggregatedArrayValueProjection(column, 'uuid_str(a_' + aggregateId + '_.' + this._escape(prop, true) + ')', context)
                 } else {
                     result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)

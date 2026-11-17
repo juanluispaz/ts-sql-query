@@ -1,30 +1,24 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
-import type { SqlBuilder, ToSql } from '../sqlBuilders/SqlBuilder.js'
-import type { TypedValueSource } from '../typeSystem/valueSource.js'
+import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { valueType as valueType_, optionalType as optionalType_, typeName, isValueSourceObject, source } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
+import type { isValueSourceObject } from '../utils/symbols.js'
+import type { AnyType } from '../typeSystem/base.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { type DataTypeValueSource, type NodeStrategy } from './NodeStrategy.js'
+import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
 import { __newAllowWhenValueSource } from './allowWhen.js'
 import { __newNullValueSource } from './constants.js'
 import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
 import { __newNoopValueSource } from './operations.js'
 import { typeAdapterOfClass, __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
 
-export class ValueSourceRoot implements TypedValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
-    [typeName]: any
-    [source]: any
-
-    [valueType_]: any
-    [optionalType_]: any
-
-    [isValueSourceObject]: true = true
+export class ValueSourceRoot implements NodeValueSource {
+    /** The mark of a value source for TypeScript (AnyValueSource); nothing at run time */
+    declare readonly [isValueSourceObject]: true
     __optionalType: OptionalType
     __isAggregate?: boolean | undefined
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
@@ -123,8 +117,8 @@ export class ValueSourceRoot implements TypedValueSource<any, any, any>, __Value
 }
 
 /** What `asRequiredInOptionalObject` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
-export function __asRequiredInOptionalObjectOf(valueSource: DataTypeValueSource): any {
-    const vs = valueSource as ValueSourceRoot
+export function __asRequiredInOptionalObjectOf(valueSource: AnyType): any {
+    const vs = __asNodeValueSource(valueSource)
     const nodeAsRequiredInOptionalObject = vs.__node.asRequiredInOptionalObject
     if (nodeAsRequiredInOptionalObject) {
         return nodeAsRequiredInOptionalObject(vs)
@@ -139,8 +133,8 @@ export function __asRequiredInOptionalObjectOf(valueSource: DataTypeValueSource)
 }
 
 /** What `onlyWhenOrNull` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
-export function __onlyWhenOrNullOf(valueSource: DataTypeValueSource, when: boolean): any {
-    const vs = valueSource as ValueSourceRoot
+export function __onlyWhenOrNullOf(valueSource: AnyType, when: boolean): any {
+    const vs = __asNodeValueSource(valueSource)
     if (when) {
         return vs
     } else {
@@ -150,8 +144,8 @@ export function __onlyWhenOrNullOf(valueSource: DataTypeValueSource, when: boole
 }
 
 /** What `ignoreWhenAsNull` gives, for every data type that has it (the nullable ones, the aggregated arrays) */
-export function __ignoreWhenAsNullOf(valueSource: DataTypeValueSource, when: boolean): any {
-    const vs = valueSource as ValueSourceRoot
+export function __ignoreWhenAsNullOf(valueSource: AnyType, when: boolean): any {
+    const vs = __asNodeValueSource(valueSource)
     if (when) {
         const nodeAsNull = vs.__node.asNull
         return nodeAsNull ? nodeAsNull(vs) : __newNullValueSource(__keptClassOf(vs, __typeClassOf(vs)), 'optional')

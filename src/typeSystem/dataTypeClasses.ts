@@ -1,9 +1,9 @@
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { arithmeticOperandClass, valueOperandClass } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
-import type { __ValueSourcePrivate } from './valueSource.js'
 import { __internalDataType, __registeredDataType } from './dataTypeRegistry.js'
 import { __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
+import { type NodeValueSource } from '../nodes/NodeStrategy.js'
 
 // The class of the data type a value source is created from (a built-in one by its name, as the registry has it,
 // dataTypeRegistry.ts), and the class a value given to one of its operations is sent with.
@@ -18,7 +18,7 @@ export function __dataTypeClassFrom(type: string | DataTypeClass): DataTypeClass
  * (a column of a `with` or of a compound select, a select used as a value): its class (the text of a uuid is still the
  * uuid), but the boolean of a condition is projected as a boolean value
  */
-export function __projectedTypeClassOf(valueSource: __ValueSourcePrivate): DataTypeClass {
+export function __projectedTypeClassOf(valueSource: NodeValueSource): DataTypeClass {
     const typeClass = __sameTypeClassOf(valueSource)
     return typeClass === __internalDataType('condition') ? __registeredDataType('boolean') : typeClass
 }

@@ -7,11 +7,11 @@ import type { FlatQueryColumns, InsertData, SelectData, ToSql, WithQueryData } f
 import { flattenQueryColumns, getQueryColumn, hasWithData } from './SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DBColumn } from '../utils/Column.js'
-import { __getColumnPrivate } from '../utils/Column.js'
 import { isMySqlReservedWord } from '../utils/mySqlMariaDB/mySqlReservedWords.js'
 import { __sqlFamilyOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isUuidValueSource } from '../typeSystem/valueSource.js'
+import { __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
@@ -52,8 +52,8 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         // ts-sql-query uses its canonical alias name '_new_' (see _updateNewAlias),
         // matching the convention used elsewhere in the library.
         if (this._connectionConfiguration.compatibilityVersion >= 8_000_019) {
-            const columnPrivate = __getColumnPrivate(column)
-            return this._escape(this._updateNewAlias, true) + '.' + this._escape(columnPrivate.__name, true)
+            const nodeColumn = __asDBColumnValueSource(column)
+            return this._escape(this._updateNewAlias, true) + '.' + this._escape(nodeColumn.__name, true)
         }
         return super._appendRawColumnNameForValuesForInsert(column, context)
     }
@@ -115,7 +115,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'binary') {
-            if (__isUuidValueSource(__getValueSourcePrivate(value))) {
+            if (__isUuidValueSource(__asNodeValueSource(value))) {
                 return 'bin_to_uuid(' + this._appendSql(value, context, false) + ')'
             }
         }
@@ -149,7 +149,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
+            if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
                 return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'bin_to_uuid(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
             }
             return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false), context) + ')'
@@ -164,7 +164,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'binary') {
+                if (__isUuidValueSource(__asNodeValueSource(column)) && this._getUuidStrategy() === 'binary') {
                     result += this._appendAggregatedArrayValueProjection(column, 'bin_to_uuid(' + this._appendSql(column, context, false) + ')', context)
                 } else {
                     result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false), context)
@@ -176,7 +176,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
+            if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
                 return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'bin_to_uuid(a_' + aggregateId + '_.result)', context) + ')'
             }
             return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result', context) + ')'
@@ -191,7 +191,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'binary') {
+                if (__isUuidValueSource(__asNodeValueSource(column)) && this._getUuidStrategy() === 'binary') {
                     result += this._appendAggregatedArrayValueProjection(column, 'bin_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')', context)
                 } else {
                     result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)

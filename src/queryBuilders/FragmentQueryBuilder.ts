@@ -1,9 +1,9 @@
 import type { TypeAdapter } from '../TypeAdapter.js'
-import { __createConst, __createFragment, __createIfValueAlwaysNoop } from '../typeSystem/valueSourceFactory.js'
+import { __createConst, __createFragment, __createIfValueAlwaysNoop, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, __mergeOptional, isValueSource } from '../typeSystem/valueSource.js'
+import { __mergeOptional } from '../typeSystem/valueSource.js'
 import { Argument } from '../typeSystem/arguments.js'
 import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
@@ -49,7 +49,7 @@ export class FragmentFunctionBuilder {
             }
             const result = impl.apply(undefined, newArgs)
             if (this.isAggregate) {
-                __getValueSourcePrivate(result).__isAggregate = true
+                __asNodeValueSource(result).__isAggregate = true
             }
             return result
         }
@@ -98,10 +98,10 @@ export class FragmentFunctionBuilderIfValue {
                 // boolean expression the fragment builds, the same one returned when the value is provided. The
                 // expression is built and discarded here only to get it: it is not stored anywhere else, it lives in
                 // the value returned by the implementation function.
-                return __createIfValueAlwaysNoop(__getValueSourcePrivate(result).__optionalType)
+                return __createIfValueAlwaysNoop(__asNodeValueSource(result).__optionalType)
             }
             if (this.isAggregate) {
-                __getValueSourcePrivate(result).__isAggregate = true
+                __asNodeValueSource(result).__isAggregate = true
             }
             return result
         }
@@ -127,7 +127,7 @@ export class FragmentFunctionBuilderMaybeOptional {
                 const arg = args[i]
                 let argOptionalType: OptionalType
                 if (isValueSource(arg)) {
-                    argOptionalType = __getValueSourcePrivate(arg).__optionalType
+                    argOptionalType = __asNodeValueSource(arg).__optionalType
                     newArgs.push(arg)
                 } else {
                     if (this.sqlBuilderSource.__sqlBuilder._isValue(arg)) {
@@ -142,9 +142,9 @@ export class FragmentFunctionBuilderMaybeOptional {
                 optionalType = __mergeOptional(optionalType, argOptionalType)
             }
             const result = impl.apply(undefined, newArgs)
-            __getValueSourcePrivate(result).__optionalType = optionalType
+            __asNodeValueSource(result).__optionalType = optionalType
             if (this.isAggregate) {
-                __getValueSourcePrivate(result).__isAggregate = true
+                __asNodeValueSource(result).__isAggregate = true
             }
             return result
         }

@@ -8,13 +8,12 @@ import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../u
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
-import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray } from '../typeSystem/valueSourceFactory.js'
+import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
 import type { StringType } from '../typeSystem/strings.js'
@@ -37,13 +36,13 @@ export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends A
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, StringType, 'optional'>
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'noopDB', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'noopDB', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')
     }
 
     anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'noopDB', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'noopDB', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'noopDB', NAME>>, TYPE, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')) as any
+        const nodeValue = __asNodeValueSource(value)
+        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')) as any
     }
 
     default(): Default {

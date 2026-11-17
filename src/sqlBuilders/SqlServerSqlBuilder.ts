@@ -7,17 +7,17 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject } from '../utils/Column.js'
 import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { isSqlServerReservedWord } from '../utils/sqlServer/sqlServerReservedWords.js'
 import { __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __isCondition } from '../typeSystem/logical.js'
-import { __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
@@ -30,10 +30,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return selectColumn.sql
     }
     override _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        const tableOrView = columnPrivate.__tableOrView
+        const nodeColumn = __asDBColumnValueSource(column)
+        const tableOrView = nodeColumn.__tableOrView
         if (__getTableOrViewPrivate(tableOrView).__oldValues) {
-            return 'deleted.' + this._escape(columnPrivate.__name, true)
+            return 'deleted.' + this._escape(nodeColumn.__name, true)
         }
         return super._appendRawColumnName(column, context)
     }
@@ -74,9 +74,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _nullValueForCondition = '(0=null)'
     override _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (isValueSource(value) && !__isColumn(value)) {
-            const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (__isCondition(valueSourcePrivate)) {
-                if (valueSourcePrivate.__optionalType === 'required') {
+            const nodeValueSource = __asNodeValueSource(value)
+            if (__isCondition(nodeValueSource)) {
+                if (nodeValueSource.__optionalType === 'required') {
                     return 'cast(case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 else 0 end as bit)'
                 } else {
                     return 'cast(case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 when not ' + super._appendConditionSqlParenthesis(value, context, forceTypeCast) + ' then 0 else null end as bit)'
@@ -93,8 +93,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (isValueSource(value) && !__isColumn(value) && hasToSql(value)) {
-            const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (__isBooleanValueSource(valueSourcePrivate) && !__isCondition(valueSourcePrivate)) {
+            const nodeValueSource = __asNodeValueSource(value)
+            if (__isBooleanValueSource(nodeValueSource) && !__isCondition(nodeValueSource)) {
                 // A boolean value used as a condition is a `bit`; coerce it to a
                 // predicate by appending `= 1` exactly once here. Source the bit
                 // VALUE form (`_appendSql`), not the condition form: a const or
@@ -118,8 +118,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _isUuid(value: any): boolean {
         if (isValueSource(value)) {
-            const valuePrivate = __getValueSourcePrivate(value)
-            if (__isUuidValueSource(valuePrivate) || value instanceof UuidTextType) {
+            const nodeValue = __asNodeValueSource(value)
+            if (__isUuidValueSource(nodeValue) || value instanceof UuidTextType) {
                 return true
             }
         }
@@ -193,8 +193,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendConditionParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
         if (__sqlFamilyOf(typeClass) === 'boolean') {
             if (__isColumn(value)) {
-                const columnPrivate = __getColumnPrivate(value)
-                const typeAdapter = columnPrivate.__typeAdapter
+                const nodeColumn = __asDBColumnValueSource(value)
+                const typeAdapter = nodeColumn.__typeAdapter
                 if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                     return '(' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
                 }
@@ -204,11 +204,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendParam(value, context, typeClass, forceTypeCast)
     }
     override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        const typeAdapter = columnPrivate.__typeAdapter
-        if (__isBooleanValueSource(columnPrivate)) {
+        const nodeColumn = __asDBColumnValueSource(column)
+        const typeAdapter = nodeColumn.__typeAdapter
+        if (__isBooleanValueSource(nodeColumn)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     return 'cast(case when ' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ' then 1 else 0 end as bit)'
                 } else {
                     return 'cast(case ' + this._appendRawColumnName(column, context) + ' when ' + this._appendLiteralValue(typeAdapter.trueValue, context) +  ' then 1 when ' + this._appendLiteralValue(typeAdapter.falseValue, context) + ' then 0 else null end as bit)'
@@ -219,9 +219,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendRawColumnName(column, context)
     }
     override _appendColumnNameForCondition(column: DBColumn, context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        const typeAdapter = columnPrivate.__typeAdapter
-        if (__isBooleanValueSource(columnPrivate)) {
+        const nodeColumn = __asDBColumnValueSource(column)
+        const typeAdapter = nodeColumn.__typeAdapter
+        if (__isBooleanValueSource(nodeColumn)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 return '(' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
             } else {
@@ -279,8 +279,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             if (columns) {
                 columns += ', '
             }
-            const columnPrivate = __getColumnPrivate(column)
-            columns += this._appendColumnAlias(columnPrivate.__name, context)
+            const nodeColumn = __asDBColumnValueSource(column)
+            columns += this._appendColumnAlias(nodeColumn.__name, context)
         }
         result += '(' + columns + ')'
         result += ')'
@@ -328,7 +328,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     index++
                     const column = columns[property]
                     if (__isColumn(column)) {
-                        if (__getColumnPrivate(column).__isPrimaryKey) {
+                        if (__asDBColumnValueSource(column).__isPrimaryKey) {
                             return ' order by ' + index
                         }
                     }
@@ -565,9 +565,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // required adapter), so the null check must read the raw column name.
             return this._appendRawColumnName(valueSource, context) + ' is null'
         } else if (isValueSource(valueSource)) {
-            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (__isCondition(valueSourcePrivate)) {
-                if (valueSourcePrivate.__optionalType === 'required') {
+            const nodeValueSource = __asNodeValueSource(valueSource)
+            if (__isCondition(nodeValueSource)) {
+                if (nodeValueSource.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
@@ -587,9 +587,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (__isColumn(valueSource)) {
             return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
-            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (__isCondition(valueSourcePrivate)) {
-                if (valueSourcePrivate.__optionalType === 'required') {
+            const nodeValueSource = __asNodeValueSource(valueSource)
+            if (__isCondition(nodeValueSource)) {
+                if (nodeValueSource.__optionalType === 'required') {
                     return this._trueValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
@@ -1103,7 +1103,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * the seconds and milliseconds don't depend on one (offsets are whole minutes): they are written as they are
      */
     _appendDateTimeInUtc(context: SqlBuildContext, valueSource: ToSql): string {
-        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource))) {
+        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource))) {
             return 'switchoffset(' + this._appendSql(valueSource, context, false) + ", '+00:00')"
         }
         return this._appendSql(valueSource, context, false)
@@ -1381,9 +1381,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     /** A leaf of the JSON written by the library, as JSON text: `sql` is the value */
     _appendJsonValue(valueSource: AnyValueSource, sql: string, context: SqlBuildContext): string {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const nodeValueSource = __asNodeValueSource(valueSource)
         // What the value is, by the SQL data type of its data type
-        const typeClass = __classOf(valueSourcePrivate)
+        const typeClass = __classOf(nodeValueSource)
         const sqlDataType = typeClass.sqlDataType
         const family = sqlDataType?.family
 
@@ -1429,7 +1429,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result = `'"' + ` + result + ` + '"'`
         }
 
-        if (valueSourcePrivate.__optionalType !== 'required') {
+        if (nodeValueSource.__optionalType !== 'required') {
             result = `isnull(` + result + `, 'null')`
         }
 

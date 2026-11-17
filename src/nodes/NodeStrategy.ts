@@ -1,30 +1,46 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, ToSql } from '../sqlBuilders/SqlBuilder.js'
-import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { __addWiths } from '../utils/ITableOrView.js'
+import type { AnyTableOrView, HasIsValue, IQueryDataDiscovery, IWithView } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { typeName } from '../utils/symbols.js'
-import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import type { AnyType, ILogicalValue } from '../typeSystem/base.js'
 
 /**
- * A value source as a method of a data type class passes it (`this`) to the functions of the nodes (the creations, the
- * optionality and the type adapter of the operands, the class of the result, ...). TypeScript sees in a class only what
- * `BaseType` declares, so it requires the NType (`[typeName]`), which every data type class has and a plain object
- * doesn't; the function reads the fields of the run time with a single cast to `NodeValueSource`
+ * A value source at run time: an instance of the class of its data type (or of ValueSourceRoot, for the name of a table
+ * in a raw fragment) with its node, its optionality and the fields of its node. The public types describe a value
+ * source by its data type, its source and its optionality, which exist only for TypeScript; `__asNodeValueSource` gives
+ * the value source as it is at run time
  */
-export interface DataTypeValueSource {
-    readonly [typeName]: string
+export interface NodeValueSource extends AnyValueSource, IQueryDataDiscovery, ToSql {
+    /** How the value source is written and what it reaches */
+    __node: NodeStrategy<any>
+    __optionalType: OptionalType
+    /** The type adapter of the class of the value source */
+    readonly __typeAdapter: TypeAdapter | undefined
+    /** Whether the value source is an aggregate: a function of aggregation, or a fragment declared as one */
+    __isAggregate?: boolean | undefined
+    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
+    __aggregatedArrayMode?: __AggregatedArrayMode | undefined
+    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
+    __aggregatedArrayDistinct?: boolean | undefined
+
+    isConstValue(): boolean
+    getConstValue(): any
 }
 
 /**
- * A value source as its node sees it: the fields every value source has (`__ValueSourcePrivate`), how it is written,
- * and its node. ValueSourceRoot, the root of the classes of the data types at run time, is one
+ * A value source as it is at run time, from the public types: a value source, a condition (which TypeScript doesn't take
+ * for a value source) or `this` in a method of the class of a data type (which TypeScript sees as its data type)
  */
-export interface NodeValueSource extends __ValueSourcePrivate, ToSql {
-    __node: NodeStrategy<any>
+export function __asNodeValueSource(valueSource: AnyValueSource | ILogicalValue | AnyType): NodeValueSource {
+    return valueSource as unknown as NodeValueSource
+}
+
+/** Whether the value is a value source: it has a node */
+export function isValueSource(value: any): value is AnyValueSource {
+    return typeof value === 'object' && value !== null && value.__node !== undefined
 }
 
 /**

@@ -2,9 +2,9 @@ import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, ValueSource } from './base.js'
 import { __operation0 } from '../nodes/operations.js'
-import type { DataTypeValueSource } from '../nodes/NodeStrategy.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { IntType } from './number.js'
+import { type AnyType } from './base.js'
 
 /*
  * The dates and times without a zone: a date (localDate), a time of the day (localTime), and both (localDateTime).
@@ -12,7 +12,7 @@ import { IntType } from './number.js'
  */
 
 /** A part of a date or a time (its day, its hours, ...): an int */
-function datePartOf(valueSource: DataTypeValueSource, operation: keyof SqlFunction0): any {
+function datePartOf(valueSource: AnyType, operation: keyof SqlFunction0): any {
     return __operation0(valueSource, operation, IntType)
 }
 

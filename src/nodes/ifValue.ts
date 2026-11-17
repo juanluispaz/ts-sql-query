@@ -5,12 +5,12 @@ import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAgg
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { type DataTypeValueSource, type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
+import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { sqlOperation1ValueSourceNode, sqlOperation2ValueSourceNode, sqlOperationInValueSourceNode } from './operations.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { type AnyType } from '../typeSystem/base.js'
 
 /** The value source of an operation that disappears without a value (`*IfValue`): the fields of its operation */
 interface IfValueOperation extends NodeValueSource {
@@ -137,7 +137,7 @@ export const booleanValueWhenNoValueValueSourceNode: NodeStrategy<BooleanValueWh
     },
 }
 
-export function __newBooleanValueWhenNoValueValueSource(operation: '_true' | '_false', valueSource: DataTypeValueSource | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): BooleanValueWhenNoValueValueSource {
+export function __newBooleanValueWhenNoValueValueSource(operation: '_true' | '_false', valueSource: AnyType | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): BooleanValueWhenNoValueValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as BooleanValueWhenNoValueValueSource
     vs.__node = booleanValueWhenNoValueValueSourceNode
 
@@ -148,7 +148,7 @@ export function __newBooleanValueWhenNoValueValueSource(operation: '_true' | '_f
 
 export interface ValueWhenNoValueValueSource extends NodeValueSource {
     __valueSource: NodeValueSource
-    __valueWhenNoValue: __ValueSourcePrivate & ToSql
+    __valueWhenNoValue: NodeValueSource & ToSql
 }
 
 export const valueWhenNoValueValueSourceNode: NodeStrategy<ValueWhenNoValueValueSource> = {
@@ -197,7 +197,7 @@ export const valueWhenNoValueValueSourceNode: NodeStrategy<ValueWhenNoValueValue
     },
 }
 
-export function __newValueWhenNoValueValueSource(valueWhenNoValue: __ValueSourcePrivate & ToSql, valueSource: DataTypeValueSource | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): ValueWhenNoValueValueSource {
+export function __newValueWhenNoValueValueSource(valueWhenNoValue: NodeValueSource & ToSql, valueSource: AnyType | NodeValueSource, typeClass: DataTypeClass, optionalType: OptionalType): ValueWhenNoValueValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as ValueWhenNoValueValueSource
     vs.__node = valueWhenNoValueValueSourceNode
 
@@ -214,7 +214,7 @@ export interface SqlOperation1ValueSourceIfValueOrNoop extends NodeValueSource, 
 
 export const sqlOperation1ValueSourceIfValueOrNoopNode: NodeStrategy<SqlOperation1ValueSourceIfValueOrNoop> = ifValueNode(sqlOperation1ValueSourceNode, 'neutral', 1)
 
-export function __newSqlOperation1ValueSourceIfValueOrNoop(operation: keyof SqlOperation1, valueSource: DataTypeValueSource | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSourceIfValueOrNoop {
+export function __newSqlOperation1ValueSourceIfValueOrNoop(operation: keyof SqlOperation1, valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSourceIfValueOrNoop {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation1ValueSourceIfValueOrNoop
     vs.__node = sqlOperation1ValueSourceIfValueOrNoopNode
 
@@ -232,7 +232,7 @@ export interface SqlOperationInValueSourceIfValueOrNoop extends NodeValueSource,
 
 export const sqlOperationInValueSourceIfValueOrNoopNode: NodeStrategy<SqlOperationInValueSourceIfValueOrNoop> = ifValueNode(sqlOperationInValueSourceNode, 'neutral', 1)
 
-export function __newSqlOperationInValueSourceIfValueOrNoop(operation: '_in' | '_notIn', valueSource: DataTypeValueSource | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationInValueSourceIfValueOrNoop {
+export function __newSqlOperationInValueSourceIfValueOrNoop(operation: '_in' | '_notIn', valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationInValueSourceIfValueOrNoop {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperationInValueSourceIfValueOrNoop
     vs.__node = sqlOperationInValueSourceIfValueOrNoopNode
 
@@ -295,7 +295,7 @@ export interface SqlOperation1ValueSourceIfValueOrIgnore extends NodeValueSource
 
 export const sqlOperation1ValueSourceIfValueOrIgnoreNode: NodeStrategy<SqlOperation1ValueSourceIfValueOrIgnore> = ifValueNode(sqlOperation1ValueSourceNode, 'receiver', 1)
 
-export function __newSqlOperation1ValueSourceIfValueOrIgnore(operation: keyof SqlOperation1, valueSource: DataTypeValueSource | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSourceIfValueOrIgnore {
+export function __newSqlOperation1ValueSourceIfValueOrIgnore(operation: keyof SqlOperation1, valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1ValueSourceIfValueOrIgnore {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation1ValueSourceIfValueOrIgnore
     vs.__node = sqlOperation1ValueSourceIfValueOrIgnoreNode
 
@@ -314,7 +314,7 @@ export interface SqlOperation2ValueSourceIfValueOrIgnore extends NodeValueSource
 
 export const sqlOperation2ValueSourceIfValueOrIgnoreNode: NodeStrategy<SqlOperation2ValueSourceIfValueOrIgnore> = ifValueNode(sqlOperation2ValueSourceNode, 'receiver', 2)
 
-export function __newSqlOperation2ValueSourceIfValueOrIgnore(operation: keyof SqlOperation2, valueSource: DataTypeValueSource | NodeValueSource, value: any, value2: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation2ValueSourceIfValueOrIgnore {
+export function __newSqlOperation2ValueSourceIfValueOrIgnore(operation: keyof SqlOperation2, valueSource: AnyType | NodeValueSource, value: any, value2: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation2ValueSourceIfValueOrIgnore {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as SqlOperation2ValueSourceIfValueOrIgnore
     vs.__node = sqlOperation2ValueSourceIfValueOrIgnoreNode
 

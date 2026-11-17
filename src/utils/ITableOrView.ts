@@ -1,6 +1,7 @@
 import type { RawFragment } from './RawFragment.js'
 import type { NDB, NDBWithType, NDbType, NGetDBFrom, NNoTableOrViewRequired, NSource, NWithSameDB } from './sourceName.js'
-import type { isTableOrViewObject, isValueSourceObject, source, type } from './symbols.js'
+import type { isTableOrViewObject, source, type } from './symbols.js'
+import type { DBColumn } from './Column.js'
 
 export interface HasSource</*in|out*/ SOURCE extends NSource> {
     [source]: SOURCE
@@ -23,12 +24,6 @@ export interface AnyTableOrView {
 }
 
 export interface ITableOrView</*in|out*/ SOURCE extends NSource> extends AnyTableOrView, HasSource<SOURCE> {
-}
-
-// Duplicated here to avoid circular reference
-interface DBColumn {
-    [type]: 'column'
-    [isValueSourceObject]: true
 }
 
 export interface HasIsValue {

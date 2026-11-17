@@ -9,14 +9,13 @@ import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolat
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
-import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray } from '../typeSystem/valueSourceFactory.js'
+import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { postgreSqlZonedParam } from '../utils/metadataSymbols.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
 import type { StringType } from '../typeSystem/strings.js'
@@ -170,13 +169,13 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'postgreSql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'postgreSql', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'postgreSql', NAME>>, StringType, 'optional'>
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'postgreSql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'postgreSql', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'postgreSql', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')
     }
 
     anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'postgreSql', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'postgreSql', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'postgreSql', NAME>>, TYPE, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')) as any
+        const nodeValue = __asNodeValueSource(value)
+        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')) as any
     }
 
     default(): Default {

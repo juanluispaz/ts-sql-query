@@ -8,14 +8,14 @@ import { DefaultImpl } from '../expressions/Default.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
-import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getColumnOfObject } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
-import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
 import { __isCondition } from '../typeSystem/logical.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
@@ -59,16 +59,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // no JOIN) keeps the unqualified form for backwards compatibility
     // with existing snapshots and to stay close to what users write.
     override _appendColumnNameForUpdate(column: DBColumn, context: SqlBuildContext) {
-        const columnPrivate = __getColumnPrivate(column)
+        const nodeColumn = __asDBColumnValueSource(column)
         if (context.safeTableOrView === undefined) {
-            const tableOrView = columnPrivate.__tableOrView
+            const tableOrView = nodeColumn.__tableOrView
             const tablePrivate = __getTableOrViewPrivate(tableOrView)
             const qualifier = tablePrivate.__as
                 ? this._escape(tablePrivate.__as, true)
                 : this._escape(this._tableOrViewName(tablePrivate, context), false)
-            return qualifier + '.' + this._escape(columnPrivate.__name, true)
+            return qualifier + '.' + this._escape(nodeColumn.__name, true)
         }
-        return this._escape(columnPrivate.__name, true)
+        return this._escape(nodeColumn.__name, true)
     }
     _getUuidStrategy(): 'string' | 'custom-functions' | 'built-in' {
         // 'string as sent' stores a uuid as 'string' does; only the connection reads it otherwise
@@ -238,8 +238,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (this._isConcatChainNode(value)) {
             right = this._concatChainSql(context, value.__valueSource, value.__value, this._concatChainDropsValue(value))
         } else {
-            const leftPrivate = __getValueSourcePrivate(valueSource as unknown as AnyValueSource)
-            right = this._appendValueParenthesisExcluding(value, context, __classOf(leftPrivate), '_concat', false)
+            const nodeLeft = __asNodeValueSource(valueSource as unknown as AnyValueSource)
+            right = this._appendValueParenthesisExcluding(value, context, __classOf(nodeLeft), '_concat', false)
         }
         return this._concatSql(left, right)
     }
@@ -384,9 +384,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (!this._nativeBoolean() && isValueSource(value) && !__isColumn(value)) {
-            const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (__isCondition(valueSourcePrivate)) {
-                if (valueSourcePrivate.__optionalType === 'required') {
+            const nodeValueSource = __asNodeValueSource(value)
+            if (__isCondition(nodeValueSource)) {
+                if (nodeValueSource.__optionalType === 'required') {
                     return 'case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 else 0 end'
                 } else {
                     return 'case when ' + super._appendConditionSql(value, context, forceTypeCast) + ' then 1 when not ' + super._appendConditionSqlParenthesis(value, context, forceTypeCast) + ' then 0 else null end'
@@ -397,7 +397,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendSelectColumnReferenceForCondition(column: AnyValueSource, context: SqlBuildContext): string {
         if (this._nativeBoolean()) {
-            if (__isColumn(column) && !(__getColumnPrivate(column).__typeAdapter instanceof CustomBooleanTypeAdapter)) {
+            if (__isColumn(column) && !(__asDBColumnValueSource(column).__typeAdapter instanceof CustomBooleanTypeAdapter)) {
                 // A BOOLEAN column of the table is a condition by itself
                 return super._appendSelectColumnReferenceForCondition(column, context)
             }
@@ -413,8 +413,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendConditionSql(value: ToSql | AnyValueSource, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (!this._nativeBoolean() && isValueSource(value) && !__isColumn(value) && hasToSql(value)) {
-            const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (__isBooleanValueSource(valueSourcePrivate) && !__isCondition(valueSourcePrivate)) {
+            const nodeValueSource = __asNodeValueSource(value)
+            if (__isBooleanValueSource(nodeValueSource) && !__isCondition(nodeValueSource)) {
                 // A boolean value used as a condition is a `1`/`0` number; coerce
                 // it to a predicate by appending `= 1` exactly once here. Source
                 // the VALUE form (`_appendSql`), not the condition form: a const
@@ -441,8 +441,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         if (__sqlFamilyOf(typeClass) === 'boolean') {
             if (__isColumn(value)) {
-                const columnPrivate = __getColumnPrivate(value)
-                const typeAdapter = columnPrivate.__typeAdapter
+                const nodeColumn = __asDBColumnValueSource(value)
+                const typeAdapter = nodeColumn.__typeAdapter
                 if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                     return '(' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
                 }
@@ -455,11 +455,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (this._nativeBoolean()) {
             return super._appendColumnName(column, context)
         }
-        const columnPrivate = __getColumnPrivate(column)
-        const typeAdapter = columnPrivate.__typeAdapter
-        if (__isBooleanValueSource(columnPrivate)) {
+        const nodeColumn = __asDBColumnValueSource(column)
+        const typeAdapter = nodeColumn.__typeAdapter
+        if (__isBooleanValueSource(nodeColumn)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     return 'case when ' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ' then 1 else 0 end'
                 } else {
                     return 'case ' + this._appendRawColumnName(column, context) + ' when ' + this._appendLiteralValue(typeAdapter.trueValue, context) +  ' then 1 when ' + this._appendLiteralValue(typeAdapter.falseValue, context) + ' then 0 else null end'
@@ -473,9 +473,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (this._nativeBoolean()) {
             return super._appendColumnNameForCondition(column, context)
         }
-        const columnPrivate = __getColumnPrivate(column)
-        const typeAdapter = columnPrivate.__typeAdapter
-        if (__isBooleanValueSource(columnPrivate)) {
+        const nodeColumn = __asDBColumnValueSource(column)
+        const typeAdapter = nodeColumn.__typeAdapter
+        if (__isBooleanValueSource(nodeColumn)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 return '(' + this._appendRawColumnName(column, context) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, context) + ')'
             } else {
@@ -493,7 +493,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const columns = query.__columns
             for (const prop in columns) {
                 const column = columns[prop]
-                if (isValueSource(column) && __isBooleanValueSource(__getValueSourcePrivate(column))) {
+                if (isValueSource(column) && __isBooleanValueSource(__asNodeValueSource(column))) {
                     return '((' + this._buildInlineSelect(query, context) + ') = 1)'
                 } else {
                     return this._buildInlineSelect(query, context)
@@ -506,10 +506,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (this._nativeBoolean()) {
             return super._appendCustomBooleanRemapForColumnIfRequired(column, value, context, forceTypeCast)
         }
-        const columnPrivate = __getColumnPrivate(column)
-        const columnTypeAdapter = columnPrivate.__typeAdapter
+        const nodeColumn = __asDBColumnValueSource(column)
+        const columnTypeAdapter = nodeColumn.__typeAdapter
 
-        if (!__isBooleanValueSource(columnPrivate)) {
+        if (!__isBooleanValueSource(nodeColumn)) {
             return null // non-boolean
         }
 
@@ -519,15 +519,15 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
             if (__isColumn(value)) {
-                const valuePrivate = __getColumnPrivate(value)
-                const valueTypeAdapter = valuePrivate.__typeAdapter
+                const nodeValue = __asDBColumnValueSource(value)
+                const valueTypeAdapter = nodeValue.__typeAdapter
 
                 if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
                     if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
                         return this._appendRawColumnName(value, context) // same boolean as column
                     }
 
-                    if (columnPrivate.__optionalType === 'required') {
+                    if (nodeColumn.__optionalType === 'required') {
                         // remapped
                         return 'case when ' + this._appendRawColumnName(value, context) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
@@ -535,34 +535,34 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                         return 'case ' + this._appendRawColumnName(value, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, context) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 } else {
-                    if (columnPrivate.__optionalType === 'required') {
+                    if (nodeColumn.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                        return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when not ' + this._appendConditionValueParenthesis(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             } else {
-                if (columnPrivate.__optionalType === 'required') {
+                if (nodeColumn.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' end'
                 } else if (value === true || value === false) {
                     // remapped
-                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 } else {
                     // remapped
                     // A null here is bound with the type of a number by the query runner, so Oracle can compare it with 1
-                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(columnPrivate), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
+                    return 'case ' + this._appendValue(value, context, __adaptedTypeClassOf(__classOf(nodeColumn), columnTypeAdapter), forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, context) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, context) + ' else null end'
                 }
             }
         }
@@ -587,8 +587,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (columns) {
                 columns += ', '
             }
-            const columnPrivate = __getColumnPrivate(column)
-            columns += this._appendColumnAlias(columnPrivate.__name, context)
+            const nodeColumn = __asDBColumnValueSource(column)
+            columns += this._appendColumnAlias(nodeColumn.__name, context)
         }
 
         const values = withValues.__values
@@ -660,7 +660,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._uuidUsesRawFunctions()) {
-            if (__isUuidValueSource(__getValueSourcePrivate(value))) {
+            if (__isUuidValueSource(__asNodeValueSource(value))) {
                 return 'raw_to_uuid(' + this._appendSql(value, context, false) + ')'
             }
         }
@@ -929,8 +929,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 if (!column) {
                     continue
                 }
-                const columnPrivate = __getColumnPrivate(column)
-                if (!columnPrivate.__sequenceName) {
+                const nodeColumn = __asDBColumnValueSource(column)
+                if (!nodeColumn.__sequenceName) {
                     continue
                 }
     
@@ -939,7 +939,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
     
                 columns += this._appendSql(column, context, false)
-                sequences.push({ name: columnPrivate.__sequenceName, typeClass: __classOf(columnPrivate) })
+                sequences.push({ name: nodeColumn.__sequenceName, typeClass: __classOf(nodeColumn) })
             }
             if (shape) { // Follow shape order
                 const properties = Object.getOwnPropertyNames(shape)
@@ -1118,9 +1118,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 values += ', '
             }
 
-            const columnPrivate = __getColumnPrivate(column)
-            if (columnPrivate.__sequenceName) {
-                values += this._nextSequenceValue(context, columnPrivate.__sequenceName, __classOf(columnPrivate))
+            const nodeColumn = __asDBColumnValueSource(column)
+            if (nodeColumn.__sequenceName) {
+                values += this._nextSequenceValue(context, nodeColumn.__sequenceName, __classOf(nodeColumn))
             } else {
                 values += 'default'
             }
@@ -1199,9 +1199,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // required adapter), so the null check must read the raw column name.
             return this._appendRawColumnName(valueSource, context) + ' is null'
         } else if (isValueSource(valueSource)) {
-            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (__isCondition(valueSourcePrivate) && !this._nativeBoolean()) {
-                if (valueSourcePrivate.__optionalType === 'required') {
+            const nodeValueSource = __asNodeValueSource(valueSource)
+            if (__isCondition(nodeValueSource) && !this._nativeBoolean()) {
+                if (nodeValueSource.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
@@ -1215,9 +1215,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (__isColumn(valueSource)) {
             return this._appendRawColumnName(valueSource, context) + ' is not null'
         } else if (isValueSource(valueSource)) {
-            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-            if (__isCondition(valueSourcePrivate) && !this._nativeBoolean()) {
-                if (valueSourcePrivate.__optionalType === 'required') {
+            const nodeValueSource = __asNodeValueSource(valueSource)
+            if (__isCondition(nodeValueSource) && !this._nativeBoolean()) {
+                if (nodeValueSource.__optionalType === 'required') {
                     return this._trueValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
@@ -1238,9 +1238,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (!isValueSource(value)) {
             return false
         }
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        return valueSourcePrivate.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter
-            && (__isLocalDateTimeValueSource(valueSourcePrivate) || __isLocalTimeValueSource(valueSourcePrivate))
+        const nodeValueSource = __asNodeValueSource(value)
+        return nodeValueSource.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter
+            && (__isLocalDateTimeValueSource(nodeValueSource) || __isLocalTimeValueSource(nodeValueSource))
     }
     override _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
@@ -1317,8 +1317,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (!this._isDatabaseOutsideUtc() || !isValueSource(valueSource)) {
             return undefined
         }
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __classOf(valueSourcePrivate), this._connectionConfiguration.localTimeReferenceDate)
+        const nodeValueSource = __asNodeValueSource(valueSource)
+        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __classOf(nodeValueSource), this._connectionConfiguration.localTimeReferenceDate)
         return zoned ? 'sys_extract_utc(' + zoned + ')' : undefined
     }
     // Oracle counts a negative start from the end like JS, but answers '' once the start runs
@@ -1377,7 +1377,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
         // trunc of a value with zone gives the day of the zone it was stored with: a localDateTime is taken to the
         // UTC digits of its instant first. A localDate, and a DATE read as a timestamp, have no zone
-        const day = this._appendZonedUtcTimestamp(context, valueSource) ?? (isValueSource(valueSource) && __isLocalDateTimeValueSource(__getValueSourcePrivate(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
+        const day = this._appendZonedUtcTimestamp(context, valueSource) ?? (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
             ? this._appendUtcTimestamp(context, valueSource)
             : this._appendSql(valueSource, context, false))
         return "mod(trunc(" + day + ") - trunc(" + day + ", 'IW') + 1, 7)"
@@ -1461,7 +1461,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _appendAggregateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, context: SqlBuildContext, _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
+            if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
                 return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
             }
             return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false), context) + ')'
@@ -1476,7 +1476,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
-                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._uuidUsesRawFunctions()) {
+                if (__isUuidValueSource(__asNodeValueSource(column)) && this._uuidUsesRawFunctions()) {
                     result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(' + this._appendSql(column, context, false) + ')', context)
                 } else {
                     result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false), context)
@@ -1488,7 +1488,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
+            if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
                 return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(a_' + aggregateId + '_.result)', context) + ')'
             }
             return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result', context) + ')'
@@ -1503,7 +1503,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
-                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._uuidUsesRawFunctions()) {
+                if (__isUuidValueSource(__asNodeValueSource(column)) && this._uuidUsesRawFunctions()) {
                     result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')', context)
                 } else {
                     result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)

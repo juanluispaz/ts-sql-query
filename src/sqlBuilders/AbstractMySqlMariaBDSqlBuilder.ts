@@ -5,14 +5,13 @@ import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
-import { __getColumnPrivate, __getColumnOfObject } from '../utils/Column.js'
+import { __getColumnOfObject } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
-import { __isOperation1, __isOperation1IfValueOrIgnore, __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { ILogicalValueSource } from '../typeSystem/base.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
@@ -51,15 +50,15 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                 if (!__isColumn(entry)) {
                     continue
                 }
-                const entryPrivate = __getColumnPrivate(entry)
-                const entryName = entryPrivate.__name.toLowerCase()
+                const nodeEntry = __asDBColumnValueSource(entry)
+                const entryName = nodeEntry.__name.toLowerCase()
                 selectColumnsSql.forEach((selectColumn, column) => {
                     if (selectColumn.name.toLowerCase() !== entryName) {
                         return
                     }
                     if (__isColumn(column)) {
-                        const columnPrivate = __getColumnPrivate(column)
-                        if (columnPrivate.__name === entryPrivate.__name && columnPrivate.__tableOrView === entryPrivate.__tableOrView) {
+                        const nodeColumn = __asDBColumnValueSource(column)
+                        if (nodeColumn.__name === nodeEntry.__name && nodeColumn.__tableOrView === nodeEntry.__tableOrView) {
                             // The column of the select is that same column
                             return
                         }
@@ -425,8 +424,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _appendRawColumnNameForValuesForInsert(column: DBColumn, _context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        return 'values(' + this._escape(columnPrivate.__name, true) + ')'
+        const nodeColumn = __asDBColumnValueSource(column)
+        return 'values(' + this._escape(nodeColumn.__name, true) + ')'
     }
     override _buildAfterUpdateTable(query: UpdateData, context: SqlBuildContext): string {
         const result = this._buildFromJoins(query.__froms, query.__joins, undefined, context)
@@ -621,28 +620,28 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * changes any row, correlated with the row by its primary key
      */
     _appendUpdateOldRowColumn(column: DBColumn, context: SqlBuildContext): string {
-        const columnPrivate = __getColumnPrivate(column)
-        const tableOrView = columnPrivate.__tableOrView
+        const nodeColumn = __asDBColumnValueSource(column)
+        const tableOrView = nodeColumn.__tableOrView
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
         const tableName = this._escape(this._tableOrViewName(tablePrivate, context), false)
         const outer = tablePrivate.__as ? this._escape(tablePrivate.__as, true) : tableName
         const oldAlias = this._escape('_old_', true)
-        const name = this._escape(columnPrivate.__name, true)
+        const name = this._escape(nodeColumn.__name, true)
         let keys = ''
         let where = ''
         for (const property of __columnPathsOf(tableOrView)) {
             const key = __getColumnOfObject(tableOrView, property)
-            if (!key || !__getColumnPrivate(key).__isPrimaryKey) {
+            if (!key || !__asDBColumnValueSource(key).__isPrimaryKey) {
                 continue
             }
-            const keyName = this._escape(__getColumnPrivate(key).__name, true)
+            const keyName = this._escape(__asDBColumnValueSource(key).__name, true)
             if (keyName === name) {
                 continue
             }
             keys += keyName + ', '
             where += (where ? ' and ' : '') + oldAlias + '.' + keyName + ' = ' + outer + '.' + keyName
         }
-        if (__getColumnPrivate(column).__isPrimaryKey) {
+        if (__asDBColumnValueSource(column).__isPrimaryKey) {
             where += (where ? ' and ' : '') + oldAlias + '.' + name + ' = ' + outer + '.' + name
         }
         return '(select ' + oldAlias + '.' + name + ' from (select ' + keys + name + ' from ' + tableName + ') ' + (this._supportTableAliasWithAs ? 'as ' : '') + oldAlias + ' where ' + where + ')'
@@ -667,7 +666,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _hasPrimaryKey(table: AnyTableOrView): boolean {
         for (const property of __columnPathsOf(table)) {
             const column = __getColumnOfObject(table, property)
-            if (column && __getColumnPrivate(column).__isPrimaryKey) {
+            if (column && __asDBColumnValueSource(column).__isPrimaryKey) {
                 return true
             }
         }

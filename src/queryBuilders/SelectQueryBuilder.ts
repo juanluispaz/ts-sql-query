@@ -6,14 +6,13 @@ import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue,
 import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths, __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
-import { __createAggregateFunction0, __createAggregateSelect, __createInlineSelect, __priorOf, createColumnsFrom } from '../typeSystem/valueSourceFactory.js'
+import { __createAggregateFunction0, __createAggregateSelect, __createInlineSelect, __priorOf, createColumnsFrom, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from '../utils/symbols.js'
 import { WithViewImpl } from '../internal/WithViewImpl.js'
 import { View } from '../View.js'
 import { AbstractQueryBuilder, __setQueryMetadata, __resultColumnsOf } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyValueSource, IExecutableSelectQuery } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import type { ILogicalValueSource, IValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource, BooleanType } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
@@ -1264,16 +1263,16 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__registerTableOrViewOfColumns(this.__columns, requiredTableOrView)
         const where = this.__where
         if (where) {
-            __getValueSourcePrivate(where).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
+            __asNodeValueSource(where).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
         }
         const groupBy = this.__groupBy
         for (let i = 0, lenght = groupBy.length; i < lenght; i++) {
             const value = groupBy[i]!
-            __getValueSourcePrivate(value).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
+            __asNodeValueSource(value).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
         }
         const having = this.__having
         if (having) {
-            __getValueSourcePrivate(having).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
+            __asNodeValueSource(having).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
         }
         const orderBy = this.__orderBy
         if (orderBy) {
@@ -1290,7 +1289,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             const join = joins[i]!
             const on = join.__on
             if (!join.__optional && on) {
-                __getValueSourcePrivate(on).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
+                __asNodeValueSource(on).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
             }
         }
 
@@ -1320,7 +1319,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 const join = joins[i]!
                 const on = join.__on
                 if (join.__optional && on && requiredTableOrView.has(join.__tableOrView)) {
-                    __getValueSourcePrivate(on).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
+                    __asNodeValueSource(on).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
                 }
             }
             updatedCount = requiredTableOrView.size
@@ -1433,7 +1432,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                     return false
                 }
                 if (join.__on) {
-                    result = __getValueSourcePrivate(join.__on).__isAllowed(sqlBuilder)
+                    result = __asNodeValueSource(join.__on).__isAllowed(sqlBuilder)
                     if (!result) {
                         return false
                     }
@@ -1441,13 +1440,13 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             }
         }
         if (this.__where) {
-            result = __getValueSourcePrivate(this.__where).__isAllowed(sqlBuilder)
+            result = __asNodeValueSource(this.__where).__isAllowed(sqlBuilder)
             if (!result) {
                 return false
             }
         }
         if (this.__having) {
-            result = __getValueSourcePrivate(this.__having).__isAllowed(sqlBuilder)
+            result = __asNodeValueSource(this.__having).__isAllowed(sqlBuilder)
             if (!result) {
                 return false
             }
@@ -1455,7 +1454,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         const groupBy = this.__groupBy
         if (groupBy) {
             for (let i = 0, length = groupBy.length; i < length; i++) {
-                result = __getValueSourcePrivate(groupBy[i]!).__isAllowed(sqlBuilder)
+                result = __asNodeValueSource(groupBy[i]!).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }
@@ -1539,21 +1538,21 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (joins) {
             for (let i = 0, length = joins.length; i < length; i++) {
                 const join = joins[i]!
-                if (join.__on && __getValueSourcePrivate(join.__on).__hasAggregation(sqlBuilder)) {
+                if (join.__on && __asNodeValueSource(join.__on).__hasAggregation(sqlBuilder)) {
                     return true
                 }
             }
         }
-        if (this.__where && __getValueSourcePrivate(this.__where).__hasAggregation(sqlBuilder)) {
+        if (this.__where && __asNodeValueSource(this.__where).__hasAggregation(sqlBuilder)) {
             return true
         }
-        if (this.__having && __getValueSourcePrivate(this.__having).__hasAggregation(sqlBuilder)) {
+        if (this.__having && __asNodeValueSource(this.__having).__hasAggregation(sqlBuilder)) {
             return true
         }
         const groupBy = this.__groupBy
         if (groupBy) {
             for (let i = 0, length = groupBy.length; i < length; i++) {
-                if (__getValueSourcePrivate(groupBy[i]!).__hasAggregation(sqlBuilder)) {
+                if (__asNodeValueSource(groupBy[i]!).__hasAggregation(sqlBuilder)) {
                     return true
                 }
             }

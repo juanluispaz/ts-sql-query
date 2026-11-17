@@ -5,7 +5,7 @@ import { OracleSqlBuilder, oracleZonedValueSql } from '../sqlBuilders/OracleSqlB
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { source } from '../utils/symbols.js'
-import { __createAggregateFunction1, __createAggregateFunction1or2 } from '../typeSystem/valueSourceFactory.js'
+import { __createAggregateFunction1, __createAggregateFunction1or2, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
@@ -13,7 +13,6 @@ import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, Type
 import { __isBooleanClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
 import type { StringType } from '../typeSystem/strings.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
@@ -169,13 +168,13 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'oracle', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'oracle', NAME>>, StringType, 'optional'>
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'oracle', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'oracle', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')
     }
 
     anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'oracle', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'oracle', NAME>>, TYPE, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')) as any
+        const nodeValue = __asNodeValueSource(value)
+        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')) as any
     }
 
     default(): Default {

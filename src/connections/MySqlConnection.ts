@@ -6,12 +6,11 @@ import { MySqlSqlBuilder } from '../sqlBuilders/MySqlSqlBuilder.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import { AbstractConnection } from './AbstractConnection.js'
 import type { source } from '../utils/symbols.js'
-import { __createAggregateFunction1, __createAggregateFunction1or2 } from '../typeSystem/valueSourceFactory.js'
+import { __createAggregateFunction1, __createAggregateFunction1or2, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
 import type { StringType } from '../typeSystem/strings.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
@@ -93,13 +92,13 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mySql', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, StringType, 'optional'>
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'mySql', NAME>>, separator: string): ValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1or2('_stringConcatDistinct', separator, value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')
     }
 
     anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'mySql', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'mySql', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'mySql', NAME>>, TYPE, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')) as any
+        const nodeValue = __asNodeValueSource(value)
+        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')) as any
     }
 
     default(): Default {

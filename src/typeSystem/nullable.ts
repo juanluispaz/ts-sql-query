@@ -8,10 +8,10 @@ import type { operandTypeName } from '../utils/symbols.js'
 import { __sameTypeClassOf, __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource } from '../nodes/operations.js'
-import { type ValueSourceRoot, __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
-import { __getValueSourcePrivate, isValueSource } from './valueSource.js'
+import { __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
 import { OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { __adaptedTypeClassOf, __keptClassOf, __sqlDataTypeOf, __classOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __asNodeValueSource, isValueSource } from '../nodes/NodeStrategy.js'
 
 /**
  * The data type of the value of a null replaced by a fallback: the data type of the value source, but a number widens
@@ -31,18 +31,18 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
 
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newSqlOperationIsNullValueSource('_isNull', vs, __internalDataType('condition'), 'required')
     }
     isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNotNull(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newSqlOperationIsNullValueSource('_isNotNull', vs, __internalDataType('condition'), 'required')
     }
     valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
     valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, TypeOf<VALUE>>, OptionalOf<VALUE>>
     valueWhenNull(value: any): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         let typeClass = __typeClassOf(vs)
         // Promote the declared numeric type from the fallback operand, the same way the
         // operations of the group number do (promotedNumberOperation in number.ts): an `int`
@@ -76,7 +76,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
             // but not its SQL data type
             resultClass = __computedClassOf(vs, resultClass)
         }
-        if (vs.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter && !(isValueSource(value) && __getValueSourcePrivate(value).__typeAdapter instanceof OracleDateAsTimestampTypeAdapter)) {
+        if (vs.__typeAdapter instanceof OracleDateAsTimestampTypeAdapter && !(isValueSource(value) && __asNodeValueSource(value).__typeAdapter instanceof OracleDateAsTimestampTypeAdapter)) {
             // Oracle's nvl has the type of its first operand: a DATE read as a timestamp with something else is
             // turned into a TIMESTAMP there. Two of them stay a DATE, and the result keeps the adapter
             resultClass = typeClass
@@ -90,7 +90,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
     }
     asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
     asOptional(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'optional')
         return result
     }

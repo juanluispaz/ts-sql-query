@@ -9,14 +9,13 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
-import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray } from '../typeSystem/valueSourceFactory.js'
+import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isBigintClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __isExactDecimalSql } from '../typeSystem/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
@@ -171,13 +170,13 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      */
     stringConcatDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<NConnection<'sqlite', NAME>> & NNotNestedAggregate<SOURCE, NConnection<'sqlite', NAME>>): ValueSource<SOURCE | NAggregate<NConnection<'sqlite', NAME>>, StringType, 'optional'>
     stringConcatDistinct(value: IValueSource<any, StringType, any>): ValueSource<any, StringType, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcatDistinct', undefined, value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1or2('_stringConcatDistinct', undefined, value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')
     }
 
     anyValue<TYPE extends TypedValueSource<any, any, any>>(value: TYPE & SameDB<NConnection<'sqlite', NAME>> & NNotNestedAggregate<TYPE[typeof source], NConnection<'sqlite', NAME>>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<NConnection<'sqlite', NAME>>, TYPE, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(valuePrivate), valuePrivate.__typeAdapter), 'optional')) as any
+        const nodeValue = __asNodeValueSource(value)
+        return (__createAggregateFunction1('_anyValue', value, __adaptedTypeClassOf(__typeClassOf(nodeValue), nodeValue.__typeAdapter), 'optional')) as any
     }
 
     /**

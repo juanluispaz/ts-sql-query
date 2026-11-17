@@ -1,6 +1,5 @@
 import { isTableOrViewObject } from './symbols.js'
-import { isValueSource } from '../typeSystem/valueSource.js'
-import { __isColumn } from '../typeSystem/valueSourceFactory.js'
+import { __isColumn, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 /*
  * The columns of a table, view or values can be grouped in plain objects:

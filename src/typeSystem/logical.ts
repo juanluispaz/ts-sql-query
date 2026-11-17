@@ -2,15 +2,14 @@ import type { SqlDataType } from '../TypeAdapter.js'
 import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType, type OptionalOf, type SourceOf, type ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { MergeOptional, OptionalType } from './valueSource.js'
-import { __getValueSourcePrivate } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import { computedType, operandTypeName, typeName } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newValueWhenNoValueValueSource, __newBooleanValueWhenNoValueValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop } from '../nodes/ifValue.js'
 import { mergeOptional, getOptionalType2 } from '../nodes/operands.js'
 import { __newSqlOperation1ValueSource, __operation0 } from '../nodes/operations.js'
-import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
+import { __asNodeValueSource } from '../nodes/NodeStrategy.js'
 
 /*
  * The logical data types: the boolean value, and the two conditions (`if`, `alwaysIf`). They share the group
@@ -47,7 +46,7 @@ export abstract class BooleanType extends EqualableType<boolean, string> {
     }
     onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
     onlyWhen(condition: boolean): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         if (condition) {
             return vs
         } else {
@@ -56,7 +55,7 @@ export abstract class BooleanType extends EqualableType<boolean, string> {
     }
     ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
     ignoreWhen(condition: boolean): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         if (condition) {
             return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanConditionType, vs.__optionalType)
         } else {
@@ -78,15 +77,15 @@ export abstract class BooleanConditionType extends BooleanType {
     static readonly [computedType] = BooleanType
 
     trueWhenNoValue(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newBooleanValueWhenNoValueValueSource('_true', vs, __keptClassOf(vs, __sameTypeClassOf(vs)), vs.__optionalType)
     }
     falseWhenNoValue(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newBooleanValueWhenNoValueValueSource('_false', vs, __keptClassOf(vs, __sameTypeClassOf(vs)), vs.__optionalType)
     }
     valueWhenNoValue(value: any): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         const nodeValueWhenNoValue = vs.__node.valueWhenNoValue
         if (nodeValueWhenNoValue) {
             return nodeValueWhenNoValue(vs, value)
@@ -98,7 +97,7 @@ export abstract class BooleanConditionType extends BooleanType {
             return this.falseWhenNoValue()
         }
 
-        return __newValueWhenNoValueValueSource(value, vs, __keptClassOf(vs, __sameTypeClassOf(vs)), mergeOptional(vs.__optionalType, __getValueSourcePrivate(value).__optionalType))
+        return __newValueWhenNoValueValueSource(value, vs, __keptClassOf(vs, __sameTypeClassOf(vs)), mergeOptional(vs.__optionalType, __asNodeValueSource(value).__optionalType))
     }
 }
 

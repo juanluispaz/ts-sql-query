@@ -10,10 +10,10 @@ import { paramsForExecution, QueryParamContextImpl, queryContextOf } from '../in
 import type { QueryResultColumn } from '../queryRunners/QueryRunner.js'
 import type { ProjectionOutput } from '../TypeAdapter.js'
 import type { AnyValueSource } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
+import { __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -77,7 +77,7 @@ export class AbstractQueryBuilder {
      * without output, as it is
      */
     __transformValueFromDB(valueSource: AnyValueSource, value: any, output: ProjectionOutput | undefined, column?: string, index?: number, count?: boolean) {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const nodeValueSource = __asNodeValueSource(valueSource)
         if (valueSource instanceof UuidTextType && typeof value === 'string' && this.__sqlBuilder._lowerCaseUuidTextReceived()) {
             // The text of a uuid, which the database gives in upper case
             value = value.toLowerCase()
@@ -94,13 +94,13 @@ export class AbstractQueryBuilder {
                 }
                 throw e
             } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: column }, e)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: __valueSourceTypeNameOf(nodeValueSource), rowIndex: index, columnPath: column }, e)
             }
         }
         if (result !== null && result !== undefined) {
             return result
         }
-        if (valueSourcePrivate.__optionalType === 'required') {
+        if (nodeValueSource.__optionalType === 'required') {
             let errorMessage = 'Expected a value as result'
             if (column !== undefined) {
                 errorMessage += ' of the column `' + column + '`'
@@ -112,7 +112,7 @@ export class AbstractQueryBuilder {
                 errorMessage += ' of the count number of rows query'
             }
             errorMessage += ', but null or undefined value was found'
-            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: column }, errorMessage)
+            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: __valueSourceTypeNameOf(nodeValueSource), rowIndex: index, columnPath: column }, errorMessage)
         }
         return result
     }
@@ -127,9 +127,9 @@ export class AbstractQueryBuilder {
      * same handling it gets as a property of an object (its JSON parsed, and each element transformed)
      */
     __transformOneColumnValue(valueSource: AnyValueSource, value: any, index?: number): any {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        if (valueSourcePrivate.__aggregatedArrayColumns) {
-            return this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, '', valueSource, value, index)
+        const nodeValueSource = __asNodeValueSource(valueSource)
+        if (nodeValueSource.__aggregatedArrayColumns) {
+            return this.__transformAggregatedArray(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, '', valueSource, value, index)
         }
         return this.__transformValueFromDB(valueSource, value, 'resultColumn', undefined, index)
     }
@@ -144,9 +144,9 @@ export class AbstractQueryBuilder {
                 continue
             }
             if (isValueSource(valueSource)) {
-                const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-                if (valueSourcePrivate.__aggregatedArrayColumns) {
-                    transformed = this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + prop, valueSource, value, index)
+                const nodeValueSource = __asNodeValueSource(valueSource)
+                if (nodeValueSource.__aggregatedArrayColumns) {
+                    transformed = this.__transformAggregatedArray(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + prop, valueSource, value, index)
                 } else {
                     transformed = this.__transformValueFromDB(valueSource, value, output, errorPrefix + prop, index)
                 }
@@ -163,9 +163,9 @@ export class AbstractQueryBuilder {
     }
 
     __transformAggregatedArray(projectOptionalValuesAsNullable: boolean, errorPrefix: string, valueSource: AnyValueSource, value: any, index?: number): any {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const nodeValueSource = __asNodeValueSource(valueSource)
         if (value === null || value === undefined) {
-            if (valueSourcePrivate.__optionalType === 'required') {
+            if (nodeValueSource.__optionalType === 'required') {
                 return []
             } else {
                 return null
@@ -182,12 +182,12 @@ export class AbstractQueryBuilder {
                     errorMessage += ' at index `' + index + '`'
                 }
                 errorMessage += '. ' + e + '. JSON: ' + value
-                throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: errorPrefix }, errorMessage)
+                throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: __valueSourceTypeNameOf(nodeValueSource), rowIndex: index, columnPath: errorPrefix }, errorMessage)
             }
         }
 
         if (json === null || json === undefined) {
-            if (valueSourcePrivate.__optionalType === 'required') {
+            if (nodeValueSource.__optionalType === 'required') {
                 return []
             } else {
                 return null
@@ -199,17 +199,17 @@ export class AbstractQueryBuilder {
                 errorMessage += ' at index `' + index + '`'
             }
             errorMessage += '. An array were expected'
-            throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: __valueSourceTypeNameOf(valueSourcePrivate), rowIndex: index, columnPath: errorPrefix }, errorMessage)
+            throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: __valueSourceTypeNameOf(nodeValueSource), rowIndex: index, columnPath: errorPrefix }, errorMessage)
         }
 
-        const columns = valueSourcePrivate.__aggregatedArrayColumns!
+        const columns = nodeValueSource.__aggregatedArrayColumns!
         const result: any[] = []
 
         if (isValueSource(columns)) {
-            const columnPrivate = __getValueSourcePrivate(columns)
-            if (columnPrivate.__aggregatedArrayColumns) {
+            const nodeColumn = __asNodeValueSource(columns)
+            if (nodeColumn.__aggregatedArrayColumns) {
                 for (let i = 0, lenght = json.length; i < lenght; i++) {
-                    const resultValue = this.__transformAggregatedArray(!!columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + ']', columns, json[i], index)
+                    const resultValue = this.__transformAggregatedArray(!!nodeColumn.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + ']', columns, json[i], index)
                     if (resultValue === null || resultValue === undefined) {
                         continue
                     }
@@ -224,10 +224,10 @@ export class AbstractQueryBuilder {
                     result.push(resultValue)
                 }
             }
-        } else if (valueSourcePrivate.__aggregatedArrayMode === 'ResultObject') {
+        } else if (nodeValueSource.__aggregatedArrayMode === 'ResultObject') {
             for (let i = 0, lenght = json.length; i < lenght; i++) {
                 let row = json[i]
-                const resultObject = this.__transformRootObject(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + '].', columns, row, 'aggregatedArrayValue', index)
+                const resultObject = this.__transformRootObject(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + '].', columns, row, 'aggregatedArrayValue', index)
                 if (resultObject === null || resultObject === undefined) {
                     continue
                 }
@@ -245,7 +245,7 @@ export class AbstractQueryBuilder {
         }
 
         if (result.length <= 0) {
-            if (valueSourcePrivate.__optionalType === 'required') {
+            if (nodeValueSource.__optionalType === 'required') {
                 return []
             } else {
                 return null
@@ -289,20 +289,20 @@ export class AbstractQueryBuilder {
             }
             let transformed 
             if (isValueSource(valueSource)) {
-                const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-                if (valueSourcePrivate.__aggregatedArrayColumns) {
-                    transformed = this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, propName, valueSource, value, index)
+                const nodeValueSource = __asNodeValueSource(valueSource)
+                if (nodeValueSource.__aggregatedArrayColumns) {
+                    transformed = this.__transformAggregatedArray(!!nodeValueSource.__aggreagtedProjectingOptionalValuesAsNullable, propName, valueSource, value, index)
                 } else {
                     transformed = this.__transformValueFromDB(valueSource, value, output, errorPrefix + propName, index)
                 }
 
-                if (valueSourcePrivate.__optionalType === 'requiredInOptionalObject') {
+                if (nodeValueSource.__optionalType === 'requiredInOptionalObject') {
                     // For rule 1
                     containsRequiredInOptionalObject = true
                     if (transformed === undefined || transformed === null) {
                         requiredInOptionalObjectHaveValue = false
                     }
-                } else if (valueSourcePrivate.__optionalType === 'originallyRequired') {
+                } else if (nodeValueSource.__optionalType === 'originallyRequired') {
                     // For rule 2
                     if (transformed === undefined || transformed === null) {
                         originallyRequiredHaveValue = false
@@ -321,7 +321,7 @@ export class AbstractQueryBuilder {
                 // left-join leaf absent) in violation of its required-when-present
                 // type.
                 let valueSourceRequiredTables = new Set<AnyTableOrView>()
-                valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, valueSourceRequiredTables)
+                nodeValueSource.__registerTableOrView(this.__sqlBuilder, valueSourceRequiredTables)
                 if (valueSourceRequiredTables.size > 1) {
                     // Rule 2 requires every field to come from the *same single*
                     // outer (left) join. A single leaf that itself depends on more
@@ -401,7 +401,7 @@ export class AbstractQueryBuilder {
                 continue
             }
             if (isValueSource(column)) {
-                const oldValues = __getValueSourcePrivate(column).__getOldValues(this.__sqlBuilder)
+                const oldValues = __asNodeValueSource(column).__getOldValues(this.__sqlBuilder)
                 if (oldValues) {
                     return oldValues
                 }
@@ -419,7 +419,7 @@ export class AbstractQueryBuilder {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
-                const oldValues = __getValueSourcePrivate(column).__getValuesForInsert(this.__sqlBuilder)
+                const oldValues = __asNodeValueSource(column).__getValuesForInsert(this.__sqlBuilder)
                 if (oldValues) {
                     return oldValues
                 }
@@ -435,7 +435,7 @@ export class AbstractQueryBuilder {
                 continue
             }
             if (isValueSource(column)) {
-                __getValueSourcePrivate(column).__registerTableOrView(this.__sqlBuilder, requiredTablesOrViews)
+                __asNodeValueSource(column).__registerTableOrView(this.__sqlBuilder, requiredTablesOrViews)
             } else {
                 this.__registerTableOrViewOfColumns(column, requiredTablesOrViews)
             }
@@ -449,7 +449,7 @@ export class AbstractQueryBuilder {
                 continue
             }
             if (isValueSource(column)) {
-                __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, withs)
+                __asNodeValueSource(column).__addWiths(this.__sqlBuilder, withs)
             } else {
                 this.__registerTableOrViewWithOfColumns(column, withs)
             }
@@ -463,7 +463,7 @@ export class AbstractQueryBuilder {
                 continue
             }
             if (isValueSource(column)) {
-                __getValueSourcePrivate(column).__registerRequiredColumn(this.__sqlBuilder, requiredColumns, newOnly)
+                __asNodeValueSource(column).__registerRequiredColumn(this.__sqlBuilder, requiredColumns, newOnly)
             } else {
                 this.__registerRequiredColumnOfColmns(column, requiredColumns, newOnly)
             }
@@ -565,13 +565,13 @@ export function __unnamedResultColumn(valueSource: AnyValueSource, projectedBy?:
  * when the SQL builder that writes it is given (resolved in `types`)
  */
 function resultColumnOf(name: string, path: string, valueSource: AnyValueSource, projectedBy: SqlBuilder | undefined, types: QueryParamContextImpl): QueryResultColumn {
-    const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-    types.setOriginalType(__unadaptedClassOf(__classOf(valueSourcePrivate)))
+    const nodeValueSource = __asNodeValueSource(valueSource)
+    types.setOriginalType(__unadaptedClassOf(__classOf(nodeValueSource)))
     if (projectedBy) {
         projectedBy._resolveRequestedTypeOfProjection(valueSource, 'resultColumn', types)
     }
     // The SQL data type of the column, and the one its transformProjection requests
-    const originalSqlDataType = __sqlDataTypeOf(__classOf(valueSourcePrivate))
+    const originalSqlDataType = __sqlDataTypeOf(__classOf(nodeValueSource))
     const requestedSqlDataType = projectedBy ? types.requestedSqlDataType : originalSqlDataType
     if (originalSqlDataType === undefined && requestedSqlDataType === undefined) {
         return { name, path, originalType: types.originalType!, requestedType: types.requestedType! }

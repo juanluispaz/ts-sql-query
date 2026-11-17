@@ -5,9 +5,8 @@ import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAgg
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode, __ValueSourcePrivate } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource } from './NodeStrategy.js'
+import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __addInlineQueryWiths, type InlineSelectData } from './inlineSelect.js'
 import { __adaptedTypeClassOf, __classOf } from './adaptedTypeClass.js'
@@ -189,7 +188,7 @@ function aggregatedColumnsAddWiths(sqlBuilder: HasIsValue, withs: IWithView<any>
     if (!aggregatedArrayColumns) {
         return
     } else if (isValueSource(aggregatedArrayColumns)) {
-        __getValueSourcePrivate(aggregatedArrayColumns).__addWiths(sqlBuilder, withs)
+        __asNodeValueSource(aggregatedArrayColumns).__addWiths(sqlBuilder, withs)
     } else {
         for (let prop in aggregatedArrayColumns) {
             aggregatedColumnsAddWiths(sqlBuilder, withs, aggregatedArrayColumns[prop])
@@ -201,7 +200,7 @@ function aggregatedColumnsRegisterTableOrView(sqlBuilder: HasIsValue, requiredTa
     if (!aggregatedArrayColumns) {
         return
     } else if (isValueSource(aggregatedArrayColumns)) {
-        __getValueSourcePrivate(aggregatedArrayColumns).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __asNodeValueSource(aggregatedArrayColumns).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     } else {
         for (let prop in aggregatedArrayColumns) {
             aggregatedColumnsRegisterTableOrView(sqlBuilder, requiredTablesOrViews, aggregatedArrayColumns[prop])
@@ -213,7 +212,7 @@ function aggregatedColumnsRegisterRequiredColumn(sqlBuilder: HasIsValue, require
     if (!aggregatedArrayColumns) {
         return
     } else if (isValueSource(aggregatedArrayColumns)) {
-        __getValueSourcePrivate(aggregatedArrayColumns).__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __asNodeValueSource(aggregatedArrayColumns).__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     } else {
         for (let prop in aggregatedArrayColumns) {
             aggregatedColumnsRegisterRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews, aggregatedArrayColumns[prop])
@@ -225,7 +224,7 @@ function aggregatedColumnsGetOldValues(sqlBuilder: HasIsValue, aggregatedArrayCo
     if (!aggregatedArrayColumns) {
         return undefined
     } else if (isValueSource(aggregatedArrayColumns)) {
-        return __getValueSourcePrivate(aggregatedArrayColumns).__getOldValues(sqlBuilder)
+        return __asNodeValueSource(aggregatedArrayColumns).__getOldValues(sqlBuilder)
     } else {
         for (let prop in aggregatedArrayColumns) {
             const result = aggregatedColumnsGetOldValues(sqlBuilder, aggregatedArrayColumns[prop])
@@ -241,7 +240,7 @@ function aggregatedColumnsGetValuesForInsert(sqlBuilder: HasIsValue, aggregatedA
     if (!aggregatedArrayColumns) {
         return undefined
     } else if (isValueSource(aggregatedArrayColumns)) {
-        return __getValueSourcePrivate(aggregatedArrayColumns).__getValuesForInsert(sqlBuilder)
+        return __asNodeValueSource(aggregatedArrayColumns).__getValuesForInsert(sqlBuilder)
     } else {
         for (let prop in aggregatedArrayColumns) {
             const result = aggregatedColumnsGetValuesForInsert(sqlBuilder, aggregatedArrayColumns[prop])
@@ -257,7 +256,7 @@ function aggregatedColumnsIsAllowed(sqlBuilder: HasIsValue, aggregatedArrayColum
     if (!aggregatedArrayColumns) {
         return true
     } else if (isValueSource(aggregatedArrayColumns)) {
-        return __getValueSourcePrivate(aggregatedArrayColumns).__isAllowed(sqlBuilder)
+        return __asNodeValueSource(aggregatedArrayColumns).__isAllowed(sqlBuilder)
     } else {
         for (let prop in aggregatedArrayColumns) {
             if (!aggregatedColumnsIsAllowed(sqlBuilder, aggregatedArrayColumns[prop])) {

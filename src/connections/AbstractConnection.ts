@@ -15,7 +15,7 @@ import type { FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuil
 import { InsertQueryBuilder } from '../queryBuilders/InsertQueryBuilder.js'
 import { UpdateQueryBuilder } from '../queryBuilders/UpdateQueryBuilder.js'
 import { DeleteQueryBuilder } from '../queryBuilders/DeleteQueryBuilder.js'
-import { __createAggregateFunction0, __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray, __createConst, __createFunctionCall, __createIfValueAlwaysNoop, __createRawFragment, __createStatic0, __createStatic1, __createStaticBoolean, __createTableOrViewRawFragment } from '../typeSystem/valueSourceFactory.js'
+import { __createAggregateFunction0, __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray, __createConst, __createFunctionCall, __createIfValueAlwaysNoop, __createRawFragment, __createStatic0, __createStatic1, __createStaticBoolean, __createTableOrViewRawFragment, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import { SelectQueryBuilder } from '../queryBuilders/SelectQueryBuilder.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, QueryExecutionSource } from '../TsSqlError.js'
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from '../queryBuilders/FragmentQueryBuilder.js'
@@ -33,7 +33,6 @@ import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '..
 import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isStringClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources, DataTypeFragments } from '../typeSystem/dataTypeNames.js'
 import { DoubleType, IntType } from '../typeSystem/number.js'
 import type { IAnyAdditiveValueSource } from '../typeSystem/numeric.js'
@@ -888,28 +887,28 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return __createAggregateFunction1('_countDistinct', value, IntType, 'required')
     }
     max<TYPE extends IAnyComparableValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_max', value, __keptClassOf(valuePrivate, __typeClassOf(valuePrivate)), 'optional')) as any
+        const nodeValue = __asNodeValueSource(value)
+        return (__createAggregateFunction1('_max', value, __keptClassOf(nodeValue, __typeClassOf(nodeValue)), 'optional')) as any
     }
     min<TYPE extends IAnyComparableValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return (__createAggregateFunction1('_min', value, __keptClassOf(valuePrivate, __typeClassOf(valuePrivate)), 'optional')) as any
+        const nodeValue = __asNodeValueSource(value)
+        return (__createAggregateFunction1('_min', value, __keptClassOf(nodeValue, __typeClassOf(nodeValue)), 'optional')) as any
     }
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, NumberType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, NumberType, 'optional'>
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, BigintType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, BigintType, 'optional'>
     sum<SOURCE extends NSource>(value: IValueSource<SOURCE, StringDecimalType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, StringDecimalType, 'optional'>
     sum<TYPE extends IAnyAdditiveValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'>
     sum(value: ValueSourceOf<any>): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1('_sum', value, __computedClassOf(valuePrivate, __typeClassOf(valuePrivate)), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1('_sum', value, __computedClassOf(nodeValue, __typeClassOf(nodeValue)), 'optional')
     }
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, NumberType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, NumberType, 'optional'>
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, BigintType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, BigintType, 'optional'>
     sumDistinct<SOURCE extends NSource>(value: IValueSource<SOURCE, StringDecimalType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, StringDecimalType, 'optional'>
     sumDistinct<TYPE extends IAnyAdditiveValueSource<any>>(value: TYPE & SameDB<DB> & NNotNestedAggregate<TYPE[typeof source], DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'>
     sumDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1('_sumDistinct', value, __computedClassOf(valuePrivate, __typeClassOf(valuePrivate)), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1('_sumDistinct', value, __computedClassOf(nodeValue, __typeClassOf(nodeValue)), 'optional')
     }
     // `AVG` is conceptually a fractional operation: averaging any set of
     // numerics may yield a non-integer scalar. Every supported engine
@@ -934,8 +933,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     stringConcat<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>): ValueSource<SOURCE | NAggregate<DB>, StringType, 'optional'>
     stringConcat<SOURCE extends NSource>(value: IValueSource<SOURCE, StringType, any> & SameDB<DB> & NNotNestedAggregate<SOURCE, DB>, separator: string): ValueSource<SOURCE | NAggregate<DB>, StringType, 'optional'>
     stringConcat(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return __createAggregateFunction1or2('_stringConcat', separator, value, __typeClassOf(valuePrivate), 'optional')
+        const nodeValue = __asNodeValueSource(value)
+        return __createAggregateFunction1or2('_stringConcat', separator, value, __typeClassOf(nodeValue), 'optional')
     }
     // `stringConcatDistinct` is declared on each concrete connection whose
     // dialect accepts DISTINCT inside its string-aggregation function (PG,

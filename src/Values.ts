@@ -3,9 +3,8 @@ import { __addWiths, __registerRequiredColumn, __registerTableOrView, __getTable
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import type { Column } from './utils/Column.js'
-import { __getColumnPrivate } from './utils/Column.js'
 import { __flattenSets } from './utils/columnPaths.js'
-import { __createDBColumn, __createValueSourceFromBuilder, __asColumn, __asOptionalColumn, __isColumn } from './typeSystem/valueSourceFactory.js'
+import { __createDBColumn, __createValueSourceFromBuilder, __asColumn, __asOptionalColumn, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from './typeSystem/valueSourceFactory.js'
 import { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
 import type { RawFragment } from './utils/RawFragment.js'
@@ -17,7 +16,6 @@ import type { QueryColumns } from './sqlBuilders/SqlBuilder.js'
 import { isUsableValue } from './sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
 import type { AnyValueSource } from './typeSystem/valueSource.js'
-import { __getValueSourcePrivate, isValueSource } from './typeSystem/valueSource.js'
 import type { DataTypeName, DataTypeValueSources, DataTypeInputs, DataTypeFragments } from './typeSystem/dataTypeNames.js'
 import type { AnyTypeClass, IValueSource, TypeClass, ValueSource } from './typeSystem/base.js'
 import type { NullableType } from './typeSystem/nullable.js'
@@ -153,8 +151,8 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
                 continue
             }
             if (__isColumn(column)) {
-                const columnPrivate = __getColumnPrivate(column)
-                columnPrivate.__name = prefix + prop
+                const nodeColumn = __asDBColumnValueSource(column)
+                nodeColumn.__name = prefix + prop
             } else if (isValueSource(column)) {
                 continue // Computed value
             } else {

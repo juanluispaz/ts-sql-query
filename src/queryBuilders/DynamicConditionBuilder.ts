@@ -1,8 +1,8 @@
 import type { DynamicConditionExpression, DynamicFilter, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
-import { __createIfValueAlwaysNoop, __isIfValueAlwaysNoop } from '../typeSystem/valueSourceFactory.js'
+import { __createIfValueAlwaysNoop, __isIfValueAlwaysNoop, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __getValueSourcePrivate, __isBooleanValueSource, __isUuidValueSource, isValueSource } from '../typeSystem/valueSource.js'
+import { __isBooleanValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
 import type { ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
@@ -77,9 +77,9 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     (error as any).processedValue = value;
                     throw error
                 }
-                const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (!__isBooleanValueSource(valueSourcePrivate) && !__isIfValueAlwaysNoop(extensionResult)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: __valueSourceTypeNameOf(valueSourcePrivate), path: joinPath(prefix, key), extensionName: key}, 'Invalid return type for the extension ' + joinPath(prefix, key) + '. Expected a boolean value source, but found a value source with type ' + __valueSourceTypeNameOf(valueSourcePrivate) + '. Processed value: ' +  value);
+                const nodeValueSource = __asNodeValueSource(extensionResult)
+                if (!__isBooleanValueSource(nodeValueSource) && !__isIfValueAlwaysNoop(extensionResult)) {
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: __valueSourceTypeNameOf(nodeValueSource), path: joinPath(prefix, key), extensionName: key}, 'Invalid return type for the extension ' + joinPath(prefix, key) + '. Expected a boolean value source, but found a value source with type ' + __valueSourceTypeNameOf(nodeValueSource) + '. Processed value: ' +  value);
                     (error as any).key = joinPath(prefix, key);
                     (error as any).extensionResult = extensionResult;
                     (error as any).processedValue = value;
@@ -110,7 +110,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
 
     processColumnFilter(filter: any, valueSource: any, extension: any, column: string) {
         let result: ValueSource<any, BooleanType, any> = __createIfValueAlwaysNoop('required') as any
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const nodeValueSource = __asNodeValueSource(valueSource)
         for (const key in filter) {
             const value = filter[key]
 
@@ -127,9 +127,9 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     (error as any).processedValue = value;
                     throw error
                 }
-                const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (!__isBooleanValueSource(valueSourcePrivate) && !__isIfValueAlwaysNoop(extensionResult)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: __valueSourceTypeNameOf(valueSourcePrivate), path: column, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + column + '. Expected a boolean value source, but found a value source with type ' + __valueSourceTypeNameOf(valueSourcePrivate) + '. Processed value: ' +  value);
+                const nodeValueSource = __asNodeValueSource(extensionResult)
+                if (!__isBooleanValueSource(nodeValueSource) && !__isIfValueAlwaysNoop(extensionResult)) {
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: __valueSourceTypeNameOf(nodeValueSource), path: column, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + column + '. Expected a boolean value source, but found a value source with type ' + __valueSourceTypeNameOf(nodeValueSource) + '. Processed value: ' +  value);
                     (error as any).path = column;
                     (error as any).rule = key;
                     (error as any).extensionResult = extensionResult;
@@ -154,7 +154,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
 
             // A rule of version 1 that version 2 renamed is still applied, with its name of version 2
             const operation = Object.hasOwn(renamedOperations, key) ? renamedOperations[key]! : key
-            if (allowedOperations[operation] !== true || valueSourcePrivate.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
+            if (allowedOperations[operation] !== true || nodeValueSource.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
                 // aggregated arrays doesn't allows to use any operation
                 throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
             }
@@ -171,7 +171,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     condition = condition.negate()
                 }
             } else {
-                if (__isUuidValueSource(valueSourcePrivate) && useAsStringInUuid[operation]) {
+                if (__isUuidValueSource(nodeValueSource) && useAsStringInUuid[operation]) {
                     condition = valueSource.asString()[operation](value)
                 } else {
                     condition = operationFor(valueSource, operation, column, key).call(valueSource, value)
@@ -218,9 +218,9 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     (error as any).processedValue = value;
                     throw error
                 }
-                const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (!__isBooleanValueSource(valueSourcePrivate) && !__isIfValueAlwaysNoop(extensionResult)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: __valueSourceTypeNameOf(valueSourcePrivate), path, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + path + '. Expected a boolean value source, but found a value source with type ' + __valueSourceTypeNameOf(valueSourcePrivate) + '. Processed value: ' +  value);
+                const nodeValueSource = __asNodeValueSource(extensionResult)
+                if (!__isBooleanValueSource(nodeValueSource) && !__isIfValueAlwaysNoop(extensionResult)) {
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: __valueSourceTypeNameOf(nodeValueSource), path, extensionName: key}, 'Invalid return type for the rule ' + key + ' at ' + path + '. Expected a boolean value source, but found a value source with type ' + __valueSourceTypeNameOf(nodeValueSource) + '. Processed value: ' +  value);
                     (error as any).path = path;
                     (error as any).rule = key;
                     (error as any).extensionResult = extensionResult;

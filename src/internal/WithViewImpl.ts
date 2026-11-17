@@ -2,12 +2,11 @@ import type { HasIsValue, IWithView, __ITableOrViewPrivate, AnyTableOrView } fro
 import { __addWiths, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from '../utils/tableOrViewUtils.js'
 import type { SelectData, SqlBuilder, WithSelectData } from '../sqlBuilders/SqlBuilder.js'
-import { createColumnsFrom } from '../typeSystem/valueSourceFactory.js'
+import { createColumnsFrom, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import { isTableOrViewObject, source, type } from '../utils/symbols.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __setColumnsForLeftJoin } from '../utils/leftJoinUtils.js'
-import { __getValueSourcePrivate } from '../typeSystem/valueSource.js'
 
 export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrViewPrivate {
     [isTableOrViewObject]: true = true;

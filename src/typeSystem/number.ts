@@ -8,11 +8,10 @@ import { arithmeticOperandClass, operandTypeName, typeName, valueOperandClass } 
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
-import { type ValueSourceRoot } from '../nodes/valueSourceRoot.js'
-import type { DataTypeValueSource } from '../nodes/NodeStrategy.js'
 import type { SqlOperation1 } from '../sqlBuilders/SqlBuilder.js'
-import { isValueSource } from './valueSource.js'
 import { __adaptedTypeClassOf, __computedClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
+import { type AnyType } from './base.js'
+import { isValueSource, __asNodeValueSource } from '../nodes/NodeStrategy.js'
 
 /*
  * The numbers of JavaScript and the custom ones of them. int and double are the numbers of JavaScript and work
@@ -60,7 +59,7 @@ export abstract class NumberType extends ArithmeticType<number, string> {
     /** The number as a double: a number of JavaScript is one already (an int is converted, IntType) */
     asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
     asDouble(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newNoopValueSource(vs, DoubleType, vs.__optionalType)
     }
     /** The number as a bigint: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
@@ -207,7 +206,7 @@ export abstract class IntType extends NumberType {
     /** An int is already an int */
     override asInt(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
     override asInt(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newNoopValueSource(vs, IntType, vs.__optionalType)
     }
     /** An int is converted to a double */
@@ -218,7 +217,7 @@ export abstract class IntType extends NumberType {
     /** An int is a bigint as it is */
     override asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalOf<this>>
     override asBigint(): any {
-        const vs = this as unknown as ValueSourceRoot
+        const vs = __asNodeValueSource(this)
         return __newNoopValueSource(vs, BigintType, vs.__optionalType)
     }
 }
@@ -253,8 +252,8 @@ function hasFraction(value: unknown): boolean {
  * int, a double with a double. A number given as a value is an int when it is an integer (TypeScript can't tell 2 from
  * 2.5: the value decides it)
  */
-function promotedNumberOperation(valueSource: DataTypeValueSource, value: any, operation: keyof SqlOperation1): any {
-    const vs = valueSource as ValueSourceRoot
+function promotedNumberOperation(valueSource: AnyType, value: any, operation: keyof SqlOperation1): any {
+    const vs = __asNodeValueSource(valueSource)
     // A number computed from the receiver keeps the conversions of its type adapter; an int that becomes a double
     // changes its data type, and has none
     // (the minimum or the maximum of two values is one of them, with the SQL data type of the receiver)

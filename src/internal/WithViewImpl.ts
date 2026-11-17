@@ -5,6 +5,7 @@ import { createColumnsFrom, __asNodeValueSource } from '../typeSystem/valueSourc
 import type { source, type } from '../utils/symbols.js'
 import { __setColumnsForLeftJoin } from '../utils/leftJoinUtils.js'
 import { TableOrViewRoot, __asTableOrViewRoot } from './TableOrViewRoot.js'
+import { __inCreation } from '../utils/inCreation.js'
 
 /** A `with` of a select (`forUseInQueryAs`): a TableOrViewRoot with the select it writes */
 export class WithViewImpl extends TableOrViewRoot implements IWithView<any>, WithSelectData {
@@ -12,20 +13,20 @@ export class WithViewImpl extends TableOrViewRoot implements IWithView<any>, Wit
     declare [source]: any
     declare [type]: 'with'
 
-    __sqlBuilder: SqlBuilder
-    __selectData: SelectData
+    readonly __sqlBuilder: SqlBuilder
+    readonly __selectData: SelectData
     /** The `with` a copy (`as`, `forUseInLeftJoinAs`) was made from: the one the query writes */
-    declare __originalWith?: WithViewImpl | undefined
+    declare readonly __originalWith?: WithViewImpl | undefined
     /** The view of a recursive select used inside its own recursive member: it writes no `with` of its own */
-    declare __ignoreWith?: boolean | undefined
-    declare __recursive?: boolean | undefined
+    declare readonly __ignoreWith?: boolean | undefined
+    declare readonly __recursive?: boolean | undefined
 
     constructor(sqlBuilder: SqlBuilder, name: string, selectData: SelectData) {
         super(name)
         this.__sqlBuilder = sqlBuilder
         this.__selectData = selectData
         if (selectData.__subSelectUsing) {
-            this.__hasExternalDependencies = selectData.__subSelectUsing.length > 0
+            __inCreation(this).__hasExternalDependencies = selectData.__subSelectUsing.length > 0
         }
 
         const columns = selectData.__columns
@@ -37,7 +38,7 @@ export class WithViewImpl extends TableOrViewRoot implements IWithView<any>, Wit
     // [database]!: REF[typeof database]
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
-        const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)
+        const result = __inCreation(new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData))
         if (this.__generatedName !== undefined) {
             result.__generatedName = this.__generatedName
         }
@@ -49,7 +50,7 @@ export class WithViewImpl extends TableOrViewRoot implements IWithView<any>, Wit
         return this.forUseInLeftJoinAs('') as any
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
-        const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)
+        const result = __inCreation(new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData))
         if (this.__generatedName !== undefined) {
             result.__generatedName = this.__generatedName
         }

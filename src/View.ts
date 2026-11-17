@@ -1,5 +1,6 @@
 import type { IView } from './utils/ITableOrView.js'
 import { TableOrViewRuntime, __asTableOrViewRoot } from './internal/TableOrViewRoot.js'
+import { __inCreation } from './utils/inCreation.js'
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import { __createDBColumn, __createValueSourceFromBuilder, __asOptional } from './typeSystem/valueSourceFactory.js'
@@ -30,7 +31,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> extends TableOrViewRunti
     }
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
-        const result = __asTableOrViewRoot(new ((this as any).constructor)())
+        const result = __inCreation(__asTableOrViewRoot(new ((this as any).constructor)()))
         result.__as = as
         __asTableOrViewRoot(this).__customizationApply?.(result)
         return result as any
@@ -39,7 +40,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> extends TableOrViewRunti
         return this.forUseInLeftJoinAs('') as any
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
-        const result = __asTableOrViewRoot(new ((this as any).constructor)())
+        const result = __inCreation(__asTableOrViewRoot(new ((this as any).constructor)()))
         result.__as = as
         result.__forUseInLeftJoin = true
         __setColumnsForLeftJoin(result as any)

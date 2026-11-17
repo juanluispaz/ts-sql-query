@@ -19,6 +19,7 @@ import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { type NumberType, IntType } from '../typeSystem/number.js'
 import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
+import { __inCreation } from '../utils/inCreation.js'
 
 abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQueryDataDiscovery, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, OrderedExecutableSelectExpression<any,any,any,any, any>, OffsetExecutableSelectExpression<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any> {
     [source]: any
@@ -639,11 +640,12 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
                 this.__recursiveSelect = undefined
                 return new WithViewImpl(this.__sqlBuilder, as, outerSelect!) as any
             }
-            // No outer ordering / paging: the recursive member IS the CTE `as`.
-            recursiveView.__name = as
-            recursiveView.__generatedName = false
-            this.__recursiveInternalView!.__name = as
-            this.__recursiveInternalView!.__generatedName = false
+            // No outer ordering / paging: the recursive member IS the CTE `as`. Its views are finished now that the select
+            // has its name, which the recursive member, built before, uses too
+            __inCreation(recursiveView).__name = as
+            __inCreation(recursiveView).__generatedName = false
+            __inCreation(this.__recursiveInternalView!).__name = as
+            __inCreation(this.__recursiveInternalView!).__generatedName = false
             this.__recursiveView = undefined
             this.__recursiveInternalView = undefined
             this.__recursiveSelect = undefined
@@ -676,7 +678,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any>, unionAll: boolean): void {
         // Unique among every recursive select; each query writes it with a number of its own (generatedNameOf)
         const name = 'recursive_select_' + (++lastRecursiveSelect)
-        const recursiveInternalView = new WithViewImpl(this.__sqlBuilder, name, this as any)
+        const recursiveInternalView = __inCreation(new WithViewImpl(this.__sqlBuilder, name, this as any))
         recursiveInternalView.__generatedName = true
         recursiveInternalView.__ignoreWith = true
         let recursiveInternalSelect 
@@ -685,7 +687,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         } else {
             recursiveInternalSelect = this.union(fn(recursiveInternalView))
         }
-        const recursiveView = new WithViewImpl(this.__sqlBuilder, name, recursiveInternalSelect)
+        const recursiveView = __inCreation(new WithViewImpl(this.__sqlBuilder, name, recursiveInternalSelect))
         recursiveView.__generatedName = true
         recursiveView.__recursive = true
 

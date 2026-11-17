@@ -38,17 +38,9 @@ export interface NodeValueSource extends AnyValueSource, IQueryDataDiscovery, To
     getConstValue(): any
 }
 
-/**
- * A value source while it is created: its fields can be written. A value source doesn't change once created, so its
- * fields are readonly; only its creation, and whoever finishes it (the marks of a column, the columns of a copy of a
- * table or of a `with`, a copy of a value source), writes them, through this view
- */
-export type InCreation<VS> = { -readonly [K in keyof VS]: VS[K] }
-
-/** The value source as it is while it is created: only where its creation is finished */
-export function __inCreation<VS extends NodeValueSource>(valueSource: VS): InCreation<VS> {
-    return valueSource
-}
+// A value source is written only while it is created (see src/utils/inCreation.ts)
+export { type InCreation, __inCreation } from '../utils/inCreation.js'
+import type { InCreation } from '../utils/inCreation.js'
 
 /**
  * A value source as it is at run time, from the public types: a value source, a condition (which TypeScript doesn't take

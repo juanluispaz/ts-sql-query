@@ -30,9 +30,9 @@ import { __adaptedTypeClassOf } from './nodes/adaptedTypeClass.js'
  */
 class ValuesRoot extends TableOrViewRoot implements WithValuesData {
     /** The rows, each one with the value of every column */
-    __values: object[]
+    readonly __values: object[]
     /** The values a copy (`as`, `forUseInLeftJoinAs`) was made from: the `with` the query writes */
-    declare __source?: ValuesRoot | undefined
+    declare readonly __source?: ValuesRoot | undefined
 
     constructor(name: string, values: object[]) {
         super(name)
@@ -41,7 +41,7 @@ class ValuesRoot extends TableOrViewRoot implements WithValuesData {
 
     /** A copy with the same rows, written with the `with` of the values it was made from */
     __copy(): ValuesRoot {
-        const result = new (this.constructor as new (name: string, values: object[]) => ValuesRoot)(this.__name, this.__values)
+        const result = __inCreation(new (this.constructor as new (name: string, values: object[]) => ValuesRoot)(this.__name, this.__values))
         result.__source = this.__source || this
         result.__setColumnsName(result as any, '')
         return result
@@ -95,7 +95,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> extends ValuesRuntim
     }
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
-        const result = (this as unknown as ValuesRoot).__copy()
+        const result = __inCreation((this as unknown as ValuesRoot).__copy())
         result.__as = as
         __asTableOrViewRoot(this).__customizationApply?.(result)
         return result as any
@@ -104,7 +104,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> extends ValuesRuntim
         return this.forUseInLeftJoinAs('') as any
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
-        const result = (this as unknown as ValuesRoot).__copy()
+        const result = __inCreation((this as unknown as ValuesRoot).__copy())
         result.__as = as
         result.__forUseInLeftJoin = true
         __setColumnsForLeftJoin(result as any)
@@ -155,7 +155,8 @@ export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postg
         const result = new type(name, values as any)
         const valuesRoot = result as unknown as ValuesRoot
         valuesRoot.__setColumnsName(result as any, '')
-        valuesRoot.__values = (values as any[]).map(row => __flattenSets(result, undefined, row))
+        // The rows, with the columns named by their path
+        __inCreation(valuesRoot).__values = (values as any[]).map(row => __flattenSets(result, undefined, row))
         return result
     }
 }

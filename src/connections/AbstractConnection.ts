@@ -54,6 +54,7 @@ import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
 import { __classOf, __adaptedTypeClassOf, __keptClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { NextTypeAdapter } from '../internal/TypeAdapterContextImpl.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
+import { __inCreation } from '../utils/inCreation.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -851,7 +852,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             const apply = (target: AnyTableOrView) => {
                 const table = __createTableOrViewRawFragment(target, '_rawFragmentTableName')
                 const alias = __createTableOrViewRawFragment(target, '_rawFragmentTableAlias')
-                const p = __asTableOrViewRoot(target)
+                // The target is a copy being created (`as`, `forUseInLeftJoinAs`)
+                const p = __inCreation(__asTableOrViewRoot(target))
                 p.__template = fn(table, alias, ...params)
                 p.__customizationName = name
                 p.__customizationApply = apply

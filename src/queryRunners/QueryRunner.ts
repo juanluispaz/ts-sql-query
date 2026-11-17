@@ -1,5 +1,6 @@
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /**
  * What a connection uses to reach the database: it executes the SQL the connection writes, through a driver, and gives
@@ -61,16 +62,20 @@ export interface QueryRunner {
     /** Whether a transaction is open on the query runner */
     isTransactionActive(): boolean
     /**
-     * Adds the value to the params and returns its placeholder, the final one as it is written in the SQL. The library
-     * keeps what it knows of the parameter in the context of the query (`getQueryContext(query, params).getParam(index)`,
-     * the index being the length of the params before the value is added) before it calls this method: the type
-     * requested for the parameter, the one it is sent with, and forceTypeCast, which tells the database must receive
-     * the type of the parameter, because the position where it is written in the SQL gives it none: the query runner
-     * writes a cast in the placeholder, or sends the parameter with its type when the driver can.
+     * Adds the value to the params and returns its placeholder, the final one as it is written in the SQL. `type` is
+     * the type the value is sent as: its class, or the name of a built-in or registered data type; undefined when it
+     * isn't known, and the query runner works it out from the value, as the driver does. The library keeps what it
+     * knows of the parameter in the context of the query (`getQueryContext(query, params).getParam(index)`, the index
+     * being the length of the params before the value is added) before it calls this method, and gives the type
+     * requested for it: the context also has the original type, the SQL data types, whether it is the value of a
+     * column, and forceTypeCast, which tells the database must receive the type of the parameter, because the position
+     * where it is written in the SQL gives it none: the query runner writes a cast in the placeholder, or sends the
+     * parameter with its type when the driver can. A parameter added to SQL written by hand has no context: the query
+     * runner gives it one with the type given, as original and requested, so it is sent as a value of that type.
      */
-    addParam(params: any[], value: any): string
-    /** Adds an out parameter, with what the library knows of it in the context of the query, as addParam */
-    addOutParam(params: any[], name: string): string
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string
+    /** Adds an out parameter (only on Oracle), of the type given, as addParam */
+    addOutParam(params: any[], name: string, type: DataTypeName | DataTypeClass | undefined): string
     /**
      * Resolves a value that may or may not already be a promise into a promise of the query runner's provider: like
      * `Promise.resolve`, it adopts a thenable and wraps a plain value. Keeping every result on the provider of the query

@@ -4,6 +4,8 @@ import { MssqlPoolQueryRunner, type MssqlPoolQueryRunnerConfig } from './MssqlPo
 import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of MssqlPoolPromiseQueryRunner */
 export interface MssqlPoolPromiseQueryRunnerConfig {
@@ -39,9 +41,9 @@ export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     override getCurrentNativeConnection(): Transaction | undefined {
         return super.getCurrentNativeConnection() as any
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MssqlPoolPromiseQueryRunner(params, value)
+        return queryRunnerParamBindings.MssqlPoolPromiseQueryRunner(params, value, type)
     }
     /** SQL Server has no access mode for a transaction */
     protected override getTransactionAccessMode(opts: BeginTransactionOpts): string | undefined {

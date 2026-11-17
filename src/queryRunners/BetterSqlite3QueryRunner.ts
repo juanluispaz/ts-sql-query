@@ -7,6 +7,8 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 import { sqliteDriverParams } from '../utils/sqlite/sqliteParamTypes.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of BetterSqlite3QueryRunner */
 export interface BetterSqlite3QueryRunnerConfig {
@@ -125,9 +127,9 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.BetterSqlite3QueryRunner(params, value)
+        return queryRunnerParamBindings.BetterSqlite3QueryRunner(params, value, type)
     }
     /**
      * The params as better-sqlite3 binds them: an array binds only the anonymous `?` parameters, so the numbered `?NNN`

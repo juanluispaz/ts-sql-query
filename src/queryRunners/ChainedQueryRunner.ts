@@ -1,5 +1,7 @@
 import type { TsSqlErrorReason } from '../TsSqlError.js'
 import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts, ExecutableQueryType } from './QueryRunner.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /**
  * A query runner that passes everything to another one, queryRunner: the base of a query runner that wraps another to
@@ -46,11 +48,11 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     isTransactionActive(): boolean {
         return this.queryRunner.isTransactionActive()
     }
-    addParam(params: any[], value: any): string {
-        return this.queryRunner.addParam(params, value)
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
+        return this.queryRunner.addParam(params, value, type)
     }
-    addOutParam(params: any[], name: string): string {
-        return this.queryRunner.addOutParam(params, name)
+    addOutParam(params: any[], name: string, type: DataTypeName | DataTypeClass | undefined): string {
+        return this.queryRunner.addOutParam(params, name, type)
     }
     createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.queryRunner.createResolvedPromise(result)

@@ -6,6 +6,8 @@ import { getMariaDbErrorReason, isMariaDbError } from './connectorErrorMappers/M
 import { isTransactionOpenAfterMySqlMariaDBError } from '../utils/mySqlMariaDB/mySqlMariaDBTransactionRollback.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /**
  * The options the mariadb connector is given with every query of the library, which replace the ones of the
@@ -123,9 +125,9 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     protected doRollback(_opts: RollbackOpts): Promise<void> {
         return this.connection.rollback()
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MariaDBQueryRunner(params, value)
+        return queryRunnerParamBindings.MariaDBQueryRunner(params, value, type)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return MariaDBQueryRunner.getErrorReason(error, this.database)

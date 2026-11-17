@@ -5,6 +5,8 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { getGivenSqlConnection, type GivenSqlConnection } from '../utils/givenSqlConnection.js'
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { SQL, TransactionSQL, ReservedSQL } from 'bun'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /**
  * The base of the query runners of Bun SQL (`SQL` of `bun`), over a pool, a reserved connection or a transaction of
@@ -177,7 +179,7 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, _type: DataTypeName | DataTypeClass | undefined): string {
         params.push(value)
         return '$' + params.length
     }

@@ -4,6 +4,8 @@ import { MySql2QueryRunner } from './MySql2QueryRunner.js'
 import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of MySql2PoolQueryRunner */
 export interface MySql2PoolQueryRunnerConfig {
@@ -44,9 +46,9 @@ export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
     override getCurrentNativeConnection(): PoolConnection | undefined {
         return super.getCurrentNativeConnection() as PoolConnection | undefined
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MySql2PoolQueryRunner(params, value)
+        return queryRunnerParamBindings.MySql2PoolQueryRunner(params, value, type)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

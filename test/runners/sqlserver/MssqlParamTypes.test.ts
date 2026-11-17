@@ -184,8 +184,8 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
     test('ownDecimal/hand-written-sql-adds-two-parameters-as-numbers', async () => {
         // Bound as nvarchar, two parameters would be concatenated as text: each is cast to a decimal with its digits
         const params: any[] = []
-        const first = addParam(runner!, params, exactDecimal, AmountType, false)
-        const second = addParam(runner!, params, '0.0000000001', AmountType, false)
+        const first = runner!.addParam(params, exactDecimal, AmountType)
+        const second = runner!.addParam(params, '0.0000000001', AmountType)
         expect([first, second]).toEqual(['cast(@0 as decimal(30, 10))', 'cast(@1 as decimal(11, 10))'])
         expect(await runner!.executeQuery('selectOneColumnOneRow', `select cast(${first} + ${second} as nvarchar(50))`, params)).toBe('12345678901234567890.1234567892')
     })
@@ -194,7 +194,7 @@ describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('Mss
         const params: any[] = []
         let error: unknown
         try {
-            addParam(runner!, params, '1'.repeat(39), AmountType, false)
+            runner!.addParam(params, '1'.repeat(39), AmountType)
         } catch (e) {
             error = e
         }

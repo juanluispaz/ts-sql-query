@@ -8,6 +8,8 @@ import { getBunSqliteErrorReason, isBunSqliteError } from './connectorErrorMappe
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of BunSqliteQueryRunner */
 export interface BunSqliteQueryRunnerConfig {
@@ -126,9 +128,9 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.BunSqliteQueryRunner(params, value)
+        return queryRunnerParamBindings.BunSqliteQueryRunner(params, value, type)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqliteQueryRunner.getErrorReason(error)

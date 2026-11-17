@@ -23,6 +23,8 @@
 
 import type { TsSqlErrorReason } from '../../src/TsSqlError.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, ExecutableQueryType, QueryRunner, RollbackOpts } from '../../src/queryRunners/QueryRunner.js'
+import type { DataTypeClass } from '../../src/TypeAdapter.js'
+import type { DataTypeName } from '../../src/typeSystem/dataTypeNames.js'
 
 export class SwitchableQueryRunner implements QueryRunner {
     /** The runner every call currently delegates to. */
@@ -90,11 +92,11 @@ export class SwitchableQueryRunner implements QueryRunner {
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         return this.target.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    addParam(params: any[], value: any): string {
-        return this.target.addParam(params, value)
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
+        return this.target.addParam(params, value, type)
     }
-    addOutParam(params: any[], name: string): string {
-        return this.target.addOutParam(params, name)
+    addOutParam(params: any[], name: string, type: DataTypeName | DataTypeClass | undefined): string {
+        return this.target.addOutParam(params, name, type)
     }
     createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.target.createResolvedPromise(result)

@@ -138,7 +138,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
 
     async function idsAndPlan(column: string, value: Date, type: 'localDate' | 'localDateTime'): Promise<{ ids: unknown, index: boolean }> {
         const params: any[] = []
-        const placeholder = addParam(runner!, params, value, type, false)
+        const placeholder = runner!.addParam(params, value, type)
         const sql = `select id as "id" from rt_indexed where ${column} = ${placeholder}`
         const ids = (await runner!.executeQuery('selectManyRows', sql, params)).map(row => row['id'])
         await runner!.executeQuery('update', 'explain plan for ' + sql, params)
@@ -193,11 +193,11 @@ describe('OracleDBQueryRunner: an exact decimal parameter in hand-written SQL', 
         const params: any[] = []
         let error: unknown
         try {
-            addParam(runner, params, '0.' + '1'.repeat(39), AmountType, false)
+            runner.addParam(params, '0.' + '1'.repeat(39), AmountType)
         } catch (e) {
             error = e
         }
         expect(error instanceof TsSqlError ? error.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: '0.' + '1'.repeat(39), typeName: 'Amount', paramIndex: 0 })
-        expect(addParam(runner, params, '0.' + '1'.repeat(38), AmountType, false)).toBe(':0')
+        expect(runner.addParam(params, '0.' + '1'.repeat(38), AmountType)).toBe(':0')
     })
 })

@@ -5,6 +5,8 @@ import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import { SQL, type TransactionSQL } from 'bun'
 import { getBunSqlSqliteErrorReason, isBunSqlSqliteError } from './connectorErrorMappers/BunSqlSqliteErrorMapper.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /**
  * The query runner of SQLite through Bun SQL, over a `SQL` created with the `sqlite` adapter.
@@ -48,9 +50,9 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         // same absence the RETURNING path reports) when nothing was inserted.
         return sql.unsafe(query, params).then((result) => result.count === 0 ? null : result.lastInsertRowid)
     }
-    override addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.BunSqlSqliteQueryRunner(params, value)
+        return queryRunnerParamBindings.BunSqlSqliteQueryRunner(params, value, type)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqlSqliteQueryRunner.getErrorReason(error)

@@ -120,10 +120,10 @@ describe('NoopQueryRunner', () => {
     test('out-params', () => {
         // Only Oracle has them, as oracledb receives them
         const params: any[] = []
-        expect(new NoopQueryRunner({ database: 'oracle' }).addOutParam(params, 'id')).toBe(':0')
+        expect(new NoopQueryRunner({ database: 'oracle' }).addOutParam(params, 'id', 'int')).toBe(':0')
         expect(params).toEqual([{ dir: 3003, as: 'id' }])
         let error: unknown
-        try { new NoopQueryRunner().addOutParam([], 'id') } catch (e) { error = e }
+        try { new NoopQueryRunner().addOutParam([], 'id', 'int') } catch (e) { error = e }
         expect(reasonOf(error)).toBe('OUT_PARAMS_NOT_SUPPORTED')
     })
 

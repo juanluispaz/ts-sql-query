@@ -1,10 +1,11 @@
 import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, Connection } from 'oracledb'
-import oracledb from 'oracledb'
 import { OracleDBQueryRunner, type OracleDBQueryRunnerConfig } from './OracleDBQueryRunner.js'
 import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { oracleOutParam, queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of OracleDBPoolPromiseQueryRunner, the ones of OracleDBQueryRunner that apply to a pool */
 export interface OracleDBPoolPromiseQueryRunnerConfig {
@@ -43,18 +44,13 @@ export class OracleDBPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     override getCurrentNativeConnection(): Connection | undefined {
         return super.getCurrentNativeConnection() as Connection | undefined
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.OracleDBPoolPromiseQueryRunner(params, value)
+        return queryRunnerParamBindings.OracleDBPoolPromiseQueryRunner(params, value, type)
     }
-    override addOutParam(params: any[], name: string): string {
-        const index = params.length
-        if (name) {
-            params.push({dir: oracledb.BIND_OUT, as: name})
-        } else {
-            params.push({dir: oracledb.BIND_OUT})
-        }
-        return ':' + index
+    override addOutParam(params: any[], name: string, type: DataTypeName | DataTypeClass | undefined): string {
+        // The same function MockQueryRunner uses to imitate this query runner
+        return oracleOutParam(params, name, type)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.promisePool.then(pool => pool.getConnection()).then(connection => new OracleDBQueryRunner(connection, this.config))

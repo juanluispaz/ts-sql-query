@@ -4,6 +4,8 @@ import { MariaDBQueryRunner } from './MariaDBQueryRunner.js'
 import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of MariaDBPoolQueryRunner */
 export interface MariaDBPoolQueryRunnerConfig {
@@ -44,9 +46,9 @@ export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {
     override getCurrentNativeConnection(): PoolConnection | undefined {
         return super.getCurrentNativeConnection() as PoolConnection | undefined
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MariaDBPoolQueryRunner(params, value)
+        return queryRunnerParamBindings.MariaDBPoolQueryRunner(params, value, type)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.getConnection().then(mariaDBConnection => new MariaDBQueryRunner(mariaDBConnection, this.database as any))

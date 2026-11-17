@@ -9,6 +9,8 @@ import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { pgSessionTimeZone, requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
 import { rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of PgQueryRunner */
 export interface PgQueryRunnerConfig {
@@ -83,9 +85,9 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PgQueryRunner(params, value, this.config?.typesByName)
+        return queryRunnerParamBindings.PgQueryRunner(params, value, type, this.config?.typesByName)
     }
     override get nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions

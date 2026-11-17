@@ -7,6 +7,8 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 import { sqliteDriverParams } from '../utils/sqlite/sqliteParamTypes.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of Sqlite3WasmOO1QueryRunner */
 export interface Sqlite3WasmOO1QueryRunnerConfig {
@@ -103,9 +105,9 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.Sqlite3WasmOO1QueryRunner(params, value)
+        return queryRunnerParamBindings.Sqlite3WasmOO1QueryRunner(params, value, type)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return Sqlite3WasmOO1QueryRunner.getErrorReason(error)

@@ -10,6 +10,8 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { postgreSqlOptionsTimeZone } from '../utils/postgreSql/postgreSqlSessionTimeZone.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of PostgresQueryRunner */
 export interface PostgresQueryRunnerConfig {
@@ -232,9 +234,9 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PostgresQueryRunner(params, value)
+        return queryRunnerParamBindings.PostgresQueryRunner(params, value, type)
     }
     // The driver begins and commits a transaction by itself, in the function it receives. On a reserved connection it
     // can't, and the transaction goes through executeBeginTransaction and executeCommit.

@@ -545,8 +545,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             paramContext.isValueForColumn = true
         }
         // The query runner writes the type of the parameter in the placeholder, or sends it with the parameter, when
-        // forceTypeCast
-        let placeholder = this._queryRunner.addParam(context.params, value)
+        // forceTypeCast; it reads the rest from the context of the parameter
+        let placeholder = this._queryRunner.addParam(context.params, value, paramContext.requestedType)
         adapterContext.valueSentToDB = value
         adapterContext.startPlaceholder(typeClass)
         placeholder = this._nextTypeAdapter.transformPlaceholder(placeholder, adapterContext)
@@ -568,7 +568,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._resolveRequestedTypeOfProjection(value, output, paramContext)
         }
         paramContext.forceTypeCast = false
-        return this._queryRunner.addOutParam(context.params, name)
+        return this._queryRunner.addOutParam(context.params, name, paramContext.requestedType)
     }
     _appendConditionParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
         return this._appendParam(value, context, typeClass, forceTypeCast)

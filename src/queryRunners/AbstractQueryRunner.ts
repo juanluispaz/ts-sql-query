@@ -2,6 +2,8 @@ import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, Rollb
 import type { TsSqlErrorReason } from "../TsSqlError.js"
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from "../TsSqlError.js"
 import { databaseIsolationLevel } from '../utils/transactionIsolationLevel.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /**
  * The base of every query runner of the library: what all of them do the same way. The promises of the provider
@@ -27,10 +29,10 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     abstract executeCommit(opts?: CommitOpts): Promise<void>
     abstract executeRollback(opts?: RollbackOpts): Promise<void>
     abstract isTransactionActive(): boolean
-    abstract addParam(params: any[], value: any): string
+    abstract addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string
 
     /** Out parameters only exist on Oracle: a query runner of another database rejects them */
-    addOutParam(_params: any[], _name: string): string {
+    addOutParam(_params: any[], _name: string, _type: DataTypeName | DataTypeClass | undefined): string {
         throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
     }
 

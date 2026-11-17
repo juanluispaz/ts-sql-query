@@ -8,6 +8,8 @@ import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType, po
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { existingParamContextOf } from '../internal/QueryContextImpl.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of PgLiteQueryRunner */
 export interface PgLiteQueryRunnerConfig {
@@ -115,9 +117,9 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PgLiteQueryRunner(params, value)
+        return queryRunnerParamBindings.PgLiteQueryRunner(params, value, type)
     }
     override get nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions

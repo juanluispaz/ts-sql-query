@@ -7,6 +7,8 @@ import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransact
 import { getBunSqlPostgresErrorReason, isBunSqlPostgresError } from './connectorErrorMappers/BunSqlPostgresErrorMapper.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of BunSqlPostgresQueryRunner */
 export interface BunSqlPostgresQueryRunnerConfig {
@@ -35,9 +37,9 @@ export class BunSqlPostgresQueryRunner extends AbstractBunSqlQueryRunner {
     protected override driverParams(params: any[]): any[] {
         return postgreSqlDriverParams(params)
     }
-    override addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.BunSqlPostgresQueryRunner(params, value, this.config?.typesByName)
+        return queryRunnerParamBindings.BunSqlPostgresQueryRunner(params, value, type, this.config?.typesByName)
     }
     protected override checkCommit(command: unknown): void {
         this.transactionOutcome.checkCommit(command)

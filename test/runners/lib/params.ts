@@ -30,12 +30,12 @@ function keepParamType(params: any[], type: string | DataTypeClass, forceTypeCas
 
 export function addParam(runner: QueryRunner, params: any[], value: any, type: string | DataTypeClass, forceTypeCast: boolean): string {
     keepParamType(params, type, forceTypeCast)
-    return runner.addParam(params, value)
+    return runner.addParam(params, value, classOf(type))
 }
 
 export function addOutParam(runner: QueryRunner, params: any[], name: string, type: string | DataTypeClass, forceTypeCast: boolean): string {
     keepParamType(params, type, forceTypeCast)
-    return runner.addOutParam(params, name)
+    return runner.addOutParam(params, name, classOf(type))
 }
 
 /** The name of the type given to addParam */

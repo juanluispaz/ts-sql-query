@@ -1,6 +1,7 @@
 // A DecimalsType parameter added by hand to a query written by hand, on every MySQL query runner (mysql2, its pool,
 // Bun SQL): it is cast to a decimal with the digits of the value, so the database computes with every digit instead
-// of a double, and a value beyond decimal(65, 30) is rejected before anything is sent.
+// of a double, and a value beyond decimal(65, 30) is rejected before anything is sent. Added without its type, it is
+// a text, which the database computes as a double.
 
 import mysql2 from 'mysql2'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
@@ -8,7 +9,6 @@ import { TsSqlError } from '../../../src/TsSqlError.js'
 import { MySql2QueryRunner } from '../../../src/queryRunners/MySql2QueryRunner.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/mysql/runners.js'
-import { addParam } from '../lib/params.js'
 import { DecimalsType } from '../../../src/exports/v2/index.js'
 
 // The data types of the user the parameters are of, each one a class of the family of its values
@@ -34,16 +34,23 @@ describe.skipIf(!isRealDbEnabled('mysql', 'docker', 'newest', 'mysql2'))('MySQL 
 
     test('computes-with-every-digit', async () => {
         const params: any[] = []
-        const placeholder = addParam(runner!, params, exact, AmountType, false)
+        const placeholder = runner!.addParam(params, exact, AmountType)
         expect(placeholder).toBe('cast(? as decimal(30, 10))')
         expect(await runner!.executeQuery('selectOneColumnOneRow', `select cast(${placeholder} + 0 as char)`, params)).toBe(exact)
+    })
+
+    test('without-a-type-the-text-is-computed-as-a-double', async () => {
+        const params: any[] = []
+        const placeholder = runner!.addParam(params, exact, undefined)
+        expect(placeholder).toBe('?')
+        expect(await runner!.executeQuery('selectOneColumnOneRow', `select cast(${placeholder} + 0 as char)`, params)).not.toBe(exact)
     })
 
     test('a-value-beyond-the-widest-decimal-is-rejected', () => {
         const params: any[] = []
         let error: unknown
         try {
-            addParam(runner!, params, '1.' + '1'.repeat(31), AmountType, false)
+            runner!.addParam(params, '1.' + '1'.repeat(31), AmountType)
         } catch (e) {
             error = e
         }

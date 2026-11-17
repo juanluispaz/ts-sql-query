@@ -20,7 +20,7 @@ import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.j
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { acquireRunnerTestDatabase } from '../../db/postgres/runners.js'
 import { addParam, typeNameOf } from '../lib/params.js'
-import { ComparableType, EnumType, EqualableType, IntegersType, RealsType } from '../../../src/exports/v2/index.js'
+import { ComparableType, EnumType, EqualableType, IntegersType, LocalDateType, RealsType } from '../../../src/exports/v2/index.js'
 
 // The data types of the user the parameters are of, each one a class of the family of its values
 abstract class BigType extends EqualableType<unknown, 'Big'> { static override readonly type = 'Big' }
@@ -77,6 +77,19 @@ function describeParamTypes(label: string, enabled: boolean, typesTheParam: bool
                 const resolved = await resolvedType(runners!.plain, value, type, true)
                 expect([typeNameOf(type), value, resolved]).toEqual([typeNameOf(type), value, { placeholder: typesTheParam ? '$1' : '$1::' + cast, type: expected }])
             }
+        })
+
+        test('hand-written-sql/the-type-given-to-addParam-sends-a-date-as-a-date', async () => {
+            // SQL written by hand: the parameter has no context until addParam gives it one with its type
+            const day = new Date(Date.UTC(2024, 0, 15))
+            const typed: any[] = []
+            const placeholder = runners!.plain.addParam(typed, day, 'localDate')
+            expect(getQueryContext('', typed).getParam(0)?.requestedType).toBe(LocalDateType)
+            expect(await runners!.plain.executeQuery('selectOneColumnOneRow', `select ${placeholder}::text`, typed)).toBe('2024-01-15')
+            const untyped: any[] = []
+            const untypedPlaceholder = runners!.plain.addParam(untyped, day, undefined)
+            expect(getQueryContext('', untyped).getParam(0)).toBeUndefined()
+            expect(await runners!.plain.executeQuery('selectOneColumnOneRow', `select ${untypedPlaceholder}::text`, untyped)).not.toBe('2024-01-15')
         })
 
         test('a-forced-param-without-a-postgresql-type-goes-untyped', async () => {

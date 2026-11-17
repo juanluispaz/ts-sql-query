@@ -244,10 +244,10 @@ closest`, and run live everywhere else.
 
 ## Oracle: bind parameters carry no declared type, so oracledb's statement cache can re-bind them with a stale one
 
-`QueryRunner.addParam(params, value)` receives **only the value** — the
-ts-sql-query type is not threaded through to the runner, so
-`OracleDBQueryRunner.addParam` pushes the bare JS value and lets oracledb
-infer the bind type. oracledb's statement cache (`stmtCacheSize`, default
+`OracleDBQueryRunner` binds a text or a number without a declared type
+(only a date, a boolean of a procedure, a null of a number or a date, and a
+type of `typesByName` get one) and lets oracledb infer the bind type.
+oracledb's statement cache (`stmtCacheSize`, default
 30) keys on the **SQL text** and retains the bind-type metadata of the
 first execution, so re-executing one text with a differently-typed bind at
 the same position re-binds it with the cached type and Oracle rejects the
@@ -266,33 +266,11 @@ one pooled connection, `stmtCacheSize: 30`, the same text
 So an explicit bind type fixes it **with the cache left on** — this is not
 an Oracle restriction, it is the consequence of binding untyped.
 
-**Why this is a limitation and not a bug**: closing it properly means
-threading the type into `addParam`, which is a **public-interface change**
-— `QueryRunner` is the seam users override, every runner in `src/` plus the
-wrappers (`ConsoleLog` / `Interceptor` / `Mock` / `Chained`) and any
-user-authored runner implement it. The type is already in scope at the
-call site (`AbstractSqlBuilder._appendParam`, which receives the class of
-the data type), and the params array already carries bind descriptors
-(`addOutParam` pushes `{ dir: BIND_OUT, as }`), so the shape fits — but it
-is a refactor of its own, out of scope for test work. Until then the
-library deliberately does not declare bind types.
-
-**Update — the public-interface blocker is now gone (future refactor).** The
-Oracle `localDateTime`-via-`RETURNING` fix introduced a way to carry a column's
-type to the runner **without** changing `addParam` / `addOutParam`:
-`OracleSqlBuilder._registerOutBindColumnType` records the type as a
-**non-enumerable** property on the `params` array keyed by the bind's placeholder
-(`:<index>`), and `OracleDBQueryRunner.resolveOutBindTypes` reads it back and
-declares the bind — the same mechanism `SqlServerSqlBuilder._appendParam` already
-uses for **IN** params (`params['@'+N]` → `MssqlPoolQueryRunner.getType`). So the
-reason this stayed a limitation no longer holds. A future refactor can close it
-by registering each IN param's type in `OracleSqlBuilder._appendParam` (where
-the class of the data type is in scope; `_appendParam` is already overridden there for the
-`uuid_to_raw` wrap) and, in the runner's three `connection.execute` paths,
-wrapping each IN value as `{ val, type, dir: BIND_IN }` — with the oracledb type
-decided from the class of the data type of the param, as `MssqlPoolQueryRunner.getType`
-does, and its `inferType` fallback. That lets `stmtCacheSize` be restored to the driver default
-and closes this entry. Deferred by choice, not blocked.
+**Why it stays open**: the type of each parameter reaches the runner (the
+`type` of `addParam`, and the context of the parameter), so binding every IN
+value as `{ val, type }` with the oracledb type of its data type, as
+`MssqlPoolQueryRunner` does with its types, would close this and let
+`stmtCacheSize` go back to the driver default. Deferred by choice, not blocked.
 
 **Exposure — very unlikely outside this suite.** Reaching it needs ALL of
 the following at once:

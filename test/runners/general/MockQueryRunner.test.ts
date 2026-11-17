@@ -190,7 +190,7 @@ describe('MockQueryRunner', () => {
         expect(addOutParam(oracle, params, '', 'int', false)).toBe(':1')
         expect(params).toEqual([{ dir: 3003, as: 'id' }, { dir: 3003 }])
         let error: unknown
-        try { new MockQueryRunner(() => undefined).addOutParam([], 'id') } catch (e) { error = e }
+        try { new MockQueryRunner(() => undefined).addOutParam([], 'id', 'int') } catch (e) { error = e }
         expect(reasonOf(error)).toBe('OUT_PARAMS_NOT_SUPPORTED')
     })
 

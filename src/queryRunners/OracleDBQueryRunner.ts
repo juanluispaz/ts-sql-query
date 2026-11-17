@@ -6,7 +6,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getOracleDBErrorReason, isOracleDBError } from './connectorErrorMappers/OracleDBErrorMapper.js'
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
-import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { oracleOutParam, queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isOracleZonedParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
@@ -14,6 +14,7 @@ import { oracleDateParam } from '../utils/metadataSymbols.js'
 import type { QueryParamContext } from '../QueryContext.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 import { getQueryContext } from '../QueryContext.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of OracleDBQueryRunner */
 export interface OracleDBQueryRunnerConfig {
@@ -312,18 +313,13 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         // the transaction of the connection is not this query runner's to commit or roll back
         return !!this.config?.forUseInTransaction
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.OracleDBQueryRunner(params, value)
+        return queryRunnerParamBindings.OracleDBQueryRunner(params, value, type)
     }
-    override addOutParam(params: any[], name: string): string {
-        const index = params.length
-        if (name) {
-            params.push({dir: oracleDb.BIND_OUT, as: name})
-        } else {
-            params.push({dir: oracleDb.BIND_OUT})
-        }
-        return ':' + index
+    override addOutParam(params: any[], name: string, type: DataTypeName | DataTypeClass | undefined): string {
+        // The same function MockQueryRunner uses to imitate this query runner
+        return oracleOutParam(params, name, type)
     }
     /**
      * The rows of a returning from the OUT binds oracledb gives, keyed by the index of each param; no rows without OUT

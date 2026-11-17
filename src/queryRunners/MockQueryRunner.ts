@@ -2,7 +2,9 @@ import type { BeginTransactionOpts, CommitOpts, DatabaseType, ExecutableQueryTyp
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { AbstractQueryRunner } from './AbstractQueryRunner.js'
 import { getQueryContext } from '../QueryContext.js'
-import { databaseParamBinding, queryRunnerDatabases, queryRunnerParamBindings, type ParamBinding } from '../utils/queryRunnerParams.js'
+import { databaseParamBinding, oracleOutParam, queryRunnerDatabases, queryRunnerParamBindings, type ParamBinding } from '../utils/queryRunnerParams.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /**
  * The function of a MockQueryRunner: it receives each query, and each statement of a transaction, with its type, its
@@ -218,25 +220,19 @@ export class MockQueryRunner extends AbstractQueryRunner {
     }
 
     /** Adds the parameter as the query runner imitated (queryRunner) does, or with the placeholders of the database */
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         const paramBinding = this.paramBinding
         if (paramBinding) {
-            return paramBinding(params, value, this.typesByName)
+            return paramBinding(params, value, type, this.typesByName)
         }
-        return databaseParamBinding(this.currentDatabase)(params, value, this.typesByName)
+        return databaseParamBinding(this.currentDatabase)(params, value, type, this.typesByName)
     }
     /** An out parameter, as oracledb receives it: only on Oracle */
-    override addOutParam(params: any[], name: string): string {
+    override addOutParam(params: any[], name: string, type: DataTypeName | DataTypeClass | undefined): string {
         if (this.currentDatabase !== 'oracle') {
-            return super.addOutParam(params, name)
+            return super.addOutParam(params, name, type)
         }
-        const index = params.length
-        if (name) {
-            params.push({ dir: 3003 /*oracledb.BIND_OUT*/, as: name })
-        } else {
-            params.push({ dir: 3003 /*oracledb.BIND_OUT*/ })
-        }
-        return ':' + index
+        return oracleOutParam(params, name, type)
     }
 
     override get isMocked(): boolean {

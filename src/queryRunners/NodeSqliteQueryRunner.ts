@@ -7,6 +7,8 @@ import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { sqliteFunctionListQuery, sqliteFunctionsToRegister } from '../utils/sqlite/sqliteFunctions.js'
 import type { SqliteFunctionsOptions } from '../connections/SqliteConfiguration.js'
 import { sqliteDriverParams } from '../utils/sqlite/sqliteParamTypes.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of NodeSqliteQueryRunner */
 export interface NodeSqliteQueryRunnerConfig {
@@ -130,9 +132,9 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
         }
         return super.executeBeginTransaction(opts)
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.NodeSqliteQueryRunner(params, value)
+        return queryRunnerParamBindings.NodeSqliteQueryRunner(params, value, type)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return NodeSqliteQueryRunner.getErrorReason(error)

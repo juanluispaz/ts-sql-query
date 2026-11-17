@@ -8,6 +8,8 @@ import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { __sqlDataTypeDescribes, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 const { TYPES, ISOLATION_LEVEL } = mssql
 
@@ -248,9 +250,9 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     override isTransactionActive(): boolean {
         return !!this.transaction
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.MssqlPoolQueryRunner(params, value)
+        return queryRunnerParamBindings.MssqlPoolQueryRunner(params, value, type)
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {
         return MssqlPoolQueryRunner.getErrorReason(error)

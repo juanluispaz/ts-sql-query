@@ -35,7 +35,11 @@ Three places own the work. What decides where a thing goes is **whether it condi
   hands the text or number of its date strategy (§2.1).
 - The checks of `addParam` are there because they must see the value after a type adapter (which may replace the
   connection's conversion) and cover a parameter of SQL the user writes. The library tells `addParam` the type of each
-  parameter and when the position gives the database no type (`forceTypeCast`).
+  parameter and when the position gives the database no type (`forceTypeCast`). The user who writes the SQL gives
+  `addParam` the type of the value (a class, or the name of a built-in or registered data type), or `undefined` when
+  the runner works it out from the value: a parameter without a context gets one with that type, original and
+  requested, so it is sent as the library would send a value of that type (`forceTypeCast` false; a cast the user
+  needs is written in the SQL).
 - **The params keep the value the connection handed.** The adjustments of execution are made on what is passed to the
   driver, never in the params (§2.3).
 - **The SQL is what the user sees.** The SQL text, with every adaptation (the placeholders and casts of `addParam`, the
@@ -79,8 +83,8 @@ the other databases.
    `INVALID_VALUE_TO_SEND_TO_DATABASE` carries the index of the parameter (`paramIndex`).
 2. Before calling `addParam`, the library keeps in the context of the query, for that parameter: its original type
    (declared in the library), the type requested for it, its `forceTypeCast`, and whether it is the value of a column
-   (`isValueForColumn`: inside the values of an insert or the set of an update). Then `addParam(params, value)` pushes
-   the value and returns the placeholder, which goes through the `transformPlaceholder` of the type adapter, still
+   (`isValueForColumn`: inside the values of an insert or the set of an update). Then `addParam(params, value, type)`,
+   with the requested type, pushes the value and returns the placeholder, which goes through the `transformPlaceholder` of the type adapter, still
    pointed at the parameter (`index`, `valueSentToDB`, `forceTypeCast` read-only).
 3. At execution the runner reads that context (§4) and builds what its driver receives (a copy of the params with
    some values written as the driver needs them, a typed bind, an OID, a type of the driver). The params array itself
@@ -279,7 +283,7 @@ What the drivers of each database receive, as a copy of the params when a value 
 
 Tests: `test/runners/oracle/OracleDBOutBinds.test.ts`, `test/runners/oracle/OracleDBReturningAndProcedures.test.ts`, and
 the tests of each runner in `test/runners/<db>/`. The wrappers (`ChainedQueryRunner` and its subclasses) delegate
-`addParam` to the runner they wrap.
+`addParam` and `addOutParam`, with their type, to the runner they wrap.
 
 ### 2.5 Per data type: what reaches the driver
 

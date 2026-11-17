@@ -5,6 +5,8 @@ import { requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
 import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
+import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 /** The options of PgPoolQueryRunner */
 export interface PgPoolQueryRunnerConfig {
@@ -46,9 +48,9 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     override getCurrentNativeConnection(): PoolClient | undefined {
         return super.getCurrentNativeConnection() as PoolClient | undefined
     }
-    addParam(params: any[], value: any): string {
+    addParam(params: any[], value: any, type: DataTypeName | DataTypeClass | undefined): string {
         // The same binding MockQueryRunner uses to imitate this query runner
-        return queryRunnerParamBindings.PgPoolQueryRunner(params, value, this.config?.typesByName)
+        return queryRunnerParamBindings.PgPoolQueryRunner(params, value, type, this.config?.typesByName)
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.connect().then(connection => {

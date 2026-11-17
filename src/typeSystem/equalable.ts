@@ -65,22 +65,22 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
         return __newSqlOperation1NotOptionalValueSource('_isNot', this, value, __internalDataType('condition'), 'required')
     }
 
-    inIfValue(values: VALUE_TYPE[] | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    inIfValue(values: readonly VALUE_TYPE[] | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     inIfValue(value: any): any {
         return __newSqlOperationInValueSourceIfValueOrNoop('_in', this, value, __internalDataType('condition'), getOptionalType2(this, value))
     }
-    in(values: VALUE_TYPE[]): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
+    in(values: readonly VALUE_TYPE[]): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     in<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, OptionalOf<this>>
     in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE | null | undefined>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, 'optional'>
     in(value: any): any {
         return __newSqlOperationInValueSource('_in', this, value, __internalDataType('condition'), getOptionalTypeOfIn(this, value))
     }
-    notInIfValue(values: VALUE_TYPE[] | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    notInIfValue(values: readonly VALUE_TYPE[] | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     notInIfValue(value: any): any {
         return __newSqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, __internalDataType('condition'), getOptionalType2(this, value))
     }
-    notIn(values: VALUE_TYPE[]): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
+    notIn(values: readonly VALUE_TYPE[]): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
     notIn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
     notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, OptionalOf<this>>
     notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE | null | undefined>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, 'optional'>

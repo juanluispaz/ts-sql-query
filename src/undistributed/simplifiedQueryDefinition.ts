@@ -54,12 +54,12 @@ interface EqualableValueSource<T, TYPE_NAME extends string> extends NullableValu
     /** The result is required */
     isNot(value: T | null | undefined | this): BooleanValueSource
 
-    inIfValue(values: T[] | null | undefined): IfValueSource
-    in(values: T[] | this): BooleanValueSource
+    inIfValue(values: readonly T[] | null | undefined): IfValueSource
+    in(values: readonly T[] | this): BooleanValueSource
     /** The result is optional if the column of the subquery is optional */
     in(select: Subquery): BooleanValueSource
-    notInIfValue(values: T[] | null | undefined): IfValueSource
-    notIn(values: T[] | this): BooleanValueSource
+    notInIfValue(values: readonly T[] | null | undefined): IfValueSource
+    notIn(values: readonly T[] | this): BooleanValueSource
     /** The result is optional if the column of the subquery is optional */
     notIn(select: Subquery): BooleanValueSource
     inN(...value: Array<T | this>): BooleanValueSource
@@ -683,11 +683,11 @@ interface Connection {
     rawFragment(sql: TemplateStringsArray, ...p: Array<AnyValueSource | Subquery>): RawFragment
 
     // Protected method that calls a stored procedure. Any failure rejects the promise
-    executeProcedure(procedureName: string, params: AnyValueSource[]): Promise<void>
+    executeProcedure(procedureName: string, params: readonly AnyValueSource[]): Promise<void>
 
     // Protected methods that call a function. Any failure rejects the promise.
     // With 'optional' the promise also resolves to null; to simplify, that isn't written in the signatures below.
-    executeFunction<T>(functionName: string, params: AnyValueSource[], returnType: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T>(functionName: string, params: readonly AnyValueSource[], returnType: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
     // Protected methods to define a sequence (only available on MariaDB, Oracle, PostgreSQL and SQL Server)
     sequence<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): Sequence<ValueSource<T>>
@@ -857,8 +857,8 @@ type DynamicConditionExtension = { [ruleName: string]: ((rule: any) => BooleanVa
  */
 type DynamicFilter = {
     not?: DynamicFilter
-    and?: Array<DynamicFilter | undefined>
-    or?: Array<DynamicFilter | undefined>
+    and?: ReadonlyArray<DynamicFilter | undefined>
+    or?: ReadonlyArray<DynamicFilter | undefined>
     [fieldOrRuleName: string]: FieldFilter | DynamicFilter | any
 }
 
@@ -884,10 +884,10 @@ interface EqualableFilter<TYPE> extends NullableFilter {
     is?: TYPE | null | undefined
     isNotIfValue?: TYPE | null | undefined
     isNot?: TYPE | null | undefined
-    inIfValue?: TYPE[] | null | undefined
-    in?: TYPE[]
-    notInIfValue?: TYPE[] | null | undefined
-    notIn?: TYPE[]
+    inIfValue?: readonly TYPE[] | null | undefined
+    in?: readonly TYPE[]
+    notInIfValue?: readonly TYPE[] | null | undefined
+    notIn?: readonly TYPE[]
 }
 
 interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
@@ -1181,7 +1181,7 @@ interface InsertExpression {
     /** Alias to set method: sets the values for insert */
     values(columns: InsertSets): this
     /** Inserts multiple rows in the database */
-    values(columns: InsertSets[]): this
+    values(columns: readonly InsertSets[]): this
     /** 
      * Sets the values for insert. An undefined value writes a null.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
@@ -1447,7 +1447,7 @@ interface InsertExpression {
     /** Alias to dynamicSet method: sets the values dynamically */
     dynamicValues(columns: OptionalInsertSets): this
     /** Inserts multiple rows in the database dynamically */
-    dynamicValues(columns: OptionalInsertSets[]): this
+    dynamicValues(columns: readonly OptionalInsertSets[]): this
 
     /** Inserts the default values in the table. Only available when the table has no required column without a default */
     defaultValues(): this

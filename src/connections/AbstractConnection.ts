@@ -656,7 +656,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return __createStatic1('_notExists', select, BooleanConditionType, 'required')
     }
 
-    protected executeProcedure(procedureName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[]): Promise<void> {
+    protected executeProcedure(procedureName: string, params: readonly ValueSourceOf<NNoTableOrViewRequired<DB>>[]): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
         let query: string | undefined
         try {
@@ -671,17 +671,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    protected executeFunction<TYPE extends DataTypeName>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'required', adapter?: TypeAdapter): Promise<DataTypeValueOfName<TYPE>>
-    protected executeFunction<TYPE extends NullableType<any>>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): Promise<ValueTypeOf<TYPE>>
-    protected executeFunction<TYPE extends DataTypeName>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'optional', adapter?: TypeAdapter): Promise<DataTypeValueOfName<TYPE> | null>
-    protected executeFunction<TYPE extends NullableType<any>>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): Promise<ValueTypeOf<TYPE> | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: string | AnyTypeClass, required: string, adapter?: TypeAdapter): Promise<any> {
+    protected executeFunction<TYPE extends DataTypeName>(functionName: string, params: readonly ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'required', adapter?: TypeAdapter): Promise<DataTypeValueOfName<TYPE>>
+    protected executeFunction<TYPE extends NullableType<any>>(functionName: string, params: readonly ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): Promise<ValueTypeOf<TYPE>>
+    protected executeFunction<TYPE extends DataTypeName>(functionName: string, params: readonly ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TYPE, required: 'optional', adapter?: TypeAdapter): Promise<DataTypeValueOfName<TYPE> | null>
+    protected executeFunction<TYPE extends NullableType<any>>(functionName: string, params: readonly ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): Promise<ValueTypeOf<TYPE> | null>
+    protected executeFunction(functionName: string, params: readonly ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: string | AnyTypeClass, required: string, adapter?: TypeAdapter): Promise<any> {
         const source = new QueryExecutionSource('Query executed at')
         let query: string | undefined
         try {
             const typeClass = __dataTypeClassFrom(returnType)
             const type = typeClass.type
-            const functionCall = __createFunctionCall(functionName, params as AnyValueSource[], __adaptedTypeClassOf(typeClass, adapter), required === 'optional' ? 'optional' : 'required')
+            const functionCall = __createFunctionCall(functionName, params as readonly AnyValueSource[], __adaptedTypeClassOf(typeClass, adapter), required === 'optional' ? 'optional' : 'required')
             const queryParams: any[] = []
             query = this.__sqlBuilder._buildCallFunction(new SqlBuildContext(queryParams), functionCall)
             const executionParams = __setQueryMetadata(source, queryParams, this.__sqlBuilder, __unnamedResultColumn(functionCall, this.__sqlBuilder))

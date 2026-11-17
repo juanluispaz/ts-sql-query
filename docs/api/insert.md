@@ -26,7 +26,7 @@ interface InsertExpression {
     /** Alias to set method: sets the values for insert */
     values(columns: InsertSets): this
     /** Inserts multiple rows in the database */
-    values(columns: InsertSets[]): this
+    values(columns: readonly InsertSets[]): this
     /** 
      * Sets the values for insert. An undefined value writes a null.
      * This doesn't apply when you are setting the values for insert in an insert of multiple values.
@@ -292,7 +292,7 @@ interface InsertExpression {
     /** Alias to dynamicSet method: sets the values dynamically */
     dynamicValues(columns: OptionalInsertSets): this
     /** Inserts multiple rows in the database dynamically */
-    dynamicValues(columns: OptionalInsertSets[]): this
+    dynamicValues(columns: readonly OptionalInsertSets[]): this
 
     /** Inserts the default values in the table. Only available when the table has no required column without a default */
     defaultValues(): this

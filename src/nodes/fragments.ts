@@ -116,7 +116,7 @@ export function __newFragmentValueSource(sql: TemplateStringsArray, sqlParams: A
  */
 export interface FunctionCallValueSource extends NodeValueSource {
     readonly __functionName: string
-    readonly __functionParams: AnyValueSource[]
+    readonly __functionParams: readonly AnyValueSource[]
 }
 
 export const functionCallValueSourceNode: NodeStrategy<FunctionCallValueSource> = {
@@ -126,7 +126,7 @@ export const functionCallValueSourceNode: NodeStrategy<FunctionCallValueSource> 
     },
 }
 
-export function __newFunctionCallValueSource(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): FunctionCallValueSource {
+export function __newFunctionCallValueSource(functionName: string, functionParams: readonly AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): FunctionCallValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<FunctionCallValueSource>
     vs.__node = functionCallValueSourceNode
 

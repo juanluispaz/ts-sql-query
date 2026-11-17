@@ -73,12 +73,12 @@ interface EqualableValueSource<T, TYPE_NAME extends string> extends NullableValu
     /** The result is required */
     isNot(value: T | null | undefined | this): BooleanValueSource
 
-    inIfValue(values: T[] | null | undefined): IfValueSource
-    in(values: T[] | this): BooleanValueSource
+    inIfValue(values: readonly T[] | null | undefined): IfValueSource
+    in(values: readonly T[] | this): BooleanValueSource
     /** The result is optional if the column of the subquery is optional */
     in(select: Subquery): BooleanValueSource
-    notInIfValue(values: T[] | null | undefined): IfValueSource
-    notIn(values: T[] | this): BooleanValueSource
+    notInIfValue(values: readonly T[] | null | undefined): IfValueSource
+    notIn(values: readonly T[] | this): BooleanValueSource
     /** The result is optional if the column of the subquery is optional */
     notIn(select: Subquery): BooleanValueSource
     inN(...value: Array<T | this>): BooleanValueSource

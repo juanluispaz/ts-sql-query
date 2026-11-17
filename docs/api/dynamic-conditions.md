@@ -50,8 +50,8 @@ The `FilterType` definition looks like this. Every field is optional:
 ```tsx
 type FilterType = {
     not?: FilterType
-    and?: Array<FilterType | undefined>
-    or?: Array<FilterType | undefined>
+    and?: ReadonlyArray<FilterType | undefined>
+    or?: ReadonlyArray<FilterType | undefined>
     myBoolean?: BooleanFilter
     myInt?: NumberFilter
     myBigint?: BigintFilter
@@ -100,10 +100,10 @@ interface EqualableFilter<TYPE> extends NullableFilter {
     is?: TYPE | null | undefined
     isNotIfValue?: TYPE | null | undefined
     isNot?: TYPE | null | undefined
-    inIfValue?: TYPE[] | null | undefined
-    in?: TYPE[]
-    notInIfValue?: TYPE[] | null | undefined
-    notIn?: TYPE[]
+    inIfValue?: readonly TYPE[] | null | undefined
+    in?: readonly TYPE[]
+    notInIfValue?: readonly TYPE[] | null | undefined
+    notIn?: readonly TYPE[]
 }
 ```
 

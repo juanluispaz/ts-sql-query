@@ -148,7 +148,7 @@ export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postg
         super(name, values as any)
     }
 
-    static create<T extends IValues<any>>(type: new (name: NGetNameFrom<T[typeof source]>, values: OpaqueValues) => T, name: NGetNameFrom<T[typeof source]>, values: Array<MandatoryInsertSets<T, NoTableOrViewRequiredOfSameDB<T> | T, undefined>>): T {
+    static create<T extends IValues<any>>(type: new (name: NGetNameFrom<T[typeof source]>, values: OpaqueValues) => T, name: NGetNameFrom<T[typeof source]>, values: ReadonlyArray<MandatoryInsertSets<T, NoTableOrViewRequiredOfSameDB<T> | T, undefined>>): T {
         if (values.length <= 0) {
             throw new TsSqlProcessingError({ reason: 'CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY' }, 'Values requires at least one element in the list')
         }

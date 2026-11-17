@@ -142,11 +142,11 @@ interface Connection {
     rawFragment(sql: TemplateStringsArray, ...p: Array<AnyValueSource | Subquery>): RawFragment
 
     // Protected method that calls a stored procedure. Any failure rejects the promise
-    executeProcedure(procedureName: string, params: AnyValueSource[]): Promise<void>
+    executeProcedure(procedureName: string, params: readonly AnyValueSource[]): Promise<void>
 
     // Protected methods that call a function. Any failure rejects the promise.
     // With 'optional' the promise also resolves to null; to simplify, that isn't written in the signatures below.
-    executeFunction<T>(functionName: string, params: AnyValueSource[], returnType: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T>(functionName: string, params: readonly AnyValueSource[], returnType: DataTypeName | DataTypeClass, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
     // Protected methods to define a sequence (only available on MariaDB, Oracle, PostgreSQL and SQL Server)
     sequence<T>(name: string, type: DataTypeName | DataTypeClass, adapter?: TypeAdapter): Sequence<ValueSource<T>>

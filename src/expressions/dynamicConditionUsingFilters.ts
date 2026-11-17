@@ -32,10 +32,10 @@ export interface EqualableFilter<TYPE> extends NullableFilter {
     is?: TYPE | null | undefined
     isNotIfValue?: TYPE | null | undefined
     isNot?: TYPE | null | undefined
-    inIfValue?: TYPE[] | null | undefined
-    in?: TYPE[]
-    notInIfValue?: TYPE[] | null | undefined
-    notIn?: TYPE[]
+    inIfValue?: readonly TYPE[] | null | undefined
+    in?: readonly TYPE[]
+    notInIfValue?: readonly TYPE[] | null | undefined
+    notIn?: readonly TYPE[]
 }
 
 export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
@@ -179,8 +179,8 @@ type DynamicDefinition5 = {
 
 export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DynamicConditionExtension = never> = {
     not?: DynamicCondition<DEFINITION, EXTENSION>
-    and?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
-    or?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
+    and?: ReadonlyArray<DynamicCondition<DEFINITION, EXTENSION> | undefined>
+    or?: ReadonlyArray<DynamicCondition<DEFINITION, EXTENSION> | undefined>
 } & {
     [KEY in NonReplacedField<DEFINITION, EXTENSION>]?:
         DEFINITION[KEY] extends AnyValueSource | DynamicColumnType
@@ -244,8 +244,8 @@ type ColumnFilterWithExtension<COLUMN_FILTER, EXTENSION> =
 // RESCURSIVE type
 export type DynamicFilter<DEFINITION extends Filterable, EXTENSION extends DynamicConditionExtension = never> = {
     not?: DynamicFilter<DEFINITION, EXTENSION>
-    and?: Array<DynamicFilter<DEFINITION, EXTENSION> | undefined>
-    or?: Array<DynamicFilter<DEFINITION, EXTENSION> | undefined>
+    and?: ReadonlyArray<DynamicFilter<DEFINITION, EXTENSION> | undefined>
+    or?: ReadonlyArray<DynamicFilter<DEFINITION, EXTENSION> | undefined>
 } & {
     [KEY in NonReplacedField<DEFINITION, EXTENSION>]?:
         DEFINITION[KEY] extends AnyValueSource

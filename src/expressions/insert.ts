@@ -619,9 +619,9 @@ export interface InsertExpression</*in|out*/ TABLE extends HasSource<any>, /*in|
     dynamicSet<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
     set(columns: MandatoryInsertSets<TABLE, USING, undefined>): ExecutableInsertExpression<TABLE, USING>
     setIfValue(columns: MandatoryOptionalInsertSets<TABLE, USING, undefined>): ExecutableInsertExpression<TABLE, USING>
-    values(columns: Array<MandatoryInsertSets<TABLE, USING, undefined>>): ExecutableMultipleInsertExpression<TABLE, USING>
+    values(columns: ReadonlyArray<MandatoryInsertSets<TABLE, USING, undefined>>): ExecutableMultipleInsertExpression<TABLE, USING>
     values(columns: MandatoryInsertSets<TABLE, USING, undefined>): ExecutableInsertExpression<TABLE, USING>
-    dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: Array<COLUMNS>): MaybeExecutableMultipleInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
+    dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: ReadonlyArray<COLUMNS>): MaybeExecutableMultipleInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
     dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
     defaultValues: DefaultValueType<TABLE, USING>
     from<SELECT extends IExecutableSelectQuery<USING[typeof source], SelectForInsertColumns<TABLE, USING>, SelectForInsertResultType<TABLE, USING>>>(select: SELECT & OnlyColumnsOfTheTable<SELECT, TABLE>): CustomizableExecutableInsertFromSelect<TABLE, USING, undefined>
@@ -634,8 +634,8 @@ export interface ShapedInsertExpression</*in|out*/ TABLE extends HasSource<any>,
     set<COLUMNS extends MandatoryInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     setIfValue<COLUMNS extends MandatoryOptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     values<COLUMNS extends MandatoryInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
-    values<COLUMNS extends MandatoryInsertSets<TABLE, USING, SHAPE>>(columns: Array<COLUMNS>): MaybeShapedExecutableMultipleInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
-    dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: Array<COLUMNS>): MaybeShapedExecutableMultipleInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
+    values<COLUMNS extends MandatoryInsertSets<TABLE, USING, SHAPE>>(columns: ReadonlyArray<COLUMNS>): MaybeShapedExecutableMultipleInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
+    dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: ReadonlyArray<COLUMNS>): MaybeShapedExecutableMultipleInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
     dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, SHAPE>>(columns: COLUMNS): MaybeShapedExecutableInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, NonOptionalKeys<COLUMNS>>, MISSING_KEYS_IN_SHAPE>
 }
 

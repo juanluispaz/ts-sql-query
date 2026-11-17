@@ -190,7 +190,7 @@ type DeepOmit5<MODEL, PATHS extends string> = {
  * needed; an intermediate value that is `null` is kept, and a path through an `undefined`
  * or absent one is skipped.
  */
-export function deepPick<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>(obj: TYPE, paths: PATHS[]): DeepPick<TYPE, PATHS> {
+export function deepPick<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>(obj: TYPE, paths: readonly PATHS[]): DeepPick<TYPE, PATHS> {
     const result: any = {}
     if (!obj) {
         return obj as any
@@ -240,7 +240,7 @@ export function deepPick<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>
  * omitting a dotted path keeps the intermediate object (copied, never mutated) and removes
  * only the leaf. Values not touched by any path are copied by reference.
  */
-export function deepOmit<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>(obj: TYPE, paths: PATHS[]): DeepOmit<TYPE, PATHS> {
+export function deepOmit<TYPE extends object, PATHS extends DeepPickPaths<TYPE>>(obj: TYPE, paths: readonly PATHS[]): DeepOmit<TYPE, PATHS> {
     if (!obj) {
         return obj as any
     }

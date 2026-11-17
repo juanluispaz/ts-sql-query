@@ -4532,7 +4532,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // The argument types decide which overload of a function or procedure the database calls
         return false
     }
-    _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: AnyValueSource[]): string {
+    _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: readonly AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()
         let result = 'call ' + this._escape(procedureName, false, true) + '('
         if (procedureParams.length > 0) {
@@ -4553,7 +4553,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildCallFunction(context: SqlBuildContext, functionCall: AnyValueSource): string {
         return 'select ' + this._appendResultColumnProjection(functionCall, this._appendColumnValue(functionCall, context, true), context)
     }
-    _appendFunctionCall(context: SqlBuildContext, functionName: string, functionParams: AnyValueSource[]): string {
+    _appendFunctionCall(context: SqlBuildContext, functionName: string, functionParams: readonly AnyValueSource[]): string {
         const forceTypeCast = this._forceTypeCastInCallArguments()
         let result = this._escape(functionName, false, true) + '('
         if (functionParams.length > 0) {

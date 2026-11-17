@@ -338,9 +338,9 @@ export interface SqlBuilder extends SqlOperation {
     _appendSelectColumnReferenceForCondition(column: AnyValueSource, context: SqlBuildContext): string
     _typedConst(context: SqlBuildContext, value: any, typeClass: DataTypeClass): string
     _typedConstForCondition(context: SqlBuildContext, value: any, typeClass: DataTypeClass): string
-    _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: AnyValueSource[]): string
+    _buildCallProcedure(context: SqlBuildContext, procedureName: string, procedureParams: readonly AnyValueSource[]): string
     _buildCallFunction(context: SqlBuildContext, functionCall: AnyValueSource): string
-    _appendFunctionCall(context: SqlBuildContext, functionName: string, functionParams: AnyValueSource[]): string
+    _appendFunctionCall(context: SqlBuildContext, functionName: string, functionParams: readonly AnyValueSource[]): string
 
     _rawFragment(context: SqlBuildContext, sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string
     _rawFragmentTableName(context: SqlBuildContext, tableOrView: AnyTableOrView): string

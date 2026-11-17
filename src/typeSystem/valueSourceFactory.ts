@@ -95,7 +95,7 @@ export function __createInlineSelect(selectData: InlineSelectData, required: boo
     return __newInlineSelectValueSource(selectData, required, nodeResult ? projectedColumnClassOf(nodeResult) : BooleanType)
 }
 
-export function __createFunctionCall(functionName: string, functionParams: AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): any {
+export function __createFunctionCall(functionName: string, functionParams: readonly AnyValueSource[], typeClass: DataTypeClass, optionalType: OptionalType): any {
     return __newFunctionCallValueSource(functionName, functionParams, typeClass, optionalType)
 }
 

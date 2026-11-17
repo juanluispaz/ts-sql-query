@@ -11,11 +11,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tProjectRelease } from '../../domain/connection.js'
 import type { ILogicalValueSource, SourceOf } from '../../../../../src/typeSystem/base.js'
+import type { OptionalType } from '../../../../../src/typeSystem/valueSource.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
 // A condition on the issues
-type IssueCondition = ILogicalValueSource<SourceOf<typeof tIssue.id>, any>
+type IssueCondition = ILogicalValueSource<SourceOf<typeof tIssue.id>, OptionalType>
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)

@@ -335,10 +335,11 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
 
 ## Checking a change
 
-- `src/undistributed/typeSystemProbe.ts` asserts with the compiler, family by family, the operands accepted and
-  rejected and the data type and optionality of the results. Add a case there for any rule you add or change: an
-  `assertType<Equal<typeof result, ...>>()` on the result of a call (not `ReturnType` of an overloaded method, which
-  measures only its last overload), and a `@ts-expect-error` for what must be rejected. `bun run validate` checks it.
+- `test/runners/general/DataTypeOperations.test.ts` asserts with the compiler, family by family, the operands accepted
+  and rejected and the data type and optionality of the results. Add a case there for any rule you add or change: an
+  `assertType<Exact<typeof result, ...>>()` on the result of a call (not `ReturnType` of an overloaded method, which
+  measures only its last overload), and a `@ts-expect-error` for what must be rejected. `bun run validate:tests runners`
+  checks it, and `bun run tests runners/general/DataTypeOperations.test.ts` runs it.
 - Then the test matrix: `bun run validate:tests` (the test scope compiles against these types; start with one cell,
   `bun run validate:tests postgres/newest/pg`) and `bun run tests`. A change of the types moves no SQL snapshot: if one
   moves, the change touched the runtime.

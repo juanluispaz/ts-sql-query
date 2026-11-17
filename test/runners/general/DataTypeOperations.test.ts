@@ -19,7 +19,7 @@ import { NumberType } from '../../../src/typeSystem/number.js'
 import { IfType } from '../../../src/typeSystem/logical.js'
 import type { AlwaysIfValueSource, IfValueSource } from '../../../src/typeSystem/logical.js'
 import type { TypedValueSource } from '../../../src/typeSystem/valueSource.js'
-import type { OptionalOf, RemapIValueSourceType, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, SourceOf, TypeOf, ValueSource } from '../../../src/typeSystem/base.js'
+import type { OptionalityOf, RemapIValueSourceType, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, SourceOf, DataTypeOf, ValueSource } from '../../../src/typeSystem/base.js'
 import type { Argument, ArgForFn, MapArgumentToValueSource, TypeOfArgument } from '../../../src/typeSystem/arguments.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../../../src/typeSystem/aggregatedArrays.js'
 import type { Column } from '../../../src/utils/Column.js'
@@ -351,14 +351,14 @@ describe('The operations of the data types', () => {
         }
         const tProbe = new TProbe()
         assertType<Exact<SourceOf<typeof tProbe.byClass>, SourceOf<typeof tProbe.builtInByName>>>()
-        assertType<Exact<TypeOf<typeof tProbe.byClass>, MoneyType>>()
-        assertType<Exact<OptionalOf<typeof tProbe.byClass>, 'required'>>()
+        assertType<Exact<DataTypeOf<typeof tProbe.byClass>, MoneyType>>()
+        assertType<Exact<OptionalityOf<typeof tProbe.byClass>, 'required'>>()
         assertType<typeof tProbe.byClass extends Column ? true : false>()
         assertType<Exact<typeof tProbe.builtInByClass, typeof tProbe.builtInByName>>()
         const moneyConst = conn.const(5 as Money, MoneyType)
         const intConst = conn.const(5, 'int')
         assertType<Exact<SourceOf<typeof moneyConst>, SourceOf<typeof intConst>>>()
-        assertType<Exact<TypeOf<typeof moneyConst>, MoneyType>>()
+        assertType<Exact<DataTypeOf<typeof moneyConst>, MoneyType>>()
         // @ts-expect-error the value of a constant is of the type of its data type
         conn.const(5, MoneyType)
         expect(MoneyType.is(moneyConst)).toBe(true)
@@ -413,10 +413,10 @@ describe('The operations of the data types', () => {
         const families = new TFamilies()
         assertType<Exact<typeof families.cash[typeof typeName], 'type:Cash:'>>()
         assertType<Exact<typeof families.quantity[typeof typeName], 'type:Quantity:'>>()
-        assertType<Exact<TypeOf<typeof families.cash>, CashType>>()
+        assertType<Exact<DataTypeOf<typeof families.cash>, CashType>>()
 
         const cashSum = families.cash.add(families.cash)
-        assertType<Exact<TypeOf<typeof cashSum>, CashType>>()
+        assertType<Exact<DataTypeOf<typeof cashSum>, CashType>>()
         families.cash.modulo(families.cash)
         // @ts-expect-error an additive number is not multiplied
         expect(() => families.cash.multiply(families.cash)).toThrow(TypeError)
@@ -433,18 +433,18 @@ describe('The operations of the data types', () => {
         // @ts-expect-error nor rounded
         expect(() => families.quantity.round()).toThrow(TypeError)
         const priceRounded = families.price.roundn(2)
-        assertType<Exact<TypeOf<typeof priceRounded>, UnitPriceType>>()
+        assertType<Exact<DataTypeOf<typeof priceRounded>, UnitPriceType>>()
         const priceCeil = families.price.ceil()
-        assertType<Exact<TypeOf<typeof priceCeil>, UnitPriceType>>()
+        assertType<Exact<DataTypeOf<typeof priceCeil>, UnitPriceType>>()
         const priceRoot = families.price.sqrt()
-        assertType<Exact<TypeOf<typeof priceRoot>, DoubleType>>()
+        assertType<Exact<DataTypeOf<typeof priceRoot>, DoubleType>>()
         // @ts-expect-error an exact decimal is not divided
         expect(() => families.price.divide(families.price)).toThrow(TypeError)
         families.share.divide(families.share)
         // @ts-expect-error a divisible number has no floating point functions
         expect(() => families.share.sqrt()).toThrow(TypeError)
         const fractionRoot = families.fraction.sqrt()
-        assertType<Exact<TypeOf<typeof fractionRoot>, FractionType>>()
+        assertType<Exact<DataTypeOf<typeof fractionRoot>, FractionType>>()
         families.fraction.divide(families.fraction).floor()
         // @ts-expect-error a bigint is not rounded
         expect(() => anInt.asBigint().round()).toThrow(TypeError)
@@ -454,10 +454,10 @@ describe('The operations of the data types', () => {
         families.version.lessThan('1.0')
         // The sum of a number of the user is of its data type; what isn't a number is not summed
         const cashTotal = conn.sum(families.cash)
-        assertType<Exact<TypeOf<typeof cashTotal>, CashType>>()
-        assertType<Exact<OptionalOf<typeof cashTotal>, 'optional'>>()
+        assertType<Exact<DataTypeOf<typeof cashTotal>, CashType>>()
+        assertType<Exact<OptionalityOf<typeof cashTotal>, 'optional'>>()
         const fractionAverage = conn.average(families.fraction)
-        assertType<Exact<TypeOf<typeof fractionAverage>, DoubleType>>()
+        assertType<Exact<DataTypeOf<typeof fractionAverage>, DoubleType>>()
         // @ts-expect-error a value compared for equality is not summed
         conn.sum(families.tag)
         // @ts-expect-error nor a value with an order

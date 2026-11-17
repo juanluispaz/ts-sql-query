@@ -1,13 +1,13 @@
 // Documentation snippets for the Data types page (docs/configuration/data-types.md), sections Types of the user,
-// Operations of your own in a dynamic filter and Exact decimals.
+// Combining your type with other values, Operations of your own in a dynamic filter and Exact decimals.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { DecimalsType, EqualableType, IntegersType, LocalDatesType, exposeFilterOperations, filterOperation } from '../../../../../src/exports/v2/index.js'
-import type { DynamicCondition } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, EqualableType, IntegersType, LocalDatesType, exposeFilterOperations, filterOperation, IntType } from '../../../../../src/exports/v2/index.js'
+import type { DynamicCondition, CombinedOptionality, DataTypeOf, OperandOf, OptionalityOf, SourceOf, ValueSource } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
@@ -45,6 +45,27 @@ const tWorklogDay = new class TWorklogDay extends Table<DBConnection, 'TWorklogD
     workDate = this.column('work_date', WorkDayType)
     constructor() {
         super('issue_worklog')
+    }
+}()
+
+// A number of the user that is also multiplied by a plain number or an int
+type Cents = number & { readonly __brand: 'Cents' }
+abstract class CentsType extends IntegersType<Cents, 'Cents'> {
+    static override readonly type = 'Cents'
+    override multiply(value: Cents | number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    override multiply<VALUE extends OperandOf<this> | OperandOf<IntType>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    // tests-audit-disable-next-line any-type -- the implementation signature of the overloads, which TypeScript requires to accept all of them
+    override multiply(value: any): any {
+        return super.multiply(value)
+    }
+}
+
+const tIssueCents = new class TIssueCents extends Table<DBConnection, 'TIssueCents'> {
+    id = this.primaryKey('id', 'int')
+    priority = this.column('priority', CentsType)
+    number = this.column('number', 'int')
+    constructor() {
+        super('issue')
     }
 }()
 
@@ -126,5 +147,30 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof worklogs, { id: number }[]>>()
         expect(worklogs).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }])
+    })
+
+    test('docs:data-types/combining-your-type-with-other-values', async () => {
+        ctx.mockNext([{ id: 1, tripled: 6, byNumber: 2 }, { id: 2, tripled: 3, byNumber: 2 }])
+        const connection = ctx.conn
+        // doc-start
+        const rows = await connection.selectFrom(tIssueCents)
+            .where(tIssueCents.id.lessOrEqual(2))
+            .select({
+                id: tIssueCents.id,
+                tripled: tIssueCents.priority.multiply(3),
+                byNumber: tIssueCents.priority.multiply(tIssueCents.number),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * ?1 as tripled, priority * number as byNumber from issue where id <= ?2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; tripled: Cents; byNumber: Cents }[]>>()
+        expect(rows).toEqual([{ id: 1, tripled: 6, byNumber: 2 }, { id: 2, tripled: 3, byNumber: 2 }])
     })
 })

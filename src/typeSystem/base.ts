@@ -142,6 +142,12 @@ export type RemapIValueSourceType<SOURCE extends NSource, VALUE_SOURCE> =
 export type RemapIValueSourceTypeWithOptionalType<SOURCE extends NSource, VALUE_SOURCE, OPTIONAL_TYPE extends OptionalType> =
     VALUE_SOURCE extends ValueSourceOfType<any, infer TYPE, any> ? IValueSource<SOURCE, TYPE, OPTIONAL_TYPE> : never
 
+/**
+ * A value source that can be an operand of the data type: of the same data type, or of the group it works with (an int
+ * and a double); in a class of a data type, `OperandOf<this>`
+ */
+export type OperandOf<DATA_TYPE extends { [operandTypeName]: string }> = IValueWithType<DATA_TYPE[typeof operandTypeName]>
+
 /** What a position that takes a value source with the given operand NType accepts */
 export interface IValueWithType</*in|out*/ OPERAND_TYPE_NAME extends string> extends TypedValueSource<any, any, any> {
     [typeName]: OPERAND_TYPE_NAME
@@ -174,8 +180,10 @@ export interface ConditionOfType</*in|out*/ SOURCE extends NSource, /*in|out*/ T
 
 // Each reader answers any for any (a conditional over any would give the union of its branches): an argument of type any
 // keeps giving any, as with an indexed access
+/** The source of a value source: the tables and views it reaches, which a query must have, and what marks it (an aggregate) */
 export type SourceOf<X> = 0 extends (1 & X) ? any : X extends { [source]: infer SOURCE extends NSource } ? SOURCE : never
-export type OptionalOf<X> = 0 extends (1 & X) ? any : X extends { [optionalType]: infer OPTIONAL_TYPE extends OptionalType } ? OPTIONAL_TYPE : never
+/** The optionality of a value source: `'required'`, `'optional'`, ... */
+export type OptionalityOf<X> = 0 extends (1 & X) ? any : X extends { [optionalType]: infer OPTIONAL_TYPE extends OptionalType } ? OPTIONAL_TYPE : never
 /** The data type of a value source (or the data type itself) */
-export type TypeOf<X> = 0 extends (1 & X) ? any : X extends { [valueSourceType]: infer TYPE extends AnyType } ? TYPE : X
+export type DataTypeOf<X> = 0 extends (1 & X) ? any : X extends { [valueSourceType]: infer TYPE extends AnyType } ? TYPE : X
 export type ValueTypeOf<X> = 0 extends (1 & X) ? any : X extends { [valueType]: infer VALUE_TYPE } ? VALUE_TYPE : never

@@ -126,7 +126,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.intPlus(3, 4) })
             .executeSelectMany()
-        // both args present → MergeOptionalUnion collapses to required.
+        // both args present → CombinedOptionalityOfUnion collapses to required.
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + $2::int as r"`)
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.intPlus(undefined, 5) })
             .executeSelectMany()
-        // one arg undefined → MergeOptionalUnion degrades to optional.
+        // one arg undefined → CombinedOptionalityOfUnion degrades to optional.
         assertType<Exact<typeof rows, Array<{ r?: number }>>>()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + $2::int as r"`)
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
         // the maybe-optional result optionality can come from a VALUE-SOURCE
         // argument's optionalType, not only from a present/absent literal.
         // `conn.const(3,'int')` is required, `tIssue.assigneeId` is optional →
-        // MergeOptionalUnion yields an optional result. Row id=1 has
+        // CombinedOptionalityOfUnion yields an optional result. Row id=1 has
         // assignee_id=1, so r = 3 + 1 = 4.
         const expected = [{ r: 4 }]
         ctx.mockNext(expected)

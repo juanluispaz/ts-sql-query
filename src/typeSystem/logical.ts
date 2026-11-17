@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
-import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType, type OptionalOf, type SourceOf, type ValueSource } from './base.js'
+import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType, type OptionalityOf, type SourceOf, type ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { MergeOptional, OptionalType } from './valueSource.js'
+import type { CombinedOptionality, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import { computedType, operandTypeName, typeName } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
@@ -30,21 +30,21 @@ export abstract class BooleanType extends EqualableType<boolean, string> {
     declare [typeName]: 'type:boolean:logical:'
     declare [operandTypeName]: 'type:boolean:logical:'
 
-    negate(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
+    negate(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
     negate(): any {
         return __operation0(this, '_negate', BooleanConditionType)
     }
-    and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    and<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    and<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     and(value: any): any {
         return __newSqlOperation1ValueSource('_and', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     or(value: any): any {
         return __newSqlOperation1ValueSource('_or', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     onlyWhen(condition: boolean): any {
         const vs = __asNodeValueSource(this)
         if (condition) {
@@ -53,7 +53,7 @@ export abstract class BooleanType extends EqualableType<boolean, string> {
             return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanConditionType, vs.__optionalType)
         }
     }
-    ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     ignoreWhen(condition: boolean): any {
         const vs = __asNodeValueSource(this)
         if (condition) {
@@ -119,20 +119,20 @@ export abstract class IfType extends ConditionType {
     declare [typeName]: 'type:if:logical:'
     declare [operandTypeName]: 'type:if:logical:'
 
-    abstract negate(): IfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract and<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract and<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract or<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract or<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract trueWhenNoValue(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract falseWhenNoValue(): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract valueWhenNoValue(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    abstract valueWhenNoValue<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract valueWhenNoValue<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    abstract negate(): IfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    abstract and<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    abstract and<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    abstract or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    abstract or<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    abstract or<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    abstract onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract trueWhenNoValue(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    abstract falseWhenNoValue(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    abstract valueWhenNoValue(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    abstract valueWhenNoValue<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    abstract valueWhenNoValue<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
 }
 
 /** A condition that always applies, and keeps applying when it is combined with others */
@@ -140,23 +140,23 @@ export abstract class AlwaysIfType extends ConditionType {
     declare [typeName]: 'type:alwaysIf:logical:'
     declare [operandTypeName]: 'type:alwaysIf:logical:'
 
-    abstract negate(): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract and(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract and<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract or(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract or<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    abstract onlyWhen(condition: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract ignoreWhen(condition: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract trueWhenNoValue(): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract falseWhenNoValue(): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract valueWhenNoValue(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalOf<this>>
-    abstract valueWhenNoValue<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    abstract negate(): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract and(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract and<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    abstract or(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract or<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    abstract onlyWhen(condition: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract ignoreWhen(condition: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract trueWhenNoValue(): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract falseWhenNoValue(): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract valueWhenNoValue(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    abstract valueWhenNoValue<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
 }
 
 export type IfValueSource<SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> = IfType & ConditionOfType<SOURCE, IfType, OPTIONAL_TYPE>
 export type AlwaysIfValueSource<SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> = AlwaysIfType & ConditionOfType<SOURCE, AlwaysIfType, OPTIONAL_TYPE>
 
 /** A condition, or a boolean value, used as a condition that always applies (the where of a query, the on of a join) */
-export function asAlwaysIfValueSource<VALUE extends ILogicalValue>(valueSource: VALUE): AlwaysIfValueSource<SourceOf<VALUE>, OptionalOf<VALUE>> {
+export function asAlwaysIfValueSource<VALUE extends ILogicalValue>(valueSource: VALUE): AlwaysIfValueSource<SourceOf<VALUE>, OptionalityOf<VALUE>> {
     return valueSource as any
 }

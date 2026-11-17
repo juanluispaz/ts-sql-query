@@ -1,5 +1,5 @@
 import type { SqlDataType } from '../TypeAdapter.js'
-import type { OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
+import type { OptionalityOf, SourceOf, DataTypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
 import type { ColumnMarkersOf } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
@@ -16,7 +16,7 @@ const aggregatedArraySqlDataType: SqlDataType = { family: 'document', format: 'j
 export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
     static override readonly sqlDataType: SqlDataType = aggregatedArraySqlDataType
 
-    useEmptyArrayForNoValue(): ValueSource<SourceOf<this>, TypeOf<this>, 'required'>
+    useEmptyArrayForNoValue(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'required'>
     useEmptyArrayForNoValue(): any {
         const vs = __asNodeValueSource(this)
         const nodeWithOptionalType = vs.__node.withOptionalType
@@ -27,7 +27,7 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
         __keepAggregatedArrayShape(result, vs)
         return result
     }
-    asOptionalNonEmptyArray(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    asOptionalNonEmptyArray(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     asOptionalNonEmptyArray(): any {
         const vs = __asNodeValueSource(this)
         const nodeWithOptionalType = vs.__node.withOptionalType
@@ -38,15 +38,15 @@ export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueS
         __keepAggregatedArrayShape(result, vs)
         return result
     }
-    asRequiredInOptionalObject(): ValueSource<SourceOf<this>, TypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>
+    asRequiredInOptionalObject(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>
     asRequiredInOptionalObject(): any {
         return __asRequiredInOptionalObjectOf(this)
     }
-    onlyWhenOrNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    onlyWhenOrNull(when: boolean): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     onlyWhenOrNull(when: boolean): any {
         return __onlyWhenOrNullOf(this, when)
     }
-    ignoreWhenAsNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    ignoreWhenAsNull(when: boolean): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     ignoreWhenAsNull(when: boolean): any {
         return __ignoreWhenAsNullOf(this, when)
     }
@@ -61,7 +61,7 @@ export abstract class AggregatedArrayType</*in|out*/ VALUE_TYPE> extends Aggrega
 
 /** An aggregated array whose optional values can be projected as null, with the type it has then */
 export abstract class AggregatedArrayProjectableAsNullableType</*in|out*/ VALUE_TYPE, /*in|out*/ STRICT_VALUE_TYPE> extends AggregatedArrayType<VALUE_TYPE> {
-    projectingOptionalValuesAsNullable(): ValueSource<SourceOf<this>, AggregatedArrayType<STRICT_VALUE_TYPE>, OptionalOf<this>>
+    projectingOptionalValuesAsNullable(): ValueSource<SourceOf<this>, AggregatedArrayType<STRICT_VALUE_TYPE>, OptionalityOf<this>>
     projectingOptionalValuesAsNullable(): any {
         const vs = __asNodeValueSource(this)
         const nodeProjectingOptionalValuesAsNullable = vs.__node.projectingOptionalValuesAsNullable

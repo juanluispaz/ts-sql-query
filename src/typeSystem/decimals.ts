@@ -3,8 +3,8 @@ import { MultipliableType } from './numeric.js'
 import { decimalSqlDataType } from './numericSqlDataTypes.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
-import type { INumberValue, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
-import type { MergeOptional } from './valueSource.js'
+import type { INumberValue, OptionalityOf, SourceOf, DataTypeOf, ValueSource } from './base.js'
+import type { CombinedOptionality } from './valueSource.js'
 import { arithmeticOperandClass } from '../utils/symbols.js'
 import { DoubleType, IntType } from './number.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
@@ -34,85 +34,85 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
         return undefined
     }
 
-    ceil(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    ceil(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     ceil(): any {
         return __operation0(this, '_ceil', __computedClassOf(this, __typeClassOf(this)))
     }
-    floor(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    floor(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     floor(): any {
         return __operation0(this, '_floor', __computedClassOf(this, __typeClassOf(this)))
     }
-    round(): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
+    round(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     round(): any {
         return __operation0(this, '_round', __computedClassOf(this, __typeClassOf(this)))
     }
 
 
-    exp(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    exp(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     exp(): any {
         return __operation0(this, '_exp', DoubleType)
     }
-    ln(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    ln(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     ln(): any {
         return __operation0(this, '_ln', DoubleType)
     }
-    log10(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    log10(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     log10(): any {
         return __operation0(this, '_log10', DoubleType)
     }
-    sqrt(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    sqrt(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     sqrt(): any {
         return __operation0(this, '_sqrt', DoubleType)
     }
-    cbrt(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    cbrt(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     cbrt(): any {
         return __operation0(this, '_cbrt', DoubleType)
     }
-    acos(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    acos(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     acos(): any {
         return __operation0(this, '_acos', DoubleType)
     }
-    asin(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    asin(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     asin(): any {
         return __operation0(this, '_asin', DoubleType)
     }
-    atan(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    atan(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     atan(): any {
         return __operation0(this, '_atan', DoubleType)
     }
-    cos(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    cos(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     cos(): any {
         return __operation0(this, '_cos', DoubleType)
     }
-    cot(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    cot(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     cot(): any {
         return __operation0(this, '_cot', DoubleType)
     }
-    sin(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    sin(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     sin(): any {
         return __operation0(this, '_sin', DoubleType)
     }
-    tan(): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
+    tan(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     tan(): any {
         return __operation0(this, '_tan', DoubleType)
     }
-    power(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    power<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    power(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    power<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     power(value: any): any {
         return __operation1(this, '_power', value, DoubleType)
     }
-    logn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    logn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    logn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    logn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     logn(value: any): any {
         return __operation1(this, '_logn', value, DoubleType)
     }
-    roundn(value: number): ValueSource<SourceOf<this>, TypeOf<this>, OptionalOf<this>>
-    roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    roundn(value: number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     roundn(value: any): any {
         return __operation1(this, '_roundn', value, __computedClassOf(this, __typeClassOf(this)))
     }
-    atan2(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalOf<this>>
-    atan2<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    atan2(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    atan2<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     atan2(value: any): any {
         return __operation1(this, '_atan2', value, DoubleType)
     }

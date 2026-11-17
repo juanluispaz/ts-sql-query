@@ -57,6 +57,9 @@ import {
 import { type DynamicCondition, type DynamicConditionForModel, type DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { FilterOf, StringType } from '../../../../../src/exports/v2/index.js'
 import { exposeFilterOperations, filterOperation } from '../../../../../src/exports/v2/index.js'
+import { IntegersType, IntType, type CombinedOptionality, type DataTypeOf, type OperandOf, type OptionalityOf, type SourceOf, type ValueSource } from '../../../../../src/exports/v2/index.js'
+// Used by the example of a type of the user that adds overloads to its family
+void (null as unknown as [typeof IntegersType, typeof IntType, CombinedOptionality<'required', 'required'>, DataTypeOf<unknown>, OperandOf<IntType>, OptionalityOf<unknown>, SourceOf<unknown>, ValueSource<any, IntType, 'required'>])
 // Used by the examples of the operations a data type exposes to a dynamic filter
 void (null as unknown as [typeof exposeFilterOperations, typeof filterOperation])
 import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWithAllProperties, type Pickable, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable, expandTypeProjectedAsNullableFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'

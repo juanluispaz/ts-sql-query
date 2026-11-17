@@ -72,7 +72,20 @@ export {
 
 export {
     BooleanType,
+    type IfValueSource,
 } from '../../typeSystem/logical.js'
+
+export {
+    type ValueSource,
+    type SourceOf,
+    type OptionalityOf,
+    type DataTypeOf,
+    type OperandOf,
+} from '../../typeSystem/base.js'
+
+export {
+    type CombinedOptionality,
+} from '../../typeSystem/valueSource.js'
 
 export {
     EqualableType,

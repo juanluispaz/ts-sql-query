@@ -170,6 +170,39 @@ Then the name goes wherever a type goes: a column, `this.column('cost_cents', 'C
 
 The name is the `static type` of the class, which the class must say: without it, the class is named after the name of its class, which a minifier can change, and registering it is an error, `DATA_TYPE_WITHOUT_TYPE_NAME`. A name is registered once: registering the same class again does nothing, and another class with a name already registered, also the name of a built-in type, is an error, `DATA_TYPE_ALREADY_REGISTERED`. A name that isn't in `DataTypes` doesn't compile, and one that is but nobody registered is an error when it is used, `UNKNOWN_DATA_TYPE`.
 
+### Combining your type with other values
+
+A type of yours works only with values of its own type: `cents.multiply(3)` doesn't compile when `Cents` is a `number` with a brand, because `3` isn't a `Cents`. Which combinations make sense is a decision of your type, so its class adds them, with the types `ts-sql-query` exports to write them: `ValueSource`, `SourceOf`, `OptionalityOf`, `DataTypeOf`, `CombinedOptionality` and `OperandOf`. A class can add an overload to a method of its family, which repeats the ones it has and calls `super`:
+
+```ts
+import { IntegersType, IntType, type CombinedOptionality, type DataTypeOf, type OperandOf, type OptionalityOf, type SourceOf, type ValueSource } from "ts-sql-query"
+
+type Cents = number & { readonly __brand: 'Cents' }
+
+abstract class CentsType extends IntegersType<Cents, 'Cents'> {
+    static override readonly type = 'Cents'
+
+    // A number of cents, or a plain number of times
+    override multiply(value: Cents | number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    // A value of cents, or an int, like a quantity
+    override multiply<VALUE extends OperandOf<this> | OperandOf<IntType>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    override multiply(value: any): any {
+        return super.multiply(value)
+    }
+}
+```
+
+| Type | What it is |
+|---|---|
+| `ValueSource<Source, DataType, Optionality>` | A value of a data type in a query |
+| `SourceOf<X>` | The tables and views the value reaches, which the query must have |
+| `OptionalityOf<X>` | Whether the value can be missing: `'required'`, `'optional'`… |
+| `DataTypeOf<X>` | The class of the data type of the value |
+| `CombinedOptionality<A, B>` | The optionality of a value computed from two: optional when one of them is |
+| `OperandOf<DataType>` | A value the data type works with: its own, or of the group it belongs to (an int and a double); `OperandOf<this>` in its class |
+
+A value given to the method, like `3`, is sent as a value of the type of the receiver: an integer for `CentsType`. A method of its own can do the same with another name, like `times(factor: number)`.
+
 ### Operations of your own in a dynamic filter
 
 A [dynamic filter](../dynamic/caller-decides/filters.md) calls the methods of the data type of each column: `{ birthday: { greaterThan: date } }` is `birthday.greaterThan(date)`. A type of yours has the operations of its family, and its class can offer methods of its own to a filter. Each of these methods gives a condition and has no parameters or one. List them in `[filterOperation]`, a static of the class, with `exposeFilterOperations`, and declare that static on the instance, so the type of the filter has them:

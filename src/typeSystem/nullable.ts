@@ -1,4 +1,4 @@
-import type { IValueWithType, OptionalOf, SourceOf, TypeOf, ValueSource } from './base.js'
+import type { IValueWithType, OptionalityOf, SourceOf, DataTypeOf, ValueSource } from './base.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
 import { __internalDataType, __registeredDataType } from './dataTypeRegistry.js'
 import type { BooleanType } from './logical.js'
@@ -20,12 +20,12 @@ import { __asNodeValueSource, isValueSource } from '../nodes/NodeStrategy.js'
  * `'value'` for a value given as a JavaScript value (a number can be either an int or a double)
  */
 export type CoalesceTypeOf<X, OPERAND> =
-    TypeOf<X> extends NumberType ? (
-        TypeOf<X> extends DoubleType ? DoubleType :
+    DataTypeOf<X> extends NumberType ? (
+        DataTypeOf<X> extends DoubleType ? DoubleType :
         OPERAND extends DoubleType ? DoubleType :
-        OPERAND extends IntType ? TypeOf<X> :
+        OPERAND extends IntType ? DataTypeOf<X> :
         NumberType
-    ) : TypeOf<X>
+    ) : DataTypeOf<X>
 
 /** A data type whose value can be null */
 export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
@@ -43,7 +43,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         return __newSqlOperationIsNullValueSource('_isNotNull', vs, __internalDataType('condition'), 'required')
     }
     valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
-    valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, TypeOf<VALUE>>, OptionalOf<VALUE>>
+    valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, DataTypeOf<VALUE>>, OptionalityOf<VALUE>>
     valueWhenNull(value: any): any {
         const vs = __asNodeValueSource(this)
         let typeClass = __typeClassOf(vs)
@@ -86,26 +86,26 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         }
         return __newSqlOperationValueWhenNullValueSource(vs, value, resultClass, getOptionalType2(vs, value))
     }
-    nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
-    nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, TypeOf<this>, 'optional'>
+    nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
+    nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, 'optional'>
     nullIfValue(value: any): any {
         return __newSqlOperation1ValueSource('_nullIfValue', this, value, __keptClassOf(this, __typeClassOf(this)), 'optional')
     }
-    asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    asOptional(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     asOptional(): any {
         const vs = __asNodeValueSource(this)
         const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'optional')
         return result
     }
-    asRequiredInOptionalObject(): ValueSource<SourceOf<this>, TypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>
+    asRequiredInOptionalObject(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>
     asRequiredInOptionalObject(): any {
         return __asRequiredInOptionalObjectOf(this)
     }
-    onlyWhenOrNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    onlyWhenOrNull(when: boolean): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     onlyWhenOrNull(when: boolean): any {
         return __onlyWhenOrNullOf(this, when)
     }
-    ignoreWhenAsNull(when: boolean): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+    ignoreWhenAsNull(when: boolean): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     ignoreWhenAsNull(when: boolean): any {
         return __ignoreWhenAsNullOf(this, when)
     }

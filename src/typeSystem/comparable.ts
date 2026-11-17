@@ -1,7 +1,7 @@
-import type { IValueWithType, OptionalOf, SourceOf, ValueSource } from './base.js'
+import type { IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { IfValueSource } from './logical.js'
-import type { MergeOptional } from './valueSource.js'
+import type { CombinedOptionality } from './valueSource.js'
 import { comparableValueSource, operandTypeName } from '../utils/symbols.js'
 import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import type { NSource } from '../utils/sourceName.js'
@@ -38,53 +38,53 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
         greaterOrEquals: 'greaterOrEqual', greaterOrEqualsIfValue: 'greaterOrEqualIfValue',
     })
     declare [filterOperation]: (typeof ComparableType)[typeof filterOperation]
-    lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     lessThanIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    lessThan(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    lessThan<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    lessThan(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    lessThan<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     lessThan(value: any): any {
         return __newSqlOperation1ValueSource('_lessThan', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    greaterThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    greaterThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     greaterThanIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    greaterThan(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    greaterThan<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    greaterThan(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    greaterThan<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     greaterThan(value: any): any {
         return __newSqlOperation1ValueSource('_greaterThan', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    lessOrEqualIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    lessOrEqualIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     lessOrEqualIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    lessOrEqual(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    lessOrEqual<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    lessOrEqual(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    lessOrEqual<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     lessOrEqual(value: any): any {
         return __newSqlOperation1ValueSource('_lessOrEqual', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    greaterOrEqualIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
+    greaterOrEqualIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     greaterOrEqualIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    greaterOrEqual(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    greaterOrEqual<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    greaterOrEqual(value: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    greaterOrEqual<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     greaterOrEqual(value: any): any {
         return __newSqlOperation1ValueSource('_greaterOrEqual', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    between(value: VALUE_TYPE, value2: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    between<VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE_TYPE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE2>>>
-    between<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE_TYPE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    between<VALUE extends IValueWithType<this[typeof operandTypeName]>, VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, BooleanType, MergeOptional<MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>, OptionalOf<VALUE2>>>
+    between(value: VALUE_TYPE, value2: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    between<VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE_TYPE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
+    between<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE_TYPE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    between<VALUE extends IValueWithType<this[typeof operandTypeName]>, VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, BooleanType, CombinedOptionality<CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>, OptionalityOf<VALUE2>>>
     between(value: any, value2: any): any {
         return __newSqlOperation2ValueSource('_between', this, value, value2, BooleanConditionType, getOptionalType3(this, value, value2))
     }
-    notBetween(value: VALUE_TYPE, value2: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalOf<this>>
-    notBetween<VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE_TYPE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE2>>>
-    notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE_TYPE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
-    notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>, VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, BooleanType, MergeOptional<MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>, OptionalOf<VALUE2>>>
+    notBetween(value: VALUE_TYPE, value2: VALUE_TYPE): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    notBetween<VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE_TYPE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
+    notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE_TYPE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    notBetween<VALUE extends IValueWithType<this[typeof operandTypeName]>, VALUE2 extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE, value2: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, BooleanType, CombinedOptionality<CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>, OptionalityOf<VALUE2>>>
     notBetween(value: any, value2: any): any {
         return __newSqlOperation2ValueSource('_notBetween', this, value, value2, BooleanConditionType, getOptionalType3(this, value, value2))
     }

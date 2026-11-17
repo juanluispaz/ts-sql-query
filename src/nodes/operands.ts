@@ -83,7 +83,7 @@ export function getOptionalTypeN(a: AnyType | NodeValueSource, values: any[]): O
     // source in it and answer the receiver's optional type, ignoring the elements. An element that
     // is a value source can be NULL, and `<x> in (1, <null>)` is NULL — not false — when no element
     // matches (SQL's three-valued logic), so every element has to be merged in, exactly as the
-    // declared type says (`MergeOptional<OPTIONAL_TYPE, VALUE[optionalType]>`). A constant of the
+    // declared type says (`CombinedOptionality<OPTIONAL_TYPE, VALUE[optionalType]>`). A constant of the
     // language is never NULL, so a list of plain values keeps the receiver's optional type.
     let result = (a as NodeValueSource).__optionalType
     for (let i = 0, length = values.length; i < length; i++) {

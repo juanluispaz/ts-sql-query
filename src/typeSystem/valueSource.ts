@@ -11,7 +11,8 @@ import { __sqlFamilyOf, __temporalFieldsOf } from './dataTypes.js'
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
 
-export type MergeOptional<OP1 extends OptionalType, OP2 extends OptionalType> =
+/** The optionality of a value computed from two: optional when one of them is */
+export type CombinedOptionality<OP1 extends OptionalType, OP2 extends OptionalType> =
     // Always select the less strict option
     OP1 extends 'any' ? 'optional' :
     OP2 extends 'any' ? 'optional' :
@@ -46,7 +47,7 @@ export function __mergeOptional(op1: OptionalType, op2: OptionalType): OptionalT
 }
 
 export type MergeRequired<OP1 extends OptionalType, OP2 extends OptionalType> =
-    // Always select the more strict option (the dual of MergeOptional). For an operation whose
+    // Always select the more strict option (the dual of CombinedOptionality). For an operation whose
     // result is NULL only when EVERY operand is — `concatIgnoringNull`, where a NULL operand counts
     // as the empty string — the strictest operand decides: one operand that is always present makes
     // the result always present, while all-optional operands can leave nothing but the empty string,
@@ -60,7 +61,7 @@ export type MergeRequired<OP1 extends OptionalType, OP2 extends OptionalType> =
     OP1 extends 'originallyRequired' ? 'originallyRequired' :
     OP2 extends 'originallyRequired' ? 'originallyRequired' : 'optional'
 
-export type MergeOptionalUnion<OPTIONAL_TYPE extends OptionalType> =
+export type CombinedOptionalityOfUnion<OPTIONAL_TYPE extends OptionalType> =
     // Always select the less strict option
     'any' extends OPTIONAL_TYPE ? 'optional' :
     'optional' extends OPTIONAL_TYPE ? 'optional' :

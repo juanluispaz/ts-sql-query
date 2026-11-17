@@ -308,7 +308,7 @@ describe(ctx.label, () => {
     })
 
     test('merge-optional-requiredInOptionalObject-is-preserved-through-an-operator', async () => {
-        // `requiredInOptionalObject` is a middle row of the MergeOptional
+        // `requiredInOptionalObject` is a middle row of the CombinedOptionality
         // lattice that is only reachable through an OPERATOR here.
         // `priority.asRequiredInOptionalObject()` carries that state; the
         // `.equals(id)` operator (against a required operand) merges to
@@ -2846,9 +2846,9 @@ describe(ctx.label, () => {
     test('merge-optional-requiredInOptionalObject-demoted-to-optional-through-operator', async () => {
         // The inverse of `merge-optional-requiredInOptionalObject-is-preserved-through-an-operator`:
         // there the operand was a REQUIRED column (`.equals(tIssue.id)`), so
-        // `MergeOptional<requiredInOptionalObject, required> → requiredInOptionalObject`
+        // `CombinedOptionality<requiredInOptionalObject, required> → requiredInOptionalObject`
         // and `flag` stayed required. Here the operand is an OPTIONAL column
-        // (`.equals(tIssue.assigneeId)`), so `MergeOptional<requiredInOptionalObject,
+        // (`.equals(tIssue.assigneeId)`), so `CombinedOptionality<requiredInOptionalObject,
         // optional> → optional` and `flag` is DEMOTED to an optional key
         // (`flag?: boolean`), absent when null — while the own-required `ownReq`
         // keeps the object required (rule-3). issue 1: priority 2, assignee 1 →

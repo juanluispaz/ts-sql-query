@@ -140,7 +140,7 @@ type ValueSource<SOURCE, TYPE, OPTIONAL_TYPE> = TYPE & ValueSourceOfType<SOURCE,
 - `ValueSourceOfType` adds what places the value in a query: its source (`[source]`, an `NSource`), its optionality
   (`[optionalType]`) and a back reference to its data type (`[valueSourceType]`). It extends `TypedValueSource` of
   [`valueSource.ts`](./valueSource.ts), the base every value source has whatever its data type.
-- The readers `SourceOf<X>`, `OptionalOf<X>`, `TypeOf<X>` and `ValueTypeOf<X>` of [`base.ts`](./base.ts) take those axes
+- The readers `SourceOf<X>`, `OptionalityOf<X>`, `DataTypeOf<X>` and `ValueTypeOf<X>` of [`base.ts`](./base.ts) take those axes
   out of a value source. Each answers `any` for `any` (`0 extends (1 & X) ? any : ...`): a conditional type over `any`
   gives the union of its branches, so without that an argument of type `any` would give a source `string` and an
   optionality that is the union of all of them, and stop fitting anywhere.
@@ -188,9 +188,9 @@ A method that applies to several data types is declared once, in the class they 
 relative, so a method of a base gives back the data type of the value source it is called on:
 
 ```ts
-abstract asOptional(): ValueSource<SourceOf<this>, TypeOf<this>, 'optional'>
+abstract asOptional(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
 abstract equals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE):
-    ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, MergeOptional<OptionalOf<this>, OptionalOf<VALUE>>>
+    ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
 ```
 
 **No file depends at run time on a file that depends on it; for the types it may.** A cycle of imports at run time
@@ -335,7 +335,7 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
 - [`fragments.ts`](./fragments.ts): `FragmentExpression<NO_SOURCE, TYPE, OPTIONAL_TYPE, EXTRA_SOURCE>`, the SQL of a
   fragment of any data type. The builders of fragments with arguments stay in `src/expressions/fragment.ts`.
 - [`valueSource.ts`](./valueSource.ts): what every value source has whatever its data type: the optionality
-  (`OptionalType`, `MergeOptional`, ...), `AnyValueSource`, `TypedValueSource`, the types of the value of a result
+  (`OptionalType`, `CombinedOptionality`, ...), `AnyValueSource`, `TypedValueSource`, the types of the value of a result
   (`ValueSourceValueType*`), and the executable queries.
 
 ## Checking a change

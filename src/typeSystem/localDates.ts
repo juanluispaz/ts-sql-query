@@ -1,6 +1,6 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import type { OptionalOf, SourceOf, ValueSource } from './base.js'
+import type { OptionalityOf, SourceOf, ValueSource } from './base.js'
 import { __operation0 } from '../nodes/operations.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { IntType } from './number.js'
@@ -28,19 +28,19 @@ export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', field
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = localDateSqlDataType
 
-    getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDate(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDate(): any {
         return datePartOf(this, '_getDate')
     }
-    getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDay(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDay(): any {
         return datePartOf(this, '_getDay')
     }
-    getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getFullYear(): any {
         return datePartOf(this, '_getFullYear')
     }
-    getMonth(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMonth(): any {
         return datePartOf(this, '_getMonth')
     }
@@ -54,19 +54,19 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
 export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = localTimeSqlDataType
 
-    getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getHours(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getHours(): any {
         return datePartOf(this, '_getHours')
     }
-    getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMilliseconds(): any {
         return datePartOf(this, '_getMilliseconds')
     }
-    getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMinutes(): any {
         return datePartOf(this, '_getMinutes')
     }
-    getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getSeconds(): any {
         return datePartOf(this, '_getSeconds')
     }
@@ -80,39 +80,39 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
 export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = localDateTimeSqlDataType
 
-    getDate(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDate(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDate(): any {
         return datePartOf(this, '_getDate')
     }
-    getDay(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getDay(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDay(): any {
         return datePartOf(this, '_getDay')
     }
-    getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getFullYear(): any {
         return datePartOf(this, '_getFullYear')
     }
-    getMonth(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMonth(): any {
         return datePartOf(this, '_getMonth')
     }
-    getHours(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getHours(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getHours(): any {
         return datePartOf(this, '_getHours')
     }
-    getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMilliseconds(): any {
         return datePartOf(this, '_getMilliseconds')
     }
-    getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMinutes(): any {
         return datePartOf(this, '_getMinutes')
     }
-    getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getSeconds(): any {
         return datePartOf(this, '_getSeconds')
     }
-    getTime(): ValueSource<SourceOf<this>, IntType, OptionalOf<this>>
+    getTime(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getTime(): any {
         return datePartOf(this, '_getTime')
     }

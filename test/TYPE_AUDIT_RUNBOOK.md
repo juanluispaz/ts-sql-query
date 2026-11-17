@@ -465,7 +465,7 @@ already are).
 (b) a **type-level-result-relationships** agent (call it F9-TYPEVAR) that hunts
 distinctions in the RESULT TYPE / VALUE of a real `ctx.conn` query that are unasserted
 or only `Extends`-locked where `Exact` is possible — the optionality algebra
-(`MergeOptional`: opt×opt, req×opt, left-join-through-operator), the brand keep/erase
+(`CombinedOptionality`: opt×opt, req×opt, left-join-through-operator), the brand keep/erase
 algebra, and the scalar-result edges (`T | null` whose null inhabitant is never realized
 in a value-present position). Enforce degeneracy-by-non-validatability hard on it: a pure
 compile-time relationship with no runtime/value surface is a negative-type test (OUT), not

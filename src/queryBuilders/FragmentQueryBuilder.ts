@@ -1,5 +1,5 @@
 import type { TypeAdapter } from '../TypeAdapter.js'
-import { __createConst, __createFragment, __createIfValueAlwaysNoop, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __createConst, __createFragment, __createIfValueAlwaysNoop, __asNodeValueSource, __copyOfValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyValueSource, OptionalType } from '../typeSystem/valueSource.js'
@@ -48,10 +48,7 @@ export class FragmentFunctionBuilder {
                 }
             }
             const result = impl.apply(undefined, newArgs)
-            if (this.isAggregate) {
-                __asNodeValueSource(result).__isAggregate = true
-            }
-            return result
+            return this.isAggregate ? asAggregate(result) : result
         }
     }
 }
@@ -100,10 +97,7 @@ export class FragmentFunctionBuilderIfValue {
                 // the value returned by the implementation function.
                 return __createIfValueAlwaysNoop(__asNodeValueSource(result).__optionalType)
             }
-            if (this.isAggregate) {
-                __asNodeValueSource(result).__isAggregate = true
-            }
-            return result
+            return this.isAggregate ? asAggregate(result) : result
         }
     }
 }
@@ -142,11 +136,35 @@ export class FragmentFunctionBuilderMaybeOptional {
                 optionalType = __mergeOptional(optionalType, argOptionalType)
             }
             const result = impl.apply(undefined, newArgs)
-            __asNodeValueSource(result).__optionalType = optionalType
-            if (this.isAggregate) {
-                __asNodeValueSource(result).__isAggregate = true
-            }
-            return result
+            const resultWithOptionalType = withOptionalType(result, optionalType)
+            return this.isAggregate ? asAggregate(resultWithOptionalType) : resultWithOptionalType
         }
     }
+}
+
+/*
+ * The function of a fragment builds its value source, which can be one that already exists (one of its arguments): a
+ * value source is not written once created, so what the builder says of the result goes on a copy of it
+ */
+
+/** The value source with the optionality its arguments give */
+function withOptionalType(valueSource: AnyValueSource, optionalType: OptionalType): AnyValueSource {
+    const nodeValueSource = __asNodeValueSource(valueSource)
+    if (nodeValueSource.__optionalType === optionalType) {
+        return valueSource
+    }
+    const copy = __copyOfValueSource(nodeValueSource)
+    copy.__optionalType = optionalType
+    return copy
+}
+
+/** The value source declared an aggregate (a function of aggregate fragments) */
+function asAggregate(valueSource: AnyValueSource): AnyValueSource {
+    const nodeValueSource = __asNodeValueSource(valueSource)
+    if (nodeValueSource.__isAggregate) {
+        return valueSource
+    }
+    const copy = __copyOfValueSource(nodeValueSource)
+    copy.__isAggregate = true
+    return copy
 }

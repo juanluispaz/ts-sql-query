@@ -1,7 +1,7 @@
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
-import { valueSourceNode, type NodeStrategy, type NodeValueSource } from './NodeStrategy.js'
+import { valueSourceNode, type NodeStrategy, type NodeValueSource, __copyOfValueSource } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
@@ -57,8 +57,7 @@ export const dbColumnNode: NodeStrategy<DBColumnValueSource> = {
     },
     // A column in the definition of a table, view or values can be marked: it must remain a column
     asRequiredInOptionalObject(vs) {
-        const result = Object.create(Object.getPrototypeOf(vs))
-        Object.assign(result, vs)
+        const result = __copyOfValueSource(vs)
         result.__optionalType = 'requiredInOptionalObject'
         return result
     },

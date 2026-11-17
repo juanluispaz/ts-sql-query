@@ -211,6 +211,12 @@ operation it is and passes its parts, and never writes the SQL of a database.
 
 ## Rules
 
+- **A value source doesn't change once created.** Its creation writes its fields, and whoever creates it finishes it
+  (the marks of a column, the columns of a copy of a table, the columns of a `with`); after that, what gives another
+  optionality, another mark or another shape gives a new value source, and the original stays as it was: the hooks of
+  a node create one (`projectingOptionalValuesAsNullable` of an aggregated array), and what must say something else of
+  a value source it didn't create, like the result of the function of a fragment, which can be one of its arguments,
+  changes a copy (`__copyOfValueSource`).
 - **A node never imports a class of a data type, nor `ValueSourceRoot`.** It types a value source as a
   `NodeValueSource` and creates it with the class it receives. `ValueSourceRoot` and the classes of the data types
   import the nodes, never the other way round, and the files of this folder don't import each other in a cycle.

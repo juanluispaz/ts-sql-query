@@ -25,7 +25,7 @@ whatever class hierarchy implements it.
 | `runners/lib/queryRunnerCalls.ts` | every executing `QueryRunner` method with the shape of what it returns, for the database-less tests |
 | `runners/<db>/<Runner>.test.ts` | one file per driver runner: a factory for the runner (and its variants: `SynchronousPromise`, `allowNestedTransactions`, the `*PoolPromise` twin) handed to the contract, plus what is particular to it |
 | `runners/general/mappers/` | the synthetic driver errors: one `<Mapper>.synthetic.test.ts` per error mapper — see [The synthetic driver errors](#the-synthetic-driver-errors) |
-| `runners/general/` | the runners and functions that need no database: `MockQueryRunner`, `NoopQueryRunner`, `ChainedQueryRunner` / `InterceptorQueryRunner`, `LoggingQueryRunner` / `ConsoleLog*QueryRunner`, the Bun SQL configuration checks and the functions `QueryRunner.ts` exports |
+| `runners/general/` | the runners and functions that need no database: `MockQueryRunner`, `NoopQueryRunner`, `ChainedQueryRunner` / `InterceptorQueryRunner`, `LoggingQueryRunner` / `ConsoleLog*QueryRunner`, the Bun SQL configuration checks, the functions `QueryRunner.ts` exports, and what the library does the same on every database: the registry of the data types (`DataTypeRegistry.test.ts`) and a value source that doesn't change once created (`ValueSourceImmutability.test.ts`) |
 
 Particular cases live next to their runner: Oracle's commit outside a
 transaction and its OUT binds (`oracle/OracleDBCommit.test.ts`,

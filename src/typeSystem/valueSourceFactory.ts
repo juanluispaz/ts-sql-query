@@ -26,7 +26,7 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 import { __asNodeValueSource, isValueSource } from '../nodes/NodeStrategy.js'
 
 // What the rest of the library asks of a value source at run time, from the nodes
-export { isValueSource, __asNodeValueSource, type NodeValueSource } from '../nodes/NodeStrategy.js'
+export { isValueSource, __asNodeValueSource, __copyOfValueSource, type NodeValueSource } from '../nodes/NodeStrategy.js'
 export { __asDBColumnValueSource, type DBColumnValueSource } from '../nodes/column.js'
 
 // How the rest of the library builds a value source, a column or a raw fragment, and asks which one it has: the only

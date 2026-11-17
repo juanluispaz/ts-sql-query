@@ -59,6 +59,12 @@ function allowWhenAggregateNode<VS extends AggregatedArrayValueSource>(node: Nod
         asRequiredInOptionalObject(vs) {
             return node.allowWhen!(node.asRequiredInOptionalObject!(vs), vs.__allowed!, vs.__error!)
         },
+        projectingOptionalValuesAsNullable(vs) {
+            if (vs.__aggregatedProjectingOptionalValuesAsNullable) {
+                return vs
+            }
+            return node.allowWhen!(node.projectingOptionalValuesAsNullable!(vs), vs.__allowed!, vs.__error!)
+        },
         allowWhen(vs, allowed, error) {
             return allowed ? node.allowWhen!(vs, vs.__allowed!, vs.__error!) : node.allowWhen!(vs, false, error)
         },
@@ -141,8 +147,10 @@ const aggregateSelectNode: NodeStrategy<AggregateSelectValueSource> = {
         return newAggregateSelect(allowWhenAggregateSelectNode, __sameTypeClassOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedProjectingOptionalValuesAsNullable, allowed, error)
     },
     projectingOptionalValuesAsNullable(vs) {
-        vs.__aggregatedProjectingOptionalValuesAsNullable = true
-        return vs
+        if (vs.__aggregatedProjectingOptionalValuesAsNullable) {
+            return vs
+        }
+        return newAggregateSelect(aggregateSelectNode, __classOf(vs), vs.__selectData, vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, true)
     },
 }
 
@@ -317,8 +325,10 @@ const aggregateValueAsArrayNode: NodeStrategy<AggregateValueAsArrayValueSource> 
         return newAggregateValueAsArray(allowWhenAggregateValueAsArrayNode, __sameTypeClassOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedArrayDistinct, vs.__aggregatedProjectingOptionalValuesAsNullable, allowed, error)
     },
     projectingOptionalValuesAsNullable(vs) {
-        vs.__aggregatedProjectingOptionalValuesAsNullable = true
-        return vs
+        if (vs.__aggregatedProjectingOptionalValuesAsNullable) {
+            return vs
+        }
+        return newAggregateValueAsArray(aggregateValueAsArrayNode, __classOf(vs), vs.__aggregatedArrayColumns, vs.__aggregatedArrayMode, vs.__optionalType, vs.__aggregatedArrayDistinct, true)
     },
 }
 

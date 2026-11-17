@@ -46,6 +46,16 @@ export function __asNodeValueSource(valueSource: AnyValueSource | ILogicalValue 
     return valueSource as unknown as NodeValueSource
 }
 
+/**
+ * A value source equal to the one given: its class, its node and its fields. A value source is written only while it is
+ * created; what must say something else of an existing one (another optionality, ...) changes its copy
+ */
+export function __copyOfValueSource<VS extends NodeValueSource>(valueSource: VS): VS {
+    const copy = Object.create(Object.getPrototypeOf(valueSource))
+    Object.assign(copy, valueSource)
+    return copy
+}
+
 /** The value source keeps the shape of the elements of `source` when it is an aggregated array */
 export function __keepAggregatedArrayShape(valueSource: NodeValueSource, source: NodeValueSource): void {
     if (source.__aggregatedArrayColumns) {

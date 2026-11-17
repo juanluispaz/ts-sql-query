@@ -4,10 +4,10 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel, ComparableFilter, EqualableFilter, StringFilter, BigintFilter, BooleanFilter, UuidsFilter, DateFilter, DateTimeFilter, NumberFilter, TimeFilter } from '../../../../../src/dynamic/condition.js'
+import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import type { ComparableType, EnumType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
+import type { ComparableType, EnumType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType, BigintType, BooleanType, FilterOf, IntType, LocalDateTimeType, LocalDateType, LocalTimeType, StringType, DoubleType, UuidType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
             slug: 'string'
         }>
 
-        function textFilter(text: string): StringFilter {
+        function textFilter(text: string): FilterOf<StringType> {
             return { containsInsensitive: text }
         }
 
@@ -123,33 +123,33 @@ describe(ctx.label, () => {
             ownLocalDate: LocalDatesType<'a' | 'b', string>; ownLocalTime: LocalTimesType<'a' | 'b', string>; ownLocalDateTime: LocalDateTimesType<'a' | 'b', string>
         }
         type Filter = DynamicCondition<Definition>
-        assertType<Exact<NonNullable<Filter['string']>, StringFilter>>()
-        assertType<Exact<NonNullable<Filter['uuid']>, StringFilter>>()
-        assertType<Exact<NonNullable<Filter['int']>, NumberFilter>>()
-        assertType<Exact<NonNullable<Filter['double']>, NumberFilter>>()
-        assertType<Exact<NonNullable<Filter['bigint']>, BigintFilter>>()
-        assertType<Exact<NonNullable<Filter['boolean']>, BooleanFilter>>()
-        assertType<Exact<NonNullable<Filter['localDate']>, DateFilter>>()
-        assertType<Exact<NonNullable<Filter['localTime']>, TimeFilter>>()
-        assertType<Exact<NonNullable<Filter['localDateTime']>, DateTimeFilter>>()
-        assertType<Exact<NonNullable<Filter['enum']>, EqualableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['custom']>, EqualableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['ownComparable']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['ownInt']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['ownDouble']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['ownUuid']>, UuidsFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['ownLocalDate']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['ownLocalTime']>, ComparableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['ownLocalDateTime']>, ComparableFilter<'a' | 'b'>>>()
+        assertType<Exact<NonNullable<Filter['string']>, FilterOf<StringType>>>()
+        assertType<Exact<NonNullable<Filter['uuid']>, FilterOf<UuidType>>>()
+        assertType<Exact<NonNullable<Filter['int']>, FilterOf<IntType>>>()
+        assertType<Exact<NonNullable<Filter['double']>, FilterOf<DoubleType>>>()
+        assertType<Exact<NonNullable<Filter['bigint']>, FilterOf<BigintType>>>()
+        assertType<Exact<NonNullable<Filter['boolean']>, FilterOf<BooleanType>>>()
+        assertType<Exact<NonNullable<Filter['localDate']>, FilterOf<LocalDateType>>>()
+        assertType<Exact<NonNullable<Filter['localTime']>, FilterOf<LocalTimeType>>>()
+        assertType<Exact<NonNullable<Filter['localDateTime']>, FilterOf<LocalDateTimeType>>>()
+        assertType<Exact<NonNullable<Filter['enum']>, FilterOf<EqualableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['custom']>, FilterOf<EqualableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['ownComparable']>, FilterOf<ComparableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['ownInt']>, FilterOf<ComparableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['ownDouble']>, FilterOf<ComparableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['ownUuid']>, FilterOf<UuidsType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['ownLocalDate']>, FilterOf<ComparableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['ownLocalTime']>, FilterOf<ComparableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['ownLocalDateTime']>, FilterOf<ComparableType<'a' | 'b', string>>>>()
     })
 
     test('docs-extra:utilities-conditions/a-branded-property-has-equality-and-comparison', () => {
         type Code = string & { __brand: 'code' }
         type Filter = DynamicConditionForModel<{ code: Code; name: string; optional?: string | null }>
-        assertType<Exact<NonNullable<Filter['code']>, ComparableFilter<Code>>>()
-        assertType<Exact<NonNullable<DynamicConditionForModel<{ kind: 'a' | 'b' }>['kind']>, EqualableFilter<'a' | 'b'>>>()
-        assertType<Exact<NonNullable<Filter['name']>, StringFilter>>()
-        assertType<Exact<NonNullable<Filter['optional']>, StringFilter>>()
+        assertType<Exact<NonNullable<Filter['code']>, FilterOf<ComparableType<Code, string>>>>()
+        assertType<Exact<NonNullable<DynamicConditionForModel<{ kind: 'a' | 'b' }>['kind']>, FilterOf<EqualableType<'a' | 'b', string>>>>()
+        assertType<Exact<NonNullable<Filter['name']>, FilterOf<StringType>>>()
+        assertType<Exact<NonNullable<Filter['optional']>, FilterOf<StringType>>>()
     })
 
     test('docs:utilities-conditions/dynamic-condition-for-model', async () => {
@@ -229,8 +229,8 @@ describe(ctx.label, () => {
         type AuditedFilter = DynamicCondition<DynamicDefinitionForModel<Project> & { auditedAt: 'localDateTime' }>
         // doc-end
 
-        assertType<Exact<NonNullable<AuditedFilter['id']>, ComparableFilter<number>>>()
-        assertType<Exact<NonNullable<AuditedFilter['auditedAt']>, ComparableFilter<Date>>>()
+        assertType<Exact<NonNullable<AuditedFilter['id']>, FilterOf<ComparableType<number, string>>>>()
+        assertType<Exact<NonNullable<AuditedFilter['auditedAt']>, FilterOf<ComparableType<Date, string>>>>()
 
         const filter: AuditedFilter = {
             name: { equals: 'Marketing site' },
@@ -278,13 +278,13 @@ describe(ctx.label, () => {
             level:   1 | 2
             nested?: { id: number }
         }>
-        assertType<Exact<NonNullable<Filter['flag']>, EqualableFilter<boolean>>>()
-        assertType<Exact<NonNullable<Filter['count']>, ComparableFilter<number>>>()
-        assertType<Exact<NonNullable<Filter['big']>, ComparableFilter<bigint>>>()
-        assertType<Exact<NonNullable<Filter['text']>, StringFilter>>()
-        assertType<Exact<NonNullable<Filter['at']>, ComparableFilter<Date>>>()
-        assertType<Exact<NonNullable<Filter['state']>, EqualableFilter<'on' | 'off'>>>()
-        assertType<Exact<NonNullable<Filter['level']>, EqualableFilter<1 | 2>>>()
+        assertType<Exact<NonNullable<Filter['flag']>, FilterOf<EqualableType<boolean, string>>>>()
+        assertType<Exact<NonNullable<Filter['count']>, FilterOf<ComparableType<number, string>>>>()
+        assertType<Exact<NonNullable<Filter['big']>, FilterOf<ComparableType<bigint, string>>>>()
+        assertType<Exact<NonNullable<Filter['text']>, FilterOf<StringType>>>()
+        assertType<Exact<NonNullable<Filter['at']>, FilterOf<ComparableType<Date, string>>>>()
+        assertType<Exact<NonNullable<Filter['state']>, FilterOf<EqualableType<'on' | 'off', string>>>>()
+        assertType<Exact<NonNullable<Filter['level']>, FilterOf<EqualableType<1 | 2, string>>>>()
         assertType<Exact<NonNullable<Filter['nested']>, DynamicCondition<{ id: 'int' }>>>()
     })
 

@@ -4,21 +4,6 @@ import type { ComparableType } from '../typeSystem/comparable.js'
 import type { EnumType } from '../typeSystem/enum.js'
 
 export type { DynamicCondition }
-export type {
-    Filter,
-    NullableFilter,
-    EqualableFilter,
-    ComparableFilter,
-    BooleanFilter,
-    NumberFilter,
-    BigintFilter,
-    StringDecimalFilter,
-    StringFilter,
-    DateFilter,
-    TimeFilter,
-    DateTimeFilter,
-    UuidsFilter
-} from '../expressions/dynamicConditionUsingFilters.js'
 
 /*
  * Building a dynamic condition from a business model (instead of from the value-source

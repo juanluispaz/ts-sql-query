@@ -127,6 +127,11 @@ export {
 } from '../../typeSystem/enum.js'
 
 export {
+    filterOperation,
+    exposeFilterOperations,
+} from '../../typeSystem/filterOperations.js'
+
+export {
     getQueryContext,
     type QueryContext,
     type QueryParamContext,
@@ -164,19 +169,7 @@ export {
 
 export {
     type DynamicCondition,
-    type Filter,
-    type NullableFilter,
-    type EqualableFilter,
-    type ComparableFilter,
-    type BooleanFilter,
-    type NumberFilter,
-    type BigintFilter,
-    type StringDecimalFilter,
-    type StringFilter,
-    type DateFilter,
-    type TimeFilter,
-    type DateTimeFilter,
-    type UuidsFilter,
+    type FilterOf,
 } from '../../expressions/dynamicConditionUsingFilters.js'
 
 export {

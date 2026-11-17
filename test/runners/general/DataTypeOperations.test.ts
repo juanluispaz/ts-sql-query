@@ -24,7 +24,7 @@ import type { Argument, ArgForFn, MapArgumentToValueSource, TypeOfArgument } fro
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../../../src/typeSystem/aggregatedArrays.js'
 import type { Column } from '../../../src/utils/Column.js'
 import type { typeName } from '../../../src/utils/symbols.js'
-import type { ComparableFilter, DynamicCondition, EqualableFilter, NumberFilter, UuidsFilter } from '../../../src/expressions/dynamicConditionUsingFilters.js'
+import type { DynamicCondition, FilterOf } from '../../../src/exports/v2/index.js'
 import type { DynamicConditionForModel } from '../../../src/dynamic/condition.js'
 import type { DynamicCondition as DynamicConditionOfVersion1 } from '../../../src/exports/v1/expressions/dynamicConditionUsingFilters.js'
 
@@ -470,20 +470,20 @@ describe('The operations of the data types', () => {
         abstract class TagType extends EqualableType<string, 'Tag'> { static override readonly type = 'Tag' }
         abstract class VersionType extends ComparableType<string, 'Version'> { static override readonly type = 'Version' }
         type ProbeFilter = DynamicCondition<{ id: 'int', total: MoneyType, tag: TagType, ref: RefType, nested: { version: VersionType } }>
-        assertType<Exact<NonNullable<ProbeFilter['id']>, NumberFilter>>()
-        assertType<Exact<NonNullable<ProbeFilter['total']>, ComparableFilter<Money>>>()
-        assertType<Exact<NonNullable<ProbeFilter['tag']>, EqualableFilter<string>>>()
-        assertType<Exact<NonNullable<ProbeFilter['ref']>, UuidsFilter<string>>>()
-        assertType<Exact<NonNullable<NonNullable<ProbeFilter['nested']>['version']>, ComparableFilter<string>>>()
+        assertType<Exact<NonNullable<ProbeFilter['id']>, FilterOf<IntType>>>()
+        assertType<Exact<NonNullable<ProbeFilter['total']>, FilterOf<ComparableType<Money, string>>>>()
+        assertType<Exact<NonNullable<ProbeFilter['tag']>, FilterOf<EqualableType<string, string>>>>()
+        assertType<Exact<NonNullable<ProbeFilter['ref']>, FilterOf<UuidsType<string, string>>>>()
+        assertType<Exact<NonNullable<NonNullable<ProbeFilter['nested']>['version']>, FilterOf<ComparableType<string, string>>>>()
         // @ts-expect-error a tuple of version 1 is not a column of a definition
         type ProbeFilterWithTuple = DynamicCondition<{ total: ['customInt', Money] }>
         type ProbeFilterOfVersion1 = DynamicConditionOfVersion1<{ total: ['customInt', Money], state: ['enum', Status], nested: { at: ['customLocalDate', Date] } }>
-        assertType<Exact<NonNullable<ProbeFilterOfVersion1['total']>, ComparableFilter<Money>>>()
-        assertType<Exact<NonNullable<ProbeFilterOfVersion1['state']>, EqualableFilter<Status>>>()
-        assertType<Exact<NonNullable<NonNullable<ProbeFilterOfVersion1['nested']>['at']>, ComparableFilter<Date>>>()
+        assertType<Exact<NonNullable<ProbeFilterOfVersion1['total']>, FilterOf<ComparableType<Money, string>>>>()
+        assertType<Exact<NonNullable<ProbeFilterOfVersion1['state']>, FilterOf<EqualableType<Status, string>>>>()
+        assertType<Exact<NonNullable<NonNullable<ProbeFilterOfVersion1['nested']>['at']>, FilterOf<ComparableType<Date, string>>>>()
         type ProbeModelFilter = DynamicConditionForModel<{ total: Money, state: Status }>
-        assertType<Exact<NonNullable<ProbeModelFilter['total']>, ComparableFilter<Money>>>()
-        assertType<Exact<NonNullable<ProbeModelFilter['state']>, EqualableFilter<Status>>>()
+        assertType<Exact<NonNullable<ProbeModelFilter['total']>, FilterOf<ComparableType<Money, string>>>>()
+        assertType<Exact<NonNullable<ProbeModelFilter['state']>, FilterOf<EqualableType<Status, string>>>>()
         const filter: ProbeFilter = { total: { greaterThan: 1 as Money }, nested: { version: { lessThan: '2' } } }
         const withTuple: ProbeFilterWithTuple = {}
         expect([filter, withTuple].length).toBe(2)

@@ -5,14 +5,14 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import type { ComparableFilter, DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
+import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import type { DeepPick, DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { tOrganization, tProject, tProjectRelease } from '../../domain/connection.js'
 import type { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import type { ComparableType, EnumType } from '../../../../../src/exports/v2/index.js'
+import type { ComparableType, EnumType, FilterOf } from '../../../../../src/exports/v2/index.js'
 import { RealsType } from '../../../../../src/exports/v2/index.js'
 
 describe(ctx.label, () => {
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
         }
         // doc-end
 
-        assertType<Exact<NonNullable<InvoiceFilter['total']>, ComparableFilter<Money>>>()
+        assertType<Exact<NonNullable<InvoiceFilter['total']>, FilterOf<ComparableType<Money, string>>>>()
         expect(filter.total?.greaterThan).toBe(100)
     })
 

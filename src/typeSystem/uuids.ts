@@ -1,7 +1,8 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { OptionalOf, SourceOf, ValueSource } from './base.js'
-import type { StringType } from './strings.js'
+import { StringType } from './strings.js'
+import { filterThrough } from '../utils/symbols.js'
 import { UuidTextType } from './uuidText.js'
 import { __operation0 } from '../nodes/operations.js'
 
@@ -15,6 +16,12 @@ export const uuidSqlDataType: SqlDataType = { family: 'uuid' }
  */
 export abstract class UuidsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = uuidSqlDataType
+    /**
+     * The operations of a dynamic filter the uuid doesn't have apply to its text: those of the data type asString
+     * gives (the text operators). Its own operations win
+     */
+    static readonly [filterThrough] = { method: 'asString', dataType: StringType } as const
+    declare [filterThrough]: StringType
 
     asString(): ValueSource<SourceOf<this>, StringType, OptionalOf<this>>
     asString(): any {

@@ -5,6 +5,7 @@ import type { BooleanType } from './logical.js'
 import type { DoubleType, IntType, NumberType } from './number.js'
 import type { ColumnMarkersOf } from './valueSource.js'
 import type { operandTypeName } from '../utils/symbols.js'
+import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import { __sameTypeClassOf, __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource } from '../nodes/operations.js'
@@ -28,6 +29,8 @@ export type CoalesceTypeOf<X, OPERAND> =
 
 /** A data type whose value can be null */
 export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
+    static override readonly [filterOperation] = exposeFilterOperations(this, ValueSourceBaseType, ['isNull', 'isNotNull'])
+    declare [filterOperation]: (typeof NullableType)[typeof filterOperation]
 
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {

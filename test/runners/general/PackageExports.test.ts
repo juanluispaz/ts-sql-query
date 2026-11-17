@@ -47,7 +47,7 @@ function specifiersOf(file: string): Specifier[] {
         while ((match = imports.exec(code)) !== null) {
             rest = rest.replace(match[0], '')
         }
-        const definition = /\/\*\* @deprecated [^\n]+ \*\/\nexport (?:function|class|interface) (\w+)[^\n]*\{\n(?:[\s\S]*?\n)?\}\n?/g
+        const definition = /\/\*\* @deprecated [^\n]+ \*\/\nexport (?:function|class|interface) (\w+)[^\n]*\{\n(?:[\s\S]*?\n)??\}\n?/g
         while ((match = definition.exec(code)) !== null) {
             rest = rest.replace(match[0], '')
             result.push({ name: match[1]!, exported: match[1]!, from: self, deprecated: true })

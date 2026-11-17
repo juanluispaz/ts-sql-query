@@ -1,57 +1,87 @@
 // ts-sql-query/expressions/dynamicConditionUsingFilters: the path of version 1, kept so that code written for it keeps compiling. Each name says where
 // it is imported from in version 2
 
-import { type ComparableFilter, type ComparableType, type DecimalsType, type DynamicCondition as DynamicConditionOfVersion2, type EnumType, type EqualableType, type IntegersType, type LocalDateTimesType, type LocalDatesType, type LocalTimesType, type RealsType, type UuidsFilter, type UuidsType } from '../../v2/index.js'
+import { type BigintType, type BooleanType, type ComparableType, type DecimalsType, type DoubleType, type DynamicCondition as DynamicConditionOfVersion2, type EnumType, type EqualableType, type FilterOf, type IntegersType, type LocalDateTimeType, type LocalDateTimesType, type LocalDateType, type LocalDatesType, type LocalTimeType, type LocalTimesType, type RealsType, type StringType, type UuidsType } from '../../v2/index.js'
 import { type DynamicConditionExtension, type DynamicDefinition } from '../../../expressions/dynamicConditionUsingFilters.js'
 import { type AnyValueSource } from '../../../typeSystem/valueSource.js'
+import { type NullableType } from '../../../typeSystem/nullable.js'
 
-export {
-    /** @deprecated Import it from 'ts-sql-query' */
-    type BigintFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type BooleanFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type ComparableFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type DateFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type DateTimeFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type EqualableFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type Filter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type NullableFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type NumberFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type StringFilter,
-    /** @deprecated Import it from 'ts-sql-query' */
-    type TimeFilter,
-} from '../../v2/index.js'
+/** @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column (`FilterOf<IntType>`) */
+export interface Filter {
+}
 
-/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+/**
+ * @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column (`FilterOf<IntType>`)
+ */
+export type NullableFilter = FilterOf<NullableType<any>>
+
+/**
+ * @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column (`FilterOf<EnumType<T, 'Name'>>`)
+ */
+export type EqualableFilter<TYPE> = FilterOf<EqualableType<TYPE, string>>
+
+/**
+ * @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column (`FilterOf<MoneyType>`)
+ */
+export type ComparableFilter<TYPE> = FilterOf<ComparableType<TYPE, string>>
+
+/**
+ * @deprecated Use FilterOf<BooleanType>, imported from 'ts-sql-query'
+ */
+export type BooleanFilter = FilterOf<BooleanType>
+
+/**
+ * @deprecated Use FilterOf<IntType> or FilterOf<DoubleType>, imported from 'ts-sql-query'
+ */
+export type NumberFilter = FilterOf<DoubleType>
+
+/**
+ * @deprecated Use FilterOf<BigintType>, imported from 'ts-sql-query'
+ */
+export type BigintFilter = FilterOf<BigintType>
+
+/**
+ * @deprecated Use FilterOf<StringType>, imported from 'ts-sql-query'
+ */
+export type StringFilter = FilterOf<StringType>
+
+/**
+ * @deprecated Use FilterOf<LocalDateType>, imported from 'ts-sql-query'
+ */
+export type DateFilter = FilterOf<LocalDateType>
+
+/**
+ * @deprecated Use FilterOf<LocalTimeType>, imported from 'ts-sql-query'
+ */
+export type TimeFilter = FilterOf<LocalTimeType>
+
+/**
+ * @deprecated Use FilterOf<LocalDateTimeType>, imported from 'ts-sql-query'
+ */
+export type DateTimeFilter = FilterOf<LocalDateTimeType>
+
+/** @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column (`FilterOf<MoneyType>`) */
 export interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> {
 }
 
-/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+/** @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column (`FilterOf<MoneyType>`) */
 export interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> {
 }
 
-/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+/** @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column */
 export interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> {
 }
 
-/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+/** @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column */
 export interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> {
 }
 
-/** @deprecated Use ComparableFilter, imported from 'ts-sql-query' */
+/** @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column */
 export interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> {
 }
 
-/** @deprecated Use UuidsFilter, imported from 'ts-sql-query' */
-export interface CustomUuidFilter<TYPE> extends UuidsFilter<TYPE> {
+/** @deprecated Use FilterOf, imported from 'ts-sql-query', with the data type of the column (`FilterOf<CustomerIdType>`) */
+export interface CustomUuidFilter<TYPE> extends FilterOf<UuidsType<TYPE, string>> {
 }
 
 /**

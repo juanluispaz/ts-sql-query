@@ -170,6 +170,114 @@ Then the name goes wherever a type goes: a column, `this.column('cost_cents', 'C
 
 The name is the `static type` of the class, which the class must say: without it, the class is named after the name of its class, which a minifier can change, and registering it is an error, `DATA_TYPE_WITHOUT_TYPE_NAME`. A name is registered once: registering the same class again does nothing, and another class with a name already registered, also the name of a built-in type, is an error, `DATA_TYPE_ALREADY_REGISTERED`. A name that isn't in `DataTypes` doesn't compile, and one that is but nobody registered is an error when it is used, `UNKNOWN_DATA_TYPE`.
 
+### Operations of your own in a dynamic filter
+
+A [dynamic filter](../dynamic/caller-decides/filters.md) calls the methods of the data type of each column: `{ birthday: { greaterThan: date } }` is `birthday.greaterThan(date)`. A type of yours has the operations of its family, and its class can offer methods of its own to a filter. Each of these methods gives a condition and has no parameters or one. List them in `[filterOperation]`, a static of the class, with `exposeFilterOperations`, and declare that static on the instance, so the type of the filter has them:
+
+```ts
+import { DynamicCondition, LocalDatesType, Table, exposeFilterOperations, filterOperation } from "ts-sql-query"
+
+abstract class BirthdayType extends LocalDatesType<Date, 'Birthday'> {
+    static override readonly type = 'Birthday'
+    static override readonly [filterOperation] = exposeFilterOperations(this, LocalDatesType, ['isLeapDay', 'inYear'])
+    declare [filterOperation]: (typeof BirthdayType)[typeof filterOperation]
+
+    // Born on 29 February
+    isLeapDay() {
+        return this.getMonth().equals(1).and(this.getDate().equals(29))
+    }
+    inYear(year: number) {
+        return this.getFullYear().equals(year)
+    }
+}
+
+const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
+    id = this.primaryKey('id', 'int')
+    birthday = this.optionalColumn('birthday', BirthdayType)
+    constructor() {
+        super('customer')
+    }
+}()
+
+const filter: DynamicCondition<{ birthday: BirthdayType }> = {
+    birthday: { inYear: 2000, isLeapDay: true }
+}
+
+const customers = await connection.selectFrom(tCustomerBirthday)
+    .where(connection.dynamicConditionFor({ birthday: tCustomerBirthday.birthday }).withValues(filter))
+    .select({ id: tCustomerBirthday.id })
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select id as id 
+    from customer 
+    where 
+            year(birthday) = ? 
+        and (month(birthday) - 1) = ? 
+        and (dayofmonth(birthday)) = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select id as id 
+    from customer 
+    where 
+            year(birthday) = ? 
+        and (month(birthday) - 1) = ? 
+        and (dayofmonth(birthday)) = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select id as "id" 
+    from customer 
+    where 
+            extract(year from birthday) = :0 
+        and (extract(month from birthday) - 1) = :1 
+        and extract(day from birthday) = :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select id as id 
+    from customer 
+    where 
+            extract(year from birthday) = $1 
+        and (extract(month from birthday) - 1) = $2 
+        and extract(day from birthday) = $3
+    ```
+=== "SQLite"
+    ```sqlite
+    select id as id 
+    from customer 
+    where 
+            cast(strftime('%Y', birthday) as integer) = ?1 
+        and (cast(strftime('%m', birthday) as integer) - 1) = ?2 
+        and cast(strftime('%d', birthday) as integer) = ?3
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select id as id 
+    from customer 
+    where 
+            datepart(year, birthday) = @0 
+        and (datepart(month, birthday) - 1) = @1 
+        and datepart(day, birthday) = @2
+    ```
+
+The parameters are: `[ 2000, 1, 29 ]`
+
+`exposeFilterOperations` receives the class, the class it extends, whose operations it keeps, and the names of the methods it adds. The compiler checks each name: a method that doesn't give a condition, or has more than one parameter, or an optional one, isn't accepted.
+
+What the filter gives each method:
+
+- A method with a parameter receives the value of the filter, of the type of its parameter: `inYear: 2000` is `inYear(2000)`.
+- A method without parameters receives `true` or `false`: `true` applies the condition, `isLeapDay()`, and `false` its negation, `isLeapDay().negate()`.
+- A value `null` or `undefined` adds no condition, as with the operations of the library, unless the name of the method is `is` or `isNot` or ends in `IfValue`: those receive it. See [Empty values in a filter](../dynamic/caller-decides/filters.md#empty-values-in-a-filter).
+
+`FilterOf<BirthdayType>`, from `ts-sql-query`, is the type of the filter of the column: the operations of `LocalDatesType` and `isLeapDay` and `inYear`. Without the `declare` line, the type of the filter doesn't have them, but a filter that arrives as data, like one parsed from JSON, can still use them: the class has them. A method that isn't in the list is rejected with `DYNAMIC_CONDITION_UNKNOWN_OPERATION`, and one that gives something that isn't a condition at run time, like a method whose type is `any`, with `DYNAMIC_CONDITION_INVALID_OPERATION_RETURN_TYPE`.
+
 ## Exact decimals
 
 JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:

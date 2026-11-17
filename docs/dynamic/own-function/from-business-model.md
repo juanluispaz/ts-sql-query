@@ -133,12 +133,12 @@ These are the operators each property gets. Every operator also has its `IfValue
 
 | Property in the interface | Usual column | Filter | Operators |
 |---|---|---|---|
-| `boolean` | Boolean | `BooleanFilter` | Equality: `equals`, `notEquals`, `is`, `isNot`, `in`, `notIn`, `isNull`, `isNotNull` |
-| `number` | Integer or double | `NumberFilter` | Equality, and comparison: `lessThan`, `greaterThan`, `lessOrEqual`, `greaterOrEqual` |
-| `bigint` | Bigint | `BigintFilter` | Equality and comparison |
-| `string` | String or uuid | `StringFilter` | Equality, comparison and text: `contains`, `startsWith`, `endsWith`, `like`, `equalsInsensitive`... |
-| `Date` | Date, time or date and time | `DateTimeFilter` | Equality and comparison |
-| A union of literals, like `'active' \| 'inactive'` | Enum | `EqualableFilter<...>` | Equality |
+| `boolean` | Boolean | `FilterOf<BooleanType>` | Equality: `equals`, `notEquals`, `is`, `isNot`, `in`, `notIn`, `isNull`, `isNotNull` |
+| `number` | Integer or double | `FilterOf<IntType>` | Equality, and comparison: `lessThan`, `greaterThan`, `lessOrEqual`, `greaterOrEqual` |
+| `bigint` | Bigint | `FilterOf<BigintType>` | Equality and comparison |
+| `string` | String or uuid | `FilterOf<StringType>` | Equality, comparison and text: `contains`, `startsWith`, `endsWith`, `like`, `equalsInsensitive`... |
+| `Date` | Date, time or date and time | `FilterOf<LocalDateTimeType>` | Equality and comparison |
+| A union of literals, like `'active' \| 'inactive'` | Enum | `FilterOf<EnumType<...>>` | Equality |
 | An object | A group of the map | A nested filter | The ones of its properties, and its own `and`, `or` and `not` |
 
 The interface can't say whether a `Date` is a date or a date and time, and it doesn't need to: the column decides how the value is sent. In the example `birthday` is a date, so SQLite receives `'1990-01-01'`.

@@ -45,35 +45,35 @@ type FilterType = DynamicCondition<{
 
 Where `MyEnumType` is a class of yours that extends `EnumType<MyEnum, 'MyEnum'>`, `MyEqualableType` one that extends `EqualableType`, `MyComparableType` one that extends `ComparableType`, `MyNumberType` one of the families of the numbers, like `IntegersType` or `RealsType`, `MyUuidType` one that extends `UuidsType`, and `MyDateType` one of the families of the dates, like `LocalDatesType` (see [Your own types](../configuration/data-types.md#your-own-types)).
 
-The `FilterType` definition looks like this. Every field is optional:
+The `FilterType` definition looks like this. Every field is optional, and `FilterOf<DataType>`, exported from `ts-sql-query`, is the filter of a field of that data type:
 
 ```tsx
 type FilterType = {
     not?: FilterType
     and?: ReadonlyArray<FilterType | undefined>
     or?: ReadonlyArray<FilterType | undefined>
-    myBoolean?: BooleanFilter
-    myInt?: NumberFilter
-    myBigint?: BigintFilter
-    myDouble?: NumberFilter
-    myString?: StringFilter
-    myUuid?: StringFilter
-    myStringDecimal?: StringDecimalFilter
-    myLocalDate?: DateFilter
-    myLocalTime?: TimeFilter
-    myLocalDateTime?: DateTimeFilter
-    myEnum?: EqualableFilter<MyEnum>
-    myEqualable?: EqualableFilter<MyEqualable>
-    myComparable?: ComparableFilter<MyComparable>
-    myNumber?: ComparableFilter<MyNumber>
-    myOwnUuid?: UuidsFilter<MyUuid>
-    myOwnDate?: ComparableFilter<MyDate>
+    myBoolean?: FilterOf<BooleanType>
+    myInt?: FilterOf<IntType>
+    myBigint?: FilterOf<BigintType>
+    myDouble?: FilterOf<DoubleType>
+    myString?: FilterOf<StringType>
+    myUuid?: FilterOf<UuidType>
+    myStringDecimal?: FilterOf<StringDecimalType>
+    myLocalDate?: FilterOf<LocalDateType>
+    myLocalTime?: FilterOf<LocalTimeType>
+    myLocalDateTime?: FilterOf<LocalDateTimeType>
+    myEnum?: FilterOf<MyEnumType>
+    myEqualable?: FilterOf<MyEqualableType>
+    myComparable?: FilterOf<MyComparableType>
+    myNumber?: FilterOf<MyNumberType>
+    myOwnUuid?: FilterOf<MyUuidType>
+    myOwnDate?: FilterOf<MyDateType>
 }
 ```
 
 !!! note
 
-    For convenience, a `uuid` and a uuid of yours (a class that extends `UuidsType`) accept the text operators of `StringFilter`, and they apply the `asString()` method before them.
+    For convenience, a `uuid` and a uuid of yours (a class that extends `UuidsType`) accept the text operators of a `string`, with a `string`, and they apply the `asString()` method before them.
 
 !!! tip "Deriving the filter type from a business model"
 
@@ -81,17 +81,14 @@ type FilterType = {
 
 You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify several properties in a filter, all of them are joined using the `and` operator. The same happens with the elements of the **`and`** array. Elements of the **`or`** array are joined using the `or` operator.
 
-The definitions of the filters of each field are:
+`FilterOf` has an optional property for each operation the data type exposes to a filter, with the value its method takes (see [Operations of your own in a dynamic filter](../configuration/data-types.md#operations-of-your-own-in-a-dynamic-filter)). For a data type whose values are of type `TYPE`, these are the operators, by what its values can do.
 
-```typescript
-interface NullableFilter {
+Equality, of every data type but an aggregated array:
+
+```tsx
+{
     isNull?: boolean
     isNotNull?: boolean
-}
-```
-
-```typescript
-interface EqualableFilter<TYPE> extends NullableFilter {
     equalsIfValue?: TYPE | null | undefined
     equals?: TYPE
     notEqualsIfValue?: TYPE | null | undefined
@@ -107,8 +104,10 @@ interface EqualableFilter<TYPE> extends NullableFilter {
 }
 ```
 
-```typescript
-interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
+Also comparison (the numbers, the dates, the texts, the uuids, and a class that extends `ComparableType` or one of the families of the numbers or of the dates):
+
+```tsx
+{
     lessThanIfValue?: TYPE | null | undefined
     lessThan?: TYPE
     greaterThanIfValue?: TYPE | null | undefined
@@ -120,8 +119,10 @@ interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
 }
 ```
 
-```typescript
-interface StringFilter extends ComparableFilter<string> {
+Also the text operators (`'string'`, and, applied to their text, `'uuid'` and a class that extends `UuidsType`), always with a `string`:
+
+```tsx
+{
     equalsInsensitiveIfValue?: string | null | undefined
     equalsInsensitive?: string
     notEqualsInsensitiveIfValue?: string | null | undefined
@@ -161,56 +162,15 @@ interface StringFilter extends ComparableFilter<string> {
 }
 ```
 
-```typescript
-interface UuidsFilter<TYPE> extends ComparableFilter<TYPE> {
-    equalsInsensitiveIfValue?: TYPE | null | undefined
-    equalsInsensitive?: TYPE
-    notEqualsInsensitiveIfValue?: TYPE | null | undefined
-    notEqualsInsensitive?: TYPE
-    likeIfValue?: TYPE | null | undefined
-    like?: TYPE
-    notLikeIfValue?: TYPE | null | undefined
-    notLike?: TYPE
-    likeInsensitiveIfValue?: TYPE | null | undefined
-    likeInsensitive?: TYPE
-    notLikeInsensitiveIfValue?: TYPE | null | undefined
-    notLikeInsensitive?: TYPE
-    startsWithIfValue?: TYPE | null | undefined
-    startsWith?: TYPE
-    notStartsWithIfValue?: TYPE | null | undefined
-    notStartsWith?: TYPE
-    endsWithIfValue?: TYPE | null | undefined
-    endsWith?: TYPE
-    notEndsWithIfValue?: TYPE | null | undefined
-    notEndsWith?: TYPE
-    startsWithInsensitiveIfValue?: TYPE | null | undefined
-    startsWithInsensitive?: TYPE
-    notStartsWithInsensitiveIfValue?: TYPE | null | undefined
-    notStartsWithInsensitive?: TYPE
-    endsWithInsensitiveIfValue?: TYPE | null | undefined
-    endsWithInsensitive?: TYPE
-    notEndsWithInsensitiveIfValue?: TYPE | null | undefined
-    notEndsWithInsensitive?: TYPE
-    containsIfValue?: TYPE | null | undefined
-    contains?: TYPE
-    notContainsIfValue?: TYPE | null | undefined
-    notContains?: TYPE
-    containsInsensitiveIfValue?: TYPE | null | undefined
-    containsInsensitive?: TYPE
-    notContainsInsensitiveIfValue?: TYPE | null | undefined
-    notContainsInsensitive?: TYPE
-}
+An aggregated array has no operators.
+
+To offer methods of your own in a filter, a class of yours lists them with `exposeFilterOperations`, exported from `ts-sql-query` with the symbol `filterOperation`:
+
+```tsx
+function exposeFilterOperations(dataType: Class, family: FamilyClass | undefined, names: readonly MethodName[]): (operation: Names) => boolean
 ```
 
-```typescript
-interface BooleanFilter extends EqualableFilter<boolean> { }
-interface NumberFilter extends ComparableFilter<number> { }
-interface BigintFilter extends ComparableFilter<bigint> { }
-interface DateFilter extends ComparableFilter<Date> { }
-interface TimeFilter extends ComparableFilter<Date> { }
-interface DateTimeFilter extends ComparableFilter<Date> { }
-interface StringDecimalFilter extends ComparableFilter<string> { }
-```
+It's called in the static `[filterOperation]` of the class, which the instance declares (`declare [filterOperation]: (typeof MyType)[typeof filterOperation]`). `family` is the class it extends, whose operations it keeps, and each name is a method of the class that gives a condition and has no parameters or one required parameter.
 
 You can extend the set of rules defining your own. For this, you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. `withValues` accepts the rules in the filter, written in place or in a variable. If you use the `DynamicCondition` utility type, you must provide the type of your extension object as a second argument. See [Rules of your own](../dynamic/caller-decides/filters.md#rules-of-your-own).
 

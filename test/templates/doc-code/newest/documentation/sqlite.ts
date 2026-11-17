@@ -20,7 +20,11 @@ import {
     extractWritableColumnsFrom,
     extractWritableShapeFrom,
 } from '../../../../../src/extras/utils.js'
-import { type DynamicCondition, type DynamicConditionForModel, type StringFilter, type DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
+import { type DynamicCondition, type DynamicConditionForModel, type DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
+import type { FilterOf, StringType } from '../../../../../src/exports/v2/index.js'
+import { LocalDatesType, exposeFilterOperations, filterOperation } from '../../../../../src/exports/v2/index.js'
+// Used by the examples of the operations a data type exposes to a dynamic filter
+void (null as unknown as [typeof LocalDatesType, typeof exposeFilterOperations, typeof filterOperation])
 import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath, type Pickable, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable, expandTypeProjectedAsNullableFromDynamicPickPaths, type PickValuesPathWithAllProperties } from '../../../../../src/dynamic/pick.js'
 import {
     type OrderByForModel,
@@ -254,7 +258,7 @@ void extractWritableShapeFrom
 void getQueryContext
 void function(_qc: QueryContext, _qpc: QueryParamContext) {}
 void expandTypeProjectedAsNullableFromDynamicPickPaths
-void (null as unknown as [OrderByMode, StringFilter, DynamicDefinitionForModel<{}>, Pickable, PickValuesPathProjectedAsNullable<{}, never>, PickValuesPathWithAllPropertiesProjectedAsNullable<{}, never>, PickValuesPathWithAllProperties<{}, never>])
+void (null as unknown as [OrderByMode, FilterOf<StringType>, DynamicDefinitionForModel<{}>, Pickable, PickValuesPathProjectedAsNullable<{}, never>, PickValuesPathWithAllPropertiesProjectedAsNullable<{}, never>, PickValuesPathWithAllProperties<{}, never>])
 void (null as unknown as UpdatableValuesShapedAs<any, any>)
 void dynamicPick
 void dynamicPickPaths

@@ -9,7 +9,7 @@ A dynamic filter is a condition that arrives as data, and [Dynamic filters](../c
 | Type | What it's for | Where it's used |
 |---|---|---|
 | [`DynamicCondition<Definition, Extension?>`](#dynamiccondition) | The type of a filter, from a map of columns or of type names | [Dynamic filters](../caller-decides/filters.md), [Typing from the database types](../own-function/from-database-types.md) |
-| [The filter of each field](#the-filter-of-each-field): `StringFilter`, `NumberFilter`, `DateFilter`... | The operators of one field | The type of a value inside a filter, when your code builds it in parts |
+| [`FilterOf<DataType>`](#the-filter-of-each-field) | The operators of one field | The type of a value inside a filter, when your code builds it in parts |
 | [`DynamicConditionForModel<Model, Extension?>`](#dynamicconditionformodel) | The type of a filter, from an interface of yours | [Typing from a business model](../own-function/from-business-model.md) |
 | [`DynamicDefinitionForModel<Model>`](#dynamicdefinitionformodel) | The map of type names of an interface | Adding fields to a model before building a `DynamicCondition` |
 
@@ -141,17 +141,17 @@ Besides its fields, a filter has `and` and `or`, which receive an array of filte
 
 ## The filter of each field
 
-The value of a field in a filter is an object with the operators of its type. These types are exported, so your code can use them when it builds a filter in parts:
+The value of a field in a filter is an object with the operators of its data type. `FilterOf<DataType>`, exported from `ts-sql-query`, is its type, with the class of the data type, like `FilterOf<StringType>`, so your code can use it when it builds a filter in parts:
 
 ```ts
-import { DynamicCondition, StringFilter } from "ts-sql-query"
+import { DynamicCondition, FilterOf, StringType } from "ts-sql-query"
 
 type CustomerFilter = DynamicCondition<{
     firstName: 'string'
     lastName: 'string'
 }>
 
-function textFilter(text: string): StringFilter {
+function textFilter(text: string): FilterOf<StringType> {
     return { containsInsensitive: text }
 }
 
@@ -238,29 +238,31 @@ The executed query is:
 
 The parameters are: `[ 'smi', 'smi' ]`
 
-This table has every filter and the type it belongs to: the name of a built-in type, or the family a class of yours extends, given in the definition as the class (`total: MoneyType`) or, once [registered](../../configuration/data-types.md#giving-your-type-by-its-name), as its type name (`total: 'Money'`). A column or expression in the map gets the filter of its type in the same way.
+Each operator of a filter is a method of the data type of the field, which the filter calls with the value given: `{ firstName: { containsInsensitive: 'smi' } }` is `firstName.containsInsensitive('smi')`. This table has the operators of each data type: a built-in one, given in the definition by its name, or a class of yours, given as the class (`total: MoneyType`) or, once [registered](../../configuration/data-types.md#giving-your-type-by-its-name), as its type name (`total: 'Money'`). A column or expression in the map gets the filter of its data type in the same way.
 
-| Filter | Type in the definition | Operators |
+| Type in the definition | Its filter | Operators |
 |---|---|---|
-| `StringFilter` | `'string'`, `'uuid'` | Those of `ComparableFilter<string>`, and the [text operators](../../api/dynamic-conditions.md) |
-| `NumberFilter` | `'int'`, `'double'` | Those of `ComparableFilter<number>` |
-| `BigintFilter` | `'bigint'` | Those of `ComparableFilter<bigint>` |
-| `StringDecimalFilter` | `'stringDecimal'` | Those of `ComparableFilter<string>` |
-| `BooleanFilter` | `'boolean'` | Those of `EqualableFilter<boolean>` |
-| `DateFilter` | `'localDate'` | Those of `ComparableFilter<Date>` |
-| `TimeFilter` | `'localTime'` | Those of `ComparableFilter<Date>` |
-| `DateTimeFilter` | `'localDateTime'` | Those of `ComparableFilter<Date>` |
-| `EqualableFilter<T>` | A class that extends `EnumType` or `EqualableType` | Those of `NullableFilter`, and `equals`, `notEquals`, `is`, `isNot`, `in`, `notIn` |
-| `ComparableFilter<T>` | A class that extends `ComparableType`, one of the families of the numbers (`IntegersType`, `DecimalsType`, `RealsType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) or of the dates (`LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`) | Those of `EqualableFilter<T>`, and `lessThan`, `greaterThan`, `lessOrEqual`, `greaterOrEqual` |
-| `UuidsFilter<T>` | A class that extends `UuidsType` | Those of `ComparableFilter<T>`, and the text operators, with values of type `T` |
-| `NullableFilter` | None: other filters extend it | `isNull`, `isNotNull` |
-| `Filter` | None: other filters extend it | None |
+| `'boolean'` | `FilterOf<BooleanType>` | Equality |
+| `'int'`, `'double'` | `FilterOf<IntType>`, `FilterOf<DoubleType>` | Equality and comparison, with a `number` |
+| `'bigint'` | `FilterOf<BigintType>` | Equality and comparison, with a `bigint` |
+| `'stringDecimal'` | `FilterOf<StringDecimalType>` | Equality and comparison, with a `string` |
+| `'string'` | `FilterOf<StringType>` | Equality, comparison and the text operators |
+| `'uuid'` | `FilterOf<UuidType>` | Equality, comparison and the text operators, applied to its text |
+| `'localDate'`, `'localTime'`, `'localDateTime'` | `FilterOf<LocalDateType>`, `FilterOf<LocalTimeType>`, `FilterOf<LocalDateTimeType>` | Equality and comparison, with a `Date` |
+| A class that extends `EnumType` or `EqualableType` | `FilterOf<YourType>` | Equality, with values of your type |
+| A class that extends `ComparableType`, one of the families of the numbers (`IntegersType`, `DecimalsType`, `RealsType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) or of the dates (`LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`) | `FilterOf<YourType>` | Equality and comparison, with values of your type |
+| A class that extends `UuidsType` | `FilterOf<YourType>` | Equality and comparison, with values of your type, and the text operators, with a `string`, applied to its text |
+| An aggregated array | None | None |
 
-The text operators are `equalsInsensitive`, `notEqualsInsensitive`, and `like`, `startsWith`, `endsWith` and `contains`, each of these four with its `not` and `Insensitive` forms, like `notLike`, `likeInsensitive` and `notLikeInsensitive`.
+The operators of each group are:
+
+- Equality: `isNull` and `isNotNull`, which take `true` (the condition) or `false` (its negation), and `equals`, `notEquals`, `is`, `isNot`, `in` and `notIn`.
+- Comparison: `lessThan`, `greaterThan`, `lessOrEqual` and `greaterOrEqual`.
+- The text operators: `equalsInsensitive`, `notEqualsInsensitive`, and `like`, `startsWith`, `endsWith` and `contains`, each of these four with its `not` and `Insensitive` forms, like `notLike`, `likeInsensitive` and `notLikeInsensitive`.
 
 Every operator except `isNull` and `isNotNull` has a twin ending in `IfValue`, like `equalsIfValue`, whose type also accepts `null` and `undefined`. See [Empty values in a filter](../caller-decides/filters.md#empty-values-in-a-filter) for what happens with them.
 
-The [Dynamic conditions API](../../api/dynamic-conditions.md) lists the definition of `EqualableFilter`, `ComparableFilter` and `StringFilter`, with each operator of the text types.
+A class of yours can add operators of its own: see [Operations of your own in a dynamic filter](../../configuration/data-types.md#operations-of-your-own-in-a-dynamic-filter). The [Dynamic conditions API](../../api/dynamic-conditions.md) lists the type of the value of each operator.
 
 ## DynamicConditionForModel
 
@@ -268,12 +270,12 @@ The [Dynamic conditions API](../../api/dynamic-conditions.md) lists the definiti
 
 | Type of the property | Name of the type | Filter |
 |---|---|---|
-| `boolean` | `'boolean'` | `BooleanFilter` |
-| `number` | `'int'` | `NumberFilter` |
-| `bigint` | `'bigint'` | `BigintFilter` |
-| `string` | `'string'` | `StringFilter` |
-| `Date` | `'localDateTime'` | `DateTimeFilter`, with the same operators as `DateFilter` and `TimeFilter` |
-| A union of texts or numbers, like `'active' \| 'inactive'` | `EnumType<T, string>` | `EqualableFilter<T>` |
+| `boolean` | `'boolean'` | `FilterOf<BooleanType>` |
+| `number` | `'int'` | `FilterOf<IntType>` |
+| `bigint` | `'bigint'` | `FilterOf<BigintType>` |
+| `string` | `'string'` | `FilterOf<StringType>` |
+| `Date` | `'localDateTime'` | `FilterOf<LocalDateTimeType>`, with the same operators as the other dates |
+| A union of texts or numbers, like `'active' \| 'inactive'` | `EnumType<T, string>` | `FilterOf<EnumType<T, string>>` |
 | A nested object | A nested definition | A nested filter |
 
 A property can be optional or nullable: the filter is the same.
@@ -311,7 +313,7 @@ const filter: CustomerFilter = {
 
 An interface has only TypeScript types, so it doesn't say how the column is defined. Two cases need a definition with the names of the types instead of a model:
 
-- A column of a [type of yours](../../configuration/data-types.md#your-own-types): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `StringFilter`. If it's a type made more specific, like `string & { __brand: 'code' }`, it can be any type of yours, so it gets `ComparableFilter` of that type.
+- A column of a [type of yours](../../configuration/data-types.md#your-own-types): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `FilterOf<StringType>`. If it's a type made more specific, like `string & { __brand: 'code' }`, it can be any type of yours, so it gets the filter of a `ComparableType` of that type, `FilterOf<ComparableType<Code, string>>`.
 - A property that is an array, a `Map`, a `Set` or a binary value: it has no filter, and it doesn't appear in the type.
 
 [Rules of your own](../caller-decides/filters.md#rules-of-your-own) go in the second type argument, as in `DynamicCondition`.

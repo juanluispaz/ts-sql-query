@@ -5,6 +5,7 @@ import { BooleanConditionType, type BooleanType, type IfValueSource } from './lo
 import type { INumberValue } from './base.js'
 import type { MergeOptional, MergeRequired } from './valueSource.js'
 import { operandTypeName, typeName } from '../utils/symbols.js'
+import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import { IntType } from './number.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newSqlOperation1ValueSourceIfValueOrIgnore, __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperation2ValueSourceIfValueOrIgnore } from '../nodes/ifValue.js'
@@ -22,6 +23,17 @@ export type IStringValue = IValueWithType<'type:string:'>
 export const stringSqlDataType: SqlDataType = { family: 'character string' }
 
 export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE, string> {
+    static override readonly [filterOperation] = exposeFilterOperations(this, ComparableType, [
+        'equalsInsensitiveIfValue', 'equalsInsensitive', 'notEqualsInsensitiveIfValue', 'notEqualsInsensitive',
+        'likeIfValue', 'like', 'notLikeIfValue', 'notLike', 'likeInsensitiveIfValue', 'likeInsensitive',
+        'notLikeInsensitiveIfValue', 'notLikeInsensitive', 'startsWithIfValue', 'startsWith', 'notStartsWithIfValue',
+        'notStartsWith', 'endsWithIfValue', 'endsWith', 'notEndsWithIfValue', 'notEndsWith',
+        'startsWithInsensitiveIfValue', 'startsWithInsensitive', 'notStartsWithInsensitiveIfValue',
+        'notStartsWithInsensitive', 'endsWithInsensitiveIfValue', 'endsWithInsensitive', 'notEndsWithInsensitiveIfValue',
+        'notEndsWithInsensitive', 'containsIfValue', 'contains', 'notContainsIfValue', 'notContains',
+        'containsInsensitiveIfValue', 'containsInsensitive', 'notContainsInsensitiveIfValue', 'notContainsInsensitive',
+    ])
+    declare [filterOperation]: (typeof StringsType)[typeof filterOperation]
 
     // SqlComparator 1
     equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>

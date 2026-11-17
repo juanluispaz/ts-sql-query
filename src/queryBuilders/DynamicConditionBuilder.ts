@@ -2,10 +2,13 @@ import type { DynamicConditionExpression, DynamicFilter, Filterable } from '../e
 import { __createIfValueAlwaysNoop, __isIfValueAlwaysNoop, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __isBooleanValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
+import { __isBooleanValueSource } from '../typeSystem/valueSource.js'
 import type { ValueSource } from '../typeSystem/base.js'
 import type { BooleanType } from '../typeSystem/logical.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
+import { __classOf } from '../nodes/adaptedTypeClass.js'
+import { filterThrough } from '../utils/symbols.js'
+import { filterOperation } from '../typeSystem/filterOperations.js'
 
 // Joins an accumulated nested-filter path prefix with the next key using a dot
 // separator, matching the `column + '.' + key` form used deeper in the builder.
@@ -110,7 +113,6 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
 
     processColumnFilter(filter: any, valueSource: any, extension: any, column: string) {
         let result: ValueSource<any, BooleanType, any> = __createIfValueAlwaysNoop('required') as any
-        const nodeValueSource = __asNodeValueSource(valueSource)
         for (const key in filter) {
             const value = filter[key]
 
@@ -152,11 +154,21 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 continue
             }
 
-            // A rule of version 1 that version 2 renamed is still applied, with its name of version 2
-            const operation = Object.hasOwn(renamedOperations, key) ? renamedOperations[key]! : key
-            if (allowedOperations[operation] !== true || nodeValueSource.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
-                // aggregated arrays doesn't allows to use any operation
-                throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
+            // The class of the data type of the column answers which of its methods a filter can call; a rule of
+            // version 1 that version 2 renamed is still applied, with its name of version 2, when the class doesn't
+            // expose its name of version 1
+            const valueClass = __classOf(valueSource) as unknown as FilterOperationsClass
+            let operation = key
+            if (!exposesFilterOperation(valueClass, key) && Object.hasOwn(renamedOperations, key)) {
+                operation = renamedOperations[key]!
+            }
+            let through: FilterThrough | undefined
+            if (!exposesFilterOperation(valueClass, operation)) {
+                // An operation the data type doesn't expose applies to the value it filters through (the text of a uuid)
+                through = valueClass[filterThrough]
+                if (through === undefined || !exposesFilterOperation(through.dataType, operation)) {
+                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
+                }
             }
 
             if (!this.sqlBuilder._isValue(value)) {
@@ -164,18 +176,17 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     continue
                 }
             }
+            const receiver = through === undefined ? valueSource : valueSource[through.method]()
+            const method = operationFor(receiver, operation, column, key)
             let condition: ValueSource<any, BooleanType, any>
-            if (operation === 'isNull' || operation === 'isNotNull') {
-                condition = valueSource[operation]()
+            if (method.length === 0) {
+                // An operation without parameters: true applies it, false its negation
+                condition = conditionOf(method.call(receiver), value, column, key)
                 if (!value) {
                     condition = condition.negate()
                 }
             } else {
-                if (__isUuidValueSource(nodeValueSource) && useAsStringInUuid[operation]) {
-                    condition = valueSource.asString()[operation](value)
-                } else {
-                    condition = operationFor(valueSource, operation, column, key).call(valueSource, value)
-                }
+                condition = conditionOf(method.call(receiver, value), value, column, key)
             }
             result = result.and(condition)
         }
@@ -269,114 +280,47 @@ const renamedOperations: { readonly [operation: string]: string | undefined } = 
     greaterOrEqualsIfValue: 'greaterOrEqualIfValue',
 }
 
-const allowedOperations: { [operation: string]: true | undefined } = {
-    isNull: true,
-    isNotNull: true,
-    equalsIfValue: true,
-    equals: true,
-    notEqualsIfValue: true,
-    notEquals: true,
-    isIfValue: true,
-    is: true,
-    isNotIfValue: true,
-    isNot: true,
-    inIfValue: true,
-    in: true,
-    notInIfValue: true,
-    notIn: true,
-    lessThanIfValue: true,
-    lessThan: true,
-    greaterThanIfValue: true,
-    greaterThan: true,
-    lessOrEqualIfValue: true,
-    lessOrEqual: true,
-    greaterOrEqualIfValue: true,
-    greaterOrEqual: true,
-    equalsInsensitiveIfValue: true,
-    equalsInsensitive: true,
-    notEqualsInsensitiveIfValue: true,
-    notEqualsInsensitive: true,
-    likeIfValue: true,
-    like: true,
-    notLikeIfValue: true,
-    notLike: true,
-    likeInsensitiveIfValue: true,
-    likeInsensitive: true,
-    notLikeInsensitiveIfValue: true,
-    notLikeInsensitive: true,
-    startsWithIfValue: true,
-    startsWith: true,
-    notStartsWithIfValue: true,
-    notStartsWith: true,
-    endsWithIfValue: true,
-    endsWith: true,
-    notEndsWithIfValue: true,
-    notEndsWith: true,
-    startsWithInsensitiveIfValue: true,
-    startsWithInsensitive: true,
-    notStartsWithInsensitiveIfValue: true,
-    notStartsWithInsensitive: true,
-    endsWithInsensitiveIfValue: true,
-    endsWithInsensitive: true,
-    notEndsWithInsensitiveIfValue: true,
-    notEndsWithInsensitive: true,
-    containsIfValue: true,
-    contains: true,
-    notContainsIfValue: true,
-    notContains: true,
-    containsInsensitiveIfValue: true,
-    containsInsensitive: true,
-    notContainsInsensitiveIfValue: true,
-    notContainsInsensitive: true
+/** A class of a data type, as a dynamic filter asks it which operations it exposes (see exposeFilterOperations) */
+interface FilterOperationsClass {
+    [filterOperation]?: (operation: string) => boolean
+    [filterThrough]?: FilterThrough
+}
+
+/** The value a data type filters through: the method that gives it, and its data type */
+interface FilterThrough {
+    method: string
+    dataType: FilterOperationsClass
+}
+
+function exposesFilterOperation(valueClass: FilterOperationsClass, operation: string): boolean {
+    const exposes = valueClass[filterOperation]
+    return exposes !== undefined && exposes(operation)
+}
+
+/**
+ * The condition an operation of a data type gives: the compiler checks that an exposed method gives one, but a method
+ * typed `any`, or code without types, can give something else
+ */
+function conditionOf(result: unknown, value: unknown, column: string, key: string): ValueSource<any, BooleanType, any> {
+    if (isValueSource(result)) {
+        const nodeValueSource = __asNodeValueSource(result)
+        if (__isBooleanValueSource(nodeValueSource) || __isIfValueAlwaysNoop(result)) {
+            return result as ValueSource<any, BooleanType, any>
+        }
+        const returnedTypeName = __valueSourceTypeNameOf(nodeValueSource)
+        throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_OPERATION_RETURN_TYPE', processedValue: value, returnedTypeName, path: column, name: key }, 'Invalid return type for the operation ' + key + ' at ' + column + '. Expected a boolean value source, but found a value source with type ' + returnedTypeName + '. Processed value: ' + value)
+    }
+    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_OPERATION_RETURN_TYPE', processedValue: value, path: column, name: key }, 'Invalid return type for the operation ' + key + ' at ' + column + '. Expected a boolean value source, but found ' + result + '. Processed value: ' + value)
 }
 
 /**
  * The method of the operation of a filter, of the data type of the column: an operation the data type doesn't have is
  * rejected, also when a filter typed from a model offers it (a type of the user written as a plain type in the model)
  */
-function operationFor(valueSource: any, operation: string, column: string, key: string): (value: any) => any {
+function operationFor(valueSource: any, operation: string, column: string, key: string): (value?: any) => any {
     const method = valueSource[operation]
     if (typeof method !== 'function') {
         throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_OPERATION', path: column, name: key }, 'Unknown operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
     }
     return method
-}
-
-const useAsStringInUuid: { [operation: string]: true | undefined } = {
-    equalsInsensitiveIfValue: true,
-    equalsInsensitive: true,
-    notEqualsInsensitiveIfValue: true,
-    notEqualsInsensitive: true,
-    likeIfValue: true,
-    like: true,
-    notLikeIfValue: true,
-    notLike: true,
-    likeInsensitiveIfValue: true,
-    likeInsensitive: true,
-    notLikeInsensitiveIfValue: true,
-    notLikeInsensitive: true,
-    startsWithIfValue: true,
-    startsWith: true,
-    notStartsWithIfValue: true,
-    notStartsWith: true,
-    endsWithIfValue: true,
-    endsWith: true,
-    notEndsWithIfValue: true,
-    notEndsWith: true,
-    startsWithInsensitiveIfValue: true,
-    startsWithInsensitive: true,
-    notStartsWithInsensitiveIfValue: true,
-    notStartsWithInsensitive: true,
-    endsWithInsensitiveIfValue: true,
-    endsWithInsensitive: true,
-    notEndsWithInsensitiveIfValue: true,
-    notEndsWithInsensitive: true,
-    containsIfValue: true,
-    contains: true,
-    notContainsIfValue: true,
-    notContains: true,
-    containsInsensitiveIfValue: true,
-    containsInsensitive: true,
-    notContainsInsensitiveIfValue: true,
-    notContainsInsensitive: true
 }

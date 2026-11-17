@@ -313,6 +313,8 @@ type TsSqlErrorReason =
       { reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', 
         processedValue: unknown, returnedValue: unknown, returnedTypeName?: string | undefined, 
         path: string, extensionName: string }
+    | /** An operation a data type exposes to a dynamic condition didn't return a boolean value source */
+      { reason: 'DYNAMIC_CONDITION_INVALID_OPERATION_RETURN_TYPE', processedValue: unknown, returnedTypeName?: string | undefined, path: string, name: string }
     | /** The provided dynamic condition contains an unknown column */
       { reason: 'DYNAMIC_CONDITION_UNKNOWN_COLUMN', path: string }
     | /** The provided dynamic condition contains an unknown operation */

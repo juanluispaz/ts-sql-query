@@ -863,10 +863,10 @@ type DynamicFilter = {
 }
 
 /**
- * The filter of a field, according to its type: BooleanFilter for boolean, NumberFilter for int and double, BigintFilter for bigint,
- * StringFilter for string and uuid, StringDecimalFilter for stringDecimal, DateFilter for localDate, TimeFilter for localTime, DateTimeFilter for localDateTime,
- * EqualableFilter for enum and custom, ComparableFilter for customComparable, and for the other custom types the filter of its name.
- * The uuid and customUuid types accept the text operators, and they apply asString before them.
+ * The filter of a field, FilterOf<DataType>: an optional property for each operation the class of its data type exposes
+ * to a filter (exposeFilterOperations), with the value its method takes. The shapes below are those of the built-in data
+ * types: equality for boolean and the enums, also comparison for the numbers and the dates, also the text operators for
+ * string; the uuids accept the text operators too, with a string, and apply asString before them.
  */
 type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | StringDecimalFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | UuidsFilter<any>
 

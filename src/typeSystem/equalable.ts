@@ -5,6 +5,7 @@ import type { IExecutableSelectQuery, MergeOptional, MergeOptionalUnion, Optiona
 import type { NSource } from '../utils/sourceName.js'
 import type { optionalType, source } from '../utils/symbols.js'
 import type { operandTypeName, typeName } from '../utils/symbols.js'
+import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import { __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperationInValueSourceIfValueOrNoop } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalTypeN, getOptionalTypeOfIn } from '../nodes/operands.js'
 import { __newSqlOperation1NotOptionalValueSource, __newSqlOperation1ValueSource, __newSqlOperationInValueSource } from '../nodes/operations.js'
@@ -19,6 +20,11 @@ import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends NullableType<VALUE_TYPE> {
     declare [typeName]: `type:${TYPE_NAME}:`
     declare [operandTypeName]: `type:${TYPE_NAME}:`
+    static override readonly [filterOperation] = exposeFilterOperations(this, NullableType, [
+        'equalsIfValue', 'equals', 'notEqualsIfValue', 'notEquals', 'isIfValue', 'is', 'isNotIfValue', 'isNot',
+        'inIfValue', 'in', 'notInIfValue', 'notIn',
+    ])
+    declare [filterOperation]: (typeof EqualableType)[typeof filterOperation]
 
     equalsIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     equalsIfValue(value: any): any {

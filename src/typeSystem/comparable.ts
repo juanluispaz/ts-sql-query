@@ -3,6 +3,7 @@ import { EqualableType } from './equalable.js'
 import type { IfValueSource } from './logical.js'
 import type { MergeOptional } from './valueSource.js'
 import { comparableValueSource, operandTypeName } from '../utils/symbols.js'
+import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { TypedValueSource } from './valueSource.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
@@ -25,6 +26,11 @@ export abstract class ComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
 
     declare [comparableValueSource]: 'ComparableValueSource'
+    static override readonly [filterOperation] = exposeFilterOperations(this, EqualableType, [
+        'lessThanIfValue', 'lessThan', 'greaterThanIfValue', 'greaterThan', 'lessOrEqualIfValue', 'lessOrEqual',
+        'greaterOrEqualIfValue', 'greaterOrEqual',
+    ])
+    declare [filterOperation]: (typeof ComparableType)[typeof filterOperation]
     lessThanIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, OptionalOf<this>>
     lessThanIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, BooleanConditionType, getOptionalType2(this, value))

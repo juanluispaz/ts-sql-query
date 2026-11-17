@@ -2,6 +2,7 @@ import type { SqlDataType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, Ty
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, unadaptedClass, valueSourceType, valueType } from '../utils/symbols.js'
+import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import type { OptionalType, TypedValueSource } from './valueSource.js'
 import { ValueSourceRoot } from '../nodes/valueSourceRoot.js'
 
@@ -71,6 +72,10 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime
     static transformProjection(sql: string, context: TypeAdapterProjectionContext, next: DefaultTypeAdapter): string {
         return next.transformProjection(sql, context)
     }
+
+    /** The operations the data type exposes to a dynamic filter: none at the root */
+    static readonly [filterOperation] = exposeFilterOperations(this, undefined, [])
+    declare [filterOperation]: (typeof BaseType)[typeof filterOperation]
 
     declare [valueType]: VALUE_TYPE
     /** The NType of the data type */

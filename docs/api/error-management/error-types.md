@@ -111,6 +111,7 @@ try {
 | `UNSUPPORTED_QUERY` | none |
 | `DYNAMIC_CONDITION_INVALID_FILTER` | `value`, `path` |
 | `DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE` | `processedValue`, `returnedValue`, optional `returnedTypeName`, `path`, `extensionName` |
+| `DYNAMIC_CONDITION_INVALID_OPERATION_RETURN_TYPE` | `processedValue`, optional `returnedTypeName`, `path`, `name` |
 | `DYNAMIC_CONDITION_UNKNOWN_COLUMN` | `path` |
 | `DYNAMIC_CONDITION_UNKNOWN_OPERATION` | `path`, `name` |
 | `GROUP_BY_COLUMN_NOT_IN_SELECT` | `column` |

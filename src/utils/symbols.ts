@@ -51,3 +51,7 @@ export const dontCallConstructor: unique symbol = Symbol('dontCallConstructor')
 
 // Transaction
 export const transactionIsolationLevel: unique symbol = Symbol('transactionIsolationLevel')
+// Dynamic filters
+// The value a data type filters through for the operations it doesn't expose itself (the text of a uuid): a static of
+// the class with the method and the data type it gives; the instance declares that data type, for the types
+export const filterThrough: unique symbol = Symbol('filterThrough')

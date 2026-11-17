@@ -96,6 +96,15 @@ trap 'rm -f test/tsconfig.*.generated.json' EXIT
 
 databases=(mariadb mysql oracle postgres sqlite sqlserver)
 
+# The checkers of each tsc program: TypeScript 7 checks the files of a program in
+# parallel, 4 checkers by default, each one building the types its files reach.
+# Half the cores, and at least those 4: on 12 cores, 6 checkers took the whole
+# split from ~150 s to ~110 s with the same peak (the largest slice); 8 and 12
+# lost it again to the types each checker repeats (test/BENCHMARKS.md).
+cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
+checkers=$(( cores / 2 ))
+[ "$checkers" -lt 4 ] && checkers=4
+
 # Emit one tsc program: shared infra + src + the given cell includes, which
 # are paths relative to test/ (where `extends: ./tsconfig.json` resolves).
 run_slice() {
@@ -122,7 +131,7 @@ $includes        "../src/**/*.ts"
 EOF
     echo ""
     echo ">>> validate:tests — $db/$label"
-    tsc -p "$cfg" --noEmit
+    tsc -p "$cfg" --noEmit --checkers "$checkers"
     rm -f "$cfg"
 }
 
@@ -146,7 +155,7 @@ run_runners_slice() {
 EOF
     echo ""
     echo ">>> validate:tests — runners and environments"
-    tsc -p "$cfg" --noEmit
+    tsc -p "$cfg" --noEmit --checkers "$checkers"
     rm -f "$cfg"
 }
 

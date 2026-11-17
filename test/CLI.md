@@ -58,7 +58,7 @@ once. The heavy set:
 |---|---|
 | `bun run tests` (whole matrix; `--docker` / `--wasm` on top) | ~4 GB, plus the engines under `--docker` |
 | `npm run tests` (whole matrix under vitest) | ~16 GB with real WASM in one process; ~9 GB under `--docker` |
-| `bun run validate:tests` (per-connector tsc split) | ~8 GB (largest slice) |
+| `bun run validate:tests` (per-connector tsc split, each with half the cores as checkers, at least 4) | ~8 GB (largest slice) |
 | `bun run validate:tests <coord>` (narrowed to the cells a coord selects) | smaller — one cell takes seconds |
 | `bun run validate:tests:newest` (single tsc program) | ~14 GB |
 | `bun run validate` / `build` | multi-GB |

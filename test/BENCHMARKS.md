@@ -159,6 +159,20 @@ number that matters here, ~7 GB under the ~15.9 GB single-process peak. Shard 1 
 sequential (the WASM module bootstrap is per-worker; running it parallel is
 catastrophic) and gets `--max-old-space-size=8192` on node.
 
+## `validate:tests`: the checkers of tsc
+
+TypeScript 7 checks the files of a program in parallel (`--checkers`, 4 by default), each checker building the types its files reach, so more checkers repeat more types. [`scripts/validate-tests.sh`](../scripts/validate-tests.sh) gives each slice half the cores, at least 4. The whole split on 12 cores, two runs each where there are two (wall time, peak):
+
+| Checkers | Wall time | Peak |
+|---|---|---|
+| 2 | 199 s | 8.1 GB |
+| 4 (the default of tsc) | 165 s, 139 s | 8.2–8.3 GB |
+| 6 (half of 12 cores) | 115 s, 107 s | 7.9–8.2 GB |
+| 8 | 135 s, 122 s | 7.8–8.1 GB |
+| 12 | 142 s | 7.9 GB |
+
+The number of types tsc reports in parallel depends on how the files fall among the checkers: adding files, even empty ones, can change it by tens of percent with no change in the code. To compare the cost of a change of types, measure with `--singleThreaded`.
+
 ## Practical workflow
 
 > **Every number in this file assumes the machine is otherwise idle, and that is

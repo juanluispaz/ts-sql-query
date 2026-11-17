@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, HasOperation, SelectData } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { isSelectQueryObject } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -10,6 +10,7 @@ import type { DataTypeClass } from '../TypeAdapter.js'
 import type { __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource, __keepAggregatedArrayShape, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export type InlineSelectData = SelectData & IQueryDataDiscovery
 
@@ -72,11 +73,11 @@ export function __addInlineQueryWiths(sqlBuilder: HasIsValue, withs: IWithView<a
         if (withs.includes(withView)) {
             continue
         }
-        const withViewPrivate = __getTableOrViewPrivate(withView)
-        if (withViewPrivate.__hasExternalDependencies) {
+        const withViewRoot = __asTableOrViewRoot(withView)
+        if (withViewRoot.__hasExternalDependencies) {
             continue
         }
-        withViewPrivate.__addWiths(sqlBuilder, withs)
+        withViewRoot.__addWiths(sqlBuilder, withs)
     }
 }
 

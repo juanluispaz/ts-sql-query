@@ -5,7 +5,7 @@ import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } from '../utils/operationsThatNeedParenthesis.js'
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, PlainSelectData, CompoundSelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
-import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
+import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -15,10 +15,9 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../queryRunners/QueryRunner.js'
 import { __createSequence, __typeClassOf, __isAggregateValueAsArray, __isAllowWhenAggregateValueAsArray, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { hasToSql, operationOf } from './SqlBuilder.js'
-import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
-import { getWithData, hasWithData } from './SqlBuilder.js'
+import { getWithData, hasWithData, isWithValuesData } from './SqlBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
@@ -33,6 +32,7 @@ import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /** A column of the select list as it was written, for the group by that refers to it */
 // `name`: the alias of the column; `paramsStart` / `paramsEnd`: the range of the params the column's SQL consumed
@@ -54,8 +54,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _connectionConfiguration: ConnectionConfiguration
     _operationsThatNeedParenthesis: OperationsThatNeedParenthesis = operationsThatNeedParenthesis
     /** The name of a table or view as it is written in the query (a generated name gets the one it has there) */
-    _tableOrViewName(tablePrivate: { __name: string, __generatedName?: boolean | undefined }, context: SqlBuildContext): string {
-        return tablePrivate.__generatedName ? context.generatedNameOf(tablePrivate.__name) : tablePrivate.__name
+    _tableOrViewName(tableRoot: { __name: string, __generatedName?: boolean | undefined }, context: SqlBuildContext): string {
+        return tableRoot.__generatedName ? context.generatedNameOf(tableRoot.__name) : tableRoot.__name
     }
     /** Sets the table or view whose columns are written without its name; a dialect may refuse one */
     _setSafeTableOrView(context: SqlBuildContext, tableOrView: AnyTableOrView | undefined): void {
@@ -222,13 +222,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
         const nodeColumn = __asDBColumnValueSource(column)
         const tableOrView = nodeColumn.__tableOrView
-        const tablePrivate = __getTableOrViewPrivate(tableOrView)
+        const tableRoot = __asTableOrViewRoot(tableOrView)
 
         const forceAliasFor = context.forceAliasFor
         const forceAliasAs = context.forceAliasAs
         const fakeNamesOf = context.fakeNamesOf
 
-        if (tablePrivate.__valuesForInsert) {
+        if (tableRoot.__valuesForInsert) {
             return this._appendRawColumnNameForValuesForInsert(column, context)
         }
 
@@ -237,19 +237,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         if (fakeNamesOf && fakeNamesOf.has(tableOrView)) {
-            if (tablePrivate.__as) {
-                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + nodeColumn.__name), true)
+            if (tableRoot.__as) {
+                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(tableRoot.__as + '__' + nodeColumn.__name), true)
             } else {
-                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + nodeColumn.__name), true)
+                return this._escape('_old_', true) + '.' + this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tableRoot, context) + '__' + nodeColumn.__name), true)
             }
         }
 
-        if (tablePrivate.__as) {
-            return this._escape(tablePrivate.__as, true) + '.' + this._escape(nodeColumn.__name, true)
+        if (tableRoot.__as) {
+            return this._escape(tableRoot.__as, true) + '.' + this._escape(nodeColumn.__name, true)
         } else if (context.safeTableOrView === tableOrView) {
                 return this._escape(nodeColumn.__name, true)
         } else {
-            return this._escape(this._tableOrViewName(tablePrivate, context), false) + '.' + this._escape(nodeColumn.__name, true)
+            return this._escape(this._tableOrViewName(tableRoot, context), false) + '.' + this._escape(nodeColumn.__name, true)
         }
     }
     _appendRawColumnNameForValuesForInsert(column: DBColumn, _context: SqlBuildContext): string {
@@ -295,7 +295,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return "'" + value.replace(/'/g, "''") + "'"
     }
     _getTableOrViewVisibleName(table: AnyTableOrView): string {
-        const t = __getTableOrViewPrivate(table)
+        const t = __asTableOrViewRoot(table)
         let result = this._escape(t.__name, false)
         if (t.__as) {
             result += ' as ' + this._escape(t.__as, true)
@@ -307,7 +307,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _supportTableAliasWithAs = true
     _appendTableOrViewName(table: AnyTableOrView, context: SqlBuildContext): string {
-        const t = __getTableOrViewPrivate(table)
+        const t = __asTableOrViewRoot(table)
         if (t.__template) {
             return this._appendRawFragment(t.__template, context)
         }
@@ -344,7 +344,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result
     }
     _appendTableOrViewNameForFrom(table: AnyTableOrView, context: SqlBuildContext): string {
-        const t = __getTableOrViewPrivate(table)
+        const t = __asTableOrViewRoot(table)
         return this._escape(this._tableOrViewName(t, context), false)
     }
     _appendTableOrViewNoAliasForFrom(_table: AnyTableOrView, _context: SqlBuildContext): string {
@@ -842,7 +842,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (context.withGenerated) {
             if (context.generateExternalWith) {
                 withs = withData.__withs.filter(value => {
-                    return __getTableOrViewPrivate(value).__hasExternalDependencies
+                    return __asTableOrViewRoot(value).__hasExternalDependencies
                 })
                 context.generateExternalWith = false
             } else {
@@ -861,7 +861,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let recursive = false
         for (let i = 0, length = withs.length; i < length; i++) {
             const withView = getWithData(withs[i]!)
-            if (withView.__type === 'values') {
+            if (isWithValuesData(withView)) {
                 const values = this._buildWithValues(withView, context)
                 if (values) {
                     if (result) {
@@ -1072,7 +1072,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // without value): it means no restriction, but most databases require the ON clause
             const onCondition = join.__on ? this._appendCondition(join.__on, context) : ''
             const joinedTableOrView = join.__tableOrView
-            if (!onCondition && hasWithData(joinedTableOrView) && joinedTableOrView.__type === 'with' && joinedTableOrView.__ignoreWith) {
+            if (!onCondition && hasWithData(joinedTableOrView) && !isWithValuesData(joinedTableOrView) && joinedTableOrView.__ignoreWith) {
                 // The join with the recursive query (the view built by recursiveUnion*) is what links each level
                 // with the previous one. Without it every row of the table joins every row of the previous level:
                 // union returns every row of the table, and union all never ends (or the database aborts it)
@@ -2334,7 +2334,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 e.errorReason.columnPath = columnPath
                 e.errorReason.rowIndex = rowIndex
                 // The name in the database of the table, view or values the value goes to, as a database error names it
-                e.errorReason.tableName = __getTableOrViewPrivate(__asDBColumnValueSource(column).__tableOrView).__name
+                e.errorReason.tableName = __asTableOrViewRoot(__asDBColumnValueSource(column).__tableOrView).__name
             }
             throw e
         }
@@ -2347,7 +2347,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const nodeColumn = __asDBColumnValueSource(column)
         // A value given for a column of a table takes the type of the column, not the one of its parameter: its parameter
         // is marked so (isValueForColumn in the context of the parameter), which a query runner may use not to cast it
-        if (hasToSql(value) || __getTableOrViewPrivate(nodeColumn.__tableOrView).__type === 'values') {
+        if (hasToSql(value) || hasWithData(nodeColumn.__tableOrView) && isWithValuesData(nodeColumn.__tableOrView)) {
             return this._appendValue(value, context, __classOf(nodeColumn), forceTypeCast)
         }
         const oldAssigningValueToColumn = context.assigningValueToColumn
@@ -3183,15 +3183,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!oldValues) {
             return ''
         }
-        const oldValuesPrivate = __getTableOrViewPrivate(oldValues)
-        if (!oldValuesPrivate.__as) {
+        const oldValuesRoot = __asTableOrViewRoot(oldValues)
+        if (!oldValuesRoot.__as) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'No alias found for the old values to define the locking strategy')
         }
         let result
         if (updatePrimaryKey) {
-            result = ' for update of ' + this._escape(oldValuesPrivate.__as, true)
+            result = ' for update of ' + this._escape(oldValuesRoot.__as, true)
         } else {
-            result = ' for no key update of ' + this._escape(oldValuesPrivate.__as, true)
+            result = ' for no key update of ' + this._escape(oldValuesRoot.__as, true)
         }
         return result
     }
@@ -3217,8 +3217,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let from = ' from '
 
-        const oldValuesPrivate = __getTableOrViewPrivate(oldValues)
-        if (!oldValuesPrivate.__as) {
+        const oldValuesRoot = __asTableOrViewRoot(oldValues)
+        if (!oldValuesRoot.__as) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'No alias found for the old values')
         }
 
@@ -3228,9 +3228,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         context.fakeNamesOf = undefined
 
         context.forceAliasFor = query.__table
-        context.forceAliasAs = oldValuesPrivate.__as
+        context.forceAliasAs = oldValuesRoot.__as
 
-        from += '(select ' + this._escape(oldValuesPrivate.__as, true) + '.*'
+        from += '(select ' + this._escape(oldValuesRoot.__as, true) + '.*'
 
         if (requiredColumns) {
             const additionalColumns = Array.from(requiredColumns).sort((c1, c2) => {
@@ -3238,9 +3238,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const c2Private = __asDBColumnValueSource(c2)
                 const t1 = c1Private.__tableOrView
                 const t2 = c2Private.__tableOrView
-                const t1Private = __getTableOrViewPrivate(t1)
+                const t1Private = __asTableOrViewRoot(t1)
                 const t1Name = t1Private.__as || this._tableOrViewName(t1Private, context)
-                const t2Private = __getTableOrViewPrivate(t2)
+                const t2Private = __asTableOrViewRoot(t2)
                 const t2Name = t2Private.__as || this._tableOrViewName(t2Private, context)
 
                 if (t1Name > t2Name) {
@@ -3265,11 +3265,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 from += ' as '
 
                 const nodeColumn = __asDBColumnValueSource(column)
-                const tablePrivate = __getTableOrViewPrivate(nodeColumn.__tableOrView)
-                if (tablePrivate.__as) {
-                    from += this._escape(this._identifierWithoutQuotes(tablePrivate.__as + '__' + nodeColumn.__name), true)
+                const tableRoot = __asTableOrViewRoot(nodeColumn.__tableOrView)
+                if (tableRoot.__as) {
+                    from += this._escape(this._identifierWithoutQuotes(tableRoot.__as + '__' + nodeColumn.__name), true)
                 } else {
-                    from += this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tablePrivate, context) + '__' + nodeColumn.__name), true)
+                    from += this._escape(this._identifierWithoutQuotes(this._tableOrViewName(tableRoot, context) + '__' + nodeColumn.__name), true)
                 }
             }
         }
@@ -3302,7 +3302,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             from += ' '
         }
 
-        from += this._escape(oldValuesPrivate.__as, true)
+        from += this._escape(oldValuesRoot.__as, true)
 
         context.forceAliasFor = oldForceAliasFor
         context.forceAliasAs = oldForceAliasAs
@@ -4604,7 +4604,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _rawFragmentTableAlias(context: SqlBuildContext, tableOrView: AnyTableOrView): string {
         const forceAliasFor = context.forceAliasFor
         const forceAliasAs = context.forceAliasAs
-        const as = __getTableOrViewPrivate(tableOrView).__as
+        const as = __asTableOrViewRoot(tableOrView).__as
         const prefix = this._supportTableAliasWithAs ? 'as ' : ''
 
         if (forceAliasFor === tableOrView && forceAliasAs) {

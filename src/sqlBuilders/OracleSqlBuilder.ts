@@ -9,7 +9,6 @@ import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.j
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
-import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
@@ -20,6 +19,7 @@ import { __isCondition } from '../typeSystem/logical.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     // Oracle truncates a fractional scale of round
@@ -62,10 +62,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const nodeColumn = __asDBColumnValueSource(column)
         if (context.safeTableOrView === undefined) {
             const tableOrView = nodeColumn.__tableOrView
-            const tablePrivate = __getTableOrViewPrivate(tableOrView)
-            const qualifier = tablePrivate.__as
-                ? this._escape(tablePrivate.__as, true)
-                : this._escape(this._tableOrViewName(tablePrivate, context), false)
+            const tableRoot = __asTableOrViewRoot(tableOrView)
+            const qualifier = tableRoot.__as
+                ? this._escape(tableRoot.__as, true)
+                : this._escape(this._tableOrViewName(tableRoot, context), false)
             return qualifier + '.' + this._escape(nodeColumn.__name, true)
         }
         return this._escape(nodeColumn.__name, true)

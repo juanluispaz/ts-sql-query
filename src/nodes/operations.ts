@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, SqlOperation1, SqlOperation2, HasOperation, SqlFunction0, SqlComparator0, SqlBoolean0 } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
@@ -13,6 +13,7 @@ import { getOptionalType2 } from './operands.js'
 import { __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
 import { __classOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 import { type AnyType } from '../typeSystem/base.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /**
  * The class the values given to an operation are converted with: the one of its result when it is of the data type of

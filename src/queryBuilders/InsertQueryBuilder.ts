@@ -2,7 +2,7 @@ import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, InsertData, SelectData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
+import { __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, DynamicOnConflictDoUpdateWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, CustomizableExecutableInsertDefaultValues, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConflict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConflictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable, OnConflictDoInsertFromSelect } from '../expressions/insert.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf, __expandColumnNames, __flattenSets, __flattenShape, __tableWithColumnPaths } from '../utils/columnPaths.js'
@@ -19,6 +19,7 @@ import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -2001,7 +2002,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
+            __asTableOrViewRoot(withView).__addWiths(sqlBuilder, withs)
         }
     }
     __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
@@ -2019,7 +2020,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return undefined
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
-        let result = __getTableOrViewPrivate(this.__table).__isAllowed(sqlBuilder)
+        let result = __asTableOrViewRoot(this.__table).__isAllowed(sqlBuilder)
         if (!result) {
             return false
         }

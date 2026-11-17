@@ -8,7 +8,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
+import { __registerRequiredColumn } from '../utils/ITableOrView.js'
 import { __isOperation1, __isOperation1IfValueOrIgnore, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
@@ -16,6 +16,7 @@ import type { ILogicalValueSource } from '../typeSystem/base.js'
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /** One assignment of the set of an update: the property of the values, the column of the table and its value */
 interface UpdateAssignment {
@@ -622,9 +623,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _appendUpdateOldRowColumn(column: DBColumn, context: SqlBuildContext): string {
         const nodeColumn = __asDBColumnValueSource(column)
         const tableOrView = nodeColumn.__tableOrView
-        const tablePrivate = __getTableOrViewPrivate(tableOrView)
-        const tableName = this._escape(this._tableOrViewName(tablePrivate, context), false)
-        const outer = tablePrivate.__as ? this._escape(tablePrivate.__as, true) : tableName
+        const tableRoot = __asTableOrViewRoot(tableOrView)
+        const tableName = this._escape(this._tableOrViewName(tableRoot, context), false)
+        const outer = tableRoot.__as ? this._escape(tableRoot.__as, true) : tableName
         const oldAlias = this._escape('_old_', true)
         const name = this._escape(nodeColumn.__name, true)
         let keys = ''

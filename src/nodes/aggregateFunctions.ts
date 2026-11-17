@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, HasOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
@@ -9,6 +9,7 @@ import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } fr
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export interface AggregateFunctions0ValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof AggregateFunctions0

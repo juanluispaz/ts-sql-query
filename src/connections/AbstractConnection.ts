@@ -6,7 +6,6 @@ import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
 import type { SqlDataType, TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
@@ -54,6 +53,7 @@ import '../typeSystem/registerDataTypes.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
 import { __classOf, __adaptedTypeClassOf, __keptClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { NextTypeAdapter } from '../internal/TypeAdapterContextImpl.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -851,12 +851,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             const apply = (target: AnyTableOrView) => {
                 const table = __createTableOrViewRawFragment(target, '_rawFragmentTableName')
                 const alias = __createTableOrViewRawFragment(target, '_rawFragmentTableAlias')
-                const p = __getTableOrViewPrivate(target)
+                const p = __asTableOrViewRoot(target)
                 p.__template = fn(table, alias, ...params)
                 p.__customizationName = name
                 p.__customizationApply = apply
             }
-            const as = __getTableOrViewPrivate(tableOrView).__as
+            const as = __asTableOrViewRoot(tableOrView).__as
             const result = (tableOrView as any).as(as)
             apply(result)
             return result as any

@@ -8,7 +8,6 @@ import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
@@ -18,6 +17,7 @@ import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -44,7 +44,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (this._connectionConfiguration.compatibilityVersion >= 18_000_000) {
             const nodeColumn = __asDBColumnValueSource(column)
             const tableOrView = nodeColumn.__tableOrView
-            if (__getTableOrViewPrivate(tableOrView).__oldValues) {
+            if (__asTableOrViewRoot(tableOrView).__oldValues) {
                 return 'old.' + this._escape(nodeColumn.__name, true)
             }
         }

@@ -1,11 +1,10 @@
-import type { HasIsValue, IView, IWithView } from './utils/ITableOrView.js'
-import { __addWiths, __registerRequiredColumn, __registerTableOrView, __getTableOrViewPrivate } from './utils/ITableOrView.js'
+import type { IView } from './utils/ITableOrView.js'
+import { TableOrViewRuntime, __asTableOrViewRoot } from './internal/TableOrViewRoot.js'
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import { __createDBColumn, __createValueSourceFromBuilder, __asOptional } from './typeSystem/valueSourceFactory.js'
-import { connection, isTableOrViewObject, source, type } from './utils/symbols.js'
+import type { connection, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
-import type { RawFragment } from './utils/RawFragment.js'
 import { FragmentQueryBuilder } from './queryBuilders/FragmentQueryBuilder.js'
 import type { NNoTableOrViewRequiredFrom, NSourceAllowingNoTableOrViewRequired, NView } from './utils/sourceName.js'
 import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
@@ -19,41 +18,32 @@ import { __dataTypeClassFrom } from './typeSystem/dataTypeClasses.js'
 import './typeSystem/registerDataTypes.js'
 import { __adaptedTypeClassOf } from './nodes/adaptedTypeClass.js'
 
-class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE> {
-    [isTableOrViewObject]: true = true;
-    [source]!: SOURCE
-    [type]!: 'view'
-    /* implements __ITableOrViewPrivate as private members*/
-    // @ts-ignore
-    private __name: string
-    // @ts-ignore
-    private __as?: string
-    // @ts-ignore
-    private __forUseInLeftJoin?: boolean
-    // @ts-ignore
-    private __type: 'view' = 'view'
-    // @ts-ignore
-    private __template?: RawFragment<any>
+/** A view: at run time a TableOrViewRoot, which TypeScript doesn't see */
+class ViewOf</*in|out*/ SOURCE extends NView<any, any>> extends TableOrViewRuntime implements IView<SOURCE> {
+    /** For TypeScript only: what the view is, its source and its kind */
+    declare readonly [isTableOrViewObject]: true
+    declare [source]: SOURCE
+    declare [type]: 'view'
 
     constructor(name: string) {
-        this.__name = name
+        super(name)
     }
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
-        const result = new ((this as any).constructor)() as ViewOf<any>
+        const result = __asTableOrViewRoot(new ((this as any).constructor)())
         result.__as = as
-        __getTableOrViewPrivate(this).__customizationApply?.(result)
+        __asTableOrViewRoot(this).__customizationApply?.(result)
         return result as any
     }
     forUseInLeftJoin(): AsForUseInLeftJoin<this> {
         return this.forUseInLeftJoinAs('') as any
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
-        const result = new ((this as any).constructor)() as ViewOf<any>
+        const result = __asTableOrViewRoot(new ((this as any).constructor)())
         result.__as = as
         result.__forUseInLeftJoin = true
         __setColumnsForLeftJoin(result as any)
-        __getTableOrViewPrivate(this).__customizationApply?.(result)
+        __asTableOrViewRoot(this).__customizationApply?.(result)
         return result as any
     }
 
@@ -81,37 +71,6 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected optionalVirtualColumnFromFragment(type: string | AnyTypeClass, fn: (fragment: any) => AnyValueSource, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         const fragmentBuilder =  new FragmentQueryBuilder(__dataTypeClassFrom(type), 'optional', adapter)
         return __createValueSourceFromBuilder(fn, fragmentBuilder, __dataTypeClassFrom(type), 'optional', adapter)
-    }
-
-    // @ts-ignore
-    private __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        __addWiths(this.__template, sqlBuilder, withs)
-    }
-
-    // @ts-ignore
-    private __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        requiredTablesOrViews.add(this)
-        __registerTableOrView(this.__template, sqlBuilder, requiredTablesOrViews)
-    }
-
-    // @ts-ignore
-    private __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumnn>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerRequiredColumn(this.__template, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-
-    // @ts-ignore
-    private __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
-        return undefined
-    }
-
-    // @ts-ignore
-    private __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
-        return undefined
-    }
-
-    // @ts-ignore
-    private __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return true
     }
 }
 

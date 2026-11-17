@@ -1,5 +1,5 @@
 import type { AnyTableOrView, HasIsValue } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __registerTableOrView } from '../utils/ITableOrView.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 import { CustomBooleanTypeAdapter, type DataTypeClass } from '../TypeAdapter.js'
@@ -7,6 +7,7 @@ import type { OptionalType } from '../typeSystem/valueSource.js'
 import { __newDBColumn, type DBColumnValueSource } from '../nodes/column.js'
 import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
 import { type NodeValueSource, type InCreation, __asNodeValueSource, __inCreation, isValueSource, __keepAggregatedArrayShape } from '../nodes/NodeStrategy.js'
+import { __asTableOrViewRoot } from './TableOrViewRoot.js'
 
 /**
  * The class of a column of a with or of a compound select: the value of the expression of the select, with its type
@@ -174,7 +175,7 @@ export function getInnerObjetRuleToApply(sqlBuilder: HasIsValue, columns: QueryC
         // Evaluate rule 2: all from the same left join ignoring inner objects
         let onlyOuterJoin = true
         for (const table of firstRequiredTables) {
-            if (!__getTableOrViewPrivate(table).__forUseInLeftJoin) {
+            if (!__asTableOrViewRoot(table).__forUseInLeftJoin) {
                 onlyOuterJoin = false
             }
         }

@@ -9,7 +9,6 @@ import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import type { ITable } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { isSqlServerReservedWord } from '../utils/sqlServer/sqlServerReservedWords.js'
 import { __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
@@ -21,6 +20,7 @@ import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource
 import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -32,7 +32,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _appendRawColumnName(column: DBColumn, context: SqlBuildContext): string {
         const nodeColumn = __asDBColumnValueSource(column)
         const tableOrView = nodeColumn.__tableOrView
-        if (__getTableOrViewPrivate(tableOrView).__oldValues) {
+        if (__asTableOrViewRoot(tableOrView).__oldValues) {
             return 'deleted.' + this._escape(nodeColumn.__name, true)
         }
         return super._appendRawColumnName(column, context)

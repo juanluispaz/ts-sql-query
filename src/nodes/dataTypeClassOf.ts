@@ -1,5 +1,5 @@
 import { __unadaptedClassOf } from './adaptedTypeClass.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { computedType } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -8,6 +8,7 @@ import type { OptionalType } from '../typeSystem/valueSource.js'
 import type { NodeValueSource } from './NodeStrategy.js'
 import { __asNodeValueSource } from './NodeStrategy.js'
 import { type AnyType } from '../typeSystem/base.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /** How a value source is created from the class of its data type, which extends ValueSourceRoot at run time */
 export type ValueSourceConstructor = new (optionalType: OptionalType) => NodeValueSource

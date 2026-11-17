@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
@@ -9,6 +9,7 @@ import type { __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSys
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, __keepAggregatedArrayShape, type InCreation } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export interface AllowWhenValueSource extends NodeValueSource {
     readonly __valueSource: NodeValueSource

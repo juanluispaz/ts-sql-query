@@ -1,40 +1,28 @@
-import type { HasIsValue, IWithView, __ITableOrViewPrivate, AnyTableOrView } from '../utils/ITableOrView.js'
-import { __addWiths, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import type { HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from '../utils/tableOrViewUtils.js'
 import type { SelectData, SqlBuilder, WithSelectData } from '../sqlBuilders/SqlBuilder.js'
 import { createColumnsFrom, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
-import { isTableOrViewObject, source, type } from '../utils/symbols.js'
-import type { RawFragment } from '../utils/RawFragment.js'
-import type { DBColumn } from '../utils/Column.js'
+import type { source, type } from '../utils/symbols.js'
 import { __setColumnsForLeftJoin } from '../utils/leftJoinUtils.js'
+import { TableOrViewRoot, __asTableOrViewRoot } from './TableOrViewRoot.js'
 
-export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrViewPrivate {
-    [isTableOrViewObject]: true = true;
-    [source]: any
-    [type]!: 'with'
+/** A `with` of a select (`forUseInQueryAs`): a TableOrViewRoot with the select it writes */
+export class WithViewImpl extends TableOrViewRoot implements IWithView<any>, WithSelectData {
+    /** For TypeScript only: its source and its kind */
+    declare [source]: any
+    declare [type]: 'with'
+
     __sqlBuilder: SqlBuilder
-
-    /* implements __ITableOrViewPrivate as private members*/
-    __name: string
-    // @ts-ignore
-    __as?: string
-    // @ts-ignore
-    __forUseInLeftJoin?: boolean
-    // @ts-ignore
-    __type: 'with' = 'with'
     __selectData: SelectData
-    // @ts-ignore
-    __originalWith?: WithViewImpl
-    __ignoreWith?: boolean
-    __recursive?: boolean
-    __generatedName?: boolean | undefined
-    // @ts-ignore
-    __template?: RawFragment<any>
-    __hasExternalDependencies?: boolean
+    /** The `with` a copy (`as`, `forUseInLeftJoinAs`) was made from: the one the query writes */
+    declare __originalWith?: WithViewImpl | undefined
+    /** The view of a recursive select used inside its own recursive member: it writes no `with` of its own */
+    declare __ignoreWith?: boolean | undefined
+    declare __recursive?: boolean | undefined
 
     constructor(sqlBuilder: SqlBuilder, name: string, selectData: SelectData) {
+        super(name)
         this.__sqlBuilder = sqlBuilder
-        this.__name = name
         this.__selectData = selectData
         if (selectData.__subSelectUsing) {
             this.__hasExternalDependencies = selectData.__subSelectUsing.length > 0
@@ -50,7 +38,9 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
         const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)
-        result.__generatedName = this.__generatedName
+        if (this.__generatedName !== undefined) {
+            result.__generatedName = this.__generatedName
+        }
         result.__as = as
         result.__originalWith = this as any
         return result as any
@@ -60,14 +50,16 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
         const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)
-        result.__generatedName = this.__generatedName
+        if (this.__generatedName !== undefined) {
+            result.__generatedName = this.__generatedName
+        }
         result.__as = as
         result.__forUseInLeftJoin = true
         result.__originalWith = this as any
         __setColumnsForLeftJoin(result as any)
         return result as any
     }
-    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         if (this.__ignoreWith) {
             return
         }
@@ -78,26 +70,13 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
             const withViews = this.__selectData.__withs
             for (let i = 0, length = withViews.length; i < length; i++) {
                 const withView = withViews[i]!
-                __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
+                __asTableOrViewRoot(withView).__addWiths(sqlBuilder, withs)
             }
             withs.push(this as any)
         }
-        __addWiths(this.__template, sqlBuilder, withs)
+        super.__addWiths(sqlBuilder, withs)
     }
-    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        requiredTablesOrViews.add(this)
-        __registerTableOrView(this.__template, sqlBuilder, requiredTablesOrViews)
-    }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        __registerRequiredColumn(this.__template, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
-    }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
-    }
-    __isAllowed(sqlBuilder: HasIsValue): boolean {
+    override __isAllowed(sqlBuilder: HasIsValue): boolean {
         // Mirror `__toSql` rendering: the WITH clause emits the CTE's
         // inner select via `_buildSelect(this.__selectData, ...)`, so
         // a gate inside the CTE body must propagate up. `SelectData`
@@ -106,7 +85,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
         // CompoundSelectQueryBuilder, which do.
         return (this.__selectData as unknown as { __isAllowed(sqlBuilder: HasIsValue): boolean }).__isAllowed(sqlBuilder)
     }
-    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
         // Mirror `__isAllowed`: an aggregate inside the CTE body propagates up.
         return (this.__selectData as unknown as { __hasAggregation(sqlBuilder: HasIsValue): boolean }).__hasAggregation(sqlBuilder)
     }

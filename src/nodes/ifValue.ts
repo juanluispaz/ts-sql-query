@@ -1,7 +1,7 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, SqlOperation1, SqlOperation2, ToSql, HasOperation } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
@@ -11,6 +11,7 @@ import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { sqlOperation1ValueSourceNode, sqlOperation2ValueSourceNode, sqlOperationInValueSourceNode } from './operations.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import { type AnyType } from '../typeSystem/base.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /** The value source of an operation that disappears without a value (`*IfValue`): the fields of its operation */
 interface IfValueOperation extends NodeValueSource {

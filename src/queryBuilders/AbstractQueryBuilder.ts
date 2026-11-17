@@ -3,7 +3,7 @@ import { flattenQueryColumns, getQueryColumn, isUsableValue } from '../sqlBuilde
 import type { FlatQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
+import { __registerRequiredColumn } from '../utils/ITableOrView.js'
 import type { QueryExecutionSource } from '../TsSqlError.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError } from '../TsSqlError.js'
 import { paramsForExecution, QueryParamContextImpl, queryContextOf } from '../internal/QueryContextImpl.js'
@@ -14,6 +14,7 @@ import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 import { __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -377,7 +378,7 @@ export class AbstractQueryBuilder {
         // Rule 2
         let onlyOuterJoin = true
         for (const table of firstRequiredTables) {
-            if (!__getTableOrViewPrivate(table).__forUseInLeftJoin) {
+            if (!__asTableOrViewRoot(table).__forUseInLeftJoin) {
                 onlyOuterJoin = false
             }
         }

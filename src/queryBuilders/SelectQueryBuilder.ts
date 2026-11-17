@@ -4,7 +4,7 @@ import { flattenQueryColumns, hasAggregationQueryColumns, isAllowedQueryColumns 
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression, OrderByExecutableSelectExpressionProjectableAsNullable, GroupByOrderByExecutableSelectExpressionProjectableAsNullable, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable, ExecutableSelectExpressionWithoutWhereProjectableAsNullable, DynamicWhereLastCompoundableCustomizableExecutableSelectExpression } from '../expressions/select.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { __addWiths, __getTableOrViewPrivate } from '../utils/ITableOrView.js'
+import { __addWiths } from '../utils/ITableOrView.js'
 import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { __createAggregateFunction0, __createAggregateSelect, __createInlineSelect, __priorOf, createColumnsFrom, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from '../utils/symbols.js'
@@ -18,6 +18,7 @@ import type { AlwaysIfValueSource, BooleanType } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { type NumberType, IntType } from '../typeSystem/number.js'
 import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQueryDataDiscovery, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, OrderedExecutableSelectExpression<any,any,any,any, any>, OffsetExecutableSelectExpression<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any> {
     [source]: any
@@ -469,7 +470,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         const withViews = data.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
+            __asTableOrViewRoot(withView).__addWiths(sqlBuilder, withs)
         }
     }
     __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
@@ -479,7 +480,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         }
         for (let i = 0, length = subSelectUsing.length; i < length; i++) {
             const tableOrView = subSelectUsing[i]!
-            __getTableOrViewPrivate(tableOrView).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+            __asTableOrViewRoot(tableOrView).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         }
     }
     __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
@@ -526,7 +527,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         }
         for (let i = 0, length = subSelectUsing.length; i < length; i++) {
             const tableOrView = subSelectUsing[i]!
-            const result = __getTableOrViewPrivate(tableOrView).__getOldValues(sqlBuilder)
+            const result = __asTableOrViewRoot(tableOrView).__getOldValues(sqlBuilder)
             if (result) {
                 return result
             }
@@ -540,7 +541,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         }
         for (let i = 0, length = subSelectUsing.length; i < length; i++) {
             const tableOrView = subSelectUsing[i]!
-            const result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert(sqlBuilder)
+            const result = __asTableOrViewRoot(tableOrView).__getValuesForInsert(sqlBuilder)
             if (result) {
                 return result
             }
@@ -1381,7 +1382,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         const tablesOrViews = this.__tablesOrViews
         for (let i = 0, length = tablesOrViews.length; i < length; i++) {
             const tableOrView = tablesOrViews[i]!
-            result = __getTableOrViewPrivate(tableOrView).__getOldValues(sqlBuilder)
+            result = __asTableOrViewRoot(tableOrView).__getOldValues(sqlBuilder)
             if (result) {
                 return result
             }
@@ -1396,7 +1397,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         const tablesOrViews = this.__tablesOrViews
         for (let i = 0, length = tablesOrViews.length; i < length; i++) {
             const tableOrView = tablesOrViews[i]!
-            result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert(sqlBuilder)
+            result = __asTableOrViewRoot(tableOrView).__getValuesForInsert(sqlBuilder)
             if (result) {
                 return result
             }
@@ -1408,7 +1409,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         const subSelectUsing = this.__subSelectUsing
         if (subSelectUsing) {
             for (let i = 0, length = subSelectUsing.length; i < length; i++) {
-                result = __getTableOrViewPrivate(subSelectUsing[i]!).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(subSelectUsing[i]!).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }
@@ -1417,7 +1418,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         const tablesOrViews = this.__tablesOrViews
         if (tablesOrViews) {
             for (let i = 0, length = tablesOrViews.length; i < length; i++) {
-                result = __getTableOrViewPrivate(tablesOrViews[i]!).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(tablesOrViews[i]!).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }
@@ -1427,7 +1428,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (joins) {
             for (let i = 0, length = joins.length; i < length; i++) {
                 const join = joins[i]!
-                result = __getTableOrViewPrivate(join.__tableOrView).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(join.__tableOrView).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }
@@ -1711,7 +1712,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         const subSelectUsing = this.__subSelectUsing
         if (subSelectUsing) {
             for (let i = 0, length = subSelectUsing.length; i < length; i++) {
-                result = __getTableOrViewPrivate(subSelectUsing[i]!).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(subSelectUsing[i]!).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }

@@ -9,7 +9,7 @@ import type { UpdateCustomization } from '../expressions/update.js'
 import type { DeleteCustomization } from '../expressions/delete.js'
 import type { InsertCustomization } from '../expressions/insert.js'
 import type { isSelectQueryObject } from '../utils/symbols.js'
-import { isTableOrViewObject } from '../utils/symbols.js'
+import { __isTableOrView } from '../internal/TableOrViewRoot.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
@@ -122,14 +122,14 @@ export function isUsableValue(prop: string, value: any, _columns: QueryColumns) 
     if (isValueSource(value)) {
         return true
     }
-    if (value[isTableOrViewObject]) {
+    if (__isTableOrView(value)) {
         return true
     }
     return value.constructor === Object // Plain object
 }
 
+/** A `with` of a select */
 export interface WithSelectData {
-    __type: 'with'
     __name: string
     __as?: string | undefined
     __selectData: SelectData
@@ -138,8 +138,8 @@ export interface WithSelectData {
     __ignoreWith?: boolean | undefined
 }
 
+/** Values, written as a `with` */
 export interface WithValuesData {
-    __type: 'values'
     __name: string
     __as?: string | undefined
     __values: any[]
@@ -154,6 +154,11 @@ export function hasWithData(value: any): value is WithData {
     } else {
         return false
     }
+}
+
+/** Whether a `with` is values (it has rows) and not the `with` of a select */
+export function isWithValuesData(withData: WithData): withData is WithValuesData {
+    return (withData as WithValuesData).__values !== undefined
 }
 
 export function getWithData(withView: IWithView<any>): WithData {

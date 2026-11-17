@@ -1,10 +1,9 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData, ToSql, WithQueryData } from './SqlBuilder.js'
-import { flattenQueryColumns, getQueryColumn, hasWithData } from './SqlBuilder.js'
+import { flattenQueryColumns, getQueryColumn, hasWithData, isWithValuesData } from './SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isMySqlReservedWord } from '../utils/mySqlMariaDB/mySqlReservedWords.js'
@@ -12,6 +11,7 @@ import { __sqlFamilyOf } from '../typeSystem/dataTypes.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __isUuidValueSource } from '../typeSystem/valueSource.js'
 import { __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
@@ -86,7 +86,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         const oldForceAliasFor = context.forceAliasFor
         const oldForceAliasAs = context.forceAliasAs
         context.forceAliasFor = query.__table
-        context.forceAliasAs = __getTableOrViewPrivate(query.__table).__name
+        context.forceAliasAs = __asTableOrViewRoot(query.__table).__name
         const result = super._buildInsertOnConflictBeforeReturning(query, context)
         context.forceAliasFor = oldForceAliasFor
         context.forceAliasAs = oldForceAliasAs
@@ -213,7 +213,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {
             // The with clause must be expanded inline when it is required
             if (hasWithData(table)) {
-                if (table.__type === 'with') {
+                if (!isWithValuesData(table)) {
                     if (table.__recursive) {
                         throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'Recursive queries are not supported in MySql compatibility mode')
                     }
@@ -229,7 +229,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {
             // The with name must be used as alias
             if (hasWithData(table)) {
-                return this._tableOrViewName(__getTableOrViewPrivate(table), context)
+                return this._tableOrViewName(__asTableOrViewRoot(table), context)
             }
         }
 

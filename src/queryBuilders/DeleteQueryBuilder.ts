@@ -2,7 +2,7 @@ import { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, DeleteData, JoinData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
-import { __addWiths, __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
+import { __addWiths, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteReturningColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from '../expressions/delete.js'
 import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
@@ -13,6 +13,7 @@ import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
     [source]: any
@@ -411,7 +412,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
+            __asTableOrViewRoot(withView).__addWiths(sqlBuilder, withs)
         }
     }
     __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
@@ -429,14 +430,14 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return undefined
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
-        let result = __getTableOrViewPrivate(this.__table).__isAllowed(sqlBuilder)
+        let result = __asTableOrViewRoot(this.__table).__isAllowed(sqlBuilder)
         if (!result) {
             return false
         }
         const using = this.__using
         if (using) {
             for (let i = 0, length = using.length; i < length; i++) {
-                result = __getTableOrViewPrivate(using[i]!).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(using[i]!).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }
@@ -446,7 +447,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (joins) {
             for (let i = 0, length = joins.length; i < length; i++) {
                 const join = joins[i]!
-                result = __getTableOrViewPrivate(join.__tableOrView).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(join.__tableOrView).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }

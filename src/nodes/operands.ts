@@ -1,10 +1,11 @@
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
 import { isSelectQuery } from './inlineSelect.js'
 import type { NodeValueSource } from './NodeStrategy.js'
 import { __asNodeValueSource, isValueSource } from './NodeStrategy.js'
 import { type AnyType } from '../typeSystem/base.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
     if (op1 === 'required') {

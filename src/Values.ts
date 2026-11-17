@@ -1,18 +1,17 @@
-import type { HasIsValue, IValues, IWithView, NoTableOrViewRequiredOfSameDB } from './utils/ITableOrView.js'
-import { __addWiths, __registerRequiredColumn, __registerTableOrView, __getTableOrViewPrivate } from './utils/ITableOrView.js'
+import type { AnyTableOrView, HasIsValue, IValues, IWithView, NoTableOrViewRequiredOfSameDB } from './utils/ITableOrView.js'
+import { TableOrViewRoot, __asTableOrViewRoot } from './internal/TableOrViewRoot.js'
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import type { Column } from './utils/Column.js'
 import { __flattenSets } from './utils/columnPaths.js'
 import { __createDBColumn, __createValueSourceFromBuilder, __asColumn, __asOptionalColumn, __isColumn, __asDBColumnValueSource, __asNodeValueSource, __inCreation, isValueSource } from './typeSystem/valueSourceFactory.js'
-import { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
+import type { connection, dontCallConstructor, isTableOrViewObject, source, type } from './utils/symbols.js'
 import type { IConnection } from './utils/IConnection.js'
-import type { RawFragment } from './utils/RawFragment.js'
 import { FragmentQueryBuilder } from './queryBuilders/FragmentQueryBuilder.js'
 import type { MandatoryInsertSets } from './expressions/insert.js'
 import type { NDBWithType, NGetNameFrom, NNoTableOrViewRequiredFrom, NSourceAllowingNoTableOrViewRequired, NValues } from './utils/sourceName.js'
 import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
-import type { QueryColumns } from './sqlBuilders/SqlBuilder.js'
+import type { QueryColumns, WithValuesData } from './sqlBuilders/SqlBuilder.js'
 import { isUsableValue } from './sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
 import type { AnyValueSource } from './typeSystem/valueSource.js'
@@ -25,50 +24,91 @@ import { __dataTypeClassFrom } from './typeSystem/dataTypeClasses.js'
 import './typeSystem/registerDataTypes.js'
 import { __adaptedTypeClassOf } from './nodes/adaptedTypeClass.js'
 
-class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<SOURCE> {
-    [isTableOrViewObject]: true = true;
-    [source]!: SOURCE
-    [type]!: 'values'
-    /* implements __ITableOrViewPrivate and WithValuesData as private members*/
-    // @ts-ignore
-    private __name: string
-    // @ts-ignore
-    private __as?: string
-    // @ts-ignore
-    private __forUseInLeftJoin?: boolean
-    // @ts-ignore
-    private __type: 'values' = 'values'
-    // @ts-ignore
-    private __template?: RawFragment<any>
-    // @ts-ignore
-    private __values: object[]
-
-    private __source?: this
+/**
+ * Values at run time: a TableOrViewRoot with its rows, written as a `with`. ValuesOf extends it through a cast TypeScript
+ * doesn't see, so the public type has only what ValuesOf declares
+ */
+class ValuesRoot extends TableOrViewRoot implements WithValuesData {
+    /** The rows, each one with the value of every column */
+    __values: object[]
+    /** The values a copy (`as`, `forUseInLeftJoinAs`) was made from: the `with` the query writes */
+    declare __source?: ValuesRoot | undefined
 
     constructor(name: string, values: object[]) {
-        this.__name = name
+        super(name)
         this.__values = values
     }
 
-    as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
-        const result = new ((this as any).constructor)(this.__name, this.__values) as ValuesOf<any>
-        result.__as = as
+    /** A copy with the same rows, written with the `with` of the values it was made from */
+    __copy(): ValuesRoot {
+        const result = new (this.constructor as new (name: string, values: object[]) => ValuesRoot)(this.__name, this.__values)
         result.__source = this.__source || this
         result.__setColumnsName(result as any, '')
-        __getTableOrViewPrivate(this).__customizationApply?.(result)
+        return result
+    }
+
+    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        // The values are one `with`, the one of the values a copy was made from: written once, however many copies of them
+        // the query uses (a self-join of the values with a copy of them)
+        const target = (this.__source || this) as any
+        if (!withs.includes(target)) {
+            withs.push(target)
+        }
+        super.__addWiths(sqlBuilder, withs)
+    }
+
+    /** Each column is named by its path in the values, which is how the rows give its value */
+    __setColumnsName(columns: QueryColumns, prefix: string): void {
+        for (const prop in columns) {
+            const column = columns[prop]!
+            if (!isUsableValue(prop, column, columns)) {
+                continue
+            }
+            if (__isColumn(column)) {
+                const nodeColumn = __asDBColumnValueSource(column)
+                // The columns of the values being created
+                __inCreation(nodeColumn).__name = prefix + prop
+            } else if (isValueSource(column)) {
+                continue // Computed value
+            } else {
+                this.__setColumnsName(column, prefix + prop + '.')
+            }
+        }
+    }
+
+    __getTableOrView(): AnyTableOrView {
+        return this
+    }
+}
+
+const ValuesRuntime = ValuesRoot as unknown as abstract new (name: string, values: object[]) => object
+
+/** Values: at run time a ValuesRoot, which TypeScript doesn't see */
+class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> extends ValuesRuntime implements IValues<SOURCE> {
+    /** For TypeScript only: what the values are, their source and their kind */
+    declare readonly [isTableOrViewObject]: true
+    declare [source]: SOURCE
+    declare [type]: 'values'
+
+    constructor(name: string, values: object[]) {
+        super(name, values)
+    }
+
+    as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
+        const result = (this as unknown as ValuesRoot).__copy()
+        result.__as = as
+        __asTableOrViewRoot(this).__customizationApply?.(result)
         return result as any
     }
     forUseInLeftJoin(): AsForUseInLeftJoin<this> {
         return this.forUseInLeftJoinAs('') as any
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
-        const result = new ((this as any).constructor)(this.__name, this.__values) as ValuesOf<any>
+        const result = (this as unknown as ValuesRoot).__copy()
         result.__as = as
         result.__forUseInLeftJoin = true
-        result.__source = this.__source || this
-        result.__setColumnsName(result as any, '')
         __setColumnsForLeftJoin(result as any)
-        __getTableOrViewPrivate(this).__customizationApply?.(result)
+        __asTableOrViewRoot(this).__customizationApply?.(result)
         return result as any
     }
 
@@ -101,71 +141,6 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         const fragmentBuilder =  new FragmentQueryBuilder(__dataTypeClassFrom(type), 'optional', adapter)
         return __createValueSourceFromBuilder(fn, fragmentBuilder, __dataTypeClassFrom(type), 'optional', adapter)
     }
-
-    // @ts-ignore
-    private __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        // The single WITH is defined by the canonical source view: for a `.as(alias)` /
-        // `forUseInLeftJoinAs(alias)` clone that is `__source` (the original), for the
-        // original it is `this`. Guard against pushing it more than once, so a `Values`
-        // referenced multiple times in the same query (e.g. self-joined to its own clone)
-        // hoists the WITH clause a single time instead of once per reference. Mirrors
-        // `WithViewImpl.__addWiths`, whose `__originalWith` delegation + `!withs.includes`
-        // guard does the same for a regular `with(...)` view.
-        const target = (this.__source || this) as any
-        if (!withs.includes(target)) {
-            withs.push(target)
-        }
-        __addWiths(this.__template, sqlBuilder, withs)
-    }
-
-    // @ts-ignore
-    private __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        requiredTablesOrViews.add(this)
-        __registerTableOrView(this.__template, sqlBuilder, requiredTablesOrViews)
-    }
-
-    // @ts-ignore
-    private __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        __registerRequiredColumn(this.__template, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    }
-
-    // @ts-ignore
-    private __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
-    }
-
-    // @ts-ignore
-    private __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return undefined
-    }
-
-    // @ts-ignore
-    private __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return true
-    }
-
-    private __setColumnsName(columns: QueryColumns, prefix: string): void {
-        for (const prop in columns) {
-            const column = columns[prop]!
-            if (!isUsableValue(prop, column, columns)) {
-                continue
-            }
-            if (__isColumn(column)) {
-                const nodeColumn = __asDBColumnValueSource(column)
-                // The columns of a copy of the values being created
-                __inCreation(nodeColumn).__name = prefix + prop
-            } else if (isValueSource(column)) {
-                continue // Computed value
-            } else {
-                this.__setColumnsName(column, prefix + prop + '.')
-            }
-        }
-    }
-
-    // @ts-ignore
-    private __getTableOrView(): AnyTableOrView {
-        return this
-    }
 }
 
 export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle' | 'mariaDB' | 'mySql' | 'noopDB'>>, /*in|out*/ NAME extends string> extends ValuesOf<NValues<CONNECTION[typeof connection], NAME>> {
@@ -177,9 +152,10 @@ export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postg
         if (values.length <= 0) {
             throw new TsSqlProcessingError({ reason: 'CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY' }, 'Values requires at least one element in the list')
         }
-        const result = new type(name, values as any);
-        (result as any).__setColumnsName(result as any, '');
-        (result as any).__values = (values as any[]).map(row => __flattenSets(result, undefined, row))
+        const result = new type(name, values as any)
+        const valuesRoot = result as unknown as ValuesRoot
+        valuesRoot.__setColumnsName(result as any, '')
+        valuesRoot.__values = (values as any[]).map(row => __flattenSets(result, undefined, row))
         return result
     }
 }

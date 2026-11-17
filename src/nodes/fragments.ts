@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder, SqlFragmentOperation } from '../sqlBuilders/SqlBuilder.js'
 import { hasToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
@@ -13,6 +13,7 @@ import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValue
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export interface FragmentValueSource extends NodeValueSource {
     readonly __operation: keyof SqlFragmentOperation

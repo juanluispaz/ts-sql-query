@@ -3,7 +3,7 @@ import { __getColumnOfObject } from '../utils/Column.js'
 import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from '../sqlBuilders/SqlBuilder.js'
 import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
+import { __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from '../expressions/update.js'
 import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
@@ -16,6 +16,7 @@ import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { __isColumn, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
     [source]: any
@@ -1034,7 +1035,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
+            __asTableOrViewRoot(withView).__addWiths(sqlBuilder, withs)
         }
     }
     __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
@@ -1052,7 +1053,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return undefined
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
-        let result = __getTableOrViewPrivate(this.__table).__isAllowed(sqlBuilder)
+        let result = __asTableOrViewRoot(this.__table).__isAllowed(sqlBuilder)
         if (!result) {
             return false
         }
@@ -1067,7 +1068,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const from = this.__froms
         if (from) {
             for (let i = 0, length = from.length; i < length; i++) {
-                result = __getTableOrViewPrivate(from[i]!).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(from[i]!).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }
@@ -1077,7 +1078,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (joins) {
             for (let i = 0, length = joins.length; i < length; i++) {
                 const join = joins[i]!
-                result = __getTableOrViewPrivate(join.__tableOrView).__isAllowed(sqlBuilder)
+                result = __asTableOrViewRoot(join.__tableOrView).__isAllowed(sqlBuilder)
                 if (!result) {
                     return false
                 }

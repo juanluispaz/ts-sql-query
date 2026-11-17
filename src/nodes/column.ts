@@ -1,11 +1,12 @@
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __registerTableOrView } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { valueSourceNode, type NodeStrategy, type NodeValueSource, __copyOfValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /**
  * A column of a table, a view or values: a value source of its data type with the node of a column, and the marks its
@@ -39,7 +40,7 @@ export const dbColumnNode: NodeStrategy<DBColumnValueSource> = {
         return sqlBuilder._appendColumnNameForCondition(vs, context)
     },
     __registerTableOrView(vs, sqlBuilder, requiredTablesOrViews) {
-        __getTableOrViewPrivate(vs.__tableOrView).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __asTableOrViewRoot(vs.__tableOrView).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     },
     __registerRequiredColumn(vs, _sqlBuilder, requiredColumns, onlyForTablesOrViews) {
         if (onlyForTablesOrViews.has(vs.__tableOrView)) {
@@ -47,13 +48,13 @@ export const dbColumnNode: NodeStrategy<DBColumnValueSource> = {
         }
     },
     __getOldValues(vs, sqlBuilder) {
-        return __getTableOrViewPrivate(vs.__tableOrView).__getOldValues(sqlBuilder)
+        return __asTableOrViewRoot(vs.__tableOrView).__getOldValues(sqlBuilder)
     },
     __getValuesForInsert(vs, sqlBuilder) {
-        return __getTableOrViewPrivate(vs.__tableOrView).__getValuesForInsert(sqlBuilder)
+        return __asTableOrViewRoot(vs.__tableOrView).__getValuesForInsert(sqlBuilder)
     },
     __isAllowed(vs, sqlBuilder) {
-        return __getTableOrViewPrivate(vs.__tableOrView).__isAllowed(sqlBuilder)
+        return __asTableOrViewRoot(vs.__tableOrView).__isAllowed(sqlBuilder)
     },
     // A column in the definition of a table, view or values can be marked: it must remain a column
     asRequiredInOptionalObject(vs) {

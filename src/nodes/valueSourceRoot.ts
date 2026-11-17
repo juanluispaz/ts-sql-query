@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { isValueSourceObject } from '../utils/symbols.js'
@@ -15,6 +15,7 @@ import { __newNullValueSource } from './constants.js'
 import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
 import { __newNoopValueSource } from './operations.js'
 import { typeAdapterOfClass, __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
+import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class ValueSourceRoot implements NodeValueSource {
     /** The mark of a value source for TypeScript (AnyValueSource); nothing at run time */

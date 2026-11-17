@@ -1,4 +1,4 @@
-import { isTableOrViewObject } from './symbols.js'
+import { __isTableOrView } from '../internal/TableOrViewRoot.js'
 import { __isColumn, isValueSource } from '../typeSystem/valueSourceFactory.js'
 
 /*
@@ -16,7 +16,7 @@ export function isColumnsGroupCandidate(value: any): boolean {
     if (!value || typeof value !== 'object') {
         return false
     }
-    if (isValueSource(value) || value[isTableOrViewObject]) {
+    if (isValueSource(value) || __isTableOrView(value)) {
         return false
     }
     return value.constructor === Object // Plain object

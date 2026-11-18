@@ -637,9 +637,10 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             // byte-identical SQL texts that bind different types at the same
             // position on one pooled connection, which is essentially what this
             // suite alone does by fanning every value kind over `const(...)`.
-            // See LIMITATIONS.md, "Oracle: bind parameters carry no declared
-            // type, so oracledb's statement cache can re-bind them with a
-            // stale one".
+            // See LIMITATIONS.md, "Oracle: oracledb's statement cache can
+            // re-bind or read a statement with the types of an earlier
+            // execution" (binding with types doesn't avoid it: the cache also
+            // keeps the types of the result).
             //
             // Two things worth knowing before "restoring the default":
             //   - Cost is ~1.7%: this cell measured 80.2s / 82.2s at 0 vs

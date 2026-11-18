@@ -238,7 +238,7 @@ and the `oldest` MySQL cell (real `mysql:5.7`), all under `--docker-version
 closest`, and run live everywhere else.
 
 
-## Oracle: bind parameters carry no declared type, so oracledb's statement cache can re-bind them with a stale one
+## Oracle: oracledb's statement cache can re-bind or read a statement with the types of an earlier execution
 
 `OracleDBQueryRunner` binds a text or a number without a declared type
 (only a date, a boolean of a procedure, a null of a number or a date, and a
@@ -259,14 +259,20 @@ one pooled connection, `stmtCacheSize: 30`, the same text
 | bare `'coding'` (what `addParam` pushes today) | **ORA-01722** |
 | `{ val: 'coding', type: oracledb.STRING }` | OK |
 
-So an explicit bind type fixes it **with the cache left on** — this is not
-an Oracle restriction, it is the consequence of binding untyped.
+An explicit bind type fixes that second execution, but not a third one that
+reads the result: see below.
 
-**Why it stays open**: the type of each parameter reaches the runner (the
-`type` of `addParam`, and the context of the parameter), so binding every IN
-value as `{ val, type }` with the oracledb type of its data type, as
-`MssqlPoolQueryRunner` does with its types, would close this and let
-`stmtCacheSize` go back to the driver default. Deferred by choice, not blocked.
+**Why it stays open**: binding every IN value with its type doesn't close it.
+Tried on 2026-11-18 (a number as a `NUMBER`, a text as a `VARCHAR2`, a large
+one as a `CLOB`, the cache at 30): the statement cache also keeps the type of
+the columns of the result of the first execution, and `select :0 as "result"
+from dual` gives a column of the type of its bind, so a later execution reads
+`'hi'` with the define of a number (ORA-01722) or a number as the text `"2"`.
+With the binds typed, 12 tests of `oracle/newest` and 10 of `oracle/oldest`
+failed instead of one. A fix would have to keep such a statement out of the
+cache (`keepInStmtCache: false` of `execute`), which only a statement whose
+result depends on the type of a bind needs; not worth it for a case only this
+suite produces.
 
 **Exposure — very unlikely outside this suite.** Reaching it needs ALL of
 the following at once:

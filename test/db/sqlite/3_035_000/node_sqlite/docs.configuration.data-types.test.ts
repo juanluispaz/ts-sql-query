@@ -1,5 +1,6 @@
 // Documentation snippets for the Data types page (docs/configuration/data-types.md), sections Types of the user,
-// Combining your type with other values, Operations of your own in a dynamic filter and Exact decimals.
+// Combining your type with other values, SQL of your own in a method, Operations of your own in a dynamic filter and
+// Exact decimals.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -64,6 +65,25 @@ const tIssueCents = new class TIssueCents extends Table<DBConnection, 'TIssueCen
     id = this.primaryKey('id', 'int')
     priority = this.column('priority', CentsType)
     number = this.column('number', 'int')
+    constructor() {
+        super('issue')
+    }
+}()
+
+// A number of the user with SQL of its own in its methods
+abstract class BalanceType extends IntegersType<Cents, 'Balance'> {
+    static override readonly type = 'Balance'
+    inEuros() {
+        return this.fragmentWithType('double', 'required').sql`${this} / 100.0`
+    }
+    exceedsEuros(euros: number) {
+        return this.fragmentWithType('boolean', 'required').sql`${this} > ${this.const(euros, 'double')} * 100`
+    }
+}
+
+const tIssueBalance = new class TIssueBalance extends Table<DBConnection, 'TIssueBalance'> {
+    id = this.primaryKey('id', 'int')
+    balance = this.column('priority', BalanceType)
     constructor() {
         super('issue')
     }
@@ -169,5 +189,30 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, { id: number; tripled: Cents; byNumber: Cents }[]>>()
         expect(rows).toEqual([{ id: 1, tripled: 6, byNumber: 2 }, { id: 2, tripled: 3, byNumber: 2 }])
+    })
+
+    test('docs:data-types/sql-of-your-own-in-a-method', async () => {
+        // The priority of the issues as cents: 2, 1, 3 and 2
+        ctx.mockNext([{ id: 1, euros: 0.02 }, { id: 3, euros: 0.03 }, { id: 4, euros: 0.02 }])
+        const connection = ctx.conn
+        // doc-start
+        const accounts = await connection.selectFrom(tIssueBalance)
+            .where(tIssueBalance.balance.exceedsEuros(0))
+            .and(tIssueBalance.balance.inEuros().greaterThan(0.015))
+            .select({ id: tIssueBalance.id, euros: tIssueBalance.balance.inEuros() })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority / 100.0 as euros from issue where priority > ?1 * 100 and (priority / 100.0) > ?2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0.015,
+          ]
+        `)
+        assertType<Exact<typeof accounts, { id: number; euros: number }[]>>()
+        expect(accounts).toEqual([{ id: 1, euros: 0.02 }, { id: 3, euros: 0.03 }, { id: 4, euros: 0.02 }])
+        // @ts-expect-error the fragments of a data type exist only inside its class
+        tIssueBalance.balance.fragmentWithType('int', 'required')
     })
 })

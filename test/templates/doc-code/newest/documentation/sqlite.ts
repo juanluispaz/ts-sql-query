@@ -22,9 +22,9 @@ import {
 } from '../../../../../src/extras/utils.js'
 import { type DynamicCondition, type DynamicConditionForModel, type DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { FilterOf, StringType } from '../../../../../src/exports/v2/index.js'
-import { LocalDatesType, exposeFilterOperations, filterOperation } from '../../../../../src/exports/v2/index.js'
+import { IntegersType, LocalDatesType, exposeFilterOperations, filterOperation } from '../../../../../src/exports/v2/index.js'
 // Used by the examples of the operations a data type exposes to a dynamic filter
-void (null as unknown as [typeof LocalDatesType, typeof exposeFilterOperations, typeof filterOperation])
+void (null as unknown as [typeof IntegersType, typeof LocalDatesType, typeof exposeFilterOperations, typeof filterOperation])
 import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath, type Pickable, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable, expandTypeProjectedAsNullableFromDynamicPickPaths, type PickValuesPathWithAllProperties } from '../../../../../src/dynamic/pick.js'
 import {
     type OrderByForModel,

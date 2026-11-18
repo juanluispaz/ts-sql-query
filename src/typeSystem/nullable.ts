@@ -1,4 +1,10 @@
-import type { IValueWithType, OptionalityOf, SourceOf, DataTypeOf, ValueSource } from './base.js'
+import type { IValueWithType, OptionalityOf, SourceOf, DataTypeOf, ValueSource, TypeClass, AnyTypeClass, ValueTypeOf } from './base.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources } from './dataTypeNames.js'
+import type { DataTypeFragmentExpression } from './fragments.js'
+import { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
+import { __createConst } from './valueSourceFactory.js'
+import { __dataTypeClassFrom } from './dataTypeClasses.js'
 import { ValueSourceBaseType } from './valueSourceBase.js'
 import { __internalDataType, __registeredDataType } from './dataTypeRegistry.js'
 import type { BooleanType } from './logical.js'
@@ -31,6 +37,36 @@ export type CoalesceTypeOf<X, OPERAND> =
 export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
     static override readonly [filterOperation] = exposeFilterOperations(this, ValueSourceBaseType, ['isNull', 'isNotNull'])
     declare [filterOperation]: (typeof NullableType)[typeof filterOperation]
+
+    /**
+     * A fragment of SQL of a data type, for a method of a class of a data type of the user, as `fragmentWithType` of the
+     * connection: `this.fragmentWithType('boolean', 'required').sql\`${this} > 0\``. Its source is the one of the value
+     * sources given to it: without them it is a constant SQL, valid in any query
+     */
+    protected fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): DataTypeFragmentExpression<this, DataTypeOfName<TYPE>, 'required'>
+    protected fragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): DataTypeFragmentExpression<this, TYPE, 'required'>
+    protected fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): DataTypeFragmentExpression<this, DataTypeOfName<TYPE>, 'optional'>
+    protected fragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): DataTypeFragmentExpression<this, TYPE, 'optional'>
+    protected fragmentWithType(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
+        return new FragmentQueryBuilder(__dataTypeClassFrom(type), required as any, adapter)
+    }
+
+    /**
+     * A value of a data type, for a method of a class of a data type of the user, as `const` of the connection: a value
+     * given to the method, used in a fragment (`this.fragmentWithType('boolean', 'required').sql\`${this} > ${this.const(n, 'int')}\``)
+     */
+    protected const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<never, 'required'>[TYPE]
+    protected const<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE>, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<never, TYPE, 'required'>
+    protected const(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any {
+        return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'required')
+    }
+
+    /** A value of a data type that can be null, for a method of a class of a data type of the user, as `optionalConst` of the connection */
+    protected optionalConst<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE> | null | undefined, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<never, 'optional'>[TYPE]
+    protected optionalConst<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE> | null | undefined, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<never, TYPE, 'optional'>
+    protected optionalConst(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any {
+        return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'optional')
+    }
 
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {

@@ -17,13 +17,17 @@ import { ctx } from './setup.js'
 abstract class PriorityType extends IntegersType<number, 'Priority'> {
     static override readonly type = 'Priority'
     // `urgent`, the name an older version of the class gave isUrgent
-    static override readonly [filterOperation] = exposeFilterOperations(this, IntegersType, ['isUrgent', 'atLeast'], { urgent: 'isUrgent' })
+    static override readonly [filterOperation] = exposeFilterOperations(this, IntegersType, ['isUrgent', 'atLeast', 'atMost'], { urgent: 'isUrgent' })
     declare [filterOperation]: (typeof PriorityType)[typeof filterOperation]
     isUrgent() {
         return this.greaterOrEqual(3)
     }
     atLeast(value: number) {
         return this.greaterOrEqual(value)
+    }
+    // Written as SQL of its own
+    atMost(value: number) {
+        return this.fragmentWithType('boolean', 'required').sql`${this} <= ${this.const(value, 'int')}`
     }
     // Not exposed
     isLow() {
@@ -132,6 +136,29 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toBe(dynSql)
         expect(ctx.lastParams).toEqual(dynParams)
         expect(dynSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority >= :0 order by "id""`)
+        expect(dynParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+    })
+
+    test('data-type-operations/an-operation-written-as-sql-of-its-own-takes-the-value-of-the-filter', async () => {
+        assertType<Exact<FilterOf<PriorityType>['atMost'], number | undefined>>()
+        const atMostTwo = await idsWhere({ priority: { atMost: 2 } }, [{ id: 1 }, { id: 2 }, { id: 4 }])
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+        expect(atMostTwo).toEqual([{ id: 1 }, { id: 2 }, { id: 4 }])
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssuePriority)
+            .where(tIssuePriority.priority.atMost(2))
+            .select({ id: tIssuePriority.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toBe(dynSql)
+        expect(ctx.lastParams).toEqual(dynParams)
+        expect(dynSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority <= :0 order by "id""`)
         expect(dynParams).toMatchInlineSnapshot(`
           [
             2,

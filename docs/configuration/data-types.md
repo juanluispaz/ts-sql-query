@@ -203,6 +203,97 @@ abstract class CentsType extends IntegersType<Cents, 'Cents'> {
 
 A value given to the method, like `3`, is sent as a value of the type of the receiver: an integer for `CentsType`. A method of its own can do the same with another name, like `times(factor: number)`.
 
+### SQL of your own in a method
+
+A method of your type can write its SQL, with `this.fragmentWithType`, as `fragmentWithType` of the connection: the data type of the result, `'required'` or `'optional'`, and the SQL with the value the method is called on, `${this}`. A value given to the method goes in it with `this.const` (or `this.optionalConst`), as `const` of the connection. Both exist only inside the class (they are `protected`), and the result has the source of the column the method is called on:
+
+```ts
+import { IntegersType, Table } from "ts-sql-query"
+
+type Cents = number & { readonly __brand: 'Cents' }
+
+abstract class CentsType extends IntegersType<Cents, 'Cents'> {
+    static override readonly type = 'Cents'
+
+    // The value in euros
+    inEuros() {
+        return this.fragmentWithType('double', 'required').sql`${this} / 100.0`
+    }
+    // Whether it is more than the euros given
+    exceedsEuros(euros: number) {
+        return this.fragmentWithType('boolean', 'required').sql`${this} > ${this.const(euros, 'double')} * 100`
+    }
+}
+
+const tAccount = new class TAccount extends Table<DBConnection, 'TAccount'> {
+    id = this.primaryKey('id', 'int')
+    balance = this.column('balance_cents', CentsType)
+    constructor() {
+        super('account')
+    }
+}()
+
+const accounts = await connection.selectFrom(tAccount)
+    .where(tAccount.balance.exceedsEuros(10))
+    .select({ id: tAccount.id, euros: tAccount.balance.inEuros() })
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        balance_cents / 100.0 as euros 
+    from account 
+    where balance_cents > ? * 100
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        balance_cents / 100.0 as euros 
+    from account 
+    where balance_cents > ? * 100
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        balance_cents / 100.0 as "euros" 
+    from account 
+    where balance_cents > :0 * 100
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        balance_cents / 100.0 as euros 
+    from account 
+    where balance_cents > $1 * 100
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        balance_cents / 100.0 as euros 
+    from account 
+    where balance_cents > ?1 * 100
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        balance_cents / 100.0 as euros 
+    from account 
+    where balance_cents > @0 * 100
+    ```
+
+The parameters are: `[ 10 ]`
+
+A method like these can be exposed to a dynamic filter too, as the next section shows. The SQL of a fragment is written as it is, so it must be valid on your database.
+
 ### Operations of your own in a dynamic filter
 
 A [dynamic filter](../dynamic/caller-decides/filters.md) calls the methods of the data type of each column: `{ birthday: { greaterThan: date } }` is `birthday.greaterThan(date)`. A type of yours has the operations of its family, and its class can offer methods of its own to a filter. Each of these methods gives a condition and has no parameters or one. List them in `[filterOperation]`, a static of the class, with `exposeFilterOperations`, and declare that static on the instance, so the type of the filter has them:

@@ -102,7 +102,7 @@ async function main() {
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`.
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner sends the parameter with [the type requested for it](../../../advanced/data-types/sql-data-types.md#how-a-value-is-sent-to-the-database), and the SQL has no cast: `select $1 as result`, with the parameter sent as an `int4`.
 
 The type of a parameter comes from its [SQL data type](../../../advanced/data-types/sql-data-types.md), but only a type with an oid fixed in every database, like `numeric` (`1700`) or `jsonb`: an enum of the database or a type of an extension has an oid of its own in each database, and its parameter goes without a type. The second argument of `PostgresQueryRunner`, optional, is an object of type `PostgresQueryRunnerConfig`, exported from `ts-sql-query/postgresql/postgres`, with one option, `driverTypeOf`: a function that receives what the library knows of each parameter (its type, its SQL data type, …, the same as [the context of the query](../../../advanced/running-queries/query-execution-metadata.md#get-the-type-of-each-parameter)) and its value, and gives the oid it is sent with, or the parameter itself, like `sql.typed(value, oid)` or a type declared in the `types` option of postgres.js. The parameter is then sent with that type wherever it is written; with `undefined`, as the library does.
 

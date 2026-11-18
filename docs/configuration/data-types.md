@@ -4,7 +4,7 @@ search:
 ---
 # Data types
 
-Each column you [map](mapping.md) has a type, which decides two things: the TypeScript type of its values, and the operations a query offers for it. This page has the types, which one to choose, and how each one is sent to the database; to convert the values in your own way on their way to and from the database, see [Type adapters](../advanced/data-types/type-adapters.md).
+Each column you [map](mapping.md) has a type, which decides two things: the TypeScript type of its values, and the operations a query offers for it. This page has the types and which one to choose; a type of your own, its methods, and converting the values in your own way are in [Data types of your own](../advanced/data-types/own-data-types.md) and the pages next to it.
 
 ## The types of a column
 
@@ -37,30 +37,10 @@ this.column('ColumnName', 'stringDecimal')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
-this.column('ColumnName', MyIntDataType)
-this.column('ColumnName', MyEnumDataType)
+this.column('ColumnName', MyCentsType)
 ```
 
-A type of yours is a class that extends the family of what its values can do, declared once and used wherever a value of that type goes: in each column, [constant](../queries/basic-query-structure.md), [SQL fragment](../queries/sql-fragments.md) and argument of a fragment. The family takes two generic arguments, your TypeScript type and its type name, and the class says the type name again in `type`:
-
-```typescriptreact
-import { IntegersType, EnumType } from 'ts-sql-query'
-
-abstract class MyIntDataType extends IntegersType<MyIntType, 'MyIntTypeName'> {
-    static override readonly type = 'MyIntTypeName'
-}
-abstract class MyEnumDataType extends EnumType<MyEnumType, 'MyEnumTypeName'> {
-    static override readonly type = 'MyEnumTypeName'
-}
-```
-
-The type name in the generic is the one TypeScript uses; `type` is the one the library uses when the query runs: in the messages of the errors, in [its name as a type](#giving-your-type-by-its-name) and in what a [type adapter](../advanced/data-types/type-adapters.md) and a query runner receive. Without `type`, it's the name of the class (`MyIntDataType`). The class is `abstract`, as its family is. Declare it once and import it where you use it: each declaration is a class of its own, and `is` says yes only to the values of its own class.
-
-The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name. Two classes with the same type name and different TypeScript types are a mistake that nothing detects: give each type a name of its own.
-
-The built-in types have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
-
-Each of these classes has a type guard, `is`, that says whether a value source, like a column or an expression, is of its type: `MyIntDataType.is(value)`. A class with more than one type, like a family, says yes to any of its types: `IntegersType.is(value)` is true for a `bigint` and for every integer of yours. A condition made by an `*IfValue` method is a `boolean` there. The value source keeps its source and its optionality: from a union of value sources, `is` leaves the ones of its type, and a value source of a wider type, like a `NumberType` asked with `IntType.is`, becomes one of the type asked. A value that may not be a value source is asked with `instanceof` (`value instanceof IntType`), which says only its class.
+The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
 
 !!! tip "Generating UUIDs"
 
@@ -80,7 +60,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
 | A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
-| The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType` | Your type, with a [conversion](#your-own-types) from and to the text of the number. |
+| The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType` | Your type, with a [conversion](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours) from and to the text of the number. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/data-types/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
@@ -88,328 +68,41 @@ Choose by the values your code handles, not only by the type of the column in th
 | A time with no date, like an opening time | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
 | A date with time, like the moment something happened | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
 | One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
-| A value your code gives a type of its own, like an id with a TypeScript brand | A class of the [family](#your-own-types) with the operations it needs | It's converted as its family says, like an `IntegersType` as an `int`. |
-| A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](#your-own-types). |
+| A value your code gives a type of its own, like an id with a TypeScript brand | A class of the [family](../advanced/data-types/own-data-types.md#the-families) with the operations it needs | It's converted as its family says, like an `IntegersType` as an `int`. |
+| A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](../advanced/data-types/own-data-types.md#converting-its-values). |
 
 On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#working-with-date-and-time), the default, a `localTime` and a `localDateTime` hold the stored text in their local getters instead: see [Time zones](time-zones.md#the-rule-every-value-in-the-database-is-in-utc).
 
 ## Your own types
 
-A type of yours gives a column your own TypeScript type, and its type name identifies it. The family its class extends says which operations the column offers in a query, its type in the database (its [SQL data type](../advanced/data-types/sql-data-types.md)), and how its values are converted:
-
-| Family | What its values can do | Its values are converted as |
-|---|---|---|
-| `IntegersType` | An integer: added, subtracted, multiplied, compared | An `int`, or a `bigint` when its SQL data type doesn't fit in a `number` (see below) |
-| `DecimalsType` | An exact decimal: also rounded; what can't be exact gives a `double` | A decimal number as text: see [Exact decimals](#exact-decimals) |
-| `RealsType` | A floating point number: also divided and rounded, with the mathematical functions | `double` |
-| `AdditiveType` | A number only added and subtracted, like a sum of money | Not converted |
-| `MultipliableType` | Also multiplied | Not converted |
-| `DivisibleType` | Also divided | Not converted |
-| `UuidsType` | A UUID | `uuid` |
-| `LocalDatesType`, `LocalTimesType`, `LocalDateTimesType` | A date, a time, both | `localDate`, `localTime`, `localDateTime` |
-| `EnumType` | One of a list of values, compared for equality | Not converted |
-| `EqualableType` | Compared for equality | Not converted |
-| `ComparableType` | Also ordered, like `lessThan` and `between` | Not converted |
-
-A type of yours works only with values of its own type: `add`, `equals`, `minValue` and the rest take and give that type.
-
-So an int with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
+A type of yours gives a column your own TypeScript type, like an amount of cents that your code doesn't mix with other numbers. It is a class that extends a family of the library, which says the operations its values offer in a query and how they are converted. An integer with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
 
 ```typescriptreact
-type Cents = number & { readonly __brand: 'Cents' }
+import { IntegersType } from 'ts-sql-query'
 
-abstract class CentsType extends IntegersType<Cents, 'Cents'> {
+declare const centsBrand: unique symbol
+type Cents = number & { readonly [centsBrand]: true }
+
+abstract class MyCentsType extends IntegersType<Cents, 'Cents'> {
     static override readonly type = 'Cents'
 }
 
-costCents = this.column('cost_cents', CentsType)
+costCents = this.column('cost_cents', MyCentsType)
 ```
 
-An integer of yours is an `int` of 4 bytes. Its class says another size with its SQL data type, and the size decides the value in your code: one that fits in a `number` (up to 6 bytes, or 15 digits) is a `number`, and a wider one a `bigint`, which keeps every digit:
+A column of `MyCentsType` is compared, computed and assigned only with values of `Cents`. What else a type of yours can do:
 
-```typescriptreact
-type Downloads = bigint & { readonly __brand: 'Downloads' }
-
-abstract class DownloadsType extends IntegersType<Downloads, 'Downloads'> {
-    static override readonly type = 'Downloads'
-    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
-}
-```
-
-The TypeScript type has to be the one of that value: a `bigint` for an integer wider than a `number`.
-
-An integer wider than the integer types of the databases, like `{ family: 'exact numeric', precision: 30, scale: 0 }`, keeps every digit too: it's read, compared, computed and summed as an exact number. SQLite, whose integers have 64 bits, keeps it as its text, as an [exact decimal](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies).
-
-!!! important
-
-    Register the conversion of a type whose family doesn't convert it (`AdditiveType`, `MultipliableType`, `DivisibleType`, `EnumType`, `EqualableType` and `ComparableType`), and of a type whose values in your code aren't those its family converts, like a date kept as its text. Without it, such a value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
-
-The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/data-types/type-adapters.md).
-
-### Giving your type by its name
-
-A column takes your type by its class. It can take it by its type name too, as a built-in type (`'int'`): register the class with `registerDataType`, in the module of the class, so it is registered before a table uses it, and declare the name in `DataTypes`, so TypeScript knows the type it gives:
-
-```typescriptreact
-import { IntegersType, registerDataType } from 'ts-sql-query'
-
-export abstract class CentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
-}
-
-registerDataType(CentsType)
-
-declare module 'ts-sql-query' {
-    interface DataTypes {
-        Cents: CentsType
-    }
-}
-```
-
-Then the name goes wherever a type goes: a column, `this.column('cost_cents', 'Cents')`, a constant, `connection.const(price, 'Cents')`, a fragment, an argument, the type a type adapter requests, `setRequestedType('Cents')`, and a field of a [dynamic condition](../dynamic/helper-types/conditions.md), `DynamicCondition<{ cost: 'Cents' }>`. A column given the name is the one given the class: the same type, the same SQL and the same parameters.
-
-The name is the `static type` of the class, which the class must say: without it, the class is named after the name of its class, which a minifier can change, and registering it is an error, `DATA_TYPE_WITHOUT_TYPE_NAME`. A name is registered once: registering the same class again does nothing, and another class with a name already registered, also the name of a built-in type, is an error, `DATA_TYPE_ALREADY_REGISTERED`. A name that isn't in `DataTypes` doesn't compile, and one that is but nobody registered is an error when it is used, `UNKNOWN_DATA_TYPE`.
-
-### Combining your type with other values
-
-A type of yours works only with values of its own type: `cents.multiply(3)` doesn't compile when `Cents` is a `number` with a brand, because `3` isn't a `Cents`. Which combinations make sense is a decision of your type, so its class adds them, with the types `ts-sql-query` exports to write them: `ValueSource`, `SourceOf`, `OptionalityOf`, `DataTypeOf`, `CombinedOptionality` and `OperandOf`. A class can add an overload to a method of its family, which repeats the ones it has and calls `super`:
-
-```ts
-import { IntegersType, IntType, type CombinedOptionality, type DataTypeOf, type OperandOf, type OptionalityOf, type SourceOf, type ValueSource } from "ts-sql-query"
-
-type Cents = number & { readonly __brand: 'Cents' }
-
-abstract class CentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
-
-    // A number of cents, or a plain number of times
-    override multiply(value: Cents | number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
-    // A value of cents, or an int, like a quantity
-    override multiply<VALUE extends OperandOf<this> | OperandOf<IntType>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
-    override multiply(value: any): any {
-        return super.multiply(value)
-    }
-}
-```
-
-| Type | What it is |
-|---|---|
-| `ValueSource<Source, DataType, Optionality>` | A value of a data type in a query |
-| `SourceOf<X>` | The tables and views the value reaches, which the query must have |
-| `OptionalityOf<X>` | Whether the value can be missing: `'required'`, `'optional'`… |
-| `DataTypeOf<X>` | The class of the data type of the value |
-| `CombinedOptionality<A, B>` | The optionality of a value computed from two: optional when one of them is |
-| `OperandOf<DataType>` | A value the data type works with: its own, or of the group it belongs to (an int and a double); `OperandOf<this>` in its class |
-
-A value given to the method, like `3`, is sent as a value of the type of the receiver: an integer for `CentsType`. A method of its own can do the same with another name, like `times(factor: number)`.
-
-### SQL of your own in a method
-
-A method of your type can write its SQL, with `this.fragmentWithType`, as `fragmentWithType` of the connection: the data type of the result, `'required'` or `'optional'`, and the SQL with the value the method is called on, `${this}`. A value given to the method goes in it with `this.const` (or `this.optionalConst`), as `const` of the connection. Both exist only inside the class (they are `protected`), and the result has the source of the column the method is called on:
-
-```ts
-import { IntegersType, Table } from "ts-sql-query"
-
-type Cents = number & { readonly __brand: 'Cents' }
-
-abstract class CentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
-
-    // The value in euros
-    inEuros() {
-        return this.fragmentWithType('double', 'required').sql`${this} / 100.0`
-    }
-    // Whether it is more than the euros given
-    exceedsEuros(euros: number) {
-        return this.fragmentWithType('boolean', 'required').sql`${this} > ${this.const(euros, 'double')} * 100`
-    }
-}
-
-const tAccount = new class TAccount extends Table<DBConnection, 'TAccount'> {
-    id = this.primaryKey('id', 'int')
-    balance = this.column('balance_cents', CentsType)
-    constructor() {
-        super('account')
-    }
-}()
-
-const accounts = await connection.selectFrom(tAccount)
-    .where(tAccount.balance.exceedsEuros(10))
-    .select({ id: tAccount.id, euros: tAccount.balance.inEuros() })
-    .executeSelectMany()
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    select 
-        id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > ? * 100
-    ```
-=== "MySQL"
-    ```mysql
-    select 
-        id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > ? * 100
-    ```
-=== "Oracle"
-    ```oracle
-    select 
-        id as "id", 
-        balance_cents / 100.0 as "euros" 
-    from account 
-    where balance_cents > :0 * 100
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    select 
-        id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > $1 * 100
-    ```
-=== "SQLite"
-    ```sqlite
-    select 
-        id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > ?1 * 100
-    ```
-=== "SQL Server"
-    ```sqlserver
-    select 
-        id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > @0 * 100
-    ```
-
-The parameters are: `[ 10 ]`
-
-A method like these can be exposed to a dynamic filter too, as the next section shows. The SQL of a fragment is written as it is, so it must be valid on your database.
-
-### Operations of your own in a dynamic filter
-
-A [dynamic filter](../dynamic/caller-decides/filters.md) calls the methods of the data type of each column: `{ birthday: { greaterThan: date } }` is `birthday.greaterThan(date)`. A type of yours has the operations of its family, and its class can offer methods of its own to a filter. Each of these methods gives a condition and has no parameters or one. List them in `[filterOperation]`, a static of the class, with `exposeFilterOperations`, and declare that static on the instance, so the type of the filter has them:
-
-```ts
-import { DynamicCondition, LocalDatesType, Table, exposeFilterOperations, filterOperation } from "ts-sql-query"
-
-abstract class BirthdayType extends LocalDatesType<Date, 'Birthday'> {
-    static override readonly type = 'Birthday'
-    static override readonly [filterOperation] = exposeFilterOperations(this, LocalDatesType, ['isLeapDay', 'inYear'])
-    declare [filterOperation]: (typeof BirthdayType)[typeof filterOperation]
-
-    // Born on 29 February
-    isLeapDay() {
-        return this.getMonth().equals(1).and(this.getDate().equals(29))
-    }
-    inYear(year: number) {
-        return this.getFullYear().equals(year)
-    }
-}
-
-const tCustomerBirthday = new class TCustomerBirthday extends Table<DBConnection, 'TCustomerBirthday'> {
-    id = this.primaryKey('id', 'int')
-    birthday = this.optionalColumn('birthday', BirthdayType)
-    constructor() {
-        super('customer')
-    }
-}()
-
-const filter: DynamicCondition<{ birthday: BirthdayType }> = {
-    birthday: { inYear: 2000, isLeapDay: true }
-}
-
-const customers = await connection.selectFrom(tCustomerBirthday)
-    .where(connection.dynamicConditionFor({ birthday: tCustomerBirthday.birthday }).withValues(filter))
-    .select({ id: tCustomerBirthday.id })
-    .executeSelectMany()
-```
-
-The executed query is:
-
-=== "MariaDB"
-    ```mariadb
-    select id as id 
-    from customer 
-    where 
-            year(birthday) = ? 
-        and (month(birthday) - 1) = ? 
-        and (dayofmonth(birthday)) = ?
-    ```
-=== "MySQL"
-    ```mysql
-    select id as id 
-    from customer 
-    where 
-            year(birthday) = ? 
-        and (month(birthday) - 1) = ? 
-        and (dayofmonth(birthday)) = ?
-    ```
-=== "Oracle"
-    ```oracle
-    select id as "id" 
-    from customer 
-    where 
-            extract(year from birthday) = :0 
-        and (extract(month from birthday) - 1) = :1 
-        and extract(day from birthday) = :2
-    ```
-===+ "PostgreSQL"
-    ```postgresql
-    select id as id 
-    from customer 
-    where 
-            extract(year from birthday) = $1 
-        and (extract(month from birthday) - 1) = $2 
-        and extract(day from birthday) = $3
-    ```
-=== "SQLite"
-    ```sqlite
-    select id as id 
-    from customer 
-    where 
-            cast(strftime('%Y', birthday) as integer) = ?1 
-        and (cast(strftime('%m', birthday) as integer) - 1) = ?2 
-        and cast(strftime('%d', birthday) as integer) = ?3
-    ```
-=== "SQL Server"
-    ```sqlserver
-    select id as id 
-    from customer 
-    where 
-            datepart(year, birthday) = @0 
-        and (datepart(month, birthday) - 1) = @1 
-        and datepart(day, birthday) = @2
-    ```
-
-The parameters are: `[ 2000, 1, 29 ]`
-
-`exposeFilterOperations` receives the class, the class it extends, whose operations it keeps, and the names of the methods it adds. The compiler checks each name: a method that doesn't give a condition, or has more than one parameter, or an optional one, isn't accepted.
-
-What the filter gives each method:
-
-- A method with a parameter receives the value of the filter, of the type of its parameter: `inYear: 2000` is `inYear(2000)`.
-- A method without parameters receives `true` or `false`: `true` applies the condition, `isLeapDay()`, and `false` its negation, `isLeapDay().negate()`.
-- A value `null` or `undefined` adds no condition, as with the operations of the library, unless the name of the method is `is` or `isNot` or ends in `IfValue`: those receive it. See [Empty values in a filter](../dynamic/caller-decides/filters.md#empty-values-in-a-filter).
-
-A filter that another system writes keeps the names it was written with. When a method is renamed, the old name can stay as an alias, which `withValues` applies as the method it stands for, and which the type of the filter doesn't offer: the fourth argument of `exposeFilterOperations`, like `{ leapDay: 'isLeapDay' }`. A name the class or its family exposes wins over an alias with that name, and a class keeps the aliases of its family: the names that version 1 used for the comparisons, like `smaller` for `lessThan`, keep working on every data type with an order.
-
-`FilterOf<BirthdayType>`, from `ts-sql-query`, is the type of the filter of the column: the operations of `LocalDatesType` and `isLeapDay` and `inYear`. Without the `declare` line, the type of the filter doesn't have them, but a filter that arrives as data, like one parsed from JSON, can still use them: the class has them. A method that isn't in the list is rejected with `DYNAMIC_CONDITION_UNKNOWN_OPERATION`, and one that gives something that isn't a condition at run time, like a method whose type is `any`, with `DYNAMIC_CONDITION_INVALID_OPERATION_RETURN_TYPE`.
+- [Data types of your own](../advanced/data-types/own-data-types.md): the class, the families and what each one does, the size of an integer, converting the values of a family that converts nothing, and giving the type by its name, like `'Cents'`.
+- [Branded and opaque types](../advanced/data-types/branded-and-opaque-types.md): branding a type with a `unique symbol`, a value of a class of yours, and combining your type with other values, like multiplying cents by a plain number.
+- [Methods of your own](../advanced/data-types/methods-of-your-own.md): a method with SQL of your own, and the operations of your type in a dynamic filter.
+- [Type adapters](../advanced/data-types/type-adapters.md): converting the values in your own way, for every column of a type or for one.
 
 ## Exact decimals
 
 JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:
 
 - `stringDecimal`: the value is a `string`. Choose it when a string is enough in your code.
-- A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](../advanced/data-types/type-adapters.md).
+- A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in the class, as in [a value of a class of yours](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours), or in a [type adapter](../advanced/data-types/type-adapters.md).
 
 ```typescriptreact
 amount = this.optionalColumn('amount', 'stringDecimal')
@@ -538,30 +231,6 @@ Oracle reads the text with a point as the decimal separator, the one the library
 
 SQLite has no exact decimal type, and a column declared `decimal` turns the text into a floating point number when it stores it: store an exact decimal in a `TEXT` column of a `STRICT` table. How the library computes and compares it is the decimal strategy of the connection, and every strategy is exact or rejects the query. By default it writes the functions of SQLite's decimal extension, plain SQL and a few functions of the library, which you register in the connection of the driver, and it stores and reads every value in its canonical text (`1.50` as `1.5`), which compares as text. See [Exact decimals: the decimal strategies](supported-databases/sqlite.md#exact-decimals-the-decimal-strategies), and [SQLite functions and extensions](supported-databases/sqlite-extensions.md) for registering those functions or loading SQLite's extension.
 
-## How a value is sent to the database
-
-Each parameter of a query goes with its type, the one requested for it: by default the type of its column or value, or the one a type adapter requests with `setRequestedType`, like a `string` for a date sent as its text. That type decides which SQL type the parameter has in the databases where the library declares one:
-
-| Type | PostgreSQL type, where the query needs one | SQL Server parameter type |
-|---|---|---|
-| `boolean` | `bool` | `bit` |
-| `int`, `IntegersType` of 4 bytes, its default | `int4` | `int` |
-| `bigint`, `IntegersType` of 8 bytes | `int8` | `bigint` |
-| `double`, `RealsType` | `float8` | `float` |
-| `stringDecimal`, `DecimalsType` | `numeric` | `nvarchar`, the text |
-| `string` | `text` | `nvarchar` |
-| `uuid`, `UuidsType` | `uuid` | `uniqueidentifier` |
-| `localDate`, `LocalDatesType` | `date` | `date` |
-| `localTime`, `LocalTimesType` | `time` | `time` |
-| `localDateTime`, `LocalDateTimesType` | `timestamp` | `datetime2` |
-| A type of yours whose family converts nothing, like `EnumType`, `EqualableType` or `ComparableType` | By the value: `int4` or `int8` for a whole number, `float8` for one with decimals, `int8` for a `bigint`, and none otherwise | By the value, and a text always as `nvarchar` |
-
-PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these types is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
-
-So the type also says how big the value can be in the database: an integer of yours is a 32-bit integer, like an `int`, unless its class says another SQL data type, like 64 bits; a `RealsType` is a floating point number, and an exact decimal a [`DecimalsType`](#exact-decimals).
-
-For a type the library doesn't know, like an enum of the database, say its SQL data type in its class (next section). The query runners of postgres.js, PGlite, SQL Server and Oracle also take `driverTypeOf`, a function that gives the type of the driver a parameter is sent with, for what only that driver has; each query runner's page has its shape.
-
 ## The type of the column in the database
 
 The data type says what a value is in TypeScript; it doesn't say what the column is in the database: a `string` can be a `varchar(20)` or an `nvarchar(max)`. Tell it, and the library and the query runners use it where it gives a better query, on every driver of the database: on SQL Server an ASCII text of a `varchar` column is sent as a `varchar`, so the index of the column is sought instead of scanned; on Oracle a `CLOB` column given back by a `returning` arrives whole. The value given to the column and the values compared with it take it.
@@ -580,4 +249,4 @@ class TProduct extends Table<DBConnection, 'TProduct'> {
 }
 ```
 
-Leave `driverTypeOf` of a query runner for a type only one driver has. Everything else, the families of the types, writing the type as an object and what each database does with it, is in [The type of a column in the database](../advanced/data-types/sql-data-types.md).
+Leave `driverTypeOf` of a query runner for a type only one driver has. Everything else, how each type is sent to the database, the families of the types, writing the type as an object and what each database does with it, is in [The type of a column in the database](../advanced/data-types/sql-data-types.md).

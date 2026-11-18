@@ -238,7 +238,7 @@ The executed query is:
 
 The parameters are: `[ 'smi', 'smi' ]`
 
-Each operator of a filter is a method of the data type of the field, which the filter calls with the value given: `{ firstName: { containsInsensitive: 'smi' } }` is `firstName.containsInsensitive('smi')`. This table has the operators of each data type: a built-in one, given in the definition by its name, or a class of yours, given as the class (`total: MoneyType`) or, once [registered](../../configuration/data-types.md#giving-your-type-by-its-name), as its type name (`total: 'Money'`). A column or expression in the map gets the filter of its data type in the same way.
+Each operator of a filter is a method of the data type of the field, which the filter calls with the value given: `{ firstName: { containsInsensitive: 'smi' } }` is `firstName.containsInsensitive('smi')`. This table has the operators of each data type: a built-in one, given in the definition by its name, or a class of yours, given as the class (`total: MoneyType`) or, once [registered](../../advanced/data-types/own-data-types.md#giving-your-type-by-its-name), as its type name (`total: 'Money'`). A column or expression in the map gets the filter of its data type in the same way.
 
 | Type in the definition | Its filter | Operators |
 |---|---|---|
@@ -262,7 +262,7 @@ The operators of each group are:
 
 Every operator except `isNull` and `isNotNull` has a twin ending in `IfValue`, like `equalsIfValue`, whose type also accepts `null` and `undefined`. See [Empty values in a filter](../caller-decides/filters.md#empty-values-in-a-filter) for what happens with them.
 
-A class of yours can add operators of its own: see [Operations of your own in a dynamic filter](../../configuration/data-types.md#operations-of-your-own-in-a-dynamic-filter). The [Dynamic conditions API](../../api/dynamic-conditions.md) lists the type of the value of each operator.
+A class of yours can add operators of its own: see [Operations of your own in a dynamic filter](../../advanced/data-types/methods-of-your-own.md#operations-of-your-own-in-a-dynamic-filter). The [Dynamic conditions API](../../api/dynamic-conditions.md) lists the type of the value of each operator.
 
 ## DynamicConditionForModel
 
@@ -313,7 +313,7 @@ const filter: CustomerFilter = {
 
 An interface has only TypeScript types, so it doesn't say how the column is defined. Two cases need a definition with the names of the types instead of a model:
 
-- A column of a [type of yours](../../configuration/data-types.md#your-own-types): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `FilterOf<StringType>`. If it's a type made more specific, like `string & { __brand: 'code' }`, it can be any type of yours, so it gets the filter of a `ComparableType` of that type, `FilterOf<ComparableType<Code, string>>`.
+- A column of a [type of yours](../../advanced/data-types/own-data-types.md): the filter depends on the TypeScript type alone. If the property is a `string`, it gets `FilterOf<StringType>`. If it's a type made more specific, like `string & { __brand: 'code' }`, it can be any type of yours, so it gets the filter of a `ComparableType` of that type, `FilterOf<ComparableType<Code, string>>`.
 - A property that is an array, a `Map`, a `Set` or a binary value: it has no filter, and it doesn't appear in the type.
 
 [Rules of your own](../caller-decides/filters.md#rules-of-your-own) go in the second type argument, as in `DynamicCondition`.

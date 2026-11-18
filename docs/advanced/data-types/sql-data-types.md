@@ -137,6 +137,30 @@ The SQL data type of a column describes the value when it is of the family of th
 
 Where a database has no type of its own for a value, the library keeps it in another, by the strategy of the connection: a uuid as a `char(36)` or a `binary(16)` on MySQL and MariaDB, as a `RAW(16)` on Oracle, as a `TEXT` or a `BLOB` on SQLite; a boolean as a `NUMBER(1)` on Oracle; a date or a time as a text or a number on SQLite. The SQL data type of a data type says what the value is (`{ family: 'uuid' }`), and the connection writes it as its strategy keeps it (`nativeSqlDataTypeOf` gives that type). The SQL data type of such a column, read from the catalogue (`sqlDataTypeFrom('char(36)')` for a uuid column), says how the database keeps the value, not what it is: it doesn't describe the value, and changes nothing of the query, which is the same as without it.
 
+## How a value is sent to the database
+
+Each parameter of a query goes with its type, the one requested for it: by default the type of its column or value, or the one a type adapter requests with `setRequestedType`, like a `string` for a date sent as its text. That type decides which SQL type the parameter has in the databases where the library declares one:
+
+| Type | PostgreSQL type, where the query needs one | SQL Server parameter type |
+|---|---|---|
+| `boolean` | `bool` | `bit` |
+| `int`, `IntegersType` of 4 bytes, its default | `int4` | `int` |
+| `bigint`, `IntegersType` of 8 bytes | `int8` | `bigint` |
+| `double`, `RealsType` | `float8` | `float` |
+| `stringDecimal`, `DecimalsType` | `numeric` | `nvarchar`, the text |
+| `string` | `text` | `nvarchar` |
+| `uuid`, `UuidsType` | `uuid` | `uniqueidentifier` |
+| `localDate`, `LocalDatesType` | `date` | `date` |
+| `localTime`, `LocalTimesType` | `time` | `time` |
+| `localDateTime`, `LocalDateTimesType` | `timestamp` | `datetime2` |
+| A type of yours whose family converts nothing, like `EnumType`, `EqualableType` or `ComparableType` | By the value: `int4` or `int8` for a whole number, `float8` for one with decimals, `int8` for a `bigint`, and none otherwise | By the value, and a text always as `nvarchar` |
+
+PostgreSQL gets the type only where it can't tell it from the rest of the query, like a constant selected on its own or a row of [`Values`](../../configuration/mapping.md#mapping-constant-values-as-view). How it gets it depends on the query runner: `pg` and Bun SQL write it as a cast in the SQL (`select $1::int4 as result`); postgres.js and PGlite send the parameter with its type, and the SQL has no cast (`select $1 as result`). A `null` of one of these types is a parameter too, with its type: `$1::int4` with the parameter `null` on `pg`. Oracle declares it for a `null` of a number, a date or a time, and for a date or a time returned with `returning`: `NUMBER` or `TIMESTAMP`, as the driver sends their values. On MariaDB, MySQL and SQLite, and on Oracle for the rest, the driver sends each value as JavaScript gives it.
+
+So the type also says how big the value can be in the database: an integer of yours is a 32-bit integer, like an `int`, unless its class says another SQL data type, like 64 bits; a `RealsType` is a floating point number, and an exact decimal a [`DecimalsType`](../../configuration/data-types.md#exact-decimals).
+
+For a type the library doesn't know, like an enum of the database, say its SQL data type in its class ([The SQL data type of a data type](#the-sql-data-type-of-a-data-type)). The query runners of postgres.js, PGlite, SQL Server and Oracle also take `driverTypeOf`, a function that gives the type of the driver a parameter is sent with, for what only that driver has; each query runner's page has its shape.
+
 ## What the library does with it
 
 | Database | With the SQL data type of the column |

@@ -595,6 +595,23 @@ function ident(page: string, line: number): string {
     return page.replace(/[^A-Za-z0-9]/g, '_') + '__L' + line
 }
 
+// A snippet brands a type with `declare const <name>: unique symbol`, which TypeScript accepts only at the top level of
+// a module, and every snippet lands inside a function (its test, its wrapper, or the describe of the template). Those
+// lines move to the end of the generated file, each one once (several snippets declare the same brand), and the
+// snippet keeps a comment in their place, so its lines keep their numbers. A `declare` creates nothing at run time, and
+// the types that use it don't depend on where it is.
+const UNIQUE_SYMBOL_DECLARATION = /^declare const [A-Za-z_$][\w$]*: unique symbol;?$/gm
+
+function hoistDeclarations(code: string): { code: string; declarations: string } {
+    const found = new Set<string>()
+    const replaced = code.replace(UNIQUE_SYMBOL_DECLARATION, line => {
+        found.add(line.replace(/;$/, ''))
+        return '// (at the end of the file) ' + line
+    })
+    const declarations = found.size ? '\n// The brands declared by the snippets\n' + [...found].join('\n') + '\n' : ''
+    return { code: replaced, declarations }
+}
+
 function renderTemplate(tpl: string, generated: string): string {
     const path = join(TEMPLATES_DIR, templateFileBase(tpl) + '.ts')
     const template = readFileSync(path, 'utf8')
@@ -739,7 +756,8 @@ export function extractDocCode(): DocCodeResult {
         perTemplate[tpl] = counts
         const out = outputFor(tpl)
         mkdirSync(dirname(out), { recursive: true })
-        writeFileSync(out, renderTemplate(tpl, parts.join('\n\n')))
+        const { code, declarations } = hoistDeclarations(parts.join('\n\n'))
+        writeFileSync(out, renderTemplate(tpl, code) + declarations)
         files.push(out)
     }
 

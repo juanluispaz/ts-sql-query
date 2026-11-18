@@ -174,7 +174,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ### A type of yours whose family converts nothing
 
-Register the conversion of a type of yours whose family converts nothing, like an `EnumType`, an `EqualableType` or a `ComparableType`, and of one whose values in your code aren't those its family converts: without it, the value is converted as the [data type](../../configuration/data-types.md#your-own-types) says.
+Register the conversion of a type of yours whose family converts nothing, like an `EnumType`, an `EqualableType` or a `ComparableType`, and of one whose values in your code aren't those its family converts: without it, the value is converted as the [data type](own-data-types.md#the-families) says.
 
 Write it in the connection, as above, so it applies everywhere that type is used:
 
@@ -182,7 +182,7 @@ Write it in the connection, as above, so it applies everywhere that type is used
 - `transformValueToDB`: converts a value that is sent to the database.
 - `transformPlaceholder`, optional: changes how the parameter is written in the SQL, like wrapping it in a function.
 
-The SQL type a parameter is sent with comes from [the type requested for it](../../configuration/data-types.md#how-a-value-is-sent-to-the-database), by default its own, and from its [SQL data type](sql-data-types.md); a type of the driver the library doesn't know is given by the `driverTypeOf` option of the query runners that have it (postgres.js, PGlite, SQL Server and Oracle).
+The SQL type a parameter is sent with comes from [the type requested for it](sql-data-types.md#how-a-value-is-sent-to-the-database), by default its own, and from its [SQL data type](sql-data-types.md); a type of the driver the library doesn't know is given by the `driverTypeOf` option of the query runners that have it (postgres.js, PGlite, SQL Server and Oracle).
 
 ## The original and the requested type
 
@@ -195,7 +195,7 @@ A value has two types in the context, so that what was declared and what is sent
 
 Compare the requested type with the class, `context.requestedType === ReleaseDayType`, or its name with `type`, `context.requestedType.type === 'ReleaseDay'`. `of` gives the same class each time it's called with the same name, so both say the same. A comparison of the type with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile: the type is a class, not its name.
 
-`setRequestedType` takes a type as a column does: by its class, like `setRequestedType(StringType)` or `setRequestedType(ReleaseDayType)`, or by its name, a built-in one like `setRequestedType('string')` or one of yours [registered](../../configuration/data-types.md#giving-your-type-by-its-name). With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter just before the conversion of the connection, whoever requested it: once, and not the adapter already converting the value.
+`setRequestedType` takes a type as a column does: by its class, like `setRequestedType(StringType)` or `setRequestedType(ReleaseDayType)`, or by its name, a built-in one like `setRequestedType('string')` or one of yours [registered](own-data-types.md#giving-your-type-by-its-name). With a type adapter, `setRequestedType(StringType, adapter)`, the value goes through that adapter just before the conversion of the connection, whoever requested it: once, and not the adapter already converting the value.
 
 What the requested type is in each transformation:
 

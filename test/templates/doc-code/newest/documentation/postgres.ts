@@ -1,4 +1,7 @@
 import { describe, test } from '../../../../lib/testRunner.js'
+// The data types of your own of the docs (advanced/data-types)
+import { ComparableType } from '../../../../../src/exports/v2/index.js'
+void (null as unknown as [typeof ComparableType])
 import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner.js'
 import { PostgreSqlConnection } from '../../../../../src/connections/PostgreSqlConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'

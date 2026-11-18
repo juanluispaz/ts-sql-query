@@ -144,6 +144,8 @@ function _typeNegatives(connection: DBConnection, money: Money) {
     tMoney.amount.equals(tMoney.otherMoney)
     // @ts-expect-error another type name
     tMoney.amount.equals(connection.const(money, OtherMoneyType))
+    // @ts-expect-error a plain number is not a value of the branded type
+    tMoney.amount.lessThan(200)
     connection.update(tMoney).set({ amount: money }).where(tMoney.id.equals(1))
     // @ts-expect-error another type name
     connection.update(tMoney).set({ amount: tMoney.otherMoney }).where(tMoney.id.equals(1))

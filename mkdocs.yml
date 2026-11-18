@@ -282,6 +282,9 @@ nav:
       - Building a condition step by step: dynamic/going-further/building-conditions.md
   - Advanced:
     - Data types of your own:
+      - Data types of your own: advanced/data-types/own-data-types.md
+      - Branded and opaque types: advanced/data-types/branded-and-opaque-types.md
+      - Methods of your own: advanced/data-types/methods-of-your-own.md
       - Type adapters: advanced/data-types/type-adapters.md
       - The type of a column in the database: advanced/data-types/sql-data-types.md
       - Custom booleans values: advanced/data-types/custom-booleans-values.md

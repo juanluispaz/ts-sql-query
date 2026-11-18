@@ -1,4 +1,7 @@
 import { describe, test } from '../../../../lib/testRunner.js'
+// The data types of your own of the docs (advanced/data-types)
+import { ComparableType, IntType, type CombinedOptionality, type DataTypeOf, type OperandOf, type OptionalityOf, type SourceOf, type ValueSource, type DefaultTypeAdapter, type SqlDataType, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from '../../../../../src/exports/v2/index.js'
+void (null as unknown as [typeof ComparableType, typeof IntType, CombinedOptionality<any, any>, DataTypeOf<any>, OperandOf<any>, OptionalityOf<any>, SourceOf<any>, ValueSource<any, any, any>, DefaultTypeAdapter, SqlDataType, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext])
 import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner.js'
 import { MySqlConnection } from '../../../../../src/connections/MySqlConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'

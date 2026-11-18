@@ -18,7 +18,7 @@ A dynamic condition allows you to create a condition whose structure is defined 
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
 ```
 
-The utility type `DynamicCondition`, from `ts-sql-query`, is the type of the dynamic criteria. It receives a map with the name of each field, and as value the name of its type (a built-in one, or one of yours [registered](../configuration/data-types.md#giving-your-type-by-its-name), like `'Money'`), its data type (the class of a type of yours, like `MoneyType`), a value source to get the type from, or a nested map. [Dynamic conditions](../dynamic/helper-types/conditions.md) shows how to use it and the other helper types.
+The utility type `DynamicCondition`, from `ts-sql-query`, is the type of the dynamic criteria. It receives a map with the name of each field, and as value the name of its type (a built-in one, or one of yours [registered](../advanced/data-types/own-data-types.md#giving-your-type-by-its-name), like `'Money'`), its data type (the class of a type of yours, like `MoneyType`), a value source to get the type from, or a nested map. [Dynamic conditions](../dynamic/helper-types/conditions.md) shows how to use it and the other helper types.
 
 For the filter definition:
 
@@ -43,7 +43,7 @@ type FilterType = DynamicCondition<{
 }>
 ```
 
-Where `MyEnumType` is a class of yours that extends `EnumType<MyEnum, 'MyEnum'>`, `MyEqualableType` one that extends `EqualableType`, `MyComparableType` one that extends `ComparableType`, `MyNumberType` one of the families of the numbers, like `IntegersType` or `RealsType`, `MyUuidType` one that extends `UuidsType`, and `MyDateType` one of the families of the dates, like `LocalDatesType` (see [Your own types](../configuration/data-types.md#your-own-types)).
+Where `MyEnumType` is a class of yours that extends `EnumType<MyEnum, 'MyEnum'>`, `MyEqualableType` one that extends `EqualableType`, `MyComparableType` one that extends `ComparableType`, `MyNumberType` one of the families of the numbers, like `IntegersType` or `RealsType`, `MyUuidType` one that extends `UuidsType`, and `MyDateType` one of the families of the dates, like `LocalDatesType` (see [Your own types](../advanced/data-types/own-data-types.md#the-families)).
 
 The `FilterType` definition looks like this. Every field is optional, and `FilterOf<DataType>`, exported from `ts-sql-query`, is the filter of a field of that data type:
 
@@ -81,7 +81,7 @@ type FilterType = {
 
 You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify several properties in a filter, all of them are joined using the `and` operator. The same happens with the elements of the **`and`** array. Elements of the **`or`** array are joined using the `or` operator.
 
-`FilterOf` has an optional property for each operation the data type exposes to a filter, with the value its method takes (see [Operations of your own in a dynamic filter](../configuration/data-types.md#operations-of-your-own-in-a-dynamic-filter)). For a data type whose values are of type `TYPE`, these are the operators, by what its values can do.
+`FilterOf` has an optional property for each operation the data type exposes to a filter, with the value its method takes (see [Operations of your own in a dynamic filter](../advanced/data-types/methods-of-your-own.md#operations-of-your-own-in-a-dynamic-filter)). For a data type whose values are of type `TYPE`, these are the operators, by what its values can do.
 
 Equality, of every data type but an aggregated array:
 

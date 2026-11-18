@@ -53,7 +53,7 @@ interface DataTypeClass {
 }
 ```
 
-A type of yours is converted as its family says (see [Your own types](../configuration/data-types.md#your-own-types)) unless its conversion is registered.
+A type of yours is converted as its family says (see [Your own types](../advanced/data-types/own-data-types.md#the-families)) unless its conversion is registered.
 
 Compare the type with its class, `context.requestedType === ReleaseDayType`, or its name, `context.requestedType.type === 'ReleaseDay'`. A comparison with a text, `context.requestedType === 'ReleaseDay'`, doesn't compile.
 

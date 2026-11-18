@@ -8,7 +8,7 @@ This page documents the API for defining and customizing type adapters in `ts-sq
 
 Type adapters control how values are serialized when writing to the database and deserialized when reading from it. They can be applied at the field level (when defining a table or view), or globally by overriding the `transformValueFromDB`, `transformValueToDB`, `transformPlaceholder` and `transformProjection` methods in the connection.
 
-To learn how to write a type adapter, where it goes and when to choose one, see [Type adapters](../advanced/type-adapters.md); for the data types it converts, [Data types](../configuration/data-types.md); for a boolean stored as other values, [Custom booleans values](../advanced/custom-booleans-values.md); and for what an adapter keeps for the query runner, [Metadata of a query and its parameters](../advanced/metadata.md). The type of the column in the database an adapter can say is in the [SQL data types API](sql-data-types.md).
+To learn how to write a type adapter, where it goes and when to choose one, see [Type adapters](../advanced/data-types/type-adapters.md); for the data types it converts, [Data types](../configuration/data-types.md); for a boolean stored as other values, [Custom booleans values](../advanced/data-types/custom-booleans-values.md); and for what an adapter keeps for the query runner, [Metadata of a query and its parameters](../advanced/running-queries/metadata.md). The type of the column in the database an adapter can say is in the [SQL data types API](sql-data-types.md).
 
 !!! info
 
@@ -16,7 +16,7 @@ To learn how to write a type adapter, where it goes and when to choose one, see 
 
 !!! tip
 
-    The `CustomBooleanTypeAdapter` lets you define custom values to represent booleans when they don’t match the database's default boolean format. For example, a column might store `'yes'` for true and `'no'` for false instead of using standard boolean types. See [Custom booleans values](../advanced/custom-booleans-values.md) for more information.
+    The `CustomBooleanTypeAdapter` lets you define custom values to represent booleans when they don’t match the database's default boolean format. For example, a column might store `'yes'` for true and `'no'` for false instead of using standard boolean types. See [Custom booleans values](../advanced/data-types/custom-booleans-values.md) for more information.
 
 A type adapter has four transformations. Each one receives what it transforms and, before `next`, a context: what it is working on, where it says what else the library must know. `next` is the rest of the chain, the conversion of the library: the [conversion of the class of the data type](#the-conversion-of-the-class-of-a-data-type) and then the connection; it receives the same context.
 
@@ -35,7 +35,7 @@ type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 
 - `transformValueFromDB` converts a value read from the database, and `transformValueToDB` a value before it is sent.
 - `transformPlaceholder` receives the placeholder as the query runner wrote it, like `$1` or `$1::int4`, and returns the one written in the SQL.
-- `transformProjection` receives the SQL of a value as it leaves the database, as the library writes it, and returns the SQL to write. Where the value leaves is the `output` of its context: `'resultColumn'` is a column of the result of the query (a column of the select that is executed or of the `returning` of an insert, an update or a delete, or the value of a function called), and `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array, where it returns the SQL of a value of any type the JSON function of the database takes, and `transformValueFromDB` receives its text. `transformValueFromDB` reads what it gives. `next.transformProjection` writes the conversion of the library: on SQL Server a decimal of a column of the result as its text, and on PostgreSQL and Oracle, with a database outside UTC, a `localDateTime` or a `localTime` with its zone. It adds no parameter, and when it doesn't convert the value it returns the SQL it receives. See [The SQL of a value read from the database](../advanced/type-adapters.md#the-sql-of-a-value-read-from-the-database).
+- `transformProjection` receives the SQL of a value as it leaves the database, as the library writes it, and returns the SQL to write. Where the value leaves is the `output` of its context: `'resultColumn'` is a column of the result of the query (a column of the select that is executed or of the `returning` of an insert, an update or a delete, or the value of a function called), and `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array, where it returns the SQL of a value of any type the JSON function of the database takes, and `transformValueFromDB` receives its text. `transformValueFromDB` reads what it gives. `next.transformProjection` writes the conversion of the library: on SQL Server a decimal of a column of the result as its text, and on PostgreSQL and Oracle, with a database outside UTC, a `localDateTime` or a `localTime` with its zone. It adds no parameter, and when it doesn't convert the value it returns the SQL it receives. See [The SQL of a value read from the database](../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database).
 
 ## The original and the requested type
 
@@ -44,7 +44,7 @@ A value has two types in the context, so that what was declared and what is sent
 - The **original type**, `originalType`: the one declared in the library, like `column('released_on', ReleaseDayType)`, with `ReleaseDayType` a class that extends `LocalDatesType<ReleaseDay, 'ReleaseDay'>`, or `const(1, 'int')`. It never changes.
 - The **requested type**, `requestedType`: the type the value is communicated with to the query runner and the database. By default it is the original one. A transformation can request another with `setRequestedType`, and the next type adapter of the chain and the conversion of the library decide by the type requested. It can be requested again, and `resetRequestedType()` requests the original type again.
 
-`originalType` and `requestedType` are the class of the type, like `IntType` or `ReleaseDayType`. What the context reads of the class is `DataTypeClass`, exported from `ts-sql-query`: `type` is the name of the type, like `'int'` or `'ReleaseDay'`, and `sqlDataType` its type in the database, when it has one (see [SQL data types](../advanced/sql-data-types.md)):
+`originalType` and `requestedType` are the class of the type, like `IntType` or `ReleaseDayType`. What the context reads of the class is `DataTypeClass`, exported from `ts-sql-query`: `type` is the name of the type, like `'int'` or `'ReleaseDay'`, and `sqlDataType` its type in the database, when it has one (see [SQL data types](../advanced/data-types/sql-data-types.md)):
 
 ```typescript
 interface DataTypeClass {
@@ -68,7 +68,7 @@ What the requested type is in each transformation:
 | `transformProjection` | the type of the value the SQL returned gives, which the query runner receives; it is read only when the SQL is converted | yes |
 | `transformValueFromDB` | the type of the value received: the one `transformProjection` requested | yes, for what it gives `next` |
 
-See [The original and the requested type](../advanced/type-adapters.md#the-original-and-the-requested-type) for an adapter that sends a date as its text, with its query and its SQL.
+See [The original and the requested type](../advanced/data-types/type-adapters.md#the-original-and-the-requested-type) for an adapter that sends a date as its text, with its query and its SQL.
 
 ## The conversion of the class of a data type
 
@@ -114,24 +114,24 @@ Each transformation receives the context of what it works on. What each one has,
 
 ### In every context
 
-- `connectionConfiguration` is the configuration of the connection, the same the [context of the query](../advanced/query-execution-metadata.md#get-the-configuration-of-the-connection) has.
+- `connectionConfiguration` is the configuration of the connection, the same the [context of the query](../advanced/running-queries/query-execution-metadata.md#get-the-configuration-of-the-connection) has.
 - `originalType` is the class of the type declared for the value; `requestedType`, the class of the one requested for it, which `setRequestedType` changes and `resetRequestedType` takes back to the original: see [The original and the requested type](#the-original-and-the-requested-type).
 
 ### Of a parameter
 
 - `forceTypeCast`, in `transformValueToDB`, says whether the database must receive the type of the parameter: it comes `true` where the position in the SQL gives the parameter no type, and the adapter can change it. The query runner then writes a cast of the requested type, like `$1::int4`, or sends the parameter with its type when the driver can. Only the PostgreSQL query runners use it. In `transformPlaceholder` it can only be read: the placeholder is already written.
 - `index`, in `transformPlaceholder`, is the position of the parameter in the params, `undefined` when the placeholder is the literal `null`; `valueSentToDB` is the value `transformValueToDB` gave, `null` for the literal `null`.
-- `setMetadata(key, value)` keeps, for the query runner, what the adapter knows of the parameter, under a `symbol` of its own; `getMetadata(key)` reads it back. See [Metadata of a query and its parameters](../advanced/metadata.md).
+- `setMetadata(key, value)` keeps, for the query runner, what the adapter knows of the parameter, under a `symbol` of its own; `getMetadata(key)` reads it back. See [Metadata of a query and its parameters](../advanced/running-queries/metadata.md).
 
 ### Of the query
 
-- `setQueryMetadata(key, value)` keeps, for the query runner, what the adapter knows of the whole query, under a `symbol` of its own; `getQueryMetadata(key)` reads it back. See [Metadata of a query and its parameters](../advanced/metadata.md).
+- `setQueryMetadata(key, value)` keeps, for the query runner, what the adapter knows of the whole query, under a `symbol` of its own; `getQueryMetadata(key)` reads it back. See [Metadata of a query and its parameters](../advanced/running-queries/metadata.md).
 
 ### Of a projection
 
 - `output` is where the value leaves the database: `'resultColumn'` or `'aggregatedArrayValue'` (see above).
-- `comparison` says how the SQL returned compares with the value: `'value'` (the default) compares and orders like the value; `'equality'` compares like it but orders otherwise; `'columnEquality'`, as `'equality'` but only among the values of one column; `'none'` neither compares nor orders like it. The conversion of the library says `'columnEquality'` for a decimal of a column of the result on SQL Server. It's read only when the SQL is converted. See [How the converted SQL compares](../advanced/type-adapters.md#how-the-converted-sql-compares).
-- `setRequestedType` says the SQL returned gives a value of another type, like `setRequestedType('string')` for the text of a date: the query runner receives it in the [context of the query](../advanced/query-execution-metadata.md#get-the-type-of-each-column-of-the-result), and on Oracle the out parameter of the `returning` of the column is of that type.
+- `comparison` says how the SQL returned compares with the value: `'value'` (the default) compares and orders like the value; `'equality'` compares like it but orders otherwise; `'columnEquality'`, as `'equality'` but only among the values of one column; `'none'` neither compares nor orders like it. The conversion of the library says `'columnEquality'` for a decimal of a column of the result on SQL Server. It's read only when the SQL is converted. See [How the converted SQL compares](../advanced/data-types/type-adapters.md#how-the-converted-sql-compares).
+- `setRequestedType` says the SQL returned gives a value of another type, like `setRequestedType('string')` for the text of a date: the query runner receives it in the [context of the query](../advanced/running-queries/query-execution-metadata.md#get-the-type-of-each-column-of-the-result), and on Oracle the out parameter of the `returning` of the column is of that type.
 
 ### Calls whose context is discarded
 

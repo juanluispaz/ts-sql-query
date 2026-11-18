@@ -17,7 +17,7 @@ A query runner that calls your code before and after each statement, and runs th
 
 !!! tip
 
-    `InterceptorQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    `InterceptorQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 ## Creating one
 

@@ -5,7 +5,7 @@
 // than ordinary SELECTs, and accept a narrower
 // — only `beforeQuery`, `afterQuery`, `beforeWithQuery`, `afterWithQuery`,
 // plus `queryExecutionName` / `queryExecutionMetadata` (separately
-// exercised in `docs.advanced.query-execution-metadata.test.ts`).
+// exercised in `docs.advanced.running-queries.query-execution-metadata.test.ts`).
 //
 // The existing `select.compound*` tests pin the raw compound shape;
 // `customize-query.select.test.ts` covers the SELECT-specific hooks.

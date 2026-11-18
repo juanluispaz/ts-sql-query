@@ -667,4 +667,4 @@ Used as a value of the select, `in` and `notIn` with a subquery on an optional c
 
 - [Optional conditions: the IfValue methods](../../queries/dynamic-queries.md#optional-conditions-the-ifvalue-methods): the `*IfValue` methods and the neutral boolean in depth.
 - [How to compare against a null or undefined value?](../../about/limitations.md#how-to-compare-against-a-null-or-undefined-value): the same question in the limitations page.
-- [Custom booleans values](../../advanced/custom-booleans-values.md): booleans stored with other values, such as `'Y'` and `'N'`.
+- [Custom booleans values](../../advanced/data-types/custom-booleans-values.md): booleans stored with other values, such as `'Y'` and `'N'`.

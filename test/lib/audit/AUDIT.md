@@ -1085,7 +1085,7 @@ don't actually validate**. Three mechanical shapes, three rule ids
   An empty catch around an `execute*` with **no** such throw is **flagged** — 66
   cases that swallow a real execution failure to assert only the
   interceptor-captured SQL (e.g.
-  [`docs.advanced.custom-booleans-values.test.ts`](../../db/postgres/newest/pg/docs.advanced.custom-booleans-values.test.ts)):
+  [`docs.advanced.data-types.custom-booleans-values.test.ts`](../../db/postgres/newest/pg/docs.advanced.data-types.custom-booleans-values.test.ts)):
   a `mock-only` pattern in disguise (per the project author — *"there is no reason
   you can't validate that on the mock without the swallow"*), and one the
   body-scoped `mock-only` rule misses because the swallow is **unconditional**

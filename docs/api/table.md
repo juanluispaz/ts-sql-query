@@ -6,7 +6,7 @@ search:
 
 This API defines the structure of database tables within `ts-sql-query`. It provides methods to declare columns of different types, including nullable and non-nullable fields, columns with default values, primary keys (auto-generated or not), computed columns, and virtual columns based on SQL fragments. These definitions are used internally by queries to ensure type safety and to generate valid SQL statements.
 
-To learn how to declare a table and its columns, see [Mapping](../configuration/mapping.md); to choose the type of each column, [Data types](../configuration/data-types.md); and to convert the values of a column in your own way, [Type adapters](../advanced/type-adapters.md).
+To learn how to declare a table and its columns, see [Mapping](../configuration/mapping.md); to choose the type of each column, [Data types](../configuration/data-types.md); and to convert the values of a column in your own way, [Type adapters](../advanced/data-types/type-adapters.md).
 
 A method that takes a type takes it by its class (`DataTypeClass`): the class of a built-in type, like `IntType`, or a class of yours that extends a family, like `CentsType`, which extends `IntegersType<Cents, 'Cents'>`. It takes it by its name too (`DataTypeName`): the name of a built-in type (`'boolean'`, `'int'`, `'bigint'`, `'double'`, `'string'`, `'uuid'`, `'stringDecimal'`, `'localDate'`, `'localTime'` or `'localDateTime'`), or the type name of a class of yours [registered](../configuration/data-types.md#giving-your-type-by-its-name), like `'Cents'`. The value source it gives has the methods of that type, and `T` is the type of its values: see [Data types](../configuration/data-types.md) and [Value expressions](value-expressions.md).
 

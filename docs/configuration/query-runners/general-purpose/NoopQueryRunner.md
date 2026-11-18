@@ -17,7 +17,7 @@ A query runner that takes the place of the database: it sends nothing, and alway
 
 !!! tip
 
-    `NoopQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    `NoopQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 ## Creating it
 
@@ -60,5 +60,5 @@ As a `MockQueryRunner`, `isMocked` is `true`, and only a `TsSqlError` is an erro
 The constructor receives an object of type `NoopQueryRunnerConfig`, exported from `ts-sql-query`, with these options:
 
 - **`database`**: the database to write the SQL for. A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection.
-- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/running-queries/synchronous-query-runners.md).
 - **`allowNestedTransactions`**: accepts a transaction inside another one, which is [rejected by default](../../../queries/transaction.md#nested-transactions).

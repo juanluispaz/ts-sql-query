@@ -305,5 +305,5 @@ matrix is extended:
 - `docs/about/changelog/`, `docs/index.md` — meta.
 
 `docs/advanced/synchronous-query-runners.md` is a feature page: its tests are
-`docs.advanced.synchronous-query-runners.test.ts`, in every cell, and the sync
+`docs.advanced.running-queries.synchronous-query-runners.test.ts`, in every cell, and the sync
 runners run in the `<connector>-sync` cells.

@@ -19,7 +19,7 @@ This runner provides integration with the [better-sqlite3](https://www.npmjs.com
 
 !!! tip
 
-    better-sqlite3 supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    better-sqlite3 supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 !!! warning "A `Database` is a single connection"
 
@@ -97,5 +97,5 @@ async function main() {
 
 The second argument of `BetterSqlite3QueryRunner`, optional, is an object of type `BetterSqlite3QueryRunnerConfig`, exported from `ts-sql-query/sqlite/better-sqlite3`:
 
-- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/running-queries/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

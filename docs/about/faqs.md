@@ -229,10 +229,10 @@ The parameters are: `[ 10 ]`
 
 !!! tip
 
-    If you need to use table or view with alias you can pass it as parameter to the functions. See [Passing tables and views as parameter](../advanced/tables-views-as-parameter.md) for more information.
+    If you need to use table or view with alias you can pass it as parameter to the functions. See [Passing tables and views as parameter](../advanced/tables-and-rows/tables-views-as-parameter.md) for more information.
 
 ## How can I use select * in my queries?
 
 You can't, on purpose. `select *` is useful in a query you write to look at the data, but dangerous in a backend, because the backend and the database aren't always in sync. While you deploy a version that changes the database, for example, the query can return a column the backend doesn't know, or an expected column can disappear. With `select *` the backend misbehaves without saying why; with the columns listed, you get a clear error.
 
-To get all the columns the backend knows, pass the table to `select`: `.select(tCustomer)`. The SQL lists each column by its name. To leave some out, use `extractColumnsFrom`. See [Select all the columns of a table](../advanced/columns-from-object.md#select-all-the-columns-of-a-table) and [Extract columns](../advanced/columns-from-object.md#extract-columns).
+To get all the columns the backend knows, pass the table to `select`: `.select(tCustomer)`. The SQL lists each column by its name. To leave some out, use `extractColumnsFrom`. See [Select all the columns of a table](../advanced/tables-and-rows/columns-from-object.md#select-all-the-columns-of-a-table) and [Extract columns](../advanced/tables-and-rows/columns-from-object.md#extract-columns).

@@ -2,7 +2,7 @@
 // for the column-to-column case: comparing two `CustomBooleanTypeAdapter`
 // columns whose true/false values agree (no remap needed) and whose
 // values disagree (remap with case). The existing
-// `docs.advanced.custom-booleans-values.test.ts` covers only the
+// `docs.advanced.data-types.custom-booleans-values.test.ts` covers only the
 // column-vs-literal path, so the column-vs-column branches are otherwise
 // unreached.
 //

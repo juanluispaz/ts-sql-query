@@ -4,7 +4,7 @@ search:
 ---
 # Data types
 
-Each column you [map](mapping.md) has a type, which decides two things: the TypeScript type of its values, and the operations a query offers for it. This page has the types, which one to choose, and how each one is sent to the database; to convert the values in your own way on their way to and from the database, see [Type adapters](../advanced/type-adapters.md).
+Each column you [map](mapping.md) has a type, which decides two things: the TypeScript type of its values, and the operations a query offers for it. This page has the types, which one to choose, and how each one is sent to the database; to convert the values in your own way on their way to and from the database, see [Type adapters](../advanced/data-types/type-adapters.md).
 
 ## The types of a column
 
@@ -54,7 +54,7 @@ abstract class MyEnumDataType extends EnumType<MyEnumType, 'MyEnumTypeName'> {
 }
 ```
 
-The type name in the generic is the one TypeScript uses; `type` is the one the library uses when the query runs: in the messages of the errors, in [its name as a type](#giving-your-type-by-its-name) and in what a [type adapter](../advanced/type-adapters.md) and a query runner receive. Without `type`, it's the name of the class (`MyIntDataType`). The class is `abstract`, as its family is. Declare it once and import it where you use it: each declaration is a class of its own, and `is` says yes only to the values of its own class.
+The type name in the generic is the one TypeScript uses; `type` is the one the library uses when the query runs: in the messages of the errors, in [its name as a type](#giving-your-type-by-its-name) and in what a [type adapter](../advanced/data-types/type-adapters.md) and a query runner receive. Without `type`, it's the name of the class (`MyIntDataType`). The class is `abstract`, as its family is. Declare it once and import it where you use it: each declaration is a class of its own, and `is` says yes only to the values of its own class.
 
 The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name. Two classes with the same type name and different TypeScript types are a mistake that nothing detects: give each type a name of its own.
 
@@ -82,7 +82,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
 | The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType` | Your type, with a [conversion](#your-own-types) from and to the text of the number. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
-| True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/custom-booleans-values.md). |
+| True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/data-types/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
 | A date with no time, like a birthday | `localDate` | A `Date` at 10:00 UTC of the day: read it with `getUTCFullYear`, `getUTCMonth` and `getUTCDate`. See [Read the values with the UTC getters](time-zones.md#read-the-values-with-the-utc-getters). |
 | A time with no date, like an opening time | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
@@ -95,7 +95,7 @@ On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#
 
 ## Your own types
 
-A type of yours gives a column your own TypeScript type, and its type name identifies it. The family its class extends says which operations the column offers in a query, its type in the database (its [SQL data type](../advanced/sql-data-types.md)), and how its values are converted:
+A type of yours gives a column your own TypeScript type, and its type name identifies it. The family its class extends says which operations the column offers in a query, its type in the database (its [SQL data type](../advanced/data-types/sql-data-types.md)), and how its values are converted:
 
 | Family | What its values can do | Its values are converted as |
 |---|---|---|
@@ -144,7 +144,7 @@ An integer wider than the integer types of the databases, like `{ family: 'exact
 
     Register the conversion of a type whose family doesn't convert it (`AdditiveType`, `MultipliableType`, `DivisibleType`, `EnumType`, `EqualableType` and `ComparableType`), and of a type whose values in your code aren't those its family converts, like a date kept as its text. Without it, such a value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/type-adapters.md).
+The conversion is written in the connection, so it applies everywhere that type is used, in the class of the type, or in a type adapter of one column: see [Type adapters](../advanced/data-types/type-adapters.md).
 
 ### Giving your type by its name
 
@@ -409,7 +409,7 @@ A filter that another system writes keeps the names it was written with. When a 
 JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:
 
 - `stringDecimal`: the value is a `string`. Choose it when a string is enough in your code.
-- A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](../advanced/type-adapters.md).
+- A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in a [type adapter](../advanced/data-types/type-adapters.md).
 
 ```typescriptreact
 amount = this.optionalColumn('amount', 'stringDecimal')
@@ -566,7 +566,7 @@ For a type the library doesn't know, like an enum of the database, say its SQL d
 
 The data type says what a value is in TypeScript; it doesn't say what the column is in the database: a `string` can be a `varchar(20)` or an `nvarchar(max)`. Tell it, and the library and the query runners use it where it gives a better query, on every driver of the database: on SQL Server an ASCII text of a `varchar` column is sent as a `varchar`, so the index of the column is sought instead of scanned; on Oracle a `CLOB` column given back by a `returning` arrives whole. The value given to the column and the values compared with it take it.
 
-The recommended way is to write the type as you see it in the database, and let a connection turn it into what the library reads, with `sqlDataTypeFrom`. `typesConnection` is a connection of your connection class that executes nothing, made once in a module the tables import (see [how to create it](../advanced/sql-data-types.md#from-the-name-of-the-type-in-the-database-recommended)):
+The recommended way is to write the type as you see it in the database, and let a connection turn it into what the library reads, with `sqlDataTypeFrom`. `typesConnection` is a connection of your connection class that executes nothing, made once in a module the tables import (see [how to create it](../advanced/data-types/sql-data-types.md#from-the-name-of-the-type-in-the-database-recommended)):
 
 ```ts
 import { withSqlDataType } from "ts-sql-query"
@@ -580,4 +580,4 @@ class TProduct extends Table<DBConnection, 'TProduct'> {
 }
 ```
 
-Leave `driverTypeOf` of a query runner for a type only one driver has. Everything else, the families of the types, writing the type as an object and what each database does with it, is in [The type of a column in the database](../advanced/sql-data-types.md).
+Leave `driverTypeOf` of a query runner for a type only one driver has. Everything else, the families of the types, writing the type as an object and what each database does with it, is in [The type of a column in the database](../advanced/data-types/sql-data-types.md).

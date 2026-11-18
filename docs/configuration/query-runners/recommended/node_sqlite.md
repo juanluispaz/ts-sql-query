@@ -32,7 +32,7 @@ This runner provides integration with Node.js' built-in [`node:sqlite`](https://
 
 !!! tip
 
-    node:sqlite `DatabaseSync` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    node:sqlite `DatabaseSync` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 !!! warning "A `DatabaseSync` is a single connection"
 
@@ -116,5 +116,5 @@ async function main() {
 
 The second argument of `NodeSqliteQueryRunner`, optional, is an object of type `NodeSqliteQueryRunnerConfig`, exported from `ts-sql-query/sqlite/node-sqlite`:
 
-- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/running-queries/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

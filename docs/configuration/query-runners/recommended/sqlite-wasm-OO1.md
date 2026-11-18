@@ -19,7 +19,7 @@ This runner provides integration with the WebAssembly-based [sqlite-wasm](https:
 
 !!! tip
 
-    `Sqlite3WasmOO1QueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    `Sqlite3WasmOO1QueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 !!! warning "A `Database` is a single connection"
 
@@ -100,5 +100,5 @@ async function main(db: Database) {
 
 The second argument of `Sqlite3WasmOO1QueryRunner`, optional, is an object of type `Sqlite3WasmOO1QueryRunnerConfig`, exported from `ts-sql-query/sqlite/sqlite-wasm`:
 
-- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/running-queries/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

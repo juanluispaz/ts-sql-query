@@ -19,7 +19,7 @@ This runner provides integration with the [Bun Sqlite](https://bun.com/docs/runt
 
 !!! tip
 
-    bun:sqlite supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    bun:sqlite supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 !!! warning "A `Database` is a single connection"
 
@@ -96,5 +96,5 @@ async function main() {
 
 The second argument of `BunSqliteQueryRunner`, optional, is an object of type `BunSqliteQueryRunnerConfig`, exported from `ts-sql-query/sqlite/bun-sqlite`:
 
-- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/synchronous-query-runners.md).
+- **`promise`**: another `Promise` provider, for [synchronous query execution](../../../advanced/running-queries/synchronous-query-runners.md).
 - **`forUseInTransaction`**: the connection is already in a transaction that something else began and ends; see [Inside a transaction something else manages](#inside-a-transaction-something-else-manages).

@@ -313,7 +313,7 @@ const query = connection.update(tGroupedCompany)
 
 ## A shape from the columns of the table
 
-[`extractWritableShapeFrom`](../advanced/columns-from-object.md#extract-writable-shape) gives a shape with all the columns that can be written, each one with its own name. It's useful when the properties already have the names of the columns and you only want to limit what is written: the second argument lists the columns to leave out. Groups of columns stay as groups, with the paths of their columns.
+[`extractWritableShapeFrom`](../advanced/tables-and-rows/columns-from-object.md#extract-writable-shape) gives a shape with all the columns that can be written, each one with its own name. It's useful when the properties already have the names of the columns and you only want to limit what is written: the second argument lists the columns to leave out. Groups of columns stay as groups, with the paths of their columns.
 
 ```ts
 import { extractWritableShapeFrom } from "ts-sql-query"
@@ -388,17 +388,17 @@ The query writes `first_name` and `last_name`, and the `where` chooses the row. 
 
 ## The type of the values
 
-The [utility types](../advanced/utility-types.md) give the type of the values that follow a shape, for example to declare the parameter of a function:
+The [utility types](../advanced/tables-and-rows/utility-types.md) give the type of the values that follow a shape, for example to declare the parameter of a function:
 
 | Type | What it gives |
 |---|---|
-| [`InsertableValuesShapedAs`](../advanced/utility-types.md#insertable-values) | The values of an insert |
-| [`InsertableRowShapedAs`](../advanced/utility-types.md#insertable-row) | The values of an insert, also accepting expressions |
-| [`UpdatableValuesShapedAs`](../advanced/utility-types.md#updatable-values) | The values of an update |
-| [`UpdatableRowShapedAs`](../advanced/utility-types.md#updatable-row) | The values of an update, also accepting expressions |
-| [`UpdatableOnInsertConflictValuesShapedAs`](../advanced/utility-types.md#updatable-values-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict |
-| [`UpdatableOnInsertConflictRowShapedAs`](../advanced/utility-types.md#updatable-row-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict, also accepting expressions |
-| [`WritableShapeFor`](../advanced/utility-types.md#writable-shape) | The shape that `extractWritableShapeFrom` returns |
+| [`InsertableValuesShapedAs`](../advanced/tables-and-rows/utility-types.md#insertable-values) | The values of an insert |
+| [`InsertableRowShapedAs`](../advanced/tables-and-rows/utility-types.md#insertable-row) | The values of an insert, also accepting expressions |
+| [`UpdatableValuesShapedAs`](../advanced/tables-and-rows/utility-types.md#updatable-values) | The values of an update |
+| [`UpdatableRowShapedAs`](../advanced/tables-and-rows/utility-types.md#updatable-row) | The values of an update, also accepting expressions |
+| [`UpdatableOnInsertConflictValuesShapedAs`](../advanced/tables-and-rows/utility-types.md#updatable-values-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict |
+| [`UpdatableOnInsertConflictRowShapedAs`](../advanced/tables-and-rows/utility-types.md#updatable-row-in-case-of-conflict-on-insert) | The values to update when an insert has a conflict, also accepting expressions |
+| [`WritableShapeFor`](../advanced/tables-and-rows/utility-types.md#writable-shape) | The shape that `extractWritableShapeFrom` returns |
 
 The shape must be declared `as const`, so the type knows the columns:
 

@@ -28,7 +28,7 @@ The tests run on each combination of a database, a version and a driver: 76 comb
 | SQL Server | 2019, 2022 and 2025 | `mssql` |
 | SQLite | The SQL for 3.29, 3.30, 3.35, 3.38 and the newest version | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm |
 
-On older versions the tests run with the [`compatibilityVersion`](../configuration/supported-databases/postgresql.md#compatibility-version) of that version, so they check the SQL that the library writes for it. The SQLite drivers that can run [without promises](../advanced/synchronous-query-runners.md) are tested that way too.
+On older versions the tests run with the [`compatibilityVersion`](../configuration/supported-databases/postgresql.md#compatibility-version) of that version, so they check the SQL that the library writes for it. The SQLite drivers that can run [without promises](../advanced/running-queries/synchronous-query-runners.md) are tested that way too.
 
 The library is tested on Node.js 22, 24 and 26, and on Bun.
 

@@ -17,7 +17,7 @@ A query runner that writes each statement on the standard output with `console.l
 
 !!! tip
 
-    `ConsoleLogQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    `ConsoleLogQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 ## Creating it
 

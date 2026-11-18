@@ -49,7 +49,7 @@ AREAS = [
         'queries/transaction.md',
     ], False),
     ('extending', 'Extending the library', 'going beyond what it offers: your own SQL with fragments, the data types of the columns, and your own conversions with type adapters', [
-        'queries/sql-fragments.md', 'configuration/data-types.md', 'advanced/type-adapters.md', 'advanced/sql-data-types.md',
+        'queries/sql-fragments.md', 'configuration/data-types.md', 'advanced/data-types/type-adapters.md', 'advanced/data-types/sql-data-types.md',
     ], True),
     ('dynamic', 'Optional parts of a query', 'the detail of dynamic queries: the order and the page from a request, optional joins, booleans and null, and conditions built with your own ifs', [
         'dynamic/optional-parts/*.md', 'dynamic/going-further/*.md',
@@ -58,16 +58,16 @@ AREAS = [
         'queries/extreme-dynamic-queries.md', 'dynamic/caller-decides/*.md', 'queries/shapes.md',
     ], True),
     ('dynamic-functions', 'Functions that return a dynamic select', 'a function of your own where the caller chooses the columns, the filter and the order, typed from the database or from a business model, and the helper types', [
-        'dynamic/own-function/*.md', 'dynamic/helper-types/*.md', 'advanced/deep-utilities.md', 'advanced/tables-views-as-parameter.md',
+        'dynamic/own-function/*.md', 'dynamic/helper-types/*.md', 'advanced/tables-and-rows/deep-utilities.md', 'advanced/tables-and-rows/tables-views-as-parameter.md',
     ], True),
     ('types', 'Types of tables and rows', 'the types of a row of a table and the columns extracted from an object', [
-        'advanced/utility-types.md', 'advanced/columns-from-object.md',
+        'advanced/tables-and-rows/utility-types.md', 'advanced/tables-and-rows/columns-from-object.md',
     ], False),
     ('configuration', 'Mapping and configuration', 'the connection, tables and views, column types, time zones, collations and each database', [
-        'configuration/*.md', 'configuration/supported-databases/*.md', 'advanced/custom-booleans-values.md',
+        'configuration/*.md', 'configuration/supported-databases/*.md', 'advanced/data-types/custom-booleans-values.md',
     ], True),
     ('query-runners', 'Query runners', 'connecting each driver, wrapping the runner, and what it can read of each query', [
-        'configuration/query-runners/**', 'advanced/query-execution-metadata.md', 'advanced/metadata.md',
+        'configuration/query-runners/**', 'advanced/running-queries/query-execution-metadata.md', 'advanced/running-queries/metadata.md',
     ], False),
     ('api', 'API reference', 'every method, to look up', ['api/*.md'], False),
     ('errors', 'Errors', 'the errors the library raises and their reasons', ['api/error-management/*.md'], False),
@@ -98,7 +98,7 @@ ELSEWHERE = {
 
 # Linked one by one: a single topic, or not worth reading ahead
 PAGES = [
-    ('Synchronous query runners', 'advanced/synchronous-query-runners.md', 'running queries without promises'),
+    ('Synchronous query runners', 'advanced/running-queries/synchronous-query-runners.md', 'running queries without promises'),
     ('ID manipulation', 'advanced/id-manipulation.md', 'encrypting the ids that leave the backend'),
 ]
 OPTIONAL = [

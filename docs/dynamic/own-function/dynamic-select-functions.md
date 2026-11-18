@@ -11,7 +11,7 @@ Consider this when a single function serves many callers, like the layer behind 
 The same function can be typed in two ways:
 
 - **[From the database](#from-the-database):** the types come from the available columns, with `DynamicPickPaths`, `PickValuesPath` and `DynamicCondition` over the map. See [Typing dynamic queries from the database types](from-database-types.md).
-- **[From the model](#from-the-model):** the signature uses an interface you write, with `DynamicConditionForModel`, `DeepPickPaths`, `DeepPick` and `expandTypeFromDynamicPickPaths`, so no type of a column appears in it. See [Typing dynamic queries from a business model](from-business-model.md) and [Deep utilities](../../advanced/deep-utilities.md).
+- **[From the model](#from-the-model):** the signature uses an interface you write, with `DynamicConditionForModel`, `DeepPickPaths`, `DeepPick` and `expandTypeFromDynamicPickPaths`, so no type of a column appears in it. See [Typing dynamic queries from a business model](from-business-model.md) and [Deep utilities](../../advanced/tables-and-rows/deep-utilities.md).
 
 Both receive the order as an array of clauses typed with [`OrderByForModel`](../helper-types/order-by.md), joined for `orderByFromStringIfValue`, so each clause must be a valid field and mode. `orderByFromString` takes a plain `string`, so this typing is optional.
 
@@ -111,7 +111,7 @@ The pieces of this code are:
 | Piece | What it does |
 |---|---|
 | `buildCompanyAvailableFields` | Returns the map of columns the caller can pick and filter by. Being a function, its type is available to the types below, even though the alias of the left join is created inside `getSubcompanies` |
-| `favouriteCustomerRef` | The table as a parameter. `TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>` is the type for `tCustomer.forUseInLeftJoinAs('favouriteCustomer')`, and `fromRef` gives back its columns. See [Passing tables and views as parameter](../../advanced/tables-views-as-parameter.md) |
+| `favouriteCustomerRef` | The table as a parameter. `TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>` is the type for `tCustomer.forUseInLeftJoinAs('favouriteCustomer')`, and `fromRef` gives back its columns. See [Passing tables and views as parameter](../../advanced/tables-and-rows/tables-views-as-parameter.md) |
 | `buildCompanyConditionExtension` | The rules of the filter that aren't a column: `customers` and `favouriteCustomer.isInAnotherCompanyWithName`. The first one builds its condition with `if`s, using [`dynamicBooleanExpressionUsing`](../going-further/building-conditions.md#a-condition-in-a-variable) |
 | `CompanyFields` | The names the caller can pick, without `id`, which is always returned |
 | `CompanyDynamicCondition` | The type of the filter: the columns of the map and the rules |
@@ -596,7 +596,7 @@ const result: Promise<{
 
 ### From the model
 
-The same query, typed from an interface you write instead of from the columns. The body still builds the map of columns, which it needs for the SQL, but the signature uses only `CompanyInformationModel`: `DynamicConditionForModel` types the filter, `DeepPickPaths` and `DeepPick` type the pick, and `OrderByForModel` types the order. Each one is explained in [Typing dynamic queries from a business model](from-business-model.md) and [Deep utilities](../../advanced/deep-utilities.md).
+The same query, typed from an interface you write instead of from the columns. The body still builds the map of columns, which it needs for the SQL, but the signature uses only `CompanyInformationModel`: `DynamicConditionForModel` types the filter, `DeepPickPaths` and `DeepPick` type the pick, and `OrderByForModel` types the order. Each one is explained in [Typing dynamic queries from a business model](from-business-model.md) and [Deep utilities](../../advanced/tables-and-rows/deep-utilities.md).
 
 <!-- doc-code-snippet-template: mariadb, mysql, oracle, postgresql, sqlite, sqlserver -->
 ```typescript

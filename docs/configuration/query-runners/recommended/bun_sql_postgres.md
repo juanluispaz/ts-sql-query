@@ -109,7 +109,7 @@ A statement that fails leaves a PostgreSQL transaction failed, even if its error
 
 ## The type of the parameters
 
-Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The cast is the name in PostgreSQL of the [SQL data type](../../../advanced/sql-data-types.md) of its class, so a type the library doesn't know, like an enum of the database or a type of an extension, gets its cast when its class says it:
+Where PostgreSQL can't work out the type of a parameter, like a constant selected on its own, the query runner writes it as a cast in the SQL, `$1::int4`, from [the type requested for it](../../data-types.md#how-a-value-is-sent-to-the-database): Bun SQL can't send a parameter with its type. The cast is the name in PostgreSQL of the [SQL data type](../../../advanced/data-types/sql-data-types.md) of its class, so a type the library doesn't know, like an enum of the database or a type of an extension, gets its cast when its class says it:
 
 ```ts
 import { EnumType, type SqlDataType } from "ts-sql-query";

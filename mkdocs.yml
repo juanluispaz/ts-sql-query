@@ -67,15 +67,25 @@ plugins:
         'CHANGELOG.md': 'about/changelog/v2.md'
         'configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md': 'configuration/query-runners/general-purpose/NoopQueryRunner.md'
         'about/migrating-from-v1.md': 'about/changelog/migrating-from-v1.md'
+        'advanced/type-adapters.md': 'advanced/data-types/type-adapters.md'
+        'advanced/sql-data-types.md': 'advanced/data-types/sql-data-types.md'
+        'advanced/custom-booleans-values.md': 'advanced/data-types/custom-booleans-values.md'
+        'advanced/utility-types.md': 'advanced/tables-and-rows/utility-types.md'
+        'advanced/columns-from-object.md': 'advanced/tables-and-rows/columns-from-object.md'
+        'advanced/deep-utilities.md': 'advanced/tables-and-rows/deep-utilities.md'
+        'advanced/tables-views-as-parameter.md': 'advanced/tables-and-rows/tables-views-as-parameter.md'
+        'advanced/synchronous-query-runners.md': 'advanced/running-queries/synchronous-query-runners.md'
+        'advanced/query-execution-metadata.md': 'advanced/running-queries/query-execution-metadata.md'
+        'advanced/metadata.md': 'advanced/running-queries/metadata.md'
         'about/limimitations.md': 'about/limitations.md'
         'api/type-adpaters.md': 'api/type-adapters.md'
         'keywords/functions-oprators.md': 'keywords/functions-operators.md'
         'about/examples.md': 'queries/basic-query-structure.md'
         'advanced/utility-dynamic-picks.md': 'dynamic/helper-types/picks.md'
-        'advanced-usage.md': 'advanced/custom-booleans-values.md'
+        'advanced-usage.md': 'advanced/data-types/custom-booleans-values.md'
         'column-types.md': 'configuration/data-types.md'
         'configuration/column-types.md': 'configuration/data-types.md'
-        'configuration/type-adapters.md': 'advanced/type-adapters.md'
+        'configuration/type-adapters.md': 'advanced/data-types/type-adapters.md'
         'composing-and-splitting-results.md': 'queries/complex-projections.md'
         'configuration/query-runners/recommended/sqlite3.md': 'configuration/query-runners/index.md#which-one-for-your-database'
         'configuration/query-runners/additional/prisma.md': 'configuration/query-runners/combining-with-another-library.md#example-prisma'
@@ -271,17 +281,20 @@ nav:
     - Going further:
       - Building a condition step by step: dynamic/going-further/building-conditions.md
   - Advanced:
-    - Type adapters: advanced/type-adapters.md
-    - The type of a column in the database: advanced/sql-data-types.md
-    - Custom booleans values: advanced/custom-booleans-values.md
-    - Synchronous query runners: advanced/synchronous-query-runners.md
+    - Data types of your own:
+      - Type adapters: advanced/data-types/type-adapters.md
+      - The type of a column in the database: advanced/data-types/sql-data-types.md
+      - Custom booleans values: advanced/data-types/custom-booleans-values.md
+    - Types of tables and rows:
+      - Utility types: advanced/tables-and-rows/utility-types.md
+      - Extract columns from an object: advanced/tables-and-rows/columns-from-object.md
+      - Deep utilities: advanced/tables-and-rows/deep-utilities.md
+      - Passing tables and views as parameter: advanced/tables-and-rows/tables-views-as-parameter.md
+    - Running queries:
+      - Synchronous query runners: advanced/running-queries/synchronous-query-runners.md
+      - The context of a query: advanced/running-queries/query-execution-metadata.md
+      - Metadata of a query and its parameters: advanced/running-queries/metadata.md
     - ID manipulation: advanced/id-manipulation.md
-    - Extract columns from an object: advanced/columns-from-object.md
-    - Utility types: advanced/utility-types.md
-    - Deep utilities: advanced/deep-utilities.md
-    - Passing tables and views as parameter: advanced/tables-views-as-parameter.md
-    - The context of a query: advanced/query-execution-metadata.md
-    - Metadata of a query and its parameters: advanced/metadata.md
   - Keywords:
     - Select Keywords: keywords/select.md
     - Insert Keywords: keywords/insert.md

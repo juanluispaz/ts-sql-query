@@ -257,7 +257,7 @@ The executed query is:
 
 The parameters are: `[ ' ' ]`
 
-When the interface has no groups, the built-in `keyof` and `Pick<Model, K>` are enough: see [Expanding result types](../helper-types/picks.md#expanding-result-types-from-dynamic-picks). [Deep utilities](../../advanced/deep-utilities.md) explains `DeepPick` and `DeepPickPaths`, and [Dynamic picks](../helper-types/picks.md) the pick functions.
+When the interface has no groups, the built-in `keyof` and `Pick<Model, K>` are enough: see [Expanding result types](../helper-types/picks.md#expanding-result-types-from-dynamic-picks). [Deep utilities](../../advanced/tables-and-rows/deep-utilities.md) explains `DeepPick` and `DeepPickPaths`, and [Dynamic picks](../helper-types/picks.md) the pick functions.
 
 ## Ordering: `OrderByForModel`
 
@@ -564,5 +564,5 @@ const filter: InvoiceFilter = {
 - [Dynamic filters](../caller-decides/filters.md) and [Picking columns dynamically](../caller-decides/picks.md): what the filter and the pick do.
 - [Dynamic conditions](../helper-types/conditions.md), [Dynamic picks](../helper-types/picks.md) and [Dynamic order by](../helper-types/order-by.md): the reference of each type.
 - [Dynamic conditions API](../../api/dynamic-conditions.md): the operators of each filter and the names of the types.
-- [Deep utilities](../../advanced/deep-utilities.md): `DeepPickPaths`, `DeepPick` and `DeepOmit`.
+- [Deep utilities](../../advanced/tables-and-rows/deep-utilities.md): `DeepPickPaths`, `DeepPick` and `DeepOmit`.
 - [Functions that return a dynamic select](dynamic-select-functions.md): both ways side by side in one example.

@@ -17,7 +17,7 @@ A query runner that takes the place of the database in a test: your function rec
 
 !!! tip
 
-    `MockQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    `MockQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 ## Creating it
 
@@ -242,7 +242,7 @@ interface MockQueryRunnerConfig {
 
 - **`database`**: the database to write the placeholders for (`$1`, `?`, `:0`, …). A connection sets it to its own database when you create it, so you only need this to use the query runner without a connection. With `queryRunner`, it defaults to the database of that query runner.
 - **`queryRunner`**: the query runner of the library whose parameters the mock imitates, by the name of its class (`'PgPoolQueryRunner'`, `'BetterSqlite3QueryRunner'`, `'MssqlPoolQueryRunner'`, …). See [Imitating a query runner](#imitating-a-query-runner).
-- **`promise`**: another `Promise` provider, used by [synchronous query runners](../../../advanced/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
+- **`promise`**: another `Promise` provider, used by [synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
 - **`allowNestedTransactions`**: accepts a transaction inside another one. `true` by default.
 
 ## Errors of the database

@@ -508,7 +508,7 @@ The executed query is:
 
 The parameters are: `[]`
 
-To select only some columns of a table in this way, see [`extractColumnsFrom`](../advanced/columns-from-object.md).
+To select only some columns of a table in this way, see [`extractColumnsFrom`](../advanced/tables-and-rows/columns-from-object.md).
 
 ### Rule 3: a required value
 

@@ -146,7 +146,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     }
 }
 
-// A connection of the application that executes nothing, to read the types of the database (docs: advanced/sql-data-types.md)
+// A connection of the application that executes nothing, to read the types of the database (docs: advanced/data-types/sql-data-types.md)
 const typesConnection = new DBConnection(new NoExecutionQueryRunner())
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {

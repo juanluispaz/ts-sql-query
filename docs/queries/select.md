@@ -973,7 +973,7 @@ To do the same in a subquery that refers to the outer query, use [`subSelectDist
 
 ## Select all the columns of a table
 
-`select(tCustomer)` returns all the columns of the table, each one with the name of its property. See [Select all the columns of a table](../advanced/columns-from-object.md#select-all-the-columns-of-a-table).
+`select(tCustomer)` returns all the columns of the table, each one with the name of its property. See [Select all the columns of a table](../advanced/tables-and-rows/columns-from-object.md#select-all-the-columns-of-a-table).
 
 ## Select one column
 

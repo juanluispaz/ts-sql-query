@@ -75,7 +75,7 @@ const connection = new DBConnection(new ConsoleLogQueryRunner(new PgPoolQueryRun
 
 To see the SQL each call writes without a database, wrap a `NoopQueryRunner`: `new ConsoleLogQueryRunner(new NoopQueryRunner())`.
 
-To read in one of these the name of a query, where it was called from, or whether it's the count of a page, see [Query execution metadata](../../advanced/query-execution-metadata.md).
+To read in one of these the name of a query, where it was called from, or whether it's the count of a page, see [Query execution metadata](../../advanced/running-queries/query-execution-metadata.md).
 
 ## Reaching the driver
 

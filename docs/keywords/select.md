@@ -46,7 +46,7 @@ Look for an SQL keyword of a `SELECT` to find the method that writes it. For the
 | RECURSIVE, WITH RECURSIVE | query `.recursiveUnion(...)`, `.recursiveUnionAll(...)`, `.recursiveUnionOn(...)`, `.recursiveUnionAllOn(...)` | A recursive common table expression (CTE). | [Recursive select](../queries/recursive-select.md), [Select API](../api/select.md) |
 | RIGHT JOIN, RIGHT OUTER JOIN | Not available. Restructure the query to use a left join. | Right outer join. |  |
 | SELECT | connection `.selectFrom(...)`, then query `.select({...})` | The columns to return. | [Basic query structure](../queries/basic-query-structure.md), [Connection API](../api/connection.md) |
-| SELECT * | `.select(tCustomer)`, which writes the columns one by one. | Every column of a table. | [Select all the columns of a table](../advanced/columns-from-object.md#select-all-the-columns-of-a-table) |
+| SELECT * | `.select(tCustomer)`, which writes the columns one by one. | Every column of a table. | [Select all the columns of a table](../advanced/tables-and-rows/columns-from-object.md#select-all-the-columns-of-a-table) |
 | (SELECT ...) as a value | query `.forUseAsInlineQueryValue()` | A subquery that returns a single value. | [Inline subquery as value](../queries/cte-subqueries.md#inline-subquery-as-value) |
 | SELECT COUNT(*) | query `.selectCountAll()` | Counts the rows. | [Select count all](../queries/select.md#select-count-all), [Select API](../api/select.md) |
 | SELECT DISTINCT | connection `.selectDistinctFrom(...)` | Removes the duplicates. | [Select distinct](../queries/select.md#select-distinct), [Connection API](../api/connection.md) |

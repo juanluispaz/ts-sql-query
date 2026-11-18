@@ -90,7 +90,7 @@ Once you know the area, go straight to the part you need, in those files or in i
 | Fill a table in a user interface, or offer a query API | [Queries from a request](dynamic/caller-decides/queries-from-requests.md) |
 | Write a function where the caller chooses columns, filter and order | [Functions that return a dynamic select](dynamic/own-function/dynamic-select-functions.md) |
 | Write values whose properties aren't named as the columns | [Insert and update with a shape](queries/shapes.md) |
-| Type a row of a table | [Utility types](advanced/utility-types.md), [columns from an object](advanced/columns-from-object.md) |
+| Type a row of a table | [Utility types](advanced/tables-and-rows/utility-types.md), [columns from an object](advanced/tables-and-rows/columns-from-object.md) |
 | Declare tables and the connection | [Connection](configuration/connection.md), [mapping](configuration/mapping.md), [column types](configuration/data-types.md) |
 | Connect a driver | [Query runners](configuration/query-runners/): one page per driver |
 | Understand an error | [Overview](api/error-management/overview.md), [library errors](api/error-management/library-raised-errors.md); [native mappings](api/error-management/native-mappings/) for a native error of your database |
@@ -99,7 +99,7 @@ Once you know the area, go straight to the part you need, in those files or in i
 
 ## Before you write code
 
-- **Let the types work.** The result type is inferred, an optional column being an optional property, so you don't need to write it yourself. A type error usually means the query is wrong: don't cast to get past it. To name a type, use the [utility types](advanced/utility-types.md).
+- **Let the types work.** The result type is inferred, an optional column being an optional property, so you don't need to write it yourself. A type error usually means the query is wrong: don't cast to get past it. To name a type, use the [utility types](advanced/tables-and-rows/utility-types.md).
 - **Import from public paths only:** the root `ts-sql-query`, or a subpath listed in the `exports` of `package.json`. Never from `__UNSUPPORTED__/`.
 - **Choose the `execute*` method by the rows you expect:** `executeSelectOne` throws when there is no row, `executeSelectNoneOrOne` returns `null`, and both throw with more than one.
 - **"No value" has an exact meaning in `*IfValue`:** `null`, `undefined` or an empty string, unless the connection allows empty strings: see [dynamic queries](queries/dynamic-queries.md).

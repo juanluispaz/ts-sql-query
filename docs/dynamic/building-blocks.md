@@ -513,7 +513,7 @@ Here only `firstName` is set. See [Manipulating values to insert](../queries/ins
 | A fragment of SQL of your own, if there is a value | `buildFragmentWithArgsIfValue`, `buildAggregateFragmentWithArgsIfValue` | [Conditional fragments](../queries/sql-fragments.md#conditional-fragments) |
 | The type of a filter | `DynamicCondition`, `DynamicConditionForModel`, `DynamicDefinitionForModel` | [Dynamic conditions](helper-types/conditions.md) |
 | The type of what is picked and of its result | `DynamicPick`, `DynamicPickPaths`, `PickValuesPath`, `PickValuesPathWithAllProperties`, `expandTypeFromDynamicPickPaths`, and their `ProjectedAsNullable` variants | [Dynamic picks](helper-types/picks.md) |
-| The same, from an interface of your own | `DeepPick`, `DeepPickPaths`, `DeepOmit` | [Deep utilities](../advanced/deep-utilities.md) |
+| The same, from an interface of your own | `DeepPick`, `DeepPickPaths`, `DeepOmit` | [Deep utilities](../advanced/tables-and-rows/deep-utilities.md) |
 | The type of the order | `OrderByForModel`, `OrderByMode` | [Dynamic order by](helper-types/order-by.md) |
 | Conditions added by your own `if`s, when nothing above can express them | `dynamicWhere`, `connection.dynamicBooleanExpressionUsing` | [Building a condition step by step](going-further/building-conditions.md) |
 | The same, in the `on` of a join or the `having` | `dynamicOn`, `dynamicHaving` | [Dynamic join conditions and having](going-further/building-conditions.md#dynamic-join-conditions-and-having) |

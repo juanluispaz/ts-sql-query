@@ -127,7 +127,7 @@ The value it returns can be returned from your function as any of these types, w
 |---|---|---|
 | `PickValuesPath<typeof availableFields, FIELDS \| 'id'>` | The types come from the columns | [Typing from the database types](../own-function/from-database-types.md#picking-columns-dynamicpickpaths-pickvaluespath) |
 | `Pick<Model, FIELDS \| 'id'>` | An interface of yours, and the names are its top-level properties | The next example |
-| `DeepPick<Model, FIELDS \| 'id'>` | An interface of yours, and the names can reach inside nested objects, like `'company.name'` | [Typing from a business model](../own-function/from-business-model.md#picking-columns-dynamicpickpaths-deeppick), and [Deep utilities](../../advanced/deep-utilities.md) for `DeepPick` and `DeepPickPaths` |
+| `DeepPick<Model, FIELDS \| 'id'>` | An interface of yours, and the names can reach inside nested objects, like `'company.name'` | [Typing from a business model](../own-function/from-business-model.md#picking-columns-dynamicpickpaths-deeppick), and [Deep utilities](../../advanced/tables-and-rows/deep-utilities.md) for `DeepPick` and `DeepPickPaths` |
 
 ```ts
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query"

@@ -96,6 +96,7 @@ A column of `MyCentsType` is compared, computed and assigned only with values of
 - [Branded and opaque types](../advanced/data-types/branded-and-opaque-types.md): branding a type with a `unique symbol`, a value of a class of yours, and combining your type with other values, like multiplying cents by a plain number.
 - [Methods of your own](../advanced/data-types/methods-of-your-own.md): a method with SQL of your own, and the operations of your type in a dynamic filter.
 - [Type adapters](../advanced/data-types/type-adapters.md): converting the values in your own way, for every column of a type or for one.
+- [Data types API](../api/data-types.md): every static, method and type a class of a data type has.
 
 ## Exact decimals
 

@@ -10,7 +10,7 @@ To learn how values are used in a query, see [Basic query structure](../queries/
 
 All values managed by the database are represented as a subclass of `ValueSource`, almost all methods listed here support the TypeScript value and the database value (as overload).
 
-A value of a [type of yours](../advanced/data-types/own-data-types.md#the-families) has the methods of the family its class extends: `EqualableValueSource` for `EqualableType` and `EnumType`, `ComparableValueSource` for `ComparableType`, and, below, `AdditiveValueSource` and the other numbers, `UuidsValueSource` and the dates. It works only with values of its own type.
+A value of a [type of yours](../advanced/data-types/own-data-types.md#the-families) has the methods of the family its class extends (the families and what each one adds are in the [Data types API](data-types.md)): `EqualableValueSource` for `EqualableType` and `EnumType`, `ComparableValueSource` for `ComparableType`, and, below, `AdditiveValueSource` and the other numbers, `UuidsValueSource` and the dates. It works only with values of its own type.
 
 Methods ending in `IfValue` behave like their counterparts without `IfValue`, but only apply the logic if the provided value is not `undefined`, `null`, an empty string (unless `allowEmptyString` is enabled in the connection), or an empty array. Otherwise, the condition is ignored. See [What counts as no value](../queries/dynamic-queries.md#what-counts-as-no-value).
 

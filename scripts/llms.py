@@ -29,12 +29,27 @@ DATABASES = {
 # (file, title, what it's for, patterns, one file per database).
 # A page can be in several areas. Those with one file per database also have one with all of them.
 AREAS = [
-    ('general', 'General', 'what the library is, its philosophy, how it is tested, frequent questions and limitations', [
-        'index.md', 'about/philosophy.md', 'about/testing.md', 'about/faqs.md', 'about/limitations.md',
+    # Set up the project
+    ('connect', 'Connecting a driver', 'the query runner of each driver, and using the library next to another one', [
+        'configuration/query-runners/index.md', 'configuration/query-runners/recommended/*.md',
+        'configuration/query-runners/combining-with-another-library.md',
     ], False),
+    ('configuration', 'Mapping and configuration', 'the connection, tables and views, the types of the columns, time zones, collations and each database', [
+        'configuration/*.md', 'configuration/supported-databases/mariadb.md', 'configuration/supported-databases/mysql.md',
+        'configuration/supported-databases/oracle.md', 'configuration/supported-databases/postgresql.md',
+        'configuration/supported-databases/sqlite.md', 'configuration/supported-databases/sqlserver.md',
+        'advanced/data-types/custom-booleans-values.md',
+    ], True),
+    ('api-mapping', 'API of the tables and views', 'the methods to declare tables, views and constant values as a view, to look up', [
+        'api/introduction.md', 'api/table.md', 'api/view.md', 'api/constant-values-view.md',
+    ], False),
+    # Write queries, the everyday
     ('queries', 'Queries', 'reading data: select, joins, pages, projections and dynamic queries: start here', [
         'queries/basic-query-structure.md', 'queries/select.md', 'queries/select-page.md', 'queries/complex-projections.md',
         'queries/aggregate-as-object-array.md', 'queries/dynamic-queries.md', 'dynamic/building-blocks.md',
+    ], True),
+    ('dynamic', 'Optional parts of a query', 'the detail of dynamic queries: the order and the page from a request, optional joins, booleans and null, and conditions built with your own ifs', [
+        'dynamic/optional-parts/*.md', 'dynamic/going-further/*.md',
     ], True),
     ('queries-advanced', 'Queries combining selects', 'common table expressions (with) and subqueries, compound selects (union, intersect, except) and recursive selects', [
         'queries/cte-subqueries.md', 'queries/compound-select.md', 'queries/recursive-select.md',
@@ -48,13 +63,13 @@ AREAS = [
     ('transactions', 'Transactions', 'transactions, what happens on an error, isolation levels and work deferred to the end of a transaction', [
         'queries/transaction.md',
     ], False),
-    ('extending', 'Extending the library', 'going beyond what it offers: your own SQL with fragments, the data types of the columns, and your own conversions with type adapters', [
-        'queries/sql-fragments.md', 'configuration/data-types.md', 'advanced/data-types/own-data-types.md', 'advanced/data-types/branded-and-opaque-types.md',
-        'advanced/data-types/methods-of-your-own.md', 'advanced/data-types/type-adapters.md', 'advanced/data-types/conversion-context.md', 'advanced/data-types/sql-data-types.md',
-    ], True),
-    ('dynamic', 'Optional parts of a query', 'the detail of dynamic queries: the order and the page from a request, optional joins, booleans and null, and conditions built with your own ifs', [
-        'dynamic/optional-parts/*.md', 'dynamic/going-further/*.md',
-    ], True),
+    ('api-queries', 'API of the queries', 'the methods of the connection, the select, the values and the dynamic conditions, to look up', [
+        'api/introduction.md', 'api/connection.md', 'api/select.md', 'api/value-expressions.md', 'api/dynamic-conditions.md',
+    ], False),
+    ('api-mutations', 'API of the mutations', 'the methods of insert, update and delete, to look up', [
+        'api/introduction.md', 'api/insert.md', 'api/update.md', 'api/delete.md',
+    ], False),
+    # Beyond dynamic queries
     ('extreme-dynamic', 'Extreme dynamic queries', 'queries whose columns, filters and order come from the caller, a table or a query API driven by a request, values the user can not see, and writing values with a shape', [
         'queries/extreme-dynamic-queries.md', 'dynamic/caller-decides/*.md', 'queries/shapes.md',
     ], True),
@@ -64,34 +79,68 @@ AREAS = [
     ('types', 'Types of tables and rows', 'the types of a row of a table and the columns extracted from an object', [
         'advanced/tables-and-rows/utility-types.md', 'advanced/tables-and-rows/columns-from-object.md',
     ], False),
-    ('configuration', 'Mapping and configuration', 'the connection, tables and views, column types, time zones, collations and each database', [
-        'configuration/*.md', 'configuration/supported-databases/*.md', 'advanced/data-types/custom-booleans-values.md',
+    # When the library doesn't write the SQL you need
+    ('own-sql', 'SQL the library does not write', 'what to do when the library or the database does not write your SQL: fragments of SQL of your own, customizing a query, and the functions and extensions of SQLite', [
+        'queries/sql-fragments.md', 'configuration/supported-databases/sqlite-extensions.md',
     ], True),
-    ('query-runners', 'Query runners', 'connecting each driver, wrapping the runner, and what it can read of each query', [
-        'configuration/query-runners/**', 'advanced/running-queries/query-execution-metadata.md', 'advanced/running-queries/metadata.md',
+    # Extend the library
+    ('data-types', 'Data types of your own', 'a data type of your own: branded and opaque types, methods with SQL of their own, its type in the database, its conversions with type adapters and the context of a conversion', [
+        'advanced/data-types/own-data-types.md', 'advanced/data-types/branded-and-opaque-types.md', 'advanced/data-types/methods-of-your-own.md',
+        'advanced/data-types/type-adapters.md', 'advanced/data-types/conversion-context.md', 'advanced/data-types/sql-data-types.md',
+    ], True),
+    ('api-data-types', 'API of the data types', 'the families, the statics of a class of a data type, the type adapters and the SQL data types, to look up', [
+        'api/introduction.md', 'api/data-types.md', 'api/type-adapters.md', 'api/sql-data-types.md',
     ], False),
+    ('execution', 'Your own execution', 'wrapping, logging or writing a query runner, running queries without promises, and what a query runner can read of each query and its parameters', [
+        'configuration/query-runners/general-purpose/InterceptorQueryRunner.md', 'configuration/query-runners/general-purpose/LoggingQueryRunner.md',
+        'configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md', 'advanced/running-queries/synchronous-query-runners.md',
+        'advanced/running-queries/query-execution-metadata.md', 'advanced/running-queries/metadata.md',
+    ], False),
+    # Test your code
+    ('testing', 'Testing your code', 'the query runners that answer without a database, to test the code that uses the library', [
+        'configuration/query-runners/general-purpose/MockQueryRunner.md', 'configuration/query-runners/general-purpose/NoopQueryRunner.md',
+        'configuration/query-runners/general-purpose/NoExecutionQueryRunner.md',
+    ], False),
+    # Look up
     ('api', 'API reference', 'every method, to look up', ['api/*.md'], False),
     ('errors', 'Errors', 'the errors the library raises and their reasons', ['api/error-management/*.md'], False),
     ('keywords', 'Keywords', 'a quick index: each SQL keyword, and what writes it in the library', ['keywords/*.md'], False),
+    ('general', 'General', 'what the library is, its philosophy, how it is tested, frequent questions and limitations', [
+        'index.md', 'about/philosophy.md', 'about/testing.md', 'about/faqs.md', 'about/limitations.md',
+    ], False),
     ('changelog-v2', 'Change log of v2', 'what changed in each version of v2', ['about/changelog/v2.md'], False),
     ('changelog-v1', 'Change log of v1', 'what changed in each version of v1', ['about/changelog/v1.md'], False),
     ('migrating-from-v1', 'Migrating from v1', 'what to change in an application on ts-sql-query v1, and what changes by itself', ['about/changelog/migrating-from-v1.md', 'about/changelog/behavior-changes-from-v1.md'], False),
 ]
 
+# The areas by what the reader is doing, in the order of llms.txt; each area is in one
+FLOWS = [
+    ('Set up the project', ['connect', 'configuration', 'api-mapping']),
+    ('Write queries', ['queries', 'dynamic', 'queries-advanced', 'aggregates', 'mutations', 'transactions', 'api-queries', 'api-mutations']),
+    ('Beyond dynamic queries', ['extreme-dynamic', 'dynamic-functions', 'types']),
+    ('When the library does not write your SQL', ['own-sql']),
+    ('Extend the library', ['data-types', 'api-data-types', 'execution']),
+    ('Test your code', ['testing']),
+    ('Look up', ['api', 'errors', 'keywords', 'general', 'changelog-v2', 'changelog-v1', 'migrating-from-v1']),
+]
+
 # What the first line of each file says about the others
 ELSEWHERE = {
+    'connect': 'drivers',
+    'configuration': 'connection, tables, column types',
     'queries': 'select, joins, pages, projections, dynamic queries',
+    'dynamic': 'optional parts of a query in detail: order and page, optional joins, null, conditions built with ifs',
     'queries-advanced': 'with, subqueries, union, recursive',
     'aggregates': 'aggregate functions, group by, having',
     'mutations': 'insert, update, delete',
     'transactions': 'transactions',
-    'extending': 'your own SQL and column types',
-    'dynamic': 'optional parts of a query in detail: order and page, optional joins, null, conditions built with ifs',
     'extreme-dynamic': 'columns and filters from the caller, a table or an API driven by a request, restricted values, shapes',
     'dynamic-functions': 'functions that return a dynamic select, typing them, helper types',
     'types': 'types of a row',
-    'configuration': 'connection, tables',
-    'query-runners': 'drivers',
+    'own-sql': 'SQL fragments, customizing a query',
+    'data-types': 'data types of your own, type adapters',
+    'execution': 'wrapping or writing a query runner, query context',
+    'testing': 'mock query runners',
     'api': 'every method',
     'errors': 'errors',
     'keywords': 'what writes a SQL keyword',
@@ -99,7 +148,6 @@ ELSEWHERE = {
 
 # Linked one by one: a single topic, or not worth reading ahead
 PAGES = [
-    ('Synchronous query runners', 'advanced/running-queries/synchronous-query-runners.md', 'running queries without promises'),
     ('ID manipulation', 'advanced/id-manipulation.md', 'encrypting the ids that leave the backend'),
 ]
 OPTIONAL = [
@@ -360,31 +408,38 @@ def generate(root, llms_dir, pages_dir, base, files_prefix, intro):
         intro,
         '',
     ]
-    for area, title, summary, _patterns, per_database in AREAS:
-        pages_of_area = area_of[area]
-        index += [f'## {title}', '', f'{summary[0].upper()}{summary[1:]}.', '']
-        if per_database:
-            for database, slug in DATABASES.items():
-                name = f'llms-{area}-{slug}.txt'
-                pages_of_database = [page for page in pages_of_area if _of_database(page, slug)]
-                text = _bundle(title, summary, pages_of_database, read, base, database, _others(area, slug))
+    flow_of = {area: flow for flow, areas in FLOWS for area in areas}
+    without_flow = [area[0] for area in AREAS if area[0] not in flow_of]
+    if without_flow or len(flow_of) != sum(len(areas) for _, areas in FLOWS):
+        raise ValueError(f'scripts/llms.py: each area goes in one flow of FLOWS: {without_flow}')
+    by_name = {area[0]: area for area in AREAS}
+    for flow, areas in FLOWS:
+        index += [f'## {flow}', '']
+        for area, title, summary, _patterns, per_database in (by_name[name] for name in areas):
+            pages_of_area = area_of[area]
+            index += [f'### {title}', '', f'{summary[0].upper()}{summary[1:]}.', '']
+            if per_database:
+                for database, slug in DATABASES.items():
+                    name = f'llms-{area}-{slug}.txt'
+                    pages_of_database = [page for page in pages_of_area if _of_database(page, slug)]
+                    text = _bundle(title, summary, pages_of_database, read, base, database, _others(area, slug))
+                    write(llms_dir, name, text)
+                    index.append(f'- [{database}]({files_prefix}{name}): {_size(text, base)}')
+                name = f'llms-{area}-all.txt'
+                text = _bundle(title, summary, pages_of_area, read, base, others=_others(area, 'all'))
                 write(llms_dir, name, text)
-                index.append(f'- [{database}]({files_prefix}{name}): {_size(text, base)}')
-            name = f'llms-{area}-all.txt'
-            text = _bundle(title, summary, pages_of_area, read, base, others=_others(area, 'all'))
-            write(llms_dir, name, text)
-            index.append(f'- [All the databases, to compare them or move code between them]({files_prefix}{name}): {_size(text, base)}')
-        else:
-            name = f'llms-{area}.txt'
-            text = _bundle(title, summary, pages_of_area, read, base, others=_others(area, '<database>'))
-            write(llms_dir, name, text)
-            index.append(f'- [All of it]({files_prefix}{name}): {_size(text, base)}')
-            if area == 'query-runners':
-                # Usually one page is what's needed
-                index += ['', 'Or only the page of your driver:', '']
-                for page in pages_of_area:
-                    index.append(f'- [{titles.get(page, posixpath.basename(page)[:-3])}]({base}{page})')
-        index.append('')
+                index.append(f'- [All the databases, to compare them or move code between them]({files_prefix}{name}): {_size(text, base)}')
+            else:
+                name = f'llms-{area}.txt'
+                text = _bundle(title, summary, pages_of_area, read, base, others=_others(area, '<database>'))
+                write(llms_dir, name, text)
+                index.append(f'- [All of it]({files_prefix}{name}): {_size(text, base)}')
+                if area == 'connect':
+                    # Usually one page is what's needed
+                    index += ['', 'Or only the page of your driver:', '']
+                    for page in pages_of_area:
+                        index.append(f'- [{titles.get(page, posixpath.basename(page)[:-3])}]({base}{page})')
+            index.append('')
     index += ['## One topic', '']
     for title, page, summary in PAGES:
         index.append(f'- [{title}]({base}{page}): {summary}')

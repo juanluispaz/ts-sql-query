@@ -12,7 +12,7 @@ The conversion goes in one of three places:
 - In the class of a data type, overriding its transformations, statics with the same names: they apply to every value of that type, after the type adapter of the value (see [The conversion of the class of a data type](../../api/type-adapters.md#the-conversion-of-the-class-of-a-data-type)).
 - In the connection, overriding its transformations: [a conversion for every column of a type](#a-conversion-for-every-column-of-a-type) applies everywhere that type is used, and it's the last step of the chain, the `next` of the others.
 
-Every transformation receives what it converts and a context with the type of the value, the original one and the one requested for it (see [The original and the requested type](#the-original-and-the-requested-type)). The signatures and every property of the contexts are in the [Type adapters API](../../api/type-adapters.md). A type adapter can also keep, for the query runner, what it knows of a parameter or of the whole query: see [Metadata of a query and its parameters](../running-queries/metadata.md).
+Every transformation receives what it converts and a context with the type of the value, the original one and the one requested for it (see [The original and the requested type](#the-original-and-the-requested-type), and [The context of a conversion](conversion-context.md) for what each step sees and when to use each part of the context). The signatures and every property of the contexts are in the [Type adapters API](../../api/type-adapters.md). A type adapter can also keep, for the query runner, what it knows of a parameter or of the whole query: see [Metadata of a query and its parameters](../running-queries/metadata.md).
 
 ## The type adapter of a column
 

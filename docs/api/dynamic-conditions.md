@@ -164,7 +164,7 @@ Also the text operators (`'string'`, and, applied to their text, `'uuid'` and a 
 
 An aggregated array has no operators.
 
-To offer methods of your own in a filter, a class of yours lists them with `exposeFilterOperations`, exported from `ts-sql-query` with the symbol `filterOperation`:
+To offer methods of your own in a filter, a class of yours lists them with `exposeFilterOperations`, exported from `ts-sql-query` with the symbol `filterOperation` (see also the [Data types API](data-types.md#the-operations-of-a-type-in-a-dynamic-filter)):
 
 ```tsx
 function exposeFilterOperations(dataType: Class, family: FamilyClass | undefined, names: readonly MethodName[], aliases?: { [alias: string]: Name }): (operation: Names) => string | undefined

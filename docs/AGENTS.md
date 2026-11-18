@@ -44,21 +44,60 @@ const customers = await connection.selectFrom(tCustomer)
 
 Start with the file of the area of your task. These files are written for you: one per area, so you read what the task needs, and the ones with queries carry only the SQL of your database, which is the one of the `Connection` class the project extends. Tokens are approximate.
 
+**Set up the project**
+
 | To | Read | Tokens |
 |---|---|---|
-| Read data: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 37k |
+| Connect a driver | [`llms-connect.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-connect.txt), or only the page of your driver, listed in `llms.txt` | 34k |
+| Declare the connection, the tables and the types of their columns | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 33k |
+| Look up a method of a table or a view | [`llms-api-mapping.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mapping.txt) | 3k |
+
+**Write queries**
+
+| To | Read | Tokens |
+|---|---|---|
+| Read data, with the optional parts of a dynamic query: start here | [`llms-queries-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-postgresql.txt) | 37k |
+| Go into the detail of a dynamic query: order and page from a request, optional joins, booleans and null, or a condition built with `if`s | [`llms-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-postgresql.txt) | 10k |
 | Use a select inside another, combine several, or walk a hierarchy | [`llms-queries-advanced-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-advanced-postgresql.txt) | 12k |
 | Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 11k |
 | Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 25k |
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
-| Go beyond what the library offers: your own SQL or column type | [`llms-extending-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extending-postgresql.txt) | 38k |
-| Go into the detail of a dynamic query: order and page from a request, optional joins, booleans and null, or a condition built with `if`s | [`llms-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-postgresql.txt) | 10k |
+| Look up a method of the connection, a select, a value or a dynamic condition | [`llms-api-queries.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-queries.txt) | 20k |
+| Look up a method of an insert, an update or a delete | [`llms-api-mutations.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mutations.txt) | 11k |
+
+**Beyond dynamic queries**
+
+| To | Read | Tokens |
+|---|---|---|
 | Let the caller choose columns, filters and order, fill a table or offer a query API from a request, hide or refuse values, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 14k |
 | Write a function that returns a dynamic select, and type it | [`llms-dynamic-functions-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-functions-postgresql.txt) | 21k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 6k |
-| Declare the tables and the connection | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt) | 33k |
-| Connect a driver | The page of your driver, listed in `llms.txt`, or all of them in [`llms-query-runners.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-query-runners.txt) | 50k |
-| Look up a method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 44k |
+
+**When the library does not write your SQL**
+
+| To | Read | Tokens |
+|---|---|---|
+| Write SQL of your own in a query, customize a query, or use the functions and extensions of SQLite | [`llms-own-sql-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-own-sql-postgresql.txt) | 11k |
+
+**Extend the library**
+
+| To | Read | Tokens |
+|---|---|---|
+| Write a data type of your own, branded or opaque, with its methods, its type in the database and its conversions | [`llms-data-types-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-data-types-postgresql.txt) | 23k |
+| Look up what a class of a data type, a type adapter or a SQL data type has | [`llms-api-data-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-data-types.txt) | 12k |
+| Wrap, log or write a query runner, run queries without promises, or read what a query runner receives | [`llms-execution.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-execution.txt) | 12k |
+
+**Test your code**
+
+| To | Read | Tokens |
+|---|---|---|
+| Test the code that uses the library without a database | [`llms-testing.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-testing.txt) | 6k |
+
+**Look up**
+
+| To | Read | Tokens |
+|---|---|---|
+| Look up any method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 44k |
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 23k |
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |

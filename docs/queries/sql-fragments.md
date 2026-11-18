@@ -21,6 +21,9 @@ Use the methods of the library first. They are translated to each database and c
 | SQL with no type: an order by item, the name of a constraint | `rawFragment` | [Raw fragments](#raw-fragments) |
 | Another way of writing a table in the `from` | `createTableOrViewCustomization` | [Table or view customization](#table-or-view-customization) |
 | SQL at a fixed position of the statement, or a name for its execution | `customizeQuery` | [Customizing queries](#customizing-queries-with-raw-sql) |
+| SQL of your own in a method of a data type of yours | `this.fragmentWithType` in its class | [Methods of your own](../advanced/data-types/methods-of-your-own.md#sql-of-your-own-in-a-method) |
+| A function or a stored procedure of the database | `executeFunction`, `executeProcedure` | [Calling a function of the database](../configuration/mapping.md#calling-a-function-of-the-database), [Calling a stored procedure](../configuration/mapping.md#calling-a-stored-procedure) |
+| A function SQLite doesn't have | Registering it in the connection of the driver | [SQLite functions and extensions](../configuration/supported-databases/sqlite-extensions.md) |
 
 `fragmentWithType` and `aggregateFragmentWithType` have no arguments: you write them directly in the query, and they are public methods of the connection. The `build...` methods are `protected`: you call them in your connection class, and the result is a function you can use in any query.
 

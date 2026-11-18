@@ -72,7 +72,7 @@ See [The original and the requested type](../advanced/data-types/type-adapters.m
 
 ## The conversion of the class of a data type
 
-The class of a data type converts the values of its type too, with the same four transformations as statics of the class, which by default convert nothing and call `next`:
+The class of a data type converts the values of its type too, with the same four transformations as statics of the class, which by default convert nothing and call `next` (the other statics of the class are in the [Data types API](data-types.md)):
 
 ```typescript
 // The statics of BaseType, the class every data type extends
@@ -97,7 +97,7 @@ A step without the transformation is skipped (`transformPlaceholder` and `transf
 
 ## What each context has
 
-Each transformation receives the context of what it works on. What each one has, and whether it can change it:
+Each transformation receives the context of what it works on. What each one has, and whether it can change it (what each step of the chain sees, and when to use each member, is in [The context of a conversion](../advanced/data-types/conversion-context.md)):
 
 | Member | `transformValueToDB` | `transformPlaceholder` | `transformProjection` | `transformValueFromDB` |
 |---|---|---|---|---|

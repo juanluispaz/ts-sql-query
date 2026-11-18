@@ -19,17 +19,22 @@ export interface FragmentExpression</*in|out*/ NO_SOURCE extends NSource, /*in|o
 
 /**
  * The SQL of a fragment of a data type written in a method of a class of a data type (`fragmentWithType` of the class):
- * it embeds the value source the method is called on, `this`, and other value sources of any data type, like the
- * operands of a method; its source is the ones of what it embeds, the one of `this` known when the method is called on a
- * column
+ * it embeds value sources of any data type, like the operands of a method, and ALSO_ACCEPTED, the value source the
+ * method is called on (`this`); its source is the ones of what it embeds.
+ *
+ * It isn't the FragmentExpression of the connection because `this`, in the class, is not a value source yet: it has no
+ * source, which exists only when the method is called on a column. A value is taken whole (V1) and its source read
+ * afterwards (`SourceOf<V1>`), so the one of `this` stays pending until that call; inferring a source from `this` (the
+ * T1 of FragmentExpression) would fix it to what the class declares, and makes TypeScript read the members of the
+ * class while they are being computed (`[filterOperation]`), a circularity
  */
-export interface DataTypeFragmentExpression</*in|out*/ THIS, /*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> {
+export interface DataTypeFragmentExpression</*in|out*/ ALSO_ACCEPTED, /*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> {
     sql(sql: TemplateStringsArray): ValueSource<never, TYPE, OPTIONAL_TYPE>
-    sql<V1 extends THIS | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1): ValueSource<SourceOf<V1>, TYPE, OPTIONAL_TYPE>
-    sql<V1 extends THIS | IValueWithType<string>, V2 extends THIS | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2): ValueSource<SourceOf<V1> | SourceOf<V2>, TYPE, OPTIONAL_TYPE>
-    sql<V1 extends THIS | IValueWithType<string>, V2 extends THIS | IValueWithType<string>, V3 extends THIS | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3>, TYPE, OPTIONAL_TYPE>
-    sql<V1 extends THIS | IValueWithType<string>, V2 extends THIS | IValueWithType<string>, V3 extends THIS | IValueWithType<string>, V4 extends THIS | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4>, TYPE, OPTIONAL_TYPE>
-    sql<V1 extends THIS | IValueWithType<string>, V2 extends THIS | IValueWithType<string>, V3 extends THIS | IValueWithType<string>, V4 extends THIS | IValueWithType<string>, V5 extends THIS | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4, v5: V5): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4> | SourceOf<V5>, TYPE, OPTIONAL_TYPE>
-    sql<V1 extends THIS | IValueWithType<string>, V2 extends THIS | IValueWithType<string>, V3 extends THIS | IValueWithType<string>, V4 extends THIS | IValueWithType<string>, V5 extends THIS | IValueWithType<string>, V6 extends THIS | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4, v5: V5, v6: V6): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4> | SourceOf<V5> | SourceOf<V6>, TYPE, OPTIONAL_TYPE>
-    sql<V1 extends THIS | IValueWithType<string>, V2 extends THIS | IValueWithType<string>, V3 extends THIS | IValueWithType<string>, V4 extends THIS | IValueWithType<string>, V5 extends THIS | IValueWithType<string>, V6 extends THIS | IValueWithType<string>, V7 extends THIS | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4, v5: V5, v6: V6, v7: V7): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4> | SourceOf<V5> | SourceOf<V6> | SourceOf<V7>, TYPE, OPTIONAL_TYPE>
+    sql<V1 extends ALSO_ACCEPTED | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1): ValueSource<SourceOf<V1>, TYPE, OPTIONAL_TYPE>
+    sql<V1 extends ALSO_ACCEPTED | IValueWithType<string>, V2 extends ALSO_ACCEPTED | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2): ValueSource<SourceOf<V1> | SourceOf<V2>, TYPE, OPTIONAL_TYPE>
+    sql<V1 extends ALSO_ACCEPTED | IValueWithType<string>, V2 extends ALSO_ACCEPTED | IValueWithType<string>, V3 extends ALSO_ACCEPTED | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3>, TYPE, OPTIONAL_TYPE>
+    sql<V1 extends ALSO_ACCEPTED | IValueWithType<string>, V2 extends ALSO_ACCEPTED | IValueWithType<string>, V3 extends ALSO_ACCEPTED | IValueWithType<string>, V4 extends ALSO_ACCEPTED | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4>, TYPE, OPTIONAL_TYPE>
+    sql<V1 extends ALSO_ACCEPTED | IValueWithType<string>, V2 extends ALSO_ACCEPTED | IValueWithType<string>, V3 extends ALSO_ACCEPTED | IValueWithType<string>, V4 extends ALSO_ACCEPTED | IValueWithType<string>, V5 extends ALSO_ACCEPTED | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4, v5: V5): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4> | SourceOf<V5>, TYPE, OPTIONAL_TYPE>
+    sql<V1 extends ALSO_ACCEPTED | IValueWithType<string>, V2 extends ALSO_ACCEPTED | IValueWithType<string>, V3 extends ALSO_ACCEPTED | IValueWithType<string>, V4 extends ALSO_ACCEPTED | IValueWithType<string>, V5 extends ALSO_ACCEPTED | IValueWithType<string>, V6 extends ALSO_ACCEPTED | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4, v5: V5, v6: V6): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4> | SourceOf<V5> | SourceOf<V6>, TYPE, OPTIONAL_TYPE>
+    sql<V1 extends ALSO_ACCEPTED | IValueWithType<string>, V2 extends ALSO_ACCEPTED | IValueWithType<string>, V3 extends ALSO_ACCEPTED | IValueWithType<string>, V4 extends ALSO_ACCEPTED | IValueWithType<string>, V5 extends ALSO_ACCEPTED | IValueWithType<string>, V6 extends ALSO_ACCEPTED | IValueWithType<string>, V7 extends ALSO_ACCEPTED | IValueWithType<string>>(sql: TemplateStringsArray, v1: V1, v2: V2, v3: V3, v4: V4, v5: V5, v6: V6, v7: V7): ValueSource<SourceOf<V1> | SourceOf<V2> | SourceOf<V3> | SourceOf<V4> | SourceOf<V5> | SourceOf<V6> | SourceOf<V7>, TYPE, OPTIONAL_TYPE>
 }

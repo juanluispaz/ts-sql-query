@@ -48,6 +48,17 @@ export type DataTypeOfName<NAME extends DataTypeName> = DataTypes[NAME] extends 
 /** The type of the value of a type name */
 export type DataTypeValueOfName<NAME extends DataTypeName> = ValueTypeOf<DataTypeOfName<NAME>>
 
+/*
+ * The maps below give, for each type name, its value source, what a position that takes it accepts and its fragment
+ * expression; a method that takes a type name reads them as `DataTypeValueSources<SOURCE, OPTIONAL_TYPE>[TYPE]`. Every
+ * entry is the same generic type (`ValueSource<SOURCE, DataTypeOfName<TYPE>, OPTIONAL_TYPE>`), so they look like a
+ * wrapper that could be written directly, but they are not: indexing a map with a union of names (`t: 'int' | 'string'`)
+ * gives the union of its entries, a union of value sources, the type of the value at run time, which is one of them (the
+ * maintainer's decision: a union in, a union out). Written directly, the union goes inside, `ValueSource<SOURCE,
+ * IntType | StringType, ...>`: one value source with the methods of both data types and a value `number | string`,
+ * which no value at run time is. Keep the maps.
+ */
+
 /** The value source of each type name */
 export type DataTypeValueSources</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> = {
     [TYPE in DataTypeName]: ValueSource<SOURCE, DataTypeOfName<TYPE>, OPTIONAL_TYPE>

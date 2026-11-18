@@ -364,6 +364,32 @@ describe('The operations of the data types', () => {
         expect(MoneyType.is(moneyConst)).toBe(true)
     })
 
+    test('a-union-of-type-names-gives-a-union-of-value-sources', () => {
+        // The value at run time is of one of the names, so its type is the union of their value sources, not one value
+        // source whose data type is the union
+        const nameOf = (asInt: boolean): 'int' | 'string' => asInt ? 'int' : 'string'
+        const name = nameOf(true)
+        class TProbe extends Table<DBConnection, 'TProbe'> {
+            byUnion = this.column('id', name)
+            byInt = this.column('id', 'int')
+            byString = this.column('name', 'string')
+            constructor() {
+                super('probe_table')
+            }
+        }
+        const tProbe = new TProbe()
+        assertType<Exact<typeof tProbe.byUnion, typeof tProbe.byInt | typeof tProbe.byString>>()
+        const constant = conn.const(1, name)
+        const intConstant = conn.const(1, 'int')
+        const stringConstant = conn.const('a', 'string')
+        assertType<Exact<typeof constant, typeof intConstant | typeof stringConstant>>()
+        const fragment = conn.fragmentWithType(name, 'required')
+        const intFragment = conn.fragmentWithType('int', 'required')
+        const stringFragment = conn.fragmentWithType('string', 'required')
+        assertType<Exact<typeof fragment, typeof intFragment | typeof stringFragment>>()
+        expect(IntType.is(constant)).toBe(true)
+    })
+
     test('the-conversions-of-a-data-type-are-statics-with-the-parameters-of-a-type-adapter', () => {
         abstract class ConvertedIntType extends IntegersType<number, 'Converted'> {
             static override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {

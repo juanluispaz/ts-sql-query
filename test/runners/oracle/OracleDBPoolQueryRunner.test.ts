@@ -21,7 +21,7 @@ for (const promisePool of [false, true]) {
         errorFields: ['code', 'errorNum', 'offset', 'isRecoverable'],
         async create(failure) {
             const db = await acquireRunnerTestDatabase(failure)
-            const pool = oracledb.createPool({ user: db.user, password: db.password, connectString: db.connectString, poolMin: 0, poolMax: 2, stmtCacheSize: 0 })
+            const pool = oracledb.createPool({ user: db.user, password: db.password, connectString: db.connectString, poolMin: 0, poolMax: 2 })
             const runner = promisePool ? new OracleDBPoolPromiseQueryRunner(pool) : new OracleDBPoolQueryRunner(await pool)
             return { runner, close: async () => { await (await pool).close(0); await db.release() } }
         },

@@ -45,7 +45,9 @@ Three places own the work. What decides where a thing goes is **whether it condi
 - **The SQL is what the user sees.** The SQL text, with every adaptation (the placeholders and casts of `addParam`, the
   SQL written for that database), is what the logs, the interceptors, the mocks and the errors show, and it is what the
   database runs: **a runner never post-processes the generated SQL**. At execution it only adjusts what it passes to the
-  driver for the params.
+  driver for the params. The one exception: Oracle executes a statement with binds with a comment of their types at
+  its end (`/* binds: tn */`), so the statement cache of oracledb, which keeps the types of a statement by its text,
+  keeps each combination of types apart.
 - A runner never changes the meaning of a value. A runner that can't do its part does nothing, and the library works
   as before.
 - **The values in the database are in UTC**: a value without zone has the digits of the UTC getters of its `Date`,
@@ -601,7 +603,7 @@ better-sqlite3, bun:sqlite and sqlite-wasm); `docs/configuration/time-zones.md#k
    the value the connection handed.
 2. What the driver needs and the database doesn't (the UTC text of a `Date`, `1`/`0` for a boolean, a driver type)
    is made at execution, on a copy given to the driver: the params keep the value the connection handed. Never rewrite
-   the SQL text.
+   the SQL text (the comment of the binds of Oracle is the only exception, and the database alone sees it).
 3. Accept the forms of §2.1, and anything for adapted values or values of the user: convert only what you recognise (a valid Date
    of a temporal type, a plain decimal text), send the rest as it is.
 4. Type the parameter from the context of the query (§4), never from the SQL text; fall back to inferring from the

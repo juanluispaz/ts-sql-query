@@ -111,7 +111,7 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
     })
 
     test('driverTypeOf/the-pool-runners-pass-it-on', async () => {
-        const pool = await oracledb.createPool({ user: db!.user, password: db!.password, connectString: db!.connectString, poolMin: 0, poolMax: 1, stmtCacheSize: 0 })
+        const pool = await oracledb.createPool({ user: db!.user, password: db!.password, connectString: db!.connectString, poolMin: 0, poolMax: 1 })
         try {
             for (const r of [new OracleDBPoolQueryRunner(pool, { driverTypeOf }), new OracleDBPoolPromiseQueryRunner(Promise.resolve(pool), { driverTypeOf })]) {
                 expect(await dumpOf(r, DayType)).toMatch(/^Typ=12 /)

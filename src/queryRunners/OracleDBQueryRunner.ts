@@ -95,7 +95,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             maxRows: 0,
             fetchTypeHandler: this.fetchTypeHandlerFor(query, params),
         }
-        return this.connection.execute(query, this.bindParams(params), options).then((result) => result.rows || [])
+        const binds = this.bindParams(params)
+        return this.connection.execute(withBindsComment(query, binds, params.length), binds, options).then((result) => result.rows || [])
     }
     /**
      * The fetch type handler of an execution of the library, which replaces the global one of oracledb
@@ -142,7 +143,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         if (rejected) {
             return rejected
         }
-        return this.connection.execute(query, this.bindParams(params), {autoCommit: this.autoCommit()}).then((result) => {
+        const binds = this.bindParams(params)
+        return this.connection.execute(withBindsComment(query, binds, params.length), binds, {autoCommit: this.autoCommit()}).then((result) => {
             // A multi-row INSERT is executed as an anonymous PL/SQL block, for
             // which Oracle doesn't populate rowsAffected; the SqlBuilder recorded
             // the affected-row count instead (see OracleSqlBuilder._buildInsertMultiple).
@@ -158,7 +160,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         if (rejected) {
             return rejected
         }
-        return this.connection.execute(query, this.bindParams(params, true), {autoCommit: this.autoCommit()}).then((result) => {
+        const binds = this.bindParams(params, true)
+        return this.connection.execute(withBindsComment(query, binds, params.length), binds, {autoCommit: this.autoCommit()}).then((result) => {
             const outBinds = result.outBinds
             if (!hasLobs(outBinds)) {
                 // The usual case: nothing to read, no promise nor copy of the OUT binds
@@ -177,7 +180,8 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         if (rejected) {
             return rejected
         }
-        return this.connection.execute(query, this.bindParams(params, false, true), {autoCommit: this.autoCommit()}).then(() => undefined)
+        const binds = this.bindParams(params, false, true)
+        return this.connection.execute(withBindsComment(query, binds, params.length), binds, {autoCommit: this.autoCommit()}).then(() => undefined)
     }
     /**
      * The params as oracledb binds them by name: the placeholders this runner emits are named after the index of their
@@ -392,6 +396,94 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     static isSqlError(error: unknown): boolean {
         return error instanceof TsSqlError || isOracleDBError(error)
     }
+}
+
+/**
+ * The text a statement is executed with: the text of the query, with a comment of the types of its IN binds when it has
+ * any (`binds: tn500` in a comment at the end). oracledb keeps each statement in its statement cache by its text, with the types of the
+ * binds and of the columns of the result of its first execution, and executes it again with them: a later execution with
+ * binds of other types would read a text with the type of a number (ORA-01722) or give a number as a text, when a
+ * column takes the type of a bind (`select :0 as "result" from dual`). With the comment, each combination of types of the
+ * binds is a statement of its own in the cache. A letter for each bind (see bindCode), followed by the times it repeats
+ * when it does three or more times; the OUT binds of a returning don't count, they have their type
+ */
+function withBindsComment(query: string, binds: Record<string, any>, length: number): string {
+    let signature = ''
+    let previous = ''
+    let times = 0
+    for (let i = 0; i < length; i++) {
+        const code = bindCode(binds[i])
+        if (code === '') {
+            continue
+        }
+        if (code === previous) {
+            times++
+            continue
+        }
+        signature += repeated(previous, times)
+        previous = code
+        times = 1
+    }
+    signature += repeated(previous, times)
+    return signature === '' ? query : query + ' /* binds: ' + signature + ' */'
+}
+
+/** The letter of a bind the times it repeats: itself once or twice, and followed by the times from three */
+function repeated(code: string, times: number): string {
+    return times >= 3 ? code + times : times === 2 ? code + code : times === 1 ? code : ''
+}
+
+/**
+ * The letter of a bind, by the type oracledb binds it with: the one it is given, or the one it infers from the value
+ * (a number `n`, a text `t`, a date `d`, a boolean `b`, a binary `x`, an object `j`, a null `-`); empty for an OUT bind
+ */
+function bindCode(bind: any): string {
+    if (bind === null || bind === undefined) {
+        return '-'
+    }
+    switch (typeof bind) {
+        case 'number':
+        case 'bigint':
+            return 'n'
+        case 'string':
+            return 't'
+        case 'boolean':
+            return 'b'
+    }
+    if (bind instanceof Date) {
+        return 'd'
+    }
+    if (bind instanceof Uint8Array) {
+        return 'x'
+    }
+    if (typeof bind === 'object' && ('val' in bind || 'dir' in bind)) {
+        if (bind.dir === oracleDb.BIND_OUT) {
+            return ''
+        }
+        return bind.type === undefined ? bindCode(bind.val) : dbTypeCode(bind.type)
+    }
+    return 'j'
+}
+
+/** The letter of a type a bind is given with: one for each type the library gives, and its number for any other */
+function dbTypeCode(type: DbType | number | string): string {
+    switch (type) {
+        case oracleDb.DB_TYPE_NUMBER: return 'n'
+        case oracleDb.DB_TYPE_BINARY_DOUBLE: return 'f'
+        case oracleDb.DB_TYPE_VARCHAR: return 't'
+        case oracleDb.DB_TYPE_NVARCHAR: return 'T'
+        case oracleDb.DB_TYPE_CLOB: return 'c'
+        case oracleDb.DB_TYPE_NCLOB: return 'C'
+        case oracleDb.DB_TYPE_DATE: return 'a'
+        case oracleDb.DB_TYPE_TIMESTAMP: return 'd'
+        case oracleDb.DB_TYPE_TIMESTAMP_TZ: return 'z'
+        case oracleDb.DB_TYPE_TIMESTAMP_LTZ: return 'l'
+        case oracleDb.DB_TYPE_BOOLEAN: return 'b'
+        case oracleDb.DB_TYPE_JSON: return 'j'
+        case oracleDb.DB_TYPE_RAW: return 'x'
+        case oracleDb.DB_TYPE_BLOB: return 'B'
+    }
+    return '[' + (typeof type === 'object' ? (type as { num?: number }).num ?? String(type) : String(type)) + ']'
 }
 
 /** Whether what driverTypeOf gives is a DbType with a maxSize, and not a DbType alone */

@@ -287,6 +287,12 @@ Read back, the value is `'2024-07-01T10:30:15.123000000+09:00'`. The format of `
 
 To keep the name of a region, write `TZR` in the `to_char` instead of `TZH:TZM`, with a space before it (`'YYYY-MM-DD"T"HH24:MI:SS.FF9 TZR'`): a value written with a region is read as `'2024-07-01T07:45:00.000000000 EUROPE/MADRID'`, and one written with an offset as `'2024-06-30T22:00:00.000000000 -05:00'`.
 
+## The comment of the binds
+
+The query runner executes a statement with parameters with a comment at its end that says the type of each one, like `select :0 as "result" from dual /* binds: n */`: a letter for each parameter (`n` a number, `t` a text, `d` a date, `-` a null, …), followed by the times it repeats when it does three or more times (`/* binds: tn500 */`). You see it in what Oracle shows of the statements it runs, like `v$sql`; your logs, interceptors and mocks see the query without it.
+
+oracledb keeps each statement in its statement cache by its text, with the types of its parameters and of the columns of its result the first time it runs. A column that takes the type of a parameter, like a constant selected (`select :0 as "result" from dual`), would be read the next time with that type: a text where a number was read fails with `ORA-01722`, and a number where a text was read comes as a text. With the comment, each combination of types is a statement of its own in the cache, and the cache keeps its size and its default (`stmtCacheSize`).
+
 ## Dates before 1582
 
 Oracle counts the dates before 15 October 1582 in the Julian calendar, and a JavaScript `Date` in the Gregorian one for every year. The digits the library sends and reads are the same, but what Oracle computes from a date before that day doesn't agree with JavaScript: `getDay()` of `0999-01-14` is `6` (a Saturday, for Oracle) where the `Date` gives `1` (a Monday), and `getTime()` is five days later than the `Date`'s. The days from 5 to 14 October 1582 don't exist in Oracle: `to_date('1582-10-10', 'YYYY-MM-DD')` is 15 October 1582. Dates from 15 October 1582 on agree.

@@ -30,6 +30,8 @@ void tProject
 
 // A condition on the issues
 type IssueCondition = ILogicalValueSource<SourceOf<typeof tIssue.id>, OptionalType>
+// IssueCondition is the type of the conditions of the commented-out uuid test below; the cells where it runs use it for real
+void function (_condition: IssueCondition) {}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -290,6 +292,8 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
+    /*
     test('collation: the insensitive text operators of a uuid are those of its text', async () => {
         // The methods of the uuid give the SQL of the same methods on asString(), under a set collation and the empty one
         for (const conn of [ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation), ctx.withInsensitiveCollation('')]) {
@@ -308,6 +312,7 @@ describe(ctx.label, () => {
         }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where bin_to_uuid(external_ref) like concat('%', ?, '%')"`)
     })
+    */
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — on MySQL 5.7 a server-side prepared statement's parameter has the binary character set (COLLATE over it is rejected, an expression over it comes back as bytes), and Bun SQL always sends a prepared statement; runs on the mysql2 connector.
     /*

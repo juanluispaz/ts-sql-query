@@ -244,6 +244,7 @@ nav:
     - Insert API: api/insert.md
     - Update API: api/update.md
     - Delete API: api/delete.md
+    - Data types API: api/data-types.md
     - Type adapters API: api/type-adapters.md
     - SQL data types API: api/sql-data-types.md
     - Dynamic conditions API: api/dynamic-conditions.md

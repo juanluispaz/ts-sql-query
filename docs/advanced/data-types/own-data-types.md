@@ -6,7 +6,7 @@ search:
 
 A data type of yours gives a column your own TypeScript type, like an amount of cents that your code doesn't mix with other numbers, or a value only your code understands, like a JSON document. It is a class that extends a family of the library, declared once and used wherever a value of that type goes: in each column, [constant](../../queries/basic-query-structure.md), [SQL fragment](../../queries/sql-fragments.md) and argument of a fragment. The family says which operations the values offer in a query, their type in the database and how they are converted.
 
-This page has the class, the families and giving the type by its name. The TypeScript types that suit a data type of yours are in [Branded and opaque types](branded-and-opaque-types.md), methods with SQL of your own in [Methods of your own](methods-of-your-own.md), and converting the values in your own way in [Type adapters](type-adapters.md). For the types the library has, see [Data types](../../configuration/data-types.md).
+This page has the class, the families and giving the type by its name; every static, method and type a class of a data type has is listed in the [Data types API](../../api/data-types.md). The TypeScript types that suit a data type of yours are in [Branded and opaque types](branded-and-opaque-types.md), methods with SQL of your own in [Methods of your own](methods-of-your-own.md), and converting the values in your own way in [Type adapters](type-adapters.md). For the types the library has, see [Data types](../../configuration/data-types.md).
 
 ## The class
 

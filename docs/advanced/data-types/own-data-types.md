@@ -6,7 +6,7 @@ search:
 
 A data type of yours gives a column your own TypeScript type, like an amount of cents that your code doesn't mix with other numbers, or a value only your code understands, like a JSON document. It is a class that extends a family of the library, declared once and used wherever a value of that type goes: in each column, [constant](../../queries/basic-query-structure.md), [SQL fragment](../../queries/sql-fragments.md) and argument of a fragment. The family says which operations the values offer in a query, their type in the database and how they are converted.
 
-This page has the class, the families and giving the type by its name; every static, method and type a class of a data type has is listed in the [Data types API](../../api/data-types.md). The TypeScript types that suit a data type of yours are in [Branded and opaque types](branded-and-opaque-types.md), methods with SQL of your own in [Methods of your own](methods-of-your-own.md), and converting the values in your own way in [Type adapters](type-adapters.md). For the types the library has, see [Data types](../../configuration/data-types.md).
+This page has the class, the families, its type in the database, its conversions and giving the type by its name; every static, method and type a class of a data type has is listed in the [Data types API](../../api/data-types.md). The TypeScript types that suit a data type of yours are in [Branded and opaque types](branded-and-opaque-types.md), methods with SQL of your own in [Methods of your own](methods-of-your-own.md), and converting the values in your own way in [Type adapters](type-adapters.md). For the types the library has, see [Data types](../../configuration/data-types.md).
 
 ## The class
 
@@ -71,7 +71,11 @@ abstract class CentsType extends IntegersType<Cents, 'Cents'> {
 costCents = this.column('cost_cents', CentsType)
 ```
 
-An integer of yours is an `int` of 4 bytes. Its class says another size with its SQL data type, and the size decides the value in your code: one that fits in a `number` (up to 6 bytes, or 15 digits) is a `number`, and a wider one a `bigint`, which keeps every digit:
+## Its type in the database
+
+Each class has a type in the database by default, its SQL data type, which says what its values are there: the one of its family, in its static `sqlDataType`. An integer of yours is an integer of 4 bytes, like an `int`, a `RealsType` a floating point number, a `UuidsType` a uuid; a family whose values only you know, like `EqualableType`, `ComparableType` or `AdditiveType`, has none, and its values are sent as their value in JavaScript. The query runners send and read every value of the type by it, also a constant or a computed value like `cost.add(1)`. The SQL data type of each family is in [The SQL data type of a data type](sql-data-types.md#the-sql-data-type-of-a-data-type).
+
+A class of yours says another one with `static override readonly sqlDataType`. For an integer, the size decides the value in your code: one that fits in a `number` (up to 6 bytes, or 15 digits) is a `number`, and a wider one a `bigint`, which keeps every digit:
 
 ```typescriptreact
 declare const downloadsBrand: unique symbol
@@ -87,13 +91,15 @@ The TypeScript type has to be the one of that value: a `bigint` for an integer w
 
 An integer wider than the integer types of the databases, like `{ family: 'exact numeric', precision: 30, scale: 0 }`, keeps every digit too: it's read, compared, computed and summed as an exact number. SQLite, whose integers have 64 bits, keeps it as its text, as an [exact decimal](../../configuration/supported-databases/sqlite.md#exact-decimals-the-decimal-strategies).
 
-## Converting its values
+## Its conversions: a type adapter in the class
+
+The class of a data type converts its values as a [type adapter](type-adapters.md) does, with statics of the same names and parameters: `transformValueToDB` for a value sent, `transformValueFromDB` for a value read, and, optionally, `transformPlaceholder` and `transformProjection` for the SQL of the parameter and of the value read. By default they convert nothing and call `next`, the conversion of the library; a class of yours overrides the ones it needs with `static override`. They apply to every value of the type, in every column, constant, fragment and argument, after the type adapter of the column, if it has one: the conversion goes with the type wherever it's used. [A value of a class of yours](branded-and-opaque-types.md#a-value-of-a-class-of-yours) has a class that converts its values, and [The context of a conversion](conversion-context.md) what each step of the conversion sees.
 
 !!! important
 
     Register the conversion of a type whose family doesn't convert it (`AdditiveType`, `MultipliableType`, `DivisibleType`, `EnumType`, `EqualableType` and `ComparableType`), and of a type whose values in your code aren't those its family converts, like a date kept as its text. Without it, such a value is returned as it comes, and that depends on where it comes from: from a plain column you get what the driver gives, which can be different in each driver, and from [an array aggregate](../../queries/aggregate-as-object-array.md#how-the-values-go-through-json) you get what is in the JSON. A number there is its text, so that no digit is lost, and it's the conversion that decides what to do with it.
 
-The conversion is written in the class of the type, so it goes with the type wherever it's used; in the connection, for every type it applies to; or in a type adapter of one column. [Branded and opaque types](branded-and-opaque-types.md#a-value-of-a-class-of-yours) has a class that converts its values, and [Type adapters](type-adapters.md) the rest.
+The conversion can also be written in the connection, for every type it applies to, or in a type adapter of one column: see [Type adapters](type-adapters.md).
 
 ## Giving your type by its name
 

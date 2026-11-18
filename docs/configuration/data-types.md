@@ -69,7 +69,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A date with time, like the moment something happened | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
 | One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
 | A value your code gives a type of its own, like an id with a TypeScript brand | A class of the [family](../advanced/data-types/own-data-types.md#the-families) with the operations it needs | It's converted as its family says, like an `IntegersType` as an `int`. |
-| A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](../advanced/data-types/own-data-types.md#converting-its-values). |
+| A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class). |
 
 On SQLite, with a `localdate` [strategy of dates](supported-databases/sqlite.md#working-with-date-and-time), the default, a `localTime` and a `localDateTime` hold the stored text in their local getters instead: see [Time zones](time-zones.md#the-rule-every-value-in-the-database-is-in-utc).
 
@@ -90,9 +90,9 @@ abstract class MyCentsType extends IntegersType<Cents, 'Cents'> {
 costCents = this.column('cost_cents', MyCentsType)
 ```
 
-A column of `MyCentsType` is compared, computed and assigned only with values of `Cents`. What else a type of yours can do:
+A column of `MyCentsType` is compared, computed and assigned only with values of `Cents`. Its class also says, as statics, its type in the database, by default the one of its family (an integer of 4 bytes here), and how its values are converted, like a type adapter of the whole type. What else a type of yours can do:
 
-- [Data types of your own](../advanced/data-types/own-data-types.md): the class, the families and what each one does, the size of an integer, converting the values of a family that converts nothing, and giving the type by its name, like `'Cents'`.
+- [Data types of your own](../advanced/data-types/own-data-types.md): the class, the families and what each one does, its type in the database, its conversions as a type adapter in the class, and giving the type by its name, like `'Cents'`.
 - [Branded and opaque types](../advanced/data-types/branded-and-opaque-types.md): branding a type with a `unique symbol`, a value of a class of yours, and combining your type with other values, like multiplying cents by a plain number.
 - [Methods of your own](../advanced/data-types/methods-of-your-own.md): a method with SQL of your own, and the operations of your type in a dynamic filter.
 - [Type adapters](../advanced/data-types/type-adapters.md): converting the values in your own way, for every column of a type or for one.

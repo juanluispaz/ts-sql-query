@@ -1,4 +1,4 @@
-import type { DataTypeClass, SqlDataType, TypeAdapter } from '../TypeAdapter.js'
+import type { CharacterStringSqlDataType, DataTypeClass, DefaultTypeAdapter, SqlDataType, TypeAdapter, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { unadaptedClass } from '../utils/symbols.js'
 
 // The type adapter of a value source is part of its class: a value source with a type adapter is an instance of a
@@ -112,4 +112,63 @@ export function __keptClassOf(valueSource: object, typeClass: DataTypeClass): Da
  */
 export function __computedClassOf(valueSource: object, typeClass: DataTypeClass): DataTypeClass {
     return __adaptedTypeClassOf(typeClass, (valueSource.constructor as AdaptableClass)[typeAdapterOfClass], false)
+}
+
+/**
+ * The class of a text computed from texts (concat, replace, substr, trim, ...): a large object when one of them is, and a
+ * national text when one of them is, as Oracle, SQL Server, MySQL and MariaDB give it; without a length, which each
+ * database computes its own way. Without either, the class of the data type: a text computed from a column is not a
+ * value of that column. The operands that aren't value sources (a text given to the operation) count as plain texts
+ */
+export function __computedTextClassOf(typeClass: DataTypeClass, receiver: object, operand?: unknown, operand2?: unknown): DataTypeClass {
+    const largeObject = isLargeObjectText(receiver) || isLargeObjectText(operand) || isLargeObjectText(operand2)
+    const national = isNationalText(receiver) || isNationalText(operand) || isNationalText(operand2)
+    if (!largeObject && !national) {
+        return typeClass
+    }
+    const index = (largeObject ? 1 : 0) + (national ? 2 : 0)
+    let adapter = computedTextAdapters[index]
+    if (!adapter) {
+        const sqlDataType: SqlDataType = largeObject && national ? { family: 'character string', largeObject: true, national: true } : largeObject ? { family: 'character string', largeObject: true } : { family: 'character string', national: true }
+        adapter = computedTextAdapters[index] = new ComputedTextAdapter(sqlDataType)
+    }
+    return __adaptedTypeClassOf(typeClass, adapter)
+}
+
+/** Whether the class is the one of a computed text that says it is a large object or a national text */
+export function __isComputedTextClass(typeClass: DataTypeClass): boolean {
+    return (typeClass as AdaptableClass)[typeAdapterOfClass] instanceof ComputedTextAdapter
+}
+
+/** The adapters of the computed texts, by large object (1) and national (2): created the first time each is needed */
+const computedTextAdapters: Array<ComputedTextAdapter | undefined> = []
+
+/** The SQL data type of a computed text, without conversions */
+class ComputedTextAdapter implements TypeAdapter {
+    readonly sqlDataType: SqlDataType
+    constructor(sqlDataType: SqlDataType) {
+        this.sqlDataType = sqlDataType
+    }
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
+    }
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, context)
+    }
+}
+
+function textSqlDataTypeOf(value: unknown): CharacterStringSqlDataType | undefined {
+    if (typeof value !== 'object' || value === null) {
+        return undefined
+    }
+    const sqlDataType = __sqlDataTypeOf(value.constructor as unknown as DataTypeClass)
+    return sqlDataType?.family === 'character string' ? sqlDataType : undefined
+}
+
+function isLargeObjectText(value: unknown): boolean {
+    return textSqlDataTypeOf(value)?.largeObject === true
+}
+
+function isNationalText(value: unknown): boolean {
+    return textSqlDataTypeOf(value)?.national === true
 }

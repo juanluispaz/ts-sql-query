@@ -1,6 +1,7 @@
 // What the Oracle runner does with the SQL data type of a column (withSqlDataType): the returning of a column that is a
-// large object of text is received in an OUT bind of a CLOB, whole, without giving the type in driverTypeOf, and a
-// text of a known length in a buffer of that length; an object of a JSON column is bound as a JSON.
+// large object of text, or a text computed from one, is received in an OUT bind of a CLOB, whole, without giving the type
+// in driverTypeOf, and a text of a known length in a buffer of that length; an object of a JSON column is bound as a
+// JSON.
 
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import { OracleConnection } from '../../../src/connections/OracleConnection.js'
@@ -76,6 +77,18 @@ describe.skipIf(!isRealDbEnabled('oracle', 'docker', 'newest', 'oracledb'))('Ora
         const outBinds = Object.values(runner.lastBinds!).filter(bind => bind && typeof bind === 'object' && 'dir' in bind)
         // The CLOB, as a CLOB; the text of 10 characters in a buffer of 10 characters of 4 bytes
         expect(outBinds.map(bind => ({ type: bind.type?.name, maxSize: bind.maxSize }))).toEqual([{ type: 'DB_TYPE_CLOB', maxSize: 32767 }, { type: undefined, maxSize: 40 }])
+    }, LONG_TEXT_TIMEOUT)
+
+    test('a-text-computed-from-a-large-object-is-returned-whole', async () => {
+        // The concat of a CLOB is a CLOB for Oracle: it is received in a CLOB, not in a buffer of text (ORA-22835)
+        const runner = new InspectedRunner(connection!)
+        const conn = new DBConnection(runner)
+        const long = 'x'.repeat(40_000)
+        await conn.insertInto(tNote).set({ id: 3, body: long }).executeInsert()
+        const row = await conn.update(tNote).set({ code: 'a' }).where(tNote.id.equals(3)).returning({ body: tNote.body.concat('y') }).executeUpdateOne()
+        expect(row.body?.length).toBe(40_001)
+        const outBinds = Object.values(runner.lastBinds!).filter(bind => bind && typeof bind === 'object' && 'dir' in bind)
+        expect(outBinds.map(bind => ({ type: bind.type?.name, maxSize: bind.maxSize }))).toEqual([{ type: 'DB_TYPE_CLOB', maxSize: 32767 }])
     }, LONG_TEXT_TIMEOUT)
 
     test('without-a-sql-data-type-a-long-text-is-rejected', async () => {

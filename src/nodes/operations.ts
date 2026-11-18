@@ -11,7 +11,7 @@ import { __typeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js
 import { __addInlineQueryWiths, isSelectQuery } from './inlineSelect.js'
 import { getOptionalType2 } from './operands.js'
 import { __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
-import { __classOf, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __isComputedTextClass, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 import { type AnyType } from '../typeSystem/base.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
@@ -28,7 +28,11 @@ function argumentClassOf(vs: NodeValueSource & { __valueSource: NodeValueSource,
     }
     const result = __classOf(vs)
     const receiver = __classOf(vs.__valueSource)
-    return __unadaptedClassOf(result) === __unadaptedClassOf(receiver) ? result : receiver
+    if (__unadaptedClassOf(result) !== __unadaptedClassOf(receiver)) {
+        return receiver
+    }
+    // A text given to an operation that gives a large object or a national text is a plain text
+    return __isComputedTextClass(result) ? __unadaptedClassOf(result) : result
 }
 
 /** The operations whose value is a number without a unit, not a value of the data type of the receiver */

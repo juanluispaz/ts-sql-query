@@ -11,7 +11,7 @@ import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newSqlOperation1ValueSourceIfValueOrIgnore, __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperation2ValueSourceIfValueOrIgnore } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalType3, getRequiredType2 } from '../nodes/operands.js'
 import { __newSqlOperation1ValueSource, __newSqlOperation2ValueSource, __newSqlOperationCollateValueSource, __operation0 } from '../nodes/operations.js'
-import { __keptClassOf, __adaptedTypeClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __keptClassOf, __adaptedTypeClassOf, __computedClassOf, __computedTextClassOf } from '../nodes/adaptedTypeClass.js'
 import { __asNodeValueSource } from '../nodes/NodeStrategy.js'
 
 
@@ -222,11 +222,11 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     }
     toLowerCase(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     toLowerCase(): any {
-        return __operation0(this, '_toLowerCase', __typeClassOf(this))
+        return __operation0(this, '_toLowerCase', __computedTextClassOf(__typeClassOf(this), this))
     }
     toUpperCase(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     toUpperCase(): any {
-        return __operation0(this, '_toUpperCase', __typeClassOf(this))
+        return __operation0(this, '_toUpperCase', __computedTextClassOf(__typeClassOf(this), this))
     }
     length(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     length(): any {
@@ -234,29 +234,29 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     }
     trim(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     trim(): any {
-        return __operation0(this, '_trim', __typeClassOf(this))
+        return __operation0(this, '_trim', __computedTextClassOf(__typeClassOf(this), this))
     }
     trimLeft(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     trimLeft(): any {
-        return __operation0(this, '_trimLeft', __typeClassOf(this))
+        return __operation0(this, '_trimLeft', __computedTextClassOf(__typeClassOf(this), this))
     }
     trimRight(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     trimRight(): any {
-        return __operation0(this, '_trimRight', __typeClassOf(this))
+        return __operation0(this, '_trimRight', __computedTextClassOf(__typeClassOf(this), this))
     }
     reverse(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     reverse(): any {
-        return __operation0(this, '_reverse', __typeClassOf(this))
+        return __operation0(this, '_reverse', __computedTextClassOf(__typeClassOf(this), this))
     }
     // SqlFunction1
     concatIfValue(value: string | null | undefined): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     concatIfValue(value: any): any {
-        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, __typeClassOf(this), getOptionalType2(this, value))
+        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, __computedTextClassOf(__typeClassOf(this), this, value), getOptionalType2(this, value))
     }
     concat(value: string): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     concat<VALUE extends IStringValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     concat(value: any): any {
-        return __newSqlOperation1ValueSource('_concat', this, value, __typeClassOf(this), getOptionalType2(this, value))
+        return __newSqlOperation1ValueSource('_concat', this, value, __computedTextClassOf(__typeClassOf(this), this, value), getOptionalType2(this, value))
     }
     /**
      * {@link concatIgnoringNull} whose operand is dropped when the value is absent, the way
@@ -273,7 +273,7 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
         // stricter one `concatIgnoringNull` computes: an ABSENT value leaves the receiver alone,
         // and whether it is absent is a run-time fact. Absence also depends on the connection's
         // `allowEmptyString`, which vs constructor cannot see.
-        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, __typeClassOf(this), getOptionalType2(this, value))
+        return __newSqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, __computedTextClassOf(__typeClassOf(this), this, value), getOptionalType2(this, value))
     }
     /**
      * Concatenation that reads a NULL operand as the empty string, instead of propagating it the
@@ -293,17 +293,17 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     concatIgnoringNull(value: any): any {
         // A NULL operand counts as the empty string, so the result is optional only when EVERY
         // operand is: `getRequiredType2` keeps the STRICTEST operand instead of the loosest.
-        return __newSqlOperation1ValueSource('_concatIgnoringNull', this, value, __typeClassOf(this), getRequiredType2(this, value))
+        return __newSqlOperation1ValueSource('_concatIgnoringNull', this, value, __computedTextClassOf(__typeClassOf(this), this, value), getRequiredType2(this, value))
     }
     substrToEnd(start: number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     substrToEnd<VALUE extends INumberValue>(start: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     substrToEnd(start: any): any {
-        return __newSqlOperation1ValueSource('_substrToEnd', this, start, __typeClassOf(this), getOptionalType2(this, start))
+        return __newSqlOperation1ValueSource('_substrToEnd', this, start, __computedTextClassOf(__typeClassOf(this), this), getOptionalType2(this, start))
     }
     substringToEnd(start: number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     substringToEnd<VALUE extends INumberValue>(start: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     substringToEnd(start: any): any {
-        return __newSqlOperation1ValueSource('_substringToEnd', this, start, __typeClassOf(this), getOptionalType2(this, start))
+        return __newSqlOperation1ValueSource('_substringToEnd', this, start, __computedTextClassOf(__typeClassOf(this), this), getOptionalType2(this, start))
     }
     // SqlFunction2
     substr(start: number, count: number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
@@ -311,40 +311,40 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     substr<VALUE extends INumberValue>(start: VALUE, count: number): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     substr<VALUE extends INumberValue, VALUE2 extends INumberValue>(start: VALUE, count: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>, OptionalityOf<VALUE2>>>
     substr(start: any, count: any): any {
-        return __newSqlOperation2ValueSource('_substr', this, start, count, __typeClassOf(this), getOptionalType3(this, start, count))
+        return __newSqlOperation2ValueSource('_substr', this, start, count, __computedTextClassOf(__typeClassOf(this), this), getOptionalType3(this, start, count))
     }
     substring(start: number, count: number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     substring<VALUE2 extends INumberValue>(start: number, end: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
     substring<VALUE extends INumberValue>(start: VALUE, end: number): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     substring<VALUE extends INumberValue, VALUE2 extends INumberValue>(start: VALUE, end: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>, OptionalityOf<VALUE2>>>
     substring(start: any, end: any): any {
-        return __newSqlOperation2ValueSource('_substring', this, start, end, __typeClassOf(this), getOptionalType3(this, start, end))
+        return __newSqlOperation2ValueSource('_substring', this, start, end, __computedTextClassOf(__typeClassOf(this), this), getOptionalType3(this, start, end))
     }
     replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     replaceAllIfValue<VALUE2 extends IStringValue>(findString: string | null | undefined, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
     replaceAllIfValue<VALUE extends IStringValue>(findString: VALUE, replaceWith: string | null | undefined): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     replaceAllIfValue(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, __computedTextClassOf(__typeClassOf(this), this, replaceWith), getOptionalType3(this, findString, replaceWith))
     }
     replaceAll(findString: string, replaceWith: string): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     replaceAll<VALUE2 extends IStringValue>(findString: string, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
     replaceAll<VALUE extends IStringValue>(findString: VALUE, replaceWith: string): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     replaceAll<VALUE extends IStringValue, VALUE2 extends IStringValue>(findString: VALUE, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>, OptionalityOf<VALUE2>>>
     replaceAll(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, __computedTextClassOf(__typeClassOf(this), this, replaceWith), getOptionalType3(this, findString, replaceWith))
     }
     replaceAllInsensitiveIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     replaceAllInsensitiveIfValue<VALUE2 extends IStringValue>(findString: string | null | undefined, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
     replaceAllInsensitiveIfValue<VALUE extends IStringValue>(findString: VALUE, replaceWith: string | null | undefined): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     replaceAllInsensitiveIfValue(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, __computedTextClassOf(__typeClassOf(this), this, replaceWith), getOptionalType3(this, findString, replaceWith))
     }
     replaceAllInsensitive(findString: string, replaceWith: string): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     replaceAllInsensitive<VALUE2 extends IStringValue>(findString: string, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
     replaceAllInsensitive<VALUE extends IStringValue>(findString: VALUE, replaceWith: string): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     replaceAllInsensitive<VALUE extends IStringValue, VALUE2 extends IStringValue>(findString: VALUE, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>, OptionalityOf<VALUE2>>>
     replaceAllInsensitive(findString: any, replaceWith: any): any {
-        return __newSqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, __typeClassOf(this), getOptionalType3(this, findString, replaceWith))
+        return __newSqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, __computedTextClassOf(__typeClassOf(this), this, replaceWith), getOptionalType3(this, findString, replaceWith))
     }
     // Redefined methods
 }

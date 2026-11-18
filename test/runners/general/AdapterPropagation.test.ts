@@ -14,6 +14,8 @@ const tThing = new class TThing extends Table<DBConnection, 'TThing'> {
     small = this.column('small', IntType, withSqlDataType({ family: 'exact numeric', bytes: 2 }))
     code = this.column('code', StringType, withSqlDataType({ family: 'character string', length: 3, fixed: true }))
     name = this.column('name', StringType, withSqlDataType({ family: 'character string', length: 50 }))
+    body = this.column('body', StringType, withSqlDataType({ family: 'character string', largeObject: true }))
+    label = this.column('label', StringType, withSqlDataType({ family: 'character string', length: 20, national: true }))
     constructor() { super('thing') }
 }()
 
@@ -61,6 +63,30 @@ describe('AdapterPropagation', () => {
         expect(sqlDataTypes()).toEqual({
             params: [{ family: 'character string', length: 3, fixed: true }],
             result: [undefined, { family: 'character string', length: 3, fixed: true }],
+        })
+    })
+
+    test('a-text-computed-from-a-large-object-or-a-national-text-is-one-without-a-length', async () => {
+        // A large object or a national text as an operand makes the computed text one too, as the databases give it; its
+        // length is the one each database computes
+        await conn.selectFrom(tThing).select({
+            concat: tThing.body.concat('x'),
+            operand: tThing.name.concat(tThing.body),
+            lower: tThing.label.toLowerCase(),
+            replace: tThing.name.replaceAll('a', tThing.label),
+            both: tThing.body.concat(tThing.label),
+            plain: tThing.name.substr(1, 2),
+        }).executeSelectMany()
+        expect(sqlDataTypes()).toEqual({
+            params: [undefined, undefined, undefined, undefined],
+            result: [
+                { family: 'character string', largeObject: true },
+                { family: 'character string', largeObject: true },
+                { family: 'character string', national: true },
+                { family: 'character string', national: true },
+                { family: 'character string', largeObject: true, national: true },
+                undefined,
+            ],
         })
     })
 })

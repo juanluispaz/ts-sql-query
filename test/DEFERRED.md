@@ -13,16 +13,37 @@ Each entry says what it is, why it waits, and what is already known.
   `int8`, a `concat` of two `varchar(10)` is a `varchar(20)`, the scale of a
   product of two `numeric(10, 2)`), instead of leaving the computed value without
   the SQL data type of its column.
-- **Why deferred:** the maintainer decided that a computed value of the same data
-  type keeps the conversions of the type adapter of its receiver but not the SQL
-  data type of the column (that type doesn't describe it), only where an SQL data
-  type is given; a value that is the value of one of its operands (`nullIfValue`,
-  `valueWhenNull`, `max`, `min`, `asOptional`, a select used as a value) keeps it.
-  Refining it is extra work for later.
-- **Known:** the research of the propagation of the type adapters (the maintainer
-  has the report) lists what the SQL data type of a result drives today: the cast
-  and the type of a parameter for the query runner, and the size of the out bind
-  of a `returning` on Oracle.
+- **Why deferred:** no part of the library needs it. A computed value keeps the
+  conversions of the type adapter of its receiver but not the SQL data type of
+  the column, and a computed text keeps only what every database gives: large
+  object and national. Precision, scale and length are what each database
+  computes, often nothing, and the library never decides a rejection or a cast
+  by the SQL data type of a computed value (CLAUDE.md).
+- **Known** (probed on the engines of the matrix, 2026-11-17):
+  - PostgreSQL 17 and 18: arithmetic and functions keep no precision, scale or
+    length (`numeric(5,2) + numeric(5,2)` is `numeric`, every text operation is
+    `text`); the integers widen (`int2 < int4 < int8`), `sum(int2)` is `int8`,
+    `sum(int8)` is `numeric`, `ceil(int)` is `double precision`; `coalesce` and
+    `case` keep a modifier only when every operand has the same.
+  - Oracle 21 and 23: every `NUMBER` computed has no precision or scale; a text
+    concatenated has the sum of the lengths in bytes (4 per character), up to
+    4000; a `CLOB` or a national operand makes the result one; `nvl` and
+    `nullif` take the type of their first argument, `coalesce` the longest.
+  - SQL Server 2019, 2022 and 2025: the documented formulas of precision and
+    scale, up to 38 by reducing the scale (which rounds silently); the lengths of
+    texts add up to 8000 or 4000, beyond which the value is cut, unless one is
+    `max`; `isnull` takes the type of its first argument, `coalesce` the
+    precedence.
+  - MySQL 5.7, 8, 26 and MariaDB 10.3 to 13: the formulas of precision and
+    scale (`/` adds `div_precision_increment`), up to 65 digits with a scale of
+    up to 30 on MySQL and 38 on MariaDB; `concat` adds the display widths; a
+    `text` operand gives a `text`; differences between versions in `round`,
+    `ceil` and `sign`.
+  - SQLite: a computed value has no declared type at all; the storage class of
+    each row depends on its value.
+  - What the SQL data type of a value drives: the cast and the type of a
+    parameter for the query runner, and the type and size of the out bind of a
+    `returning` on Oracle.
 
 ## Type system: the text of a uuid in an aggregate
 

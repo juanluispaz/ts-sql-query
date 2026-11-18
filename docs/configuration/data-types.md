@@ -90,7 +90,7 @@ abstract class MyCentsType extends IntegersType<Cents, 'Cents'> {
 costCents = this.column('cost_cents', MyCentsType)
 ```
 
-A column of `MyCentsType` is compared, computed and assigned only with values of `Cents`. Its class also says, as statics, its type in the database, by default the one of its family (an integer of 4 bytes here), and how its values are converted, like a type adapter of the whole type. What else a type of yours can do:
+A column of `MyCentsType` is compared, computed and assigned only with values of `Cents`. Its class also says, as statics, [its type in the database](../advanced/data-types/own-data-types.md#its-type-in-the-database), by default the one of its family (an integer of 4 bytes here), and [how its values are converted](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class), like a type adapter of the whole type. What else a type of yours can do:
 
 - [Data types of your own](../advanced/data-types/own-data-types.md): the class, the families and what each one does, its type in the database, its conversions as a type adapter in the class, and giving the type by its name, like `'Cents'`.
 - [Branded and opaque types](../advanced/data-types/branded-and-opaque-types.md): branding a type with a `unique symbol`, a value of a class of yours, and combining your type with other values, like multiplying cents by a plain number.

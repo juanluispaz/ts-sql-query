@@ -1,5 +1,5 @@
-// The durations (Temporal.Duration) as the library sends and reads them: the ISO 8601 text each database reads, the
-// number of microseconds of the strategy that keeps them as a number, and the forms the databases deliver.
+// The durations (Temporal.Duration) as the library sends and reads them: the ISO 8601 text each database reads, and
+// the forms the databases deliver.
 
 import { __temporal, __temporalIfAvailable, type TemporalDuration } from '../typeSystem/temporal.js'
 
@@ -53,17 +53,13 @@ const isoStyle = /^([-+])?P(?:(-?\d+)Y)?(?:(-?\d+)M)?(?:(-?\d+)W)?(?:(-?\d+)D)?(
 /**
  * The duration of a value a database delivers: a Temporal.Duration as it is; its ISO 8601 text (`P1Y2M3DT4H5M6.789S`,
  * `-PT90M`, also with a sign in each field); the text of a PostgreSQL interval in its default style; the text of an
- * interval of Oracle (`+000000003 04:05:06.789000000`, `-000000001-02`); the text or the
- * number of its microseconds (the strategy that keeps it as a number), balanced up to hours; an interval of oracledb
+ * interval of Oracle (`+000000003 04:05:06.789000000`, `-000000001-02`); an interval of oracledb
  * (`{ years, months }`, `{ days, hours, minutes, seconds, fseconds }`). Undefined for anything else, or for a value
  * whose fields mix signs, which a Temporal.Duration can't hold.
  */
 export function durationOfReceivedValue(value: unknown, typeName: string): TemporalDuration | undefined {
     if (isDurationValue(value)) {
         return value
-    }
-    if (typeof value === 'bigint' || typeof value === 'number' || (typeof value === 'string' && /^-?\d+$/.test(value.trim()))) {
-        return durationOfMicroseconds(BigInt(typeof value === 'number' ? Math.trunc(value) : typeof value === 'string' ? value.trim() : value), typeName)
     }
     if (typeof value === 'string') {
         const text = value.trim()
@@ -121,35 +117,6 @@ export function durationOfReceivedValue(value: unknown, typeName: string): Tempo
         }
     }
     return undefined
-}
-
-/** The duration of a number of microseconds, balanced up to hours: 5400000000 is `PT1H30M` */
-function durationOfMicroseconds(total: bigint, typeName: string): TemporalDuration | undefined {
-    const sign = total < 0n ? -1 : 1
-    let rest = total < 0n ? -total : total
-    const hours = rest / 3_600_000_000n
-    rest %= 3_600_000_000n
-    const minutes = rest / 60_000_000n
-    rest %= 60_000_000n
-    const seconds = rest / 1_000_000n
-    rest %= 1_000_000n
-    return durationOf({
-        hours: sign * Number(hours), minutes: sign * Number(minutes), seconds: sign * Number(seconds),
-        milliseconds: sign * Number(rest / 1000n), microseconds: sign * Number(rest % 1000n),
-    }, typeName)
-}
-
-/**
- * The microseconds of a duration without years nor months (a week is 7 days, a day 24 hours), as a bigint; the
- * nanoseconds are dropped. Undefined for a duration with years or months, which have no fixed length
- */
-export function durationMicroseconds(value: TemporalDuration): bigint | undefined {
-    if (value.years !== 0 || value.months !== 0) {
-        return undefined
-    }
-    const days = BigInt(value.weeks) * 7n + BigInt(value.days)
-    const seconds = ((days * 24n + BigInt(value.hours)) * 60n + BigInt(value.minutes)) * 60n + BigInt(value.seconds)
-    return seconds * 1_000_000n + BigInt(value.milliseconds) * 1000n + BigInt(value.microseconds)
 }
 
 /**

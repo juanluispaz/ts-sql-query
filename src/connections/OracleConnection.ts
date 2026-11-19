@@ -205,7 +205,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         if ((__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
         }
-        if (__isDurationClass(context.requestedType) && isDurationValue(value) && this.durationStorageOf(context.requestedSqlDataType) === 'interval') {
+        if (__isDurationClass(context.requestedType) && isDurationValue(value) && this.isDurationKeptAsInterval(context.requestedSqlDataType)) {
             // An interval of Oracle holds years and months, or days to seconds, never both: a duration that doesn't fit
             // the one of its column (days to seconds unless it says years to month) would lose a part
             const yearToMonth = context.requestedSqlDataType?.family === 'interval' && context.requestedSqlDataType.fields === 'year to month'

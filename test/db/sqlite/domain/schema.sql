@@ -316,12 +316,12 @@ CREATE TABLE temporal_precision (
 );
 
 -- duration_value: durations (Temporal.Duration) kept as the database can: span in its interval (of days to
--- seconds on Oracle) or ISO 8601 text, span_calendar with years and months, span_micros as a number of microseconds.
+-- seconds on Oracle) or ISO 8601 text, span_calendar with years and months, span_text as its ISO 8601 text.
 CREATE TABLE duration_value (
     id INTEGER PRIMARY KEY,
     span VARCHAR(64) NOT NULL,
     span_calendar VARCHAR(64),
-    span_micros BIGINT
+    span_text VARCHAR(64)
 );
 
 CREATE VIEW col_matrix_view AS

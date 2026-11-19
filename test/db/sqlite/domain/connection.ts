@@ -703,12 +703,12 @@ export const tRelease = new class TRelease extends Table<DBConnection, 'TRelease
 }()
 
 // duration_value: durations (Temporal.Duration) in the interval of the database, or its ISO 8601 text where it has none
-// (span, span_calendar, which has years and months), and as a number of microseconds (span_micros, a bigint)
+// (span, span_calendar, which has years and months), and as its ISO 8601 text (span_text, declared a text)
 export const tDurationValue = new class TDurationValue extends Table<DBConnection, 'TDurationValue'> {
     id           = this.primaryKey('id', 'int')
     span         = this.column('span', 'duration')
     spanCalendar = this.optionalColumn('span_calendar', 'duration')
-    spanMicros   = this.optionalColumn('span_micros', 'duration', withSqlDataType({ family: 'exact numeric', bytes: 8, scale: 0 }))
+    spanText     = this.optionalColumn('span_text', 'duration', withSqlDataType({ family: 'character string', length: 64 }))
     constructor() { super('duration_value') }
 }()
 

@@ -1,7 +1,7 @@
 // The durations (Temporal.Duration) as the connection converts them: what it accepts reading a value (the duration, its
-// ISO 8601 text, also with a sign in each field, the text of a PostgreSQL interval, the number of its microseconds, an
-// interval of oracledb), what it rejects (fields with mixed signs), what it sends to each storage, and the durations an
-// interval of Oracle can't keep.
+// ISO 8601 text, also with a sign in each field, the text of a PostgreSQL interval, an interval of oracledb), what it
+// rejects (fields with mixed signs, a number), what it sends to each storage (an interval, or its ISO 8601 text), and the
+// durations an interval of Oracle can't keep.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
@@ -15,9 +15,6 @@ import { durationIsoTextWithoutWeeks } from '../../../src/utils/durationValues.j
 class PgConnection extends PostgreSqlConnection<'PgConnection'> {}
 class OraConnection extends OracleConnection<'OraConnection'> {}
 class MyConnection extends MySqlConnection<'MyConnection'> {}
-class MyConnectionInMicroseconds extends MySqlConnection<'MyConnectionInMicroseconds'> {
-    protected override durationStrategy = 'microseconds as integer' as const
-}
 
 const tPgSpan = new class TPgSpan extends Table<PgConnection, 'TPgSpan'> {
     id = this.primaryKey('id', 'int')
@@ -34,13 +31,6 @@ const tOraSpan = new class TOraSpan extends Table<OraConnection, 'TOraSpan'> {
 const tMySpan = new class TMySpan extends Table<MyConnection, 'TMySpan'> {
     id = this.primaryKey('id', 'int')
     span = this.column('span', 'duration')
-    spanMicros = this.column('span_micros', 'duration', withSqlDataType({ family: 'exact numeric', bytes: 8, scale: 0 }))
-    constructor() { super('span') }
-}()
-const tMySpanInMicroseconds = new class TMySpanInMicroseconds extends Table<MyConnectionInMicroseconds, 'TMySpanInMicroseconds'> {
-    id = this.primaryKey('id', 'int')
-    span = this.column('span', 'duration')
-    spanText = this.column('span_text', 'duration', withSqlDataType({ family: 'character string', length: 64 }))
     constructor() { super('span') }
 }()
 
@@ -55,7 +45,6 @@ function executor(type: string, query: string, params: any[]): any {
 const pg = new PgConnection(new MockQueryRunner(executor, { queryRunner: 'PgPoolQueryRunner' }))
 const oracle = new OraConnection(new MockQueryRunner(executor, { queryRunner: 'OracleDBQueryRunner' }))
 const mysql = new MyConnection(new MockQueryRunner(executor, { queryRunner: 'MySql2QueryRunner' }))
-const mysqlInMicroseconds = new MyConnectionInMicroseconds(new MockQueryRunner(executor, { queryRunner: 'MySql2QueryRunner' }))
 
 function reasonOf(error: unknown): string {
     return error instanceof TsSqlError ? error.errorReason.reason : String(error)
@@ -110,14 +99,6 @@ describe('DurationValues', () => {
         expect(await read('100:00:00.123456')).toBe('PT100H0.123456S')
     })
 
-    test('a-number-of-microseconds-is-balanced-up-to-hours', async () => {
-        expect(await read(5400000000)).toBe('PT1H30M')
-        expect(await read(-93600000000n)).toBe('-PT26H')
-        expect(await read('273906789000')).toBe('PT76H5M6.789S')
-        expect(await read(' -1 ')).toBe('-PT0.000001S')
-        expect(await read(0)).toBe('PT0S')
-    })
-
     test('an-interval-of-oracledb', async () => {
         expect(await read({ years: 1, months: 2 })).toBe('P1Y2M')
         expect(await read({ years: -1, months: -2 })).toBe('-P1Y2M')
@@ -148,6 +129,8 @@ describe('DurationValues', () => {
         expect(await read('1 hour')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
         expect(await read('1.5')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
         expect(await read(true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+        expect(await read(5400000000)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+        expect(await read('5400000000')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
         expect(await read(Temporal.PlainTime.from('01:30'))).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
         expect(await read({ days: 1 })).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
@@ -202,22 +185,11 @@ describe('DurationValues', () => {
         expect(await outcome(() => oracle.update(tOraSpan).set({ spanText: Temporal.Duration.from('P1M1D') }).where(tOraSpan.id.equals(1)).executeUpdate())).toBe('sent')
     })
 
-    test('a-database-without-intervals-keeps-the-text-or-the-microseconds', async () => {
+    test('a-database-without-intervals-keeps-the-iso-text', async () => {
         await mysql.update(tMySpan)
-            .set({ span: Temporal.Duration.from('-P1Y2W'), spanMicros: Temporal.Duration.from('P1W1DT0.000001999S') })
+            .set({ span: Temporal.Duration.from('-P1Y2W3DT0.000000001S') })
             .where(tMySpan.id.equals(1))
             .executeUpdate()
-        // The nanoseconds are dropped from the microseconds
-        expect(lastParams.map(String)).toEqual(['-P1Y2W', '691200000001', '1'])
-        await mysqlInMicroseconds.update(tMySpanInMicroseconds)
-            .set({ span: Temporal.Duration.from('-PT1H'), spanText: Temporal.Duration.from('P1M') })
-            .where(tMySpanInMicroseconds.id.equals(1))
-            .executeUpdate()
-        expect(lastParams.map(String)).toEqual(['-3600000000', 'P1M', '1'])
-    })
-
-    test('microseconds-cant-keep-years-nor-months', async () => {
-        expect(await outcome(() => mysql.update(tMySpan).set({ spanMicros: Temporal.Duration.from('P1Y') }).where(tMySpan.id.equals(1)).executeUpdate())).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
-        expect(await outcome(() => mysqlInMicroseconds.update(tMySpanInMicroseconds).set({ span: Temporal.Duration.from('-P1M') }).where(tMySpanInMicroseconds.id.equals(1)).executeUpdate())).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+        expect(lastParams.map(String)).toEqual(['-P1Y2W3DT0.000000001S', '1'])
     })
 })

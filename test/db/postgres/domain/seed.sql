@@ -88,9 +88,9 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() must read 59, getMilliseconds() 999 (see schema comment).
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, '2024-01-15 12:30:59.999600');
--- duration_value: 1 is 3 days 04:05:06.789 and 1 year 2 months; 2 is -1 day -2 hours; 3 is 1 hour 30 minutes, without
--- years nor months.
-INSERT INTO duration_value (id, span, span_calendar, span_micros) VALUES
-    (1, '3 days 04:05:06.789', '1 year 2 months', 273906789000),
-    (2, '-1 days -02:00:00', NULL, -93600000000),
-    (3, '01:30:00', NULL, 5400000000);
+-- duration_value: 1 is 3 days 04:05:06.789 and 1 year 2 months; 2 is -1 day -2 hours; 3 is 1 hour 30 minutes;
+-- span_text keeps the ISO 8601 text P1Y2M3DT4H5M6.789S, -PT26H and PT90M.
+INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES
+    (1, '3 days 04:05:06.789', '1 year 2 months', 'P1Y2M3DT4H5M6.789S'),
+    (2, '-1 days -02:00:00', NULL, '-PT26H'),
+    (3, '01:30:00', NULL, 'PT90M');

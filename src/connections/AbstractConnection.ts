@@ -46,7 +46,7 @@ import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/l
 import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
 import { parsePlainDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
-import { durationMicroseconds, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
+import { durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
@@ -65,30 +65,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
-    /**
-     * How a duration (a Temporal.Duration) is kept in a database without a type for it (MariaDB, MySQL, SQLite, SQL
-     * Server), unless the SQL data type of its column says otherwise (a text, or an exact number): as its ISO 8601 text
-     * (`'ISO 8601 text'`, the default; any duration, compared as text), or as the number of its microseconds
-     * (`'microseconds as integer'`; a duration without years nor months, compared and computed as a number).
-     * PostgreSQL and Oracle keep it in their intervals.
-     */
-    protected durationStrategy: 'ISO 8601 text' | 'microseconds as integer' = 'ISO 8601 text'
     /** Whether the database keeps a duration in an interval of its own (PostgreSQL, Oracle) */
     protected hasNativeDurations(): boolean {
         return false
     }
     /**
-     * How a duration is kept, by the SQL data type of its column: a text, its ISO 8601 text; an exact number, its
-     * microseconds; an interval (the default of a duration), the interval of the database, or the durationStrategy
+     * Whether a duration is kept in an interval of the database: on PostgreSQL and Oracle, unless the SQL data type of
+     * its column is a text. Otherwise it is kept as its ISO 8601 text, the text of Temporal
      */
-    protected durationStorageOf(sqlDataType: SqlDataType | undefined): 'interval' | 'ISO 8601 text' | 'microseconds as integer' {
-        if (sqlDataType?.family === 'character string') {
-            return 'ISO 8601 text'
-        }
-        if (sqlDataType?.family === 'exact numeric') {
-            return 'microseconds as integer'
-        }
-        return this.hasNativeDurations() ? 'interval' : this.durationStrategy
+    protected isDurationKeptAsInterval(sqlDataType: SqlDataType | undefined): boolean {
+        return this.hasNativeDurations() && sqlDataType?.family !== 'character string'
     }
     protected insensitiveCollation?: string | undefined
     /**
@@ -1419,17 +1405,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             if (!isDurationValue(value)) {
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid duration value to send to the db: ' + String(value))
             }
-            const storage = this.durationStorageOf(context.requestedSqlDataType)
-            if (storage === 'ISO 8601 text') {
+            if (!this.isDurationKeptAsInterval(context.requestedSqlDataType)) {
                 return value.toString()
-            }
-            if (storage === 'microseconds as integer') {
-                const microseconds = durationMicroseconds(value)
-                if (microseconds === undefined) {
-                    // Years and months have no fixed length: a number of microseconds can't keep them
-                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid duration value to send to the db, kept as microseconds: ' + String(value) + ' has years or months')
-                }
-                return microseconds
             }
             // An interval of the database: each query runner gives its driver the form it needs
             return value

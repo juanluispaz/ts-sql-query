@@ -93,11 +93,11 @@ INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m
 -- express. getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES
     (1, TIMESTAMP '2024-01-15 12:30:59.999600');
--- duration_value: 1 is 3 days 04:05:06.789 and 1 year 2 months; 2 is -1 day -2 hours; 3 is 1 hour 30 minutes, without
--- years nor months.
-INSERT INTO duration_value (id, span, span_calendar, span_micros) VALUES (1, INTERVAL '3 04:05:06.789' DAY TO SECOND, INTERVAL '1-2' YEAR TO MONTH, 273906789000);
-INSERT INTO duration_value (id, span, span_calendar, span_micros) VALUES (2, INTERVAL '-1 02:00:00' DAY TO SECOND, NULL, -93600000000);
-INSERT INTO duration_value (id, span, span_calendar, span_micros) VALUES (3, INTERVAL '0 01:30:00' DAY TO SECOND, NULL, 5400000000);
+-- duration_value: 1 is 3 days 04:05:06.789 and 1 year 2 months; 2 is -1 day -2 hours; 3 is 1 hour 30 minutes;
+-- span_text keeps the ISO 8601 text P1Y2M3DT4H5M6.789S, -PT26H and PT90M.
+INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES (1, INTERVAL '3 04:05:06.789' DAY TO SECOND, INTERVAL '1-2' YEAR TO MONTH, 'P1Y2M3DT4H5M6.789S');
+INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES (2, INTERVAL '-1 02:00:00' DAY TO SECOND, NULL, '-PT26H');
+INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES (3, INTERVAL '0 01:30:00' DAY TO SECOND, NULL, 'PT90M');
 INSERT INTO service_plan (id, name, description) VALUES (1, 'Enterprise', NULL);
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (1, TO_DATE('2024-03-15 09:05:07', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2024-03-15 09:20:45', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('1970-01-01 08:30:15', 'YYYY-MM-DD HH24:MI:SS'));
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (2, TO_DATE('2024-03-18 14:40:00', 'YYYY-MM-DD HH24:MI:SS'), NULL, TO_DATE('1970-01-01 16:45:30', 'YYYY-MM-DD HH24:MI:SS'));

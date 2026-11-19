@@ -4,7 +4,7 @@ import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryCo
 import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -1192,6 +1192,29 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _bigintLiteral(value: bigint): string {
         // A literal beyond an int is a numeric, whose division keeps a fraction
         return value > 2147483647n ? 'cast(' + value + ' as bigint)' : String(value)
+    }
+    /** SQL Server has no type for a duration: a difference is its ISO 8601 text */
+    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return this._durationTextOfDifference(context, d)
+    }
+    override _durationTextFunctionName(): string {
+        // A function of the user is called with its schema
+        return 'dbo.tsq_duration_text'
+    }
+    override _durationRoundFunctionName(): string {
+        return 'dbo.tsq_duration_round'
+    }
+    override _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
+        return 'datediff(day, ' + from + ', ' + to + ')'
+    }
+    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
+        return 'dateadd(month, ' + months + ', ' + date + ')'
+    }
+    override _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
+        return 'dateadd(day, ' + days + ', ' + date + ')'
+    }
+    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
+        return 'datepart(' + part + ', ' + date + ')'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         return "(cast(datediff(second, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) as bigint) * 1000000000 + datepart(nanosecond, ' + this._appendSql(valueSource, context, false) + '))'

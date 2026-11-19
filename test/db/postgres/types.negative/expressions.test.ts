@@ -611,6 +611,17 @@ function _typeNegatives() {
     void tColMatrixPlain.mDate.with({ day: 31 }, { overflow: 'constrain' })
     // @ts-expect-error an overflow Temporal hasn't
     void tColMatrixPlain.mDate.add({ months: 1 }, { overflow: 'clamp' })
+    // until and since take a value of the same type and the options of Temporal for it
+    void tColMatrixPlain.mDate.until(tColMatrixPlain.mDate, { largestUnit: 'month' })
+    void tColMatrixPlain.mDatetime.since(tColMatrixPlain.mDatetime, { smallestUnit: 'hour', roundingMode: 'halfExpand' })
+    // @ts-expect-error a date and time isn't a date
+    void tColMatrixPlain.mDate.until(tColMatrixPlain.mDatetime)
+    // @ts-expect-error a time of the day isn't a date
+    void tColMatrixPlain.mDate.since(Temporal.PlainTime.from('10:00'))
+    // @ts-expect-error a date has no hours
+    void tColMatrixPlain.mDate.until(tColMatrixPlain.mDate, { smallestUnit: 'hour' })
+    // @ts-expect-error a time has no days
+    void tColMatrixPlain.mTime.until(tColMatrixPlain.mTime, { largestUnit: 'day' })
 }
 
 test('expressions-negative-types', () => {

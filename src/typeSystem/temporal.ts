@@ -45,6 +45,18 @@ export interface TemporalRoundingOptions<UNIT extends string> {
     readonly roundingIncrement?: number | undefined
     readonly roundingMode?: TemporalRoundingMode | undefined
 }
+/** A unit of a date, as Temporal names it, in the singular or the plural */
+export type TemporalDateUnit = 'year' | 'month' | 'week' | 'day' | 'years' | 'months' | 'weeks' | 'days'
+/**
+ * The options of Temporal's `until` and `since`: the largest unit of the duration (`'auto'`, the default, is the day
+ * for a date, the hour for a time), and its rounding: the smallest unit, how many of it, and how (`'trunc'` by default)
+ */
+export interface TemporalDifferenceOptions<UNIT extends string> {
+    readonly largestUnit?: UNIT | 'auto' | undefined
+    readonly smallestUnit?: UNIT | undefined
+    readonly roundingIncrement?: number | undefined
+    readonly roundingMode?: TemporalRoundingMode | undefined
+}
 /** The fields `with` of a Temporal.PlainDate takes: integers; the month also as its code (`'M02'`) */
 export interface TemporalPlainDateFields {
     readonly year?: number | undefined

@@ -496,3 +496,126 @@ BEGIN
     RETURN sgn * r;
 END;
 $$;
+
+-- tsq_duration_round: the duration from one date and time to another (the year, month, day and nanoseconds of the day
+-- of each one; a date is at 00:00) as Temporal's until with a largest unit of weeks, months or years ('week', 'month',
+-- 'year') rounded to the smallest unit, increment and mode given, the function of the library that rounds a difference
+-- to the calendar (counting from the first date, as Temporal does); since passes its mode negated and -1 to negate the
+-- result.
+CREATE OR REPLACE FUNCTION tsq_duration_round(y1 integer, m1 integer, d1 integer, ns1 bigint, y2 integer, m2 integer, d2 integer, ns2 bigint, largest_unit text, smallest_unit text, increment bigint, rounding_mode text, negation integer) RETURNS interval LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    day_ns CONSTANT bigint := 86400000000000;
+    one date := make_date(y1, m1, d1);
+    two date := make_date(y2, m2, d2);
+    adjusted date := make_date(y2, m2, d2);
+    t bigint := ns2 - ns1;
+    k integer;
+    years bigint := 0;
+    months bigint := 0;
+    weeks bigint := 0;
+    days bigint;
+    sgn bigint;
+    um text;
+    r1 bigint;
+    start_day date;
+    end_day date;
+    num bigint;
+    den bigint;
+    whole bigint;
+    rest bigint;
+    steps bigint;
+    step bigint;
+    to_round bigint;
+    rounded bigint;
+BEGIN
+    IF t > 0 AND two < one THEN
+        adjusted := two + 1;
+        t := t - day_ns;
+    ELSIF t < 0 AND two > one THEN
+        adjusted := two - 1;
+        t := t + day_ns;
+    END IF;
+    IF largest_unit = 'week' THEN
+        weeks := (adjusted - one) / 7;
+        days := (adjusted - one) - weeks * 7;
+    ELSE
+        k := ((extract(year from adjusted)::integer * 12 + extract(month from adjusted)::integer) * 32 + extract(day from adjusted)::integer - (y1 * 12 + m1) * 32 - d1) / 32;
+        IF largest_unit = 'year' THEN
+            years := k / 12;
+        END IF;
+        months := k - years * 12;
+        days := adjusted - (one + make_interval(months => k))::date;
+    END IF;
+    sgn := CASE WHEN (two - one)::bigint * day_ns + ns2 - ns1 < 0 THEN -1 ELSE 1 END;
+    um := CASE rounding_mode
+        WHEN 'ceil' THEN CASE WHEN sgn < 0 THEN 'zero' ELSE 'infinity' END
+        WHEN 'floor' THEN CASE WHEN sgn < 0 THEN 'infinity' ELSE 'zero' END
+        WHEN 'halfCeil' THEN CASE WHEN sgn < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+        WHEN 'halfFloor' THEN CASE WHEN sgn < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+        WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+        ELSE 'halfEven' END;
+    IF smallest_unit IN ('year', 'month', 'week') THEN
+        IF smallest_unit = 'year' THEN
+            r1 := years / increment * increment;
+            start_day := (one + make_interval(months => (r1 * 12)::integer))::date;
+            end_day := (one + make_interval(months => ((r1 + increment * sgn) * 12)::integer))::date;
+        ELSIF smallest_unit = 'month' THEN
+            r1 := months / increment * increment;
+            start_day := (one + make_interval(months => (years * 12 + r1)::integer))::date;
+            end_day := (one + make_interval(months => (years * 12 + r1 + increment * sgn)::integer))::date;
+        ELSE
+            r1 := (CASE WHEN largest_unit = 'week' THEN weeks ELSE days / 7 END) / increment * increment;
+            start_day := (one + make_interval(months => (years * 12 + months)::integer))::date + (r1 * 7)::integer;
+            end_day := (one + make_interval(months => (years * 12 + months)::integer))::date + ((r1 + increment * sgn) * 7)::integer;
+        END IF;
+        num := abs((two - start_day)::bigint * day_ns + ns2 - ns1);
+        den := abs((end_day - start_day)::bigint * day_ns);
+        whole := num / den;
+        rest := num - whole * den;
+        steps := whole + CASE WHEN rest <> 0 AND (um = 'infinity' OR um LIKE 'half%' AND (2 * rest > den OR 2 * rest = den AND (um = 'halfInfinity' OR um = 'halfEven' AND (abs(r1) / increment + whole) % 2 <> 0))) THEN 1 ELSE 0 END;
+        days := 0;
+        t := 0;
+        IF smallest_unit = 'year' THEN
+            years := r1 + increment * sgn * steps;
+            months := 0;
+        ELSIF smallest_unit = 'month' THEN
+            months := r1 + increment * sgn * steps;
+            IF steps > 0 AND largest_unit = 'year' AND sgn * ((one + make_interval(months => (years * 12 + months)::integer))::date - (one + make_interval(months => ((years + sgn) * 12)::integer))::date) >= 0 THEN
+                years := years + sgn;
+                months := 0;
+            END IF;
+        ELSE
+            weeks := r1 + increment * sgn * steps;
+        END IF;
+    ELSE
+        step := CASE smallest_unit WHEN 'day' THEN day_ns WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+        to_round := days * day_ns + t;
+        rest := abs(to_round % step);
+        rounded := to_round - to_round % step;
+        IF rest <> 0 AND (um = 'infinity' OR um LIKE 'half%' AND (2 * rest > step OR 2 * rest = step AND (um = 'halfInfinity' OR um = 'halfEven' AND (rounded / step) % 2 <> 0))) THEN
+            rounded := rounded + step * sgn;
+        END IF;
+        days := rounded / day_ns;
+        t := rounded - days * day_ns;
+        IF rounded / day_ns <> to_round / day_ns THEN
+            IF largest_unit = 'week' THEN
+                IF sgn * ((two - (one + ((weeks + sgn) * 7)::integer))::bigint * day_ns + ns2 - ns1 + rounded - to_round) >= 0 THEN
+                    weeks := weeks + sgn;
+                    days := 0;
+                    t := 0;
+                END IF;
+            ELSIF sgn * ((two - (one + make_interval(months => (years * 12 + months + sgn)::integer))::date)::bigint * day_ns + ns2 - ns1 + rounded - to_round) >= 0 THEN
+                days := 0;
+                t := 0;
+                IF largest_unit = 'year' AND sgn * ((two - (one + make_interval(months => ((years + sgn) * 12)::integer))::date)::bigint * day_ns + ns2 - ns1 + rounded - to_round) >= 0 THEN
+                    years := years + sgn;
+                    months := 0;
+                ELSE
+                    months := months + sgn;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+    RETURN make_interval(years => (years * negation)::integer, months => (months * negation)::integer, weeks => (weeks * negation)::integer, days => (days * negation)::integer, secs => t * negation / 1000000000.0);
+END
+$$;

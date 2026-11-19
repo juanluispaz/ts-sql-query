@@ -18,14 +18,15 @@ function documented(tab: string): string {
     return code.slice(0, code.indexOf('\n    ```')).split('\n').map(line => line.slice(4)).join('\n')
 }
 
-/** The function in the schema of the database, after its comment */
+/** The function in the schema of the database, after its comment, up to the comment of the next function of the library */
 function tested(db: string): string {
     const schema = readFileSync(join(root, 'test/db', db, 'domain/schema.sql'), 'utf8')
     const lines = schema.slice(schema.indexOf('-- tsq_duration_part:')).split('\n')
     while (lines[0]?.startsWith('--')) {
         lines.shift()
     }
-    return lines.join('\n').trim()
+    const end = lines.findIndex(line => line.startsWith('-- tsq_'))
+    return (end < 0 ? lines : lines.slice(0, end)).join('\n').trim()
 }
 
 describe('DurationPartFunctionDocs', () => {

@@ -2,7 +2,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns, OrderByEntry, PlainSelectData, CompoundSelectData } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn, hasToSql } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from '../connections/SqliteConfiguration.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
@@ -1363,6 +1363,29 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return this._sqliteTemporalIn('dateTime', "printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', " + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + second + ', ' + this._truncatedDivision(nanoseconds, '1000000') + ')')
+    }
+    /** SQLite has no type for a duration: a difference is its ISO 8601 text */
+    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return this._durationTextOfDifference(context, d)
+    }
+    override _differenceDateOf(context: SqlBuildContext, _d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
+        // The text of the date, whatever the format the value is kept in
+        return this._dateOfValue(context, valueSource)
+    }
+    override _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
+        return 'cast(julianday(' + to + ') - julianday(' + from + ') as integer)'
+    }
+    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
+        // The first of the month, the months added, and the day of the date or the last one of that month (SQLite's
+        // `+N months` moves Jan 31 to Mar 2)
+        const month = 'date(' + date + ", 'start of month', (" + months + ") || ' months')"
+        return 'date(' + month + ", (min(cast(strftime('%d', " + date + ") as integer), cast(strftime('%d', " + month + ", '+1 months', '-1 days') as integer)) - 1) || ' days')"
+    }
+    override _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
+        return 'date(' + date + ', (' + days + ") || ' days')"
+    }
+    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
+        return "cast(strftime('" + (part === 'year' ? '%Y' : part === 'month' ? '%m' : '%d') + "', " + date + ') as integer)'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         // The date functions keep milliseconds

@@ -5,7 +5,7 @@ import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { OptionalType } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, OptionalType } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
@@ -161,6 +161,36 @@ export function __newSqlOperationConstValueSource(value: any, typeClass: DataTyp
     vs.__operation = '_const'
     vs.__value = value
     return vs
+}
+
+/**
+ * A const written once and its placeholder repeated wherever the SQL writes it again (a computation of dates that needs
+ * its parts several times), on a database whose parameters are numbered: the first time it is written the SQL is kept
+ */
+interface ReusedConstValueSource extends SqlOperationConstValueSource {
+    /** Shared with the copies made of it (a copy written with its type, ...) */
+    readonly __reused: { sql: string | undefined }
+}
+
+const reusedConstValueSourceNode: NodeStrategy<ReusedConstValueSource> = {
+    ...sqlOperationConstValueSourceNode,
+    __toSql(vs: ReusedConstValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (vs.__reused.sql === undefined) {
+            vs.__reused.sql = sqlOperationConstValueSourceNode.__toSql(vs, sqlBuilder, context, forceTypeCast)
+        }
+        return vs.__reused.sql
+    },
+}
+
+/** The const, written with its type when typed, whose SQL is written once and then repeated (see ReusedConstValueSource) */
+export function __reusedConstOf(valueSource: AnyValueSource, typed: boolean): AnyValueSource {
+    const reused = Object.create(valueSource as object) as InCreation<ReusedConstValueSource>
+    reused.__node = reusedConstValueSourceNode
+    reused.__reused = { sql: undefined }
+    if (typed) {
+        reused.__forceTypeCast = true
+    }
+    return reused as unknown as AnyValueSource
 }
 
 /** The next or the current value of a sequence */

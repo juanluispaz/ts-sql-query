@@ -474,3 +474,160 @@ BEGIN
     END LOOP;
     RETURN sgn * r;
 END;
+
+-- tsq_duration_text: the ISO 8601 text of a duration (Temporal.Duration) of its fields, the function of the library that
+-- writes a duration a query computes (until, since) where it is kept as text: its years, months, weeks and days, and the
+-- nanoseconds of its time, written in hours, minutes and seconds ('hour'), minutes and seconds ('minute') or seconds
+-- ('second'); every field with the sign of the duration. The text is the one of Temporal's toString.
+CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUMBER, d IN NUMBER, ns IN NUMBER, unit IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+    r VARCHAR2(100);
+    t VARCHAR2(100);
+    rest NUMBER;
+    f NUMBER;
+BEGIN
+    IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF y <> 0 THEN r := r || TO_CHAR(ABS(y)) || 'Y'; END IF;
+    IF mo <> 0 THEN r := r || TO_CHAR(ABS(mo)) || 'M'; END IF;
+    IF w <> 0 THEN r := r || TO_CHAR(ABS(w)) || 'W'; END IF;
+    IF d <> 0 THEN r := r || TO_CHAR(ABS(d)) || 'D'; END IF;
+    rest := ABS(ns);
+    IF unit = 'hour' AND rest >= 3600000000000 THEN t := t || TO_CHAR(TRUNC(rest / 3600000000000)) || 'H'; rest := MOD(rest, 3600000000000); END IF;
+    IF unit <> 'second' AND rest >= 60000000000 THEN t := t || TO_CHAR(TRUNC(rest / 60000000000)) || 'M'; rest := MOD(rest, 60000000000); END IF;
+    IF rest > 0 THEN
+        f := MOD(rest, 1000000000);
+        t := t || TO_CHAR(TRUNC(rest / 1000000000));
+        IF f > 0 THEN t := t || '.' || RTRIM(LPAD(TO_CHAR(f), 9, '0'), '0'); END IF;
+        t := t || 'S';
+    END IF;
+    IF r IS NULL AND t IS NULL THEN RETURN 'PT0S'; END IF;
+    RETURN CASE WHEN y < 0 OR mo < 0 OR w < 0 OR d < 0 OR ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
+END;
+
+-- tsq_duration_round: the duration from one date and time to another (the year, month, day and nanoseconds of the day
+-- of each one; a date is at 00:00) as Temporal's until with a largest unit of weeks, months or years ('week', 'month',
+-- 'year') rounded to the smallest unit, increment and mode given, the function of the library that rounds a difference
+-- to the calendar (counting from the first date, as Temporal does); since passes its mode negated and -1 to negate the
+-- result.
+CREATE OR REPLACE FUNCTION tsq_duration_round(y1 IN NUMBER, m1 IN NUMBER, d1 IN NUMBER, ns1 IN NUMBER, y2 IN NUMBER, m2 IN NUMBER, d2 IN NUMBER, ns2 IN NUMBER, largest_unit IN VARCHAR2, smallest_unit IN VARCHAR2, increment IN NUMBER, rounding_mode IN VARCHAR2, negation IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
+    v_day CONSTANT NUMBER := 86400000000000;
+    v_one DATE;
+    v_two DATE;
+    v_adjusted DATE;
+    v_t NUMBER;
+    v_k NUMBER;
+    v_years NUMBER := 0;
+    v_months NUMBER := 0;
+    v_weeks NUMBER := 0;
+    v_days NUMBER;
+    v_sign NUMBER;
+    v_mode VARCHAR2(12);
+    v_r1 NUMBER;
+    v_start DATE;
+    v_end DATE;
+    v_num NUMBER;
+    v_den NUMBER;
+    v_whole NUMBER;
+    v_rest NUMBER;
+    v_steps NUMBER;
+    v_step NUMBER;
+    v_to_round NUMBER;
+    v_rounded NUMBER;
+    -- add_months gives the last day of a month to the last day of another: the days it moves past the day are taken back
+    FUNCTION plus_months(d IN DATE, k IN NUMBER) RETURN DATE IS
+    BEGIN
+        RETURN ADD_MONTHS(d, k) - GREATEST(0, EXTRACT(DAY FROM ADD_MONTHS(d, k)) - EXTRACT(DAY FROM d));
+    END;
+BEGIN
+    IF y1 IS NULL OR m1 IS NULL OR d1 IS NULL OR ns1 IS NULL OR y2 IS NULL OR m2 IS NULL OR d2 IS NULL OR ns2 IS NULL OR largest_unit IS NULL OR smallest_unit IS NULL OR increment IS NULL OR rounding_mode IS NULL OR negation IS NULL THEN RETURN NULL; END IF;
+    v_one := ADD_MONTHS(DATE '0001-01-01', (y1 - 1) * 12 + m1 - 1) + d1 - 1;
+    v_two := ADD_MONTHS(DATE '0001-01-01', (y2 - 1) * 12 + m2 - 1) + d2 - 1;
+    v_adjusted := v_two;
+    v_t := ns2 - ns1;
+    IF v_t > 0 AND v_two < v_one THEN
+        v_adjusted := v_two + 1;
+        v_t := v_t - v_day;
+    ELSIF v_t < 0 AND v_two > v_one THEN
+        v_adjusted := v_two - 1;
+        v_t := v_t + v_day;
+    END IF;
+    IF largest_unit = 'week' THEN
+        v_weeks := TRUNC((v_adjusted - v_one) / 7);
+        v_days := (v_adjusted - v_one) - v_weeks * 7;
+    ELSE
+        v_k := TRUNC(((EXTRACT(YEAR FROM v_adjusted) * 12 + EXTRACT(MONTH FROM v_adjusted)) * 32 + EXTRACT(DAY FROM v_adjusted) - (y1 * 12 + m1) * 32 - d1) / 32);
+        IF largest_unit = 'year' THEN v_years := TRUNC(v_k / 12); END IF;
+        v_months := v_k - v_years * 12;
+        v_days := v_adjusted - plus_months(v_one, v_k);
+    END IF;
+    v_sign := CASE WHEN (v_two - v_one) * v_day + ns2 - ns1 < 0 THEN -1 ELSE 1 END;
+    v_mode := CASE rounding_mode
+        WHEN 'ceil' THEN CASE WHEN v_sign < 0 THEN 'zero' ELSE 'infinity' END
+        WHEN 'floor' THEN CASE WHEN v_sign < 0 THEN 'infinity' ELSE 'zero' END
+        WHEN 'halfCeil' THEN CASE WHEN v_sign < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+        WHEN 'halfFloor' THEN CASE WHEN v_sign < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+        WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+        ELSE 'halfEven' END;
+    IF smallest_unit IN ('year', 'month', 'week') THEN
+        IF smallest_unit = 'year' THEN
+            v_r1 := TRUNC(v_years / increment) * increment;
+            v_start := plus_months(v_one, v_r1 * 12);
+            v_end := plus_months(v_one, (v_r1 + increment * v_sign) * 12);
+        ELSIF smallest_unit = 'month' THEN
+            v_r1 := TRUNC(v_months / increment) * increment;
+            v_start := plus_months(v_one, v_years * 12 + v_r1);
+            v_end := plus_months(v_one, v_years * 12 + v_r1 + increment * v_sign);
+        ELSE
+            v_r1 := TRUNC(CASE WHEN largest_unit = 'week' THEN v_weeks ELSE TRUNC(v_days / 7) END / increment) * increment;
+            v_start := plus_months(v_one, v_years * 12 + v_months) + v_r1 * 7;
+            v_end := plus_months(v_one, v_years * 12 + v_months) + (v_r1 + increment * v_sign) * 7;
+        END IF;
+        v_num := ABS((v_two - v_start) * v_day + ns2 - ns1);
+        v_den := ABS((v_end - v_start) * v_day);
+        v_whole := TRUNC(v_num / v_den);
+        v_rest := v_num - v_whole * v_den;
+        v_steps := v_whole + CASE WHEN v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_den OR 2 * v_rest = v_den AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND MOD(TRUNC(ABS(v_r1) / increment) + v_whole, 2) <> 0))) THEN 1 ELSE 0 END;
+        v_days := 0;
+        v_t := 0;
+        IF smallest_unit = 'year' THEN
+            v_years := v_r1 + increment * v_sign * v_steps;
+            v_months := 0;
+        ELSIF smallest_unit = 'month' THEN
+            v_months := v_r1 + increment * v_sign * v_steps;
+            IF v_steps > 0 AND largest_unit = 'year' AND v_sign * (plus_months(v_one, v_years * 12 + v_months) - plus_months(v_one, (v_years + v_sign) * 12)) >= 0 THEN
+                v_years := v_years + v_sign;
+                v_months := 0;
+            END IF;
+        ELSE
+            v_weeks := v_r1 + increment * v_sign * v_steps;
+        END IF;
+    ELSE
+        v_step := CASE smallest_unit WHEN 'day' THEN v_day WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+        v_to_round := v_days * v_day + v_t;
+        v_rest := ABS(MOD(v_to_round, v_step));
+        v_rounded := v_to_round - MOD(v_to_round, v_step);
+        IF v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_step OR 2 * v_rest = v_step AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND MOD(TRUNC(v_rounded / v_step), 2) <> 0))) THEN
+            v_rounded := v_rounded + v_step * v_sign;
+        END IF;
+        v_days := TRUNC(v_rounded / v_day);
+        v_t := v_rounded - v_days * v_day;
+        IF TRUNC(v_rounded / v_day) <> TRUNC(v_to_round / v_day) THEN
+            IF largest_unit = 'week' THEN
+                IF v_sign * ((v_two - (v_one + (v_weeks + v_sign) * 7)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                    v_weeks := v_weeks + v_sign;
+                    v_days := 0;
+                    v_t := 0;
+                END IF;
+            ELSIF v_sign * ((v_two - plus_months(v_one, v_years * 12 + v_months + v_sign)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                v_days := 0;
+                v_t := 0;
+                IF largest_unit = 'year' AND v_sign * ((v_two - plus_months(v_one, (v_years + v_sign) * 12)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                    v_years := v_years + v_sign;
+                    v_months := 0;
+                ELSE
+                    v_months := v_months + v_sign;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+END;

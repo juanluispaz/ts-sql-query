@@ -25,6 +25,8 @@ import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf 
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
+import { plainTemporalDifferenceOf, type PlainTemporalDifference } from '../utils/plainTemporalDifference.js'
+import { __reusedConstOf } from '../nodes/constants.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __isBooleanValueSource, __isStringValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
@@ -4220,7 +4222,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** The nanoseconds since midnight of a time or a date and time, with the digits the database keeps */
     _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
-        return '(round(extract(epoch from cast(' + this._appendSql(valueSource, context, false) + ' as time)) * 1000000)::bigint * 1000)'
+        // The epoch of a time is its seconds since midnight; a timestamp is taken to its time first
+        const value = this._appendSql(valueSource, context, false)
+        const time = __temporalFieldsOf(__classOf(valueSource as object)) === 'time' ? value : 'cast(' + value + ' as time)'
+        return '(round(extract(epoch from ' + time + ') * 1000000)::bigint * 1000)'
     }
     /** The date of a date and time */
     _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
@@ -4317,6 +4322,309 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** What a duration is added to: a date, a time, or a date and time (by the SQL data type of the result) */
     _temporalFieldsOfDurationOperation(typeClass: DataTypeClass): 'date' | 'time' | 'timestamp' {
         return __temporalFieldsOf(typeClass) ?? 'timestamp'
+    }
+    _until(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        return this._appendDifference(context, valueSource, value, value2, false)
+    }
+    _since(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        return this._appendDifference(context, valueSource, value, value2, true)
+    }
+    /**
+     * The duration from one date, time or date and time to another, as Temporal's `until` (or `since`: `until` with the
+     * rounding mode negated, negated), with its options (see plainTemporalDifferenceOf). Each field of the duration is
+     * computed with integers from the parts of both values (see PlainTemporalDifferenceSql), and the duration is made of
+     * them (_durationOfDifference). A piece that appears several times is written again each time, in the order of the
+     * text: the parameters of MariaDB and MySQL are positional
+     */
+    _appendDifference(context: SqlBuildContext, valueSource: ToSql, other: ToSql, options: unknown, since: boolean): string {
+        const fields = __temporalFieldsOf(__classOf(valueSource as object)) ?? 'timestamp'
+        const difference = plainTemporalDifferenceOf(options, fields, since)
+        if (!difference) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of ' + (since ? 'since' : 'until') + ': ' + JSON.stringify(options))
+        }
+        const d: PlainTemporalDifferenceSql = { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, day: fields === 'date' ? '' : this._bigintLiteral(nanosecondsOfUnit['day']!) }
+        return this._durationOfDifference(context, d)
+    }
+    /**
+     * An operand of a computation of dates and times, which writes it several times: a const is written once, and its
+     * placeholder repeated (the parameters are numbered), with its type on PostgreSQL (its parts are taken with extract)
+     */
+    _temporalOperand(operand: ToSql): ToSql {
+        if (!this._isConstOperand(operand)) {
+            return operand
+        }
+        return __reusedConstOf(operand as unknown as AnyValueSource, this._typesTemporalConsts()) as unknown as ToSql
+    }
+    /** Whether a const of a computation of dates and times is written with its type */
+    _typesTemporalConsts(): boolean {
+        return false
+    }
+    /**
+     * The duration of the fields of a difference: PostgreSQL's interval of them, written only the fields that may not be
+     * zero (the interval keeps its months, its days and its time: the years and the months of Temporal are its months,
+     * its weeks days, and its time is written in hours, minutes and seconds)
+     */
+    _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (this._differenceIsRoundedToTheCalendar(d)) {
+            return this._durationRoundedToTheCalendar(context, d)
+        }
+        let result = ''
+        if (this._differenceHas(d, 'years')) {
+            result += 'years => ' + this._differenceField(context, d, 'years')
+        }
+        if (this._differenceHas(d, 'months')) {
+            result += (result ? ', ' : '') + 'months => ' + this._differenceField(context, d, 'months')
+        }
+        if (this._differenceHas(d, 'weeks')) {
+            result += (result ? ', ' : '') + 'weeks => ' + this._differenceField(context, d, 'weeks')
+        }
+        if (this._differenceHas(d, 'days')) {
+            result += (result ? ', ' : '') + 'days => ' + this._differenceField(context, d, 'days')
+        }
+        if (this._differenceHas(d, 'time')) {
+            result += (result ? ', ' : '') + 'secs => ' + this._differenceField(context, d, 'time') + ' / 1000000000.0'
+        }
+        return 'make_interval(' + result + ')'
+    }
+    /**
+     * The duration of the fields of a difference as its ISO 8601 text, with the function of the library
+     * tsq_duration_text, where a duration is kept as text: every field, 0 where it is always zero
+     */
+    _durationTextOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (this._differenceIsRoundedToTheCalendar(d)) {
+            return this._durationRoundedToTheCalendar(context, d)
+        }
+        let result = this._durationTextFunctionName() + '('
+        result += (this._differenceHas(d, 'years') ? this._differenceField(context, d, 'years') : '0') + ', '
+        result += (this._differenceHas(d, 'months') ? this._differenceField(context, d, 'months') : '0') + ', '
+        result += (this._differenceHas(d, 'weeks') ? this._differenceField(context, d, 'weeks') : '0') + ', '
+        result += (this._differenceHas(d, 'days') ? this._differenceField(context, d, 'days') : '0') + ', '
+        result += (this._differenceHas(d, 'time') ? this._differenceField(context, d, 'time') : '0') + ', '
+        return result + this._differenceTimeUnit(d) + ')'
+    }
+    /** The name of the function of the library that writes the ISO 8601 text of a duration of its fields */
+    _durationTextFunctionName(): string {
+        return 'tsq_duration_text'
+    }
+    /** The largest unit of the time of a difference, how the function of the library writes it: 'hour', 'minute' or 'second' */
+    _differenceTimeUnit(d: PlainTemporalDifferenceSql): string {
+        const largest = d.difference.largestUnit
+        return largest === 'minute' ? "'minute'" : largest === 'second' || largest === 'millisecond' || largest === 'microsecond' || largest === 'nanosecond' ? "'second'" : "'hour'"
+    }
+    /** Whether a field of the duration of a difference may not be zero: the unit is between the largest and the smallest */
+    _differenceHas(d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): boolean {
+        const largest = unitIndex[d.difference.largestUnit]!
+        const smallest = unitIndex[d.difference.smallestUnit]!
+        switch (field) {
+            case 'years':
+                return largest === 0
+            case 'months':
+                return largest <= 1 && smallest >= 1
+            case 'weeks':
+                return smallest === 2 || (largest === 2 && smallest > 2)
+            case 'days':
+                return largest <= 3 && smallest >= 3
+            case 'time':
+                return smallest >= 4
+        }
+    }
+    /** A field of the duration of a difference, negated for since */
+    _differenceField(context: SqlBuildContext, d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): string {
+        const result = this._differenceIsRounded(d) ? this._differenceRoundedToDayOrTime(context, d, field) : this._differenceUnrounded(context, d, field)
+        return d.difference.negated ? '-' + result : result
+    }
+    /** Whether a difference is rounded: a smallest unit or an increment other than the ones of the difference itself */
+    _differenceIsRounded(d: PlainTemporalDifferenceSql): boolean {
+        const difference = d.difference
+        return !((difference.smallestUnit === 'nanosecond' || (d.fields === 'date' && difference.smallestUnit === 'day')) && difference.increment === 1)
+    }
+    /**
+     * Whether a difference is rounded to the calendar: with weeks, months or years, Temporal rounds counting them from
+     * the first value, and a rounding of the days that reaches the next one gives it; the function of the library
+     * tsq_duration_round does it (without variables, the SQL would write each piece many times over)
+     */
+    _differenceIsRoundedToTheCalendar(d: PlainTemporalDifferenceSql): boolean {
+        return unitIndex[d.difference.largestUnit]! <= 2 && this._differenceIsRounded(d)
+    }
+    /**
+     * The duration of a difference rounded to the calendar, with the function of the library tsq_duration_round: the
+     * year, the month, the day and the nanoseconds of the day of each value (a date at 00:00), the units, the increment,
+     * the mode of until (since negates it) and the sign of the result (-1 for since)
+     */
+    _durationRoundedToTheCalendar(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        let result = this._durationRoundFunctionName() + '('
+        result += this._differencePartsForFunction(context, d, d.one) + ', '
+        result += this._differencePartsForFunction(context, d, d.two) + ', '
+        const difference = d.difference
+        return result + "'" + difference.largestUnit + "', '" + difference.smallestUnit + "', " + difference.increment + ", '" + difference.mode + "', " + (difference.negated ? '-1' : '1') + ')'
+    }
+    /** The year, the month, the day and the nanoseconds of the day of a value, as arguments of a function */
+    _differencePartsForFunction(context: SqlBuildContext, d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
+        let result = this._integerPart(this._year(context, valueSource)) + ', ' + this._integerPart(this._month(context, valueSource)) + ', ' + this._integerPart(this._day(context, valueSource)) + ', '
+        result += d.fields === 'date' ? '0' : this._nanosecondsSinceMidnight(context, valueSource)
+        return result
+    }
+    /** The name of the function of the library that rounds a difference to the calendar */
+    _durationRoundFunctionName(): string {
+        return 'tsq_duration_round'
+    }
+    /**
+     * A field of a difference without rounding. Temporal counts the whole months from the first value without passing
+     * the second one, the day of the first not kept in the month (Jan 31 to Feb 29 is no month); then the days to the
+     * second one from the first plus those months (with the day kept in the month); the time is the rest
+     */
+    _differenceUnrounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): string {
+        switch (d.difference.largestUnit) {
+            case 'year':
+                switch (field) {
+                    case 'years':
+                        return this._truncatedDivision(this._differenceMonths(context, d), '12')
+                    case 'months':
+                        return '(' + this._integerRemainder(this._differenceMonths(context, d), '12') + ')'
+                    case 'days':
+                        return this._differenceDaysAfterMonths(context, d)
+                    default:
+                        return this._differenceAdjustedTime(context, d)
+                }
+            case 'month':
+                return field === 'months' ? this._differenceMonths(context, d) : field === 'days' ? this._differenceDaysAfterMonths(context, d) : this._differenceAdjustedTime(context, d)
+            case 'week':
+                return field === 'weeks' ? this._truncatedDivision(this._differenceAdjustedDays(context, d), '7') : field === 'days' ? '(' + this._integerRemainder(this._differenceAdjustedDays(context, d), '7') + ')' : this._differenceAdjustedTime(context, d)
+            case 'day':
+                if (d.fields === 'date') {
+                    return this._differenceDays(context, d)
+                }
+                return field === 'days' ? this._integerOfBigint(this._truncatedDivision(this._differenceTotal(context, d), d.day)) : '(' + this._integerRemainder(this._differenceTotal(context, d), d.day) + ')'
+            default:
+                return this._differenceTotal(context, d)
+        }
+    }
+    /**
+     * A field of a difference whose largest unit is a day or smaller rounded, as Temporal: the whole difference (in days
+     * for a date, in nanoseconds otherwise) rounded to multiples of the increment of the unit
+     */
+    _differenceRoundedToDayOrTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): string {
+        if (field === 'time') {
+            return d.difference.largestUnit === 'day' ? '(' + this._integerRemainder(this._differenceRounded(context, d), d.day) + ')' : this._differenceRounded(context, d)
+        }
+        return d.fields === 'date' ? this._differenceRounded(context, d) : this._integerOfBigint(this._truncatedDivision(this._differenceRounded(context, d), d.day))
+    }
+    /** The days and the time to round, rounded to multiples of the increment of the smallest unit, in the mode */
+    _differenceRounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        const unit = d.difference.smallestUnit
+        const stepValue = (d.fields === 'date' ? 1n : nanosecondsOfUnit[unit]!) * BigInt(d.difference.increment)
+        const step = this._bigintLiteral(stepValue)
+        const minusStep = '-' + step
+        // The value minus its remainder, plus a step either way by the mode; the remainder has the sign of the value
+        let result = '(' + this._differenceTotal(context, d) + ' - ' + this._differenceRemainder(context, d, step)
+        switch (d.difference.mode) {
+            case 'trunc':
+                return result + ')'
+            case 'floor':
+                return result + ' - case when ' + this._differenceRemainder(context, d, step) + ' < 0 then ' + step + ' else 0 end)'
+            case 'ceil':
+                return result + ' + case when ' + this._differenceRemainder(context, d, step) + ' > 0 then ' + step + ' else 0 end)'
+            case 'expand':
+                return result + ' + case when ' + this._differenceRemainder(context, d, step) + ' > 0 then ' + step + ' when ' + this._differenceRemainder(context, d, step) + ' < 0 then ' + minusStep + ' else 0 end)'
+            case 'halfExpand':
+                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' >= ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' <= ' + minusStep + ' then ' + minusStep + ' else 0 end)'
+            case 'halfTrunc':
+                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' then ' + minusStep + ' else 0 end)'
+            case 'halfCeil':
+                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' >= ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' then ' + minusStep + ' else 0 end)'
+            case 'halfFloor':
+                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' <= ' + minusStep + ' then ' + minusStep + ' else 0 end)'
+            case 'halfEven':
+                result += ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + step + ' and ' + this._integerRemainder(this._truncatedDivision(this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + step
+                return result + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + minusStep + ' and ' + this._integerRemainder(this._truncatedDivision(this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + minusStep + ' else 0 end)'
+        }
+    }
+    /** The remainder of the days and the time to round divided by the step, with their sign */
+    _differenceRemainder(context: SqlBuildContext, d: PlainTemporalDifferenceSql, step: string): string {
+        return '(' + this._integerRemainder(this._differenceTotal(context, d), step) + ')'
+    }
+    /** The date of a value of a difference: the value of a date, the date of a date and time */
+    _differenceDateOf(context: SqlBuildContext, d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
+        return d.fields === 'date' ? this._appendSql(valueSource, context, false) : this._dateOfValue(context, valueSource)
+    }
+    /** The days from the date of the first value to the one of the second */
+    _differenceDays(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return this._daysBetween(context, this._differenceDateOf(context, d, d.two), this._differenceDateOf(context, d, d.one))
+    }
+    /** The nanoseconds from the time of the day of the first value to the one of the second */
+    _differenceTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return '(' + this._nanosecondsSinceMidnight(context, d.two) + ' - ' + this._nanosecondsSinceMidnight(context, d.one) + ')'
+    }
+    /** The whole difference: in days for a date, in nanoseconds otherwise */
+    _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        switch (d.fields) {
+            case 'date':
+                return this._differenceDays(context, d)
+            case 'time':
+                return this._differenceTime(context, d)
+            default:
+                return '(' + this._differenceDays(context, d) + ' * ' + d.day + ' + ' + this._differenceTime(context, d) + ')'
+        }
+    }
+    /**
+     * The day the second date and time is moved to when its time has the sign the days haven't, as Temporal does: a
+     * day less (-1) when the days go forward and the time back, a day more (1) the other way round
+     */
+    _differenceShift(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return 'case when ' + this._differenceTime(context, d) + ' > 0 and ' + this._differenceDays(context, d) + ' < 0 then 1 when ' + this._differenceTime(context, d) + ' < 0 and ' + this._differenceDays(context, d) + ' > 0 then -1 else 0 end'
+    }
+    /** The date of the second value, moved by the shift for a date and time */
+    _differenceAdjustedDate(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (d.fields === 'date') {
+            return this._differenceDateOf(context, d, d.two)
+        }
+        return this._addDaysToDate(context, this._dateOfValue(context, d.two), this._differenceShift(context, d))
+    }
+    /** The days from the date of the first value to the date of the second, moved by the shift for a date and time */
+    _differenceAdjustedDays(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return d.fields === 'date' ? this._differenceDays(context, d) : '(' + this._differenceDays(context, d) + ' + ' + this._differenceShift(context, d) + ')'
+    }
+    /** The time of the difference of a date and time, after the shift */
+    _differenceAdjustedTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return '(' + this._differenceTime(context, d) + ' - ' + this._differenceShift(context, d) + ' * ' + d.day + ')'
+    }
+    /**
+     * The whole months from the first date to the second (moved by the shift), not passing it with the day of the first
+     * date: each date as (year * 12 + month) * 32 + day, which orders them, its difference divided by 32 truncated
+     */
+    _differenceMonths(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        let second: string
+        if (d.fields === 'date') {
+            second = '(' + this._integerPart(this._year(context, d.two)) + ' * 12 + ' + this._integerPart(this._month(context, d.two)) + ') * 32 + ' + this._integerPart(this._day(context, d.two))
+        } else {
+            second = '(' + this._datePartOfDate(context, this._differenceAdjustedDate(context, d), 'year') + ' * 12 + ' + this._datePartOfDate(context, this._differenceAdjustedDate(context, d), 'month') + ') * 32 + ' + this._datePartOfDate(context, this._differenceAdjustedDate(context, d), 'day')
+        }
+        const first = '(' + this._integerPart(this._year(context, d.one)) + ' * 12 + ' + this._integerPart(this._month(context, d.one)) + ') * 32 - ' + this._integerPart(this._day(context, d.one))
+        return this._truncatedDivision('(' + second + ' - ' + first + ')', '32')
+    }
+    /** The days from the first date plus the whole months (with its day kept in the month) to the second (moved by the shift) */
+    _differenceDaysAfterMonths(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return this._daysBetween(context, this._differenceAdjustedDate(context, d), this._addMonthsToDate(context, this._differenceDateOf(context, d, d.one), this._differenceMonths(context, d)))
+    }
+    /** The days from one date to another; the dates appear in the SQL in this order (to, from) where the order matters */
+    _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
+        return '(' + to + ' - ' + from + ')'
+    }
+    /** A date plus a number of months, the day kept in the month (Jan 31 plus a month is Feb 29) */
+    _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
+        return 'cast(' + date + ' + make_interval(months => ' + months + ') as date)'
+    }
+    /** A date plus a number of days */
+    _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
+        return '(' + date + ' + ' + days + ')'
+    }
+    /** The year, the month or the day of a date, as an integer */
+    _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
+        return 'extract(' + part + ' from ' + date + ')::integer'
+    }
+    /** An integer computed from bigints, as the integer the database takes where it needs one (PostgreSQL's make_interval) */
+    _integerOfBigint(sql: string): string {
+        return sql
     }
     /**
      * The parts of a duration given as a value (a Temporal.Duration or its fields), multiplied by sign, as Temporal adds
@@ -5166,4 +5474,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
 /** The seconds and the nanoseconds of a second, as seconds with a fraction: the seconds alone when there are none */
 function secondsWithFraction(seconds: string, nanoseconds: string): string {
     return nanoseconds === '0' ? seconds : seconds + ' + ' + nanoseconds + ' / 1000000000.0'
+}
+
+/** A field of the duration of a difference: the time is the hours to the nanoseconds, in nanoseconds */
+export type PlainTemporalDifferenceField = 'years' | 'months' | 'weeks' | 'days' | 'time'
+
+/** The difference of two values of a date, a time or a date and time to write (see _appendDifference) */
+export interface PlainTemporalDifferenceSql {
+    readonly one: ToSql
+    readonly two: ToSql
+    readonly fields: 'date' | 'time' | 'timestamp'
+    readonly difference: PlainTemporalDifference
+    /** The nanoseconds of a day, as a literal the database takes as a bigint (empty for a date, counted in days) */
+    readonly day: string
+}
+
+/** The position of each unit, from the year */
+const unitIndex: Record<string, number | undefined> = {
+    year: 0, month: 1, week: 2, day: 3, hour: 4, minute: 5, second: 6, millisecond: 7, microsecond: 8, nanosecond: 9,
+}
+
+/** The nanoseconds of each unit of the time, and of the day */
+const nanosecondsOfUnit: Record<string, bigint | undefined> = {
+    day: 86_400_000_000_000n, hour: 3_600_000_000_000n, minute: 60_000_000_000n, second: 1_000_000_000n, millisecond: 1_000_000n, microsecond: 1000n, nanosecond: 1n,
 }

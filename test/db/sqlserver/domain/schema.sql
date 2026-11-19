@@ -515,3 +515,136 @@ BEGIN
     RETURN @sign * @r;
 END
 GO
+
+-- tsq_duration_round uses tsq_duration_text: it goes first to create both again
+DROP FUNCTION IF EXISTS dbo.tsq_duration_round;
+GO
+
+-- tsq_duration_text: the ISO 8601 text of a duration (Temporal.Duration) of its fields, the function of the library that
+-- writes a duration a query computes (until, since) where it is kept as text: its years, months, weeks and days, and the
+-- nanoseconds of its time, written in hours, minutes and seconds ('hour'), minutes and seconds ('minute') or seconds
+-- ('second'); every field with the sign of the duration. The text is the one of Temporal's toString.
+CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns BIGINT, @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
+    DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
+    DECLARE @hour BIGINT = 3600000000000, @minute BIGINT = 60000000000, @second BIGINT = 1000000000, @f BIGINT, @frac VARCHAR(9);
+    IF @y <> 0 SET @r = @r + CAST(ABS(@y) AS VARCHAR(20)) + 'Y';
+    IF @mo <> 0 SET @r = @r + CAST(ABS(@mo) AS VARCHAR(20)) + 'M';
+    IF @w <> 0 SET @r = @r + CAST(ABS(@w) AS VARCHAR(20)) + 'W';
+    IF @d <> 0 SET @r = @r + CAST(ABS(@d) AS VARCHAR(20)) + 'D';
+    SET @ns = ABS(@ns);
+    IF @unit = 'hour' AND @ns >= @hour BEGIN SET @t = @t + CAST(@ns / @hour AS VARCHAR(20)) + 'H'; SET @ns = @ns % @hour; END
+    IF @unit <> 'second' AND @ns >= @minute BEGIN SET @t = @t + CAST(@ns / @minute AS VARCHAR(20)) + 'M'; SET @ns = @ns % @minute; END
+    IF @ns > 0
+    BEGIN
+        SET @f = @ns % @second;
+        SET @t = @t + CAST(@ns / @second AS VARCHAR(20));
+        IF @f > 0
+        BEGIN
+            SET @frac = RIGHT('000000000' + CAST(@f AS VARCHAR(9)), 9);
+            WHILE RIGHT(@frac, 1) = '0' SET @frac = LEFT(@frac, LEN(@frac) - 1);
+            SET @t = @t + '.' + @frac;
+        END
+        SET @t = @t + 'S';
+    END
+    IF @r = '' AND @t = '' RETURN 'PT0S';
+    RETURN CASE WHEN @neg = 1 THEN '-' ELSE '' END + 'P' + @r + CASE WHEN @t = '' THEN '' ELSE 'T' + @t END;
+END
+GO
+
+-- tsq_duration_round: the duration from one date and time to another (the year, month, day and nanoseconds of the day
+-- of each one; a date is at 00:00) as Temporal's until with a largest unit of weeks, months or years ('week', 'month',
+-- 'year') rounded to the smallest unit, increment and mode given, the function of the library that rounds a difference
+-- to the calendar (counting from the first date, as Temporal does); since passes its mode negated and -1 to negate the
+-- result.
+CREATE OR ALTER FUNCTION dbo.tsq_duration_round(@y1 INT, @m1 INT, @d1 INT, @ns1 BIGINT, @y2 INT, @m2 INT, @d2 INT, @ns2 BIGINT, @largest VARCHAR(5), @smallest VARCHAR(11), @increment BIGINT, @mode VARCHAR(10), @negation INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    IF @y1 IS NULL OR @m1 IS NULL OR @d1 IS NULL OR @ns1 IS NULL OR @y2 IS NULL OR @m2 IS NULL OR @d2 IS NULL OR @ns2 IS NULL OR @largest IS NULL OR @smallest IS NULL OR @increment IS NULL OR @mode IS NULL OR @negation IS NULL RETURN NULL;
+    DECLARE @day BIGINT = 86400000000000, @one DATE = DATEFROMPARTS(@y1, @m1, @d1), @two DATE = DATEFROMPARTS(@y2, @m2, @d2);
+    DECLARE @adjusted DATE = @two, @t BIGINT = @ns2 - @ns1, @k INT, @years BIGINT = 0, @months BIGINT = 0, @weeks BIGINT = 0, @days BIGINT;
+    DECLARE @sign BIGINT, @um VARCHAR(12), @r1 BIGINT, @start DATE, @end DATE, @num BIGINT, @den BIGINT, @whole BIGINT, @rest BIGINT, @steps BIGINT, @step BIGINT, @toRound BIGINT, @rounded BIGINT;
+    IF @t > 0 AND @two < @one BEGIN SET @adjusted = DATEADD(day, 1, @two); SET @t = @t - @day; END
+    ELSE IF @t < 0 AND @two > @one BEGIN SET @adjusted = DATEADD(day, -1, @two); SET @t = @t + @day; END
+    IF @largest = 'week'
+    BEGIN
+        SET @weeks = DATEDIFF(day, @one, @adjusted) / 7;
+        SET @days = DATEDIFF(day, @one, @adjusted) - @weeks * 7;
+    END
+    ELSE
+    BEGIN
+        SET @k = ((YEAR(@adjusted) * 12 + MONTH(@adjusted)) * 32 + DAY(@adjusted) - (@y1 * 12 + @m1) * 32 - @d1) / 32;
+        IF @largest = 'year' SET @years = @k / 12;
+        SET @months = @k - @years * 12;
+        SET @days = DATEDIFF(day, DATEADD(month, @k, @one), @adjusted);
+    END
+    SET @sign = CASE WHEN CAST(DATEDIFF(day, @one, @two) AS BIGINT) * @day + @ns2 - @ns1 < 0 THEN -1 ELSE 1 END;
+    SET @um = CASE @mode
+        WHEN 'ceil' THEN CASE WHEN @sign < 0 THEN 'zero' ELSE 'infinity' END
+        WHEN 'floor' THEN CASE WHEN @sign < 0 THEN 'infinity' ELSE 'zero' END
+        WHEN 'halfCeil' THEN CASE WHEN @sign < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+        WHEN 'halfFloor' THEN CASE WHEN @sign < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+        WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+        ELSE 'halfEven' END;
+    IF @smallest IN ('year', 'month', 'week')
+    BEGIN
+        IF @smallest = 'year'
+        BEGIN
+            SET @r1 = @years / @increment * @increment;
+            SET @start = DATEADD(month, @r1 * 12, @one);
+            SET @end = DATEADD(month, (@r1 + @increment * @sign) * 12, @one);
+        END
+        ELSE IF @smallest = 'month'
+        BEGIN
+            SET @r1 = @months / @increment * @increment;
+            SET @start = DATEADD(month, @years * 12 + @r1, @one);
+            SET @end = DATEADD(month, @years * 12 + @r1 + @increment * @sign, @one);
+        END
+        ELSE
+        BEGIN
+            SET @r1 = CASE WHEN @largest = 'week' THEN @weeks ELSE @days / 7 END / @increment * @increment;
+            SET @start = DATEADD(day, @r1 * 7, DATEADD(month, @years * 12 + @months, @one));
+            SET @end = DATEADD(day, (@r1 + @increment * @sign) * 7, DATEADD(month, @years * 12 + @months, @one));
+        END
+        SET @num = ABS(CAST(DATEDIFF(day, @start, @two) AS BIGINT) * @day + @ns2 - @ns1);
+        SET @den = ABS(CAST(DATEDIFF(day, @start, @end) AS BIGINT) * @day);
+        SET @whole = @num / @den;
+        SET @rest = @num - @whole * @den;
+        SET @steps = @whole + CASE WHEN @rest <> 0 AND (@um = 'infinity' OR @um LIKE 'half%' AND (2 * @rest > @den OR 2 * @rest = @den AND (@um = 'halfInfinity' OR @um = 'halfEven' AND (ABS(@r1) / @increment + @whole) % 2 <> 0))) THEN 1 ELSE 0 END;
+        SET @days = 0;
+        SET @t = 0;
+        IF @smallest = 'year' BEGIN SET @years = @r1 + @increment * @sign * @steps; SET @months = 0; END
+        ELSE IF @smallest = 'month'
+        BEGIN
+            SET @months = @r1 + @increment * @sign * @steps;
+            IF @steps > 0 AND @largest = 'year' AND @sign * DATEDIFF(day, DATEADD(month, (@years + @sign) * 12, @one), DATEADD(month, @years * 12 + @months, @one)) >= 0 BEGIN SET @years = @years + @sign; SET @months = 0; END
+        END
+        ELSE SET @weeks = @r1 + @increment * @sign * @steps;
+    END
+    ELSE
+    BEGIN
+        SET @step = CASE @smallest WHEN 'day' THEN @day WHEN 'hour' THEN CAST(3600000000000 AS BIGINT) WHEN 'minute' THEN CAST(60000000000 AS BIGINT) WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * @increment;
+        SET @toRound = @days * @day + @t;
+        SET @rest = ABS(@toRound % @step);
+        SET @rounded = @toRound - @toRound % @step;
+        IF @rest <> 0 AND (@um = 'infinity' OR @um LIKE 'half%' AND (2 * @rest > @step OR 2 * @rest = @step AND (@um = 'halfInfinity' OR @um = 'halfEven' AND (@rounded / @step) % 2 <> 0))) SET @rounded = @rounded + @step * @sign;
+        SET @days = @rounded / @day;
+        SET @t = @rounded - @days * @day;
+        IF @rounded / @day <> @toRound / @day
+        BEGIN
+            IF @largest = 'week'
+            BEGIN
+                IF @sign * (CAST(DATEDIFF(day, DATEADD(day, (@weeks + @sign) * 7, @one), @two) AS BIGINT) * @day + @ns2 - @ns1 + @rounded - @toRound) >= 0 BEGIN SET @weeks = @weeks + @sign; SET @days = 0; SET @t = 0; END
+            END
+            ELSE IF @sign * (CAST(DATEDIFF(day, DATEADD(month, @years * 12 + @months + @sign, @one), @two) AS BIGINT) * @day + @ns2 - @ns1 + @rounded - @toRound) >= 0
+            BEGIN
+                SET @days = 0;
+                SET @t = 0;
+                IF @largest = 'year' AND @sign * (CAST(DATEDIFF(day, DATEADD(month, (@years + @sign) * 12, @one), @two) AS BIGINT) * @day + @ns2 - @ns1 + @rounded - @toRound) >= 0 BEGIN SET @years = @years + @sign; SET @months = 0; END
+                ELSE SET @months = @months + @sign;
+            END
+        END
+    END
+    RETURN dbo.tsq_duration_text(@years * @negation, @months * @negation, @weeks * @negation, @days * @negation, @t * @negation, 'hour');
+END
+GO

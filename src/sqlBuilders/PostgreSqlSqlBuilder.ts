@@ -126,6 +126,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         typed.__forceTypeCast = true
         return typed
     }
+    override _typesTemporalConsts(): boolean {
+        // The parts of a const are taken with extract, and two dates subtracted: they need its type
+        return true
+    }
+    override _integerOfBigint(sql: string): string {
+        return 'cast(' + sql + ' as integer)'
+    }
     _operationNeedsTypedConst(operation: string, operand: unknown, typeClass: DataTypeClass, otherOperands: any[]): boolean {
         switch (operation) {
             case '_add':

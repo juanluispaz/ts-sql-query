@@ -1,11 +1,11 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
-import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
+import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation, HasOperation } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -1539,6 +1539,22 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _makeTimestamp(context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return 'cast(' + this._makeDate(context, year, month, day) + ' as timestamp(9)) + numtodsinterval(' + oracleSecondsOfTheDay(hour, minute, second, nanoseconds) + ", 'second')"
     }
+    /**
+     * Oracle's intervals keep days to seconds or years to months, not both: a difference is its ISO 8601 text, as where
+     * there is no interval
+     */
+    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return this._durationTextOfDifference(context, d)
+    }
+    override _isDurationKeptAsText(valueSource: ToSql): boolean {
+        return isDifference(valueSource) || super._isDurationKeptAsText(valueSource)
+    }
+    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
+        return this._appendKeepingTheDay(date, months)
+    }
+    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
+        return 'extract(' + part + ' from ' + date + ')'
+    }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         const value = this._appendSql(valueSource, context, false)
         const sinceMidnight = '(cast(' + value + ' as timestamp(9)) - trunc(' + value + '))'
@@ -1736,4 +1752,13 @@ export function oracleZonedValueSql(sql: string, typeClass: DataTypeClass, local
 /** The seconds since midnight of a time of its parts, with their fraction */
 function oracleSecondsOfTheDay(hour: string, minute: string, second: string, nanoseconds: string): string {
     return hour + ' * 3600 + ' + minute + ' * 60 + ' + second + (nanoseconds === '0' ? '' : ' + ' + nanoseconds + ' / 1000000000')
+}
+
+/** Whether a value source is a difference of two dates or times (until, since), which Oracle writes as text */
+function isDifference(valueSource: ToSql): boolean {
+    if (!isValueSource(valueSource)) {
+        return false
+    }
+    const operation = (__asNodeValueSource(valueSource) as Partial<HasOperation>).__operation
+    return operation === '_until' || operation === '_since'
 }

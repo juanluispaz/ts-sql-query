@@ -3,7 +3,7 @@ import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -1068,6 +1068,30 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return date
         }
         return 'timestamp(' + date + ', ' + this._mySqlTimeWith(context, valueSource, given) + ')'
+    }
+    /** MariaDB and MySQL have no type for a duration: a difference is its ISO 8601 text */
+    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return this._durationTextOfDifference(context, d)
+    }
+    override _temporalOperand(operand: ToSql): ToSql {
+        // The parameters are positional: a const is a parameter each time it is written
+        return operand
+    }
+    override _integerPart(sql: string): string {
+        // year(), month(), day() ... give an unsigned integer, which a subtraction can't take below zero
+        return 'cast(' + sql + ' as signed)'
+    }
+    override _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
+        return 'datediff(' + to + ', ' + from + ')'
+    }
+    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
+        return 'date_add(' + date + ', interval ' + months + ' month)'
+    }
+    override _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
+        return 'date_add(' + date + ', interval ' + days + ' day)'
+    }
+    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
+        return 'cast(' + part + '(' + date + ') as signed)'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         // floor: MariaDB's time_to_sec keeps the fraction of the second, MySQL's drops it. time_to_sec takes the time

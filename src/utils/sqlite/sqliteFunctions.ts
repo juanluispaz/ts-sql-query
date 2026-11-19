@@ -17,6 +17,10 @@
  *   whose blob sort by the time they were generated.
  * - ci_replace, a case-insensitive replace, for the connections whose replaceAllInsensitiveFunction is 'ci_replace'.
  * - tsq_duration_part, a part of the ISO 8601 text of a duration, to add or subtract a duration kept as its text.
+ * - tsq_duration_text, the ISO 8601 text of a duration of its fields, to write a duration a query computes (until,
+ *   since).
+ * - tsq_duration_round, the duration from one date and time to another rounded to the calendar, as Temporal's until
+ *   with a largest unit of weeks, months or years and a rounding.
  *
  * How they are registered, and why:
  *
@@ -434,6 +438,261 @@ function durationPart(value: unknown, part: unknown): number | null {
     return sign * result + 0
 }
 
+/** The absolute value of a bigint */
+function absoluteBigint(value: bigint): bigint {
+    return value < 0n ? -value : value
+}
+
+/** An integer argument of SQL as a bigint; null for null */
+function bigintArgument(value: unknown): bigint | null {
+    if (value === null || value === undefined) {
+        return null
+    }
+    return typeof value === 'bigint' ? value : BigInt(Math.trunc(Number(value)))
+}
+
+/**
+ * tsq_duration_text: the ISO 8601 text of a duration of its fields, as Temporal's toString writes it, as the same
+ * function of the library on the other databases: the years, months, weeks and days, and the nanoseconds of its time,
+ * written in hours, minutes and seconds ('hour'), minutes and seconds ('minute') or seconds ('second'); every field with
+ * the sign of the duration; null when a field is null
+ */
+function durationText(years: unknown, months: unknown, weeks: unknown, days: unknown, nanoseconds: unknown, unit: unknown): string | null {
+    const y = bigintArgument(years)
+    const mo = bigintArgument(months)
+    const w = bigintArgument(weeks)
+    const d = bigintArgument(days)
+    let ns = bigintArgument(nanoseconds)
+    if (y === null || mo === null || w === null || d === null || ns === null) {
+        return null
+    }
+    const negative = y < 0n || mo < 0n || w < 0n || d < 0n || ns < 0n
+    let date = ''
+    if (y !== 0n) date += absoluteBigint(y) + 'Y'
+    if (mo !== 0n) date += absoluteBigint(mo) + 'M'
+    if (w !== 0n) date += absoluteBigint(w) + 'W'
+    if (d !== 0n) date += absoluteBigint(d) + 'D'
+    ns = absoluteBigint(ns)
+    let time = ''
+    if (unit === 'hour' && ns >= 3_600_000_000_000n) {
+        time += ns / 3_600_000_000_000n + 'H'
+        ns %= 3_600_000_000_000n
+    }
+    if (unit !== 'second' && ns >= 60_000_000_000n) {
+        time += ns / 60_000_000_000n + 'M'
+        ns %= 60_000_000_000n
+    }
+    if (ns > 0n) {
+        const fraction = ns % 1_000_000_000n
+        time += String(ns / 1_000_000_000n) + (fraction > 0n ? '.' + String(fraction).padStart(9, '0').replace(/0+$/, '') : '') + 'S'
+    }
+    if (date === '' && time === '') {
+        return 'PT0S'
+    }
+    return (negative ? '-' : '') + 'P' + date + (time === '' ? '' : 'T' + time)
+}
+
+/** The days from 1970-01-01 to a date of the proleptic Gregorian calendar */
+function daysFromCivil(year: number, month: number, day: number): number {
+    const y = month <= 2 ? year - 1 : year
+    const era = Math.floor(y / 400)
+    const yearOfEra = y - era * 400
+    const dayOfYear = Math.floor((153 * (month + (month > 2 ? -3 : 9)) + 2) / 5) + day - 1
+    const dayOfEra = yearOfEra * 365 + Math.floor(yearOfEra / 4) - Math.floor(yearOfEra / 100) + dayOfYear
+    return era * 146097 + dayOfEra - 719468
+}
+
+/** The days of the month of the year */
+function daysInMonth(year: number, month: number): number {
+    if (month === 2) {
+        return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28
+    }
+    return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31
+}
+
+/** The days from 1970-01-01 to the date plus the months, its day kept in the month (Jan 31 plus a month is Feb 29) */
+function daysOfDatePlusMonths(year: number, month: number, day: number, months: number): number {
+    const index = year * 12 + month - 1 + months
+    const y = Math.floor(index / 12)
+    const m = index - y * 12 + 1
+    return daysFromCivil(y, m, Math.min(day, daysInMonth(y, m)))
+}
+
+/**
+ * Whether the second value plus what a rounding added (the days from the end to it and the nanoseconds beyond) isn't
+ * before the end, for a duration of the sign given
+ */
+function reachesEnd(sign: bigint, days: number, nanoseconds: bigint): boolean {
+    return sign * (BigInt(days) * 86_400_000_000_000n + nanoseconds) >= 0n
+}
+
+/** Whether a value between r1 and r2 (at num of den beyond r1) is rounded to r2, by Temporal's mode and its sign */
+function roundsAway(num: bigint, den: bigint, mode: string, negative: boolean, r1IsEven: boolean): boolean {
+    if (num === 0n) {
+        return false
+    }
+    if (num >= den) {
+        return true
+    }
+    const unsigned = mode === 'ceil' ? (negative ? 'zero' : 'infinity') : mode === 'floor' ? (negative ? 'infinity' : 'zero')
+        : mode === 'halfCeil' ? (negative ? 'halfZero' : 'halfInfinity') : mode === 'halfFloor' ? (negative ? 'halfInfinity' : 'halfZero')
+            : mode === 'expand' ? 'infinity' : mode === 'trunc' ? 'zero' : mode === 'halfExpand' ? 'halfInfinity' : mode === 'halfTrunc' ? 'halfZero' : 'halfEven'
+    if (unsigned === 'zero') {
+        return false
+    }
+    if (unsigned === 'infinity') {
+        return true
+    }
+    const twice = 2n * num
+    if (twice !== den) {
+        return twice > den
+    }
+    return unsigned === 'halfInfinity' || (unsigned === 'halfEven' && !r1IsEven)
+}
+
+const nanosecondsOfUnit: Record<string, bigint | undefined> = {
+    day: 86_400_000_000_000n, hour: 3_600_000_000_000n, minute: 60_000_000_000n, second: 1_000_000_000n, millisecond: 1_000_000n, microsecond: 1000n, nanosecond: 1n,
+}
+
+/**
+ * tsq_duration_round: the duration from one date and time (its year, month, day and nanoseconds of the day) to another,
+ * as Temporal's until with a largest unit of weeks, months or years ('week', 'month', 'year') rounded to the smallest
+ * unit, the increment and the mode given (the mode of until: since passes it negated, and -1 as sign to negate the
+ * result), as Temporal rounds it to the calendar from the first date; its ISO 8601 text. A date is one at 00:00
+ */
+function durationRound(year1: unknown, month1: unknown, day1: unknown, nanoseconds1: unknown, year2: unknown, month2: unknown, day2: unknown, nanoseconds2: unknown, largestUnit: unknown, smallestUnit: unknown, roundingIncrement: unknown, roundingMode: unknown, negation: unknown): string | null {
+    const ns1 = bigintArgument(nanoseconds1)
+    const ns2 = bigintArgument(nanoseconds2)
+    const increment = bigintArgument(roundingIncrement)
+    const resultSign = bigintArgument(negation)
+    if (year1 === null || month1 === null || day1 === null || year2 === null || month2 === null || day2 === null || ns1 === null || ns2 === null || increment === null || resultSign === null) {
+        return null
+    }
+    const y1 = Number(year1)
+    const m1 = Number(month1)
+    const d1 = Number(day1)
+    const y2 = Number(year2)
+    const m2 = Number(month2)
+    const d2 = Number(day2)
+    const largest = String(largestUnit)
+    const smallest = String(smallestUnit)
+    const mode = String(roundingMode)
+    const day = 86_400_000_000_000n
+    const e1 = daysFromCivil(y1, m1, d1)
+    const e2 = daysFromCivil(y2, m2, d2)
+    // The date of the second value moved a day when its time has the sign its date hasn't
+    let time = ns2 - ns1
+    let e2Adjusted = e2
+    if (time > 0n && e2 < e1) {
+        e2Adjusted = e2 + 1
+        time -= day
+    } else if (time < 0n && e2 > e1) {
+        e2Adjusted = e2 - 1
+        time += day
+    }
+    let years = 0n
+    let months = 0n
+    let weeks = 0n
+    let days: bigint
+    if (largest === 'week') {
+        const allDays = BigInt(e2Adjusted - e1)
+        weeks = allDays / 7n
+        days = allDays - weeks * 7n
+    } else {
+        // The whole months that don't pass the second date with the day of the first one
+        const z = e2Adjusted + 719468
+        const era = Math.floor(z / 146097)
+        const dayOfEra = z - era * 146097
+        const yearOfEra = Math.floor((dayOfEra - Math.floor(dayOfEra / 1460) + Math.floor(dayOfEra / 36524) - Math.floor(dayOfEra / 146096)) / 365)
+        const dayOfYear = dayOfEra - (365 * yearOfEra + Math.floor(yearOfEra / 4) - Math.floor(yearOfEra / 100))
+        const mp = Math.floor((5 * dayOfYear + 2) / 153)
+        const dA = dayOfYear - Math.floor((153 * mp + 2) / 5) + 1
+        const mA = mp < 10 ? mp + 3 : mp - 9
+        const yA = yearOfEra + era * 400 + (mA <= 2 ? 1 : 0)
+        const k = Math.trunc(((yA * 12 + mA) * 32 + dA - (y1 * 12 + m1) * 32 - d1) / 32)
+        years = largest === 'year' ? BigInt(Math.trunc(k / 12)) : 0n
+        months = BigInt(k) - years * 12n
+        days = BigInt(e2Adjusted - daysOfDatePlusMonths(y1, m1, d1, k))
+    }
+    const sign = (BigInt(e2 - e1) * day + ns2 - ns1) < 0n ? -1n : 1n
+    if (smallest === 'year' || smallest === 'month' || smallest === 'week') {
+        let r1: bigint
+        let startMonths = years * 12n + months
+        let endMonths = startMonths
+        let startWeeks = 0n
+        let endWeeks = 0n
+        if (smallest === 'year') {
+            r1 = years / increment * increment
+            startMonths = r1 * 12n
+            endMonths = (r1 + increment * sign) * 12n
+        } else if (smallest === 'month') {
+            r1 = months / increment * increment
+            startMonths = years * 12n + r1
+            endMonths = startMonths + increment * sign
+        } else {
+            r1 = (largest === 'week' ? weeks : days / 7n) / increment * increment
+            startWeeks = r1
+            endWeeks = r1 + increment * sign
+        }
+        const start = daysOfDatePlusMonths(y1, m1, d1, Number(startMonths)) + Number(startWeeks) * 7
+        const end = daysOfDatePlusMonths(y1, m1, d1, Number(endMonths)) + Number(endWeeks) * 7
+        let num = BigInt(e2 - start) * day + ns2 - ns1
+        let den = BigInt(end - start) * day
+        num = num < 0n ? -num : num
+        den = den < 0n ? -den : den
+        // The progress from r1 in increments, rounded: past r2 when the second value is beyond it
+        const whole = num / den
+        const rest = num - whole * den
+        const steps = whole + (rest !== 0n && roundsAway(rest, den, mode, sign < 0n, ((r1 < 0n ? -r1 : r1) / increment + whole) % 2n === 0n) ? 1n : 0n)
+        const units = r1 + increment * sign * steps
+        const up = steps > 0n
+        days = 0n
+        time = 0n
+        if (smallest === 'year') {
+            years = units
+            months = 0n
+        } else if (smallest === 'month') {
+            months = units
+            if (up && largest === 'year' && sign * BigInt(daysOfDatePlusMonths(y1, m1, d1, Number(years * 12n + units)) - daysOfDatePlusMonths(y1, m1, d1, Number((years + sign) * 12n))) >= 0n) {
+                years += sign
+                months = 0n
+            }
+        } else {
+            weeks = units
+        }
+    } else {
+        // The days and the time rounded, and the next week, month or year when that reaches it
+        const step = nanosecondsOfUnit[smallest]! * increment
+        const toRound = days * day + time
+        const remainder = toRound % step
+        let rounded = toRound - remainder
+        if (remainder !== 0n) {
+            const up = roundsAway(remainder < 0n ? -remainder : remainder, step, mode, toRound < 0n, (rounded / step) % 2n === 0n)
+            if (up) {
+                rounded += step * (toRound < 0n ? -1n : 1n)
+            }
+        }
+        const expanded = rounded / day !== toRound / day
+        days = rounded / day
+        time = rounded - days * day
+        if (expanded && largest === 'week' && reachesEnd(sign, e2 - (e1 + Number(weeks + sign) * 7), ns2 - ns1 + rounded - toRound)) {
+            weeks += sign
+            days = 0n
+            time = 0n
+        } else if (expanded && largest !== 'week' && reachesEnd(sign, e2 - daysOfDatePlusMonths(y1, m1, d1, Number(years * 12n + months + sign)), ns2 - ns1 + rounded - toRound)) {
+            days = 0n
+            time = 0n
+            if (largest === 'year' && reachesEnd(sign, e2 - daysOfDatePlusMonths(y1, m1, d1, Number((years + sign) * 12n)), ns2 - ns1 + rounded - toRound)) {
+                years += sign
+                months = 0n
+            } else {
+                months += sign
+            }
+        }
+    }
+    return durationText(years * resultSign, months * resultSign, weeks * resultSign, days * resultSign, time * resultSign, 'hour')
+}
+
 // The functions
 
 const pure = true
@@ -454,6 +713,8 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'uuid_blob', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidBlob as SqliteScalarFunction['fn'] },
     { name: 'ci_replace', arity: 3, deterministic: pure, fn: ciReplace as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_part', arity: 2, deterministic: pure, fn: durationPart as SqliteScalarFunction['fn'] },
+    { name: 'tsq_duration_text', arity: 6, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },
+    { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },
 ]
 
 export const sqliteAggregateFunctions: readonly SqliteAggregateFunction[] = [

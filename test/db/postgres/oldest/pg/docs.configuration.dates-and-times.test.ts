@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_date(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), 1) as "monthOfRelease", time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from cast(cutoff_time as time)) * 1000000)::bigint * 1000) + 21600000000000) / 43200000000000) * 21600000000000) / 1000000000.0) as "cutoffSlot" from project_release order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_date(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), 1) as "monthOfRelease", time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from cutoff_time) * 1000000)::bigint * 1000) + 21600000000000) / 43200000000000) * 21600000000000) / 1000000000.0) as "cutoffSlot" from project_release order by version"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof releases, Array<{ version: string; monthOfRelease: Temporal.PlainDate; cutoffSlot: Temporal.PlainTime }>>>()
         expect(releases.map(release => [release.version, release.monthOfRelease.toString(), release.cutoffSlot.toString()])).toEqual([

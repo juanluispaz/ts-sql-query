@@ -17,7 +17,8 @@ import { __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSour
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __isCondition } from '../typeSystem/logical.js'
 import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
-import { __classOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { isZeroDuration } from '../utils/durationValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
@@ -1099,6 +1100,75 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as datetime2)'
+    }
+    /** SQL Server has no type for a duration: it is kept as its ISO 8601 text */
+    override _supportNativeDurations(): boolean {
+        return false
+    }
+    override _durationPartFunctionName(): string {
+        // A function of the user is called with its schema
+        return 'dbo.tsq_duration_part'
+    }
+    override _truncatedDivision(dividend: string, divisor: string): string {
+        // The division of integers truncates toward zero
+        return dividend + ' / ' + divisor
+    }
+    /**
+     * `dateadd` adds the months keeping the day in the month (Jan 31 plus a month is Feb 29), then the days, the
+     * seconds and the nanoseconds, as Temporal does; a time goes round at midnight. dateadd takes an int: the days of
+     * the seconds are added as days. A datetime or a smalldatetime has no nanoseconds: their milliseconds are added
+     */
+    override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const constant = this._constantDurationParts(value, typeClass, fields, sign)
+        if (constant && isZeroDuration(constant)) {
+            return this._appendSql(valueSource, context, false)
+        }
+        let result = this._appendSql(valueSource, context, false)
+        let months: string | undefined
+        let days: string | undefined
+        let seconds: string | undefined
+        let nanoseconds: string | undefined
+        if (constant) {
+            const int = __registeredDataType('int')
+            const wholeDays = constant.days + Math.trunc(constant.seconds / 86400)
+            const restOfSeconds = constant.seconds % 86400
+            months = constant.months === 0 ? undefined : this._appendValue(constant.months, context, int, false)
+            days = wholeDays === 0 ? undefined : this._appendValue(wholeDays, context, int, false)
+            seconds = restOfSeconds === 0 ? undefined : this._appendValue(restOfSeconds, context, int, false)
+            nanoseconds = constant.nanoseconds === 0 ? undefined : this._appendValue(constant.nanoseconds, context, int, false)
+        } else {
+            const duration = __asNodeValueSource(value)
+            if (fields !== 'time') {
+                months = this._signedDurationTextPart(context, duration, 'M', sign)
+                days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + ' + ' + this._signedDurationTextPart(context, duration, 'S', sign) + ' / 86400)'
+            }
+            if (fields !== 'date') {
+                seconds = this._signedDurationTextPart(context, duration, 'S', sign) + ' % 86400'
+                nanoseconds = this._signedDurationTextPart(context, duration, 'N', sign)
+            }
+        }
+        if (months !== undefined) {
+            result = 'dateadd(month, ' + months + ', ' + result + ')'
+        }
+        if (days !== undefined) {
+            result = 'dateadd(day, ' + days + ', ' + result + ')'
+        }
+        if (seconds !== undefined) {
+            result = 'dateadd(second, ' + seconds + ', ' + result + ')'
+        }
+        if (nanoseconds !== undefined) {
+            const native = this._nativeSqlDataTypeOfOperand(valueSource)
+            result = native === 'datetime' || native === 'smalldatetime'
+                ? 'dateadd(millisecond, ' + nanoseconds + ' / 1000000, ' + result + ')'
+                : 'dateadd(nanosecond, ' + nanoseconds + ', ' + result + ')'
+        }
+        return result
+    }
+    /** The type of the database of an operand, by the SQL data type of its column (withSqlDataType), if it says it */
+    _nativeSqlDataTypeOfOperand(operand: ToSql): string | undefined {
+        const sqlDataType = isValueSource(operand) ? __sqlDataTypeOf(__classOf(operand)) : undefined
+        return sqlDataType === undefined ? undefined : this._connectionConfiguration.nativeSqlDataTypeOf(sqlDataType)
     }
     override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         // A time as a datetime2 is on 1900-01-01 (the day 0): the days from it to the date are added to it

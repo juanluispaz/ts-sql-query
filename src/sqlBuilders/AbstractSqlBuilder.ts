@@ -21,7 +21,8 @@ import { getWithData, hasWithData, isWithValuesData } from './SqlBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf } from '../typeSystem/dataTypes.js'
+import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
+import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __isBooleanValueSource, __isStringValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
@@ -4012,6 +4013,146 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** The time of the day of `toPlainDateTime(time)`: a value source as it is, a value as a plainTime with its type */
     _appendPlainTimeOperand(context: SqlBuildContext, value: any): string {
         return this._appendValueParenthesis(value, context, __registeredDataType('plainTime'), true)
+    }
+    _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithDuration(context, valueSource, value, typeClass, 1)
+    }
+    _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithDuration(context, valueSource, value, typeClass, -1)
+    }
+    /**
+     * A date, a time or a date and time plus a duration (multiplied by sign), as Temporal adds it (see DurationParts):
+     * PostgreSQL adds an interval with the same rules (the months first, kept in the month, then the days and the
+     * time; a time goes round at midnight and takes only the time of the interval), except a date, which takes the
+     * whole days of the time (`-PT36H` is minus one day, where the interval would give two)
+     */
+    _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const parts = this._constantDurationParts(value, typeClass, fields, sign)
+        // A const is written with its type: next to an interval PostgreSQL can't tell a date, a time or a timestamp
+        const typed = this._isConstOperand(valueSource)
+        if (parts) {
+            if (isZeroDuration(parts)) {
+                return this._appendSql(valueSource, context, false)
+            }
+            const value = this._appendSqlParenthesis(valueSource, context, typed)
+            if (fields === 'date' && parts.months === 0) {
+                // A date plus a number of days is a date
+                return value + ' + ' + this._appendValue(parts.days, context, __registeredDataType('int'), true)
+            }
+            const interval = this._appendValue(durationOfParts(parts, 'duration'), context, __registeredDataType('duration'), true)
+            return fields === 'date' ? 'cast(' + value + ' + ' + interval + ' as date)' : value + ' + ' + interval
+        }
+        const duration = __asNodeValueSource(value)
+        const operator = sign < 0 ? ' - ' : ' + '
+        if (!this._isDurationKeptAsText(duration)) {
+            if (fields !== 'date') {
+                return this._appendSqlParenthesis(valueSource, context, typed) + operator + this._appendSqlParenthesis(duration, context, false)
+            }
+            const interval = this._appendSqlParenthesis(duration, context, false)
+            const months = '(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + '))::integer'
+            const days = '(extract(day from ' + interval + ') + trunc(extract(epoch from ' + interval + " - date_trunc('day', " + interval + ')) / 86400))::integer'
+            return 'cast(' + this._appendSqlParenthesis(valueSource, context, typed) + operator + 'make_interval(months => ' + months + ', days => ' + days + ') as date)'
+        }
+        const months = this._durationTextPart(context, duration, 'M')
+        const days = this._durationTextPart(context, duration, 'D')
+        const seconds = this._durationTextPart(context, duration, 'S')
+        const nanoseconds = this._durationTextPart(context, duration, 'N')
+        if (fields === 'date') {
+            return 'cast(' + this._appendSqlParenthesis(valueSource, context, typed) + operator + 'make_interval(months => ' + months + '::integer, days => (' + days + ' + trunc(' + seconds + ' / 86400))::integer) as date)'
+        }
+        const time = 'secs => ' + seconds + ' + ' + nanoseconds + ' / 1000000000.0'
+        const interval = fields === 'time' ? 'make_interval(' + time + ')' : 'make_interval(months => ' + months + '::integer, days => ' + days + '::integer, ' + time + ')'
+        return this._appendSqlParenthesis(valueSource, context, typed) + operator + interval
+    }
+    /**
+     * The parts of a duration (multiplied by sign) as SQL, in the order months, days, seconds, nanoseconds, each
+     * undefined when it adds nothing; undefined when the duration adds nothing. A constant gives its numbers, as
+     * parameters; a value source kept as text its parts read with tsq_duration_part (a database with intervals reads
+     * the parts of an interval itself). For a date the days take the whole days of the time; for a time only the time
+     * counts. With timeInMicroseconds (MariaDB and MySQL) the seconds are the whole time in microseconds, the digits
+     * below them dropped, and there are no nanoseconds
+     */
+    _durationPartsSql(context: SqlBuildContext, value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1, timeInMicroseconds: boolean = false): DurationPartsSql | undefined {
+        const parts = this._constantDurationParts(value, typeClass, fields, sign)
+        const int = __registeredDataType('int')
+        if (parts) {
+            if (isZeroDuration(parts)) {
+                return undefined
+            }
+            return {
+                months: parts.months === 0 ? undefined : this._appendValue(parts.months, context, int, false),
+                days: parts.days === 0 ? undefined : this._appendValue(parts.days, context, int, false),
+                seconds: timeInMicroseconds
+                    ? (parts.seconds === 0 && Math.trunc(parts.nanoseconds / 1000) === 0 ? undefined : this._appendValue(BigInt(parts.seconds) * 1_000_000n + BigInt(Math.trunc(parts.nanoseconds / 1000)), context, __registeredDataType('bigint'), false))
+                    : (parts.seconds === 0 ? undefined : this._appendValue(BigInt(parts.seconds), context, __registeredDataType('bigint'), false)),
+                nanoseconds: timeInMicroseconds || parts.nanoseconds === 0 ? undefined : this._appendValue(parts.nanoseconds, context, int, false),
+                constant: parts,
+            }
+        }
+        const duration = __asNodeValueSource(value as AnyValueSource)
+        if (fields === 'date') {
+            const months = this._signedDurationTextPart(context, duration, 'M', sign)
+            const days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + ' + ' + this._truncatedDivision(this._signedDurationTextPart(context, duration, 'S', sign), '86400') + ')'
+            return { months, days, seconds: undefined, nanoseconds: undefined, constant: undefined }
+        }
+        const months = fields === 'time' ? undefined : this._signedDurationTextPart(context, duration, 'M', sign)
+        const days = fields === 'time' ? undefined : this._signedDurationTextPart(context, duration, 'D', sign)
+        if (timeInMicroseconds) {
+            const microseconds = '(' + this._signedDurationTextPart(context, duration, 'S', sign) + ' * 1000000 + ' + this._truncatedDivision(this._signedDurationTextPart(context, duration, 'N', sign), '1000') + ')'
+            return { months, days, seconds: microseconds, nanoseconds: undefined, constant: undefined }
+        }
+        return { months, days, seconds: this._signedDurationTextPart(context, duration, 'S', sign), nanoseconds: this._signedDurationTextPart(context, duration, 'N', sign), constant: undefined }
+    }
+    /** A part of the ISO 8601 text of a duration (see _durationTextPart), negated when sign is -1 */
+    _signedDurationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N', sign: 1 | -1): string {
+        return (sign < 0 ? '-' : '') + this._durationTextPart(context, valueSource, part)
+    }
+    /** An integer division that truncates toward zero, as Temporal balances a time into days */
+    _truncatedDivision(dividend: string, divisor: string): string {
+        return 'trunc(' + dividend + ' / ' + divisor + ')'
+    }
+    /** Whether the operand is a const, a parameter */
+    _isConstOperand(operand: ToSql): boolean {
+        return isValueSource(operand) && __asNodeValueSource(operand).isConstValue()
+    }
+    /** What a duration is added to: a date, a time, or a date and time (by the SQL data type of the result) */
+    _temporalFieldsOfDurationOperation(typeClass: DataTypeClass): 'date' | 'time' | 'timestamp' {
+        return __temporalFieldsOf(typeClass) ?? 'timestamp'
+    }
+    /**
+     * The parts of a duration given as a value (a Temporal.Duration or its fields), multiplied by sign, as Temporal adds
+     * it to a value of those fields; undefined for a value source, whose parts the SQL reads
+     */
+    _constantDurationParts(value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): DurationParts | undefined {
+        if (isValueSource(value)) {
+            return undefined
+        }
+        const duration = durationOfArgument(value, typeClass.type)
+        if (!duration) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: 'duration' }, 'Invalid duration to add or subtract: ' + String(value))
+        }
+        return durationPartsFor(duration, fields, sign)
+    }
+    /** Whether the database keeps a duration in an interval of its own (PostgreSQL, Oracle) */
+    _supportNativeDurations(): boolean {
+        return true
+    }
+    /** Whether a duration value source is kept as its ISO 8601 text: on a database without intervals, or a text column */
+    _isDurationKeptAsText(valueSource: ToSql): boolean {
+        return !this._supportNativeDurations() || __sqlDataTypeOf(__classOf(valueSource as object))?.family === 'character string'
+    }
+    /**
+     * A part of the ISO 8601 text of a duration, with the function of the library tsq_duration_part: 'M' the months
+     * (its years too), 'D' the days (its weeks too), 'S' the whole seconds of its time, 'N' the nanoseconds of the
+     * second; each with the sign of the duration
+     */
+    _durationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N'): string {
+        return this._durationPartFunctionName() + '(' + this._appendSql(valueSource, context, false) + ", '" + part + "')"
+    }
+    /** The name of the function of the library that reads a part of the ISO 8601 text of a duration */
+    _durationPartFunctionName(): string {
+        return 'tsq_duration_part'
     }
     /** Whether the database supports a databaseTimeZone other than UTC, completing the zone of a value with its session */
     _supportDatabaseOutsideUtc(): boolean {

@@ -16,6 +16,7 @@ import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { sqliteOperationsThatNeedParenthesis } from '../utils/sqlite/sqliteOperationsThatNeedParenthesis.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
+import { isZeroDuration } from '../utils/durationValues.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 
 /**
@@ -1284,6 +1285,63 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const time = isValueSource(value) ? this._dateFunctionArgument(context, __asNodeValueSource(value)) : this._appendPlainTimeOperand(context, value)
         return this._sqliteTemporalIn('dateTime', "date(" + this._dateFunctionArgument(context, valueSource) + ") || ' ' || strftime('%H:%M:%f', " + time + ")")
     }
+    /** SQLite has no type for a duration: it is kept as its ISO 8601 text */
+    override _supportNativeDurations(): boolean {
+        return false
+    }
+    override _truncatedDivision(dividend: string, divisor: string): string {
+        // A cast to integer truncates toward zero, also a real
+        return 'cast(' + dividend + ' / ' + divisor + ' as integer)'
+    }
+    /**
+     * A date, a time or a date and time plus a duration (multiplied by sign), as Temporal adds it, with the modifiers of
+     * the date functions: the months from the start of the month, and the day of the value, or the last day of the
+     * month when it has fewer (SQLite's `+N months` moves Jan 31 to Mar 2, Temporal keeps it in February); then the
+     * days and the seconds. A time goes round at midnight. The digits below the millisecond are the ones the date
+     * functions keep
+     */
+    override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const constant = this._constantDurationParts(value, typeClass, fields, sign)
+        if (constant && isZeroDuration(constant)) {
+            return this._appendSql(valueSource, context, false)
+        }
+        let months: string | undefined
+        let days: string | undefined
+        let seconds: string | undefined
+        if (constant) {
+            const text = __registeredDataType('string')
+            months = constant.months === 0 ? undefined : this._appendValue(constant.months + ' months', context, text, false)
+            days = constant.days === 0 ? undefined : this._appendValue(constant.days + ' days', context, text, false)
+            seconds = constant.seconds === 0 && constant.nanoseconds === 0 ? undefined : this._appendValue(secondsModifier(constant.seconds, constant.nanoseconds), context, text, false)
+        } else {
+            const duration = __asNodeValueSource(value)
+            if (fields !== 'time') {
+                months = '(' + this._signedDurationTextPart(context, duration, 'M', sign) + ") || ' months'"
+                const wholeDays = fields === 'date' ? ' + ' + this._truncatedDivision(this._signedDurationTextPart(context, duration, 'S', sign), '86400') : ''
+                days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + wholeDays + ") || ' days'"
+            }
+            if (fields !== 'date') {
+                seconds = '(' + this._signedDurationTextPart(context, duration, 'S', sign) + ' + ' + this._signedDurationTextPart(context, duration, 'N', sign) + " / 1000000000.0) || ' seconds'"
+            }
+        }
+        const argument = this._dateFunctionArgument(context, valueSource)
+        if (fields === 'time') {
+            return this._sqliteTemporalIn('time', argument + ', ' + seconds)
+        }
+        let date = argument
+        if (months !== undefined) {
+            // The first of the month, the months added, and the day of the value or the last one of that month
+            const month = 'date(' + argument + ", 'start of month', " + months + ')'
+            const lastDay = "cast(strftime('%d', " + month + ", '+1 months', '-1 days') as integer)"
+            date = month + ", (min(cast(strftime('%d', " + argument + ') as integer), ' + lastDay + ") - 1) || ' days'"
+            if (fields === 'timestamp') {
+                date = 'date(' + date + ") || ' ' || strftime('%H:%M:%f', " + argument + ')'
+            }
+        }
+        const modifiers = (days === undefined ? '' : ', ' + days) + (seconds === undefined ? '' : ', ' + seconds)
+        return this._sqliteTemporalIn(fields === 'date' ? 'date' : 'dateTime', date + modifiers)
+    }
     /**
      * A date, a time or a date and time in the format its type is kept in (getDateTimeFormat), from the arguments of a
      * date function of SQLite (a value and its modifiers): its text, with the seconds or the milliseconds the format
@@ -1417,4 +1475,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
 function isLocalTextFormat(format: SqliteDateTimeFormat): boolean {
     return format === 'localdate seconds as text' || format === 'localdate milliseconds as text'
         || format === 'localdate seconds as text using T separator' || format === 'localdate milliseconds as text using T separator'
+}
+
+/** The modifier of the date functions of SQLite that adds the seconds given, with the nanoseconds as their fraction */
+function secondsModifier(seconds: number, nanoseconds: number): string {
+    const negative = seconds < 0 || nanoseconds < 0
+    const fraction = String(Math.abs(nanoseconds)).padStart(9, '0').replace(/0+$/, '')
+    return (negative ? '-' : '') + Math.abs(seconds) + (fraction === '' ? '' : '.' + fraction) + ' seconds'
 }

@@ -15,6 +15,7 @@ import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/val
 import type { ILogicalValueSource } from '../typeSystem/base.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
+import { isZeroDuration } from '../utils/durationValues.js'
 import { __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
@@ -995,6 +996,48 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         // `timestamp(date, time)`: the date at that time of the day
         return 'timestamp(' + this._appendSql(valueSource, context, false) + ', ' + this._appendPlainTimeOperand(context, value) + ')'
+    }
+    /** MariaDB and MySQL have no type for a duration: it is kept as its ISO 8601 text */
+    override _supportNativeDurations(): boolean {
+        return false
+    }
+    override _truncatedDivision(dividend: string, divisor: string): string {
+        // `div` truncates toward zero
+        return dividend + ' div ' + divisor
+    }
+    /**
+     * `date_add` adds the months keeping the day in the month (Jan 31 plus a month is Feb 29), then the days and the
+     * microseconds of the time, as Temporal does. A TIME doesn't go round at midnight: a time is the microseconds of the
+     * day plus the ones of the duration, modulo a day
+     */
+    override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const constant = this._constantDurationParts(value, typeClass, fields, sign)
+        if (constant && isZeroDuration(constant)) {
+            return this._appendSql(valueSource, context, false)
+        }
+        if (fields === 'time') {
+            // floor: MariaDB's time_to_sec keeps the fraction of the second, MySQL's drops it
+            const time = 'floor(time_to_sec(' + this._appendSql(valueSource, context, false) + ')) * 1000000 + microsecond(' + this._appendSql(valueSource, context, false) + ')'
+            const microseconds = this._durationPartsSql(context, value, typeClass, fields, sign, true)?.seconds ?? '0'
+            const ofTheDay = constant
+                // Less than a day, either way
+                ? 'mod(' + time + ' + ' + microseconds + ' + 86400000000, 86400000000)'
+                : 'mod(mod(' + time + ' + ' + microseconds + ', 86400000000) + 86400000000, 86400000000)'
+            return 'sec_to_time(' + ofTheDay + ' * 0.000001)'
+        }
+        let result = this._appendSql(valueSource, context, false)
+        const parts = this._durationPartsSql(context, value, typeClass, fields, sign, true)
+        if (parts?.months !== undefined) {
+            result = 'date_add(' + result + ', interval ' + parts.months + ' month)'
+        }
+        if (parts?.days !== undefined) {
+            result = 'date_add(' + result + ', interval ' + parts.days + ' day)'
+        }
+        if (parts?.seconds !== undefined) {
+            result = 'date_add(' + result + ', interval ' + parts.seconds + ' microsecond)'
+        }
+        return result
     }
     override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         return 'month(' + this._appendSql(valueSource, context, false) + ') - 1'

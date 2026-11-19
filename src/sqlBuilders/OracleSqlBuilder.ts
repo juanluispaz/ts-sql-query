@@ -16,7 +16,8 @@ import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
 import { __isCondition } from '../typeSystem/logical.js'
-import { __classOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __adaptedTypeClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { isZeroDuration } from '../utils/durationValues.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
@@ -1420,6 +1421,106 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9))'
+    }
+    /**
+     * A date, a time or a date and time plus a duration (multiplied by sign), as Temporal adds it: the months keeping
+     * the day in the month (add_months gives the last day of the month to the last day of another: Feb 29 plus a month
+     * is Mar 31 for it, Mar 29 for Temporal, so the days it moves past the day of the value are taken back), then the
+     * days and the time; a time goes round at midnight
+     */
+    override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const constant = this._constantDurationParts(value, typeClass, fields, sign)
+        if (constant && isZeroDuration(constant)) {
+            return this._appendSql(valueSource, context, false)
+        }
+        let months: string | undefined
+        let days: string | undefined
+        // The seconds with their fraction
+        let seconds: string | undefined
+        const negative = sign < 0 ? '-' : ''
+        if (constant) {
+            const int = __registeredDataType('int')
+            months = constant.months === 0 ? undefined : this._appendValue(constant.months, context, int, false)
+            days = constant.days === 0 ? undefined : this._appendValue(constant.days, context, int, false)
+            if (constant.seconds !== 0 || constant.nanoseconds !== 0) {
+                seconds = this._appendValue(BigInt(constant.seconds), context, __registeredDataType('bigint'), false)
+                if (constant.nanoseconds !== 0) {
+                    seconds += ' + ' + this._appendValue(constant.nanoseconds, context, int, false) + ' / 1000000000'
+                }
+            }
+        } else {
+            const duration = __asNodeValueSource(value)
+            if (this._isDurationKeptAsText(duration)) {
+                if (fields !== 'time') {
+                    months = this._signedDurationTextPart(context, duration, 'M', sign)
+                    days = this._signedDurationTextPart(context, duration, 'D', sign)
+                }
+                if (fields === 'date') {
+                    days = '(' + days + ' + ' + this._truncatedDivision(this._signedDurationTextPart(context, duration, 'S', sign), '86400') + ')'
+                } else {
+                    seconds = '(' + this._signedDurationTextPart(context, duration, 'S', sign) + ' + ' + this._signedDurationTextPart(context, duration, 'N', sign) + ' / 1000000000)'
+                }
+            } else if (this._isYearToMonthDuration(duration)) {
+                if (fields === 'time') {
+                    return this._appendSql(valueSource, context, false)
+                }
+                const interval = this._appendSqlParenthesis(duration, context, false)
+                months = negative + '(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + '))'
+            } else {
+                const interval = this._appendSqlParenthesis(duration, context, false)
+                if (fields === 'timestamp') {
+                    // A TIMESTAMP plus an interval of days to seconds adds its days and its time
+                    return this._appendSqlParenthesis(valueSource, context, false) + (sign < 0 ? ' - ' : ' + ') + interval
+                }
+                if (fields === 'date') {
+                    // Its hours are less than a day: the time adds no whole day
+                    days = negative + 'extract(day from ' + interval + ')'
+                } else {
+                    seconds = negative + '(extract(day from ' + interval + ') * 86400 + extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + extract(second from ' + interval + '))'
+                }
+            }
+        }
+        if (fields === 'time') {
+            // The seconds of the day, with their fraction, plus the ones of the duration, modulo a day
+            const value = this._appendSql(valueSource, context, false)
+            const sinceMidnight = '(cast(' + value + ' as timestamp) - trunc(' + value + '))'
+            const secondsOfTheDay = 'extract(hour from ' + sinceMidnight + ') * 3600 + extract(minute from ' + sinceMidnight + ') * 60 + extract(second from ' + sinceMidnight + ')'
+            const ofTheDay = constant
+                // Less than a day, either way
+                ? 'mod(' + secondsOfTheDay + ' + ' + seconds + ' + 86400, 86400)'
+                : 'mod(mod(' + secondsOfTheDay + ' + ' + seconds + ', 86400) + 86400, 86400)'
+            return "timestamp '1970-01-01 00:00:00' + numtodsinterval(" + ofTheDay + ", 'second')"
+        }
+        let result: string
+        if (fields === 'date') {
+            result = months === undefined ? this._appendSqlParenthesis(valueSource, context, false) : this._appendKeepingTheDay(this._appendSql(valueSource, context, false), months)
+            return days === undefined ? result : result + ' + ' + days
+        }
+        if (months === undefined) {
+            result = this._appendSqlParenthesis(valueSource, context, false)
+        } else {
+            // The months added to its day, and its time of the day added back
+            const value = this._appendSql(valueSource, context, false)
+            result = 'cast(' + this._appendKeepingTheDay('trunc(' + value + ')', months) + ' as timestamp(9)) + (cast(' + value + ' as timestamp(9)) - trunc(' + value + '))'
+        }
+        if (days !== undefined) {
+            result += " + numtodsinterval(" + days + ", 'day')"
+        }
+        if (seconds !== undefined) {
+            result += " + numtodsinterval(" + seconds + ", 'second')"
+        }
+        return result
+    }
+    /** add_months of a DATE, its day kept in the month as Temporal keeps it: the days it moves past the day of the value taken back */
+    _appendKeepingTheDay(date: string, months: string): string {
+        const added = 'add_months(' + date + ', ' + months + ')'
+        return '(' + added + ' - greatest(0, extract(day from ' + added + ') - extract(day from ' + date + ')))'
+    }
+    /** Whether a duration value source is an interval of years to months (its SQL data type says it) */
+    _isYearToMonthDuration(valueSource: ToSql): boolean {
+        const sqlDataType = __sqlDataTypeOf(__classOf(valueSource as object))
+        return sqlDataType?.family === 'interval' && sqlDataType.fields === 'year to month'
     }
     override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         // The time of the day (a TIMESTAMP on 1970-01-01, written once) as the interval since the start of its day

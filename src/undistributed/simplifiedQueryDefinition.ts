@@ -485,6 +485,10 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     dayOfYear(): NumberValueSource
     /** This date at 00:00, or at the time given (as Temporal's toPlainDateTime) */
     toPlainDateTime(time?: Temporal.PlainTime | PlainTimeValueSource): PlainDateTimeValueSource
+    /** The date plus a duration, as Temporal's add: the months keeping the day in the month, then the days and the whole days of the time */
+    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
+    /** The date minus a duration, as Temporal's subtract */
+    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
 }
 
 /**
@@ -501,6 +505,10 @@ interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime,
     millisecond(): NumberValueSource
     /** Gets the microsecond of the millisecond (as Temporal's microsecond) */
     microsecond(): NumberValueSource
+    /** The time plus a duration, as Temporal's add: only its time, going round at midnight */
+    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
+    /** The time minus a duration, as Temporal's subtract */
+    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
 }
 
 /**
@@ -531,6 +539,10 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     toPlainDate(): PlainDateValueSource
     /** Gets the time of the day (as Temporal's toPlainTime) */
     toPlainTime(): PlainTimeValueSource
+    /** The date and time plus a duration, as Temporal's add: the months keeping the day in the month, then the days and the time */
+    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
+    /** The date and time minus a duration, as Temporal's subtract */
+    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
 }
 
 /**

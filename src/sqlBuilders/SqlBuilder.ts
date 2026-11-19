@@ -531,6 +531,9 @@ export interface SqlFunction1 {
     _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // Date functions with the semantics of Temporal: a date at a time of the day
     _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // A date, a time or a date and time plus or minus a duration, with the semantics of Temporal
+    _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
 }
 // avg, count, max, median, min,
 // greatest, least

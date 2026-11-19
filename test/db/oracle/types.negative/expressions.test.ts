@@ -17,7 +17,7 @@ import { test, expect } from '../../../lib/testRunner.js'
 import { OracleConnection } from '../../../../src/connections/OracleConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tColMatrixColumn as t } from '../domain/connection.js'
+import { tColMatrixColumn as t, tColMatrixPlain, tDurationValue } from '../domain/connection.js'
 import { EnumType } from '../../../../src/exports/v2/index.js'
 import { DecimalsType, IntegersType, RealsType } from '../../../../src/exports/v2/index.js'
 
@@ -567,6 +567,20 @@ function _typeNegatives() {
     void connection.count(connection.max(t.mInt))
     void connection.aggregateAsArrayOfOneColumn(connection.count(t.mInt))
     void connection.aggregateAsArray({ n: connection.countAll() })
+
+    // A date, a time or a date and time plus or minus a duration: a Temporal.Duration, its fields, or a value of the
+    // type duration
+    void tColMatrixPlain.mDate.add({ months: 1 })
+    void tColMatrixPlain.mTime.subtract(Temporal.Duration.from('PT1H'))
+    void tColMatrixPlain.mDatetime.subtract(tDurationValue.span)
+    // @ts-expect-error a number isn't a duration: add takes a duration or its fields
+    void tColMatrixPlain.mDate.add(3)
+    // @ts-expect-error an int value isn't a duration
+    void tColMatrixPlain.mDate.add(tColMatrixPlain.id)
+    // @ts-expect-error a time of the day isn't a duration
+    void tColMatrixPlain.mDatetime.add(tColMatrixPlain.mTime)
+    // @ts-expect-error a field a duration doesn't have
+    void tColMatrixPlain.mDate.subtract({ decades: 1 })
 }
 
 test('expressions-negative-types', () => {

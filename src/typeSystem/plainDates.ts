@@ -1,12 +1,19 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
-import type { TemporalPlainDate, TemporalPlainDateTime, TemporalPlainTime } from './temporal.js'
-import type { IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainTime } from './temporal.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
 import { IntType } from './number.js'
+import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
+import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
+
+/** The value plus or minus a duration, of the same data type */
+function withDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown): any {
+    return __operation1(valueSource as any, operation, duration, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
 
 /** A part of a date or a time (its month, its microseconds, ...): an int */
 function partOf(valueSource: unknown, operation: keyof SqlFunction0): any {
@@ -67,6 +74,27 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
         }
         return __operation1(this as any, '_toPlainDateTimeAt', time, PlainDateTimeType)
     }
+
+    /**
+     * The date plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days, and the whole days of the time (`PT36H` is one day). The duration is a
+     * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
+     */
+    add(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The date plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days, and the whole days of the time (`PT36H` is one day). The duration is a
+     * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
+     */
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add(duration: unknown): any {
+        return withDuration(this, '_addDuration', duration)
+    }
+    /** The date minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
+    subtract(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The date minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract(duration: unknown): any {
+        return withDuration(this, '_subtractDuration', duration)
+    }
 }
 
 /**
@@ -104,6 +132,27 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     microsecond(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     microsecond(): any {
         return partOf(this, '_microsecond')
+    }
+
+    /**
+     * The time plus the duration given, with the semantics of Temporal's `add`: only its time, going round at midnight (23:30 plus an hour is 00:30). The duration is a
+     * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
+     */
+    add(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The time plus the duration given, with the semantics of Temporal's `add`: only its time, going round at midnight (23:30 plus an hour is 00:30). The duration is a
+     * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
+     */
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add(duration: unknown): any {
+        return withDuration(this, '_addDuration', duration)
+    }
+    /** The time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
+    subtract(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract(duration: unknown): any {
+        return withDuration(this, '_subtractDuration', duration)
     }
 }
 
@@ -179,6 +228,27 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     toPlainTime(): ValueSource<SourceOf<this>, PlainTimeType, OptionalityOf<this>>
     toPlainTime(): any {
         return __operation0(this as any, '_toPlainTime', PlainTimeType)
+    }
+
+    /**
+     * The date and time plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days and the time. The duration is a
+     * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
+     */
+    add(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The date and time plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days and the time. The duration is a
+     * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
+     */
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add(duration: unknown): any {
+        return withDuration(this, '_addDuration', duration)
+    }
+    /** The date and time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
+    subtract(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The date and time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract(duration: unknown): any {
+        return withDuration(this, '_subtractDuration', duration)
     }
 }
 

@@ -350,3 +350,45 @@ CREATE FUNCTION cm_date() RETURNS DATE DETERMINISTIC RETURN (SELECT m_date FROM 
 CREATE FUNCTION cm_time() RETURNS TIME DETERMINISTIC RETURN (SELECT m_time FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_datetime() RETURNS DATETIME DETERMINISTIC RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_str() RETURNS VARCHAR(64) DETERMINISTIC RETURN (SELECT m_str FROM col_matrix WHERE id = 1);
+
+-- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
+-- adds or subtracts a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole
+-- seconds of its time, 'N' the nanoseconds of the second, each with the sign of the duration.
+DROP FUNCTION IF EXISTS tsq_duration_part;
+DELIMITER //
+CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part CHAR(1)) RETURNS BIGINT DETERMINISTIC NO SQL
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE n INT;
+    DECLARE c CHAR(1);
+    DECLARE num VARCHAR(40) DEFAULT '';
+    DECLARE in_time BOOLEAN DEFAULT FALSE;
+    DECLARE sgn INT DEFAULT 1;
+    DECLARE r BIGINT DEFAULT 0;
+    IF d IS NULL THEN RETURN NULL; END IF;
+    SET d = UPPER(TRIM(d));
+    SET n = CHAR_LENGTH(d);
+    IF LEFT(d, 1) = '-' THEN SET sgn = -1, i = 2; ELSEIF LEFT(d, 1) = '+' THEN SET i = 2; END IF;
+    SET i = i + 1;
+    WHILE i <= n DO
+        SET c = SUBSTRING(d, i, 1);
+        IF c = 'T' THEN SET in_time = TRUE;
+        ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
+        ELSE
+            IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
+            ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
+            ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
+            ELSEIF part = 'D' AND c = 'D' THEN SET r = r + CAST(num AS SIGNED);
+            ELSEIF part = 'S' AND in_time AND c = 'H' THEN SET r = r + 3600 * CAST(num AS SIGNED);
+            ELSEIF part = 'S' AND in_time AND c = 'M' THEN SET r = r + 60 * CAST(num AS SIGNED);
+            ELSEIF part = 'S' AND c = 'S' THEN SET r = r + CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
+            ELSEIF part = 'N' AND c = 'S' AND LOCATE('.', num) > 0 THEN SET r = CAST(RPAD(SUBSTRING_INDEX(num, '.', -1), 9, '0') AS SIGNED);
+            END IF;
+            SET num = '';
+        END IF;
+        SET i = i + 1;
+    END WHILE;
+    RETURN sgn * r;
+END
+//
+DELIMITER ;

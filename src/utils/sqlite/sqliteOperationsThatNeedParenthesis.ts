@@ -9,4 +9,7 @@ export const sqliteOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     _microsecond: false,
     // A call of a date function of SQLite
     _toPlainDateTimeAt: false,
+    // A call of a date function of SQLite
+    _addDuration: false,
+    _subtractDuration: false,
 }

@@ -482,3 +482,36 @@ CREATE TABLE service_plan (
     PERIOD FOR SYSTEM_TIME (valid_from, valid_to)
 ) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.service_plan_history));
 GO
+
+-- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
+-- adds or subtracts a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole
+-- seconds of its time, 'N' the nanoseconds of the second, each with the sign of the duration.
+CREATE OR ALTER FUNCTION dbo.tsq_duration_part(@d NVARCHAR(100), @part CHAR(1)) RETURNS BIGINT WITH SCHEMABINDING AS
+BEGIN
+    IF @d IS NULL RETURN NULL;
+    DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0;
+    SET @n = LEN(@s);
+    IF LEFT(@s, 1) = N'-' BEGIN SET @sign = -1; SET @i = 2; END ELSE IF LEFT(@s, 1) = N'+' SET @i = 2;
+    SET @i = @i + 1;
+    WHILE @i <= @n
+    BEGIN
+        SET @c = SUBSTRING(@s, @i, 1);
+        IF @c = N'T' SET @inTime = 1;
+        ELSE IF @c LIKE N'[0-9]' OR @c = N'.' OR @c = N',' SET @num = @num + CASE WHEN @c = N',' THEN N'.' ELSE @c END;
+        ELSE
+        BEGIN
+            IF @part = 'M' AND @inTime = 0 AND @c = N'Y' SET @r = @r + 12 * CAST(@num AS BIGINT);
+            ELSE IF @part = 'M' AND @inTime = 0 AND @c = N'M' SET @r = @r + CAST(@num AS BIGINT);
+            ELSE IF @part = 'D' AND @c = N'W' SET @r = @r + 7 * CAST(@num AS BIGINT);
+            ELSE IF @part = 'D' AND @c = N'D' SET @r = @r + CAST(@num AS BIGINT);
+            ELSE IF @part = 'S' AND @inTime = 1 AND @c = N'H' SET @r = @r + 3600 * CAST(@num AS BIGINT);
+            ELSE IF @part = 'S' AND @inTime = 1 AND @c = N'M' SET @r = @r + 60 * CAST(@num AS BIGINT);
+            ELSE IF @part = 'S' AND @c = N'S' SET @r = @r + CAST(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN LEFT(@num, CHARINDEX(N'.', @num) - 1) ELSE @num END AS BIGINT);
+            ELSE IF @part = 'N' AND @c = N'S' AND CHARINDEX(N'.', @num) > 0 SET @r = CAST(LEFT(SUBSTRING(@num, CHARINDEX(N'.', @num) + 1, 40) + N'000000000', 9) AS BIGINT);
+            SET @num = N'';
+        END
+        SET @i = @i + 1;
+    END
+    RETURN @sign * @r;
+END
+GO

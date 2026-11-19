@@ -16,6 +16,7 @@
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
  * - ci_replace, a case-insensitive replace, for the connections whose replaceAllInsensitiveFunction is 'ci_replace'.
+ * - tsq_duration_part, a part of the ISO 8601 text of a duration, to add or subtract a duration kept as its text.
  *
  * How they are registered, and why:
  *
@@ -380,6 +381,59 @@ function ciReplace(source: unknown, find: unknown, replacement: unknown): unknow
     return String(source).replace(new RegExp(escaped, 'gi'), () => String(replacement))
 }
 
+// Durations
+
+/**
+ * tsq_duration_part: a part of the ISO 8601 text of a duration, as the same function of the library on the other
+ * databases reads it: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of its time,
+ * 'N' the nanoseconds of the second, each with the sign of the duration; null for a null text
+ */
+function durationPart(value: unknown, part: unknown): number | null {
+    if (value === null || value === undefined) {
+        return null
+    }
+    const text = String(value).trim().toUpperCase()
+    let i = 0
+    let sign = 1
+    if (text[0] === '-' || text[0] === '+') {
+        sign = text[0] === '-' ? -1 : 1
+        i = 1
+    }
+    i++
+    let number = ''
+    let inTime = false
+    let result = 0
+    for (; i < text.length; i++) {
+        const c = text[i]!
+        if (c === 'T') {
+            inTime = true
+        } else if ('0123456789.,'.includes(c)) {
+            number += c === ',' ? '.' : c
+        } else {
+            const whole = Number(number.split('.')[0] || '0')
+            if (part === 'M' && !inTime && c === 'Y') {
+                result += 12 * whole
+            } else if (part === 'M' && !inTime && c === 'M') {
+                result += whole
+            } else if (part === 'D' && c === 'W') {
+                result += 7 * whole
+            } else if (part === 'D' && c === 'D') {
+                result += whole
+            } else if (part === 'S' && inTime && c === 'H') {
+                result += 3600 * whole
+            } else if (part === 'S' && inTime && c === 'M') {
+                result += 60 * whole
+            } else if (part === 'S' && c === 'S') {
+                result += whole
+            } else if (part === 'N' && c === 'S' && number.includes('.')) {
+                result = Number((number.split('.')[1]! + '000000000').slice(0, 9))
+            }
+            number = ''
+        }
+    }
+    return sign * result + 0
+}
+
 // The functions
 
 const pure = true
@@ -399,6 +453,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'uuid_str', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidStr as SqliteScalarFunction['fn'] },
     { name: 'uuid_blob', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidBlob as SqliteScalarFunction['fn'] },
     { name: 'ci_replace', arity: 3, deterministic: pure, fn: ciReplace as SqliteScalarFunction['fn'] },
+    { name: 'tsq_duration_part', arity: 2, deterministic: pure, fn: durationPart as SqliteScalarFunction['fn'] },
 ]
 
 export const sqliteAggregateFunctions: readonly SqliteAggregateFunction[] = [

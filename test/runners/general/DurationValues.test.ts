@@ -10,7 +10,8 @@ import { MySqlConnection } from '../../../src/connections/MySqlConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { Table, TsSqlError, withSqlDataType } from '../../../src/exports/v2/index.js'
 import { postgreSqlDriverParams } from '../../../src/utils/postgreSql/postgreSqlParamTypes.js'
-import { durationIsoTextWithoutWeeks } from '../../../src/utils/durationValues.js'
+import { durationIsoTextWithoutWeeks, durationPartsFor } from '../../../src/utils/durationValues.js'
+import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
 
 class PgConnection extends PostgreSqlConnection<'PgConnection'> {}
 class OraConnection extends OracleConnection<'OraConnection'> {}
@@ -191,5 +192,37 @@ describe('DurationValues', () => {
             .where(tMySpan.id.equals(1))
             .executeUpdate()
         expect(lastParams.map(String)).toEqual(['-P1Y2W3DT0.000000001S', '1'])
+    })
+
+    test('the-parts-a-duration-adds-to-each-type', () => {
+        const duration = Temporal.Duration.from('P1Y2M1W3DT36H0.000000001S')
+        // A date takes the whole days of the time; a time only the time, less than a day
+        expect(durationPartsFor(duration, 'date', 1)).toEqual({ months: 14, days: 11, seconds: 0, nanoseconds: 0 })
+        expect(durationPartsFor(duration, 'time', 1)).toEqual({ months: 0, days: 0, seconds: 43200, nanoseconds: 1 })
+        expect(durationPartsFor(duration, 'timestamp', -1)).toEqual({ months: -14, days: -10, seconds: -129600, nanoseconds: -1 })
+        // Minus 36 hours is minus one day on a date, as in Temporal
+        expect(durationPartsFor(Temporal.Duration.from('-PT36H'), 'date', 1).days).toBe(-1)
+    })
+
+    test('the-function-of-sqlite-reads-the-parts-of-the-iso-text', () => {
+        const part = sqliteScalarFunctions.find(fn => fn.name === 'tsq_duration_part')!.fn as (value: unknown, part: unknown) => unknown
+        const parts = (text: unknown) => ['M', 'D', 'S', 'N'].map(name => part(text, name))
+        expect(parts('P1Y2M3W4DT5H6M7.123456789S')).toEqual([14, 25, 18367, 123456789])
+        expect(parts('-PT26H')).toEqual([0, 0, -93600, 0])
+        expect(parts('p1dt1,25s')).toEqual([0, 1, 1, 250000000])
+        expect(parts('PT0.5S')).toEqual([0, 0, 0, 500000000])
+        expect(parts(null)).toEqual([null, null, null, null])
+    })
+
+    test('a-duration-to-add-must-be-a-duration-of-temporal', async () => {
+        rowsToReturn = [{ day: '2024-02-01' }]
+        const day = pg.const(Temporal.PlainDate.from('2024-01-31'), 'plainDate')
+        const add = (value: unknown) => outcome(() => pg.selectFromNoTable().select({ day: day.add(value as Temporal.Duration) }).executeSelectOne())
+        expect(await add({ days: 1 })).toBe('sent')
+        // Fields with different signs, a fraction, nothing of a duration
+        expect(await add({ days: 1, hours: -1 })).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+        expect(await add({ days: 1.5 })).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+        expect(await add({})).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+        expect(await add('P1D')).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
     })
 })

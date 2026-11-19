@@ -28,6 +28,22 @@ export type TemporalPlainTime = InstanceOf<'PlainTime'>
 export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
 /** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
 export type TemporalDuration = InstanceOf<'Duration'>
+/**
+ * The fields of a duration as `Temporal.Duration.from` takes them, like `{ days: 3 }`: integers with one sign. Written
+ * here, not taken from Temporal, so it is the same with and without its types
+ */
+export interface TemporalDurationLike {
+    readonly years?: number | undefined
+    readonly months?: number | undefined
+    readonly weeks?: number | undefined
+    readonly days?: number | undefined
+    readonly hours?: number | undefined
+    readonly minutes?: number | undefined
+    readonly seconds?: number | undefined
+    readonly milliseconds?: number | undefined
+    readonly microseconds?: number | undefined
+    readonly nanoseconds?: number | undefined
+}
 
 /** The Temporal object of the runtime, or of a polyfill installed in the global object; an error for a type without it */
 export function __temporal(typeName: string): TemporalObject {

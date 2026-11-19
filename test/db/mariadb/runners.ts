@@ -213,10 +213,20 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
 }
 
 function splitStatements(sql: string): string[] {
-    return sql
-        .split(/;\s*(?:\n|$)/)
-        .map(s => s.trim())
-        .filter(s => s.length > 0)
+    // As the mysql client reads a script: between `DELIMITER //` and `DELIMITER ;` a statement ends with `//`, so the
+    // body of a function, with `;` inside, is one statement
+    const statements: string[] = []
+    const pieces = sql.split(/^DELIMITER[ \t]+(\S+)[ \t]*$/m)
+    for (let i = 0; i < pieces.length; i += 2) {
+        const delimiter = i === 0 ? ';' : pieces[i - 1]!
+        const text = pieces[i]!
+        for (const statement of delimiter === ';' ? text.split(/;\s*(?:\n|$)/) : text.split(delimiter)) {
+            if (statement.trim().length > 0) {
+                statements.push(statement.trim())
+            }
+        }
+    }
+    return statements
 }
 
 // Once-per-process flag: the worker DB only needs creating the first

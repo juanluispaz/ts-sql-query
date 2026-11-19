@@ -143,3 +143,79 @@ export function durationIsoTextWithoutWeeks(value: TemporalDuration, signInEachF
     const result = text === 'P' ? 'PT0S' : text
     return sign < 0 && !signInEachField ? '-' + result : result
 }
+
+/**
+ * The parts of a duration as Temporal adds it to a value without zone: the months (its years too), added first, with
+ * the day kept in the month (Jan 31 plus a month is Feb 29); then the days (its weeks too); then the time, in whole
+ * seconds and the nanoseconds of the second, with the sign of the duration. A plainDate adds the whole days of the
+ * time and no more (`PT36H` is one day, `-PT36H` minus one); a plainTime only the time, that goes round at midnight
+ */
+export interface DurationParts {
+    readonly months: number
+    readonly days: number
+    readonly seconds: number
+    readonly nanoseconds: number
+}
+
+/** The parts of a duration (multiplied by sign) as Temporal adds it to a date, a time, or a date and time */
+export function durationPartsFor(value: TemporalDuration, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): DurationParts {
+    const time = ((((BigInt(value.hours) * 60n + BigInt(value.minutes)) * 60n + BigInt(value.seconds)) * 1000n + BigInt(value.milliseconds)) * 1000n + BigInt(value.microseconds)) * 1000n + BigInt(value.nanoseconds)
+    const seconds = time / 1_000_000_000n
+    const nanoseconds = time % 1_000_000_000n
+    if (fields === 'time') {
+        return { months: 0, days: 0, seconds: sign * Number(seconds % 86400n), nanoseconds: sign * Number(nanoseconds) }
+    }
+    const months = sign * (value.years * 12 + value.months)
+    const days = value.weeks * 7 + value.days
+    if (fields === 'date') {
+        return { months, days: sign * (days + Number(seconds / 86400n)), seconds: 0, nanoseconds: 0 }
+    }
+    return { months, days: sign * days, seconds: sign * Number(seconds), nanoseconds: sign * Number(nanoseconds) }
+}
+
+/**
+ * The duration a value given to add or subtract is: a Temporal.Duration, or an object with its fields, as
+ * Temporal.Duration.from takes it (`{ days: 3 }`); undefined for anything else
+ */
+export function durationOfArgument(value: unknown, typeName: string): TemporalDuration | undefined {
+    if (isDurationValue(value)) {
+        return value
+    }
+    if (value === null || typeof value !== 'object') {
+        return undefined
+    }
+    try {
+        return __temporal(typeName).Duration.from(value as any)
+    } catch (error) {
+        if (error instanceof RangeError || error instanceof TypeError) {
+            return undefined
+        }
+        throw error
+    }
+}
+
+/** Whether the parts add nothing */
+export function isZeroDuration(parts: DurationParts): boolean {
+    return parts.months === 0 && parts.days === 0 && parts.seconds === 0 && parts.nanoseconds === 0
+}
+
+/** The Temporal.Duration of the parts: its months, days, seconds and the fraction of the second */
+export function durationOfParts(parts: DurationParts, typeName: string): TemporalDuration {
+    const nanoseconds = parts.nanoseconds
+    return __temporal(typeName).Duration.from({
+        months: parts.months, days: parts.days, seconds: parts.seconds,
+        milliseconds: Math.trunc(nanoseconds / 1_000_000), microseconds: Math.trunc(nanoseconds / 1000) % 1000, nanoseconds: nanoseconds % 1000,
+    })
+}
+
+/**
+ * The parts of a duration as the SQL that adds them (see DurationParts), each undefined when it adds nothing, with the
+ * numbers of a constant
+ */
+export interface DurationPartsSql {
+    readonly months: string | undefined
+    readonly days: string | undefined
+    readonly seconds: string | undefined
+    readonly nanoseconds: string | undefined
+    readonly constant: DurationParts | undefined
+}

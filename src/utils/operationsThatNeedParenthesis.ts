@@ -38,6 +38,9 @@ export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     _microsecond: true,
     // A date plus a time of the day (`date + time`)
     _toPlainDateTimeAt: true,
+    // A date or a time plus or minus an interval (`x + $1::interval`)
+    _addDuration: true,
+    _subtractDuration: true,
     // `<x> collate <name>` binds looser than the operators it is embedded in, so it needs wrapping when used as an
     // operand (`(x collate name) = …`). The receiver's own parenthesis is handled by `_appendSqlParenthesis` inside
     // `_collate`.

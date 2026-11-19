@@ -3,10 +3,10 @@ import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } fro
 /** The operations of SQL Server whose SQL is wrapped in parenthesis when it is an operand of another operation */
 export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     ...operationsThatNeedParenthesis,
-    _getDay: true,
-    // `_getMilliseconds` is written as a self-contained call, so it never needs the wrapping the base's trailing
+    _dayOfWeekFromSunday: true,
+    // `_millisecond` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
-    _getMilliseconds: false,
+    _millisecond: false,
     // `_length` is the only dialect's spelling that is not a bare call: it ends in `- 1`.
     _length: true,
     // `_replaceAll`/`_replaceAllInsensitive` append a trailing `collate DATABASE_DEFAULT` reset whenever

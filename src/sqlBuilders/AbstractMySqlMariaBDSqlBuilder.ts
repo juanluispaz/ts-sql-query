@@ -950,10 +950,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _log10(context: SqlBuildContext, valueSource: ToSql): string {
         return 'log10(' +this._appendSql(valueSource, context, false) + ')'
     }
-    override _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+    override _day(context: SqlBuildContext, valueSource: ToSql): string {
         return 'dayofmonth(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getTime(context: SqlBuildContext, valueSource: ToSql): string {
+    override _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         // `unix_timestamp()` is documented over 1970-01-01 onwards only: outside that range
         // it answers 0 on MySQL and NULL on MariaDB — silently, with no error — so a
         // pre-epoch or year-3002 instant came back wrong. `timestampdiff` has no such range.
@@ -966,25 +966,25 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // The digits below a millisecond are dropped, as the Date read drops them (floor, also before 1970)
         return "floor(timestampdiff(microsecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, context, false) + ') / 1000)'
     }
-    override _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+    override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'year(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
+    override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         return 'month(' + this._appendSql(valueSource, context, false) + ') - 1'
     }
-    override _getDay(context: SqlBuildContext, valueSource: ToSql): string {
+    override _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string {
         return 'dayofweek(' + this._appendSql(valueSource, context, false) + ') - 1'
     }
-    override _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+    override _hour(context: SqlBuildContext, valueSource: ToSql): string {
         return 'hour(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+    override _minute(context: SqlBuildContext, valueSource: ToSql): string {
         return 'minute(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _second(context: SqlBuildContext, valueSource: ToSql): string {
         return 'second(' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _millisecond(context: SqlBuildContext, valueSource: ToSql): string {
         // `microsecond()` is an int, so `/ 1000` is an exact division and `round` breaks
         // its tie away from zero: 999600 µs reported 1000 ms, a value this method's
         // declared type (and the JavaScript accessor it mirrors) cannot hold, and 123500 µs

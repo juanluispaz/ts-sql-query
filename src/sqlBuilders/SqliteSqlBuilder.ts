@@ -691,7 +691,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // The julianday arithmetic lands a hair below the whole millisecond about half the
         // time, and a cast truncates — costing a millisecond on 29818 of the 60000
         // (second, millisecond) pairs. Round to the millisecond before casting, the way
-        // `_getTime` already does with the same expression.
+        // `_epochMilliseconds` already does with the same expression.
         return 'cast(round((julianday(' + timeValue + ') - 2440587.5) * 86400000.0) as integer)'
     }
     /**
@@ -1192,10 +1192,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return 'max(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
-    override _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+    override _day(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%d', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
     }
-    override _getTime(context: SqlBuildContext, valueSource: ToSql): string {
+    override _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return '(' + this._appendSql(valueSource, context, false) + ' * 1000)'
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
@@ -1212,25 +1212,25 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return 'round((julianday(' + v + modifier + ') - 2440587.5) * 86400000.0)'
     }
-    override _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+    override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%Y', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
     }
-    override _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
+    override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource) + ") as integer) - 1"
     }
-    override _getDay(context: SqlBuildContext, valueSource: ToSql): string {
+    override _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%w'," + this._dateFunctionArgument(context, valueSource) + ") as integer)"
     }
-    override _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+    override _hour(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%H', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
     }
-    override _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+    override _minute(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%M', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
     }
-    override _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _second(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%S', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
     }
-    override _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _millisecond(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return '0'
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {

@@ -3,11 +3,11 @@ import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } fro
 /** The operations of Oracle whose SQL is wrapped in parenthesis when it is an operand of another operation */
 export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     ...operationsThatNeedParenthesis,
-    _getTime: true,
-    // `_getMilliseconds` is written as a self-contained call, so it never needs the wrapping the base's trailing
+    _epochMilliseconds: true,
+    // `_millisecond` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
-    _getMilliseconds: false,
-    _getDay: true,
+    _millisecond: false,
+    _dayOfWeekFromSunday: true,
     _negate: true,
     // `_cot` is written as the compound expression `1 / tan(x)` (Oracle has no native COT function), so it must be
     // parenthesised when used as an operand of another operation.

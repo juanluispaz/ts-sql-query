@@ -138,7 +138,7 @@ Found: `asInt`/`asBigint`, and the `_modulo` guard that a declared-bigint receiv
 Not "is this method right" — **line the 6 spellings up next to each other**. The
 disagreement *is* the finding. Every time:
 
-- `_getSeconds` is spelled six ways. Oracle writes `trunc(extract(second …))`;
+- `_second` is spelled six ways. Oracle writes `trunc(extract(second …))`;
   PostgreSQL writes `extract(second …)::integer`. **Oracle's `trunc` is the proof
   that truncation was intended, and PostgreSQL drifted** — straight to
   `getSeconds()` returning 60.
@@ -146,12 +146,12 @@ disagreement *is* the finding. Every time:
   three dialects. That's how MySQL came to be wrong in both places
   independently, and how SQL Server's `_cbrt` kept a private copy of the
   defective `1.0 / 3.0` exponent the bug report had blamed on MySQL alone.
-- `_unixEpochMilliseconds` writes `cast(… as integer)` where `_getTime` writes
+- `_unixEpochMilliseconds` writes `cast(… as integer)` where `_epochMilliseconds` writes
   `round(…)` **of the same expression**. One truncates. 29 818 of 60 000
   millisecond values came back one early.
 
 ```bash
-bun run tests:where-is --search _getSeconds --for emission-bug
+bun run tests:where-is --search _second --for emission-bug
 for f in AbstractSqlBuilder PostgreSqlSqlBuilder AbstractMySqlMariaBDSqlBuilder \
          OracleSqlBuilder SqlServerSqlBuilder SqliteSqlBuilder; do
   echo "── $f"; awk '/_theMethod\(params/,/^    }$/' src/sqlBuilders/$f.ts

@@ -478,15 +478,15 @@ export interface SqlFunction0 {
     _sin(context: SqlBuildContext, valueSource: ToSql): string
     _tan(context: SqlBuildContext, valueSource: ToSql): string
     // Date Functions
-    _getDate(context: SqlBuildContext, valueSource: ToSql): string
-    _getTime(context: SqlBuildContext, valueSource: ToSql): string
-    _getFullYear(context: SqlBuildContext, valueSource: ToSql): string
-    _getMonth(context: SqlBuildContext, valueSource: ToSql): string
-    _getDay(context: SqlBuildContext, valueSource: ToSql): string
-    _getHours(context: SqlBuildContext, valueSource: ToSql): string
-    _getMinutes(context: SqlBuildContext, valueSource: ToSql): string
-    _getSeconds(context: SqlBuildContext, valueSource: ToSql): string
-    _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string
+    _day(context: SqlBuildContext, valueSource: ToSql): string
+    _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string
+    _year(context: SqlBuildContext, valueSource: ToSql): string
+    _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string
+    _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string
+    _hour(context: SqlBuildContext, valueSource: ToSql): string
+    _minute(context: SqlBuildContext, valueSource: ToSql): string
+    _second(context: SqlBuildContext, valueSource: ToSql): string
+    _millisecond(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive

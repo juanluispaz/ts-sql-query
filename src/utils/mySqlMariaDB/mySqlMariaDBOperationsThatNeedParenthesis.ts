@@ -9,8 +9,8 @@ export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParent
     // needs wrapping as an operand.
     _concatIgnoringNull: false,
     _is: true,
-    _getDate: true,
-    // `_getMilliseconds` is written as a self-contained call, so it never needs the wrapping the base's trailing
+    _day: true,
+    // `_millisecond` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
-    _getMilliseconds: false,
+    _millisecond: false,
 }

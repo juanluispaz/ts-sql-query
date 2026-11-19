@@ -293,7 +293,7 @@ later shipped a real bug fix. Carry the narrowed bar:
 
 Worked distinctions:
 
-- The same getter impl (`SqlOperation0ValueSource('_getMonth', …)`) on a plain
+- The same getter impl (`SqlOperation0ValueSource('_monthFromZero', …)`) on a plain
   vs a custom temporal type emits **distinct SQL** (`extract(month…)-1`) → two
   paths, both tested. *Not* degenerate.
 - `shapedAs().set().onConflictOn(c).doUpdateDynamicSet()` produces a *distinct

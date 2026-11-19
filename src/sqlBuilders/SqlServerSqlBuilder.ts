@@ -1067,19 +1067,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const operator = functionName === 'least' ? '<' : '>'
         return 'iif(' + this._appendSql(valueSource, context, false) + ' ' + operator + ' ' + this._appendValue(value, context, argumentClass, false) + ', ' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, argumentClass, false) + ')'
     }
-    override _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+    override _day(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(day, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
-    override _getTime(context: SqlBuildContext, valueSource: ToSql): string {
+    override _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         return "datediff_big(millisecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, context, false) + ")"
     }
-    override _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+    override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(year, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
-    override _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
+    override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(month, ' + this._appendDateTimeInUtc(context, valueSource) + ') - 1'
     }
-    override _getDay(context: SqlBuildContext, valueSource: ToSql): string {
+    override _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string {
         // `getDay()` mirrors JavaScript's `Date.getDay()`, where 0 is always Sunday. T-SQL
         // is the only supported dialect whose day-of-week is session-dependent:
         // `DATEPART(weekday, …)` counts from whatever `SET DATEFIRST` says the week starts
@@ -1089,10 +1089,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // the session says.
         return '(datepart(weekday, ' + this._appendDateTimeInUtc(context, valueSource) + ') + @@datefirst - 1) % 7'
     }
-    override _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+    override _hour(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(hour, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
-    override _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+    override _minute(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(minute, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
     /**
@@ -1108,10 +1108,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendSql(valueSource, context, false)
     }
-    override _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _second(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(second, ' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _millisecond(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(millisecond, ' + this._appendSql(valueSource, context, false) + ')'
     }
     override _buildCallProcedure(context: SqlBuildContext, functionName: string, functionParams: readonly AnyValueSource[]): string {

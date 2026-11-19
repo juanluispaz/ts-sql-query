@@ -625,7 +625,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return super._substr(context, valueSource, value, value2, typeClass)
     }
-    // The date-part family (`_getTime` / `_getMonth` / `_getDay` / …) lives in
+    // The date-part family (`_epochMilliseconds` / `_monthFromZero` / `_dayOfWeekFromSunday` / …) lives in
     // AbstractSqlBuilder, written in this dialect's form, and PostgreSQL reaches it
     // unmodified — do not re-add overrides here; change the base instead.
     override _supportDatabaseOutsideUtc(): boolean {

@@ -1302,7 +1302,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Oracle's LOG signature is LOG(base, value), so the base 10 goes first.
         return 'log(10, ' + this._appendSql(valueSource, context, false) + ')'
     }
-    override _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+    override _day(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(day from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
     }
     override _supportDatabaseOutsideUtc(): boolean {
@@ -1350,7 +1350,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._substr(context, valueSource, value, value2, typeClass)
     }
-    override _getTime(context: SqlBuildContext, valueSource: ToSql): string {
+    override _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         const zoned = this._appendZonedUtcTimestamp(context, valueSource)
         if (zoned) {
             return "(trunc(" + zoned + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + zoned + ", 'SSSSSFF3'))"
@@ -1367,13 +1367,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const utc = this._appendUtcTimestamp(context, valueSource)
         return "(trunc(" + utc + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + utc + ", 'SSSSSFF3'))"
     }
-    override _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+    override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(year from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
     }
-    override _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
+    override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(month from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ') - 1'
     }
-    override _getDay(context: SqlBuildContext, valueSource: ToSql): string {
+    override _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string {
         // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
         // trunc of a value with zone gives the day of the zone it was stored with: a localDateTime is taken to the
         // UTC digits of its instant first. A localDate, and a DATE read as a timestamp, have no zone
@@ -1390,13 +1390,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _appendUtcTimestamp(context: SqlBuildContext, valueSource: ToSql): string {
         return "timestamp '1970-01-01 00:00:00' + (" + this._appendSql(valueSource, context, false) + " - timestamp '1970-01-01 00:00:00')"
     }
-    override _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+    override _hour(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(hour from ' + this._appendTimestampForTimeGetter(context, valueSource) + ')'
     }
-    override _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+    override _minute(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(minute from ' + this._appendTimestampForTimeGetter(context, valueSource) + ')'
     }
-    override _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _second(context: SqlBuildContext, valueSource: ToSql): string {
         const zoned = this._appendZonedUtcTimestamp(context, valueSource)
         if (zoned) {
             return 'trunc(extract(second from ' + zoned + '))'
@@ -1407,7 +1407,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return 'trunc(extract(second from ' + this._appendSql(valueSource, context, false) + '))'
     }
-    override _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
+    override _millisecond(context: SqlBuildContext, valueSource: ToSql): string {
         return "to_number(to_char(" + this._appendTimestampForTimeGetter(context, valueSource) + ", 'FF3'))"
     }
     /** The value for `extract` of the time or `to_char` of the fraction: a DATE column read as a timestamp is cast */

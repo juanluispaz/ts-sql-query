@@ -33,8 +33,8 @@ export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     // The date-part family below is written in PostgreSQL's form, and PostgreSQL is the dialect that reaches it (it
     // declares no override of its own). Both of these write a trailing operator (`- 1`, `% 1000`), so they need wrapping
     // when embedded. A dialect whose override is a self-contained call sets these back to false.
-    _getMonth: true,
-    _getMilliseconds: true,
+    _monthFromZero: true,
+    _millisecond: true,
     // `<x> collate <name>` binds looser than the operators it is embedded in, so it needs wrapping when used as an
     // operand (`(x collate name) = …`). The receiver's own parenthesis is handled by `_appendSqlParenthesis` inside
     // `_collate`.

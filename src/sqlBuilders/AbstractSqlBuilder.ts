@@ -3933,46 +3933,46 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // The date-part family. PostgreSQL is the dialect that reaches it — it declares no
     // override of its own — so this family is written in PostgreSQL's form: the
-    // `_appendSqlForDatePartArgument` receiver, the `::integer` casts, and `_getMonth`'s
+    // `_appendSqlForDatePartArgument` receiver, the `::integer` casts, and `_monthFromZero`'s
     // `- 1`. Every other dialect overrides all of it. Keep it in step with PostgreSQL:
     // it is not dead code, it is the code PostgreSQL runs.
-    _getDate(context: SqlBuildContext, valueSource: ToSql): string {
+    _day(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(day from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getTime(context: SqlBuildContext, valueSource: ToSql): string {
+    _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         // Mirrors `Date.getTime()`, so the result is in MILLISECONDS. `extract(epoch …)`
         // answers in seconds, including the fractional part; the digits below a millisecond
         // are dropped, as the Date read drops them (floor, also before 1970)
         return 'floor(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, context) + ') * 1000)'
     }
-    _getFullYear(context: SqlBuildContext, valueSource: ToSql): string {
+    _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getMonth(context: SqlBuildContext, valueSource: ToSql): string {
+    _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         // Mirrors `Date.getMonth()`, which is 0-based, while `extract(month …)` is 1-based.
-        // The `- 1` is why `_operationsThatNeedParenthesis._getMonth` is registered.
+        // The `- 1` is why `_operationsThatNeedParenthesis._monthFromZero` is registered.
         return 'extract(month from ' + this._appendSqlForDatePartArgument(valueSource, context) + ') - 1'
     }
-    _getDay(context: SqlBuildContext, valueSource: ToSql): string {
+    _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string {
         // `dow` (day of week, 0-based from Sunday) matches `Date.getDay()`. It is a
         // PostgreSQL-only field name — a dialect without it must override this.
         return 'extract(dow from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getHours(context: SqlBuildContext, valueSource: ToSql): string {
+    _hour(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(hour from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getMinutes(context: SqlBuildContext, valueSource: ToSql): string {
+    _minute(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(minute from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
     }
-    _getSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+    _second(context: SqlBuildContext, valueSource: ToSql): string {
         // `extract(second …)` yields a numeric that INCLUDES the fraction (45.9996), and
         // `numeric::integer` rounds away from zero — so the bare cast reports 46 for
         // :45.9996 and 60 for :59.9996, a value this method's declared type (and the
         // JS `Date.getSeconds()` contract, an integer 0-59) does not allow.
         return 'trunc(extract(second from ' + this._appendSqlForDatePartArgument(valueSource, context) + '))::integer'
     }
-    _getMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
-        // Same rounding cast as `_getSeconds`: `extract(millisecond …)` includes the
+    _millisecond(context: SqlBuildContext, valueSource: ToSql): string {
+        // Same rounding cast as `_second`: `extract(millisecond …)` includes the
         // sub-millisecond fraction, so :45.9996 rounds up to 46000, and the `% 1000`
         // then wraps it to 0 instead of 999.
         return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, context) + '))::integer % 1000'

@@ -33,7 +33,7 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     /** The day of the month, as an int from 1 to 31: what `getUTCDate()` of the Date read gives */
     getDate(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDate(): any {
-        return datePartOf(this, '_getDate')
+        return datePartOf(this, '_day')
     }
     /**
      * The day of the week, as an int from 0 (Sunday) to 6 (Saturday), like `getUTCDay()` of the Date read, on every
@@ -41,12 +41,12 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      */
     getDay(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDay(): any {
-        return datePartOf(this, '_getDay')
+        return datePartOf(this, '_dayOfWeekFromSunday')
     }
     /** The year, as an int: what `getUTCFullYear()` of the Date read gives */
     getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getFullYear(): any {
-        return datePartOf(this, '_getFullYear')
+        return datePartOf(this, '_year')
     }
     /**
      * The month, as an int from 0 (January) to 11 (December), like `getUTCMonth()` of the Date read; the SQL
@@ -54,7 +54,7 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      */
     getMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMonth(): any {
-        return datePartOf(this, '_getMonth')
+        return datePartOf(this, '_monthFromZero')
     }
 }
 
@@ -69,7 +69,7 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     /** The hours, as an int from 0 to 23: what `getUTCHours()` of the Date read gives */
     getHours(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getHours(): any {
-        return datePartOf(this, '_getHours')
+        return datePartOf(this, '_hour')
     }
     /**
      * The milliseconds of the second, as an int from 0 to 999; the digits below a millisecond are dropped: what
@@ -77,12 +77,12 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      */
     getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMilliseconds(): any {
-        return datePartOf(this, '_getMilliseconds')
+        return datePartOf(this, '_millisecond')
     }
     /** The minutes, as an int from 0 to 59: what `getUTCMinutes()` of the Date read gives */
     getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMinutes(): any {
-        return datePartOf(this, '_getMinutes')
+        return datePartOf(this, '_minute')
     }
     /**
      * The seconds, as an int from 0 to 59, without the fraction of a second: what `getUTCSeconds()` of the Date
@@ -90,7 +90,7 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      */
     getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getSeconds(): any {
-        return datePartOf(this, '_getSeconds')
+        return datePartOf(this, '_second')
     }
 }
 
@@ -105,7 +105,7 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     /** The day of the month, as an int from 1 to 31: what `getUTCDate()` of the Date read gives */
     getDate(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDate(): any {
-        return datePartOf(this, '_getDate')
+        return datePartOf(this, '_day')
     }
     /**
      * The day of the week, as an int from 0 (Sunday) to 6 (Saturday), like `getUTCDay()` of the Date read, on every
@@ -113,12 +113,12 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     getDay(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDay(): any {
-        return datePartOf(this, '_getDay')
+        return datePartOf(this, '_dayOfWeekFromSunday')
     }
     /** The year, as an int: what `getUTCFullYear()` of the Date read gives */
     getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getFullYear(): any {
-        return datePartOf(this, '_getFullYear')
+        return datePartOf(this, '_year')
     }
     /**
      * The month, as an int from 0 (January) to 11 (December), like `getUTCMonth()` of the Date read; the SQL
@@ -126,12 +126,12 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     getMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMonth(): any {
-        return datePartOf(this, '_getMonth')
+        return datePartOf(this, '_monthFromZero')
     }
     /** The hours, as an int from 0 to 23: what `getUTCHours()` of the Date read gives */
     getHours(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getHours(): any {
-        return datePartOf(this, '_getHours')
+        return datePartOf(this, '_hour')
     }
     /**
      * The milliseconds of the second, as an int from 0 to 999; the digits below a millisecond are dropped: what
@@ -139,12 +139,12 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMilliseconds(): any {
-        return datePartOf(this, '_getMilliseconds')
+        return datePartOf(this, '_millisecond')
     }
     /** The minutes, as an int from 0 to 59: what `getUTCMinutes()` of the Date read gives */
     getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMinutes(): any {
-        return datePartOf(this, '_getMinutes')
+        return datePartOf(this, '_minute')
     }
     /**
      * The seconds, as an int from 0 to 59, without the fraction of a second: what `getUTCSeconds()` of the Date
@@ -152,7 +152,7 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getSeconds(): any {
-        return datePartOf(this, '_getSeconds')
+        return datePartOf(this, '_second')
     }
     /**
      * The milliseconds since 1970-01-01 00:00, as an int, counting the date and the time as UTC: what `getTime()` of
@@ -160,7 +160,7 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     getTime(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getTime(): any {
-        return datePartOf(this, '_getTime')
+        return datePartOf(this, '_epochMilliseconds')
     }
 }
 

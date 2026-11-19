@@ -1090,6 +1090,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // `datepart(microsecond, …)` gives the microseconds of the second; Temporal's, the ones of the millisecond
         return 'datepart(microsecond, ' + this._appendSql(valueSource, context, false) + ') % 1000'
     }
+    override _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string {
+        // The date of a datetimeoffset in UTC, as it is read (see _appendDateTimeInUtc)
+        return 'cast(' + this._appendDateTimeInUtc(context, valueSource) + ' as date)'
+    }
+    override _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendDateTimeInUtc(context, valueSource) + ' as time)'
+    }
     override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as datetime2)'
     }

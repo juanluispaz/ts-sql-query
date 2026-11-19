@@ -17,6 +17,13 @@ import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { ComparableType } from '../../../../../src/exports/v2/index.js'
 
+// The departures read as Temporal values without zone
+const tFlightLegPlain = new class TFlightLegPlain extends Table<DBConnection, 'TFlightLegPlain'> {
+    id = this.primaryKey('id', 'int')
+    departsAt = this.column('departs_at', 'plainDateTime')
+    constructor() { super('flight_leg') }
+}()
+
 // The data types of the values of the user, each one a class of the family of its values
 abstract class ZonedDateTimeType extends ComparableType<ZonedDateTime, 'ZonedDateTime'> { static override readonly type = 'ZonedDateTime' }
 
@@ -346,5 +353,27 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof departures, ZonedDateTime[]>>()
         expect(departures.map(instantOf)).toEqual([Date.UTC(2024, 6, 1, 1, 30, 15, 123)])
+    })
+
+    test('a-datetimeoffset-read-as-a-plain-date-time-is-in-utc', async () => {
+        // Flight 3 departs 2024-06-30 22:00 -05:00, 2024-07-01 03:00 UTC: its date, its time and its parts are the ones
+        // of UTC, as tedious delivers its instant
+        ctx.mockNext([{ departsAt: '2024-07-01T03:00:00.0000000', day: '2024-07-01', time: '03:00:00', hour: 3 }])
+        const rows = await ctx.conn.selectFrom(tFlightLegPlain)
+            .where(tFlightLegPlain.id.equals(3))
+            .select({
+                departsAt: tFlightLegPlain.departsAt,
+                day: tFlightLegPlain.departsAt.toPlainDate(),
+                time: tFlightLegPlain.departsAt.toPlainTime(),
+                hour: tFlightLegPlain.departsAt.hour(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select departs_at as departsAt, cast(switchoffset(departs_at, '+00:00') as date) as day, cast(switchoffset(departs_at, '+00:00') as time) as time, datepart(hour, switchoffset(departs_at, '+00:00')) as hour from flight_leg where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        expect(rows.map(row => [row.departsAt.toString(), row.day.toString(), row.time.toString(), row.hour])).toEqual([['2024-07-01T03:00:00', '2024-07-01', '03:00:00', 3]])
     })
 })

@@ -199,7 +199,7 @@ describe(ctx.label, () => {
                 atValue: tColMatrixPlain.mDate.toPlainDateTime(Temporal.PlainTime.from('23:59:58.5')),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(m_datetime as date) as date, cast(m_datetime as time) as time, cast(m_date as datetime2) as midnight, dateadd(day, datediff(day, 0, m_date), cast(m_time as datetime2)) as atColumn, dateadd(day, datediff(day, 0, m_date), cast(@0 as datetime2)) as atValue from col_matrix where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(switchoffset(m_datetime, '+00:00') as date) as date, cast(switchoffset(m_datetime, '+00:00') as time) as time, cast(m_date as datetime2) as midnight, dateadd(day, datediff(day, 0, m_date), cast(m_time as datetime2)) as atColumn, dateadd(day, datediff(day, 0, m_date), cast(@0 as datetime2)) as atValue from col_matrix where id = @1"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "23:59:58.5",
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
             .and(tColMatrixPlain.mDate.dayOfWeek().equals(1))
             .select({ id: tColMatrixPlain.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from col_matrix where cast(m_datetime as date) = @0 and ((datepart(weekday, m_date) + @@datefirst + 5) % 7 + 1) = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from col_matrix where cast(switchoffset(m_datetime, '+00:00') as date) = @0 and ((datepart(weekday, m_date) + @@datefirst + 5) % 7 + 1) = @1"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-14",

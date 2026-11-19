@@ -371,11 +371,11 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     /** This date at 00:00, or at the time given (as Temporal's toPlainDateTime) */
     toPlainDateTime(time?: Temporal.PlainTime | PlainTimeValueSource): PlainDateTimeValueSource
     /** The date plus a duration, as Temporal's add: the months keeping the day in the month, then the days and the whole days of the time */
-    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
+    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainDateValueSource
     /** The date minus a duration, as Temporal's subtract */
-    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
+    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainDateValueSource
     /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
-    with(fields: { year?: number, month?: number, monthCode?: string, day?: number }): PlainDateValueSource
+    with(fields: { year?: number, month?: number, monthCode?: string, day?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainDateValueSource
 }
 ```
 
@@ -395,11 +395,11 @@ interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime,
     /** Gets the microsecond of the millisecond (as Temporal's microsecond) */
     microsecond(): NumberValueSource
     /** The time plus a duration, as Temporal's add: only its time, going round at midnight */
-    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
+    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainTimeValueSource
     /** The time minus a duration, as Temporal's subtract */
-    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
+    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainTimeValueSource
     /** With the fields given in place of its own, as Temporal's with: each taken to its range */
-    with(fields: { hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainTimeValueSource
+    with(fields: { hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainTimeValueSource
     /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
     round(options: TimeUnit | { smallestUnit: TimeUnit, roundingIncrement?: number, roundingMode?: RoundingMode }): PlainTimeValueSource
 }
@@ -435,11 +435,11 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     /** Gets the time of the day (as Temporal's toPlainTime) */
     toPlainTime(): PlainTimeValueSource
     /** The date and time plus a duration, as Temporal's add: the months keeping the day in the month, then the days and the time */
-    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
+    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainDateTimeValueSource
     /** The date and time minus a duration, as Temporal's subtract */
-    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
+    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainDateTimeValueSource
     /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
-    with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainDateTimeValueSource
+    with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainDateTimeValueSource
     /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
     round(options: TimeUnit | 'day' | 'days' | { smallestUnit: TimeUnit | 'day' | 'days', roundingIncrement?: number, roundingMode?: RoundingMode }): PlainDateTimeValueSource
 }

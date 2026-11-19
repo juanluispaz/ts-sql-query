@@ -650,6 +650,12 @@ The rules are the ones of Temporal, and the result is the same on every database
 
 The fields of a duration given as a value must be integers with one sign, as `Temporal.Duration.from` asks: `{ days: 1, hours: -1 }`, `{ days: 1.5 }` or `{}` are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent. The result keeps the digits of the fraction of a second the database keeps (see [The digits each database keeps](#the-digits-each-database-keeps)); SQLite computes with milliseconds.
 
+### Rejecting a day the month hasn't
+
+As in Temporal, `add`, `subtract` and `with` take the option `overflow` as their last argument. `'constrain'`, the default, takes a day the month hasn't to its last day, as above; `'reject'` rejects it: `add({ months: 1 }, { overflow: 'reject' })` of January 31st, or `with({ month: 2 }, { overflow: 'reject' })` of a day 30, make the query fail with an error of the database, as Temporal throws a `RangeError`. A day that is in the month gives the same value with both. With `with`, a field given out of its range (`{ month: 13 }`, `{ hour: 25 }`), or a day the year and the month given haven't, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent.
+
+MariaDB, MySQL and SQLite have no date that fails: there the error is the one of a subquery that returns two rows (MariaDB and MySQL) or of an integer overflow (SQLite), written to fail only for a day the month hasn't.
+
 ### A duration kept as text: the function `tsq_duration_part`
 
 On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracle that keeps a duration as text, a duration is its ISO 8601 text. To add one that the database holds, like `tRelease.rolloutTime`, the query reads its parts with `tsq_duration_part`, a function of the library: create it once in the database. A duration given as a value doesn't need it, and neither does reading, writing or comparing a duration. Without the function, the query fails with the error of the database for a function that doesn't exist.

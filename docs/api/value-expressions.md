@@ -350,6 +350,9 @@ interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
 /** A unit of a time, in the singular or the plural */
 type TimeUnit = 'hour' | 'minute' | 'second' | 'millisecond' | 'microsecond' | 'nanosecond' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
 /** How a value is rounded, as Temporal names it */
+type DateUnit = 'year' | 'month' | 'week' | 'day' | 'years' | 'months' | 'weeks' | 'days'
+/** The options of until and since: the largest unit of the duration ('auto' by default), and its rounding */
+interface DifferenceOptions<UNIT> { largestUnit?: UNIT | 'auto', smallestUnit?: UNIT, roundingIncrement?: number, roundingMode?: RoundingMode }
 type RoundingMode = 'ceil' | 'floor' | 'expand' | 'trunc' | 'halfCeil' | 'halfFloor' | 'halfExpand' | 'halfTrunc' | 'halfEven'
 ```
 
@@ -376,6 +379,10 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainDateValueSource
     /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
     with(fields: { year?: number, month?: number, monthCode?: string, day?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainDateValueSource
+    /** The duration from this date to the other one, as Temporal's until: in days by default (hours for a time) */
+    until(other: Temporal.PlainDate | PlainDateValueSource, options?: DifferenceOptions<DateUnit>): DurationValueSource
+    /** The duration from the other date to this one, as Temporal's since: until with the rounding mode negated, negated */
+    since(other: Temporal.PlainDate | PlainDateValueSource, options?: DifferenceOptions<DateUnit>): DurationValueSource
 }
 ```
 
@@ -402,6 +409,10 @@ interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime,
     with(fields: { hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainTimeValueSource
     /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
     round(options: TimeUnit | { smallestUnit: TimeUnit, roundingIncrement?: number, roundingMode?: RoundingMode }): PlainTimeValueSource
+    /** The duration from this time to the other one, as Temporal's until: in days by default (hours for a time) */
+    until(other: Temporal.PlainTime | PlainTimeValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
+    /** The duration from the other time to this one, as Temporal's since: until with the rounding mode negated, negated */
+    since(other: Temporal.PlainTime | PlainTimeValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
 }
 ```
 
@@ -442,6 +453,10 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainDateTimeValueSource
     /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
     round(options: TimeUnit | 'day' | 'days' | { smallestUnit: TimeUnit | 'day' | 'days', roundingIncrement?: number, roundingMode?: RoundingMode }): PlainDateTimeValueSource
+    /** The duration from this date and time to the other one, as Temporal's until: in days by default (hours for a time) */
+    until(other: Temporal.PlainDateTime | PlainDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
+    /** The duration from the other date and time to this one, as Temporal's since: until with the rounding mode negated, negated */
+    since(other: Temporal.PlainDateTime | PlainDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
 }
 ```
 

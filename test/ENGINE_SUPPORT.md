@@ -233,7 +233,8 @@ user-defined-function API, so on the `bun_sql_sqlite` cells
 duration given as a value adds without the function there. The duration between two dates or times (`until`, `since`)
 is written by `tsq_duration_text`, or `tsq_duration_round` when it is rounded to the calendar: every test of
 `column.plain-temporal-difference.test.ts` but `options-temporal-rejects-are-rejected` (rejected before the query is
-sent) is `NOT-SUPPORTED` on those cells.
+sent) and `docs.configuration.dates-and-times.test.ts` (`docs:dates-and-times/the-duration-between-two-values`) are
+`NOT-SUPPORTED` on those cells.
 
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
 

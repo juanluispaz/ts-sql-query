@@ -208,6 +208,40 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-duration-between-two-values', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', toPublication: 'P1D', publishedAfter: 'PT35H', untilEndOfJune: 'P3M29D' },
+            { version: '1.2.0', toPublication: 'P1D', publishedAfter: 'PT33H', untilEndOfJune: 'P5M15D' },
+            { version: '1.3.0-beta.1', toPublication: 'P1D', publishedAfter: 'PT34H', untilEndOfJune: 'P4M10D' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = sync(connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                toPublication: tRelease.releasedOn.until(tRelease.publishedAt.toPlainDate()),
+                publishedAfter: tRelease.publishedAt.since(tRelease.releasedOn.toPlainDateTime(), { largestUnit: 'hour' }),
+                untilEndOfJune: tRelease.releasedOn.until(Temporal.PlainDate.from('2024-06-30'), { largestUnit: 'month' }),
+            })
+            .orderBy('version')
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'hour') as toPublication, tsq_duration_text(0, 0, 0, 0, -(cast(julianday(date(strftime('%Y-%m-%d %H:%M:%f', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%d %H:%M:%f', released_on)) - julianday(date(strftime('%Y-%m-%d %H:%M:%f', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)), 'hour') as publishedAfter, tsq_duration_text(0, cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer), 0, cast(julianday(date(?1)) - julianday(date(date(date(released_on), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer)) || ' months'), (min(cast(strftime('%d', date(released_on)) as integer), cast(strftime('%d', date(date(released_on), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer)) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days')) as integer), 0, 'hour') as untilEndOfJune from project_release order by version"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024-06-30",
+          ]
+        `)
+        assertType<Exact<typeof releases, Array<{ version: string; toPublication: Temporal.Duration; publishedAfter: Temporal.Duration; untilEndOfJune: Temporal.Duration }>>>()
+        expect(releases.map(release => [release.version, release.toPublication.toString(), release.publishedAfter.toString(), release.untilEndOfJune.toString()])).toEqual([
+            ['0.9.0', 'P1D', 'PT35H', 'P3M29D'],
+            ['1.2.0', 'P1D', 'PT33H', 'P5M15D'],
+            ['1.3.0-beta.1', 'P1D', 'PT34H', 'P4M10D'],
+        ])
+    })
+
     test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
         ctx.mockNext([
             { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },

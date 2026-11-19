@@ -856,6 +856,823 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
     ```
 
 
+## The duration between two dates and times
+
+`until` and `since` of a `plainDate`, a `plainTime` or a `plainDateTime` give the duration from the value to another one of the same type (`until`), or from the other one to the value (`since`), as Temporal's `until` and `since` do. The other one is a Temporal value or a value of the same type, like a column. The result is a `duration`. Here, for each release, the time from its release to its publication, in days and in hours, and the months and days from its release to the end of June:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        toPublication: tRelease.releasedOn.until(tRelease.publishedAt.toPlainDate()),
+        publishedAfter: tRelease.publishedAt.since(tRelease.releasedOn.toPlainDateTime(), { largestUnit: 'hour' }),
+        untilEndOfJune: tRelease.releasedOn.until(Temporal.PlainDate.from('2024-06-30'), { largestUnit: 'month' }),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'hour') as toPublication, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)), 'hour') as publishedAfter, 
+        tsq_duration_text(0, ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32, 0, datediff(?, date_add(released_on, interval ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32 month)), 0, 'hour') as untilEndOfJune 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'hour') as toPublication, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)), 'hour') as publishedAfter, 
+        tsq_duration_text(0, ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32, 0, datediff(?, date_add(released_on, interval ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32 month)), 0, 'hour') as untilEndOfJune 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        tsq_duration_text(0, 0, 0, (trunc(published_at) - released_on), 0, 'hour') as "toPublication", 
+        tsq_duration_text(0, 0, 0, 0, -((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)), 'hour') as "publishedAfter", 
+        tsq_duration_text(0, trunc(((extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'))) * 32 + extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from released_on) * 12 + extract(month from released_on)) * 32 - extract(day from released_on)) / 32), 0, (to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') - (add_months(released_on, trunc(((extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'))) * 32 + extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from released_on) * 12 + extract(month from released_on)) * 32 - extract(day from released_on)) / 32)) - greatest(0, extract(day from add_months(released_on, trunc(((extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'))) * 32 + extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from released_on) * 12 + extract(month from released_on)) * 32 - extract(day from released_on)) / 32))) - extract(day from released_on)))), 0, 'hour') as "untilEndOfJune" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", 
+        make_interval(secs => -((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) / 1000000000.0) as "publishedAfter", 
+        make_interval(months => (((cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer)) * 32 + cast(extract(day from $1::date) as integer) - (cast(extract(year from released_on) as integer) * 12 + cast(extract(month from released_on) as integer)) * 32 - cast(extract(day from released_on) as integer)) / 32), days => ($1::date - cast(released_on + make_interval(months => (((cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer)) * 32 + cast(extract(day from $1::date) as integer) - (cast(extract(year from released_on) as integer) * 12 + cast(extract(month from released_on) as integer)) * 32 - cast(extract(day from released_on) as integer)) / 32)) as date))) as "untilEndOfJune" 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'hour') as toPublication, 
+        tsq_duration_text(0, 0, 0, 0, -(cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)), 'hour') as publishedAfter, 
+        tsq_duration_text(0, cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer), 0, cast(julianday(date(?1)) - julianday(date(date(date(released_on), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer)) || ' months'), (min(cast(strftime('%d', date(released_on)) as integer), cast(strftime('%d', date(date(released_on), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer)) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days')) as integer), 0, 'hour') as untilEndOfJune 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 'hour') as toPublication, 
+        dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))), 'hour') as publishedAfter, 
+        dbo.tsq_duration_text(0, ((datepart(year, @0) * 12 + datepart(month, @0)) * 32 + datepart(day, @0) - (datepart(year, released_on) * 12 + datepart(month, released_on)) * 32 - datepart(day, released_on)) / 32, 0, datediff(day, dateadd(month, ((datepart(year, @0) * 12 + datepart(month, @0)) * 32 + datepart(day, @0) - (datepart(year, released_on) * 12 + datepart(month, released_on)) * 32 - datepart(day, released_on)) / 32, released_on), @0), 0, 'hour') as untilEndOfJune 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[ PlainDate 2024-06-30 ]` (on MariaDB and MySQL: `[ PlainDate 2024-06-30, PlainDate 2024-06-30, PlainDate 2024-06-30, PlainDate 2024-06-30, PlainDate 2024-06-30, PlainDate 2024-06-30, PlainDate 2024-06-30 ]`; on SQLite: `[ '2024-06-30' ]`)
+
+| version | toPublication | publishedAfter | untilEndOfJune |
+|---|---|---|---|
+| `'0.9.0'` | `P1D` | `PT35H` | `P3M29D` |
+| `'1.2.0'` | `P1D` | `PT33H` | `P5M15D` |
+| `'1.3.0-beta.1'` | `P1D` | `PT34H` | `P4M10D` |
+
+The duration is the one of Temporal on every database. Between two dates, or two dates and times, it is in days and smaller units, and between two times in hours and smaller units, unless `largestUnit` asks for larger ones. Months are counted from the first value without passing the second one, with the day of the first value, which is not kept in the month while counting; the days come after them, and then the time.
+
+| Value | Operation | Result | Why |
+|---|---|---|---|
+| `2024-01-31` (`plainDate`) | `until(2024-03-30)` | `P59D` | In days by default |
+| `2024-01-31` | `until(2024-02-29, { largestUnit: 'month' })` | `P29D` | A month from January 31st would be February 31st, past February 29th: no whole month |
+| `2024-01-31` | `until(2024-03-01, { largestUnit: 'month' })` | `P1M1D` | A month reaches February 29th (the day kept in the month), and one day more |
+| `2024-01-31` | `since(2024-03-30, { largestUnit: 'month' })` | `-P1M30D` | `since` counts from the value, as `until`, and negates the result |
+| `2024-03-30` | `until(2024-01-31, { largestUnit: 'month' })` | `-P1M29D` | Counted back from March 30th |
+| `2024-01-01` | `until(2024-03-15, { largestUnit: 'week' })` | `P10W4D` | |
+| `2024-01-01T23:00` (`plainDateTime`) | `until(2024-01-02T01:00)` | `PT2H` | No whole day: 01:00 is before 23:00 |
+| `10:00` (`plainTime`) | `until(08:30)` | `-PT1H30M` | A time doesn't go round at midnight |
+
+On PostgreSQL the duration is an interval, which keeps months, days and a time: Temporal's `P14M` reads `P1Y2M`, its weeks are days (`P10W4D` reads `P74D`), and with a largest unit smaller than the hour the time reads in hours (`PT90M` reads `PT1H30M`); each is the same duration. The other databases keep the text Temporal writes.
+
+### The options of `until` and `since`
+
+The options are the ones of Temporal, and they are checked as Temporal checks them: options it rejects (a smallest unit larger than the largest one, a unit the type hasn't, an increment that doesn't divide the next unit) are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent.
+
+| Option | Values | Default |
+|---|---|---|
+| `largestUnit` | `'year'`, `'month'`, `'week'`, `'day'` for a date; `'hour'` to `'nanosecond'` for a time; all of them for a date and time; in the singular or the plural, or `'auto'` | `'auto'`: the day (the hour for a time), or the smallest unit when it is larger |
+| `smallestUnit` | The same units | The day for a date, the nanosecond otherwise: no rounding |
+| `roundingIncrement` | An integer from 1 to 10⁹ (a fraction is truncated); for a unit of the time, one that divides the next unit and is less than it | `1` |
+| `roundingMode` | `'ceil'`, `'floor'`, `'expand'`, `'trunc'`, `'halfCeil'`, `'halfFloor'`, `'halfExpand'`, `'halfTrunc'`, `'halfEven'` | `'trunc'` |
+
+| Value | Operation | Result |
+|---|---|---|
+| `10:00` | `until(08:30:00.5, { smallestUnit: 'second', roundingMode: 'floor' })` | `-PT1H30M` |
+| `08:00` | `until(10:08, { smallestUnit: 'minute', roundingIncrement: 15, roundingMode: 'halfExpand' })` | `PT2H15M` |
+| `2024-01-01` | `until(2024-03-17, { smallestUnit: 'month', roundingMode: 'halfExpand' })` | `P3M` |
+| `2024-01-01` | `since(2024-03-15, { smallestUnit: 'month', roundingMode: 'ceil' })` | `-P2M` |
+| `2024-01-01` | `until(2024-01-31, { largestUnit: 'month', smallestUnit: 'day', roundingIncrement: 7, roundingMode: 'ceil' })` | `P1M` |
+
+As in Temporal, `since` is `until` with the mode negated (`'floor'` for `'ceil'`), negated: its result is rounded as the mode says for that result, so `'ceil'` takes `-P2M14D` up to `-P2M`. A rounding that reaches the next week, month or year from the first value gives it: 30 days rounded up to 35 pass February 1st, which is a month from January 1st.
+
+### The functions `tsq_duration_text` and `tsq_duration_round`
+
+On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of the duration with `tsq_duration_text`, a function of the library. A rounding whose largest unit is a week, a month or a year (a `smallestUnit` or a `roundingIncrement` other than the defaults) is done by `tsq_duration_round`, on every database, PostgreSQL too: it counts the weeks, months and years from the first value and rounds them as Temporal does, which a query without variables would write many times over. Create them once in the database, as `tsq_duration_part`; without them, the query fails with the error of the database for a function that doesn't exist.
+
+=== "MariaDB"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_text;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns BIGINT, unit VARCHAR(6)) RETURNS VARCHAR(100) DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE r VARCHAR(100) DEFAULT '';
+        DECLARE t VARCHAR(100) DEFAULT '';
+        DECLARE neg BOOLEAN;
+        DECLARE f BIGINT;
+        IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+        SET neg = y < 0 OR mo < 0 OR w < 0 OR d < 0 OR ns < 0;
+        IF y <> 0 THEN SET r = CONCAT(r, ABS(y), 'Y'); END IF;
+        IF mo <> 0 THEN SET r = CONCAT(r, ABS(mo), 'M'); END IF;
+        IF w <> 0 THEN SET r = CONCAT(r, ABS(w), 'W'); END IF;
+        IF d <> 0 THEN SET r = CONCAT(r, ABS(d), 'D'); END IF;
+        SET ns = ABS(ns);
+        IF unit = 'hour' AND ns >= 3600000000000 THEN SET t = CONCAT(t, ns DIV 3600000000000, 'H'), ns = ns MOD 3600000000000; END IF;
+        IF unit <> 'second' AND ns >= 60000000000 THEN SET t = CONCAT(t, ns DIV 60000000000, 'M'), ns = ns MOD 60000000000; END IF;
+        IF ns > 0 THEN
+            SET f = ns MOD 1000000000;
+            SET t = CONCAT(t, ns DIV 1000000000, IF(f > 0, CONCAT('.', TRIM(TRAILING '0' FROM LPAD(f, 9, '0'))), ''), 'S');
+        END IF;
+        IF r = '' AND t = '' THEN RETURN 'PT0S'; END IF;
+        RETURN CONCAT(IF(neg, '-', ''), 'P', r, IF(t = '', '', CONCAT('T', t)));
+    END
+    //
+    DELIMITER ;
+
+    DROP FUNCTION IF EXISTS tsq_duration_round;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_round(y1 INT, m1 INT, d1 INT, ns1 BIGINT, y2 INT, m2 INT, d2 INT, ns2 BIGINT, largest_unit VARCHAR(5), smallest_unit VARCHAR(11), increment BIGINT, rounding_mode VARCHAR(10), negation INT) RETURNS VARCHAR(100) DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE v_day BIGINT DEFAULT 86400000000000;
+        DECLARE v_one DATE;
+        DECLARE v_two DATE;
+        DECLARE v_adjusted DATE;
+        DECLARE v_t BIGINT;
+        DECLARE v_k INT;
+        DECLARE v_ya INT;
+        DECLARE v_ma INT;
+        DECLARE v_da INT;
+        DECLARE v_years BIGINT DEFAULT 0;
+        DECLARE v_months BIGINT DEFAULT 0;
+        DECLARE v_weeks BIGINT DEFAULT 0;
+        DECLARE v_days BIGINT;
+        DECLARE v_sign BIGINT;
+        DECLARE v_mode VARCHAR(12);
+        DECLARE v_r1 BIGINT;
+        DECLARE v_start DATE;
+        DECLARE v_end DATE;
+        DECLARE v_num BIGINT;
+        DECLARE v_den BIGINT;
+        DECLARE v_whole BIGINT;
+        DECLARE v_rest BIGINT;
+        DECLARE v_steps BIGINT;
+        DECLARE v_step BIGINT;
+        DECLARE v_to_round BIGINT;
+        DECLARE v_rounded BIGINT;
+        IF y1 IS NULL OR m1 IS NULL OR d1 IS NULL OR ns1 IS NULL OR y2 IS NULL OR m2 IS NULL OR d2 IS NULL OR ns2 IS NULL OR largest_unit IS NULL OR smallest_unit IS NULL OR increment IS NULL OR rounding_mode IS NULL OR negation IS NULL THEN RETURN NULL; END IF;
+        SET v_one = DATE_ADD(DATE_ADD(MAKEDATE(y1, 1), INTERVAL m1 - 1 MONTH), INTERVAL d1 - 1 DAY);
+        SET v_two = DATE_ADD(DATE_ADD(MAKEDATE(y2, 1), INTERVAL m2 - 1 MONTH), INTERVAL d2 - 1 DAY);
+        SET v_adjusted = v_two, v_t = ns2 - ns1;
+        IF v_t > 0 AND v_two < v_one THEN
+            SET v_adjusted = DATE_ADD(v_two, INTERVAL 1 DAY), v_t = v_t - v_day;
+        ELSEIF v_t < 0 AND v_two > v_one THEN
+            SET v_adjusted = DATE_SUB(v_two, INTERVAL 1 DAY), v_t = v_t + v_day;
+        END IF;
+        IF largest_unit = 'week' THEN
+            SET v_weeks = DATEDIFF(v_adjusted, v_one) DIV 7;
+            SET v_days = DATEDIFF(v_adjusted, v_one) - v_weeks * 7;
+        ELSE
+            SET v_ya = YEAR(v_adjusted), v_ma = MONTH(v_adjusted), v_da = DAY(v_adjusted);
+            SET v_k = ((v_ya * 12 + v_ma) * 32 + v_da - (y1 * 12 + m1) * 32 - d1) DIV 32;
+            IF largest_unit = 'year' THEN SET v_years = v_k DIV 12; END IF;
+            SET v_months = v_k - v_years * 12;
+            SET v_days = DATEDIFF(v_adjusted, DATE_ADD(v_one, INTERVAL v_k MONTH));
+        END IF;
+        SET v_sign = IF(DATEDIFF(v_two, v_one) * v_day + ns2 - ns1 < 0, -1, 1);
+        SET v_mode = CASE rounding_mode
+            WHEN 'ceil' THEN IF(v_sign < 0, 'zero', 'infinity')
+            WHEN 'floor' THEN IF(v_sign < 0, 'infinity', 'zero')
+            WHEN 'halfCeil' THEN IF(v_sign < 0, 'halfZero', 'halfInfinity')
+            WHEN 'halfFloor' THEN IF(v_sign < 0, 'halfInfinity', 'halfZero')
+            WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+            ELSE 'halfEven' END;
+        IF smallest_unit IN ('year', 'month', 'week') THEN
+            IF smallest_unit = 'year' THEN
+                SET v_r1 = v_years DIV increment * increment;
+                SET v_start = DATE_ADD(v_one, INTERVAL v_r1 * 12 MONTH);
+                SET v_end = DATE_ADD(v_one, INTERVAL (v_r1 + increment * v_sign) * 12 MONTH);
+            ELSEIF smallest_unit = 'month' THEN
+                SET v_r1 = v_months DIV increment * increment;
+                SET v_start = DATE_ADD(v_one, INTERVAL v_years * 12 + v_r1 MONTH);
+                SET v_end = DATE_ADD(v_one, INTERVAL v_years * 12 + v_r1 + increment * v_sign MONTH);
+            ELSE
+                SET v_r1 = IF(largest_unit = 'week', v_weeks, v_days DIV 7) DIV increment * increment;
+                SET v_start = DATE_ADD(DATE_ADD(v_one, INTERVAL v_years * 12 + v_months MONTH), INTERVAL v_r1 * 7 DAY);
+                SET v_end = DATE_ADD(DATE_ADD(v_one, INTERVAL v_years * 12 + v_months MONTH), INTERVAL (v_r1 + increment * v_sign) * 7 DAY);
+            END IF;
+            SET v_num = ABS(DATEDIFF(v_two, v_start) * v_day + ns2 - ns1);
+            SET v_den = ABS(DATEDIFF(v_end, v_start) * v_day);
+            SET v_whole = v_num DIV v_den;
+            SET v_rest = v_num - v_whole * v_den;
+            SET v_steps = v_whole + IF(v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_den OR 2 * v_rest = v_den AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND (ABS(v_r1) DIV increment + v_whole) % 2 <> 0))), 1, 0);
+            SET v_days = 0, v_t = 0;
+            IF smallest_unit = 'year' THEN
+                SET v_years = v_r1 + increment * v_sign * v_steps, v_months = 0;
+            ELSEIF smallest_unit = 'month' THEN
+                SET v_months = v_r1 + increment * v_sign * v_steps;
+                IF v_steps > 0 AND largest_unit = 'year' AND v_sign * DATEDIFF(DATE_ADD(v_one, INTERVAL v_years * 12 + v_months MONTH), DATE_ADD(v_one, INTERVAL (v_years + v_sign) * 12 MONTH)) >= 0 THEN
+                    SET v_years = v_years + v_sign, v_months = 0;
+                END IF;
+            ELSE
+                SET v_weeks = v_r1 + increment * v_sign * v_steps;
+            END IF;
+        ELSE
+            SET v_step = CASE smallest_unit WHEN 'day' THEN v_day WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+            SET v_to_round = v_days * v_day + v_t;
+            SET v_rest = ABS(v_to_round % v_step);
+            SET v_rounded = v_to_round - v_to_round % v_step;
+            IF v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_step OR 2 * v_rest = v_step AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND (v_rounded DIV v_step) % 2 <> 0))) THEN
+                SET v_rounded = v_rounded + v_step * v_sign;
+            END IF;
+            SET v_days = v_rounded DIV v_day;
+            SET v_t = v_rounded - v_days * v_day;
+            IF v_rounded DIV v_day <> v_to_round DIV v_day THEN
+                IF largest_unit = 'week' THEN
+                    IF v_sign * (DATEDIFF(v_two, DATE_ADD(v_one, INTERVAL (v_weeks + v_sign) * 7 DAY)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                        SET v_weeks = v_weeks + v_sign, v_days = 0, v_t = 0;
+                    END IF;
+                ELSEIF v_sign * (DATEDIFF(v_two, DATE_ADD(v_one, INTERVAL v_years * 12 + v_months + v_sign MONTH)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                    SET v_days = 0, v_t = 0;
+                    IF largest_unit = 'year' AND v_sign * (DATEDIFF(v_two, DATE_ADD(v_one, INTERVAL (v_years + v_sign) * 12 MONTH)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                        SET v_years = v_years + v_sign, v_months = 0;
+                    ELSE
+                        SET v_months = v_months + v_sign;
+                    END IF;
+                END IF;
+            END IF;
+        END IF;
+        RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+    END
+    //
+    DELIMITER ;
+    ```
+=== "MySQL"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_text;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns BIGINT, unit VARCHAR(6)) RETURNS VARCHAR(100) DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE r VARCHAR(100) DEFAULT '';
+        DECLARE t VARCHAR(100) DEFAULT '';
+        DECLARE neg BOOLEAN;
+        DECLARE f BIGINT;
+        IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+        SET neg = y < 0 OR mo < 0 OR w < 0 OR d < 0 OR ns < 0;
+        IF y <> 0 THEN SET r = CONCAT(r, ABS(y), 'Y'); END IF;
+        IF mo <> 0 THEN SET r = CONCAT(r, ABS(mo), 'M'); END IF;
+        IF w <> 0 THEN SET r = CONCAT(r, ABS(w), 'W'); END IF;
+        IF d <> 0 THEN SET r = CONCAT(r, ABS(d), 'D'); END IF;
+        SET ns = ABS(ns);
+        IF unit = 'hour' AND ns >= 3600000000000 THEN SET t = CONCAT(t, ns DIV 3600000000000, 'H'), ns = ns MOD 3600000000000; END IF;
+        IF unit <> 'second' AND ns >= 60000000000 THEN SET t = CONCAT(t, ns DIV 60000000000, 'M'), ns = ns MOD 60000000000; END IF;
+        IF ns > 0 THEN
+            SET f = ns MOD 1000000000;
+            SET t = CONCAT(t, ns DIV 1000000000, IF(f > 0, CONCAT('.', TRIM(TRAILING '0' FROM LPAD(f, 9, '0'))), ''), 'S');
+        END IF;
+        IF r = '' AND t = '' THEN RETURN 'PT0S'; END IF;
+        RETURN CONCAT(IF(neg, '-', ''), 'P', r, IF(t = '', '', CONCAT('T', t)));
+    END
+    //
+    DELIMITER ;
+
+    DROP FUNCTION IF EXISTS tsq_duration_round;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_round(y1 INT, m1 INT, d1 INT, ns1 BIGINT, y2 INT, m2 INT, d2 INT, ns2 BIGINT, largest_unit VARCHAR(5), smallest_unit VARCHAR(11), increment BIGINT, rounding_mode VARCHAR(10), negation INT) RETURNS VARCHAR(100) DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE v_day BIGINT DEFAULT 86400000000000;
+        DECLARE v_one DATE;
+        DECLARE v_two DATE;
+        DECLARE v_adjusted DATE;
+        DECLARE v_t BIGINT;
+        DECLARE v_k INT;
+        DECLARE v_ya INT;
+        DECLARE v_ma INT;
+        DECLARE v_da INT;
+        DECLARE v_years BIGINT DEFAULT 0;
+        DECLARE v_months BIGINT DEFAULT 0;
+        DECLARE v_weeks BIGINT DEFAULT 0;
+        DECLARE v_days BIGINT;
+        DECLARE v_sign BIGINT;
+        DECLARE v_mode VARCHAR(12);
+        DECLARE v_r1 BIGINT;
+        DECLARE v_start DATE;
+        DECLARE v_end DATE;
+        DECLARE v_num BIGINT;
+        DECLARE v_den BIGINT;
+        DECLARE v_whole BIGINT;
+        DECLARE v_rest BIGINT;
+        DECLARE v_steps BIGINT;
+        DECLARE v_step BIGINT;
+        DECLARE v_to_round BIGINT;
+        DECLARE v_rounded BIGINT;
+        IF y1 IS NULL OR m1 IS NULL OR d1 IS NULL OR ns1 IS NULL OR y2 IS NULL OR m2 IS NULL OR d2 IS NULL OR ns2 IS NULL OR largest_unit IS NULL OR smallest_unit IS NULL OR increment IS NULL OR rounding_mode IS NULL OR negation IS NULL THEN RETURN NULL; END IF;
+        SET v_one = DATE_ADD(DATE_ADD(MAKEDATE(y1, 1), INTERVAL m1 - 1 MONTH), INTERVAL d1 - 1 DAY);
+        SET v_two = DATE_ADD(DATE_ADD(MAKEDATE(y2, 1), INTERVAL m2 - 1 MONTH), INTERVAL d2 - 1 DAY);
+        SET v_adjusted = v_two, v_t = ns2 - ns1;
+        IF v_t > 0 AND v_two < v_one THEN
+            SET v_adjusted = DATE_ADD(v_two, INTERVAL 1 DAY), v_t = v_t - v_day;
+        ELSEIF v_t < 0 AND v_two > v_one THEN
+            SET v_adjusted = DATE_SUB(v_two, INTERVAL 1 DAY), v_t = v_t + v_day;
+        END IF;
+        IF largest_unit = 'week' THEN
+            SET v_weeks = DATEDIFF(v_adjusted, v_one) DIV 7;
+            SET v_days = DATEDIFF(v_adjusted, v_one) - v_weeks * 7;
+        ELSE
+            SET v_ya = YEAR(v_adjusted), v_ma = MONTH(v_adjusted), v_da = DAY(v_adjusted);
+            SET v_k = ((v_ya * 12 + v_ma) * 32 + v_da - (y1 * 12 + m1) * 32 - d1) DIV 32;
+            IF largest_unit = 'year' THEN SET v_years = v_k DIV 12; END IF;
+            SET v_months = v_k - v_years * 12;
+            SET v_days = DATEDIFF(v_adjusted, DATE_ADD(v_one, INTERVAL v_k MONTH));
+        END IF;
+        SET v_sign = IF(DATEDIFF(v_two, v_one) * v_day + ns2 - ns1 < 0, -1, 1);
+        SET v_mode = CASE rounding_mode
+            WHEN 'ceil' THEN IF(v_sign < 0, 'zero', 'infinity')
+            WHEN 'floor' THEN IF(v_sign < 0, 'infinity', 'zero')
+            WHEN 'halfCeil' THEN IF(v_sign < 0, 'halfZero', 'halfInfinity')
+            WHEN 'halfFloor' THEN IF(v_sign < 0, 'halfInfinity', 'halfZero')
+            WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+            ELSE 'halfEven' END;
+        IF smallest_unit IN ('year', 'month', 'week') THEN
+            IF smallest_unit = 'year' THEN
+                SET v_r1 = v_years DIV increment * increment;
+                SET v_start = DATE_ADD(v_one, INTERVAL v_r1 * 12 MONTH);
+                SET v_end = DATE_ADD(v_one, INTERVAL (v_r1 + increment * v_sign) * 12 MONTH);
+            ELSEIF smallest_unit = 'month' THEN
+                SET v_r1 = v_months DIV increment * increment;
+                SET v_start = DATE_ADD(v_one, INTERVAL v_years * 12 + v_r1 MONTH);
+                SET v_end = DATE_ADD(v_one, INTERVAL v_years * 12 + v_r1 + increment * v_sign MONTH);
+            ELSE
+                SET v_r1 = IF(largest_unit = 'week', v_weeks, v_days DIV 7) DIV increment * increment;
+                SET v_start = DATE_ADD(DATE_ADD(v_one, INTERVAL v_years * 12 + v_months MONTH), INTERVAL v_r1 * 7 DAY);
+                SET v_end = DATE_ADD(DATE_ADD(v_one, INTERVAL v_years * 12 + v_months MONTH), INTERVAL (v_r1 + increment * v_sign) * 7 DAY);
+            END IF;
+            SET v_num = ABS(DATEDIFF(v_two, v_start) * v_day + ns2 - ns1);
+            SET v_den = ABS(DATEDIFF(v_end, v_start) * v_day);
+            SET v_whole = v_num DIV v_den;
+            SET v_rest = v_num - v_whole * v_den;
+            SET v_steps = v_whole + IF(v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_den OR 2 * v_rest = v_den AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND (ABS(v_r1) DIV increment + v_whole) % 2 <> 0))), 1, 0);
+            SET v_days = 0, v_t = 0;
+            IF smallest_unit = 'year' THEN
+                SET v_years = v_r1 + increment * v_sign * v_steps, v_months = 0;
+            ELSEIF smallest_unit = 'month' THEN
+                SET v_months = v_r1 + increment * v_sign * v_steps;
+                IF v_steps > 0 AND largest_unit = 'year' AND v_sign * DATEDIFF(DATE_ADD(v_one, INTERVAL v_years * 12 + v_months MONTH), DATE_ADD(v_one, INTERVAL (v_years + v_sign) * 12 MONTH)) >= 0 THEN
+                    SET v_years = v_years + v_sign, v_months = 0;
+                END IF;
+            ELSE
+                SET v_weeks = v_r1 + increment * v_sign * v_steps;
+            END IF;
+        ELSE
+            SET v_step = CASE smallest_unit WHEN 'day' THEN v_day WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+            SET v_to_round = v_days * v_day + v_t;
+            SET v_rest = ABS(v_to_round % v_step);
+            SET v_rounded = v_to_round - v_to_round % v_step;
+            IF v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_step OR 2 * v_rest = v_step AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND (v_rounded DIV v_step) % 2 <> 0))) THEN
+                SET v_rounded = v_rounded + v_step * v_sign;
+            END IF;
+            SET v_days = v_rounded DIV v_day;
+            SET v_t = v_rounded - v_days * v_day;
+            IF v_rounded DIV v_day <> v_to_round DIV v_day THEN
+                IF largest_unit = 'week' THEN
+                    IF v_sign * (DATEDIFF(v_two, DATE_ADD(v_one, INTERVAL (v_weeks + v_sign) * 7 DAY)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                        SET v_weeks = v_weeks + v_sign, v_days = 0, v_t = 0;
+                    END IF;
+                ELSEIF v_sign * (DATEDIFF(v_two, DATE_ADD(v_one, INTERVAL v_years * 12 + v_months + v_sign MONTH)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                    SET v_days = 0, v_t = 0;
+                    IF largest_unit = 'year' AND v_sign * (DATEDIFF(v_two, DATE_ADD(v_one, INTERVAL (v_years + v_sign) * 12 MONTH)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                        SET v_years = v_years + v_sign, v_months = 0;
+                    ELSE
+                        SET v_months = v_months + v_sign;
+                    END IF;
+                END IF;
+            END IF;
+        END IF;
+        RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+    END
+    //
+    DELIMITER ;
+    ```
+=== "Oracle"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUMBER, d IN NUMBER, ns IN NUMBER, unit IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+        r VARCHAR2(100);
+        t VARCHAR2(100);
+        rest NUMBER;
+        f NUMBER;
+    BEGIN
+        IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+        IF y <> 0 THEN r := r || TO_CHAR(ABS(y)) || 'Y'; END IF;
+        IF mo <> 0 THEN r := r || TO_CHAR(ABS(mo)) || 'M'; END IF;
+        IF w <> 0 THEN r := r || TO_CHAR(ABS(w)) || 'W'; END IF;
+        IF d <> 0 THEN r := r || TO_CHAR(ABS(d)) || 'D'; END IF;
+        rest := ABS(ns);
+        IF unit = 'hour' AND rest >= 3600000000000 THEN t := t || TO_CHAR(TRUNC(rest / 3600000000000)) || 'H'; rest := MOD(rest, 3600000000000); END IF;
+        IF unit <> 'second' AND rest >= 60000000000 THEN t := t || TO_CHAR(TRUNC(rest / 60000000000)) || 'M'; rest := MOD(rest, 60000000000); END IF;
+        IF rest > 0 THEN
+            f := MOD(rest, 1000000000);
+            t := t || TO_CHAR(TRUNC(rest / 1000000000));
+            IF f > 0 THEN t := t || '.' || RTRIM(LPAD(TO_CHAR(f), 9, '0'), '0'); END IF;
+            t := t || 'S';
+        END IF;
+        IF r IS NULL AND t IS NULL THEN RETURN 'PT0S'; END IF;
+        RETURN CASE WHEN y < 0 OR mo < 0 OR w < 0 OR d < 0 OR ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
+    END;
+
+    CREATE OR REPLACE FUNCTION tsq_duration_round(y1 IN NUMBER, m1 IN NUMBER, d1 IN NUMBER, ns1 IN NUMBER, y2 IN NUMBER, m2 IN NUMBER, d2 IN NUMBER, ns2 IN NUMBER, largest_unit IN VARCHAR2, smallest_unit IN VARCHAR2, increment IN NUMBER, rounding_mode IN VARCHAR2, negation IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
+        v_day CONSTANT NUMBER := 86400000000000;
+        v_one DATE;
+        v_two DATE;
+        v_adjusted DATE;
+        v_t NUMBER;
+        v_k NUMBER;
+        v_years NUMBER := 0;
+        v_months NUMBER := 0;
+        v_weeks NUMBER := 0;
+        v_days NUMBER;
+        v_sign NUMBER;
+        v_mode VARCHAR2(12);
+        v_r1 NUMBER;
+        v_start DATE;
+        v_end DATE;
+        v_num NUMBER;
+        v_den NUMBER;
+        v_whole NUMBER;
+        v_rest NUMBER;
+        v_steps NUMBER;
+        v_step NUMBER;
+        v_to_round NUMBER;
+        v_rounded NUMBER;
+        -- add_months gives the last day of a month to the last day of another: the days it moves past the day are taken back
+        FUNCTION plus_months(d IN DATE, k IN NUMBER) RETURN DATE IS
+        BEGIN
+            RETURN ADD_MONTHS(d, k) - GREATEST(0, EXTRACT(DAY FROM ADD_MONTHS(d, k)) - EXTRACT(DAY FROM d));
+        END;
+    BEGIN
+        IF y1 IS NULL OR m1 IS NULL OR d1 IS NULL OR ns1 IS NULL OR y2 IS NULL OR m2 IS NULL OR d2 IS NULL OR ns2 IS NULL OR largest_unit IS NULL OR smallest_unit IS NULL OR increment IS NULL OR rounding_mode IS NULL OR negation IS NULL THEN RETURN NULL; END IF;
+        v_one := ADD_MONTHS(DATE '0001-01-01', (y1 - 1) * 12 + m1 - 1) + d1 - 1;
+        v_two := ADD_MONTHS(DATE '0001-01-01', (y2 - 1) * 12 + m2 - 1) + d2 - 1;
+        v_adjusted := v_two;
+        v_t := ns2 - ns1;
+        IF v_t > 0 AND v_two < v_one THEN
+            v_adjusted := v_two + 1;
+            v_t := v_t - v_day;
+        ELSIF v_t < 0 AND v_two > v_one THEN
+            v_adjusted := v_two - 1;
+            v_t := v_t + v_day;
+        END IF;
+        IF largest_unit = 'week' THEN
+            v_weeks := TRUNC((v_adjusted - v_one) / 7);
+            v_days := (v_adjusted - v_one) - v_weeks * 7;
+        ELSE
+            v_k := TRUNC(((EXTRACT(YEAR FROM v_adjusted) * 12 + EXTRACT(MONTH FROM v_adjusted)) * 32 + EXTRACT(DAY FROM v_adjusted) - (y1 * 12 + m1) * 32 - d1) / 32);
+            IF largest_unit = 'year' THEN v_years := TRUNC(v_k / 12); END IF;
+            v_months := v_k - v_years * 12;
+            v_days := v_adjusted - plus_months(v_one, v_k);
+        END IF;
+        v_sign := CASE WHEN (v_two - v_one) * v_day + ns2 - ns1 < 0 THEN -1 ELSE 1 END;
+        v_mode := CASE rounding_mode
+            WHEN 'ceil' THEN CASE WHEN v_sign < 0 THEN 'zero' ELSE 'infinity' END
+            WHEN 'floor' THEN CASE WHEN v_sign < 0 THEN 'infinity' ELSE 'zero' END
+            WHEN 'halfCeil' THEN CASE WHEN v_sign < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+            WHEN 'halfFloor' THEN CASE WHEN v_sign < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+            WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+            ELSE 'halfEven' END;
+        IF smallest_unit IN ('year', 'month', 'week') THEN
+            IF smallest_unit = 'year' THEN
+                v_r1 := TRUNC(v_years / increment) * increment;
+                v_start := plus_months(v_one, v_r1 * 12);
+                v_end := plus_months(v_one, (v_r1 + increment * v_sign) * 12);
+            ELSIF smallest_unit = 'month' THEN
+                v_r1 := TRUNC(v_months / increment) * increment;
+                v_start := plus_months(v_one, v_years * 12 + v_r1);
+                v_end := plus_months(v_one, v_years * 12 + v_r1 + increment * v_sign);
+            ELSE
+                v_r1 := TRUNC(CASE WHEN largest_unit = 'week' THEN v_weeks ELSE TRUNC(v_days / 7) END / increment) * increment;
+                v_start := plus_months(v_one, v_years * 12 + v_months) + v_r1 * 7;
+                v_end := plus_months(v_one, v_years * 12 + v_months) + (v_r1 + increment * v_sign) * 7;
+            END IF;
+            v_num := ABS((v_two - v_start) * v_day + ns2 - ns1);
+            v_den := ABS((v_end - v_start) * v_day);
+            v_whole := TRUNC(v_num / v_den);
+            v_rest := v_num - v_whole * v_den;
+            v_steps := v_whole + CASE WHEN v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_den OR 2 * v_rest = v_den AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND MOD(TRUNC(ABS(v_r1) / increment) + v_whole, 2) <> 0))) THEN 1 ELSE 0 END;
+            v_days := 0;
+            v_t := 0;
+            IF smallest_unit = 'year' THEN
+                v_years := v_r1 + increment * v_sign * v_steps;
+                v_months := 0;
+            ELSIF smallest_unit = 'month' THEN
+                v_months := v_r1 + increment * v_sign * v_steps;
+                IF v_steps > 0 AND largest_unit = 'year' AND v_sign * (plus_months(v_one, v_years * 12 + v_months) - plus_months(v_one, (v_years + v_sign) * 12)) >= 0 THEN
+                    v_years := v_years + v_sign;
+                    v_months := 0;
+                END IF;
+            ELSE
+                v_weeks := v_r1 + increment * v_sign * v_steps;
+            END IF;
+        ELSE
+            v_step := CASE smallest_unit WHEN 'day' THEN v_day WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+            v_to_round := v_days * v_day + v_t;
+            v_rest := ABS(MOD(v_to_round, v_step));
+            v_rounded := v_to_round - MOD(v_to_round, v_step);
+            IF v_rest <> 0 AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_rest > v_step OR 2 * v_rest = v_step AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND MOD(TRUNC(v_rounded / v_step), 2) <> 0))) THEN
+                v_rounded := v_rounded + v_step * v_sign;
+            END IF;
+            v_days := TRUNC(v_rounded / v_day);
+            v_t := v_rounded - v_days * v_day;
+            IF TRUNC(v_rounded / v_day) <> TRUNC(v_to_round / v_day) THEN
+                IF largest_unit = 'week' THEN
+                    IF v_sign * ((v_two - (v_one + (v_weeks + v_sign) * 7)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                        v_weeks := v_weeks + v_sign;
+                        v_days := 0;
+                        v_t := 0;
+                    END IF;
+                ELSIF v_sign * ((v_two - plus_months(v_one, v_years * 12 + v_months + v_sign)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                    v_days := 0;
+                    v_t := 0;
+                    IF largest_unit = 'year' AND v_sign * ((v_two - plus_months(v_one, (v_years + v_sign) * 12)) * v_day + ns2 - ns1 + v_rounded - v_to_round) >= 0 THEN
+                        v_years := v_years + v_sign;
+                        v_months := 0;
+                    ELSE
+                        v_months := v_months + v_sign;
+                    END IF;
+                END IF;
+            END IF;
+        END IF;
+        RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+    END;
+    ```
+===+ "PostgreSQL"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_round(y1 integer, m1 integer, d1 integer, ns1 bigint, y2 integer, m2 integer, d2 integer, ns2 bigint, largest_unit text, smallest_unit text, increment bigint, rounding_mode text, negation integer) RETURNS interval LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+    DECLARE
+        day_ns CONSTANT bigint := 86400000000000;
+        one date := make_date(y1, m1, d1);
+        two date := make_date(y2, m2, d2);
+        adjusted date := make_date(y2, m2, d2);
+        t bigint := ns2 - ns1;
+        k integer;
+        years bigint := 0;
+        months bigint := 0;
+        weeks bigint := 0;
+        days bigint;
+        sgn bigint;
+        um text;
+        r1 bigint;
+        start_day date;
+        end_day date;
+        num bigint;
+        den bigint;
+        whole bigint;
+        rest bigint;
+        steps bigint;
+        step bigint;
+        to_round bigint;
+        rounded bigint;
+    BEGIN
+        IF t > 0 AND two < one THEN
+            adjusted := two + 1;
+            t := t - day_ns;
+        ELSIF t < 0 AND two > one THEN
+            adjusted := two - 1;
+            t := t + day_ns;
+        END IF;
+        IF largest_unit = 'week' THEN
+            weeks := (adjusted - one) / 7;
+            days := (adjusted - one) - weeks * 7;
+        ELSE
+            k := ((extract(year from adjusted)::integer * 12 + extract(month from adjusted)::integer) * 32 + extract(day from adjusted)::integer - (y1 * 12 + m1) * 32 - d1) / 32;
+            IF largest_unit = 'year' THEN
+                years := k / 12;
+            END IF;
+            months := k - years * 12;
+            days := adjusted - (one + make_interval(months => k))::date;
+        END IF;
+        sgn := CASE WHEN (two - one)::bigint * day_ns + ns2 - ns1 < 0 THEN -1 ELSE 1 END;
+        um := CASE rounding_mode
+            WHEN 'ceil' THEN CASE WHEN sgn < 0 THEN 'zero' ELSE 'infinity' END
+            WHEN 'floor' THEN CASE WHEN sgn < 0 THEN 'infinity' ELSE 'zero' END
+            WHEN 'halfCeil' THEN CASE WHEN sgn < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+            WHEN 'halfFloor' THEN CASE WHEN sgn < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+            WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+            ELSE 'halfEven' END;
+        IF smallest_unit IN ('year', 'month', 'week') THEN
+            IF smallest_unit = 'year' THEN
+                r1 := years / increment * increment;
+                start_day := (one + make_interval(months => (r1 * 12)::integer))::date;
+                end_day := (one + make_interval(months => ((r1 + increment * sgn) * 12)::integer))::date;
+            ELSIF smallest_unit = 'month' THEN
+                r1 := months / increment * increment;
+                start_day := (one + make_interval(months => (years * 12 + r1)::integer))::date;
+                end_day := (one + make_interval(months => (years * 12 + r1 + increment * sgn)::integer))::date;
+            ELSE
+                r1 := (CASE WHEN largest_unit = 'week' THEN weeks ELSE days / 7 END) / increment * increment;
+                start_day := (one + make_interval(months => (years * 12 + months)::integer))::date + (r1 * 7)::integer;
+                end_day := (one + make_interval(months => (years * 12 + months)::integer))::date + ((r1 + increment * sgn) * 7)::integer;
+            END IF;
+            num := abs((two - start_day)::bigint * day_ns + ns2 - ns1);
+            den := abs((end_day - start_day)::bigint * day_ns);
+            whole := num / den;
+            rest := num - whole * den;
+            steps := whole + CASE WHEN rest <> 0 AND (um = 'infinity' OR um LIKE 'half%' AND (2 * rest > den OR 2 * rest = den AND (um = 'halfInfinity' OR um = 'halfEven' AND (abs(r1) / increment + whole) % 2 <> 0))) THEN 1 ELSE 0 END;
+            days := 0;
+            t := 0;
+            IF smallest_unit = 'year' THEN
+                years := r1 + increment * sgn * steps;
+                months := 0;
+            ELSIF smallest_unit = 'month' THEN
+                months := r1 + increment * sgn * steps;
+                IF steps > 0 AND largest_unit = 'year' AND sgn * ((one + make_interval(months => (years * 12 + months)::integer))::date - (one + make_interval(months => ((years + sgn) * 12)::integer))::date) >= 0 THEN
+                    years := years + sgn;
+                    months := 0;
+                END IF;
+            ELSE
+                weeks := r1 + increment * sgn * steps;
+            END IF;
+        ELSE
+            step := CASE smallest_unit WHEN 'day' THEN day_ns WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+            to_round := days * day_ns + t;
+            rest := abs(to_round % step);
+            rounded := to_round - to_round % step;
+            IF rest <> 0 AND (um = 'infinity' OR um LIKE 'half%' AND (2 * rest > step OR 2 * rest = step AND (um = 'halfInfinity' OR um = 'halfEven' AND (rounded / step) % 2 <> 0))) THEN
+                rounded := rounded + step * sgn;
+            END IF;
+            days := rounded / day_ns;
+            t := rounded - days * day_ns;
+            IF rounded / day_ns <> to_round / day_ns THEN
+                IF largest_unit = 'week' THEN
+                    IF sgn * ((two - (one + ((weeks + sgn) * 7)::integer))::bigint * day_ns + ns2 - ns1 + rounded - to_round) >= 0 THEN
+                        weeks := weeks + sgn;
+                        days := 0;
+                        t := 0;
+                    END IF;
+                ELSIF sgn * ((two - (one + make_interval(months => (years * 12 + months + sgn)::integer))::date)::bigint * day_ns + ns2 - ns1 + rounded - to_round) >= 0 THEN
+                    days := 0;
+                    t := 0;
+                    IF largest_unit = 'year' AND sgn * ((two - (one + make_interval(months => ((years + sgn) * 12)::integer))::date)::bigint * day_ns + ns2 - ns1 + rounded - to_round) >= 0 THEN
+                        years := years + sgn;
+                        months := 0;
+                    ELSE
+                        months := months + sgn;
+                    END IF;
+                END IF;
+            END IF;
+        END IF;
+        RETURN make_interval(years => (years * negation)::integer, months => (months * negation)::integer, weeks => (weeks * negation)::integer, days => (days * negation)::integer, secs => t * negation / 1000000000.0);
+    END
+    $$;
+    ```
+=== "SQLite"
+    `registerSqliteFunctions` registers both, written in JavaScript, with the other functions of the library: see [The SQL functions of the library](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library). Bun SQL's SQLite has no way to register a function.
+=== "SQL Server"
+    ```sql
+    DROP FUNCTION IF EXISTS dbo.tsq_duration_round;
+    GO
+
+    CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns BIGINT, @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+    BEGIN
+        IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
+        DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
+        DECLARE @hour BIGINT = 3600000000000, @minute BIGINT = 60000000000, @second BIGINT = 1000000000, @f BIGINT, @frac VARCHAR(9);
+        IF @y <> 0 SET @r = @r + CAST(ABS(@y) AS VARCHAR(20)) + 'Y';
+        IF @mo <> 0 SET @r = @r + CAST(ABS(@mo) AS VARCHAR(20)) + 'M';
+        IF @w <> 0 SET @r = @r + CAST(ABS(@w) AS VARCHAR(20)) + 'W';
+        IF @d <> 0 SET @r = @r + CAST(ABS(@d) AS VARCHAR(20)) + 'D';
+        SET @ns = ABS(@ns);
+        IF @unit = 'hour' AND @ns >= @hour BEGIN SET @t = @t + CAST(@ns / @hour AS VARCHAR(20)) + 'H'; SET @ns = @ns % @hour; END
+        IF @unit <> 'second' AND @ns >= @minute BEGIN SET @t = @t + CAST(@ns / @minute AS VARCHAR(20)) + 'M'; SET @ns = @ns % @minute; END
+        IF @ns > 0
+        BEGIN
+            SET @f = @ns % @second;
+            SET @t = @t + CAST(@ns / @second AS VARCHAR(20));
+            IF @f > 0
+            BEGIN
+                SET @frac = RIGHT('000000000' + CAST(@f AS VARCHAR(9)), 9);
+                WHILE RIGHT(@frac, 1) = '0' SET @frac = LEFT(@frac, LEN(@frac) - 1);
+                SET @t = @t + '.' + @frac;
+            END
+            SET @t = @t + 'S';
+        END
+        IF @r = '' AND @t = '' RETURN 'PT0S';
+        RETURN CASE WHEN @neg = 1 THEN '-' ELSE '' END + 'P' + @r + CASE WHEN @t = '' THEN '' ELSE 'T' + @t END;
+    END
+    GO
+
+    CREATE OR ALTER FUNCTION dbo.tsq_duration_round(@y1 INT, @m1 INT, @d1 INT, @ns1 BIGINT, @y2 INT, @m2 INT, @d2 INT, @ns2 BIGINT, @largest VARCHAR(5), @smallest VARCHAR(11), @increment BIGINT, @mode VARCHAR(10), @negation INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+    BEGIN
+        IF @y1 IS NULL OR @m1 IS NULL OR @d1 IS NULL OR @ns1 IS NULL OR @y2 IS NULL OR @m2 IS NULL OR @d2 IS NULL OR @ns2 IS NULL OR @largest IS NULL OR @smallest IS NULL OR @increment IS NULL OR @mode IS NULL OR @negation IS NULL RETURN NULL;
+        DECLARE @day BIGINT = 86400000000000, @one DATE = DATEFROMPARTS(@y1, @m1, @d1), @two DATE = DATEFROMPARTS(@y2, @m2, @d2);
+        DECLARE @adjusted DATE = @two, @t BIGINT = @ns2 - @ns1, @k INT, @years BIGINT = 0, @months BIGINT = 0, @weeks BIGINT = 0, @days BIGINT;
+        DECLARE @sign BIGINT, @um VARCHAR(12), @r1 BIGINT, @start DATE, @end DATE, @num BIGINT, @den BIGINT, @whole BIGINT, @rest BIGINT, @steps BIGINT, @step BIGINT, @toRound BIGINT, @rounded BIGINT;
+        IF @t > 0 AND @two < @one BEGIN SET @adjusted = DATEADD(day, 1, @two); SET @t = @t - @day; END
+        ELSE IF @t < 0 AND @two > @one BEGIN SET @adjusted = DATEADD(day, -1, @two); SET @t = @t + @day; END
+        IF @largest = 'week'
+        BEGIN
+            SET @weeks = DATEDIFF(day, @one, @adjusted) / 7;
+            SET @days = DATEDIFF(day, @one, @adjusted) - @weeks * 7;
+        END
+        ELSE
+        BEGIN
+            SET @k = ((YEAR(@adjusted) * 12 + MONTH(@adjusted)) * 32 + DAY(@adjusted) - (@y1 * 12 + @m1) * 32 - @d1) / 32;
+            IF @largest = 'year' SET @years = @k / 12;
+            SET @months = @k - @years * 12;
+            SET @days = DATEDIFF(day, DATEADD(month, @k, @one), @adjusted);
+        END
+        SET @sign = CASE WHEN CAST(DATEDIFF(day, @one, @two) AS BIGINT) * @day + @ns2 - @ns1 < 0 THEN -1 ELSE 1 END;
+        SET @um = CASE @mode
+            WHEN 'ceil' THEN CASE WHEN @sign < 0 THEN 'zero' ELSE 'infinity' END
+            WHEN 'floor' THEN CASE WHEN @sign < 0 THEN 'infinity' ELSE 'zero' END
+            WHEN 'halfCeil' THEN CASE WHEN @sign < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+            WHEN 'halfFloor' THEN CASE WHEN @sign < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+            WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+            ELSE 'halfEven' END;
+        IF @smallest IN ('year', 'month', 'week')
+        BEGIN
+            IF @smallest = 'year'
+            BEGIN
+                SET @r1 = @years / @increment * @increment;
+                SET @start = DATEADD(month, @r1 * 12, @one);
+                SET @end = DATEADD(month, (@r1 + @increment * @sign) * 12, @one);
+            END
+            ELSE IF @smallest = 'month'
+            BEGIN
+                SET @r1 = @months / @increment * @increment;
+                SET @start = DATEADD(month, @years * 12 + @r1, @one);
+                SET @end = DATEADD(month, @years * 12 + @r1 + @increment * @sign, @one);
+            END
+            ELSE
+            BEGIN
+                SET @r1 = CASE WHEN @largest = 'week' THEN @weeks ELSE @days / 7 END / @increment * @increment;
+                SET @start = DATEADD(day, @r1 * 7, DATEADD(month, @years * 12 + @months, @one));
+                SET @end = DATEADD(day, (@r1 + @increment * @sign) * 7, DATEADD(month, @years * 12 + @months, @one));
+            END
+            SET @num = ABS(CAST(DATEDIFF(day, @start, @two) AS BIGINT) * @day + @ns2 - @ns1);
+            SET @den = ABS(CAST(DATEDIFF(day, @start, @end) AS BIGINT) * @day);
+            SET @whole = @num / @den;
+            SET @rest = @num - @whole * @den;
+            SET @steps = @whole + CASE WHEN @rest <> 0 AND (@um = 'infinity' OR @um LIKE 'half%' AND (2 * @rest > @den OR 2 * @rest = @den AND (@um = 'halfInfinity' OR @um = 'halfEven' AND (ABS(@r1) / @increment + @whole) % 2 <> 0))) THEN 1 ELSE 0 END;
+            SET @days = 0;
+            SET @t = 0;
+            IF @smallest = 'year' BEGIN SET @years = @r1 + @increment * @sign * @steps; SET @months = 0; END
+            ELSE IF @smallest = 'month'
+            BEGIN
+                SET @months = @r1 + @increment * @sign * @steps;
+                IF @steps > 0 AND @largest = 'year' AND @sign * DATEDIFF(day, DATEADD(month, (@years + @sign) * 12, @one), DATEADD(month, @years * 12 + @months, @one)) >= 0 BEGIN SET @years = @years + @sign; SET @months = 0; END
+            END
+            ELSE SET @weeks = @r1 + @increment * @sign * @steps;
+        END
+        ELSE
+        BEGIN
+            SET @step = CASE @smallest WHEN 'day' THEN @day WHEN 'hour' THEN CAST(3600000000000 AS BIGINT) WHEN 'minute' THEN CAST(60000000000 AS BIGINT) WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * @increment;
+            SET @toRound = @days * @day + @t;
+            SET @rest = ABS(@toRound % @step);
+            SET @rounded = @toRound - @toRound % @step;
+            IF @rest <> 0 AND (@um = 'infinity' OR @um LIKE 'half%' AND (2 * @rest > @step OR 2 * @rest = @step AND (@um = 'halfInfinity' OR @um = 'halfEven' AND (@rounded / @step) % 2 <> 0))) SET @rounded = @rounded + @step * @sign;
+            SET @days = @rounded / @day;
+            SET @t = @rounded - @days * @day;
+            IF @rounded / @day <> @toRound / @day
+            BEGIN
+                IF @largest = 'week'
+                BEGIN
+                    IF @sign * (CAST(DATEDIFF(day, DATEADD(day, (@weeks + @sign) * 7, @one), @two) AS BIGINT) * @day + @ns2 - @ns1 + @rounded - @toRound) >= 0 BEGIN SET @weeks = @weeks + @sign; SET @days = 0; SET @t = 0; END
+                END
+                ELSE IF @sign * (CAST(DATEDIFF(day, DATEADD(month, @years * 12 + @months + @sign, @one), @two) AS BIGINT) * @day + @ns2 - @ns1 + @rounded - @toRound) >= 0
+                BEGIN
+                    SET @days = 0;
+                    SET @t = 0;
+                    IF @largest = 'year' AND @sign * (CAST(DATEDIFF(day, DATEADD(month, (@years + @sign) * 12, @one), @two) AS BIGINT) * @day + @ns2 - @ns1 + @rounded - @toRound) >= 0 BEGIN SET @years = @years + @sign; SET @months = 0; END
+                    ELSE SET @months = @months + @sign;
+                END
+            END
+        END
+        RETURN dbo.tsq_duration_text(@years * @negation, @months * @negation, @weeks * @negation, @days * @negation, @t * @negation, 'hour');
+    END
+    GO
+    ```
+
 ## Changing a field and rounding
 
 `with` gives the value with some of its fields in place of its own, as Temporal's `with`: a `plainDate` takes `year`, `month` (or `monthCode`, like `'M02'`) and `day`; a `plainTime` takes `hour`, `minute`, `second`, `millisecond`, `microsecond` and `nanosecond`; a `plainDateTime` takes all of them. `round` of a `plainTime` or a `plainDateTime` rounds it as Temporal's `round`: to a unit, like `'minute'`, or with options. Here the first day of the month of each release, and its cutoff time rounded to slots of 6 hours:
@@ -905,7 +1722,7 @@ The executed query is:
     select 
         version as version, 
         make_date(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), 1) as "monthOfRelease", 
-        time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from cast(cutoff_time as time)) * 1000000)::bigint * 1000) + 21600000000000) / 43200000000000) * 21600000000000) / 1000000000.0) as "cutoffSlot" 
+        time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from cutoff_time) * 1000000)::bigint * 1000) + 21600000000000) / 43200000000000) * 21600000000000) / 1000000000.0) as "cutoffSlot" 
     from project_release 
     order by version
     ```

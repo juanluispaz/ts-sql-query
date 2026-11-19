@@ -71,6 +71,40 @@ describe(ctx.label, () => {
         expect(rows.map(row => row.microStamp.toString())).toEqual(['2024-02-29T23:59:58.123457'])
     })
 
+    test('plain-temporal-values-are-returned-by-a-delete', async () => {
+        ctx.mockNext({ mDate: '2024-03-04', mTime: '09:15:00', mDatetime: '2024-01-14 12:30:00' })
+        await ctx.withRollback(async () => {
+            const removed = await ctx.conn.deleteFrom(tColMatrixPlain)
+                .where(tColMatrixPlain.id.equals(1))
+                .returning({
+                    mDate: tColMatrixPlain.mDate,
+                    mTime: tColMatrixPlain.mTime,
+                    mDatetime: tColMatrixPlain.mDatetime,
+                })
+                .executeDeleteOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from col_matrix where id = :0 returning to_char(m_date, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'), to_char(cast(m_time as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), to_char(cast(m_datetime as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') into :1, :2, :3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                {
+                  "as": "mDate",
+                  "dir": 3003,
+                },
+                {
+                  "as": "mTime",
+                  "dir": 3003,
+                },
+                {
+                  "as": "mDatetime",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof removed, { mDate: Temporal.PlainDate; mTime: Temporal.PlainTime; mDatetime: Temporal.PlainDateTime }>>()
+            expect([removed.mDate.toString(), removed.mTime.toString(), removed.mDatetime.toString()]).toEqual(['2024-03-04', '09:15:00', '2024-01-14T12:30:00'])
+        })
+    })
+
     test('plain-temporal-values-are-compared-as-parameters', async () => {
         ctx.mockNext([{ id: 1 }])
         const rows = await ctx.conn.selectFrom(tColMatrixPlain)

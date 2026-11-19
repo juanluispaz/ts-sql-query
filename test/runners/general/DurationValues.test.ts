@@ -125,6 +125,15 @@ describe('DurationValues', () => {
         expect(await read({ days: -1, hours: -2, minutes: 0, seconds: 0, fseconds: 0 })).toBe('-P1DT2H')
     })
 
+    test('the-text-of-an-interval-of-oracle', async () => {
+        // As Oracle converts an interval to a text, as in an OUT bind of a RETURNING
+        expect(await read('+000000003 04:05:06.789000000')).toBe('P3DT4H5M6.789S')
+        expect(await read('-000000001 02:00:00.000000000')).toBe('-P1DT2H')
+        expect(await read('+00 00:00:01')).toBe('PT1S')
+        expect(await read('+000000001-02')).toBe('P1Y2M')
+        expect(await read('-000000000-03')).toBe('-P3M')
+    })
+
     test('a-value-whose-fields-mix-signs-is-rejected', async () => {
         // A Temporal.Duration has one sign; a PostgreSQL interval can mix them
         expect(await read('-1 days +02:03:00')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')

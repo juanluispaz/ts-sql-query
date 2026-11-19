@@ -71,6 +71,28 @@ describe(ctx.label, () => {
         expect(rows.map(row => row.microStamp.toString())).toEqual(['2024-02-29T23:59:58.1234568'])
     })
 
+    test('plain-temporal-values-are-returned-by-a-delete', async () => {
+        ctx.mockNext({ mDate: '2024-03-04', mTime: '09:15:00', mDatetime: '2024-01-14 12:30:00' })
+        await ctx.withRollback(async () => {
+            const removed = await ctx.conn.deleteFrom(tColMatrixPlain)
+                .where(tColMatrixPlain.id.equals(1))
+                .returning({
+                    mDate: tColMatrixPlain.mDate,
+                    mTime: tColMatrixPlain.mTime,
+                    mDatetime: tColMatrixPlain.mDatetime,
+                })
+                .executeDeleteOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from col_matrix output deleted.m_date as mDate, deleted.m_time as mTime, deleted.m_datetime as mDatetime where id = @0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof removed, { mDate: Temporal.PlainDate; mTime: Temporal.PlainTime; mDatetime: Temporal.PlainDateTime }>>()
+            expect([removed.mDate.toString(), removed.mTime.toString(), removed.mDatetime.toString()]).toEqual(['2024-03-04', '09:15:00', '2024-01-14T12:30:00'])
+        })
+    })
+
     test('plain-temporal-values-are-compared-as-parameters', async () => {
         ctx.mockNext([{ id: 1 }])
         const rows = await ctx.conn.selectFrom(tColMatrixPlain)

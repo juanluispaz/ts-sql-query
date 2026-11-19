@@ -43,12 +43,17 @@ function fractionFields(fraction: string | undefined, sign: number): Fields {
 
 // PostgreSQL's output with IntervalStyle 'postgres', the default: `1 year 2 mons 3 days 04:05:06.789`, `-1 days -02:00:00`
 const postgresStyle = /^(?:(-?\d+) years? ?)?(?:(-?\d+) mons? ?)?(?:(-?\d+) days? ?)?(?:([-+])?(\d+):(\d\d):(\d\d)(?:\.(\d+))?)?$/
+// The text of an interval of Oracle, as it converts one to a text (an OUT bind of a RETURNING): `+000000003 04:05:06.789000000`
+// (days to seconds), `-000000001-02` (years to months)
+const oracleDayToSecond = /^([-+])?(\d+) (\d+):(\d\d):(\d\d)(?:\.(\d+))?$/
+const oracleYearToMonth = /^([-+])?(\d+)-(\d+)$/
 // ISO 8601, also with a sign in each field (PostgreSQL's IntervalStyle 'iso_8601': `P-1DT-2H`)
 const isoStyle = /^([-+])?P(?:(-?\d+)Y)?(?:(-?\d+)M)?(?:(-?\d+)W)?(?:(-?\d+)D)?(?:T(?:(-?\d+)H)?(?:(-?\d+)M)?(?:(-?\d+)(?:[.,](\d+))?S)?)?$/i
 
 /**
  * The duration of a value a database delivers: a Temporal.Duration as it is; its ISO 8601 text (`P1Y2M3DT4H5M6.789S`,
- * `-PT90M`, also with a sign in each field); the text of a PostgreSQL interval in its default style; the text or the
+ * `-PT90M`, also with a sign in each field); the text of a PostgreSQL interval in its default style; the text of an
+ * interval of Oracle (`+000000003 04:05:06.789000000`, `-000000001-02`); the text or the
  * number of its microseconds (the strategy that keeps it as a number), balanced up to hours; an interval of oracledb
  * (`{ years, months }`, `{ days, hours, minutes, seconds, fseconds }`). Undefined for anything else, or for a value
  * whose fields mix signs, which a Temporal.Duration can't hold.
@@ -74,6 +79,20 @@ export function durationOfReceivedValue(value: unknown, typeName: string): Tempo
                 days: outer * Number(days ?? 0), hours: outer * Number(hours ?? 0), minutes: outer * Number(minutes ?? 0),
                 seconds: outer * secondsNumber, ...fractionFields(fraction, outer * secondsSign),
             }, typeName)
+        }
+        const dayToSecond = oracleDayToSecond.exec(text)
+        if (dayToSecond) {
+            const [, signText, days, hours, minutes, seconds, fraction] = dayToSecond
+            const sign = signText === '-' ? -1 : 1
+            return durationOf({
+                days: sign * Number(days), hours: sign * Number(hours), minutes: sign * Number(minutes), seconds: sign * Number(seconds),
+                ...fractionFields(fraction, sign),
+            }, typeName)
+        }
+        const yearToMonth = oracleYearToMonth.exec(text)
+        if (yearToMonth) {
+            const sign = yearToMonth[1] === '-' ? -1 : 1
+            return durationOf({ years: sign * Number(yearToMonth[2]), months: sign * Number(yearToMonth[3]) }, typeName)
         }
         const postgres = postgresStyle.exec(text)
         if (postgres && text !== '') {

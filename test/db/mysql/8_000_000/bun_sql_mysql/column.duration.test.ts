@@ -66,6 +66,23 @@ describe(ctx.label, () => {
         expect(rows.map(row => [row.span.toString(), row.spanCalendar?.toString(), row.spanMicros?.toString()])).toEqual([['-P2DT3H4M5.123456789S', 'P2Y', 'PT168H']])
     })
 
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('durations-are-returned-by-a-delete', async () => {
+        ctx.mockNext({ span: '3 days 04:05:06.789', spanCalendar: '1 year 2 mons', spanMicros: '273906789000' })
+        await ctx.withRollback(async () => {
+            const removed = await ctx.conn.deleteFrom(tDurationValue)
+                .where(tDurationValue.id.equals(1))
+                .returning({ span: tDurationValue.span, spanCalendar: tDurationValue.spanCalendar, spanMicros: tDurationValue.spanMicros })
+                .executeDeleteOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof removed, { span: Temporal.Duration; spanCalendar?: Temporal.Duration; spanMicros?: Temporal.Duration }>>()
+            expect([removed.span.toString(), removed.spanCalendar?.toString(), removed.spanMicros?.toString()]).toEqual(['P3DT4H5M6.789S', 'P1Y2M', 'PT76H5M6.789S'])
+        })
+    })
+    */
+
     test('durations-are-compared-for-equality', async () => {
         ctx.mockNext([{ id: 3 }])
         const rows = await ctx.conn.selectFrom(tDurationValue)

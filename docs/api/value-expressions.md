@@ -347,6 +347,13 @@ interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
 ```
 
 ```typescript
+/** A unit of a time, in the singular or the plural */
+type TimeUnit = 'hour' | 'minute' | 'second' | 'millisecond' | 'microsecond' | 'nanosecond' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
+/** How a value is rounded, as Temporal names it */
+type RoundingMode = 'ceil' | 'floor' | 'expand' | 'trunc' | 'halfCeil' | 'halfFloor' | 'halfExpand' | 'halfTrunc' | 'halfEven'
+```
+
+```typescript
 /**
  * Represents a date without time and without zone (using a Temporal.PlainDate); see Dates and times
  */
@@ -367,6 +374,8 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
     /** The date minus a duration, as Temporal's subtract */
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
+    /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
+    with(fields: { year?: number, month?: number, monthCode?: string, day?: number }): PlainDateValueSource
 }
 ```
 
@@ -389,6 +398,10 @@ interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime,
     add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
     /** The time minus a duration, as Temporal's subtract */
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
+    /** With the fields given in place of its own, as Temporal's with: each taken to its range */
+    with(fields: { hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainTimeValueSource
+    /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
+    round(options: TimeUnit | { smallestUnit: TimeUnit, roundingIncrement?: number, roundingMode?: RoundingMode }): PlainTimeValueSource
 }
 ```
 
@@ -425,6 +438,10 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
     /** The date and time minus a duration, as Temporal's subtract */
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
+    /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
+    with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainDateTimeValueSource
+    /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
+    round(options: TimeUnit | 'day' | 'days' | { smallestUnit: TimeUnit | 'day' | 'days', roundingIncrement?: number, roundingMode?: RoundingMode }): PlainDateTimeValueSource
 }
 ```
 

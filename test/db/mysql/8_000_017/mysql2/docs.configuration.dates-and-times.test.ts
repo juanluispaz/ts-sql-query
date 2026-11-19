@@ -206,4 +206,33 @@ describe(ctx.label, () => {
             ['1.3.0-beta.1', '2025-08-20', '2024-02-21T10:45:00'],
         ])
     })
+
+    test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },
+            { version: '1.2.0', monthOfRelease: '2024-01-01', cutoffSlot: '18:00:00' },
+            { version: '1.3.0-beta.1', monthOfRelease: '2024-02-01', cutoffSlot: '18:00:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                monthOfRelease: tRelease.releasedOn.with({ day: 1 }),
+                cutoffSlot: tRelease.cutoffTime.round({ smallestUnit: 'hour', roundingIncrement: 6 }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, date_add(date_add(makedate(year(released_on), 1), interval month(released_on) - 1 month), interval 1 - 1 day) as monthOfRelease, sec_to_time(mod((2 * (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)) * 1000 + 21600000000000) div 43200000000000 * 21600000000000, 86400000000000) div 1000 * 0.000001) as cutoffSlot from project_release order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof releases, Array<{ version: string; monthOfRelease: Temporal.PlainDate; cutoffSlot: Temporal.PlainTime }>>>()
+        expect(releases.map(release => [release.version, release.monthOfRelease.toString(), release.cutoffSlot.toString()])).toEqual([
+            ['0.9.0', '2024-03-01', '18:00:00'],
+            ['1.2.0', '2024-01-01', '18:00:00'],
+            ['1.3.0-beta.1', '2024-02-01', '18:00:00'],
+        ])
+    })
 })

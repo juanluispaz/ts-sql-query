@@ -206,4 +206,33 @@ describe(ctx.label, () => {
             ['1.3.0-beta.1', '2025-08-20', '2024-02-21T10:45:00'],
         ])
     })
+
+    test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },
+            { version: '1.2.0', monthOfRelease: '2024-01-01', cutoffSlot: '18:00:00' },
+            { version: '1.3.0-beta.1', monthOfRelease: '2024-02-01', cutoffSlot: '18:00:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                monthOfRelease: tRelease.releasedOn.with({ day: 1 }),
+                cutoffSlot: tRelease.cutoffTime.round({ smallestUnit: 'hour', roundingIncrement: 6 }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, date(printf('%04d-%02d-%02d', cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), 1)) as monthOfRelease, strftime('%H:%M:%f', '00:00:00', ((cast((2 * cast(round((julianday(cutoff_time) - julianday(date(cutoff_time))) * 86400000) as integer) * 1000000 + 21600000000000) / 43200000000000 as integer) * 21600000000000) / 1000000000.0) || ' seconds') as cutoffSlot from project_release order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof releases, Array<{ version: string; monthOfRelease: Temporal.PlainDate; cutoffSlot: Temporal.PlainTime }>>>()
+        expect(releases.map(release => [release.version, release.monthOfRelease.toString(), release.cutoffSlot.toString()])).toEqual([
+            ['0.9.0', '2024-03-01', '18:00:00'],
+            ['1.2.0', '2024-01-01', '18:00:00'],
+            ['1.3.0-beta.1', '2024-02-01', '18:00:00'],
+        ])
+    })
 })

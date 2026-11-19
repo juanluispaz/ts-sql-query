@@ -206,4 +206,33 @@ describe(ctx.label, () => {
             ['1.3.0-beta.1', '2025-08-20', '2024-02-21T10:45:00'],
         ])
     })
+
+    test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },
+            { version: '1.2.0', monthOfRelease: '2024-01-01', cutoffSlot: '18:00:00' },
+            { version: '1.3.0-beta.1', monthOfRelease: '2024-02-01', cutoffSlot: '18:00:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                monthOfRelease: tRelease.releasedOn.with({ day: 1 }),
+                cutoffSlot: tRelease.cutoffTime.round({ smallestUnit: 'hour', roundingIncrement: 6 }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, datefromparts(datepart(year, released_on), datepart(month, released_on), 1) as monthOfRelease, dateadd(nanosecond, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cutoff_time as time)) as bigint) * 1000000000 + datepart(nanosecond, cutoff_time)) + cast(21600000000000 as bigint)) / cast(43200000000000 as bigint) * cast(21600000000000 as bigint)) % 1000000000, dateadd(second, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cutoff_time as time)) as bigint) * 1000000000 + datepart(nanosecond, cutoff_time)) + cast(21600000000000 as bigint)) / cast(43200000000000 as bigint) * cast(21600000000000 as bigint)) / 1000000000 % 86400, cast('00:00' as time(7)))) as cutoffSlot from project_release order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof releases, Array<{ version: string; monthOfRelease: Temporal.PlainDate; cutoffSlot: Temporal.PlainTime }>>>()
+        expect(releases.map(release => [release.version, release.monthOfRelease.toString(), release.cutoffSlot.toString()])).toEqual([
+            ['0.9.0', '2024-03-01', '18:00:00'],
+            ['1.2.0', '2024-01-01', '18:00:00'],
+            ['1.3.0-beta.1', '2024-02-01', '18:00:00'],
+        ])
+    })
 })

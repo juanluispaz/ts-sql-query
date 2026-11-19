@@ -228,7 +228,10 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             }
             if (__isPlainTimeClass(context.requestedType) || __isPlainDateTimeClass(context.requestedType)) {
                 context.comparison = 'equality'
-                return "to_char(cast(" + sql + " as timestamp(9)), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
+                // A DATE has no fraction of a second for 'FF9' (ORA-01821): it is cast to a timestamp, unless it already
+                // is one (the result of toPlainDateTime)
+                const timestamp = sql.startsWith('cast(') && sql.endsWith(' as timestamp(9))') ? sql : 'cast(' + sql + ' as timestamp(9))'
+                return "to_char(" + timestamp + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
             }
         }
         return super.transformProjection(sql, context)

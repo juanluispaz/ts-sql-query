@@ -1076,6 +1076,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(year, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
+    override _month(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(month, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
+    }
+    override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
+        // 1 Monday to 7 Sunday whatever the session says the week starts on (see _dayOfWeekFromSunday)
+        return '(datepart(weekday, ' + this._appendDateTimeInUtc(context, valueSource) + ') + @@datefirst + 5) % 7 + 1'
+    }
+    override _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(dayofyear, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
+    }
+    override _microsecond(context: SqlBuildContext, valueSource: ToSql): string {
+        // `datepart(microsecond, …)` gives the microseconds of the second; Temporal's, the ones of the millisecond
+        return 'datepart(microsecond, ' + this._appendSql(valueSource, context, false) + ') % 1000'
+    }
+    override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendSql(valueSource, context, false) + ' as datetime2)'
+    }
+    override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        // A time as a datetime2 is on 1900-01-01 (the day 0): the days from it to the date are added to it
+        return 'dateadd(day, datediff(day, 0, ' + this._appendSql(valueSource, context, false) + '), cast(' + this._appendPlainTimeOperand(context, value) + ' as datetime2))'
+    }
     override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(month, ' + this._appendDateTimeInUtc(context, valueSource) + ') - 1'
     }

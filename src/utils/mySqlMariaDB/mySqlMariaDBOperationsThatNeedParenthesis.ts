@@ -13,4 +13,8 @@ export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParent
     // `_millisecond` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
     _millisecond: false,
+    // `weekday(...) + 1`
+    _dayOfWeek: true,
+    // `timestamp(date, time)`, a self-contained call
+    _toPlainDateTimeAt: false,
 }

@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tColMatrixPlain } from '../../domain/connection.js'
+import { tColMatrixPlain, tTemporalPrecisionPlain } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -134,6 +134,101 @@ describe(ctx.label, () => {
         `)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(json_arrayagg(json_object('mDate', m_date, 'mTime', m_time, 'mDatetime', m_datetime)) as char) as \`values\` from col_matrix where id = ?"`)
         expect(rows.map(row => row.values.map(value => [value.mDate.toString(), value.mTime.toString(), value.mDatetime.toString()]))).toEqual([[['2024-03-04', '09:15:00', '2024-01-14T12:30:00']]])
+    })
+
+    test('the-parts-of-a-plain-date-time', async () => {
+        // 2024-01-15 is a Monday, the 15th day of the year; Temporal's microsecond is the one of the millisecond
+        const expected = [{ year: 2024, month: 1, day: 15, dayOfWeek: 1, dayOfYear: 15, hour: 12, minute: 30, second: 59, millisecond: 999, microsecond: 600 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tTemporalPrecisionPlain)
+            .where(tTemporalPrecisionPlain.id.equals(1))
+            .select({
+                year: tTemporalPrecisionPlain.microStamp.year(),
+                month: tTemporalPrecisionPlain.microStamp.month(),
+                day: tTemporalPrecisionPlain.microStamp.day(),
+                dayOfWeek: tTemporalPrecisionPlain.microStamp.dayOfWeek(),
+                dayOfYear: tTemporalPrecisionPlain.microStamp.dayOfYear(),
+                hour: tTemporalPrecisionPlain.microStamp.hour(),
+                minute: tTemporalPrecisionPlain.microStamp.minute(),
+                second: tTemporalPrecisionPlain.microStamp.second(),
+                millisecond: tTemporalPrecisionPlain.microStamp.millisecond(),
+                microsecond: tTemporalPrecisionPlain.microStamp.microsecond(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(micro_stamp) as year, month(micro_stamp) as month, dayofmonth(micro_stamp) as day, weekday(micro_stamp) + 1 as dayOfWeek, dayofyear(micro_stamp) as dayOfYear, hour(micro_stamp) as hour, minute(micro_stamp) as minute, second(micro_stamp) as second, floor(microsecond(micro_stamp) / 1000) as millisecond, microsecond(micro_stamp) % 1000 as microsecond from temporal_precision where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ year: number; month: number; day: number; dayOfWeek: number; dayOfYear: number; hour: number; minute: number; second: number; millisecond: number; microsecond: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('the-parts-of-a-plain-date-and-a-plain-time', async () => {
+        // 2024-03-04 is a Monday, the 64th day of a leap year; 2024-01-14 is a Sunday, the 7th day of the week
+        const expected = [{ month: 3, dayOfWeek: 1, dayOfYear: 64, sunday: 7, hour: 9, minute: 15, microsecond: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.id.equals(1))
+            .select({
+                month: tColMatrixPlain.mDate.month(),
+                dayOfWeek: tColMatrixPlain.mDate.dayOfWeek(),
+                dayOfYear: tColMatrixPlain.mDate.dayOfYear(),
+                sunday: tColMatrixPlain.mDatetime.dayOfWeek(),
+                hour: tColMatrixPlain.mTime.hour(),
+                minute: tColMatrixPlain.mTime.minute(),
+                microsecond: tColMatrixPlain.mTime.microsecond(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select month(m_date) as month, weekday(m_date) + 1 as dayOfWeek, dayofyear(m_date) as dayOfYear, weekday(m_datetime) + 1 as sunday, hour(m_time) as hour, minute(m_time) as minute, microsecond(m_time) % 1000 as microsecond from col_matrix where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('a-plain-date-time-is-taken-apart-and-a-plain-date-put-at-a-time', async () => {
+        ctx.mockNext([{ date: '2024-01-14', time: '12:30:00', midnight: '2024-03-04 00:00:00', atColumn: '2024-03-04 09:15:00', atValue: '2024-03-04 23:59:58.5' }])
+        const rows = await ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.id.equals(1))
+            .select({
+                date: tColMatrixPlain.mDatetime.toPlainDate(),
+                time: tColMatrixPlain.mDatetime.toPlainTime(),
+                midnight: tColMatrixPlain.mDate.toPlainDateTime(),
+                atColumn: tColMatrixPlain.mDate.toPlainDateTime(tColMatrixPlain.mTime),
+                atValue: tColMatrixPlain.mDate.toPlainDateTime(Temporal.PlainTime.from('23:59:58.5')),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date(m_datetime) as date, time(m_datetime) as time, timestamp(m_date) as midnight, timestamp(m_date, m_time) as atColumn, timestamp(m_date, ?) as atValue from col_matrix where id = ?"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "23:59:58.5",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ date: Temporal.PlainDate; time: Temporal.PlainTime; midnight: Temporal.PlainDateTime; atColumn: Temporal.PlainDateTime; atValue: Temporal.PlainDateTime }>>>()
+        expect(rows.map(row => [row.date.toString(), row.time.toString(), row.midnight.toString(), row.atColumn.toString(), row.atValue.toString()]))
+            .toEqual([['2024-01-14', '12:30:00', '2024-03-04T00:00:00', '2024-03-04T09:15:00', '2024-03-04T23:59:58.5']])
+    })
+
+    test('a-part-and-a-conversion-in-a-condition', async () => {
+        ctx.mockNext([{ id: 1 }])
+        const rows = await ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.mDatetime.toPlainDate().equals(Temporal.PlainDate.from('2024-01-14')))
+            .and(tColMatrixPlain.mDate.dayOfWeek().equals(1))
+            .select({ id: tColMatrixPlain.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from col_matrix where date(m_datetime) = ? and (weekday(m_date) + 1) = ?"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024-01-14",
+            "1",
+          ]
+        `)
+        expect(rows).toEqual([{ id: 1 }])
     })
 
     test('the-current-date-and-time-as-temporal-values', async () => {

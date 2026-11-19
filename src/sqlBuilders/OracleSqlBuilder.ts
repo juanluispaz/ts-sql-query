@@ -17,6 +17,7 @@ import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/val
 import { __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
 import { __isCondition } from '../typeSystem/logical.js'
 import { __classOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
@@ -1375,12 +1376,54 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string {
         // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
-        // trunc of a value with zone gives the day of the zone it was stored with: a localDateTime is taken to the
-        // UTC digits of its instant first. A localDate, and a DATE read as a timestamp, have no zone
-        const day = this._appendZonedUtcTimestamp(context, valueSource) ?? (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
+        const day = this._appendValueForTheDay(context, valueSource)
+        return "mod(trunc(" + day + ") - trunc(" + day + ", 'IW') + 1, 7)"
+    }
+    /**
+     * The value whose day a date function reads: trunc and to_char of a value with zone give the day of the zone it
+     * was stored with, so a localDateTime is taken to the UTC digits of its instant first. A date, a DATE read as a
+     * timestamp and a Temporal value without zone have no zone
+     */
+    _appendValueForTheDay(context: SqlBuildContext, valueSource: ToSql): string {
+        // A Temporal value without zone has no instant: its day is the one of its digits, as it is read
+        if (isValueSource(valueSource) && isPlainTemporalClass(__classOf(__asNodeValueSource(valueSource)))) {
+            return this._appendSql(valueSource, context, false)
+        }
+        return this._appendZonedUtcTimestamp(context, valueSource) ?? (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource)) && !this._isDateReadAsTimestamp(valueSource)
             ? this._appendUtcTimestamp(context, valueSource)
             : this._appendSql(valueSource, context, false))
-        return "mod(trunc(" + day + ") - trunc(" + day + ", 'IW') + 1, 7)"
+    }
+    override _month(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(month from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
+    }
+    override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
+        // The days since the Monday of its ISO week, 'IW': 1 Monday to 7 Sunday, whatever the territory of the session
+        const day = this._appendValueForTheDay(context, valueSource)
+        return "trunc(" + day + ") - trunc(" + day + ", 'IW') + 1"
+    }
+    override _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return "to_number(to_char(" + this._appendValueForTheDay(context, valueSource) + ", 'DDD'))"
+    }
+    override _microsecond(context: SqlBuildContext, valueSource: ToSql): string {
+        // The microseconds of the second ('FF6'); Temporal's are the ones of the millisecond
+        return "mod(to_number(to_char(" + this._appendTimestampForTimeGetter(context, valueSource) + ", 'FF6')), 1000)"
+    }
+    override _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string {
+        // trunc of a DATE or a TIMESTAMP is the DATE of its day
+        return 'trunc(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
+        // Oracle has no TIME type: a time of the day is a TIMESTAMP on 1970-01-01, the time since the start of its day
+        // added to it
+        const value = this._appendSqlParenthesis(valueSource, context, false)
+        return "timestamp '1970-01-01 00:00:00' + (" + value + ' - trunc(' + value + '))'
+    }
+    override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9))'
+    }
+    override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        // The time of the day (a TIMESTAMP on 1970-01-01, written once) as the interval since the start of its day
+        return 'cast(' + this._appendSql(valueSource, context, false) + " as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(" + this._appendPlainTimeOperand(context, value) + " as timestamp(9)), 'HH24:MI:SS.FF9'))"
     }
     /**
      * The value as a TIMESTAMP with the UTC digits of its instant: the epoch without zone plus the interval from it. A

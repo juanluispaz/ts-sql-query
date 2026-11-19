@@ -4,6 +4,9 @@ import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } fro
 export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     ...operationsThatNeedParenthesis,
     _dayOfWeekFromSunday: true,
+    _dayOfWeek: true,
+    // `dateadd(...)`, a self-contained call
+    _toPlainDateTimeAt: false,
     // `_millisecond` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
     _millisecond: false,

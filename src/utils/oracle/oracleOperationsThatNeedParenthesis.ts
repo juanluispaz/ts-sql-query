@@ -8,6 +8,12 @@ export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     // `% 1000` form asks for.
     _millisecond: false,
     _dayOfWeekFromSunday: true,
+    // `trunc(x) - trunc(x, 'IW') + 1`
+    _dayOfWeek: true,
+    // `mod(...)`, a self-contained call
+    _microsecond: false,
+    // `timestamp '1970-01-01 00:00:00' + (...)`
+    _toPlainTime: true,
     _negate: true,
     // `_cot` is written as the compound expression `1 / tan(x)` (Oracle has no native COT function), so it must be
     // parenthesised when used as an operand of another operation.

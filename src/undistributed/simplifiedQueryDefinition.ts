@@ -470,6 +470,70 @@ interface UuidsValueSource<T, TYPE_NAME extends string> extends ComparableValueS
 }
 
 /**
+ * Represents a date without time and without zone (using a Temporal.PlainDate)
+ */
+interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate, 'plainDate'> {
+    /** Gets the year (as Temporal's year) */
+    year(): NumberValueSource
+    /** Gets the month, from 1 (January) to 12 (as Temporal's month) */
+    month(): NumberValueSource
+    /** Gets the day of the month (as Temporal's day) */
+    day(): NumberValueSource
+    /** Gets the day of the week, from 1 (Monday) to 7 (Sunday) (as Temporal's dayOfWeek) */
+    dayOfWeek(): NumberValueSource
+    /** Gets the day of the year, from 1 to 366 (as Temporal's dayOfYear) */
+    dayOfYear(): NumberValueSource
+    /** This date at 00:00, or at the time given (as Temporal's toPlainDateTime) */
+    toPlainDateTime(time?: Temporal.PlainTime | PlainTimeValueSource): PlainDateTimeValueSource
+}
+
+/**
+ * Represents a time of the day without date and without zone (using a Temporal.PlainTime)
+ */
+interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime, 'plainTime'> {
+    /** Gets the hour (as Temporal's hour) */
+    hour(): NumberValueSource
+    /** Gets the minute (as Temporal's minute) */
+    minute(): NumberValueSource
+    /** Gets the second, without its fraction (as Temporal's second) */
+    second(): NumberValueSource
+    /** Gets the millisecond of the second (as Temporal's millisecond) */
+    millisecond(): NumberValueSource
+    /** Gets the microsecond of the millisecond (as Temporal's microsecond) */
+    microsecond(): NumberValueSource
+}
+
+/**
+ * Represents a date and a time without zone (using a Temporal.PlainDateTime)
+ */
+interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainDateTime, 'plainDateTime'> {
+    /** Gets the year (as Temporal's year) */
+    year(): NumberValueSource
+    /** Gets the month, from 1 (January) to 12 (as Temporal's month) */
+    month(): NumberValueSource
+    /** Gets the day of the month (as Temporal's day) */
+    day(): NumberValueSource
+    /** Gets the day of the week, from 1 (Monday) to 7 (Sunday) (as Temporal's dayOfWeek) */
+    dayOfWeek(): NumberValueSource
+    /** Gets the day of the year, from 1 to 366 (as Temporal's dayOfYear) */
+    dayOfYear(): NumberValueSource
+    /** Gets the hour (as Temporal's hour) */
+    hour(): NumberValueSource
+    /** Gets the minute (as Temporal's minute) */
+    minute(): NumberValueSource
+    /** Gets the second, without its fraction (as Temporal's second) */
+    second(): NumberValueSource
+    /** Gets the millisecond of the second (as Temporal's millisecond) */
+    millisecond(): NumberValueSource
+    /** Gets the microsecond of the millisecond (as Temporal's microsecond) */
+    microsecond(): NumberValueSource
+    /** Gets the date (as Temporal's toPlainDate) */
+    toPlainDate(): PlainDateValueSource
+    /** Gets the time of the day (as Temporal's toPlainTime) */
+    toPlainTime(): PlainTimeValueSource
+}
+
+/**
  * Represents a local date without time of a type of yours that extends `LocalDatesType`. The getters give its parts in
  * UTC, as the getUTC… methods of the Date read
  */
@@ -614,6 +678,9 @@ interface Connection {
     currentTime(): LocalTimeValueSource
     currentDateTime(): LocalDateTimeValueSource
     currentTimestamp(): LocalDateTimeValueSource
+    currentPlainDate(): PlainDateValueSource
+    currentPlainTime(): PlainTimeValueSource
+    currentPlainDateTime(): PlainDateTimeValueSource
     true(): BooleanValueSource
     false(): BooleanValueSource
 
@@ -2174,7 +2241,8 @@ type CompoundableSubquery = SelectExpression
 interface DataTypes {
     boolean: BooleanValueSource, int: NumberValueSource, bigint: BigintValueSource, double: NumberValueSource,
     stringDecimal: StringDecimalValueSource, string: StringValueSource, uuid: UuidValueSource,
-    localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource
+    localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource,
+    plainDate: PlainDateValueSource, plainTime: PlainTimeValueSource, plainDateTime: PlainDateTimeValueSource
 }
 type DataTypeName = keyof DataTypes
 /** Registers a data type of the user by the type name of its class (its static type) */

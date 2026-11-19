@@ -169,9 +169,10 @@ describe('PlainTemporalValues', () => {
     })
 
     test('no-module-of-the-library-names-temporal-but-its-own', () => {
-        // A declaration that names Temporal fails to compile for a user whose lib doesn't declare it
+        // A declaration that names Temporal fails to compile for a user whose lib doesn't declare it. src/undistributed
+        // isn't distributed
         const root = normalize(join(import.meta.dirname, '..', '..', '..'))
-        const files = execSync("git ls-files 'src/*.ts'", { cwd: root, encoding: 'utf8' }).split('\n').filter(file => file !== '' && file !== 'src/typeSystem/temporal.ts')
+        const files = execSync("git ls-files 'src/*.ts'", { cwd: root, encoding: 'utf8' }).split('\n').filter(file => file !== '' && file !== 'src/typeSystem/temporal.ts' && !file.startsWith('src/undistributed/'))
         expect(files.length).toBeGreaterThan(100)
         const naming: string[] = []
         for (const file of files) {

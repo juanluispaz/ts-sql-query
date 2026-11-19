@@ -13,6 +13,8 @@ import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
+import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
+import { sqliteOperationsThatNeedParenthesis } from '../utils/sqlite/sqliteOperationsThatNeedParenthesis.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 
@@ -36,6 +38,7 @@ export function canonicalDecimalText(text: string): string {
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
+    override _operationsThatNeedParenthesis = sqliteOperationsThatNeedParenthesis
     _getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return this._connectionConfiguration.getDateTimeFormat!(type) as any
     }
@@ -755,9 +758,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const format = this._getValueSourceDateTimeFormat(valueSource)
         const isTime = isValueSource(valueSource) && __isLocalTimeValueSource(__asNodeValueSource(valueSource))
         const isDate = isValueSource(valueSource) && __isLocalDateValueSource(__asNodeValueSource(valueSource))
+        // A Temporal value without zone has no zone to take it to: its digits are the ones it has
         const inApplicationZone = !!this._connectionConfiguration.sqliteRunsInApplicationTimeZone
             && !isDate
             && !isLocalTextFormat(format)
+            && !(isValueSource(valueSource) && isPlainTemporalClass(__classOf(__asNodeValueSource(valueSource))))
         const modifier = inApplicationZone ? ", 'localtime'" : ''
         switch (format) {
             case 'Unix time seconds as integer':
@@ -1243,6 +1248,69 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // The error only hit ms values whose binade makes the product fall short — 372 of
         // the 60000 (second, millisecond) pairs, all at powers of two.
         return "cast(round(strftime('%f', " + this._appendSql(valueSource, context, false) + ") * 1000) as integer) % 1000"
+    }
+    override _month(context: SqlBuildContext, valueSource: ToSql): string {
+        return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+    }
+    override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
+        // `%w` is 0 Sunday to 6 Saturday; Temporal's dayOfWeek, 1 Monday to 7 Sunday (`%u`, only since SQLite 3.46)
+        return "(cast(strftime('%w', " + this._dateFunctionArgument(context, valueSource) + ") as integer) + 6) % 7 + 1"
+    }
+    override _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return "cast(strftime('%j', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+    }
+    override _microsecond(context: SqlBuildContext, valueSource: ToSql): string {
+        // The date functions of SQLite stop at the millisecond: the microseconds of the millisecond are the 4th to the
+        // 6th digit of the fraction of a value kept as text, 0 when it has none. A number (a Julian day, a Unix time)
+        // has none
+        const format = this._getValueSourceDateTimeFormat(valueSource)
+        if (format === 'Julian day as real number' || format === 'Unix time seconds as integer' || format === 'Unix time milliseconds as integer') {
+            return '0'
+        }
+        const value = this._appendSqlParenthesis(valueSource, context, false)
+        return "case when instr(" + value + ", '.') = 0 then 0 else cast(substr(" + value + " || '000000', instr(" + value + ", '.') + 4, 3) as integer) end"
+    }
+    override _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._sqliteTemporalIn('date', this._dateFunctionArgument(context, valueSource))
+    }
+    override _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._sqliteTemporalIn('time', this._dateFunctionArgument(context, valueSource))
+    }
+    override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._sqliteTemporalIn('dateTime', this._dateFunctionArgument(context, valueSource))
+    }
+    override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        // The text of the date and the time joined, read by the date functions as one date and time
+        const time = isValueSource(value) ? this._dateFunctionArgument(context, __asNodeValueSource(value)) : this._appendPlainTimeOperand(context, value)
+        return this._sqliteTemporalIn('dateTime', "date(" + this._dateFunctionArgument(context, valueSource) + ") || ' ' || strftime('%H:%M:%f', " + time + ")")
+    }
+    /**
+     * A date, a time or a date and time in the format its type is kept in (getDateTimeFormat), from the arguments of a
+     * date function of SQLite (a value and its modifiers): its text, with the seconds or the milliseconds the format
+     * says, or its number (a Julian day, of a time the fraction of a day since midnight; a Unix time)
+     */
+    _sqliteTemporalIn(kind: SqliteDateTimeFormatType, args: string): string {
+        const format = this._getDateTimeFormat(kind)
+        // A time kept as a number is the one of 1970-01-01
+        const value = kind === 'date' ? 'date(' + args + ')' : kind === 'time' ? "strftime('1970-01-01 %H:%M:%f', " + args + ')' : args
+        switch (format) {
+            case 'Julian day as real number':
+                return kind === 'time' ? '(julianday(' + value + ') - 2440587.5)' : 'julianday(' + value + ')'
+            case 'Unix time seconds as integer':
+                return this._unixEpochSeconds(value)
+            case 'Unix time milliseconds as integer':
+                return this._unixEpochMilliseconds(value)
+            default:
+        }
+        if (kind === 'date') {
+            return 'date(' + args + ')'
+        }
+        const time = format.includes('milliseconds') ? '%H:%M:%f' : '%H:%M:%S'
+        const zone = format.includes('Z timezone') ? 'Z' : ''
+        if (kind === 'time') {
+            return "strftime('" + time + zone + "', " + args + ')'
+        }
+        return "strftime('%Y-%m-%d" + (format.includes('T separator') ? 'T' : ' ') + time + zone + "', " + args + ')'
     }
     /** In a canonical text variant a computed exact decimal is stored in its canonical text */
     override _appendValueForColumn(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string {

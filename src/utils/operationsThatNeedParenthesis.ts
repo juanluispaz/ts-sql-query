@@ -2,7 +2,7 @@ import type { SqlOperation } from '../sqlBuilders/SqlBuilder.js'
 
 // The operations whose SQL is wrapped in parenthesis when it is an operand of another operation, because it doesn't
 // delimit itself (an operator, or a call followed by an operator): `(a + b) * c`, `(x collate name) = y`. Each SQL
-// builder has the list of its database; this one is the base, the one of PostgreSQL and SQLite.
+// builder has the list of its database; this one is the base, the one of PostgreSQL.
 
 /** Whether the SQL of each operation is wrapped in parenthesis when it is an operand of another operation */
 export type OperationsThatNeedParenthesis = { readonly [operation in keyof SqlOperation]?: boolean | undefined }
@@ -35,6 +35,9 @@ export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     // when embedded. A dialect whose override is a self-contained call sets these back to false.
     _monthFromZero: true,
     _millisecond: true,
+    _microsecond: true,
+    // A date plus a time of the day (`date + time`)
+    _toPlainDateTimeAt: true,
     // `<x> collate <name>` binds looser than the operators it is embedded in, so it needs wrapping when used as an
     // operand (`(x collate name) = …`). The receiver's own parenthesis is handled by `_appendSqlParenthesis` inside
     // `_collate`.

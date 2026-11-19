@@ -682,7 +682,10 @@ The kinds of column (`docs/configuration/time-zones.md`):
 | 3 | stores one normalized instant | an instant | PostgreSQL `timestamptz` |
 | 4 | keeps the zone of each value | the value and its zone | Oracle `TIMESTAMP WITH TIME ZONE`, SQL Server `datetimeoffset`, PostgreSQL `timetz` |
 
-The date functions of a query (`getFullYear` … `getMilliseconds`) give the parts in UTC, as the `getUTC…` methods of
+The methods of a `plainDate`, a `plainTime` and a `plainDateTime` (`year` … `microsecond`, with the semantics of
+Temporal: `month` from 1, `dayOfWeek` from 1 Monday) give the parts of its digits, as they are read; on SQL Server, a
+`datetimeoffset`, whose instant tedious delivers, by the parts of that instant in UTC. The date functions of a query
+of a `Date` (`getFullYear` … `getMilliseconds`) give the parts in UTC, as the `getUTC…` methods of
 the `Date` read, and `getTime` its `getTime()`, the instant, also for a value stored with another offset
 (`docs/configuration/time-zones.md`, "The date functions of a query give the parts in UTC"). One exception: with the
 database in UTC, `getHours` of a PostgreSQL `timetz` stored with an offset other than `+00:00` gives the hour of its own

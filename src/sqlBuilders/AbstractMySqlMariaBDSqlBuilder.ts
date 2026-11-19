@@ -969,6 +969,33 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'year(' + this._appendSql(valueSource, context, false) + ')'
     }
+    override _month(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'month(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
+        // `weekday`: 0 Monday to 6 Sunday
+        return 'weekday(' + this._appendSql(valueSource, context, false) + ') + 1'
+    }
+    override _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'dayofyear(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _microsecond(context: SqlBuildContext, valueSource: ToSql): string {
+        // `microsecond` gives the microseconds of the second; Temporal's, the ones of the millisecond
+        return 'microsecond(' + this._appendSql(valueSource, context, false) + ') % 1000'
+    }
+    override _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'date(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'time(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'timestamp(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        // `timestamp(date, time)`: the date at that time of the day
+        return 'timestamp(' + this._appendSql(valueSource, context, false) + ', ' + this._appendPlainTimeOperand(context, value) + ')'
+    }
     override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
         return 'month(' + this._appendSql(valueSource, context, false) + ') - 1'
     }

@@ -487,6 +487,14 @@ export interface SqlFunction0 {
     _minute(context: SqlBuildContext, valueSource: ToSql): string
     _second(context: SqlBuildContext, valueSource: ToSql): string
     _millisecond(context: SqlBuildContext, valueSource: ToSql): string
+    // Date functions with the semantics of Temporal (plainDate, plainTime, plainDateTime)
+    _month(context: SqlBuildContext, valueSource: ToSql): string
+    _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string
+    _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string
+    _microsecond(context: SqlBuildContext, valueSource: ToSql): string
+    _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string
+    _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string
+    _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive
@@ -521,6 +529,8 @@ export interface SqlFunction1 {
     _modulo(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string // %
     // Trigonometric Functions
     _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // Date functions with the semantics of Temporal: a date at a time of the day
+    _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
 }
 // avg, count, max, median, min,
 // greatest, least

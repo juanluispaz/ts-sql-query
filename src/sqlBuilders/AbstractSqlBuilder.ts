@@ -3977,6 +3977,42 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // then wraps it to 0 instead of 999.
         return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, context) + '))::integer % 1000'
     }
+    // The date functions with the semantics of Temporal (plainDate, plainTime, plainDateTime), in PostgreSQL's form, as
+    // the family above: every other dialect overrides them
+    _month(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(month from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
+    }
+    _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
+        // `isodow`: 1 Monday to 7 Sunday, as Temporal's dayOfWeek
+        return 'extract(isodow from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
+    }
+    _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(doy from ' + this._appendSqlForDatePartArgument(valueSource, context) + ')'
+    }
+    _microsecond(context: SqlBuildContext, valueSource: ToSql): string {
+        // Temporal's microsecond is the one of the millisecond (0 to 999). `extract(microseconds …)` gives the
+        // microseconds of the minute, with a fraction a cast would round
+        return 'trunc(extract(microseconds from ' + this._appendSqlForDatePartArgument(valueSource, context) + '))::integer % 1000'
+    }
+    _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
+    }
+    _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendSql(valueSource, context, false) + ' as time)'
+    }
+    _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        // A date at 00:00
+        return 'cast(' + this._appendSql(valueSource, context, false) + ' as timestamp)'
+    }
+    _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        // A date plus a time of the day is the timestamp of that day at that time; a time given as a value is sent with
+        // its type, which the operator needs
+        return this._appendSqlParenthesisExcluding(valueSource, context, '_toPlainDateTimeAt', false) + ' + ' + this._appendPlainTimeOperand(context, value)
+    }
+    /** The time of the day of `toPlainDateTime(time)`: a value source as it is, a value as a plainTime with its type */
+    _appendPlainTimeOperand(context: SqlBuildContext, value: any): string {
+        return this._appendValueParenthesis(value, context, __registeredDataType('plainTime'), true)
+    }
     /** Whether the database supports a databaseTimeZone other than UTC, completing the zone of a value with its session */
     _supportDatabaseOutsideUtc(): boolean {
         return false

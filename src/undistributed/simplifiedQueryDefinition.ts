@@ -534,6 +534,14 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
 }
 
 /**
+ * Represents a duration (using a Temporal.Duration): an interval on PostgreSQL and Oracle; elsewhere its ISO 8601 text
+ * or its number of microseconds (the durationStrategy of the connection, or the SQL data type of its column). Only
+ * compared for equality, as Temporal can't order two durations without a date to count from
+ */
+interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'duration'> {
+}
+
+/**
  * Represents a local date without time of a type of yours that extends `LocalDatesType`. The getters give its parts in
  * UTC, as the getUTC… methods of the Date read
  */
@@ -1057,12 +1065,14 @@ interface StringDecimalFilter extends ComparableFilter<string> { }
 // Protected configuration properties that each connection adds
 interface MariaDBConnectionConfiguration {
     uuidStrategy: 'string' | 'string as sent' | 'uuid' // Default: 'uuid'
+    durationStrategy: 'ISO 8601 text' | 'microseconds as integer' // Default: 'ISO 8601 text'
     usePlatformDependentRound: boolean // Default: false
     useSimultaneousAssignment: boolean // Default: false
 }
 
 interface MySqlConnectionConfiguration {
     uuidStrategy: 'string' | 'string as sent' | 'binary' // Default: 'binary'
+    durationStrategy: 'ISO 8601 text' | 'microseconds as integer' // Default: 'ISO 8601 text'
     usePlatformDependentRound: boolean // Default: false
 }
 
@@ -1085,6 +1095,7 @@ interface PostgreSqlConnectionConfiguration {
 
 interface SqliteConnectionConfiguration {
     uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' // Default: 'uuid-extension'
+    durationStrategy: 'ISO 8601 text' | 'microseconds as integer' // Default: 'ISO 8601 text'
     replaceAllInsensitiveFunction?: string
     /** Protected method with the format of a date, a time or a date time. By default, 'localdate milliseconds as text' */
     getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate seconds as text' | 'localdate milliseconds as text' | 'localdate seconds as text using T separator' | 'localdate milliseconds as text using T separator' | 'UTC seconds as text' | 'UTC milliseconds as text' | 'UTC seconds as text using T separator' | 'UTC milliseconds as text using T separator' | 'UTC seconds as text using Z timezone' | 'UTC milliseconds as text using Z timezone' | 'UTC seconds as text using T separator and Z timezone' | 'UTC milliseconds as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
@@ -1099,6 +1110,7 @@ interface SqlServerConnectionConfiguration {
     excludeTrailingBlanksInLength: boolean // Default: false
     usePlatformDependentRound: boolean // Default: false
     useUpperCaseUuid: boolean // Default: false
+    durationStrategy: 'ISO 8601 text' | 'microseconds as integer' // Default: 'ISO 8601 text'
     ignoreNullInMinAndMaxValue: boolean // Default: false
     minValueFunction?: string
     maxValueFunction?: string
@@ -2242,7 +2254,8 @@ interface DataTypes {
     boolean: BooleanValueSource, int: NumberValueSource, bigint: BigintValueSource, double: NumberValueSource,
     stringDecimal: StringDecimalValueSource, string: StringValueSource, uuid: UuidValueSource,
     localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource,
-    plainDate: PlainDateValueSource, plainTime: PlainTimeValueSource, plainDateTime: PlainDateTimeValueSource
+    plainDate: PlainDateValueSource, plainTime: PlainTimeValueSource, plainDateTime: PlainDateTimeValueSource,
+    duration: DurationValueSource
 }
 type DataTypeName = keyof DataTypes
 /** Registers a data type of the user by the type name of its class (its static type) */
